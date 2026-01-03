@@ -1,0 +1,1003 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FalCaMel Cafe - A falcon, a camel, and rescue cats walk into a cliff</title>
+    <meta name="description" content="200 meters above the valley. A peregrine falcon who races roller coasters. A camel whose milk is in your latte. Rescue cats who may or may not acknowledge you. Tuwaiq Escarpment, Qiddiya, Saudi Arabia.">
+    <style>
+        @font-face {
+            font-family: 'DINPro';
+            src: url('../fonts/DINPro-Light.ttf') format('truetype');
+            font-weight: 300;
+            font-style: normal;
+        }
+        @font-face {
+            font-family: 'DINPro';
+            src: url('../fonts/DINPro-Regular.ttf') format('truetype');
+            font-weight: 400;
+            font-style: normal;
+        }
+        @font-face {
+            font-family: 'DINPro';
+            src: url('../fonts/DINPro-Medium.ttf') format('truetype');
+            font-weight: 500;
+            font-style: normal;
+        }
+        @font-face {
+            font-family: 'DINPro';
+            src: url('../fonts/DINPro-Bold.ttf') format('truetype');
+            font-weight: 700;
+            font-style: normal;
+        }
+        @font-face {
+            font-family: 'DINPro';
+            src: url('../fonts/DINPro-Black.ttf') format('truetype');
+            font-weight: 900;
+            font-style: normal;
+        }
+
+        :root {
+            --color-primary: #8B7355;
+            --color-secondary: #F5F5F0;
+            --color-accent: #D4A84B;
+            --color-text: #1A1A1A;
+            --color-background: #FAFAF7;
+            --color-mist: rgba(245, 245, 240, 0.9);
+            --font-family: 'DINPro', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        body {
+            font-family: var(--font-family);
+            font-weight: 400;
+            color: var(--color-text);
+            background-color: var(--color-background);
+            line-height: 1.6;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        /* Typography */
+        h1, h2, h3, h4 {
+            font-weight: 700;
+            line-height: 1.1;
+            letter-spacing: -0.02em;
+        }
+
+        h1 {
+            font-size: clamp(2.5rem, 6vw, 4.5rem);
+        }
+
+        h2 {
+            font-size: clamp(2rem, 4vw, 3rem);
+        }
+
+        h3 {
+            font-size: clamp(1.5rem, 3vw, 2rem);
+        }
+
+        p {
+            font-size: clamp(1rem, 1.5vw, 1.125rem);
+        }
+
+        /* Layout */
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 24px;
+        }
+
+        section {
+            padding: 100px 0;
+        }
+
+        /* Navigation */
+        nav {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 1000;
+            padding: 20px 0;
+            transition: background-color 0.3s ease, padding 0.3s ease;
+        }
+
+        nav.scrolled {
+            background-color: var(--color-mist);
+            backdrop-filter: blur(10px);
+            padding: 12px 0;
+        }
+
+        nav .container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            height: 40px;
+            transition: filter 0.3s ease;
+        }
+
+        nav.scrolled .logo {
+            filter: none;
+        }
+
+        .nav-cta {
+            background-color: var(--color-accent);
+            color: var(--color-text);
+            padding: 12px 24px;
+            text-decoration: none;
+            font-weight: 500;
+            font-size: 0.875rem;
+            letter-spacing: 0.02em;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .nav-cta:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(212, 168, 75, 0.3);
+        }
+
+        /* Hero Section */
+        .hero {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            position: relative;
+            background: linear-gradient(to bottom, rgba(0,0,0,0.3), rgba(0,0,0,0.5)),
+                        url('../images/hero.jpg') center/cover no-repeat;
+            color: white;
+            padding: 120px 24px 80px;
+        }
+
+        .hero-content {
+            max-width: 900px;
+        }
+
+        .hero h1 {
+            margin-bottom: 24px;
+            text-shadow: 0 2px 20px rgba(0,0,0,0.3);
+        }
+
+        .hero-subline {
+            font-size: clamp(1.125rem, 2vw, 1.5rem);
+            font-weight: 300;
+            margin-bottom: 48px;
+            opacity: 0.95;
+        }
+
+        .btn-primary {
+            display: inline-block;
+            background-color: var(--color-accent);
+            color: var(--color-text);
+            padding: 18px 48px;
+            text-decoration: none;
+            font-weight: 500;
+            font-size: 1rem;
+            letter-spacing: 0.02em;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 20px rgba(212, 168, 75, 0.4);
+        }
+
+        .btn-secondary {
+            display: inline-block;
+            background-color: transparent;
+            color: var(--color-text);
+            padding: 18px 48px;
+            text-decoration: none;
+            font-weight: 500;
+            font-size: 1rem;
+            letter-spacing: 0.02em;
+            border: 2px solid var(--color-primary);
+            transition: all 0.2s ease;
+        }
+
+        .btn-secondary:hover {
+            background-color: var(--color-primary);
+            color: white;
+        }
+
+        /* The Cliff Section */
+        .cliff-section {
+            background-color: var(--color-secondary);
+        }
+
+        .cliff-section .container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 80px;
+            align-items: center;
+        }
+
+        .cliff-content h2 {
+            margin-bottom: 32px;
+            color: var(--color-primary);
+        }
+
+        .cliff-content p {
+            color: #444;
+            line-height: 1.8;
+        }
+
+        .cliff-image {
+            position: relative;
+        }
+
+        .cliff-image img {
+            width: 100%;
+            height: auto;
+            display: block;
+        }
+
+        .cliff-image::after {
+            content: '';
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            right: -20px;
+            bottom: -20px;
+            border: 2px solid var(--color-accent);
+            z-index: -1;
+        }
+
+        /* Residents Section */
+        .residents-section {
+            background-color: var(--color-background);
+        }
+
+        .residents-section h2 {
+            text-align: center;
+            margin-bottom: 80px;
+        }
+
+        .residents-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 60px;
+        }
+
+        .resident-card {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 40px;
+            align-items: center;
+        }
+
+        .resident-card:nth-child(even) {
+            direction: rtl;
+        }
+
+        .resident-card:nth-child(even) > * {
+            direction: ltr;
+        }
+
+        .resident-image {
+            position: relative;
+            overflow: hidden;
+        }
+
+        .resident-image img {
+            width: 100%;
+            height: 350px;
+            object-fit: cover;
+            display: block;
+            transition: transform 0.5s ease;
+        }
+
+        .resident-card:hover .resident-image img {
+            transform: scale(1.03);
+        }
+
+        .resident-content h3 {
+            margin-bottom: 16px;
+            color: var(--color-primary);
+        }
+
+        .resident-content p {
+            color: #444;
+            line-height: 1.8;
+        }
+
+        /* The Race Section */
+        .race-section {
+            background: linear-gradient(135deg, var(--color-primary) 0%, #6B5A45 100%);
+            color: white;
+            text-align: center;
+        }
+
+        .race-section h2 {
+            margin-bottom: 32px;
+        }
+
+        .race-section p {
+            max-width: 800px;
+            margin: 0 auto 48px;
+            font-size: clamp(1.125rem, 2vw, 1.25rem);
+            line-height: 1.8;
+            opacity: 0.95;
+        }
+
+        .race-section .btn-primary {
+            background-color: var(--color-accent);
+            color: var(--color-text);
+        }
+
+        /* Offerings Section */
+        .offerings-section {
+            background-color: var(--color-secondary);
+        }
+
+        .offerings-section h2 {
+            text-align: center;
+            margin-bottom: 60px;
+        }
+
+        .offerings-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 30px;
+            margin-bottom: 48px;
+        }
+
+        .offering-card {
+            background-color: white;
+            padding: 40px;
+            position: relative;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .offering-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 40px rgba(0,0,0,0.1);
+        }
+
+        .offering-card h3 {
+            margin-bottom: 8px;
+            color: var(--color-text);
+        }
+
+        .offering-price {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--color-accent);
+            margin-bottom: 20px;
+        }
+
+        .offering-card p {
+            color: #666;
+            line-height: 1.7;
+        }
+
+        .offering-card.featured {
+            border: 2px solid var(--color-accent);
+        }
+
+        .offering-card.featured::before {
+            content: 'Signature';
+            position: absolute;
+            top: 0;
+            right: 40px;
+            background-color: var(--color-accent);
+            color: var(--color-text);
+            padding: 6px 16px;
+            font-size: 0.75rem;
+            font-weight: 500;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+        }
+
+        .offerings-cta {
+            text-align: center;
+        }
+
+        /* Tables Section */
+        .tables-section {
+            background-color: var(--color-background);
+        }
+
+        .tables-section h2 {
+            margin-bottom: 24px;
+        }
+
+        .tables-intro {
+            max-width: 700px;
+            margin-bottom: 60px;
+            color: #444;
+            line-height: 1.8;
+        }
+
+        .tables-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 30px;
+            margin-bottom: 48px;
+        }
+
+        .table-card {
+            background-color: white;
+            padding: 32px;
+            border-left: 4px solid var(--color-primary);
+        }
+
+        .table-card h4 {
+            margin-bottom: 8px;
+        }
+
+        .table-price {
+            font-weight: 700;
+            color: var(--color-accent);
+            margin-bottom: 16px;
+        }
+
+        .table-card p {
+            color: #666;
+            font-size: 0.9375rem;
+            line-height: 1.7;
+        }
+
+        /* Menu Section */
+        .menu-section {
+            background-color: var(--color-secondary);
+        }
+
+        .menu-section h2 {
+            margin-bottom: 24px;
+        }
+
+        .menu-intro {
+            max-width: 600px;
+            margin-bottom: 60px;
+            color: #444;
+        }
+
+        .menu-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 40px;
+        }
+
+        .menu-item {
+            text-align: center;
+        }
+
+        .menu-item-image {
+            width: 100%;
+            height: 250px;
+            background-color: var(--color-primary);
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 0.875rem;
+            opacity: 0.7;
+        }
+
+        .menu-item h4 {
+            margin-bottom: 8px;
+        }
+
+        .menu-item-price {
+            font-weight: 700;
+            color: var(--color-accent);
+            margin-bottom: 12px;
+        }
+
+        .menu-item p {
+            color: #666;
+            font-size: 0.9375rem;
+            line-height: 1.6;
+        }
+
+        /* Location Section */
+        .location-section {
+            background-color: var(--color-background);
+        }
+
+        .location-section .container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 80px;
+            align-items: center;
+        }
+
+        .location-content h2 {
+            margin-bottom: 24px;
+            color: var(--color-primary);
+        }
+
+        .location-content p {
+            margin-bottom: 32px;
+            color: #444;
+            line-height: 1.8;
+        }
+
+        .location-details {
+            list-style: none;
+        }
+
+        .location-details li {
+            padding: 16px 0;
+            border-bottom: 1px solid #e0e0e0;
+            display: flex;
+            justify-content: space-between;
+            color: #444;
+        }
+
+        .location-details li:last-child {
+            border-bottom: none;
+        }
+
+        .location-details strong {
+            color: var(--color-text);
+        }
+
+        .location-map {
+            background-color: var(--color-secondary);
+            height: 400px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #888;
+        }
+
+        /* Final CTA Section */
+        .final-cta {
+            background: linear-gradient(to bottom, rgba(0,0,0,0.6), rgba(0,0,0,0.7)),
+                        url('../images/hero.jpg') center/cover no-repeat fixed;
+            color: white;
+            text-align: center;
+            padding: 120px 24px;
+        }
+
+        .final-cta h2 {
+            margin-bottom: 20px;
+        }
+
+        .final-cta-subline {
+            font-size: clamp(1rem, 1.5vw, 1.25rem);
+            font-weight: 300;
+            margin-bottom: 48px;
+            opacity: 0.9;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        /* Footer */
+        footer {
+            background-color: var(--color-text);
+            color: white;
+            padding: 60px 0;
+        }
+
+        footer .container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .footer-logo {
+            height: 32px;
+        }
+
+        .footer-tagline {
+            font-weight: 300;
+            opacity: 0.8;
+        }
+
+        .footer-location {
+            text-align: right;
+            font-size: 0.875rem;
+            opacity: 0.7;
+        }
+
+        /* Responsive */
+        @media (max-width: 1024px) {
+            .residents-grid {
+                grid-template-columns: 1fr;
+                gap: 80px;
+            }
+
+            .resident-card {
+                gap: 30px;
+            }
+        }
+
+        @media (max-width: 768px) {
+            section {
+                padding: 80px 0;
+            }
+
+            .cliff-section .container {
+                grid-template-columns: 1fr;
+                gap: 40px;
+            }
+
+            .cliff-image {
+                order: -1;
+            }
+
+            .cliff-image::after {
+                display: none;
+            }
+
+            .resident-card {
+                grid-template-columns: 1fr;
+            }
+
+            .resident-card:nth-child(even) {
+                direction: ltr;
+            }
+
+            .resident-image img {
+                height: 280px;
+            }
+
+            .offerings-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .tables-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .menu-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .location-section .container {
+                grid-template-columns: 1fr;
+                gap: 40px;
+            }
+
+            .location-map {
+                order: -1;
+                height: 300px;
+            }
+
+            footer .container {
+                flex-direction: column;
+                gap: 24px;
+                text-align: center;
+            }
+
+            .footer-location {
+                text-align: center;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .hero {
+                padding: 100px 20px 60px;
+            }
+
+            .btn-primary, .btn-secondary {
+                padding: 16px 36px;
+                width: 100%;
+                text-align: center;
+            }
+
+            .offering-card {
+                padding: 30px;
+            }
+
+            .nav-cta {
+                padding: 10px 16px;
+                font-size: 0.8125rem;
+            }
+        }
+
+        /* Sticky mobile CTA */
+        .mobile-cta {
+            display: none;
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background-color: var(--color-accent);
+            padding: 16px 24px;
+            text-align: center;
+            z-index: 999;
+            box-shadow: 0 -4px 20px rgba(0,0,0,0.15);
+        }
+
+        .mobile-cta a {
+            color: var(--color-text);
+            text-decoration: none;
+            font-weight: 500;
+            font-size: 1rem;
+        }
+
+        @media (max-width: 768px) {
+            .mobile-cta {
+                display: block;
+            }
+
+            body {
+                padding-bottom: 60px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav id="navbar">
+        <div class="container">
+            <img src="../images/falcamel-logo-white.png" alt="FalCaMel Cafe" class="logo" id="nav-logo">
+            <a href="booking.html" class="nav-cta">Meet the Residents</a>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="hero">
+        <div class="hero-content">
+            <h1>A falcon, a camel, and rescue cats walk into a cliff.</h1>
+            <p class="hero-subline">This is not a joke. This is their home. You are visiting.</p>
+            <a href="#residents" class="btn-primary">Meet the Residents</a>
+        </div>
+    </section>
+
+    <!-- The Cliff Section -->
+    <section class="cliff-section">
+        <div class="container">
+            <div class="cliff-content">
+                <h2>200 meters above the valley. 24 degrees in the mist. 42 degrees below.</h2>
+                <p>The Tuwaiq Escarpment. Qiddiya, Saudi Arabia. Next to us, Falcon's Flight climbs 200 meters of vertical sandstone--the world's most extreme roller coaster. At your table, the mist rolls in from the valley. The altitude that grew your coffee is the altitude you drink it at. The landscape is not the backdrop. The landscape is the point.</p>
+            </div>
+            <div class="cliff-image">
+                <img src="../images/asir-highlands.jpg" alt="View from the cliff edge at sunset, mist rolling in from the valley below, the vertical track of Falcon's Flight visible against the sandstone escarpment">
+            </div>
+        </div>
+    </section>
+
+    <!-- Residents Section -->
+    <section class="residents-section" id="residents">
+        <div class="container">
+            <h2>The Residents</h2>
+            <div class="residents-grid">
+                <!-- Sultan -->
+                <div class="resident-card">
+                    <div class="resident-image">
+                        <img src="../images/sultan.jpg" alt="Sultan the peregrine falcon, regal profile against the sky">
+                    </div>
+                    <div class="resident-content">
+                        <h3>Sultan. 47-0.</h3>
+                        <p>Peregrine falcon. Apex predator. He has raced Falcon's Flight 47 times. The coaster goes 380 km/h. Sultan goes 380 km/h. He has never lost. At sunset, you count him down. Your voice starts the race. He does not perform. He competes.</p>
+                    </div>
+                </div>
+
+                <!-- Haboob -->
+                <div class="resident-card">
+                    <div class="resident-image">
+                        <img src="../images/haboob.jpg" alt="Haboob the camel standing on the cliff, looking at the camera with quiet judgment">
+                    </div>
+                    <div class="resident-content">
+                        <h3>Haboob. Unimpressed.</h3>
+                        <p>Camel. His milk is in your latte. Lighter than cow's milk. Sweeter. Pairs with highland honey. He produces five liters daily. He has never once looked impressed by anything. His name means sandstorm. He is the opposite of a sandstorm.</p>
+                    </div>
+                </div>
+
+                <!-- Shams -->
+                <div class="resident-card">
+                    <div class="resident-image">
+                        <img src="../images/shams.jpg" alt="Shams the rescue cat looking away from the camera, aggressively indifferent">
+                    </div>
+                    <div class="resident-content">
+                        <h3>Shams. No guarantees.</h3>
+                        <p>Rescue cat. Male. Found feral behind a restaurant in Riyadh. Took months before he would tolerate humans. He still barely tolerates them. You can book time with him. He can ignore you completely. That is his right. That is the gamble. That is the charm.</p>
+                    </div>
+                </div>
+
+                <!-- Qamar -->
+                <div class="resident-card">
+                    <div class="resident-image">
+                        <img src="../images/qamar.jpg" alt="Qamar the rescue cat in golden light, looking directly at the camera">
+                    </div>
+                    <div class="resident-content">
+                        <h3>Qamar. Strategic.</h3>
+                        <p>Rescue cat. Female. She appears at sunset when the mist thickens and the light goes gold. She will sit on your lap. She will purr. She will make you feel chosen. That is her game. If she chooses your table, you have been blessed.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- The Race Section -->
+    <section class="race-section">
+        <div class="container">
+            <h2>380 km/h. Six seconds. One winner.</h2>
+            <p>Falcon's Flight is the world's most extreme roller coaster. 18,000 horsepower. Climbs 200 meters of vertical cliff. Top speed: 380 km/h. Sultan dives at 380 km/h. Same cliff. Same speed. Different methods. You count down. He launches. The coaster crests. Six seconds later, one of them wins. Sultan has never lost. If he loses during The Full Falcamel, your booking is refunded. He will not lose.</p>
+            <a href="booking.html#full-falcamel" class="btn-primary">Watch the Race</a>
+        </div>
+    </section>
+
+    <!-- Offerings Section -->
+    <section class="offerings-section" id="offerings">
+        <div class="container">
+            <h2>Choose Your Visit</h2>
+            <div class="offerings-grid">
+                <div class="offering-card featured">
+                    <h3>The Full Falcamel</h3>
+                    <div class="offering-price">SAR 1,000</div>
+                    <p>Edge table. All residents. The Race. Your countdown. His victory. 3 hours. Refunded if he loses.</p>
+                </div>
+                <div class="offering-card">
+                    <h3>The Highland Flight</h3>
+                    <div class="offering-price">SAR 800</div>
+                    <p>Three coffees. One altitude story. Sultan on your glove. Haboob's milk in your cup. 2.5 hours.</p>
+                </div>
+                <div class="offering-card">
+                    <h3>The Royal Falcamel</h3>
+                    <div class="offering-price">SAR 4,000</div>
+                    <p>Private majlis. Private race. All residents. Chef's menu. 4 hours. Up to 8 humans.</p>
+                </div>
+                <div class="offering-card">
+                    <h3>The Race</h3>
+                    <div class="offering-price">SAR 4,000</div>
+                    <p>Full Falcamel plus GoPro on Sultan. Drone cam. 4K delivered. All rights yours.</p>
+                </div>
+            </div>
+            <div class="offerings-cta">
+                <a href="booking.html" class="btn-secondary">Choose Your Visit</a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Tables Section -->
+    <section class="tables-section">
+        <div class="container">
+            <h2>Or just come for coffee.</h2>
+            <p class="tables-intro">Not everything requires a race. Standard tables are free to book--valley view, 1.5 hours, order what you want. Edge tables are SAR 50 (applied to your bill)--cliff edge, mist, Qamar territory. Add time with the residents if you want it. Or do not. The coffee is reason enough.</p>
+            <div class="tables-grid">
+                <div class="table-card">
+                    <h4>Time with Haboob</h4>
+                    <div class="table-price">SAR 75</div>
+                    <p>Twenty minutes with Haboob. He will stand. You will stand near him. Photos are permitted. He will look at you. You will feel something. What you feel is between you and the camel.</p>
+                </div>
+                <div class="table-card">
+                    <h4>Time with Sultan</h4>
+                    <div class="table-price">SAR 150</div>
+                    <p>Thirty minutes with Sultan and his handler. He may perch on your glove. He is not performing. He is allowing.</p>
+                </div>
+                <div class="table-card">
+                    <h4>Cat Priority</h4>
+                    <div class="table-price">SAR 40</div>
+                    <p>Cat Priority places you in Shams's preferred zone. Treats are provided. Results are not. He has been informed of your booking. He does not care.</p>
+                </div>
+            </div>
+            <a href="booking.html#tables" class="btn-secondary">Book a Table</a>
+        </div>
+    </section>
+
+    <!-- Menu Section -->
+    <section class="menu-section">
+        <div class="container">
+            <h2>You are not leaving until you have been fed.</h2>
+            <p class="menu-intro">Qahwa from 2,000 meters. Lattes with Haboob's milk. Luqaimat with date syrup. Saudi hospitality is not optional.</p>
+            <div class="menu-grid">
+                <div class="menu-item">
+                    <div class="menu-item-image">[Highland Honey Latte]</div>
+                    <h4>Highland Honey Latte</h4>
+                    <div class="menu-item-price">SAR 40</div>
+                    <p>Camel milk. Highland honey from the same elevation as the beans. Complete thought.</p>
+                </div>
+                <div class="menu-item">
+                    <div class="menu-item-image">[Luqaimat]</div>
+                    <h4>Luqaimat</h4>
+                    <div class="menu-item-price">SAR 20</div>
+                    <p>Fried dough. Date syrup. The reason you will not leave hungry.</p>
+                </div>
+                <div class="menu-item">
+                    <div class="menu-item-image">[The Discovery]</div>
+                    <h4>The Discovery</h4>
+                    <div class="menu-item-price">SAR 60</div>
+                    <p>Highland Honey Latte + Luqaimat. Same honey source. Same altitude. The pairing that makes sense once you taste it.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Location Section -->
+    <section class="location-section">
+        <div class="container">
+            <div class="location-content">
+                <h2>The Escarpment. Qiddiya. Saudi Arabia.</h2>
+                <p>Adjacent to Falcon's Flight. 200 meters up. The mist arrives at sunset. So does Qamar. Plan accordingly.</p>
+                <ul class="location-details">
+                    <li>
+                        <strong>Hours</strong>
+                        <span>Daily, 4pm - 11pm</span>
+                    </li>
+                    <li>
+                        <strong>Sunset Windows</strong>
+                        <span>Vary by season. The Race runs at golden hour.</span>
+                    </li>
+                    <li>
+                        <strong>Parking</strong>
+                        <span>Qiddiya visitor parking. Shuttle to escarpment.</span>
+                    </li>
+                    <li>
+                        <strong>Altitude</strong>
+                        <span>200 meters above the valley floor.</span>
+                    </li>
+                </ul>
+            </div>
+            <div class="location-map">
+                [Map: Tuwaiq Escarpment, Qiddiya]
+            </div>
+        </div>
+    </section>
+
+    <!-- Final CTA Section -->
+    <section class="final-cta">
+        <div class="container">
+            <h2>Sultan is aware you are considering this.</h2>
+            <p class="final-cta-subline">Haboob is unimpressed. Shams does not care. Qamar will make her own decisions.</p>
+            <a href="booking.html" class="btn-primary">Meet the Residents</a>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer>
+        <div class="container">
+            <img src="../images/falcamel-logo-white.png" alt="FalCaMel Cafe" class="footer-logo">
+            <p class="footer-tagline">A falcon, a camel, and rescue cats walk into a cliff.</p>
+            <p class="footer-location">Tuwaiq Escarpment<br>Qiddiya, Saudi Arabia</p>
+        </div>
+    </footer>
+
+    <!-- Mobile Sticky CTA -->
+    <div class="mobile-cta">
+        <a href="booking.html">Meet the Residents</a>
+    </div>
+
+    <script>
+        // Navbar scroll effect
+        const navbar = document.getElementById('navbar');
+        const navLogo = document.getElementById('nav-logo');
+
+        window.addEventListener('scroll', () => {
+            if (window.scrollY > 100) {
+                navbar.classList.add('scrolled');
+                navLogo.src = '../images/falcamel-logo.png';
+            } else {
+                navbar.classList.remove('scrolled');
+                navLogo.src = '../images/falcamel-logo-white.png';
+            }
+        });
+
+        // Smooth scroll for anchor links
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    target.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'start'
+                    });
+                }
+            });
+        });
+    </script>
+</body>
+</html>
