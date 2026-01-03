@@ -126,3 +126,69 @@ A page passes if:
 **Great CTA:** "Grandma's Waiting. She's already made too much food. Don't be late."
 
 That's the standard. Everything we produce must hit that bar.
+
+---
+
+## Conversation Logging
+
+Every agent exchange must be logged. This creates an audit trail of decisions, allows review, and helps debug issues.
+
+### Log File Location
+```
+outputs/logs/session-YYYY-MM-DD-HHMMSS.md
+```
+
+### Log Format
+After each agent response, append:
+
+```markdown
+---
+## [AGENT NAME] | [TIMESTAMP]
+
+**Prompt/Question:**
+[What was asked]
+
+**Response:**
+[What the agent said]
+```
+
+### Starting a Session
+At the start of each session, create the log file with a header:
+
+```markdown
+# Session Log — [DATE]
+
+**Business:** [Business name]
+**Goal:** [What we're building]
+**Agents involved:** [COO, Creative Director, WebDeveloper]
+
+---
+```
+
+### Example Log Entry
+
+```markdown
+---
+## CREATIVE DIRECTOR | 2025-01-03 14:32
+
+**Prompt/Question:**
+Tell me about your business. What do you actually do?
+
+**Response:**
+We're FalCaMel Café — a Saudi-themed cat café with a falcon, a camel, and rescue cats, perched on the Tuwaiq Escarpment overlooking Qiddiya...
+
+---
+## COO | 2025-01-03 14:35
+
+**Prompt/Question:**
+[Creative Director's question above]
+
+**Response:**
+[COO's answer with full brand details]
+```
+
+### Why This Matters
+- Track how vibes evolved
+- See what questions led to breakthroughs
+- Review COO approvals
+- Debug if output misses the mark
