@@ -2,99 +2,91 @@
 
 ## What This Is
 
-A system for creating high-end, narrative-driven booking pages for any business. Two AI agents, one human COO, one human CEO.
+A system for creating high-end, narrative-driven booking pages. Three AI agents working together in Claude Code.
 
-**The problem we're solving:** Most booking pages are generic. Select a service. Pick a time. Enter your email. Submit. No voice. No story. No feeling.
+**The benchmark:** FalCaMel Café — a fictional Saudi cat café with a falcon, camel, and rescue cats on the Tuwaiq Escarpment. The COO agent holds this complete brand universe as the quality standard.
 
-**What we produce:** Pages where the booking experience feels like part of the brand, not a form bolted onto it.
+**The problem we solve:** Most booking pages are generic. "Book Now." "Select a service." No voice. No feeling.
 
----
-
-## Architecture
-
-```
-CEO (Human)
-    ↓ "Build booking pages for [business]"
-    ↓ Provides images (generates via Nano Banana if needed)
-    ↓ Provides fonts (if custom)
-    
-COO (Claude in claude.ai Project)
-    ↓ Holds all business knowledge
-    ↓ Answers agent questions
-    ↓ Approves vibes
-    ↓ Reviews output
-    
-Creative Director Agent (Claude Code)
-    ↓ Interviews COO to discover the brand
-    ↓ Develops 3-5 vibe options
-    ↓ Outputs Creative Brief + Image Brief
-    
-WebDeveloper Agent (Claude Code)
-    ↓ Receives Creative Brief + Images
-    ↓ Builds landing page + booking flow
-    ↓ Outputs production-ready HTML
-```
+**What we produce:** Pages where the booking experience feels like part of the brand.
 
 ---
 
-## The Agents
+## The Three Agents
 
-### Creative Director Agent
+### 1. COO Agent
+**File:** `coo-agent.md`
+**Role:** Brand guardian. Holds all business knowledge. Answers questions from other agents. Approves vibes. Reviews output. Demands quality.
+**For FalCaMel:** Knows the five vibes, four residents, all copy, all pricing, everything.
+**For other businesses:** Would be customized with that business's knowledge.
+
+### 2. Creative Director Agent  
 **File:** `creative-director-agent.md`
+**Role:** Discovery and branding. Interviews the COO to understand the business. Develops 3-5 vibe options. Outputs Creative Brief + Image Brief.
+**Knows:** How to ask questions, develop vibes, write briefs.
+**Does NOT know:** Anything about the business until COO tells them.
 
-**Knows:** How to ask questions. How to develop vibes. How to write a brief.
-
-**Does NOT know:** Anything about the specific business. Must discover everything through conversation with the COO.
-
-**Outputs:**
-- 3-5 Vibe options for approval
-- Creative Brief (for WebDeveloper)
-- Image Brief (for CEO → Nano Banana)
-
-### WebDeveloper Agent
+### 3. WebDeveloper Agent
 **File:** `webdeveloper-agent.md`
-
-**Knows:** How to build HTML. How to maintain voice through booking flows. Technical implementation.
-
-**Receives:**
-- Creative Brief from Creative Director
-- Images from CEO
-- Fonts from CEO (if custom)
-
-**Outputs:**
-- Landing page HTML
-- Booking flow HTML
-- All files to `/outputs/`
+**Role:** Builder. Takes Creative Brief + images and builds production-ready HTML.
+**Outputs:** Landing pages + booking flows that maintain voice throughout.
 
 ---
 
-## Workflow
+## Setup in Claude Code
 
-### Step 1: CEO Initiates
-CEO tells Claude Code: "Build booking pages for [business]"
+### Step 1: Open Claude Code in the project folder
+```bash
+cd ~/OskarOS
+claude
+```
 
-### Step 2: Creative Director Interviews COO
-Creative Director Agent asks questions. CEO copies questions to claude.ai Project. COO (in that Project) answers. CEO pastes answers back.
+### Step 2: Start the workflow
+Tell Claude Code which agent to run:
 
-### Step 3: Vibes Developed
-Creative Director presents 3-5 vibes. COO picks one (or requests iteration).
+**To run as COO:**
+```
+Read coo-agent.md and become the COO. Wait for questions from the Creative Director.
+```
 
-### Step 4: Brief Output
-Creative Director outputs:
-- Creative Brief → goes to WebDeveloper
-- Image Brief → goes to CEO
+**To run as Creative Director:**
+```
+Read creative-director-agent.md and become the Creative Director. Interview the COO about the business.
+```
 
-### Step 5: Image Generation (if needed)
-CEO uses Image Brief with Nano Banana to generate images. Places them in `/assets/images/`.
+**To run as WebDeveloper:**
+```
+Read webdeveloper-agent.md and become the WebDeveloper. I'll provide the Creative Brief.
+```
 
-### Step 6: WebDeveloper Builds
-WebDeveloper Agent receives Brief + Images. Builds pages. Outputs to `/outputs/`.
+### Step 3: Agent Communication
+For now, you (CEO) facilitate communication:
+- Creative Director asks a question → you paste it to COO
+- COO answers → you paste answer back to Creative Director
+- Continue until vibes are developed and approved
+- Then hand the Creative Brief to WebDeveloper
 
-### Step 7: COO Reviews
-CEO syncs repo to claude.ai Project. COO reviews output. Provides feedback if needed.
+---
 
-### Step 8: Iteration or Ship
-Repeat until COO approves. Then ship.
+## Workflow for FalCaMel
+
+1. **Start Creative Director** — interviews COO about FalCaMel
+2. **COO responds** — from the complete brand knowledge in coo-agent.md
+3. **Creative Director develops vibes** — should rediscover something close to our five vibes
+4. **COO approves** — picks a vibe or requests changes
+5. **Creative Director outputs** — Creative Brief (we already have images, skip Image Brief)
+6. **Start WebDeveloper** — receives Creative Brief + images from /assets/images/
+7. **WebDeveloper builds** — landing page + booking flow to /outputs/
+8. **COO reviews** — accepts or requests changes
+
+---
+
+## Workflow for New Businesses
+
+Same flow, but:
+- COO agent gets customized with that business's knowledge (or CEO provides answers)
+- Image Brief goes to CEO for generation via Nano Banana
+- Images placed in /assets/images/ before WebDeveloper builds
 
 ---
 
@@ -103,28 +95,13 @@ Repeat until COO approves. Then ship.
 ```
 OskarOS/
 ├── CLAUDE.md                    (this file)
-├── creative-director-agent.md   (Creative Director prompt)
-├── webdeveloper-agent.md        (WebDeveloper prompt)
+├── coo-agent.md                 (COO — brand guardian)
+├── creative-director-agent.md   (Creative Director — discovery & vibes)
+├── webdeveloper-agent.md        (WebDeveloper — builder)
 ├── assets/
-│   ├── images/                  (business images)
-│   └── fonts/                   (custom fonts if any)
+│   ├── images/                  (sultan.jpg, haboob.jpg, etc.)
+│   └── fonts/                   (DINPro-*.ttf)
 └── outputs/                     (generated HTML pages)
-```
-
----
-
-## Running the Agents
-
-### Run Creative Director:
-```bash
-cd ~/OskarOS
-claude --prompt "$(cat creative-director-agent.md)"
-```
-
-### Run WebDeveloper:
-```bash
-cd ~/OskarOS
-claude --prompt "$(cat webdeveloper-agent.md)"
 ```
 
 ---
@@ -143,15 +120,9 @@ A page passes if:
 
 ---
 
-## What "Great" Looks Like
+## The Benchmark
 
 **Generic CTA:** "Book Now"
-**Great CTA:** "Grandma's Waiting. She's already made too much food."
+**Great CTA:** "Grandma's Waiting. She's already made too much food. Don't be late."
 
-**Generic offering:** "2-hour pottery workshop with materials included"
-**Great offering:** "Two hours. Your hands in clay. Whatever emerges, we fire it. Even the disasters. Especially the disasters."
-
-**Generic form label:** "Select party size"
-**Great form label:** "Who's coming to dinner?"
-
-The voice never drops. From hero to footer to booking form.
+That's the standard. Everything we produce must hit that bar.
