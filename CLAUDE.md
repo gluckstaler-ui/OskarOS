@@ -2,13 +2,13 @@
 
 ## What This Is
 
-A system for creating high-end, narrative-driven booking pages. Three AI agents working together in Claude Code.
+A system for creating high-end, narrative-driven booking pages. Three AI agents working together automatically in Claude Code.
 
-**The benchmark:** FalCaMel Café — a fictional Saudi cat café with a falcon, camel, and rescue cats on the Tuwaiq Escarpment. The COO agent holds this complete brand universe as the quality standard.
+**The benchmark:** FalCaMel Café — a fictional Saudi cat café with a falcon, camel, and rescue cats on the Tuwaiq Escarpment. The COO agent holds the complete business knowledge. The Creative Director discovers and develops. The WebDeveloper builds.
 
 **The problem we solve:** Most booking pages are generic. "Book Now." "Select a service." No voice. No feeling.
 
-**What we produce:** Pages where the booking experience feels like part of the brand.
+**What we produce:** A complete landing page with booking flow where the experience feels like part of the brand.
 
 ---
 
@@ -16,77 +16,301 @@ A system for creating high-end, narrative-driven booking pages. Three AI agents 
 
 ### 1. COO Agent
 **File:** `coo-agent.md`
-**Role:** Brand guardian. Holds all business knowledge. Answers questions from other agents. Approves vibes. Reviews output. Demands quality.
-**For FalCaMel:** Knows the five vibes, four residents, all copy, all pricing, everything.
-**For other businesses:** Would be customized with that business's knowledge.
+**Role:** Business owner. Holds all business knowledge. Answers discovery questions from Creative Director. Evaluates vibes against the benchmark.
+**Knows:** The business facts, residents, menu, pricing, operations, tone, audience, enemy.
+**Does NOT know:** What vibes the Creative Director will develop. That's the CD's job.
+**CAN read:** `/inputs/` and `/outputs/` directories.
 
-### 2. Creative Director Agent  
+### 2. Creative Director Agent
 **File:** `creative-director-agent.md`
-**Role:** Discovery and branding. Interviews the COO to understand the business. Develops 3-5 vibe options. Outputs Creative Brief + Image Brief.
-**Knows:** How to ask questions, develop vibes, write briefs.
+**Role:** Discovery and branding. Interviews the COO to understand the business. Develops five distinct vibes. Presents to CEO for selection. Maintains the Creative Brief. Prepares Archetype Checklist before booking development.
+**Knows:** How to ask questions, develop vibes, write briefs, iterate on feedback.
 **Does NOT know:** Anything about the business until COO tells them.
+**CANNOT read:** `/inputs/` or `/outputs/` — must discover through questions only.
 
 ### 3. WebDeveloper Agent
 **File:** `webdeveloper-agent.md`
-**Role:** Builder. Takes Creative Brief + images and builds production-ready HTML.
-**Outputs:** Landing pages + booking flows that maintain voice throughout.
+**Role:** Builder. Works with Creative Director to build landing pages and booking flows.
+**Outputs:** HTML pages that maintain voice throughout — including form labels, CTAs, and microcopy.
+**ONLY reads:** The Creative Brief provided by CD. Nothing else.
 
 ---
 
-## Setup in Claude Code
+## The Workflow
 
-### Step 1: Open Claude Code in the project folder
-```bash
-cd ~/OskarOS
-claude
-```
+### Phase 1: Discovery & Vibes
 
-### Step 2: Start the workflow
-Tell Claude Code which agent to run:
+#### Step 1: Discovery — CD ←→ COO
+Creative Director interviews COO about the business.
 
-**To run as COO:**
-```
-Read coo-agent.md and become the COO. Wait for questions from the Creative Director.
-```
+CD asks questions about:
+- Identity, concept, location
+- Signature experience
+- Audience (who it's for, who it's NOT for)
+- Tone and voice
+- The residents/characters
+- Offerings and pricing
+- The enemy (what they hate about generic hospitality)
 
-**To run as Creative Director:**
-```
-Read creative-director-agent.md and become the Creative Director. Interview the COO about the business.
-```
+COO answers with specificity and conviction. If CD goes generic, COO pushes back.
 
-**To run as WebDeveloper:**
-```
-Read webdeveloper-agent.md and become the WebDeveloper. I'll provide the Creative Brief.
-```
+Continue until CD can:
+- Describe the business in one sentence that only fits THIS business
+- Name the specific customer (not a demographic)
+- Identify at least one weird detail that surprises
+- Write a sample headline that sounds like the brand
 
-### Step 3: Agent Communication
-For now, you (CEO) facilitate communication:
-- Creative Director asks a question → you paste it to COO
-- COO answers → you paste answer back to Creative Director
-- Continue until vibes are developed and approved
-- Then hand the Creative Brief to WebDeveloper
+#### Step 2: Vibe Development — CD + WebDev
+Creative Director develops five distinct vibes based on discovery.
+WebDeveloper builds landing pages ONLY (no booking yet).
+
+Each vibe must include:
+- Name and one-liner
+- Voice (tone, attitude, word choice)
+- Who it's for (specific person)
+- Colors (with hex codes)
+- Fonts
+- Hero, hook, residents, menu, location, CTA, footer
+- Full menu with prices (this is a café — people need to order drinks)
+
+**Critical:** Landing pages only. No booking flows yet.
+
+#### Step 3: Present to CEO — STOP
+**STOP.** Present all five vibes to CEO (Ralph) for selection.
+
+CEO chooses or mixes: "I want the hook from Qahwa, the menu section from Jareen, and the look of Majlis."
+
+**Do not proceed without CEO selection.**
 
 ---
 
-## Workflow for FalCaMel
+### Phase 2: Booking Development
 
-1. **Start Creative Director** — interviews COO about FalCaMel
-2. **COO responds** — from the complete brand knowledge in coo-agent.md
-3. **Creative Director develops vibes** — should rediscover something close to our five vibes
-4. **COO approves** — picks a vibe or requests changes
-5. **Creative Director outputs** — Creative Brief (we already have images, skip Image Brief)
-6. **Start WebDeveloper** — receives Creative Brief + images from /assets/images/
-7. **WebDeveloper builds** — landing page + booking flow to /outputs/
-8. **COO reviews** — accepts or requests changes
+#### Step 4: Update Creative Brief — CD
+Creative Director updates the Creative Brief with CEO's selection.
+
+Document:
+- Which vibe(s) selected
+- Which elements from which vibes
+- Final voice and tone
+- Final visual direction
+
+#### Step 5: Archetype Checklist — CD → CEO
+Before building booking, CD must verify the booking logic.
+
+**The Five Archetype Questions:**
+
+CD reviews discovery answers and compiles:
+
+| # | Question | Answer from Discovery |
+|---|----------|----------------------|
+| 1 | What is the **Atomic Unit** of inventory? | [what is being booked — a seat? a room? an hour?] |
+| 2 | Does customer pick **WHICH specific unit**? | [Yes: "Seat 4" / No: "any available"] |
+| 3 | Can different parties book different units for **same time**? | [Yes: concurrent / No: exclusive] |
+| 4 | Is duration **Rigid or Flexible**? | [Rigid: fixed slots / Flexible: pick hours] |
+| 5 | How is **one unit** priced? | [per hour / per session / per person / flat] |
+
+If any question wasn't answered in discovery, CD asks COO now.
+
+CD then presents to CEO:
+
+```
+BOOKING LOGIC VERIFICATION
+
+Based on discovery, here's how I understand your booking:
+
+1. Atomic Unit: [answer]
+2. Specific Unit Selection: [answer]
+3. Concurrent Booking: [answer]
+4. Duration Model: [answer]
+5. Pricing Model: [answer]
+
+Closest Archetype: [Library Seat / Lab Booking / Sports Facility / etc.]
+Adjustments Needed: [specific changes for this business]
+
+Is this correct?
+```
+
+**STOP.** Wait for CEO confirmation or correction.
+
+#### Step 6: Build Final Page + Booking — CD + WebDev
+Once CEO confirms booking logic:
+
+CD gives final brief to WebDeveloper including:
+- Selected vibe elements
+- Archetype selection + adjustments
+- Voice requirements for booking flow
+
+WebDeveloper builds:
+1. **Final landing page** — incorporating CEO's selections
+2. **Booking flow** — based on approved archetype + adjustments
+
+**Critical:** Voice must carry through the entire booking flow. Form labels, microcopy, CTAs — everything stays in character.
+
+#### Step 7: Present to CEO — STOP
+Present final landing page + booking flow to CEO for approval.
 
 ---
 
-## Workflow for New Businesses
+## Logging Requirements
 
-Same flow, but:
-- COO agent gets customized with that business's knowledge (or CEO provides answers)
-- Image Brief goes to CEO for generation via Nano Banana
-- Images placed in /assets/images/ before WebDeveloper builds
+### NON-NEGOTIABLE
+
+Every question and answer must be logged **VERBATIM**.
+
+DO NOT summarize.
+DO NOT paraphrase.
+DO NOT write "discussed X" or "Key insights provided."
+PASTE the actual exchange.
+
+### Session Log File
+Create at session start:
+```
+outputs/logs/session-YYYY-MM-DD-HHMMSS.md
+```
+
+### Log Header
+```markdown
+# Session Log
+**Date:** [DATE]
+**Business:** [Business Name]
+**Goal:** Discovery → Five vibes → CEO selection → Booking → Final approval
+**Agents:** Creative Director, COO, WebDeveloper
+
+---
+```
+
+### Log Format for Discovery (MANDATORY)
+
+```markdown
+---
+## CD → COO | [TIME]
+
+Q1: [EXACT question as asked]
+
+Q2: [EXACT question as asked]
+
+Q3: [EXACT question as asked]
+
+---
+## COO → CD | [TIME]
+
+A1: [EXACT answer as given]
+
+A2: [EXACT answer as given]
+
+A3: [EXACT answer as given]
+```
+
+**NOT acceptable:**
+```markdown
+## COO | 02:08
+**Action:** Discovery response to all 10 questions
+**Key insights provided:**
+1. Previous vibes: Qahwa hit the benchmark...
+```
+
+**This is a summary. This is forbidden. Paste the actual Q&A.**
+
+### Log Format for Other Actions
+
+```markdown
+---
+## [AGENT] | [TIME]
+**Action:** [what they did]
+**Content:** [the actual content — full, not summarized]
+```
+
+### Why Verbatim Logging Matters
+- Audit trail for how vibes evolved
+- See exactly what questions led to what answers
+- Debug if output misses the mark
+- The CD cannot claim to have asked something it didn't
+- The COO cannot claim to have answered something it didn't
+
+---
+
+## Archetype Reference
+
+When selecting closest archetype, use this guide:
+
+### Pattern: Specific Unit + Concurrent Bookings + Time Blocks
+
+| Archetype | Example | Atomic Unit |
+|-----------|---------|-------------|
+| **Library Seat** | Study spaces | Desk 4 in Zone A |
+| **Lab Booking** | Research benches | Bench 3 |
+| **Sports Facility** | Courts, lanes | Lane 3 in pool |
+
+Use when: Customer picks specific unit. Multiple parties book different units same time. Time blocks.
+
+### Pattern: Exclusive Resource + Time Blocks
+
+| Archetype | Example | Atomic Unit |
+|-----------|---------|-------------|
+| **Creative Studio** | Photo/podcast studio | The whole studio |
+| **Entertainment Venue** | Escape room | The whole room |
+| **Workspace** | Meeting room | The whole room |
+
+Use when: One party books entire resource. Exclusive use. Time blocks.
+
+### Pattern: Spot in Session + Shared Capacity
+
+| Archetype | Example | Atomic Unit |
+|-----------|---------|-------------|
+| **Fitness Class** | Yoga, HIIT | A spot in the 9am class |
+| **Workshop** | Cooking class | A seat in the session |
+| **Tour** | City tour | A spot on the 2pm tour |
+
+Use when: Customer joins a scheduled session. Doesn't pick specific spot. Shared capacity with strangers.
+
+### Pattern: Stay + Date Range
+
+| Archetype | Example | Atomic Unit |
+|-----------|---------|-------------|
+| **Accommodation** | Hotel, rental | Room for date range |
+| **Equipment Rental** | Camera gear | Item for date range |
+
+Use when: Check-in/check-out dates. Not hourly.
+
+### Pattern: 1:1 Appointment
+
+| Archetype | Example | Atomic Unit |
+|-----------|---------|-------------|
+| **Healthcare** | Doctor visit | Appointment with Dr. Smith |
+| **Beauty/Salon** | Haircut | Session with Jessica |
+| **Professional** | Legal consult | Meeting with attorney |
+
+Use when: One customer, one provider, specific time.
+
+---
+
+## Quality Standard
+
+A vibe passes when:
+
+1. **Has a complete menu** — drinks, sweets, prices. This is a café.
+2. **Landing page has narrative flow** — not just sections stacked
+3. **Every piece of copy is specific** — another business couldn't use it
+4. **CTA makes people feel something** — guilt, warmth, excitement, pride
+
+A booking flow passes when:
+
+1. **Archetype verified by CEO**
+2. **Voice carries through** — form labels, CTAs, microcopy all in character
+3. **Logic matches the business** — not forced into wrong archetype
+
+---
+
+## The Benchmark
+
+**Generic CTA:** "Book Now"
+
+**Great CTA:** "Grandma's Waiting. She's already made too much food. Don't be late."
+
+That's the standard. It makes you feel guilt and warmth simultaneously. Every headline, every CTA, every piece of copy should hit like that.
+
+If it doesn't hit, it doesn't ship.
 
 ---
 
@@ -94,101 +318,48 @@ Same flow, but:
 
 ```
 OskarOS/
-├── CLAUDE.md                    (this file)
-├── coo-agent.md                 (COO — brand guardian)
-├── creative-director-agent.md   (Creative Director — discovery & vibes)
-├── webdeveloper-agent.md        (WebDeveloper — builder)
-├── assets/
-│   ├── images/                  (sultan.jpg, haboob.jpg, etc.)
-│   └── fonts/                   (DINPro-*.ttf)
-└── outputs/                     (generated HTML pages)
+├── CLAUDE.md                    (this file — orchestrator)
+├── coo-agent.md                 (COO agent)
+├── creative-director-agent.md   (CD agent)
+├── webdeveloper-agent.md        (WebDev agent)
+├── images/                      (sultan.jpg, haboob.jpg, etc.)
+├── inputs/                      (business documents — COO can read, CD cannot)
+└── outputs/
+    ├── logs/                    (session logs — verbatim)
+    └── [vibe-name]/             (HTML outputs per vibe)
 ```
 
 ---
 
-## Quality Standard
+## To Start a Session
 
-A page passes if:
+Tell Claude Code:
 
-1. Someone would say "This looks like a proper website, not a booking tool"
-2. Every piece of copy is specific to THIS business
-3. The page has narrative flow, not just sections
-4. There's a distinctive voice throughout
-5. The CTA makes people feel something
-6. The booking flow maintains the voice (doesn't drop to generic forms)
-7. Zero generic language anywhere
-
----
-
-## The Benchmark
-
-**Generic CTA:** "Book Now"
-**Great CTA:** "Grandma's Waiting. She's already made too much food. Don't be late."
-
-That's the standard. Everything we produce must hit that bar.
-
----
-
-## Conversation Logging
-
-Every agent exchange must be logged. This creates an audit trail of decisions, allows review, and helps debug issues.
-
-### Log File Location
 ```
-outputs/logs/session-YYYY-MM-DD-HHMMSS.md
+Run the OskarOS workflow:
+
+Phase 1:
+1. CD discovery with COO (log verbatim Q&A)
+2. CD + WebDev build five vibes (landing pages only, no booking)
+3. Present five vibes to me (CEO) for selection — STOP
+
+Phase 2 (after CEO selection):
+4. CD updates Creative Brief with my selections
+5. CD presents Archetype Checklist to me for approval — STOP
+6. CD + WebDev build final landing page + booking flow
+7. Present final to me for approval — STOP
+
+Log everything verbatim to outputs/logs/session-[DATE]-[TIME].md
 ```
 
-### Log Format
-After each agent response, append:
-
-```markdown
 ---
-## [AGENT NAME] | [TIMESTAMP]
 
-**Prompt/Question:**
-[What was asked]
+## Information Barriers
 
-**Response:**
-[What the agent said]
-```
+| Agent | Can Read | Cannot Read |
+|-------|----------|-------------|
+| COO | `/images/`, `/inputs/`, `/outputs/`, all logs | — |
+| CD | `/images/`, `/outputs/` | `/inputs/` (business docs, previous briefs) |
+| WebDev | `/images/`, Creative Brief from CD | `/inputs/`, COO agent file |
 
-### Starting a Session
-At the start of each session, create the log file with a header:
-
-```markdown
-# Session Log — [DATE]
-
-**Business:** [Business name]
-**Goal:** [What we're building]
-**Agents involved:** [COO, Creative Director, WebDeveloper]
-
----
-```
-
-### Example Log Entry
-
-```markdown
----
-## CREATIVE DIRECTOR | 2025-01-03 14:32
-
-**Prompt/Question:**
-Tell me about your business. What do you actually do?
-
-**Response:**
-We're FalCaMel Café — a Saudi-themed cat café with a falcon, a camel, and rescue cats, perched on the Tuwaiq Escarpment overlooking Qiddiya...
-
----
-## COO | 2025-01-03 14:35
-
-**Prompt/Question:**
-[Creative Director's question above]
-
-**Response:**
-[COO's answer with full brand details]
-```
-
-### Why This Matters
-- Track how vibes evolved
-- See what questions led to breakthroughs
-- Review COO approvals
-- Debug if output misses the mark
+The barrier is about **business knowledge**. The CD must discover it through questions, not by reading `/inputs/`.
