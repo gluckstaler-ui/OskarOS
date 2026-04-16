@@ -1,0 +1,852 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Emanuel M. Waldmüller — Commercial Operator, Swiss-based</title>
+  <meta name="description" content="Swiss-based commercial operator. Strategic accounts, cross-border execution, territory building across DACH and EMEA.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --black: #000000;
+      --near-black: #111111;
+      --dark: #1a1a1a;
+      --gray-900: #222222;
+      --gray-700: #555555;
+      --gray-500: #888888;
+      --gray-300: #cccccc;
+      --gray-200: #e5e5e5;
+      --gray-100: #f2f2f2;
+      --white: #ffffff;
+      --red: #e53e3e;
+      --max: 1080px;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; font-size: 16px; }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Helvetica Neue', sans-serif;
+      background: var(--white);
+      color: var(--near-black);
+      line-height: 1.55;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    a { color: inherit; text-decoration: none; }
+
+    .wrap {
+      max-width: var(--max);
+      margin: 0 auto;
+      padding: 0 2.5rem;
+    }
+
+    /* ─── NAV ─── */
+    nav {
+      position: sticky; top: 0; z-index: 100;
+      background: rgba(255,255,255,0.95);
+      backdrop-filter: blur(8px);
+      border-bottom: 1px solid var(--gray-200);
+    }
+    .nav-inner {
+      display: flex; justify-content: space-between; align-items: center;
+      height: 56px;
+    }
+    .nav-name {
+      font-size: 0.85rem; font-weight: 700; letter-spacing: -0.01em;
+    }
+    .nav-links {
+      display: flex; gap: 1.5rem; align-items: center;
+    }
+    .nav-links a {
+      font-size: 0.8rem; font-weight: 500; color: var(--gray-700);
+      transition: color 0.15s;
+    }
+    .nav-links a:hover { color: var(--black); }
+    .nav-cta {
+      background: var(--black) !important; color: var(--white) !important;
+      padding: 0.4rem 1rem; border-radius: 4px; font-weight: 600 !important;
+    }
+    .nav-cta:hover { background: var(--dark) !important; }
+
+    /* ─── HERO ─── */
+    .hero {
+      padding: 6rem 0 4rem;
+      border-bottom: 1px solid var(--gray-200);
+    }
+    .hero-grid {
+      display: grid;
+      grid-template-columns: 1fr 320px;
+      gap: 4rem;
+      align-items: start;
+    }
+    .hero-status {
+      display: inline-block;
+      font-size: 0.72rem; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 0.1em;
+      color: var(--gray-500);
+      margin-bottom: 1.5rem;
+    }
+    .hero-status::before {
+      content: ''; display: inline-block;
+      width: 6px; height: 6px; border-radius: 50%;
+      background: var(--red); margin-right: 0.5rem;
+      vertical-align: middle;
+    }
+    .hero h1 {
+      font-size: clamp(2.8rem, 5vw, 4.2rem);
+      font-weight: 800;
+      line-height: 1.05;
+      letter-spacing: -0.04em;
+      margin-bottom: 1.5rem;
+      max-width: 600px;
+    }
+    .hero-sub {
+      font-size: 1.05rem;
+      color: var(--gray-700);
+      line-height: 1.65;
+      max-width: 540px;
+      margin-bottom: 2rem;
+    }
+    .hero-actions {
+      display: flex; gap: 0.75rem;
+    }
+    .btn {
+      display: inline-flex; align-items: center; gap: 0.4rem;
+      padding: 0.7rem 1.4rem; font-size: 0.88rem; font-weight: 600;
+      border-radius: 4px; transition: all 0.15s;
+    }
+    .btn-black { background: var(--black); color: var(--white); }
+    .btn-black:hover { background: var(--dark); }
+    .btn-outline {
+      background: transparent; color: var(--black);
+      border: 1px solid var(--gray-300);
+    }
+    .btn-outline:hover { border-color: var(--black); }
+
+    .hero-portrait {
+      background: var(--black);
+      border-radius: 4px;
+      overflow: hidden;
+    }
+    .hero-portrait img {
+      width: 100%;
+      display: block;
+    }
+    .hero-meta {
+      margin-top: 1rem;
+    }
+    .hero-meta dt {
+      font-size: 0.68rem; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 0.1em;
+      color: var(--gray-500); margin-bottom: 0.15rem;
+    }
+    .hero-meta dd {
+      font-size: 0.88rem; font-weight: 500;
+      margin-bottom: 0.75rem;
+    }
+
+    /* ─── PROOF BAR ─── */
+    .proof {
+      padding: 3rem 0;
+      border-bottom: 1px solid var(--gray-200);
+    }
+    .proof-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 2rem;
+    }
+    .proof-item {}
+    .proof-number {
+      font-size: 2rem; font-weight: 800;
+      letter-spacing: -0.03em; line-height: 1;
+      margin-bottom: 0.35rem;
+    }
+    .proof-label {
+      font-size: 0.72rem; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 0.06em;
+      color: var(--gray-500); margin-bottom: 0.2rem;
+    }
+    .proof-desc {
+      font-size: 0.82rem; color: var(--gray-700);
+      line-height: 1.45;
+    }
+
+    /* ─── SECTIONS ─── */
+    section {
+      padding: 4.5rem 0;
+      border-bottom: 1px solid var(--gray-200);
+    }
+    section:last-of-type { border-bottom: none; }
+
+    .section-kicker {
+      font-size: 0.68rem; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 0.12em;
+      color: var(--gray-500); margin-bottom: 0.6rem;
+    }
+    .section-title {
+      font-size: clamp(1.6rem, 2.5vw, 2.2rem);
+      font-weight: 800; letter-spacing: -0.03em;
+      line-height: 1.15; margin-bottom: 0.75rem;
+      max-width: 680px;
+    }
+    .section-lead {
+      font-size: 1rem; color: var(--gray-700);
+      max-width: 620px; line-height: 1.6;
+      margin-bottom: 2.5rem;
+    }
+
+    /* ─── THE ARC (Timeline) ─── */
+    .arc-grid {
+      display: grid; gap: 0;
+      border-top: 1px solid var(--gray-200);
+    }
+    .arc-item {
+      display: grid;
+      grid-template-columns: 160px 1fr;
+      gap: 2rem;
+      padding: 1.5rem 0;
+      border-bottom: 1px solid var(--gray-200);
+    }
+    .arc-item:last-child { border-bottom: none; }
+    .arc-era {
+      font-size: 0.75rem; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 0.06em;
+      color: var(--gray-500);
+      padding-top: 0.15rem;
+    }
+    .arc-content {}
+    .arc-role {
+      font-size: 1rem; font-weight: 700;
+      margin-bottom: 0.15rem;
+    }
+    .arc-org {
+      font-size: 0.85rem; color: var(--gray-500);
+      margin-bottom: 0.4rem;
+    }
+    .arc-desc {
+      font-size: 0.88rem; color: var(--gray-700);
+      line-height: 1.55; max-width: 600px;
+    }
+    .arc-tag {
+      display: inline-block; margin-top: 0.5rem;
+      font-size: 0.72rem; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 0.04em;
+      color: var(--red);
+    }
+
+    /* ─── SOLVE CARDS ─── */
+    .solve-grid {
+      display: grid; grid-template-columns: repeat(3, 1fr);
+      gap: 1px; background: var(--gray-200);
+      border: 1px solid var(--gray-200);
+    }
+    .solve-card {
+      background: var(--white);
+      padding: 2rem;
+    }
+    .solve-card h3 {
+      font-size: 0.95rem; font-weight: 700;
+      margin-bottom: 0.5rem;
+    }
+    .solve-card p {
+      font-size: 0.85rem; color: var(--gray-700);
+      line-height: 1.55;
+    }
+
+    /* ─── OUTCOMES ─── */
+    .outcome-grid {
+      display: grid; grid-template-columns: 1fr 1fr;
+      gap: 1px; background: var(--gray-200);
+      border: 1px solid var(--gray-200);
+    }
+    .outcome-card {
+      background: var(--white);
+      padding: 2rem;
+    }
+    .outcome-number {
+      font-size: 1.8rem; font-weight: 800;
+      letter-spacing: -0.03em; margin-bottom: 0.3rem;
+    }
+    .outcome-card h3 {
+      font-size: 0.92rem; font-weight: 600;
+      margin-bottom: 0.35rem; line-height: 1.35;
+    }
+    .outcome-card p {
+      font-size: 0.82rem; color: var(--gray-700);
+      line-height: 1.5;
+    }
+
+    /* ─── CREDENTIALS ─── */
+    .cred-grid {
+      display: grid; grid-template-columns: 1fr 1fr 1fr;
+      gap: 3rem;
+    }
+    .cred-group {}
+    .cred-heading {
+      font-size: 0.68rem; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 0.1em;
+      color: var(--gray-500);
+      padding-bottom: 0.6rem;
+      border-bottom: 2px solid var(--black);
+      margin-bottom: 1rem;
+    }
+    .cred-item { margin-bottom: 1rem; }
+    .cred-item .name {
+      font-size: 0.88rem; font-weight: 600;
+    }
+    .cred-item .detail {
+      font-size: 0.8rem; color: var(--gray-700);
+    }
+    .cred-badge {
+      display: inline-block;
+      font-size: 0.65rem; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 0.04em;
+      color: var(--red); margin-top: 0.15rem;
+    }
+
+    /* ─── INTERNATIONAL GRID ─── */
+    .int-grid {
+      display: grid; grid-template-columns: repeat(4, 1fr);
+      gap: 1px; background: var(--gray-200);
+      border: 1px solid var(--gray-200);
+    }
+    .int-card {
+      background: var(--white);
+      padding: 1.5rem;
+    }
+    .int-card .org {
+      font-size: 0.88rem; font-weight: 700;
+      margin-bottom: 0.1rem;
+    }
+    .int-card .loc {
+      font-size: 0.78rem; color: var(--gray-500);
+      margin-bottom: 0.3rem;
+    }
+    .int-card .brief {
+      font-size: 0.78rem; color: var(--gray-700);
+      line-height: 1.4;
+    }
+
+    /* ─── SKILLS STRIP ─── */
+    .strip {
+      padding: 2.5rem 0;
+      border-bottom: 1px solid var(--gray-200);
+      background: var(--gray-100);
+    }
+    .strip-inner {
+      display: flex; gap: 3rem; flex-wrap: wrap;
+    }
+    .strip-group {}
+    .strip-label {
+      font-size: 0.65rem; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 0.1em;
+      color: var(--gray-500); margin-bottom: 0.5rem;
+    }
+    .strip-tags { display: flex; gap: 0.35rem; flex-wrap: wrap; }
+    .strip-tag {
+      font-size: 0.78rem; font-weight: 500;
+      padding: 0.3rem 0.65rem;
+      border: 1px solid var(--gray-300);
+      border-radius: 2px;
+    }
+
+    /* ─── PROJECTS ─── */
+    .proj-grid {
+      display: grid; grid-template-columns: 1fr 1fr;
+      gap: 1px; background: var(--gray-200);
+      border: 1px solid var(--gray-200);
+    }
+    .proj-card {
+      background: var(--white);
+      padding: 1.5rem;
+    }
+    .proj-card h3 {
+      font-size: 0.9rem; font-weight: 700;
+      margin-bottom: 0.15rem;
+    }
+    .proj-card .meta {
+      font-size: 0.72rem; font-weight: 600;
+      color: var(--gray-500); margin-bottom: 0.35rem;
+      text-transform: uppercase; letter-spacing: 0.04em;
+    }
+    .proj-card p {
+      font-size: 0.82rem; color: var(--gray-700);
+      line-height: 1.45;
+    }
+
+    /* ─── CTA ─── */
+    .cta {
+      padding: 5rem 0;
+      background: var(--black);
+      color: var(--white);
+      border-bottom: none;
+    }
+    .cta .section-kicker { color: var(--gray-500); }
+    .cta .section-title { color: var(--white); }
+    .cta .section-lead { color: var(--gray-300); }
+    .cta-actions {
+      display: flex; gap: 0.75rem; flex-wrap: wrap;
+      margin-bottom: 2rem;
+    }
+    .btn-white { background: var(--white); color: var(--black); }
+    .btn-white:hover { background: var(--gray-100); }
+    .btn-ghost {
+      background: transparent; color: var(--white);
+      border: 1px solid var(--gray-700);
+    }
+    .btn-ghost:hover { border-color: var(--white); }
+    .cta-detail {
+      font-size: 0.82rem; color: var(--gray-500);
+    }
+    .cta-detail a { color: var(--gray-300); text-decoration: underline; }
+    .cta-detail a:hover { color: var(--white); }
+
+    /* ─── FOOTER ─── */
+    footer {
+      padding: 2rem 0;
+      border-top: 1px solid var(--gray-200);
+    }
+    .footer-inner {
+      display: flex; justify-content: space-between;
+      align-items: center;
+    }
+    .footer-quote {
+      font-size: 0.82rem; font-style: italic;
+      color: var(--gray-500); max-width: 400px;
+    }
+    .footer-copy {
+      font-size: 0.72rem; color: var(--gray-500);
+    }
+
+    /* ─── RESPONSIVE ─── */
+    @media (max-width: 900px) {
+      .hero-grid { grid-template-columns: 1fr; }
+      .hero-portrait { max-width: 300px; }
+      .proof-grid { grid-template-columns: repeat(2, 1fr); }
+      .solve-grid { grid-template-columns: 1fr; }
+      .outcome-grid { grid-template-columns: 1fr; }
+      .cred-grid { grid-template-columns: 1fr; }
+      .int-grid { grid-template-columns: repeat(2, 1fr); }
+      .proj-grid { grid-template-columns: 1fr; }
+      .arc-item { grid-template-columns: 120px 1fr; gap: 1rem; }
+      .strip-inner { flex-direction: column; gap: 1.5rem; }
+    }
+    @media (max-width: 600px) {
+      .wrap { padding: 0 1.5rem; }
+      .proof-grid { grid-template-columns: 1fr; }
+      .int-grid { grid-template-columns: 1fr; }
+      .arc-item { grid-template-columns: 1fr; }
+      .nav-links a:not(.nav-cta) { display: none; }
+      .footer-inner { flex-direction: column; gap: 1rem; text-align: center; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <div class="wrap nav-inner">
+    <div class="nav-name">Emanuel M. Waldmüller</div>
+    <div class="nav-links">
+      <a href="#arc">Story</a>
+      <a href="#outcomes">Outcomes</a>
+      <a href="#credentials">Credentials</a>
+      <a href="https://linkedin.com/in/emwaldm" target="_blank" rel="noopener">LinkedIn</a>
+      <a href="mailto:emanuel@waldmuller.org" class="nav-cta">Get in touch</a>
+    </div>
+  </div>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="wrap hero-grid">
+    <div>
+      <div class="hero-status">Open to strategic account roles</div>
+      <h1>I build commercial presence where there is none.</h1>
+      <p class="hero-sub">
+        Austrian-born international lawyer turned commercial operator. From WTO negotiations in Geneva to building a CHF&nbsp;3–4M territory in Switzerland from zero office footprint. Strongest where trust, travel, and execution decide progress.
+      </p>
+      <div class="hero-actions">
+        <a href="mailto:emanuel@waldmuller.org" class="btn btn-black">emanuel@waldmuller.org</a>
+        <a href="https://waldmuller.org/wp-content/uploads/2026/03/CV_Waldmueller_2026_cbLI.pdf" target="_blank" rel="noopener" class="btn btn-outline">Download CV</a>
+      </div>
+    </div>
+    <div>
+      <div class="hero-portrait">
+        <img src="https://waldmuller.org/wp-content/uploads/2023/04/Emanuel-Waldmuller-023_Bearbeitet-transp.png" alt="Emanuel Waldmüller" loading="lazy" />
+      </div>
+      <dl class="hero-meta">
+        <dt>Based in</dt>
+        <dd>Zurich, with ties to Vienna</dd>
+        <dt>Credentials</dt>
+        <dd>LL.M. · MSc · MEDDPICC · Executive Coach</dd>
+        <dt>Languages</dt>
+        <dd>German (native) · English · French</dd>
+      </dl>
+    </div>
+  </div>
+</section>
+
+<!-- PROOF -->
+<div class="proof">
+  <div class="wrap proof-grid">
+    <div class="proof-item">
+      <div class="proof-number">CHF 3–4M</div>
+      <div class="proof-label">Territory P&amp;L</div>
+      <div class="proof-desc">Annual ownership across Switzerland and DACH.</div>
+    </div>
+    <div class="proof-item">
+      <div class="proof-number">CHF 2.5M</div>
+      <div class="proof-label">SIX Group Contract</div>
+      <div class="proof-desc">Multi-year managed-services deal for Nasdaq Calypso.</div>
+    </div>
+    <div class="proof-item">
+      <div class="proof-number">EUR 800K</div>
+      <div class="proof-label">Vienna Partner Win</div>
+      <div class="proof-desc">Aviation client via cross-border field execution.</div>
+    </div>
+    <div class="proof-item">
+      <div class="proof-number">CHF 750K</div>
+      <div class="proof-label">UBS Expansion</div>
+      <div class="proof-desc">Named-account growth through executive coverage.</div>
+    </div>
+  </div>
+</div>
+
+<!-- WHAT I SOLVE -->
+<section>
+  <div class="wrap">
+    <div class="section-kicker">What I solve</div>
+    <h2 class="section-title">Hire me when you need more than a seller.</h2>
+    <p class="section-lead">I work best where companies need someone who can open and progress complex opportunities, align stakeholders across countries, and carry client confidence across delivery realities.</p>
+    <div class="solve-grid">
+      <div class="solve-card">
+        <h3>Build market presence from zero</h3>
+        <p>You need someone in Zurich, Frankfurt, or Vienna tomorrow. Someone who can open doors, hire the first team, and own a P&amp;L before you have office space.</p>
+      </div>
+      <div class="solve-card">
+        <h3>Orchestrate complex deal cycles</h3>
+        <p>Your deals involve legal, procurement, nearshore delivery, and executive sponsors across three countries. I align them into executable business.</p>
+      </div>
+      <div class="solve-card">
+        <h3>Travel-heavy field execution</h3>
+        <p>Prospecting in Frankfurt Monday, QBR in Zurich Wednesday, trade fair in Vienna Friday. The relationships that close deals are built in person.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- THE ARC -->
+<section id="arc">
+  <div class="wrap">
+    <div class="section-kicker">The arc</div>
+    <h2 class="section-title">From Austrian Parliament to Swiss territory builder.</h2>
+    <p class="section-lead">The thread connecting every role: getting put in a room full of stakeholders with competing interests — across borders, languages, and institutions — and making something happen.</p>
+    <div class="arc-grid">
+      <div class="arc-item">
+        <div class="arc-era">2023 – 2025</div>
+        <div class="arc-content">
+          <div class="arc-role">Senior Manager · Key Account Executive DACH</div>
+          <div class="arc-org">Synechron Switzerland — Zurich</div>
+          <div class="arc-desc">Built Zurich commercial presence from zero. Owned CHF 3–4M territory. Hired five consultants. Led 3 direct reports, 10 Swiss consultants, 15 nearshore functional reports. Named accounts: SIX Group, UBS Switzerland IT, Clearstream, Leonteq. 15+ proposals per year, 5 formal RFPs. Converted major engagement into CHF 2.5M multi-year managed-services contract.</div>
+          <div class="arc-tag">CHF 3–4M territory · Built from zero</div>
+        </div>
+      </div>
+      <div class="arc-item">
+        <div class="arc-era">2017 – 2022</div>
+        <div class="arc-content">
+          <div class="arc-role">Business Manager · Change Lead · Business Analyst</div>
+          <div class="arc-org">UBS — Zurich &amp; New York</div>
+          <div class="arc-desc">Aligned five global teams on reporting, KPIs, and executive cadence. Built Jira-based portfolio visibility and decision support. Eleven-month New York deployment — ramped conversion team, defined strategy, ran first technical rehearsal for 50+ participants and 200+ datasets.</div>
+          <div class="arc-tag">11-month New York field assignment</div>
+        </div>
+      </div>
+      <div class="arc-item">
+        <div class="arc-era">2022 – 2024</div>
+        <div class="arc-content">
+          <div class="arc-role">Election Observer</div>
+          <div class="arc-org">OSCE — Georgia &amp; Bosnia-Herzegovina</div>
+          <div class="arc-desc">On-ground observation in international monitoring missions. Structured evidence collection under time pressure and strict standards.</div>
+        </div>
+      </div>
+      <div class="arc-item">
+        <div class="arc-era">2014 – 2016</div>
+        <div class="arc-content">
+          <div class="arc-role">Master of Laws (LL.M.) — with distinction</div>
+          <div class="arc-org">University of Copenhagen</div>
+          <div class="arc-desc">International commercial law, WTO law, international tax. Thesis on trade facilitation and SPS measures in developing economies. Research in Zanzibar.</div>
+        </div>
+      </div>
+      <div class="arc-item">
+        <div class="arc-era">2014 – 2015</div>
+        <div class="arc-content">
+          <div class="arc-role">Trade Facilitation Consultant · CRM Consultant</div>
+          <div class="arc-org">WTO, Geneva · DCAF, Geneva &amp; Zagreb</div>
+          <div class="arc-desc">WTO committee work, technical trainings for government officials, regional workshops for Serbian MPs. The operating rhythm of multinational stakeholder environments.</div>
+        </div>
+      </div>
+      <div class="arc-item">
+        <div class="arc-era">2015</div>
+        <div class="arc-content">
+          <div class="arc-role">Commercial Diplomacy</div>
+          <div class="arc-org">Austrian Embassy — Tel Aviv</div>
+          <div class="arc-desc">Supporting the Commercial Attaché in Israel. Trade facilitation, ministerial delegations, CEO-level coordination.</div>
+        </div>
+      </div>
+      <div class="arc-item">
+        <div class="arc-era">2009 – 2014</div>
+        <div class="arc-content">
+          <div class="arc-role">Parliamentary &amp; Institutional Foundations</div>
+          <div class="arc-org">Austrian Parliament · NSW Parliament Sydney · CARE Vienna</div>
+          <div class="arc-desc">Parliamentary research, international development operations, and the first exposure to how institutions make decisions across cultures and borders.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- OUTCOMES -->
+<section id="outcomes">
+  <div class="wrap">
+    <div class="section-kicker">Selected outcomes</div>
+    <h2 class="section-title">The pattern: create proximity, align stakeholders, convert.</h2>
+    <div class="outcome-grid">
+      <div class="outcome-card">
+        <div class="outcome-number">CHF 3–4M</div>
+        <h3>Built Zurich commercial presence and owned annual DACH territory</h3>
+        <p>From no local footprint to a functioning commercial operation. Hired five consultants, led 3 direct reports and up to 25 functional reports. 15+ proposals per year, 5 formal RFPs.</p>
+      </div>
+      <div class="outcome-card">
+        <div class="outcome-number">CHF 2.5M</div>
+        <h3>Multi-year SIX Group managed-services contract</h3>
+        <p>Client proximity and delivery coordination across Zurich, Novi Sad, and Madrid. Nasdaq Calypso engagement.</p>
+      </div>
+      <div class="outcome-card">
+        <div class="outcome-number">EUR 800K</div>
+        <h3>Aviation partner win in Vienna</h3>
+        <p>Cross-border field execution and trade-fair presence that converted into a major partner engagement outside the Swiss home market.</p>
+      </div>
+      <div class="outcome-card">
+        <div class="outcome-number">CHF 750K</div>
+        <h3>UBS Switzerland annual expansion</h3>
+        <p>Expanded named account through sustained executive coverage, account planning, and consultative engagement.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CREDENTIALS -->
+<section id="credentials">
+  <div class="wrap">
+    <div class="section-kicker">Credentials</div>
+    <h2 class="section-title">The full arsenal.</h2>
+    <div class="cred-grid">
+      <div class="cred-group">
+        <div class="cred-heading">Education</div>
+        <div class="cred-item">
+          <div class="name">University of St. Gallen (HSG)</div>
+          <div class="detail">Executive Cert. — Key Account Management</div>
+        </div>
+        <div class="cred-item">
+          <div class="name">University of Copenhagen</div>
+          <div class="detail">Master of Laws (LL.M.) — International Law</div>
+          <div class="cred-badge">With distinction</div>
+        </div>
+        <div class="cred-item">
+          <div class="name">University of Vienna</div>
+          <div class="detail">Master of Science</div>
+        </div>
+        <div class="cred-item">
+          <div class="name">University of Sydney</div>
+          <div class="detail">Exchange — International studies</div>
+        </div>
+        <div class="cred-item">
+          <div class="name">Copenhagen Business School</div>
+          <div class="detail">Additional coursework</div>
+        </div>
+        <div class="cred-item">
+          <div class="name">IMD Lausanne</div>
+          <div class="detail">Executive education</div>
+        </div>
+      </div>
+      <div class="cred-group">
+        <div class="cred-heading">Certifications</div>
+        <div class="cred-item">
+          <div class="name">MEDDPICC Certified</div>
+          <div class="detail">MEDDIC Academy</div>
+          <div class="cred-badge">New — March 2026</div>
+        </div>
+        <div class="cred-item">
+          <div class="name">Certified Executive Coach</div>
+          <div class="detail">AoEC — Academy of Executive Coaching</div>
+        </div>
+        <div class="cred-item">
+          <div class="name">Global Key Account Manager</div>
+          <div class="detail">HSG St. Gallen certified</div>
+        </div>
+      </div>
+      <div class="cred-group">
+        <div class="cred-heading">Languages &amp; Reach</div>
+        <div class="cred-item">
+          <div class="name">German</div>
+          <div class="detail">Native</div>
+        </div>
+        <div class="cred-item">
+          <div class="name">English</div>
+          <div class="detail">Full professional proficiency</div>
+        </div>
+        <div class="cred-item">
+          <div class="name">French</div>
+          <div class="detail">Working proficiency</div>
+        </div>
+        <div class="cred-item" style="margin-top:1.5rem;">
+          <div class="name">Lived &amp; worked in</div>
+          <div class="detail">Vienna, Zurich, New York, Geneva, Copenhagen, Tel Aviv, Sydney, Sarajevo, Tbilisi, Zagreb</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- INTERNATIONAL FOOTPRINT -->
+<section>
+  <div class="wrap">
+    <div class="section-kicker">International footprint</div>
+    <h2 class="section-title">Earlier roles that shaped the operator.</h2>
+    <p class="section-lead">Commercial diplomacy, multilateral institutions, and parliamentary work. Not footnotes — the reason complex stakeholder environments feel like home.</p>
+    <div class="int-grid">
+      <div class="int-card">
+        <div class="org">WTO</div>
+        <div class="loc">Geneva</div>
+        <div class="brief">Trade facilitation, committee work, government trainings</div>
+      </div>
+      <div class="int-card">
+        <div class="org">Austrian Embassy</div>
+        <div class="loc">Tel Aviv</div>
+        <div class="brief">Commercial Attaché support, ministerial delegations</div>
+      </div>
+      <div class="int-card">
+        <div class="org">DCAF</div>
+        <div class="loc">Geneva &amp; Zagreb</div>
+        <div class="brief">Regional workshops, security sector governance</div>
+      </div>
+      <div class="int-card">
+        <div class="org">OSCE</div>
+        <div class="loc">Sarajevo &amp; Tbilisi</div>
+        <div class="brief">Election observation, evidence collection</div>
+      </div>
+      <div class="int-card">
+        <div class="org">NSW Parliament</div>
+        <div class="loc">Sydney</div>
+        <div class="brief">Parliamentary research</div>
+      </div>
+      <div class="int-card">
+        <div class="org">Austrian Parliament</div>
+        <div class="loc">Vienna</div>
+        <div class="brief">Legal-political research</div>
+      </div>
+      <div class="int-card">
+        <div class="org">CARE International</div>
+        <div class="loc">Vienna</div>
+        <div class="brief">International development operations</div>
+      </div>
+      <div class="int-card">
+        <div class="org">IMD</div>
+        <div class="loc">Lausanne</div>
+        <div class="brief">Executive education</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- SKILLS STRIP -->
+<div class="strip">
+  <div class="wrap strip-inner">
+    <div class="strip-group">
+      <div class="strip-label">Sales Methodology</div>
+      <div class="strip-tags">
+        <span class="strip-tag">MEDDPICC</span>
+        <span class="strip-tag">Strategic Account Planning</span>
+        <span class="strip-tag">Consultative Selling</span>
+        <span class="strip-tag">Complex Deal Structuring</span>
+      </div>
+    </div>
+    <div class="strip-group">
+      <div class="strip-label">Domains</div>
+      <div class="strip-tags">
+        <span class="strip-tag">Financial Services</span>
+        <span class="strip-tag">Capital Markets</span>
+        <span class="strip-tag">IT Consulting</span>
+        <span class="strip-tag">Regulated Environments</span>
+      </div>
+    </div>
+    <div class="strip-group">
+      <div class="strip-label">Operating Style</div>
+      <div class="strip-tags">
+        <span class="strip-tag">Field-heavy EMEA travel</span>
+        <span class="strip-tag">Cross-border coordination</span>
+        <span class="strip-tag">Executive alignment</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- BEYOND THE DAY JOB -->
+<section>
+  <div class="wrap">
+    <div class="section-kicker">Beyond the day job</div>
+    <h2 class="section-title">The person behind the operator.</h2>
+    <div class="proj-grid">
+      <div class="proj-card">
+        <h3>Kickstart Switzerland</h3>
+        <div class="meta">2021 – 2022 · Advisor</div>
+        <p>Advised startups expanding their Swiss business — translating international ambition into Swiss market reality.</p>
+      </div>
+      <div class="proj-card">
+        <h3>Capacity Zurich — Migrant Entrepreneurship</h3>
+        <div class="meta">2020 · Mentor &amp; Tutor</div>
+        <p>Mentored migrant entrepreneurs navigating the Swiss business landscape.</p>
+      </div>
+      <div class="proj-card">
+        <h3>Certified Executive Coach</h3>
+        <div class="meta">AoEC Practitioner · 2025</div>
+        <p>Leading teams across borders requires more than commercial instinct — it requires knowing how to develop people.</p>
+      </div>
+      <div class="proj-card">
+        <h3>Volunteer Commitments</h3>
+        <div class="meta">Ongoing</div>
+        <p>Economic empowerment, education, environmental sustainability, human rights.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CTA -->
+<section class="cta">
+  <div class="wrap">
+    <div class="section-kicker">Next chapter</div>
+    <h2 class="section-title">The territory I built doesn't exist anymore. I'm looking for the next one.</h2>
+    <p class="section-lead">Currently exploring strategic account roles, partner-facing growth, and cross-border commercial leadership from a Swiss base. If your next hire needs to build something real — not just manage a pipeline — let's talk.</p>
+    <div class="cta-actions">
+      <a href="mailto:emanuel@waldmuller.org" class="btn btn-white">emanuel@waldmuller.org</a>
+      <a href="https://linkedin.com/in/emwaldm" target="_blank" rel="noopener" class="btn btn-ghost">LinkedIn</a>
+    </div>
+    <div class="cta-detail">
+      Zurich with ties to Vienna · Open to EMEA travel-heavy roles · <a href="https://waldmuller.org/wp-content/uploads/2026/03/CV_Waldmueller_2026_cbLI.pdf" target="_blank" rel="noopener">Download full CV</a>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="wrap footer-inner">
+    <div class="footer-quote">"It is only with the heart that one can see rightly; what is essential is invisible to the eye." — Saint-Exupéry</div>
+    <div class="footer-copy">&copy; Emanuel M. Waldmüller, 2026</div>
+  </div>
+</footer>
+
+</body>
+</html>

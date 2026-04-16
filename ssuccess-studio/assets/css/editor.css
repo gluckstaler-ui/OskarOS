@@ -1,0 +1,46 @@
+/**
+ * Gutenberg Editor Overrides
+ * Makes the editor preview match the frontend as closely as possible.
+ */
+
+/* Widen the editor content area */
+.editor-styles-wrapper .wp-block {
+    max-width: 100% !important;
+}
+
+.editor-styles-wrapper {
+    font-family: 'Inter', sans-serif !important;
+}
+
+/* Make Custom HTML blocks visually distinct in the editor */
+.editor-styles-wrapper .wp-block-html {
+    border: 1px dashed #D0E4A3;
+    border-radius: 4px;
+    padding: 8px;
+    position: relative;
+}
+
+.editor-styles-wrapper .wp-block-html::before {
+    content: 'Sektion';
+    position: absolute;
+    top: -10px;
+    left: 8px;
+    background: #D0E4A3;
+    color: #3d2e1e;
+    font-size: 10px;
+    font-weight: 600;
+    padding: 1px 6px;
+    border-radius: 2px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+/* Group block labels */
+.editor-styles-wrapper .wp-block-group {
+    border: 1px solid transparent;
+    transition: border-color 0.2s;
+}
+
+.editor-styles-wrapper .wp-block-group:hover {
+    border-color: #D0E4A3;
+}

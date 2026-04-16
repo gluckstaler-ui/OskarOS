@@ -1,0 +1,692 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bareggcenter Baden | Nach der Arbeit auf den Platz</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --color-primary: #E65100;
+            --color-secondary: #2D2D2D;
+            --color-accent: #F5F0E8;
+            --color-background: #FFFFFF;
+            --color-text: #2D2D2D;
+            --color-text-light: #666666;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            color: var(--color-text);
+            background-color: var(--color-background);
+            line-height: 1.6;
+        }
+
+        /* Navigation */
+        .nav {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 1000;
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: linear-gradient(to bottom, rgba(0,0,0,0.5), transparent);
+            transition: background 0.3s ease;
+        }
+
+        .nav.scrolled {
+            background: rgba(255,255,255,0.98);
+            box-shadow: 0 2px 20px rgba(0,0,0,0.1);
+        }
+
+        .nav-logo img {
+            height: 50px;
+            transition: filter 0.3s ease;
+        }
+
+        .nav:not(.scrolled) .nav-logo img {
+            filter: brightness(0) invert(1);
+        }
+
+        .nav-cta {
+            background: var(--color-primary);
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border-radius: 4px;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 0.9rem;
+            transition: all 0.3s ease;
+        }
+
+        .nav-cta:hover {
+            background: #D84315;
+            transform: translateY(-2px);
+        }
+
+        /* Hero Section */
+        .hero {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            background: url('../../images/padel-after-match.jpg') center center / cover no-repeat;
+            color: white;
+            text-align: center;
+            padding: 2rem;
+        }
+
+        .hero-content {
+            max-width: 900px;
+            z-index: 1;
+        }
+
+        .hero h1 {
+            font-size: clamp(3rem, 10vw, 7rem);
+            font-weight: 700;
+            line-height: 1.1;
+            margin-bottom: 1.5rem;
+            letter-spacing: -0.02em;
+            text-shadow: 0 2px 20px rgba(0,0,0,0.8), 0 4px 40px rgba(0,0,0,0.6);
+        }
+
+        .hero h1 span {
+            color: var(--color-primary);
+        }
+
+        .hero-subline {
+            font-size: clamp(1.1rem, 2.5vw, 1.4rem);
+            font-weight: 400;
+            margin-bottom: 2.5rem;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+            text-shadow: 0 2px 15px rgba(0,0,0,0.8), 0 4px 30px rgba(0,0,0,0.5);
+        }
+
+        .hero-cta {
+            display: inline-block;
+            background: var(--color-primary);
+            color: white;
+            padding: 1rem 2.5rem;
+            border-radius: 4px;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 1.1rem;
+            transition: all 0.3s ease;
+        }
+
+        .hero-cta:hover {
+            background: #D84315;
+            transform: translateY(-3px);
+            box-shadow: 0 10px 30px rgba(230, 81, 0, 0.3);
+        }
+
+        /* Section Base Styles */
+        section {
+            padding: 6rem 2rem;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .section-header {
+            text-align: center;
+            margin-bottom: 4rem;
+        }
+
+        .section-header h2 {
+            font-size: clamp(2rem, 4vw, 3rem);
+            font-weight: 700;
+            margin-bottom: 1rem;
+            color: var(--color-secondary);
+        }
+
+        .section-header p {
+            font-size: 1.15rem;
+            color: var(--color-text-light);
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        /* Das Angebot Section */
+        .angebot {
+            background: var(--color-accent);
+        }
+
+        .sports-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .sport-card {
+            background: white;
+            border-radius: 12px;
+            padding: 2rem;
+            transition: all 0.3s ease;
+            border: 1px solid rgba(0,0,0,0.05);
+        }
+
+        .sport-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+        }
+
+        .sport-card h3 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+            color: var(--color-secondary);
+        }
+
+        .sport-card .courts {
+            font-size: 0.9rem;
+            color: var(--color-text-light);
+            margin-bottom: 1rem;
+        }
+
+        .sport-card .price {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--color-primary);
+        }
+
+        .sport-card .price-note {
+            font-size: 0.85rem;
+            color: var(--color-text-light);
+            margin-top: 0.25rem;
+        }
+
+        .angebot-note {
+            text-align: center;
+            margin-top: 3rem;
+            font-size: 1.1rem;
+            color: var(--color-text-light);
+            font-style: italic;
+        }
+
+        /* Feierabend Section */
+        .feierabend {
+            background: var(--color-secondary);
+            color: white;
+        }
+
+        .feierabend .section-header h2 {
+            color: white;
+        }
+
+        .feierabend .section-header p {
+            color: rgba(255,255,255,0.7);
+        }
+
+        .feierabend-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+        }
+
+        .feierabend-item {
+            padding: 2rem;
+            background: rgba(255,255,255,0.05);
+            border-radius: 12px;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .feierabend-item h3 {
+            font-size: 1.3rem;
+            font-weight: 600;
+            margin-bottom: 0.75rem;
+            color: var(--color-primary);
+        }
+
+        .feierabend-item p {
+            color: rgba(255,255,255,0.8);
+            line-height: 1.7;
+        }
+
+        .feierabend-item .hours {
+            margin-top: 1rem;
+            font-size: 0.9rem;
+            color: rgba(255,255,255,0.6);
+        }
+
+        .feierabend-tagline {
+            text-align: center;
+            margin-top: 3rem;
+            font-size: 1.25rem;
+            color: rgba(255,255,255,0.9);
+        }
+
+        /* So Einfach Section */
+        .so-einfach {
+            background: white;
+        }
+
+        .steps {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 2rem;
+            counter-reset: step;
+        }
+
+        .step {
+            position: relative;
+            padding: 2rem;
+            padding-top: 4rem;
+            background: var(--color-accent);
+            border-radius: 12px;
+        }
+
+        .step::before {
+            counter-increment: step;
+            content: counter(step);
+            position: absolute;
+            top: 1.5rem;
+            left: 2rem;
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--color-primary);
+            opacity: 0.3;
+        }
+
+        .step h3 {
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            color: var(--color-secondary);
+        }
+
+        .step p {
+            color: var(--color-text-light);
+            font-size: 0.95rem;
+        }
+
+        /* Location Section */
+        .location {
+            background: var(--color-accent);
+            text-align: center;
+        }
+
+        .location-content {
+            max-width: 700px;
+            margin: 0 auto;
+        }
+
+        .location h2 {
+            font-size: clamp(1.8rem, 4vw, 2.5rem);
+            font-weight: 700;
+            margin-bottom: 1.5rem;
+            color: var(--color-secondary);
+        }
+
+        .location-address {
+            font-size: 1.3rem;
+            font-weight: 500;
+            margin-bottom: 1.5rem;
+            color: var(--color-secondary);
+        }
+
+        .location-details {
+            font-size: 1.1rem;
+            color: var(--color-text-light);
+            margin-bottom: 2rem;
+            line-height: 1.8;
+        }
+
+        .location-phone {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: var(--color-primary);
+        }
+
+        .location-phone a {
+            color: inherit;
+            text-decoration: none;
+        }
+
+        .location-phone a:hover {
+            text-decoration: underline;
+        }
+
+        /* CTA Section */
+        .cta-section {
+            background: linear-gradient(135deg, var(--color-primary) 0%, #D84315 100%);
+            color: white;
+            text-align: center;
+            padding: 5rem 2rem;
+        }
+
+        .cta-section h2 {
+            font-size: clamp(1.8rem, 4vw, 2.5rem);
+            font-weight: 700;
+            margin-bottom: 1rem;
+        }
+
+        .cta-section p {
+            font-size: 1.15rem;
+            opacity: 0.9;
+            margin-bottom: 2rem;
+            max-width: 500px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .cta-button {
+            display: inline-block;
+            background: white;
+            color: var(--color-primary);
+            padding: 1rem 2.5rem;
+            border-radius: 4px;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 1.1rem;
+            transition: all 0.3s ease;
+        }
+
+        .cta-button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+
+        /* Footer */
+        footer {
+            background: var(--color-secondary);
+            color: white;
+            padding: 3rem 2rem;
+        }
+
+        .footer-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            align-items: center;
+            gap: 2rem;
+        }
+
+        .footer-logo img {
+            height: 40px;
+            filter: brightness(0) invert(1);
+        }
+
+        .footer-info {
+            text-align: center;
+            flex: 1;
+        }
+
+        .footer-info p {
+            color: rgba(255,255,255,0.7);
+            font-size: 0.9rem;
+        }
+
+        .footer-hours {
+            text-align: right;
+        }
+
+        .footer-hours p {
+            color: rgba(255,255,255,0.7);
+            font-size: 0.9rem;
+            line-height: 1.6;
+        }
+
+        .footer-tagline {
+            width: 100%;
+            text-align: center;
+            padding-top: 2rem;
+            margin-top: 2rem;
+            border-top: 1px solid rgba(255,255,255,0.1);
+            color: rgba(255,255,255,0.5);
+            font-size: 0.9rem;
+        }
+
+        /* Image Section */
+        .image-break {
+            height: 400px;
+            background: url('../../images/padel-courts-evening.jpg') center center / cover no-repeat;
+            position: relative;
+        }
+
+        .restaurant-image {
+            height: 400px;
+            background: url('../../images/ristorante-baregg.jpg') center center / cover no-repeat;
+            position: relative;
+            border-radius: 12px;
+            margin-bottom: 2rem;
+        }
+
+        .image-break::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(to bottom, var(--color-secondary) 0%, transparent 30%, transparent 70%, var(--color-accent) 100%);
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .nav {
+                padding: 1rem;
+            }
+
+            .nav-logo img {
+                height: 40px;
+            }
+
+            .nav-cta {
+                padding: 0.5rem 1rem;
+                font-size: 0.85rem;
+            }
+
+            section {
+                padding: 4rem 1.5rem;
+            }
+
+            .footer-content {
+                flex-direction: column;
+                text-align: center;
+            }
+
+            .footer-hours {
+                text-align: center;
+            }
+
+            .image-break {
+                height: 250px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="nav" id="nav">
+        <div class="nav-logo">
+            <img src="../../images/logo_bareggcenter.png" alt="Bareggcenter Baden">
+        </div>
+        <a href="#buchen" class="nav-cta">Slot sichern</a>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="hero">
+        <div class="hero-content">
+            <h1>17:30&nbsp;Feierabend.<br><span>18:00&nbsp;Padel.</span><br>19:30&nbsp;Bier.</h1>
+            <p class="hero-subline">Buchen, spielen, ausklingen. So einfach ist das.</p>
+            <a href="#buchen" class="hero-cta">Jetzt deinen Slot sichern</a>
+        </div>
+    </section>
+
+    <!-- Das Angebot Section -->
+    <section class="angebot" id="angebot">
+        <div class="container">
+            <div class="section-header">
+                <h2>Das Angebot</h2>
+                <p>4 Padel-Courts, die abends ausgebucht sind. Du weisst warum.</p>
+            </div>
+            <div class="sports-grid">
+                <div class="sport-card">
+                    <h3>Padel</h3>
+                    <p class="courts">4 Courts</p>
+                    <p class="price">CHF 48 / CHF 64</p>
+                    <p class="price-note">Tag / Abend & Wochenende</p>
+                </div>
+                <div class="sport-card">
+                    <h3>Tennis</h3>
+                    <p class="courts">3 Courts</p>
+                    <p class="price">ab CHF 28</p>
+                    <p class="price-note">pro Stunde</p>
+                </div>
+                <div class="sport-card">
+                    <h3>Squash</h3>
+                    <p class="courts">3 Courts</p>
+                    <p class="price">ab CHF 27</p>
+                    <p class="price-note">pro Stunde</p>
+                </div>
+                <div class="sport-card">
+                    <h3>Badminton</h3>
+                    <p class="courts">5 Courts</p>
+                    <p class="price">Preise vor Ort</p>
+                    <p class="price-note">Spontan vorbeikommen</p>
+                </div>
+            </div>
+            <p class="angebot-note">Alle Preise inklusive Hallenbenutzung. Schläger-Miete vor Ort möglich.</p>
+        </div>
+    </section>
+
+    <!-- Image Break -->
+    <div class="image-break"></div>
+
+    <!-- Der Feierabend Section -->
+    <section class="feierabend" id="feierabend">
+        <div class="container">
+            <div class="section-header">
+                <h2>Der Feierabend</h2>
+                <p>Nach dem Match: Bier an der Bar, Pizza bei Costantino, oder Sauna für CHF 10.</p>
+            </div>
+            <div class="feierabend-grid">
+                <div class="feierabend-item">
+                    <h3>Die Bar</h3>
+                    <p>Kein Plastikbecher-Feeling. Richtiges Bier, richtige Drinks, richtige Gespräche nach dem Match.</p>
+                    <p class="hours">Mo-Sa bis 23:30 | Fr-Sa bis 01:00</p>
+                </div>
+                <div class="feierabend-item">
+                    <h3>Restaurant Costantino</h3>
+                    <p>Authentisch italienisch. Costantino aus Apulien macht keine Kompromisse. Weder bei der Pizza noch bei der Pasta.</p>
+                    <p class="hours">Mittag- und Abendservice</p>
+                </div>
+                <div class="feierabend-item">
+                    <h3>Sauna</h3>
+                    <p>Muskeln lockern nach dem Match. CHF 10 für alle, die es sich verdient haben.</p>
+                    <p class="hours">Täglich 8:00-22:00</p>
+                </div>
+            </div>
+            <p class="feierabend-tagline">Spielen. Essen. Erholen. Alles unter einem Dach.</p>
+        </div>
+    </section>
+
+    <!-- Restaurant Image -->
+    <div style="max-width: 1100px; margin: 0 auto; padding: 0 2rem 4rem;">
+        <div style="height: 400px; background: url('../../images/ristorante-baregg.jpg') center center / cover no-repeat; border-radius: 12px; box-shadow: 0 10px 40px rgba(0,0,0,0.15);"></div>
+    </div>
+
+    <!-- So Einfach Section -->
+    <section class="so-einfach" id="so-einfach">
+        <div class="container">
+            <div class="section-header">
+                <h2>So einfach</h2>
+                <p>Keine Mitgliedschaft. Kein Stress. Einfach buchen und spielen.</p>
+            </div>
+            <div class="steps">
+                <div class="step">
+                    <h3>Online buchen</h3>
+                    <p>Bis 14 Tage im Voraus. Dein Slot, deine Zeit.</p>
+                </div>
+                <div class="step">
+                    <h3>Bezahlen vor dem Spielen</h3>
+                    <p>An der Rezeption oder online. Wie du willst.</p>
+                </div>
+                <div class="step">
+                    <h3>Saubere Hallenschuhe</h3>
+                    <p>Das Einzige, was wir verlangen. Keine hellen Sohlen.</p>
+                </div>
+                <div class="step">
+                    <h3>Kostenlos stornieren</h3>
+                    <p>Bis 24h vorher. Ohne Wenn und Aber.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Location Section -->
+    <section class="location" id="location">
+        <div class="container">
+            <div class="location-content">
+                <h2>Keine Ausreden</h2>
+                <p class="location-address">Zelgweg 11, 5405 Baden-Daettwil</p>
+                <p class="location-details">
+                    15 Minuten von Zürich.<br>
+                    Direkt an der A1.<br>
+                    200+ Parkplätze.
+                </p>
+                <p class="location-phone">
+                    <a href="tel:+41564934455">+41 56 493 44 55</a>
+                </p>
+            </div>
+        </div>
+    </section>
+
+    <!-- CTA Section -->
+    <section class="cta-section" id="buchen">
+        <div class="container">
+            <h2>Feierabend steht an?</h2>
+            <p>Der Court wartet nicht. Und deine Mitspieler auch nicht.</p>
+            <a href="#buchen" class="cta-button">Jetzt Slot sichern</a>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer>
+        <div class="footer-content">
+            <div class="footer-logo">
+                <img src="../../images/logo_bareggcenter.png" alt="Bareggcenter Baden">
+            </div>
+            <div class="footer-info">
+                <p>Zelgweg 11, 5405 Baden-Daettwil | +41 56 493 44 55</p>
+            </div>
+            <div class="footer-hours">
+                <p>Mo-Fr: 8:00-23:30<br>Sa: 8:00-23:30 | So: 8:00-22:00</p>
+            </div>
+            <p class="footer-tagline">Nach der Arbeit auf den Platz.</p>
+        </div>
+    </footer>
+
+    <!-- Scroll Effect for Nav -->
+    <script>
+        const nav = document.getElementById('nav');
+        window.addEventListener('scroll', () => {
+            if (window.scrollY > 100) {
+                nav.classList.add('scrolled');
+            } else {
+                nav.classList.remove('scrolled');
+            }
+        });
+    </script>
+</body>
+</html>

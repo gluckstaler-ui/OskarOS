@@ -1,0 +1,1283 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OskarOS | Admin Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .mono { font-family: 'JetBrains Mono', monospace; }
+        .gradient-bg {
+            background: linear-gradient(135deg, #0a0a0a 0%, #1a1a2e 50%, #0a0a0a 100%);
+        }
+        .glass {
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+        .glow {
+            box-shadow: 0 0 40px rgba(99, 102, 241, 0.15);
+        }
+        .glow-purple {
+            box-shadow: 0 0 30px rgba(168, 85, 247, 0.2);
+        }
+        .phase-active {
+            background: linear-gradient(135deg, rgba(99, 102, 241, 0.2), rgba(168, 85, 247, 0.2));
+            border-color: rgba(99, 102, 241, 0.5);
+        }
+        .snackbar-enter {
+            animation: slideIn 0.3s ease-out;
+        }
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+        .pulse { animation: pulse 2s infinite; }
+        .spin { animation: spin 1s linear infinite; }
+        .file-tree-line {
+            border-left: 1px dashed rgba(255,255,255,0.2);
+        }
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: rgba(255,255,255,0.05); }
+        ::-webkit-scrollbar-thumb { background: rgba(99, 102, 241, 0.5); border-radius: 3px; }
+        
+        /* Panel styles matching React app */
+        .panel {
+            background: #111;
+            border-right: 1px solid rgba(255,255,255,0.1);
+        }
+        .panel-header {
+            padding: 16px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        
+        /* Tab styles */
+        .tab-active {
+            background: rgba(99, 102, 241, 0.2);
+            color: #818cf8;
+            border-color: #818cf8;
+        }
+        
+        /* Card hover effects */
+        .card-hover {
+            transition: all 0.2s ease;
+        }
+        .card-hover:hover {
+            background: rgba(255,255,255,0.05);
+            transform: translateY(-2px);
+        }
+    </style>
+</head>
+<body class="gradient-bg min-h-screen text-white overflow-hidden">
+    <!-- Snackbar Container -->
+    <div id="snackbar-container" class="fixed bottom-4 right-4 z-50 flex flex-col gap-2 max-w-sm"></div>
+
+    <!-- Top Bar - Matching React app pattern -->
+    <header class="fixed top-0 left-0 right-0 z-40 border-b border-white/10 bg-black/80 backdrop-blur-sm">
+        <div class="flex items-center justify-between px-4 py-3">
+            <!-- Left: Logo & Nav -->
+            <div class="flex items-center gap-6">
+                <div class="flex items-center gap-3">
+                    <div class="w-9 h-9 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center font-bold text-sm">
+                        O
+                    </div>
+                    <div>
+                        <h1 class="font-semibold text-sm">OskarOS</h1>
+                        <p class="text-[10px] text-white/40">Admin Dashboard</p>
+                    </div>
+                </div>
+                
+                <!-- Nav Tabs -->
+                <nav class="flex items-center gap-1 ml-4">
+                    <button onclick="switchView('sessions')" id="nav-sessions" class="nav-tab px-3 py-1.5 rounded-lg text-sm font-medium tab-active">
+                        Sessions
+                    </button>
+                    <button onclick="switchView('architecture')" id="nav-architecture" class="nav-tab px-3 py-1.5 rounded-lg text-sm font-medium text-white/50 hover:text-white hover:bg-white/5">
+                        Architecture
+                    </button>
+                    <button onclick="switchView('agents')" id="nav-agents" class="nav-tab px-3 py-1.5 rounded-lg text-sm font-medium text-white/50 hover:text-white hover:bg-white/5">
+                        Agents
+                    </button>
+                    <button onclick="switchView('logs')" id="nav-logs" class="nav-tab px-3 py-1.5 rounded-lg text-sm font-medium text-white/50 hover:text-white hover:bg-white/5">
+                        System Logs
+                    </button>
+                </nav>
+            </div>
+
+            <!-- Right: Status & Actions -->
+            <div class="flex items-center gap-3">
+                <span class="px-2.5 py-1 rounded-full bg-emerald-500/20 text-emerald-400 text-xs font-medium flex items-center gap-1.5">
+                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+                    System Active
+                </span>
+                
+                <!-- Billing Toggle (matching React) -->
+                <div class="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/5">
+                    <button onclick="setBillingMode('cli')" id="billing-cli" class="px-2 py-0.5 rounded text-xs font-medium bg-indigo-500/20 text-indigo-400">CLI</button>
+                    <button onclick="setBillingMode('api')" id="billing-api" class="px-2 py-0.5 rounded text-xs font-medium text-white/40">API</button>
+                </div>
+                
+                <button onclick="createNewSession()" class="px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 transition font-medium text-xs flex items-center gap-1.5">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+                    New Session
+                </button>
+                
+                <a href="index.html" class="px-3 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 transition text-xs flex items-center gap-1.5">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+                    Open App
+                </a>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content Area -->
+    <main class="pt-14 h-screen overflow-hidden">
+        <!-- Sessions View (Default) -->
+        <div id="view-sessions" class="h-full flex">
+            <!-- Left: Session List -->
+            <div class="w-80 h-full border-r border-white/10 overflow-y-auto p-4">
+                <div class="flex items-center justify-between mb-4">
+                    <h2 class="font-semibold text-sm flex items-center gap-2">
+                        <svg class="w-4 h-4 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg>
+                        Sessions
+                    </h2>
+                    <span class="text-xs text-white/40" id="session-count">3 total</span>
+                </div>
+                
+                <!-- Search -->
+                <div class="relative mb-4">
+                    <input type="text" placeholder="Search sessions..." class="w-full px-3 py-2 pl-8 rounded-lg bg-white/5 border border-white/10 text-sm focus:outline-none focus:border-indigo-500/50" onkeyup="filterSessions(this.value)">
+                    <svg class="w-4 h-4 absolute left-2.5 top-2.5 text-white/30" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+                </div>
+                
+                <!-- Session Cards -->
+                <div id="sessions-list" class="space-y-2">
+                    <!-- Populated by JS -->
+                </div>
+            </div>
+            
+            <!-- Right: Session Detail -->
+            <div class="flex-1 h-full overflow-y-auto">
+                <div id="session-detail" class="p-6">
+                    <!-- Placeholder when no session selected -->
+                    <div id="no-session-selected" class="flex flex-col items-center justify-center h-full text-center">
+                        <div class="w-16 h-16 rounded-2xl bg-white/5 flex items-center justify-center mb-4">
+                            <svg class="w-8 h-8 text-white/20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg>
+                        </div>
+                        <h3 class="font-medium text-white/60 mb-1">Select a session</h3>
+                        <p class="text-sm text-white/40">Click on a session card to view details</p>
+                    </div>
+                    
+                    <!-- Session Detail Content (hidden by default) -->
+                    <div id="session-content" class="hidden">
+                        <!-- Header -->
+                        <div class="flex items-start justify-between mb-6">
+                            <div>
+                                <h2 id="detail-name" class="text-xl font-bold">FalCaMel Café</h2>
+                                <p id="detail-id" class="mono text-xs text-white/40 mt-1">/public/2025-01-15-falcamel/</p>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <span id="detail-phase" class="px-3 py-1.5 rounded-lg bg-purple-500/20 text-purple-400 text-xs font-medium">
+                                    PHASE 3: GEN VIBES
+                                </span>
+                                <button onclick="openInApp()" class="px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-xs font-medium flex items-center gap-1.5">
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                                    Resume
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <!-- Phase Progress -->
+                        <div class="glass rounded-xl p-4 mb-6">
+                            <h3 class="font-medium text-sm mb-3">Phase Progress</h3>
+                            <div class="grid grid-cols-7 gap-1" id="phase-progress">
+                                <!-- Populated by JS -->
+                            </div>
+                        </div>
+
+                        <!-- Three Column Layout -->
+                        <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                            <!-- Left Column: Folder Structure + Orchestration & Agents -->
+                            <div class="space-y-4">
+                                <!-- Folder Structure -->
+                                <div class="glass rounded-xl p-4">
+                                    <h3 class="font-medium text-sm mb-3 flex items-center gap-2">
+                                        <svg class="w-4 h-4 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/></svg>
+                                        Session Folder
+                                    </h3>
+                                    <div id="detail-folder" class="mono text-xs space-y-0.5 text-white/70 max-h-[40vh] overflow-y-auto">
+                                        <!-- Populated by JS -->
+                                    </div>
+                                </div>
+
+                                <!-- Orchestration Flow -->
+                                <div class="glass rounded-xl p-4">
+                                    <h3 class="font-medium text-sm mb-3 flex items-center gap-2">
+                                        <svg class="w-4 h-4 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                                        Orchestration
+                                    </h3>
+                                    <div id="detail-orchestration" class="space-y-2">
+                                        <!-- Populated by JS -->
+                                    </div>
+                                    <div class="mt-3 p-2 rounded-lg bg-indigo-500/10 border border-indigo-500/20 text-xs">
+                                        <span class="text-indigo-400">🚐 Mini-buses:</span>
+                                        <span class="text-white/70"> Images generate as user approves</span>
+                                    </div>
+                                </div>
+
+                                <!-- Agent Cards -->
+                                <div class="space-y-2">
+                                    <h3 class="font-medium text-sm mb-2">Active Agents</h3>
+                                    <div id="detail-agents" class="space-y-2">
+                                        <!-- Populated by JS -->
+                                    </div>
+                                </div>
+
+                                <!-- WebDev Kanban -->
+                                <div class="glass rounded-xl p-4">
+                                    <h3 class="font-medium text-sm mb-3 flex items-center gap-2">
+                                        <svg class="w-4 h-4 text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+                                        WebDev Kanban <span class="text-xs text-white/40 ml-1">(<span id="vibes-count">4</span> vibes)</span>
+                                    </h3>
+                                    <div id="detail-kanban" class="space-y-1.5 text-sm">
+                                        <!-- Populated by JS -->
+                                    </div>
+                                    <div class="mt-3 p-2 rounded-lg bg-cyan-500/10 border border-cyan-500/20 text-xs">
+                                        <span class="text-cyan-400 font-medium">3 Prompt Types:</span>
+                                        <div class="mt-1 space-y-0.5 text-white/60">
+                                            <div>• <span class="text-blue-400">EDIT:</span> Transform one image</div>
+                                            <div>• <span class="text-purple-400">COMPOSE:</span> Combine elements</div>
+                                            <div>• <span class="text-emerald-400">GENERATE:</span> Create from scratch</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Middle Column: Log Tabs (Session/Images/Build/Brief) -->
+                            <div class="space-y-4">
+                                <!-- Log Tabs -->
+                                <div class="glass rounded-xl overflow-hidden">
+                                    <div class="flex border-b border-white/10">
+                                        <button onclick="showDetailLog('session')" class="detail-log-tab flex-1 px-3 py-2 text-xs font-medium bg-white/5 text-white border-b-2 border-indigo-500" data-log="session">SESSION</button>
+                                        <button onclick="showDetailLog('images')" class="detail-log-tab flex-1 px-3 py-2 text-xs font-medium text-white/50 hover:text-white" data-log="images">IMAGES</button>
+                                        <button onclick="showDetailLog('build')" class="detail-log-tab flex-1 px-3 py-2 text-xs font-medium text-white/50 hover:text-white" data-log="build">BUILD</button>
+                                        <button onclick="showDetailLog('brief')" class="detail-log-tab flex-1 px-3 py-2 text-xs font-medium text-white/50 hover:text-white" data-log="brief">BRIEF</button>
+                                    </div>
+                                    <div id="detail-log-content" class="p-3 max-h-[80vh] overflow-y-auto">
+                                        <div id="detail-log-session" class="mono text-xs space-y-1 text-white/70">
+                                            <!-- Populated by JS -->
+                                        </div>
+                                        <div id="detail-log-images" class="mono text-xs space-y-1 text-white/70 hidden">
+                                            <!-- Populated by JS -->
+                                        </div>
+                                        <div id="detail-log-build" class="mono text-xs space-y-1 text-white/70 hidden">
+                                            <!-- Populated by JS -->
+                                        </div>
+                                        <div id="detail-log-brief" class="mono text-xs space-y-1 text-white/70 hidden">
+                                            <!-- Populated by JS -->
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Right Column: Vibes Preview & Image Prompts -->
+                            <div class="space-y-4">
+                                <!-- Vibe Preview Cards -->
+                                <div class="glass rounded-xl p-4">
+                                    <h3 class="font-medium text-sm mb-3 flex items-center gap-2">
+                                        <svg class="w-4 h-4 text-pink-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                                        Vibes
+                                    </h3>
+                                    <div id="detail-vibes" class="grid grid-cols-2 gap-2">
+                                        <!-- Populated by JS -->
+                                    </div>
+                                </div>
+
+                                <!-- Image Prompts Queue -->
+                                <div class="glass rounded-xl p-4">
+                                    <h3 class="font-medium text-sm mb-3 flex items-center gap-2">
+                                        <svg class="w-4 h-4 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 4V2m0 2a2 2 0 00-2 2v2m2-4a2 2 0 012 2v2M7 4h10M7 4V2m0 2a2 2 0 00-2 2v2m2-4a2 2 0 012 2v2m0-4h10"/></svg>
+                                        Image Prompts
+                                    </h3>
+                                    <div id="detail-image-prompts" class="space-y-2">
+                                        <!-- Populated by JS -->
+                                    </div>
+                                </div>
+
+                                <!-- Hot-Swap Log -->
+                                <div class="glass rounded-xl p-4">
+                                    <h3 class="font-medium text-sm mb-3 flex items-center gap-2">
+                                        <svg class="w-4 h-4 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+                                        Hot-Swap Log
+                                    </h3>
+                                    <div id="detail-hotswap" class="space-y-1.5 mono text-xs">
+                                        <!-- Populated by JS -->
+                                    </div>
+                                </div>
+
+                                <!-- Image Gallery -->
+                                <div id="image-gallery-section" class="hidden">
+                                    <div class="glass rounded-xl p-4">
+                                        <h3 class="font-medium text-sm mb-3 flex items-center gap-2">
+                                            <svg class="w-4 h-4 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                                            Uploaded Images (<span id="image-count">0</span>)
+                                        </h3>
+                                        <div id="image-gallery" class="grid grid-cols-3 gap-2">
+                                            <!-- Populated by JS -->
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Architecture View -->
+        <div id="view-architecture" class="h-full overflow-y-auto p-6 hidden">
+            <div class="max-w-6xl mx-auto">
+                <!-- The Seven Phases -->
+                <div class="glass rounded-2xl p-6 glow mb-6">
+                    <h2 class="text-lg font-bold mb-6 text-center">The Seven Phases <span class="text-sm text-white/50 font-normal">(per Creative Director Agent)</span></h2>
+                    <div class="grid grid-cols-7 gap-2">
+                        <div class="p-3 rounded-xl bg-gradient-to-br from-blue-500/20 to-blue-600/10 border border-blue-500/30">
+                            <div class="text-blue-400 font-bold mb-1 text-sm">P1</div>
+                            <div class="font-semibold text-xs mb-2">Discovery</div>
+                            <ul class="text-[9px] text-white/60 space-y-0.5">
+                                <li>• User uploads</li>
+                                <li>• CD asks questions</li>
+                                <li>• User answers</li>
+                            </ul>
+                            <div class="mt-2 text-[9px] text-amber-400 font-medium">⏹ STOP</div>
+                        </div>
+                        <div class="p-3 rounded-xl bg-gradient-to-br from-cyan-500/20 to-cyan-600/10 border border-cyan-500/30">
+                            <div class="text-cyan-400 font-bold mb-1 text-sm">P2</div>
+                            <div class="font-semibold text-xs mb-2">Image Eval</div>
+                            <ul class="text-[9px] text-white/60 space-y-0.5">
+                                <li>• CD evaluates</li>
+                                <li>• NEUTRAL reprompts</li>
+                                <li>• Track 1 entries</li>
+                            </ul>
+                            <div class="mt-2 text-[9px] text-emerald-400 font-medium">▶ NO STOP</div>
+                        </div>
+                        <div class="p-3 rounded-xl bg-gradient-to-br from-purple-500/20 to-purple-600/10 border border-purple-500/30">
+                            <div class="text-purple-400 font-bold mb-1 text-sm">P3</div>
+                            <div class="font-semibold text-xs mb-2">Gen Vibes</div>
+                            <ul class="text-[9px] text-white/60 space-y-0.5">
+                                <li>• CD creates 4 vibes</li>
+                                <li>• moodboard + HTML</li>
+                                <li>• CREATIVE prompts</li>
+                            </ul>
+                            <div class="mt-2 text-[9px] text-cyan-400 font-medium">## VIBES READY</div>
+                        </div>
+                        <div class="p-3 rounded-xl bg-gradient-to-br from-amber-500/20 to-amber-600/10 border border-amber-500/30">
+                            <div class="text-amber-400 font-bold mb-1 text-sm">P4</div>
+                            <div class="font-semibold text-xs mb-2">User Select</div>
+                            <ul class="text-[9px] text-white/60 space-y-0.5">
+                                <li>• User reviews vibes</li>
+                                <li>• Pick/mix/reject</li>
+                                <li>• Update BRIEF</li>
+                            </ul>
+                            <div class="mt-2 text-[9px] text-amber-400 font-medium">⏹ STOP</div>
+                        </div>
+                        <div class="p-3 rounded-xl bg-gradient-to-br from-orange-500/20 to-orange-600/10 border border-orange-500/30">
+                            <div class="text-orange-400 font-bold mb-1 text-sm">P5</div>
+                            <div class="font-semibold text-xs mb-2">Handoff</div>
+                            <ul class="text-[9px] text-white/60 space-y-0.5">
+                                <li>• WebDev builds</li>
+                                <li>• Hot-swap images</li>
+                                <li>• Snackbars notify</li>
+                            </ul>
+                            <div class="mt-2 text-[9px] text-emerald-400 font-medium">## BUILD READY</div>
+                        </div>
+                        <div class="p-3 rounded-xl bg-gradient-to-br from-rose-500/20 to-rose-600/10 border border-rose-500/30">
+                            <div class="text-rose-400 font-bold mb-1 text-sm">P6</div>
+                            <div class="font-semibold text-xs mb-2">Archetype</div>
+                            <ul class="text-[9px] text-white/60 space-y-0.5">
+                                <li>• 5 booking questions</li>
+                                <li>• Atomic unit?</li>
+                                <li>• Duration model?</li>
+                            </ul>
+                            <div class="mt-2 text-[9px] text-amber-400 font-medium">⏹ STOP</div>
+                        </div>
+                        <div class="p-3 rounded-xl bg-gradient-to-br from-emerald-500/20 to-emerald-600/10 border border-emerald-500/30">
+                            <div class="text-emerald-400 font-bold mb-1 text-sm">P7</div>
+                            <div class="font-semibold text-xs mb-2">Brief WD</div>
+                            <ul class="text-[9px] text-white/60 space-y-0.5">
+                                <li>• Complete handoff</li>
+                                <li>• Archetype + adjust</li>
+                                <li>• Voice examples</li>
+                            </ul>
+                            <div class="mt-2 text-[9px] text-amber-400 font-medium">⏹ STOP</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Two Image Tracks & Prompt Types -->
+                <div class="grid grid-cols-2 gap-6 mb-6">
+                    <div class="glass rounded-xl p-5">
+                        <h3 class="font-semibold mb-4">Two Image Tracks</h3>
+                        <div class="space-y-3">
+                            <div class="p-3 rounded-lg bg-blue-500/10 border border-blue-500/20">
+                                <span class="text-blue-400 font-medium text-sm">Track 1: Evaluated Images</span>
+                                <p class="text-white/50 text-xs mt-1">Uploaded by user → NEUTRAL reprompts</p>
+                                <p class="text-white/30 text-xs mt-2 mono">Section: ## Uploaded Images</p>
+                            </div>
+                            <div class="p-3 rounded-lg bg-purple-500/10 border border-purple-500/20">
+                                <span class="text-purple-400 font-medium text-sm">Track 2: Vibe Generation</span>
+                                <p class="text-white/50 text-xs mt-1">CD creates for vibes → CREATIVE prompts</p>
+                                <p class="text-white/30 text-xs mt-2 mono">Section: ## Image Prompts + Generated</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="glass rounded-xl p-5">
+                        <h3 class="font-semibold mb-4">Three Prompt Types</h3>
+                        <div class="space-y-3">
+                            <div class="p-3 rounded-lg bg-blue-500/10 border border-blue-500/20">
+                                <span class="text-blue-400 font-medium text-sm">EDIT [file]</span>
+                                <p class="text-white/50 text-xs mt-1">Transform one uploaded image</p>
+                            </div>
+                            <div class="p-3 rounded-lg bg-purple-500/10 border border-purple-500/20">
+                                <span class="text-purple-400 font-medium text-sm">COMPOSE [base + extract]</span>
+                                <p class="text-white/50 text-xs mt-1">Combine elements from two images</p>
+                            </div>
+                            <div class="p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/20">
+                                <span class="text-emerald-400 font-medium text-sm">GENERATE</span>
+                                <p class="text-white/50 text-xs mt-1">Create from scratch (no source)</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- The One Rule -->
+                <div class="glass rounded-xl p-6 text-center">
+                    <h3 class="font-semibold mb-3">The One Rule</h3>
+                    <p class="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-amber-400 to-orange-500">
+                        EVERYTHING IN ONE FLAT FOLDER. NO SUBFOLDERS. EVER.
+                    </p>
+                    <p class="text-white/50 text-sm mt-3">
+                        Filesystem as database. Markdown files as state. Self-contained outputs.
+                    </p>
+                    <p class="text-white/30 text-xs mt-2 mono">
+                        Session folder: /public/{session-id}/
+                    </p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Agents View -->
+        <div id="view-agents" class="h-full overflow-y-auto p-6 hidden">
+            <div class="max-w-5xl mx-auto">
+                <div class="grid grid-cols-3 gap-6">
+                    <!-- Creative Director -->
+                    <div class="glass rounded-xl p-5 glow-purple">
+                        <div class="flex items-center gap-3 mb-4">
+                            <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-500 to-pink-600 flex items-center justify-center text-lg">
+                                🎨
+                            </div>
+                            <div>
+                                <h3 class="font-semibold">Creative Director</h3>
+                                <p class="text-xs text-white/40">/agents/creative-director.md</p>
+                            </div>
+                        </div>
+                        <div class="space-y-3 text-sm">
+                            <div class="p-3 rounded-lg bg-white/5">
+                                <span class="text-purple-400 font-medium">Responsibilities</span>
+                                <ul class="text-xs text-white/60 mt-2 space-y-1">
+                                    <li>• Discovery questions</li>
+                                    <li>• Image evaluation (Track 1)</li>
+                                    <li>• Vibe generation (4 vibes)</li>
+                                    <li>• Image prompts (Track 2)</li>
+                                    <li>• Creative Brief handoff</li>
+                                </ul>
+                            </div>
+                            <div class="p-3 rounded-lg bg-white/5">
+                                <span class="text-purple-400 font-medium">Writes To</span>
+                                <div class="flex flex-wrap gap-1 mt-2">
+                                    <span class="px-2 py-0.5 rounded bg-blue-500/20 text-blue-400 text-xs">SESSION.md</span>
+                                    <span class="px-2 py-0.5 rounded bg-cyan-500/20 text-cyan-400 text-xs">IMAGES.md</span>
+                                    <span class="px-2 py-0.5 rounded bg-purple-500/20 text-purple-400 text-xs">CREATIVE-BRIEF.md</span>
+                                </div>
+                            </div>
+                            <div class="p-3 rounded-lg bg-rose-500/10 border border-rose-500/20">
+                                <span class="text-rose-400 font-medium text-xs">Cannot Read: BUILD.md</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- WebDeveloper -->
+                    <div class="glass rounded-xl p-5">
+                        <div class="flex items-center gap-3 mb-4">
+                            <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-orange-500 to-red-600 flex items-center justify-center text-lg">
+                                🔨
+                            </div>
+                            <div>
+                                <h3 class="font-semibold">WebDeveloper</h3>
+                                <p class="text-xs text-white/40">/agents/webdeveloper.md</p>
+                            </div>
+                        </div>
+                        <div class="space-y-3 text-sm">
+                            <div class="p-3 rounded-lg bg-white/5">
+                                <span class="text-orange-400 font-medium">Responsibilities</span>
+                                <ul class="text-xs text-white/60 mt-2 space-y-1">
+                                    <li>• Build vibe HTML pages</li>
+                                    <li>• Hot-swap images</li>
+                                    <li>• Handle brief updates</li>
+                                    <li>• Final landing + booking</li>
+                                </ul>
+                            </div>
+                            <div class="p-3 rounded-lg bg-white/5">
+                                <span class="text-orange-400 font-medium">Writes To</span>
+                                <div class="flex flex-wrap gap-1 mt-2">
+                                    <span class="px-2 py-0.5 rounded bg-orange-500/20 text-orange-400 text-xs">BUILD.md</span>
+                                    <span class="px-2 py-0.5 rounded bg-amber-500/20 text-amber-400 text-xs">vibe-*.html</span>
+                                    <span class="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400 text-xs">final-*.html</span>
+                                </div>
+                            </div>
+                            <div class="p-3 rounded-lg bg-rose-500/10 border border-rose-500/20">
+                                <span class="text-rose-400 font-medium text-xs">Cannot Read: SESSION.md</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Nano Banana -->
+                    <div class="glass rounded-xl p-5">
+                        <div class="flex items-center gap-3 mb-4">
+                            <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center text-lg">
+                                🍌
+                            </div>
+                            <div>
+                                <h3 class="font-semibold">Nano Banana</h3>
+                                <p class="text-xs text-white/40">Gemini Image API</p>
+                            </div>
+                        </div>
+                        <div class="space-y-3 text-sm">
+                            <div class="p-3 rounded-lg bg-white/5">
+                                <span class="text-cyan-400 font-medium">Capabilities</span>
+                                <ul class="text-xs text-white/60 mt-2 space-y-1">
+                                    <li>• Single-image edit</li>
+                                    <li>• Multi-image composition</li>
+                                    <li>• Pure generation</li>
+                                    <li>• Background removal</li>
+                                </ul>
+                            </div>
+                            <div class="p-3 rounded-lg bg-white/5">
+                                <span class="text-cyan-400 font-medium">Aspect Ratios</span>
+                                <div class="flex flex-wrap gap-1 mt-2">
+                                    <span class="px-1.5 py-0.5 rounded bg-white/10 text-white/60 text-[10px] mono">1:1</span>
+                                    <span class="px-1.5 py-0.5 rounded bg-white/10 text-white/60 text-[10px] mono">16:9</span>
+                                    <span class="px-1.5 py-0.5 rounded bg-white/10 text-white/60 text-[10px] mono">9:16</span>
+                                    <span class="px-1.5 py-0.5 rounded bg-white/10 text-white/60 text-[10px] mono">4:3</span>
+                                    <span class="px-1.5 py-0.5 rounded bg-white/10 text-white/60 text-[10px] mono">3:4</span>
+                                    <span class="px-1.5 py-0.5 rounded bg-white/10 text-white/60 text-[10px] mono">21:9</span>
+                                </div>
+                            </div>
+                            <div class="p-3 rounded-lg bg-amber-500/10 border border-amber-500/20">
+                                <span class="text-amber-400 font-medium text-xs">Outputs JPG only — no transparency</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Orchestration Flow -->
+                <div class="glass rounded-xl p-6 mt-6">
+                    <h3 class="font-semibold mb-4">Orchestration Flow</h3>
+                    <div class="flex items-center justify-between text-sm">
+                        <div class="flex-1 text-center">
+                            <div class="w-12 h-12 mx-auto rounded-xl bg-purple-500/20 flex items-center justify-center text-2xl mb-2">🎨</div>
+                            <p class="text-xs text-white/60">CD finishes discovery</p>
+                        </div>
+                        <svg class="w-6 h-6 text-white/20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+                        <div class="flex-1 text-center">
+                            <div class="w-12 h-12 mx-auto rounded-xl bg-purple-500/20 flex items-center justify-center text-2xl mb-2">📋</div>
+                            <p class="text-xs text-white/60">Writes CREATIVE-BRIEF.md</p>
+                        </div>
+                        <svg class="w-6 h-6 text-white/20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+                        <div class="flex-1 text-center">
+                            <div class="w-12 h-12 mx-auto rounded-xl bg-orange-500/20 flex items-center justify-center text-2xl mb-2">🔨</div>
+                            <p class="text-xs text-white/60">WebDev STARTS building</p>
+                        </div>
+                        <svg class="w-6 h-6 text-white/20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+                        <div class="flex-1 text-center">
+                            <div class="w-12 h-12 mx-auto rounded-xl bg-cyan-500/20 flex items-center justify-center text-2xl mb-2">🍌</div>
+                            <p class="text-xs text-white/60">Images generate async</p>
+                        </div>
+                        <svg class="w-6 h-6 text-white/20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+                        <div class="flex-1 text-center">
+                            <div class="w-12 h-12 mx-auto rounded-xl bg-emerald-500/20 flex items-center justify-center text-2xl mb-2">🔄</div>
+                            <p class="text-xs text-white/60">Hot-swap into vibes</p>
+                        </div>
+                    </div>
+                    <div class="mt-4 p-3 rounded-lg bg-indigo-500/10 border border-indigo-500/20 text-center">
+                        <span class="text-indigo-400 font-medium text-sm">🚐 Mini-buses:</span>
+                        <span class="text-white/70 text-sm"> Images generate as user approves — no waiting!</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- System Logs View -->
+        <div id="view-logs" class="h-full overflow-y-auto p-6 hidden">
+            <div class="max-w-4xl mx-auto">
+                <div class="glass rounded-xl overflow-hidden">
+                    <div class="flex border-b border-white/10">
+                        <button onclick="showLogTab('all')" class="log-tab flex-1 px-4 py-3 text-sm font-medium bg-white/5 text-white border-b-2 border-indigo-500" data-log="all">All Events</button>
+                        <button onclick="showLogTab('sessions')" class="log-tab flex-1 px-4 py-3 text-sm font-medium text-white/50 hover:text-white" data-log="sessions">Sessions</button>
+                        <button onclick="showLogTab('images')" class="log-tab flex-1 px-4 py-3 text-sm font-medium text-white/50 hover:text-white" data-log="images">Images</button>
+                        <button onclick="showLogTab('builds')" class="log-tab flex-1 px-4 py-3 text-sm font-medium text-white/50 hover:text-white" data-log="builds">Builds</button>
+                        <button onclick="showLogTab('errors')" class="log-tab flex-1 px-4 py-3 text-sm font-medium text-white/50 hover:text-white" data-log="errors">Errors</button>
+                    </div>
+                    <div id="system-log-content" class="p-4 max-h-[calc(100vh-200px)] overflow-y-auto mono text-xs space-y-2">
+                        <!-- Populated by JS -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        // =============================================
+        // STATE & MOCK DATA
+        // =============================================
+        const MOCK_SESSIONS = [
+            { 
+                id: '2025-01-15-falcamel', 
+                name: 'FalCaMel Café', 
+                phase: 3, 
+                phaseName: 'Gen Vibes', 
+                lastUpdated: '2m ago', 
+                vibesComplete: 2, 
+                vibesTotal: 4,
+                tokenBurn: { cost: '$4.20' },
+                fileCount: 12,
+                files: [
+                    { name: 'SESSION.md', type: 'md', size: '12kb' },
+                    { name: 'IMAGES.md', type: 'md', size: '4kb' },
+                    { name: 'CREATIVE-BRIEF.md', type: 'md', size: '2kb' },
+                    { name: 'vibe-noir.html', type: 'html', size: '45kb' },
+                    { name: 'vibe-industrial.html', type: 'html', size: '42kb' },
+                    { name: 'hero_shot_v1.jpg', type: 'image', size: '2.4mb' },
+                    { name: 'menu_texture.png', type: 'image', size: '1.8mb' }
+                ],
+                agents: [
+                    { name: 'Creative Director', status: 'active', task: 'Reviewing user feedback' },
+                    { name: 'WebDeveloper', status: 'building', task: 'Compiling Vibe 3' },
+                    { name: 'Nano Banana', status: 'idle', task: 'Waiting for jobs' }
+                ],
+                vibes: [
+                    { name: 'Noir Luxury', status: 'complete', htmlPath: '#', oneLiner: 'Dark, moody, premium espresso bar aesthetic' },
+                    { name: 'Industrial Pop', status: 'complete', htmlPath: '#', oneLiner: 'Exposed brick meets neon accents' },
+                    { name: 'Zen Garden', status: 'building', oneLiner: 'Minimalist, plants, light wood' },
+                    { name: 'Cyber Café', status: 'pending', oneLiner: 'Future tech, stainless steel, blue light' }
+                ],
+                imagePrompts: [
+                    { name: 'Hero Shot', aspectRatio: '16:9', prompt: 'Espresso machine close-up, steam, cinematic lighting, 8k' },
+                    { name: 'Interior Wide', aspectRatio: '16:9', prompt: 'Wide angle shot of the seating area, morning light' }
+                ],
+                hotswapLog: [
+                    { time: '10:15', image: 'hero.jpg', from: 'placeholder', to: 'gen_v1' },
+                    { time: '10:22', image: 'logo.png', from: 'default', to: 'upload_v2' }
+                ],
+                rawFiles: {
+                    session: "### User\nWe need a new brand identity for our falafel and caramel cafe. It's called FalCaMel.\n\n### Creative Director\nThat is... a unique combination. Let's explore some vibes. Do you have any reference images?\n\n### User\nUploaded `ref_01.jpg`.\n\n### Creative Director\nGot it. Analyzing...",
+                    images: "# Image Registry\n\n## Uploaded\n- ref_01.jpg (Analysis: Rustic, warm)\n- logo_sketch.png\n\n## Generated\n- hero_v1.jpg\n- texture_noise.png",
+                    build: "# Build Log\n\n[10:30] Compiling Noir Luxury...\n[10:30] Success.\n[10:31] Compiling Industrial Pop...\n[10:31] Success.\n[10:32] Compiling Zen Garden...\n[10:32] Building...",
+                    brief: "# Creative Brief: FalCaMel\n\n## Core Identity\nA fusion of middle-eastern street food and high-end dessert parlor.\n\n## Target Audience\n- Foodies\n- Late night crowd\n\n## Vibe Direction\nContrast between spicy/savory tones and sweet/smooth textures."
+                }
+            },
+            { 
+                id: '2025-01-14-zurich', 
+                name: 'Zurich Insurance', 
+                phase: 5, 
+                phaseName: 'Handoff', 
+                lastUpdated: '1d ago', 
+                vibesComplete: 4, 
+                vibesTotal: 4,
+                tokenBurn: { cost: '$12.50' },
+                fileCount: 45,
+                files: [
+                    { name: 'SESSION.md', type: 'md', size: '45kb' },
+                    { name: 'BUILD.md', type: 'md', size: '12kb' },
+                    { name: 'final_bundle.zip', type: 'other', size: '15mb' }
+                ],
+                agents: [
+                    { name: 'WebDeveloper', status: 'waiting', task: 'Waiting for final approval' }
+                ],
+                vibes: [
+                    { name: 'Trust & Safety', status: 'complete', htmlPath: '#' },
+                    { name: 'Modern Family', status: 'complete', htmlPath: '#' },
+                    { name: 'Digital Future', status: 'complete', htmlPath: '#' },
+                    { name: 'Eco Conscious', status: 'complete', htmlPath: '#' }
+                ],
+                rawFiles: {
+                    session: "### User\nQ1 Campaign assets.\n\n### CD\nProcessing..."
+                }
+            },
+            { 
+                id: '2025-01-10-nike', 
+                name: 'Nike Air Max', 
+                phase: 7, 
+                phaseName: 'Complete', 
+                lastUpdated: '3d ago', 
+                vibesComplete: 4, 
+                vibesTotal: 4,
+                tokenBurn: { cost: '$28.90' },
+                fileCount: 128,
+                 files: [
+                    { name: 'archive_2025_01_10.zip', type: 'other', size: '145mb' }
+                ],
+                agents: [],
+                vibes: [
+                    { name: 'Air', status: 'complete' },
+                    { name: 'Earth', status: 'complete' },
+                    { name: 'Fire', status: 'complete' },
+                    { name: 'Water', status: 'complete' }
+                ],
+                rawFiles: {
+                    session: "### System\nSession archived."
+                }
+            }
+        ];
+
+        let sessions = [];
+        let selectedSession = null;
+        let selectedSessionDetail = null;
+        let systemLogs = [
+            { time: '10:42:01', type: 'session', session: 'falcamel', message: 'Session loaded' },
+            { time: '10:42:05', type: 'image', session: 'falcamel', message: 'Image uploaded: hero_v1.jpg' },
+            { time: '10:43:12', type: 'build', session: 'falcamel', message: 'Vibe 1 generated' },
+            { time: '10:44:00', type: 'agent', session: 'falcamel', message: 'CD started prompt generation' }
+        ];
+        
+        let currentView = 'sessions';
+        let billingMode = 'cli';
+        let isLoading = false;
+
+        // =============================================
+        // INIT
+        // =============================================
+        document.addEventListener('DOMContentLoaded', () => {
+            loadSessions();
+            renderSystemLogs();
+        });
+
+        // =============================================
+        // LOGIC
+        // =============================================
+        async function loadSessions() {
+            isLoading = true;
+            const container = document.getElementById('sessions-list');
+            container.innerHTML = '<div class="text-center py-8 text-white/40"><div class="spin inline-block w-5 h-5 border-2 border-white/20 border-t-indigo-500 rounded-full mb-2"></div><p class="text-xs">Loading sessions...</p></div>';
+
+            // Simulate delay
+            setTimeout(() => {
+                sessions = MOCK_SESSIONS;
+                renderSessionsList();
+                
+                // Auto-select first session
+                if (sessions.length > 0) {
+                    selectSession(sessions[0].id);
+                }
+                isLoading = false;
+            }, 600);
+        }
+
+        async function loadSessionDetail(sessionId) {
+            const session = sessions.find(s => s.id === sessionId);
+            if (session) {
+                selectedSessionDetail = session;
+                renderSessionDetail();
+            }
+        }
+
+        // =============================================
+        // VIEW SWITCHING
+        // =============================================
+        function switchView(view) {
+            currentView = view;
+            
+            // Update nav tabs
+            document.querySelectorAll('.nav-tab').forEach(tab => {
+                tab.classList.remove('tab-active');
+                tab.classList.add('text-white/50');
+            });
+            document.getElementById(`nav-${view}`).classList.add('tab-active');
+            document.getElementById(`nav-${view}`).classList.remove('text-white/50');
+            
+            // Hide all views
+            document.querySelectorAll('[id^="view-"]').forEach(v => v.classList.add('hidden'));
+            
+            // Show selected view
+            document.getElementById(`view-${view}`).classList.remove('hidden');
+        }
+
+        // =============================================
+        // SESSIONS
+        // =============================================
+        function renderSessionsList() {
+            const container = document.getElementById('sessions-list');
+            document.getElementById('session-count').textContent = `${sessions.length} total`;
+            
+            container.innerHTML = sessions.map(session => `
+                <div onclick="selectSession('${session.id}')" class="session-card glass rounded-lg p-4 cursor-pointer card-hover ${selectedSession?.id === session.id ? 'border-indigo-500/50 bg-indigo-500/10' : ''}" data-name="${session.name.toLowerCase()}">
+                    <div class="flex items-start justify-between mb-2">
+                        <h3 class="font-medium text-sm">${session.name}</h3>
+                        <span class="text-[10px] px-1.5 py-0.5 rounded ${getPhaseColor(session.phase)}">${session.phaseName}</span>
+                    </div>
+                    <p class="mono text-[10px] text-white/40 mb-2">${session.id}</p>
+                    <div class="flex items-center justify-between text-[10px] text-white/50">
+                        <span>${session.lastUpdated}</span>
+                        <span class="text-amber-400 font-medium">${session.tokenBurn?.cost || '$0.00'}</span>
+                    </div>
+                    <div class="flex items-center justify-between text-[10px] text-white/50 mt-1">
+                        <span>${session.vibesComplete}/${session.vibesTotal} vibes</span>
+                        <span>${session.fileCount || 0} files</span>
+                    </div>
+                    <div class="mt-2 h-1 rounded-full bg-white/10 overflow-hidden">
+                        <div class="h-full bg-gradient-to-r from-indigo-500 to-purple-500" style="width: ${(session.vibesComplete / session.vibesTotal) * 100}%"></div>
+                    </div>
+                </div>
+            `).join('');
+        }
+        
+        function selectSession(id) {
+            selectedSession = sessions.find(s => s.id === id);
+            renderSessionsList();
+            loadSessionDetail(id);
+        }
+        
+        function renderSessionDetail() {
+            if (!selectedSession || !selectedSessionDetail) {
+                document.getElementById('no-session-selected').classList.remove('hidden');
+                document.getElementById('session-content').classList.add('hidden');
+                return;
+            }
+
+            document.getElementById('no-session-selected').classList.add('hidden');
+            document.getElementById('session-content').classList.remove('hidden');
+
+            const s = selectedSessionDetail;
+            
+            // Header
+            const currentPhase = parseInt(s.phase) || 1;
+            const phaseName = s.phaseName || 'Discovery';
+            document.getElementById('detail-name').textContent = s.name || s.id;
+            document.getElementById('detail-id').textContent = `/public/${s.id}/`;
+            document.getElementById('detail-phase').textContent = `PHASE ${currentPhase}: ${phaseName.toUpperCase()}`;
+            document.getElementById('detail-phase').className = `px-3 py-1.5 rounded-lg text-xs font-medium ${getPhaseColor(currentPhase)}`;
+
+            // Phase Progress
+            const phases = ['Discovery', 'Image Eval', 'Gen Vibes', 'User Select', 'Handoff', 'Archetype', 'Brief WD'];
+            document.getElementById('phase-progress').innerHTML = phases.map((name, i) => {
+                const num = i + 1;
+                const isComplete = num < currentPhase;
+                const isActive = num === currentPhase;
+                
+                let statusClass = 'bg-white/10 text-white/40';
+                let statusIcon = num;
+                if (isComplete) {
+                    statusClass = 'bg-emerald-500/20 text-emerald-400';
+                    statusIcon = '✓';
+                } else if (isActive) {
+                    statusClass = 'bg-indigo-500/20 text-indigo-400';
+                }
+                
+                return `
+                    <div class="p-2 rounded-lg ${isActive ? 'phase-active' : 'glass'}">
+                        <div class="flex items-center gap-1 mb-1">
+                            <div class="w-4 h-4 rounded-full ${statusClass} flex items-center justify-center text-[8px] ${isActive ? 'pulse' : ''}">${statusIcon}</div>
+                            <span class="text-[8px] text-white/40">P${num}</span>
+                        </div>
+                        <p class="text-[10px] font-medium">${name}</p>
+                    </div>
+                `;
+            }).join('');
+            
+            // Folder Structure
+            const files = s.files || [];
+            const typeColors = { md: 'text-blue-400', html: 'text-orange-400', image: 'text-emerald-400', json: 'text-cyan-400', other: 'text-white/60' };
+            document.getElementById('detail-folder').innerHTML = `
+                <div class="text-amber-400">/public/${s.id}/</div>
+                ${files.map((f, i) => {
+                    const isLast = i === files.length - 1;
+                    const prefix = isLast ? '└──' : '├──';
+                    const fileName = typeof f === 'string' ? f : f.name;
+                    const fileType = typeof f === 'string' ? (f.endsWith('.md') ? 'md' : f.endsWith('.html') ? 'html' : 'other') : f.type;
+                    const fileSize = typeof f === 'object' && f.size ? ` <span class="text-white/30">(${f.size})</span>` : '';
+                    return `<div class="pl-4 ${isLast ? '' : 'file-tree-line'} ml-2 py-0.5">${prefix} <span class="${typeColors[fileType] || 'text-white/60'}">${fileName}</span>${fileSize}</div>`;
+                }).join('')}
+            `;
+            
+            // Agents
+            const agents = s.agents || [];
+            if (agents.length === 0) {
+                document.getElementById('detail-agents').innerHTML = '<p class="text-xs text-white/40 text-center py-2">No active agents</p>';
+            } else {
+                document.getElementById('detail-agents').innerHTML = agents.map(a => {
+                    const colors = {
+                        active: 'border-purple-500 bg-purple-500/10',
+                        building: 'border-orange-500 bg-orange-500/10',
+                        generating: 'border-cyan-500 bg-cyan-500/10',
+                        waiting: 'border-white/20 bg-white/5'
+                    };
+                    const badges = {
+                        active: 'bg-purple-500/20 text-purple-400',
+                        building: 'bg-orange-500/20 text-orange-400',
+                        generating: 'bg-cyan-500/20 text-cyan-400',
+                        waiting: 'bg-white/10 text-white/40'
+                    };
+                    return `
+                        <div class="p-2 rounded-lg border-l-2 ${colors[a.status] || colors.waiting}">
+                            <div class="flex items-center justify-between">
+                                <span class="text-xs font-medium">${a.name}</span>
+                                <span class="text-[10px] px-1.5 py-0.5 rounded ${badges[a.status] || badges.waiting}">${(a.status || 'idle').toUpperCase()}</span>
+                            </div>
+                            <p class="text-[10px] text-white/50 mt-1">${a.task || 'Idle'}</p>
+                        </div>
+                    `;
+                }).join('');
+            }
+
+            // Vibes
+            const vibes = s.vibes || [];
+            document.getElementById('vibes-count').textContent = vibes.length;
+
+            if (vibes.length === 0) {
+                document.getElementById('detail-vibes').innerHTML = '<p class="text-xs text-white/40 text-center py-2 col-span-2">No vibes yet</p>';
+            } else {
+                document.getElementById('detail-vibes').innerHTML = vibes.map((v, idx) => {
+                    const statusBorders = {
+                        complete: 'border-emerald-500/50',
+                        building: 'border-amber-500/50',
+                        pending: 'border-white/20'
+                    };
+                    const dots = {
+                        complete: 'bg-emerald-400',
+                        building: 'bg-amber-400 pulse',
+                        pending: 'bg-white/30'
+                    };
+                    return `
+                        <div class="vibe-card relative group cursor-pointer">
+                            <div class="aspect-video rounded-lg overflow-hidden border-2 ${statusBorders[v.status] || statusBorders.pending} bg-black/30 relative flex flex-col items-center justify-center p-2 text-center">
+                                <span class="text-2xl mb-1">${['☕️', '🧱', '🌿', '💻'][idx] || '🎨'}</span>
+                                <span class="text-[10px] text-white/60 leading-tight">${v.oneLiner || v.name}</span>
+                            </div>
+                            <p class="text-[10px] mt-1 text-center font-medium truncate">${v.name}</p>
+                            <div class="absolute top-1 right-1 w-2 h-2 rounded-full ${dots[v.status] || dots.pending}"></div>
+                        </div>
+                    `;
+                }).join('');
+            }
+
+            // Orchestration Steps
+            const currentPhaseNum = parseInt(s.phase) || 1;
+            const orchestrationSteps = [
+                { text: 'CD finished discovery', phase: 1 },
+                { text: 'Images analyzed', phase: 2 },
+                { text: 'Brief written', phase: 3 },
+                { text: 'WebDev building', phase: 3 },
+                { text: 'Image prompts active', phase: 3 }
+            ];
+            document.getElementById('detail-orchestration').innerHTML = orchestrationSteps.map(step => {
+                const isComplete = step.phase < currentPhaseNum;
+                const isActive = step.phase === currentPhaseNum;
+                const dotClass = isComplete ? 'bg-emerald-400' : isActive ? 'bg-indigo-400 pulse' : 'bg-white/20';
+                const textClass = isComplete ? 'text-white/70' : isActive ? 'text-white' : 'text-white/40';
+                return `
+                    <div class="flex items-center gap-2">
+                        <div class="w-2 h-2 rounded-full ${dotClass}"></div>
+                        <span class="text-xs ${textClass}">${step.text}</span>
+                    </div>
+                `;
+            }).join('');
+
+            // WebDev Kanban
+            const kanbanVibes = vibes.length > 0 ? vibes : [
+                { name: 'Vibe 1', status: 'pending' }, { name: 'Vibe 2', status: 'pending' }
+            ];
+            document.getElementById('detail-kanban').innerHTML = kanbanVibes.map(v => {
+                const statusColors = {
+                    complete: 'bg-emerald-500/10',
+                    building: 'bg-amber-500/10 border border-amber-500/30',
+                    pending: 'bg-white/5'
+                };
+                const statusBadges = {
+                    complete: '<span class="text-emerald-400 text-xs">✓ DONE</span>',
+                    building: '<span class="text-amber-400 text-xs pulse">● BUILDING</span>',
+                    pending: '<span class="text-white/30 text-xs">PENDING</span>'
+                };
+                return `
+                    <div class="flex items-center justify-between p-2 rounded ${statusColors[v.status] || statusColors.pending}">
+                        <span class="${v.status === 'pending' ? 'text-white/50' : ''}">${v.name}</span>
+                        ${statusBadges[v.status] || statusBadges.pending}
+                    </div>
+                `;
+            }).join('');
+
+            // Logs
+            const rawFiles = s.rawFiles || {};
+            if (rawFiles.session) document.getElementById('detail-log-session').innerHTML = formatMarkdownForLog(rawFiles.session, 'emerald');
+            else document.getElementById('detail-log-session').innerHTML = '<div class="text-white/40">Empty</div>';
+            
+            if (rawFiles.images) document.getElementById('detail-log-images').innerHTML = formatMarkdownForLog(rawFiles.images, 'cyan');
+            else document.getElementById('detail-log-images').innerHTML = '<div class="text-white/40">Empty</div>';
+            
+            if (rawFiles.build) document.getElementById('detail-log-build').innerHTML = formatMarkdownForLog(rawFiles.build, 'orange');
+            else document.getElementById('detail-log-build').innerHTML = '<div class="text-white/40">Empty</div>';
+            
+            if (rawFiles.brief) document.getElementById('detail-log-brief').innerHTML = formatMarkdownForLog(rawFiles.brief, 'purple');
+            else document.getElementById('detail-log-brief').innerHTML = '<div class="text-white/40">Empty</div>';
+
+            // Image Prompts
+            const imagePrompts = s.imagePrompts || [];
+            if (imagePrompts.length > 0) {
+                document.getElementById('detail-image-prompts').innerHTML = imagePrompts.map(prompt => `
+                    <div class="p-2 rounded-lg bg-white/5 border border-white/10">
+                        <div class="flex items-center justify-between mb-1">
+                            <span class="text-xs font-medium text-cyan-400">${prompt.name}</span>
+                            <span class="text-[10px] text-white/40">${prompt.aspectRatio || '16:9'}</span>
+                        </div>
+                        <p class="text-[10px] text-white/60 line-clamp-2">${prompt.prompt || 'No prompt text'}</p>
+                    </div>
+                `).join('');
+            } else {
+                document.getElementById('detail-image-prompts').innerHTML = '<p class="text-xs text-white/40 text-center py-2">No pending prompts</p>';
+            }
+
+            // Hot-Swap Log
+            const hotswaps = s.hotswapLog || [];
+            if (hotswaps.length > 0) {
+                document.getElementById('detail-hotswap').innerHTML = hotswaps.map(swap => `
+                    <div class="flex items-center gap-2 text-white/70">
+                        <span class="text-white/40">${swap.time}</span>
+                        <span class="text-amber-400">→</span>
+                        <span>${swap.image}: ${swap.from} → <span class="text-emerald-400">${swap.to}</span></span>
+                    </div>
+                `).join('');
+            } else {
+                document.getElementById('detail-hotswap').innerHTML = '<p class="text-xs text-white/40 text-center py-2">No hot-swaps yet</p>';
+            }
+        }
+        
+        function filterSessions(query) {
+            const cards = document.querySelectorAll('.session-card');
+            cards.forEach(card => {
+                const name = card.dataset.name;
+                card.style.display = name.includes(query.toLowerCase()) ? 'block' : 'none';
+            });
+        }
+        
+        function getPhaseColor(phase) {
+            const colors = {
+                1: 'bg-blue-500/20 text-blue-400',
+                2: 'bg-cyan-500/20 text-cyan-400',
+                3: 'bg-purple-500/20 text-purple-400',
+                4: 'bg-amber-500/20 text-amber-400',
+                5: 'bg-orange-500/20 text-orange-400',
+                6: 'bg-rose-500/20 text-rose-400',
+                7: 'bg-emerald-500/20 text-emerald-400'
+            };
+            return colors[phase] || 'bg-white/20 text-white/60';
+        }
+
+        // =============================================
+        // SYSTEM LOGS
+        // =============================================
+        function renderSystemLogs(filter = 'all') {
+            const container = document.getElementById('system-log-content');
+            const filtered = filter === 'all' 
+                ? systemLogs 
+                : systemLogs.filter(l => l.type === filter || (filter === 'errors' && l.type === 'error'));
+            
+            container.innerHTML = filtered.map(log => {
+                const typeColors = {
+                    session: 'text-blue-400',
+                    image: 'text-cyan-400',
+                    build: 'text-orange-400',
+                    error: 'text-rose-400'
+                };
+                return `
+                    <div class="flex items-start gap-3 py-1">
+                        <span class="text-white/30 shrink-0">${log.time}</span>
+                        <span class="${typeColors[log.type]} shrink-0 uppercase text-[10px] w-12">[${log.type}]</span>
+                        <span class="text-white/50 shrink-0">${log.session}</span>
+                        <span class="text-white/70">${log.message}</span>
+                    </div>
+                `;
+            }).join('');
+        }
+        
+        function showLogTab(tab) {
+            document.querySelectorAll('.log-tab').forEach(t => {
+                t.classList.remove('bg-white/5', 'text-white', 'border-b-2', 'border-indigo-500');
+                t.classList.add('text-white/50');
+            });
+            document.querySelector(`[data-log="${tab}"]`).classList.add('bg-white/5', 'text-white', 'border-b-2', 'border-indigo-500');
+            document.querySelector(`[data-log="${tab}"]`).classList.remove('text-white/50');
+
+            const filterMap = { all: 'all', sessions: 'session', images: 'image', builds: 'build', errors: 'error' };
+            renderSystemLogs(filterMap[tab]);
+        }
+
+        // Format markdown content for log display
+        function formatMarkdownForLog(content, colorClass = 'white') {
+            if (!content) return '';
+
+            const colors = {
+                emerald: 'text-emerald-400',
+                cyan: 'text-cyan-400',
+                orange: 'text-orange-400',
+                purple: 'text-purple-400',
+                blue: 'text-blue-400',
+                amber: 'text-amber-400'
+            };
+
+            const headerColor = colors[colorClass] || 'text-white';
+
+            // Escape HTML
+            const escaped = content
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;');
+
+            // Format markdown elements
+            const formatted = escaped
+                // Headers
+                .replace(/^### (.+)$/gm, `<div class="text-white/60 mt-2">### $1</div>`)
+                .replace(/^## (.+)$/gm, `<div class="${headerColor} mt-3 font-medium">## $1</div>`)
+                .replace(/^# (.+)$/gm, `<div class="${headerColor} font-bold">$1</div>`)
+                // Status markers
+                .replace(/✓ ready/g, '<span class="text-emerald-400">✓ ready</span>')
+                .replace(/✗ redo/g, '<span class="text-rose-400">✗ redo</span>')
+                .replace(/PENDING/g, '<span class="text-white/40">PENDING</span>')
+                .replace(/COMPLETE/g, '<span class="text-emerald-400">COMPLETE</span>')
+                .replace(/BUILDING/g, '<span class="text-amber-400">BUILDING</span>')
+                // File references
+                .replace(/(\w+\.(jpg|jpeg|png|webp|gif|html|md))/gi, '<span class="text-cyan-400">$1</span>')
+                // Line breaks
+                .split('\n').join('<br>');
+
+            return `<div class="whitespace-pre-wrap">${formatted}</div>`;
+        }
+
+        // Detail Log Tabs (SESSION/IMAGES/BUILD/BRIEF)
+        function showDetailLog(logName) {
+            document.querySelectorAll('.detail-log-tab').forEach(tab => {
+                tab.classList.remove('bg-white/5', 'text-white', 'border-b-2', 'border-indigo-500');
+                tab.classList.add('text-white/50');
+            });
+            const activeTab = document.querySelector(`.detail-log-tab[data-log="${logName}"]`);
+            if (activeTab) {
+                activeTab.classList.add('bg-white/5', 'text-white', 'border-b-2', 'border-indigo-500');
+                activeTab.classList.remove('text-white/50');
+            }
+
+            document.querySelectorAll('[id^="detail-log-"]').forEach(log => {
+                if (log.id !== 'detail-log-content') log.classList.add('hidden');
+            });
+            const logEl = document.getElementById(`detail-log-${logName}`);
+            if (logEl) logEl.classList.remove('hidden');
+        }
+
+        // =============================================
+        // ACTIONS
+        // =============================================
+        function createNewSession() {
+            showSnackbar('✨ Creating new session...', 'success');
+            setTimeout(() => {
+                const newSession = {
+                    id: `2025-01-16-new-${Date.now().toString(36)}`,
+                    name: 'New Project',
+                    phase: 1,
+                    phaseName: 'Discovery',
+                    lastUpdated: 'Just now',
+                    vibesComplete: 0,
+                    vibesTotal: 4,
+                    files: ['SESSION.md'],
+                    agents: [],
+                    vibes: [],
+                    rawFiles: { session: '### User\nNew session started.' }
+                };
+                sessions.unshift(newSession);
+                renderSessionsList();
+                selectSession(newSession.id);
+                showSnackbar('🎉 Session created!', 'success');
+            }, 800);
+        }
+        
+        function openInApp() {
+            if (selectedSession) {
+                window.location.href = `index.html`;
+            }
+        }
+        
+        function setBillingMode(mode) {
+            billingMode = mode;
+            document.getElementById('billing-cli').className = `px-2 py-0.5 rounded text-xs font-medium ${mode === 'cli' ? 'bg-indigo-500/20 text-indigo-400' : 'text-white/40'}`;
+            document.getElementById('billing-api').className = `px-2 py-0.5 rounded text-xs font-medium ${mode === 'api' ? 'bg-indigo-500/20 text-indigo-400' : 'text-white/40'}`;
+            showSnackbar(`Billing mode: ${mode.toUpperCase()}`, 'info');
+        }
+
+        // =============================================
+        // SNACKBAR
+        // =============================================
+        let snackbarCount = 0;
+        function showSnackbar(message, type = 'info') {
+            const container = document.getElementById('snackbar-container');
+            const id = `snackbar-${++snackbarCount}`;
+            
+            const colors = {
+                success: 'bg-emerald-500/90 border-emerald-400',
+                error: 'bg-rose-500/90 border-rose-400',
+                info: 'bg-indigo-500/90 border-indigo-400',
+                progress: 'bg-amber-500/90 border-amber-400'
+            };
+
+            const snackbar = document.createElement('div');
+            snackbar.id = id;
+            snackbar.className = `snackbar-enter ${colors[type]} backdrop-blur-sm border rounded-lg px-4 py-3 shadow-lg flex items-center justify-between gap-4 min-w-[280px]`;
+            snackbar.innerHTML = `
+                <span class="text-sm font-medium text-white">${message}</span>
+                <button onclick="dismissSnackbar('${id}')" class="text-white/70 hover:text-white">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                </button>
+            `;
+            
+            container.appendChild(snackbar);
+
+            if (container.children.length > 3) {
+                container.children[0].remove();
+            }
+
+            if (type !== 'progress') {
+                setTimeout(() => dismissSnackbar(id), 4000);
+            }
+        }
+
+        function dismissSnackbar(id) {
+            const snackbar = document.getElementById(id);
+            if (snackbar) {
+                snackbar.style.opacity = '0';
+                snackbar.style.transform = 'translateX(100%)';
+                snackbar.style.transition = 'all 0.3s ease-out';
+                setTimeout(() => snackbar.remove(), 300);
+            }
+        }
+    </script>
+</body>
+</html>

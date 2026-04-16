@@ -1,0 +1,1071 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bareggcenter Baden | Sport, Sauna, Pasta — ohne Umparken</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --color-primary: #F07D00;
+            --color-secondary: #4A4A4A;
+            --color-accent: #E3F2FD;
+            --color-text: #333333;
+            --color-text-light: #666666;
+            --color-background: #FFFFFF;
+            --color-background-alt: #F5F5F5;
+            --color-white: #FFFFFF;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        body {
+            font-family: 'Roboto', sans-serif;
+            color: var(--color-text);
+            line-height: 1.6;
+            background-color: var(--color-background);
+        }
+
+        /* Navigation */
+        .nav {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            background: var(--color-white);
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            z-index: 1000;
+        }
+
+        .nav-logo img {
+            height: 50px;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 2rem;
+            list-style: none;
+        }
+
+        .nav-links a {
+            text-decoration: none;
+            color: var(--color-secondary);
+            font-weight: 500;
+            font-size: 0.95rem;
+            transition: color 0.3s ease;
+        }
+
+        .nav-links a:hover {
+            color: var(--color-primary);
+        }
+
+        .nav-cta {
+            background: var(--color-primary);
+            color: var(--color-white);
+            padding: 0.75rem 1.5rem;
+            border-radius: 4px;
+            text-decoration: none;
+            font-weight: 500;
+            transition: background 0.3s ease;
+        }
+
+        .nav-cta:hover {
+            background: #d96e00;
+        }
+
+        /* Hero Section */
+        .hero {
+            min-height: 100vh;
+            background: url('../../images/padel-courts-evening.jpg') center/cover no-repeat;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 8rem 2rem 4rem;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .hero-content {
+            position: relative;
+            z-index: 1;
+            max-width: 900px;
+        }
+
+        .hero h1 {
+            font-size: clamp(2.5rem, 6vw, 4rem);
+            font-weight: 700;
+            color: var(--color-white);
+            margin-bottom: 1.5rem;
+            line-height: 1.2;
+            text-shadow: 0 2px 20px rgba(0,0,0,0.8), 0 4px 40px rgba(0,0,0,0.6);
+        }
+
+        .hero-subline {
+            font-size: clamp(1.1rem, 2.5vw, 1.4rem);
+            color: white;
+            margin-bottom: 2.5rem;
+            font-weight: 300;
+            text-shadow: 0 2px 15px rgba(0,0,0,0.8), 0 4px 30px rgba(0,0,0,0.5);
+        }
+
+        .hero-cta {
+            display: inline-block;
+            background: var(--color-primary);
+            color: var(--color-white);
+            padding: 1rem 2.5rem;
+            font-size: 1.1rem;
+            font-weight: 500;
+            text-decoration: none;
+            border-radius: 4px;
+            transition: all 0.3s ease;
+        }
+
+        .hero-cta:hover {
+            background: #d96e00;
+            transform: translateY(-2px);
+        }
+
+        /* Section Base Styles */
+        section {
+            padding: 5rem 2rem;
+        }
+
+        .section-header {
+            text-align: center;
+            margin-bottom: 4rem;
+        }
+
+        .section-header h2 {
+            font-size: clamp(2rem, 4vw, 2.5rem);
+            font-weight: 700;
+            color: var(--color-secondary);
+            margin-bottom: 0.75rem;
+        }
+
+        .section-header p {
+            font-size: 1.1rem;
+            color: var(--color-text-light);
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        /* Bewegung Section */
+        .bewegung {
+            background: var(--color-background);
+        }
+
+        .sports-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 2rem;
+        }
+
+        .sport-card {
+            background: var(--color-white);
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .sport-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 30px rgba(0,0,0,0.12);
+        }
+
+        .sport-card.featured {
+            grid-column: span 2;
+        }
+
+        .sport-card-image {
+            height: 200px;
+            background-size: cover;
+            background-position: center;
+        }
+
+        .sport-card.featured .sport-card-image {
+            height: 280px;
+        }
+
+        .sport-card-content {
+            padding: 1.5rem;
+        }
+
+        .sport-card h3 {
+            font-size: 1.4rem;
+            font-weight: 700;
+            color: var(--color-secondary);
+            margin-bottom: 0.5rem;
+        }
+
+        .sport-card .details {
+            color: var(--color-text-light);
+            margin-bottom: 0.75rem;
+        }
+
+        .sport-card .price {
+            font-size: 1.1rem;
+            font-weight: 500;
+            color: var(--color-primary);
+        }
+
+        /* Sports List */
+        .sports-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 1.5rem;
+            margin-top: 2rem;
+        }
+
+        .sports-item {
+            background: var(--color-background-alt);
+            padding: 1.5rem;
+            border-radius: 8px;
+            border-left: 4px solid var(--color-primary);
+        }
+
+        .sports-item h4 {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--color-secondary);
+            margin-bottom: 0.5rem;
+        }
+
+        .sports-item .details {
+            color: var(--color-text-light);
+            font-size: 0.95rem;
+        }
+
+        .sports-item .price {
+            color: var(--color-primary);
+            font-weight: 500;
+            margin-top: 0.5rem;
+        }
+
+        /* Erholung Section */
+        .erholung {
+            background: var(--color-accent);
+        }
+
+        .wellness-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 2rem;
+        }
+
+        .wellness-card {
+            background: var(--color-white);
+            padding: 2rem;
+            border-radius: 8px;
+            text-align: center;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+        }
+
+        .wellness-icon {
+            width: 60px;
+            height: 60px;
+            background: var(--color-primary);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 1rem;
+        }
+
+        .wellness-icon svg {
+            width: 30px;
+            height: 30px;
+            fill: var(--color-white);
+        }
+
+        .wellness-card h3 {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: var(--color-secondary);
+            margin-bottom: 0.5rem;
+        }
+
+        .wellness-card .details {
+            color: var(--color-text-light);
+            font-size: 0.95rem;
+            margin-bottom: 0.75rem;
+        }
+
+        .wellness-card .price {
+            color: var(--color-primary);
+            font-weight: 500;
+        }
+
+        /* Kulinarik Section */
+        .kulinarik {
+            background: var(--color-secondary);
+            color: var(--color-white);
+        }
+
+        .kulinarik .section-header h2 {
+            color: var(--color-white);
+        }
+
+        .kulinarik .section-header p {
+            color: rgba(255,255,255,0.8);
+        }
+
+        .restaurant-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 4rem;
+            align-items: center;
+        }
+
+        .restaurant-text h3 {
+            font-size: 1.8rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+            color: var(--color-primary);
+        }
+
+        .restaurant-text p {
+            font-size: 1.1rem;
+            line-height: 1.8;
+            margin-bottom: 1.5rem;
+            color: rgba(255,255,255,0.9);
+        }
+
+        .restaurant-text .chef-quote {
+            font-style: italic;
+            border-left: 3px solid var(--color-primary);
+            padding-left: 1.5rem;
+            margin: 2rem 0;
+        }
+
+        .bar-info {
+            background: rgba(255,255,255,0.1);
+            padding: 2rem;
+            border-radius: 8px;
+            margin-top: 2rem;
+        }
+
+        .bar-info h4 {
+            font-size: 1.2rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            color: var(--color-primary);
+        }
+
+        .bar-hours {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0.5rem;
+        }
+
+        .bar-hours span {
+            color: rgba(255,255,255,0.8);
+        }
+
+        /* Freizeit Section */
+        .freizeit {
+            background: var(--color-background-alt);
+        }
+
+        .entertainment-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 2rem;
+        }
+
+        .entertainment-card {
+            background: var(--color-white);
+            padding: 2.5rem 2rem;
+            border-radius: 8px;
+            text-align: center;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+            transition: transform 0.3s ease;
+        }
+
+        .entertainment-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .entertainment-card h3 {
+            font-size: 1.4rem;
+            font-weight: 700;
+            color: var(--color-secondary);
+            margin-bottom: 0.75rem;
+        }
+
+        .entertainment-card .price {
+            color: var(--color-primary);
+            font-weight: 500;
+        }
+
+        /* Team Events Section */
+        .team-events {
+            background: linear-gradient(135deg, var(--color-primary) 0%, #d96e00 100%);
+            color: var(--color-white);
+        }
+
+        .team-events .section-header h2 {
+            color: var(--color-white);
+        }
+
+        .team-events .section-header p {
+            color: rgba(255,255,255,0.9);
+        }
+
+        .event-timeline {
+            max-width: 700px;
+            margin: 0 auto 3rem;
+        }
+
+        .timeline-item {
+            display: flex;
+            align-items: center;
+            gap: 2rem;
+            padding: 1.5rem 0;
+            border-bottom: 1px solid rgba(255,255,255,0.2);
+        }
+
+        .timeline-time {
+            font-size: 1.2rem;
+            font-weight: 700;
+            min-width: 80px;
+        }
+
+        .timeline-content {
+            font-size: 1.1rem;
+        }
+
+        .event-features {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 2rem;
+            margin: 3rem 0;
+        }
+
+        .event-feature {
+            text-align: center;
+            padding: 1.5rem;
+            background: rgba(255,255,255,0.1);
+            border-radius: 8px;
+        }
+
+        .event-feature h4 {
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+
+        .event-feature p {
+            font-size: 0.95rem;
+            opacity: 0.9;
+        }
+
+        .team-cta {
+            text-align: center;
+            margin-top: 2rem;
+        }
+
+        .team-cta a {
+            display: inline-block;
+            background: var(--color-white);
+            color: var(--color-primary);
+            padding: 1rem 3rem;
+            font-size: 1.1rem;
+            font-weight: 600;
+            text-decoration: none;
+            border-radius: 4px;
+            transition: all 0.3s ease;
+        }
+
+        .team-cta a:hover {
+            background: var(--color-secondary);
+            color: var(--color-white);
+        }
+
+        /* Oeffnungszeiten Section */
+        .oeffnungszeiten {
+            background: var(--color-background);
+        }
+
+        .hours-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 2rem;
+        }
+
+        .hours-card {
+            background: var(--color-background-alt);
+            padding: 2rem;
+            border-radius: 8px;
+            border-top: 4px solid var(--color-primary);
+        }
+
+        .hours-card h3 {
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: var(--color-secondary);
+            margin-bottom: 1rem;
+        }
+
+        .hours-card ul {
+            list-style: none;
+        }
+
+        .hours-card li {
+            display: flex;
+            justify-content: space-between;
+            padding: 0.5rem 0;
+            border-bottom: 1px solid rgba(0,0,0,0.05);
+            color: var(--color-text-light);
+        }
+
+        .hours-card li:last-child {
+            border-bottom: none;
+        }
+
+        .hours-card li span:last-child {
+            font-weight: 500;
+            color: var(--color-text);
+        }
+
+        /* Standort Section */
+        .standort {
+            background: var(--color-secondary);
+            color: var(--color-white);
+        }
+
+        .standort .section-header h2 {
+            color: var(--color-white);
+        }
+
+        .location-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 4rem;
+            align-items: center;
+        }
+
+        .location-info h3 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--color-primary);
+            margin-bottom: 1.5rem;
+        }
+
+        .location-info p {
+            font-size: 1.1rem;
+            margin-bottom: 1rem;
+            color: rgba(255,255,255,0.9);
+        }
+
+        .location-features {
+            margin-top: 2rem;
+        }
+
+        .location-features li {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            padding: 0.75rem 0;
+            color: rgba(255,255,255,0.9);
+        }
+
+        .location-features li::before {
+            content: '';
+            width: 8px;
+            height: 8px;
+            background: var(--color-primary);
+            border-radius: 50%;
+        }
+
+        .contact-box {
+            background: rgba(255,255,255,0.1);
+            padding: 2rem;
+            border-radius: 8px;
+        }
+
+        .contact-box h4 {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: var(--color-primary);
+            margin-bottom: 1rem;
+        }
+
+        .contact-box p {
+            margin-bottom: 0.75rem;
+        }
+
+        .contact-box a {
+            color: var(--color-white);
+            text-decoration: none;
+            transition: color 0.3s ease;
+        }
+
+        .contact-box a:hover {
+            color: var(--color-primary);
+        }
+
+        /* Footer */
+        footer {
+            background: #1a1a1a;
+            color: var(--color-white);
+            padding: 4rem 2rem 2rem;
+        }
+
+        .footer-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: 2fr 1fr 1fr 1fr;
+            gap: 3rem;
+        }
+
+        .footer-brand img {
+            height: 60px;
+            margin-bottom: 1rem;
+        }
+
+        .footer-brand p {
+            color: rgba(255,255,255,0.7);
+            font-size: 0.95rem;
+            line-height: 1.6;
+        }
+
+        .footer-column h4 {
+            font-size: 1rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            color: var(--color-primary);
+        }
+
+        .footer-column ul {
+            list-style: none;
+        }
+
+        .footer-column li {
+            margin-bottom: 0.5rem;
+        }
+
+        .footer-column a {
+            color: rgba(255,255,255,0.7);
+            text-decoration: none;
+            font-size: 0.9rem;
+            transition: color 0.3s ease;
+        }
+
+        .footer-column a:hover {
+            color: var(--color-primary);
+        }
+
+        .footer-bottom {
+            max-width: 1200px;
+            margin: 3rem auto 0;
+            padding-top: 2rem;
+            border-top: 1px solid rgba(255,255,255,0.1);
+            text-align: center;
+            color: rgba(255,255,255,0.5);
+            font-size: 0.9rem;
+        }
+
+        /* Mobile Responsive */
+        @media (max-width: 1024px) {
+            .restaurant-content,
+            .location-content {
+                grid-template-columns: 1fr;
+                gap: 2rem;
+            }
+
+            .footer-content {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .nav {
+                padding: 1rem;
+            }
+
+            .nav-links {
+                display: none;
+            }
+
+            .sport-card.featured {
+                grid-column: span 1;
+            }
+
+            .entertainment-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .footer-content {
+                grid-template-columns: 1fr;
+                text-align: center;
+            }
+
+            .timeline-item {
+                flex-direction: column;
+                gap: 0.5rem;
+                text-align: center;
+            }
+
+            section {
+                padding: 3rem 1.5rem;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .sports-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .bar-hours {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="nav">
+        <div class="nav-logo">
+            <img src="../../images/logo_bareggcenter.png" alt="Bareggcenter Baden">
+        </div>
+        <ul class="nav-links">
+            <li><a href="#bewegung">Bewegung</a></li>
+            <li><a href="#erholung">Erholung</a></li>
+            <li><a href="#kulinarik">Kulinarik</a></li>
+            <li><a href="#freizeit">Freizeit</a></li>
+            <li><a href="#team-events">Team-Events</a></li>
+            <li><a href="#oeffnungszeiten">Zeiten</a></li>
+        </ul>
+        <a href="#event" class="nav-cta">Event anfragen</a>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="hero">
+        <div class="hero-content">
+            <h1>Sport, Essen, Bowling — alles hier.</h1>
+            <p class="hero-subline">200 Parkplatze. Aparthotel nebenan. Keine Ausreden.</p>
+            <a href="#event" class="hero-cta">Event anfragen</a>
+        </div>
+    </section>
+
+    <!-- Bewegung Section -->
+    <section class="bewegung" id="bewegung">
+        <div class="container">
+            <div class="section-header">
+                <h2>Bewegung</h2>
+                <p>15 Courts. 5 Sportarten. Ein Dach.</p>
+            </div>
+            <div class="sports-grid">
+                <div class="sport-card featured">
+                    <div class="sport-card-image" style="background-image: url('../../images/bascchung-fotografie-066.jpg');"></div>
+                    <div class="sport-card-content">
+                        <h3>Tennis</h3>
+                        <p class="details">3 Courts mit professionellem Belag</p>
+                        <p class="price">ab CHF 28/h</p>
+                    </div>
+                </div>
+                <div class="sport-card">
+                    <div class="sport-card-image" style="background-image: url('../../images/bascchung-fotografie-049.jpg');"></div>
+                    <div class="sport-card-content">
+                        <h3>Squash</h3>
+                        <p class="details">3 Courts mit Glaswand</p>
+                        <p class="price">ab CHF 27/h</p>
+                    </div>
+                </div>
+                <div class="sport-card">
+                    <div class="sport-card-image" style="background-image: url('../../images/bascchung-fotografie-042.jpg');"></div>
+                    <div class="sport-card-content">
+                        <h3>Badminton</h3>
+                        <p class="details">5 Courts, ideal fürTeams</p>
+                        <p class="price">Preise auf Anfrage</p>
+                    </div>
+                </div>
+            </div>
+            <div class="sports-list">
+                <div class="sports-item">
+                    <h4>Padel</h4>
+                    <p class="details">4 Courts, die angesagteste Sportart der Schweiz</p>
+                    <p class="price">CHF 48–64/h</p>
+                </div>
+                <div class="sports-item">
+                    <h4>Fitness</h4>
+                    <p class="details">Vollausgestattetes Studio, Cardio & Kraft</p>
+                    <p class="price">Abo-Modelle verfügbar</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Erholung Section -->
+    <section class="erholung" id="erholung">
+        <div class="container">
+            <div class="section-header">
+                <h2>Erholung</h2>
+                <p>Nach dem Sport: Abschalten, aufwarmen, auftanken.</p>
+            </div>
+            <div class="wellness-grid">
+                <div class="wellness-card">
+                    <div class="wellness-icon">
+                        <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 3c-4.97 0-9 4.03-9 9s4.03 9 9 9c.83 0 1.5-.67 1.5-1.5 0-.39-.15-.74-.39-1.01-.23-.26-.38-.61-.38-.99 0-.83.67-1.5 1.5-1.5H16c2.76 0 5-2.24 5-5 0-4.42-4.03-8-9-8z"/></svg>
+                    </div>
+                    <h3>Sauna</h3>
+                    <p class="details">Taglich 8–22 Uhr</p>
+                    <p class="price">CHF 10</p>
+                </div>
+                <div class="wellness-card">
+                    <div class="wellness-icon">
+                        <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
+                    </div>
+                    <h3>Massage</h3>
+                    <p class="details">Professionelle Entspannung</p>
+                    <p class="price">CHF 100/Stunde</p>
+                </div>
+                <div class="wellness-card">
+                    <div class="wellness-icon">
+                        <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/></svg>
+                    </div>
+                    <h3>Physiotherapie</h3>
+                    <p class="details">Direkt vor Ort</p>
+                    <p class="price">Termine auf Anfrage</p>
+                </div>
+                <div class="wellness-card">
+                    <div class="wellness-icon">
+                        <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
+                    </div>
+                    <h3>Kosmetik & Friseur</h3>
+                    <p class="details">Komplettes Verwöhnprogramm</p>
+                    <p class="price">Preise im Salon</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Kulinarik Section -->
+    <section class="kulinarik" id="kulinarik">
+        <div class="container">
+            <div class="section-header">
+                <h2>Kulinarik</h2>
+                <p>Echte italienische Küche. Keine Kompromisse.</p>
+            </div>
+            <div class="restaurant-content">
+                <div class="restaurant-text">
+                    <h3>Ristorante Baregg</h3>
+                    <p>Authentische italienische Küche, zubereitet von jemandem, der es ernst meint.</p>
+                    <div class="chef-quote">
+                        <p>"Costantino aus Apulien. 9 Jahre Erfahrung. Echte italienische Küche."</p>
+                    </div>
+                    <p>Von hausgemachter Pasta bis zu Klassikern aus dem Holzofen — hier isst das Team nach dem Sport. Oder davor. Oder beides.</p>
+                    <div style="margin-top: 2rem; border-radius: 8px; overflow: hidden;">
+                        <img src="../../images/ristorante-baregg.jpg" alt="Ristorante Baregg" style="width: 100%; height: auto; display: block;">
+                    </div>
+                </div>
+                <div class="bar-section">
+                    <div class="bar-info">
+                        <h4>Bar</h4>
+                        <p style="color: rgba(255,255,255,0.8); margin-bottom: 1rem;">Der richtige Abschluss fürjeden Event.</p>
+                        <div class="bar-hours">
+                            <span>Mo–Do</span><span>17:00–23:30</span>
+                            <span>Fr–Sa</span><span>17:00–01:00</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Freizeit Section -->
+    <section class="freizeit" id="freizeit">
+        <div class="container">
+            <div class="section-header">
+                <h2>Freizeit</h2>
+                <p>Wenn Sport doch nicht sein muss.</p>
+            </div>
+            <div class="entertainment-grid">
+                <div class="entertainment-card">
+                    <h3>Bowling</h3>
+                    <p class="price">Perfekt fürGruppen</p>
+                </div>
+                <div class="entertainment-card">
+                    <h3>Billard</h3>
+                    <p class="price">ab CHF 16/h</p>
+                </div>
+                <div class="entertainment-card">
+                    <h3>Indoor Minigolf</h3>
+                    <p class="price">Bei jedem Wetter</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Team Event Image -->
+    <div style="height: 450px; background: url('../../images/team-event-group.jpg') center/cover no-repeat;"></div>
+
+    <!-- Team Events Section -->
+    <section class="team-events" id="team-events">
+        <div class="container">
+            <div class="section-header">
+                <h2>Team-Events</h2>
+                <p>Alles organisiert. Ein Anruf.</p>
+            </div>
+            <div class="event-timeline">
+                <div class="timeline-item">
+                    <span class="timeline-time">16:00</span>
+                    <span class="timeline-content">Padel-Turnier startet</span>
+                </div>
+                <div class="timeline-item">
+                    <span class="timeline-time">18:30</span>
+                    <span class="timeline-content">Abendessen im Ristorante</span>
+                </div>
+                <div class="timeline-item">
+                    <span class="timeline-time">21:00</span>
+                    <span class="timeline-content">Bowling & Bar</span>
+                </div>
+            </div>
+            <div class="event-features">
+                <div class="event-feature">
+                    <h4>200+ Parkplatze</h4>
+                    <p>Direkt vor der Tur</p>
+                </div>
+                <div class="event-feature">
+                    <h4>Aparthotel nebenan</h4>
+                    <p>Fur die Übernachter</p>
+                </div>
+                <div class="event-feature">
+                    <h4>15 Min von Zürich</h4>
+                    <p>Direkt an der A1</p>
+                </div>
+            </div>
+            <div class="team-cta" id="event">
+                <a href="#buchen">Event anfragen</a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Oeffnungszeiten Section -->
+    <section class="oeffnungszeiten" id="oeffnungszeiten">
+        <div class="container">
+            <div class="section-header">
+                <h2>Öffnungszeiten</h2>
+                <p>Früher kommen, spater gehen — wir sind da.</p>
+            </div>
+            <div class="hours-grid">
+                <div class="hours-card">
+                    <h3>Sport</h3>
+                    <ul>
+                        <li><span>Taglich</span><span>8:00–23:00</span></li>
+                    </ul>
+                </div>
+                <div class="hours-card">
+                    <h3>Sauna</h3>
+                    <ul>
+                        <li><span>Taglich</span><span>8:00–22:00</span></li>
+                    </ul>
+                </div>
+                <div class="hours-card">
+                    <h3>Restaurant</h3>
+                    <ul>
+                        <li><span>Mo–Fr</span><span>6:30–23:00</span></li>
+                        <li><span>Sa</span><span>17:00–22:00</span></li>
+                    </ul>
+                </div>
+                <div class="hours-card">
+                    <h3>Bar</h3>
+                    <ul>
+                        <li><span>Mo–Do</span><span>17:00–23:30</span></li>
+                        <li><span>Fr–Sa</span><span>17:00–01:00</span></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Standort Section -->
+    <section class="standort" id="standort">
+        <div class="container">
+            <div class="section-header">
+                <h2>Standort</h2>
+            </div>
+            <div class="location-content">
+                <div class="location-info">
+                    <h3>Bareggcenter Baden</h3>
+                    <p>Zelgweg 11<br>5405 Baden-Dattwil</p>
+                    <ul class="location-features">
+                        <li>15 Minuten von Zürich</li>
+                        <li>Direkt an der A1</li>
+                        <li>200+ Parkplatze gratis</li>
+                        <li>Aparthotel fürÜbernachtungen</li>
+                    </ul>
+                </div>
+                <div class="contact-box">
+                    <h4>Kontakt</h4>
+                    <p><a href="tel:+41564934455">+41 56 493 44 55</a></p>
+                    <p><a href="mailto:info@bareggcenter.ch">info@bareggcenter.ch</a></p>
+                    <p style="margin-top: 1.5rem; color: rgba(255,255,255,0.7);">Fragen? Einfach anrufen. <br>Wir sind da.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer>
+        <div class="footer-content">
+            <div class="footer-brand">
+                <img src="../../images/logo_bareggcenter.png" alt="Bareggcenter Baden">
+                <p>Sport, Sauna, Pasta — ohne Umparken.<br>Alles unter einem Dach.</p>
+            </div>
+            <div class="footer-column">
+                <h4>Sport</h4>
+                <ul>
+                    <li><a href="#bewegung">Tennis</a></li>
+                    <li><a href="#bewegung">Padel</a></li>
+                    <li><a href="#bewegung">Squash</a></li>
+                    <li><a href="#bewegung">Badminton</a></li>
+                    <li><a href="#bewegung">Fitness</a></li>
+                </ul>
+            </div>
+            <div class="footer-column">
+                <h4>Mehr</h4>
+                <ul>
+                    <li><a href="#erholung">Sauna</a></li>
+                    <li><a href="#kulinarik">Restaurant</a></li>
+                    <li><a href="#freizeit">Bowling</a></li>
+                    <li><a href="#freizeit">Billard</a></li>
+                </ul>
+            </div>
+            <div class="footer-column">
+                <h4>Kontakt</h4>
+                <ul>
+                    <li><a href="tel:+41564934455">+41 56 493 44 55</a></li>
+                    <li><a href="#standort">Zelgweg 11</a></li>
+                    <li><a href="#standort">5405 Baden-Dattwil</a></li>
+                </ul>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            <p>Bareggcenter Baden. Alles da.</p>
+        </div>
+    </footer>
+</body>
+</html>

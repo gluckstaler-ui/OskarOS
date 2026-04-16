@@ -1,0 +1,127 @@
+/**
+ * /api/order65 — SSE endpoint (soft compaction)
+ *
+ * Runs LJ + Sage WITHOUT killing the bridge.
+ * The bridge stays alive — compaction happens alongside the live session.
+ *
+ * Flow:
+ *   1. Fire Lumberjack + Sage IN PARALLEL (they write to different files)
+ *   2. Stream real-time ProgressEvents to the overlay
+ *   3. When both complete, signal bridge-ready
+ *   4. If client disconnects (Continue button), abort in-flight work
+ */
+
+import { NextRequest } from 'next/server'
+import { runLumberjack } from '@/lib/memory/lumberjack'
+import { runDreamerOrder66 } from '@/lib/memory/dreamer'
+import type { ProgressEvent } from '@/lib/memory/lumberjack'
+
+export const runtime = 'nodejs'
+export const dynamic = 'force-dynamic'
+
+export async function GET(req: NextRequest) {
+  const sessionId = req.nextUrl.searchParams.get('session')
+  if (!sessionId) {
+    return new Response('Missing ?session=', { status: 400 })
+  }
+
+  const encoder = new TextEncoder()
+  let streamClosed = false
+  let aborted = false
+
+  const stream = new ReadableStream({
+    async start(controller) {
+      const send = (event: Record<string, unknown>) => {
+        if (streamClosed) return
+        try {
+          controller.enqueue(encoder.encode(`data: ${JSON.stringify(event)}\n\n`))
+        } catch {
+          streamClosed = true
+        }
+      }
+
+      const close = () => {
+        if (streamClosed) return
+        streamClosed = true
+        try { controller.close() } catch {}
+      }
+
+      // Abort signal — fires when client disconnects (Continue button)
+      req.signal.addEventListener('abort', () => {
+        aborted = true
+        console.log(`[order66] Client disconnected for ${sessionId} — aborting`)
+        close()
+      })
+
+      try {
+        // Order 65: Bridge NOT killed — session stays alive during compaction
+
+        // ── LJ + Sage in parallel ─────────────────────────────────
+        // Shared progress callback → SSE events
+        const onProgress = (event: ProgressEvent) => {
+          if (aborted || streamClosed) return
+          send({
+            agent: event.agent,
+            phase: event.phase,
+            stage: event.stage || null,
+            detail: event.detail || null,
+          })
+        }
+
+        send({ phase: 'compaction-started' })
+
+        // Stagger starts by 3s — two simultaneous `claude --print`
+        // processes fight over the CLI's OAuth lock and one starves.
+        // Sage kicks off 3s after LJ. Still parallel once both are running.
+        const ljPromise = runLumberjack(sessionId, onProgress)
+        await new Promise(r => setTimeout(r, 3000))
+        const sagePromise = runDreamerOrder66(sessionId, onProgress)
+
+        const [ljResult, sageResult] = await Promise.all([
+          ljPromise,
+          sagePromise,
+        ])
+
+        if (aborted) { close(); return }
+
+        // ── Phase 3: Results ──────────────────────────────────────
+        send({
+          phase: 'compaction-complete',
+          lumberjack: {
+            status: ljResult.status,
+            inputSize: ljResult.inputSize,
+            outputSize: ljResult.outputSize,
+            compression: ljResult.compressionRatio,
+            stagesCompleted: ljResult.stagesCompleted,
+            stagesFailed: ljResult.stagesFailed,
+          },
+          sage: {
+            userMemoryUpdated: sageResult.stats.userMemoryUpdated,
+            sessionMdSize: sageResult.stats.sessionMdSize,
+          },
+        })
+
+        // Bridge auto-spawns on next chat message via getOrSpawn()
+        // No need to explicitly spawn here
+        send({ phase: 'bridge-ready' })
+        console.log(`[order66] Complete for ${sessionId} — LJ:${ljResult.status}, Sage:${sageResult.stats.userMemoryUpdated ? 'updated' : 'unchanged'}`)
+
+      } catch (err) {
+        if (!aborted) {
+          send({ phase: 'error', message: String(err) })
+          console.error(`[order66] Error for ${sessionId}:`, err)
+        }
+      } finally {
+        close()
+      }
+    },
+  })
+
+  return new Response(stream, {
+    headers: {
+      'Content-Type': 'text/event-stream',
+      'Cache-Control': 'no-cache',
+      'Connection': 'keep-alive',
+    },
+  })
+}

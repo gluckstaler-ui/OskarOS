@@ -1,0 +1,99 @@
+MISATTRIBUTION RECLASSIFICATION SUMMARY
+Generated: 2026-03-17
+================================================
+
+OVERVIEW
+--------
+The original auto-classifier was too aggressive, marking 2100 entries as "REAL COVER" when many were actually "TITLE COINCIDENCE". A Python script applied improved logic to reclassify all 2864 entries.
+
+ORIGINAL CLASSIFICATION
+- REAL COVER:          2100 entries
+- TITLE COINCIDENCE:    462 entries  
+- PARSING ERROR:          0 entries
+- LOW LISTENER CORRECT:   302 entries
+
+CORRECTED CLASSIFICATION
+- REAL COVER:          2699 entries
+- TITLE COINCIDENCE:    165 entries
+- (No PARSING ERROR or LOW LISTENER CORRECT categories in corrected version)
+
+KEY CHANGES
+-----------
+The reclassification corrected many false positives, applying these rules:
+
+1. GENERIC TITLE RULE
+   If the matched title is very generic (Time, Cold, Forever, Pain, Dreams, Falling, etc.),
+   default to TITLE COINCIDENCE unless artists are from same genre/era.
+   
+   Examples corrected:
+   - "Kanye West - Flashing Lights" by Tekno (Afrobeats) → TITLE COINCIDENCE
+   - "Coldplay - Paradise" by Fat Joe/Anitta/DJ Khaled → TITLE COINCIDENCE
+   - "PinkPantheress - Pain" by Isoknock → TITLE COINCIDENCE
+   - "The Cure - Close to Me" by Niphkeys/Zinoleesky → TITLE COINCIDENCE
+
+2. AFROBEATS + WESTERN ROCK/POP RULE
+   If pool is "AfroBeats e Amapiano" and matched artist is Western rock/pop/indie,
+   classify as TITLE COINCIDENCE unless filename indicates a remix.
+   
+   Examples corrected:
+   - "The Cranberries - Zombie" by Joeboy → TITLE COINCIDENCE
+   - "Pixies - Where Is My Mind?" by Charles Caliber → Kept REAL COVER (unique match)
+   - "Kanye West - Flashing Lights" by Tekno → TITLE COINCIDENCE
+   - "Justin Bieber - Baby" by Frizzie Ft. Bobby Saka → TITLE COINCIDENCE
+
+3. CLUBE KILLERS RULE
+   If pool is "Clube Killers" with generic titles or genre mismatches,
+   classify as TITLE COINCIDENCE unless it's a known remix producer.
+   
+   Examples corrected:
+   - "Coldplay - Shiver" by John Summit & Hayla → TITLE COINCIDENCE
+   - "Ariana Grande - Problem" by Cash Cobain & Laila → TITLE COINCIDENCE
+   - "Drake - Forever" by Hugel, Diplo, Malou & Yuna → TITLE COINCIDENCE
+
+4. SAME GENRE EXCEPTION
+   If both file artist and matched artist are from rock/indie/pop heritage,
+   kept as REAL COVER even with generic titles.
+   
+   Examples preserved:
+   - "Pink Floyd - Time" by Culture Club (80s pool) → REAL COVER
+   - "Cyndi Lauper - Time After Time" by Timmy T → REAL COVER
+
+OUTPUT FILES
+-------------
+1. analysis_rest_corrected.md (2877 lines)
+   - Full reclassified dataset
+   - Sorted by listeners descending
+   - Includes all 2864 entries with corrected classifications
+
+2. gold_hits_to_recheck.md (830 lines)
+   - HIGH-VALUE subset: REAL COVER entries with 100K+ listeners
+   - 824 entries that are worth manually verifying
+   - Sorted by listener count (highest first)
+   - These are the genuinely valuable misattributed songs to investigate
+
+INTERPRETATION GUIDE
+---------------------
+The gold_hits file contains entries classified as REAL COVER with 100K+ listeners.
+These are high-quality candidates for manual review because:
+
+- They have significant listenership (100K minimum)
+- They passed the improved reclassification logic
+- They represent genuine cover/remix attempts OR specific-enough titles
+  that warrant double-checking
+
+Note: Some entries in gold_hits still have notes like "Generic title" which means
+they should be manually verified. The reclassification is more conservative now
+but these high-listener entries are still worth checking.
+
+NEXT STEPS
+----------
+1. Use gold_hits_to_recheck.md as your verification checklist
+2. Manually review the top entries (1M+ listeners) first
+3. Verify whether they are actual covers or title coincidences
+4. Mark genuinely valuable misattributions for further investigation
+
+FILES LOCATION
+--------------
+/sessions/sweet-nice-newton/mnt/OskarOS/shaker/analysis_rest_corrected.md
+/sessions/sweet-nice-newton/mnt/OskarOS/shaker/gold_hits_to_recheck.md
+/sessions/sweet-nice-newton/mnt/OskarOS/shaker/reclassify_misattributions.py (script)

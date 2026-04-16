@@ -1,0 +1,993 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FalCaMel Cafe | Grandma's House. On the Edge.</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=Crimson+Pro:ital,wght@0,400;0,500;0,600;1,400;1,500&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --burgundy: #4A1C1C;
+            --gold: #C9A227;
+            --cream: #FAF6F0;
+            --brown: #3D2B1F;
+            --white: #FFFDF9;
+            --burgundy-light: #6B2D2D;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        body {
+            font-family: 'Crimson Pro', Georgia, serif;
+            background-color: var(--cream);
+            color: var(--brown);
+            line-height: 1.7;
+            font-size: 18px;
+        }
+
+        h1, h2, h3, h4, h5 {
+            font-family: 'Cormorant Garamond', Georgia, serif;
+            font-weight: 500;
+            line-height: 1.2;
+        }
+
+        /* ===== HERO SECTION ===== */
+        .hero {
+            min-height: 100vh;
+            background: linear-gradient(to bottom, rgba(74, 28, 28, 0.3), rgba(74, 28, 28, 0.5)),
+                        url('../../images/hero.jpg') center center / cover no-repeat;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            padding: 2rem;
+            position: relative;
+        }
+
+        .hero-content {
+            max-width: 900px;
+        }
+
+        .hero h1 {
+            font-size: clamp(3rem, 8vw, 6rem);
+            color: var(--white);
+            margin-bottom: 1.5rem;
+            text-shadow: 2px 2px 8px rgba(0,0,0,0.4);
+            letter-spacing: -0.02em;
+        }
+
+        .hero-subline {
+            font-size: clamp(1.2rem, 3vw, 1.6rem);
+            color: var(--cream);
+            font-style: italic;
+            margin-bottom: 3rem;
+            text-shadow: 1px 1px 4px rgba(0,0,0,0.4);
+        }
+
+        .cta-button {
+            display: inline-block;
+            background: var(--gold);
+            color: var(--burgundy);
+            padding: 1.2rem 3rem;
+            font-family: 'Cormorant Garamond', Georgia, serif;
+            font-size: 1.4rem;
+            font-weight: 600;
+            text-decoration: none;
+            border: none;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            letter-spacing: 0.05em;
+        }
+
+        .cta-button:hover {
+            background: var(--white);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+        }
+
+        /* ===== NAV ===== */
+        .nav {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            padding: 1.5rem 3rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 1000;
+            background: linear-gradient(to bottom, rgba(74, 28, 28, 0.8), transparent);
+        }
+
+        .nav-logo {
+            font-family: 'Cormorant Garamond', Georgia, serif;
+            font-size: 1.5rem;
+            color: var(--gold);
+            text-decoration: none;
+            font-weight: 600;
+            letter-spacing: 0.1em;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 2.5rem;
+            list-style: none;
+        }
+
+        .nav-links a {
+            color: var(--cream);
+            text-decoration: none;
+            font-size: 0.95rem;
+            letter-spacing: 0.05em;
+            transition: color 0.3s ease;
+        }
+
+        .nav-links a:hover {
+            color: var(--gold);
+        }
+
+        /* ===== SECTION STYLING ===== */
+        section {
+            padding: 6rem 2rem;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .section-header {
+            text-align: center;
+            margin-bottom: 4rem;
+        }
+
+        .section-header h2 {
+            font-size: clamp(2.5rem, 5vw, 4rem);
+            color: var(--burgundy);
+            margin-bottom: 1rem;
+        }
+
+        .section-header p {
+            font-size: 1.2rem;
+            color: var(--brown);
+            font-style: italic;
+            max-width: 700px;
+            margin: 0 auto;
+        }
+
+        .gold-line {
+            width: 80px;
+            height: 3px;
+            background: var(--gold);
+            margin: 1.5rem auto;
+        }
+
+        /* ===== THE LOUNGE ===== */
+        .lounge {
+            background: var(--white);
+        }
+
+        .lounge-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 4rem;
+            align-items: center;
+        }
+
+        .lounge-text h3 {
+            font-size: 2rem;
+            color: var(--burgundy);
+            margin-bottom: 1.5rem;
+        }
+
+        .lounge-text p {
+            margin-bottom: 1.5rem;
+            font-size: 1.1rem;
+        }
+
+        .lounge-text .emphasis {
+            font-style: italic;
+            color: var(--burgundy);
+            font-weight: 500;
+        }
+
+        .lounge-visual {
+            background: var(--cream);
+            padding: 3rem;
+            text-align: center;
+            border: 2px solid var(--gold);
+        }
+
+        .lounge-visual h4 {
+            font-size: 1.8rem;
+            color: var(--burgundy);
+            margin-bottom: 1rem;
+        }
+
+        .lounge-visual p {
+            font-style: italic;
+            color: var(--brown);
+        }
+
+        /* ===== THE RESIDENTS ===== */
+        .residents {
+            background: var(--burgundy);
+            color: var(--cream);
+        }
+
+        .residents .section-header h2 {
+            color: var(--gold);
+        }
+
+        .residents .section-header p {
+            color: var(--cream);
+        }
+
+        .residents-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 2.5rem;
+        }
+
+        .resident-card {
+            background: rgba(255, 253, 249, 0.05);
+            border: 1px solid rgba(201, 162, 39, 0.3);
+            overflow: hidden;
+            transition: transform 0.3s ease, border-color 0.3s ease;
+        }
+
+        .resident-card:hover {
+            transform: translateY(-5px);
+            border-color: var(--gold);
+        }
+
+        .resident-image {
+            width: 100%;
+            height: 280px;
+            object-fit: cover;
+            background: var(--brown);
+        }
+
+        .resident-info {
+            padding: 2rem;
+        }
+
+        .resident-info h3 {
+            font-size: 1.8rem;
+            color: var(--gold);
+            margin-bottom: 0.5rem;
+        }
+
+        .resident-title {
+            font-size: 0.9rem;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            color: rgba(250, 246, 240, 0.6);
+            margin-bottom: 1rem;
+        }
+
+        .resident-info p {
+            font-size: 1rem;
+            line-height: 1.6;
+            margin-bottom: 1.5rem;
+            font-style: italic;
+        }
+
+        .resident-price {
+            font-family: 'Cormorant Garamond', Georgia, serif;
+            font-size: 1.3rem;
+            color: var(--gold);
+            font-weight: 600;
+        }
+
+        /* ===== OUR MAJLIS ===== */
+        .majlis {
+            background: var(--cream);
+        }
+
+        .majlis-intro {
+            max-width: 800px;
+            margin: 0 auto 4rem;
+            text-align: center;
+        }
+
+        .majlis-intro p {
+            font-size: 1.2rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .majlis-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 2rem;
+            margin-bottom: 3rem;
+        }
+
+        .majlis-card {
+            background: var(--white);
+            border: 2px solid var(--burgundy);
+            padding: 2.5rem;
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+
+        .majlis-card:hover {
+            border-color: var(--gold);
+            box-shadow: 0 8px 30px rgba(74, 28, 28, 0.15);
+        }
+
+        .majlis-card h4 {
+            font-size: 1.6rem;
+            color: var(--burgundy);
+            margin-bottom: 0.5rem;
+        }
+
+        .majlis-card .owner {
+            font-style: italic;
+            color: var(--gold);
+            margin-bottom: 1rem;
+        }
+
+        .majlis-card p {
+            font-size: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .majlis-card .seats {
+            font-size: 0.9rem;
+            color: rgba(61, 43, 31, 0.7);
+        }
+
+        .majlis-cta {
+            text-align: center;
+        }
+
+        .cta-button-secondary {
+            display: inline-block;
+            background: var(--burgundy);
+            color: var(--gold);
+            padding: 1.2rem 3rem;
+            font-family: 'Cormorant Garamond', Georgia, serif;
+            font-size: 1.3rem;
+            font-weight: 600;
+            text-decoration: none;
+            transition: all 0.3s ease;
+        }
+
+        .cta-button-secondary:hover {
+            background: var(--burgundy-light);
+            transform: translateY(-2px);
+        }
+
+        /* ===== MENU ===== */
+        .menu {
+            background: var(--white);
+        }
+
+        .menu-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 3rem;
+        }
+
+        .menu-category {
+            background: var(--cream);
+            padding: 2.5rem;
+            border-left: 4px solid var(--gold);
+        }
+
+        .menu-category h3 {
+            font-size: 1.6rem;
+            color: var(--burgundy);
+            margin-bottom: 1.5rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 1px solid rgba(201, 162, 39, 0.3);
+        }
+
+        .menu-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            padding: 0.8rem 0;
+            border-bottom: 1px dotted rgba(61, 43, 31, 0.2);
+        }
+
+        .menu-item:last-child {
+            border-bottom: none;
+        }
+
+        .menu-item-name {
+            font-weight: 500;
+        }
+
+        .menu-item-price {
+            font-family: 'Cormorant Garamond', Georgia, serif;
+            font-weight: 600;
+            color: var(--burgundy);
+            white-space: nowrap;
+            margin-left: 1rem;
+        }
+
+        .menu-special {
+            background: var(--burgundy);
+            color: var(--cream);
+            padding: 2.5rem;
+            text-align: center;
+            grid-column: 1 / -1;
+        }
+
+        .menu-special h3 {
+            color: var(--gold);
+            font-size: 2rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .menu-special .price {
+            font-family: 'Cormorant Garamond', Georgia, serif;
+            font-size: 1.8rem;
+            color: var(--gold);
+            margin: 1rem 0;
+        }
+
+        .menu-special p {
+            font-style: italic;
+            opacity: 0.9;
+        }
+
+        /* ===== FULL FALCAMEL ===== */
+        .experiences {
+            background: linear-gradient(135deg, var(--burgundy) 0%, var(--brown) 100%);
+            color: var(--cream);
+        }
+
+        .experiences .section-header h2 {
+            color: var(--gold);
+        }
+
+        .experiences .section-header p {
+            color: var(--cream);
+        }
+
+        .experience-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 2.5rem;
+        }
+
+        .experience-card {
+            background: rgba(255, 253, 249, 0.05);
+            border: 2px solid var(--gold);
+            padding: 3rem;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .experience-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: var(--gold);
+        }
+
+        .experience-card h3 {
+            font-size: 2rem;
+            color: var(--gold);
+            margin-bottom: 0.5rem;
+        }
+
+        .experience-card .with {
+            font-style: italic;
+            color: rgba(250, 246, 240, 0.7);
+            margin-bottom: 1.5rem;
+        }
+
+        .experience-card p {
+            font-size: 1.1rem;
+            line-height: 1.7;
+            margin-bottom: 1.5rem;
+        }
+
+        .experience-card .price {
+            font-family: 'Cormorant Garamond', Georgia, serif;
+            font-size: 2rem;
+            color: var(--gold);
+            font-weight: 600;
+        }
+
+        /* ===== ROYAL FALCAMEL ===== */
+        .royal {
+            background: var(--brown);
+            color: var(--cream);
+            text-align: center;
+        }
+
+        .royal-content {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .royal h2 {
+            font-size: clamp(2.5rem, 5vw, 4rem);
+            color: var(--gold);
+            margin-bottom: 0.5rem;
+        }
+
+        .royal .price-tag {
+            font-family: 'Cormorant Garamond', Georgia, serif;
+            font-size: 2.5rem;
+            color: var(--gold);
+            margin: 1.5rem 0;
+        }
+
+        .royal .subtitle {
+            font-style: italic;
+            color: rgba(250, 246, 240, 0.7);
+            margin-bottom: 2rem;
+        }
+
+        .royal-description {
+            font-size: 1.3rem;
+            line-height: 1.8;
+            margin-bottom: 2rem;
+        }
+
+        .royal-list {
+            list-style: none;
+            text-align: left;
+            max-width: 500px;
+            margin: 2rem auto;
+        }
+
+        .royal-list li {
+            padding: 0.8rem 0;
+            border-bottom: 1px solid rgba(201, 162, 39, 0.3);
+            font-style: italic;
+        }
+
+        .royal-list li::before {
+            content: '';
+            color: var(--gold);
+            margin-right: 1rem;
+        }
+
+        .royal-tagline {
+            font-family: 'Cormorant Garamond', Georgia, serif;
+            font-size: 1.5rem;
+            color: var(--gold);
+            font-style: italic;
+            margin-top: 2rem;
+        }
+
+        /* ===== LOCATION ===== */
+        .location {
+            background: var(--cream);
+            text-align: center;
+        }
+
+        .location-details {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 3rem;
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        .location-item h4 {
+            font-size: 1.3rem;
+            color: var(--burgundy);
+            margin-bottom: 0.5rem;
+        }
+
+        .location-item p {
+            font-size: 1.1rem;
+        }
+
+        /* ===== FOOTER ===== */
+        footer {
+            background: var(--burgundy);
+            color: var(--cream);
+            padding: 4rem 2rem;
+            text-align: center;
+        }
+
+        .footer-logo {
+            font-family: 'Cormorant Garamond', Georgia, serif;
+            font-size: 2rem;
+            color: var(--gold);
+            margin-bottom: 0.5rem;
+            letter-spacing: 0.1em;
+        }
+
+        .footer-tagline {
+            font-style: italic;
+            color: rgba(250, 246, 240, 0.7);
+            margin-bottom: 2rem;
+        }
+
+        .footer-note {
+            font-size: 0.9rem;
+            color: rgba(250, 246, 240, 0.5);
+            max-width: 500px;
+            margin: 0 auto;
+        }
+
+        /* ===== RESPONSIVE ===== */
+        @media (max-width: 968px) {
+            .nav {
+                padding: 1rem 1.5rem;
+            }
+
+            .nav-links {
+                display: none;
+            }
+
+            .lounge-content {
+                grid-template-columns: 1fr;
+                gap: 2rem;
+            }
+
+            .majlis-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .experience-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .location-details {
+                grid-template-columns: 1fr;
+                gap: 2rem;
+            }
+        }
+
+        @media (max-width: 600px) {
+            section {
+                padding: 4rem 1.5rem;
+            }
+
+            .residents-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .menu-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="nav">
+        <a href="#" class="nav-logo">FALCAMEL</a>
+        <ul class="nav-links">
+            <li><a href="#lounge">The Lounge</a></li>
+            <li><a href="#residents">Residents</a></li>
+            <li><a href="#majlis">Our Majlis</a></li>
+            <li><a href="#menu">Menu</a></li>
+            <li><a href="#experiences">Experiences</a></li>
+        </ul>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="hero">
+        <div class="hero-content">
+            <h1>Grandma's House. On the Edge.</h1>
+            <p class="hero-subline">She's already made too much food. Don't be late.</p>
+            <a href="#majlis" class="cta-button">Grandma's Waiting</a>
+        </div>
+    </section>
+
+    <!-- The Lounge -->
+    <section id="lounge" class="lounge">
+        <div class="container">
+            <div class="section-header">
+                <h2>The Lounge</h2>
+                <div class="gold-line"></div>
+                <p>Grandma's living room. 200 meters above everything you thought mattered.</p>
+            </div>
+            <div class="lounge-content">
+                <div class="lounge-text">
+                    <h3>No Reservation Needed</h3>
+                    <p>Just walk in. Find a cushion. Someone will bring you qahwa before you've settled in. That's how it works here.</p>
+                    <p>The escarpment drops away outside the windows. Qiddiya glitters below. The cats have claimed the sunny spots. Haboob is somewhere nearby, judging your outfit.</p>
+                    <p class="emphasis">You don't need a reason to visit. You need a reason to stay away. And honestly, we'd like to hear it.</p>
+                </div>
+                <div class="lounge-visual">
+                    <h4>Walk-In Hours</h4>
+                    <p>4 PM - 2 AM</p>
+                    <p style="margin-top: 1rem; font-size: 0.95rem;">Show up. Sit down. We'll handle the rest.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- The Residents -->
+    <section id="residents" class="residents">
+        <div class="container">
+            <div class="section-header">
+                <h2>The Residents</h2>
+                <div class="gold-line"></div>
+                <p>They live here. You're visiting. Act accordingly.</p>
+            </div>
+            <div class="residents-grid">
+                <!-- Sultan -->
+                <div class="resident-card">
+                    <img src="../../images/sultan.jpg" alt="Sultan the Falcon" class="resident-image">
+                    <div class="resident-info">
+                        <h3>Sultan</h3>
+                        <div class="resident-title">The Falcon</div>
+                        <p>"Your personal air force. He hunts for no one now. But he'll sit with you, if you're worthy. He decides."</p>
+                        <div class="resident-price">SAR 350/hour</div>
+                    </div>
+                </div>
+                <!-- Haboob -->
+                <div class="resident-card">
+                    <img src="../../images/haboob.jpg" alt="Haboob the Camel" class="resident-image">
+                    <div class="resident-info">
+                        <h3>Haboob</h3>
+                        <div class="resident-title">The Camel</div>
+                        <p>"He provides milk for your latte, gravitas for your photos, and an unearned sense of moral superiority. Includes 15-minute ride."</p>
+                        <div class="resident-price">SAR 500/hour</div>
+                    </div>
+                </div>
+                <!-- Shams -->
+                <div class="resident-card">
+                    <img src="../../images/shams.jpg" alt="Shams the Cat" class="resident-image">
+                    <div class="resident-info">
+                        <h3>Shams</h3>
+                        <div class="resident-title">The Sun Cat</div>
+                        <p>"Zero guarantees. He might curl up in your lap. He might ignore you completely. Book him anyway. That's part of the charm."</p>
+                        <div class="resident-price">SAR 150/hour</div>
+                    </div>
+                </div>
+                <!-- Qamar -->
+                <div class="resident-card">
+                    <img src="../../images/qamar.jpg" alt="Qamar the Cat" class="resident-image">
+                    <div class="resident-info">
+                        <h3>Qamar</h3>
+                        <div class="resident-title">The Moon Cat</div>
+                        <p>"She will make you feel chosen. She'll look at only you. She'll follow you around. That's her game. Don't fall for it. (You will.)"</p>
+                        <div class="resident-price">SAR 150/hour</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Our Majlis -->
+    <section id="majlis" class="majlis">
+        <div class="container">
+            <div class="section-header">
+                <h2>Our Majlis</h2>
+                <div class="gold-line"></div>
+                <p>Four corners of the cliff. Each one claimed by a resident. Book a seat at their table.</p>
+            </div>
+            <div class="majlis-intro">
+                <p>The lounge is walk-in. But the majlis areas? Those are reserved. Because a falcon's territory is not first-come-first-served. A camel's corner is not up for grabs.</p>
+                <p><em>You're not booking a table. You're being granted an audience.</em></p>
+            </div>
+            <div class="majlis-grid">
+                <div class="majlis-card">
+                    <h4>Sultan's Perch</h4>
+                    <div class="owner">Hosted by Sultan</div>
+                    <p>The highest point. Best view of Falcon's Flight. He watches over everything from here.</p>
+                    <div class="seats">4 seats available</div>
+                </div>
+                <div class="majlis-card">
+                    <h4>Haboob's Haven</h4>
+                    <div class="owner">Hosted by Haboob</div>
+                    <p>The warmest corner. He stands nearby. Occasionally judging. Always providing atmosphere.</p>
+                    <div class="seats">6 seats available</div>
+                </div>
+                <div class="majlis-card">
+                    <h4>Shams Spot</h4>
+                    <div class="owner">Hosted by Shams</div>
+                    <p>The sunniest spot in the afternoon. He might join you. Or not. That's the deal.</p>
+                    <div class="seats">4 seats available</div>
+                </div>
+                <div class="majlis-card">
+                    <h4>Qamar's Quarter</h4>
+                    <div class="owner">Hosted by Qamar</div>
+                    <p>The quietest corner. She'll make you feel like the only guest in the world.</p>
+                    <div class="seats">4 seats available</div>
+                </div>
+            </div>
+            <div class="majlis-cta">
+                <a href="booking.html" class="cta-button-secondary">Request an Audience</a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Menu -->
+    <section id="menu" class="menu">
+        <div class="container">
+            <div class="section-header">
+                <h2>What Grandma Made</h2>
+                <div class="gold-line"></div>
+                <p>You're not ordering. You're accepting what's offered.</p>
+            </div>
+            <div class="menu-grid">
+                <div class="menu-category">
+                    <h3>Qahwa</h3>
+                    <div class="menu-item">
+                        <span class="menu-item-name">Jareen Single Origin</span>
+                        <span class="menu-item-price">SAR 25</span>
+                    </div>
+                    <div class="menu-item">
+                        <span class="menu-item-name">House Blend</span>
+                        <span class="menu-item-price">SAR 18</span>
+                    </div>
+                    <div class="menu-item">
+                        <span class="menu-item-name">Traditional Qahwa</span>
+                        <span class="menu-item-price">SAR 20</span>
+                    </div>
+                </div>
+                <div class="menu-category">
+                    <h3>Lattes</h3>
+                    <div class="menu-item">
+                        <span class="menu-item-name">Camel Milk Latte</span>
+                        <span class="menu-item-price">SAR 35</span>
+                    </div>
+                    <div class="menu-item">
+                        <span class="menu-item-name">Highland Honey Latte</span>
+                        <span class="menu-item-price">SAR 40</span>
+                    </div>
+                </div>
+                <div class="menu-category">
+                    <h3>Cold</h3>
+                    <div class="menu-item">
+                        <span class="menu-item-name">Jallab</span>
+                        <span class="menu-item-price">SAR 22</span>
+                    </div>
+                    <div class="menu-item">
+                        <span class="menu-item-name">Lemon Mint</span>
+                        <span class="menu-item-price">SAR 18</span>
+                    </div>
+                </div>
+                <div class="menu-category">
+                    <h3>Sweets</h3>
+                    <div class="menu-item">
+                        <span class="menu-item-name">Luqaimat</span>
+                        <span class="menu-item-price">SAR 20</span>
+                    </div>
+                    <div class="menu-item">
+                        <span class="menu-item-name">Kunafa</span>
+                        <span class="menu-item-price">SAR 35</span>
+                    </div>
+                    <div class="menu-item">
+                        <span class="menu-item-name">Ma'amoul</span>
+                        <span class="menu-item-price">SAR 25</span>
+                    </div>
+                    <div class="menu-item">
+                        <span class="menu-item-name">Honey Cake</span>
+                        <span class="menu-item-price">SAR 30</span>
+                    </div>
+                    <div class="menu-item">
+                        <span class="menu-item-name">Date Selection</span>
+                        <span class="menu-item-price">SAR 25</span>
+                    </div>
+                </div>
+                <div class="menu-category">
+                    <h3>Savory</h3>
+                    <div class="menu-item">
+                        <span class="menu-item-name">Sambusa (3 pieces)</span>
+                        <span class="menu-item-price">SAR 20</span>
+                    </div>
+                    <div class="menu-item">
+                        <span class="menu-item-name">Mutabbaq</span>
+                        <span class="menu-item-price">SAR 28</span>
+                    </div>
+                </div>
+                <div class="menu-special">
+                    <h3>The Discovery</h3>
+                    <div class="price">SAR 60</div>
+                    <p>Highland Honey Latte + Luqaimat</p>
+                    <p style="margin-top: 1rem; font-size: 0.95rem; opacity: 0.8;">For the first-timer. This is how you start.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- The Full FalCaMel -->
+    <section id="experiences" class="experiences">
+        <div class="container">
+            <div class="section-header">
+                <h2>The Full FalCaMel</h2>
+                <div class="gold-line"></div>
+                <p>Evening programs for those who want the complete experience.</p>
+            </div>
+            <div class="experience-grid">
+                <div class="experience-card">
+                    <h3>The Race</h3>
+                    <div class="with">with Sultan</div>
+                    <p>Watch Sultan race Falcon's Flight. The coaster launches. So does he. He wins every time. The machines haven't figured out how to compete with 3,000 years of evolution.</p>
+                    <p>Includes front-row seating, qahwa service, and the satisfaction of betting on the right bird.</p>
+                    <div class="price">SAR 2,000</div>
+                </div>
+                <div class="experience-card">
+                    <h3>The Sunset Ride</h3>
+                    <div class="with">with Haboob</div>
+                    <p>One hour on Haboob at golden hour. The escarpment turns amber. Qiddiya glows below. He walks slowly. He knows the route. He's been doing this longer than you've been alive.</p>
+                    <p>Includes camel milk latte waiting at the end. You'll need it.</p>
+                    <div class="price">SAR 2,000</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- The Royal FalCaMel -->
+    <section class="royal">
+        <div class="container">
+            <div class="royal-content">
+                <h2>The Royal FalCaMel</h2>
+                <div class="gold-line"></div>
+                <div class="subtitle">By Appointment Only</div>
+                <div class="price-tag">SAR 7,500</div>
+                <p class="royal-description">The cafe closes. You arrive. The royal guard assembles.</p>
+                <ul class="royal-list">
+                    <li>Sultan on your right. Watching.</li>
+                    <li>Haboob behind you. Standing guard.</li>
+                    <li>Shams and Qamar on the cushions. Flanking.</li>
+                    <li>The entire menu at your disposal.</li>
+                    <li>The entire cliff, yours alone.</li>
+                </ul>
+                <p class="royal-tagline">"Four residents. One guest. No one else."</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Location -->
+    <section class="location">
+        <div class="container">
+            <div class="section-header">
+                <h2>Find Us</h2>
+                <div class="gold-line"></div>
+                <p>If you get lost, look up. We're on the edge.</p>
+            </div>
+            <div class="location-details">
+                <div class="location-item">
+                    <h4>Where</h4>
+                    <p>Tuwaiq Escarpment</p>
+                    <p>200m above Qiddiya</p>
+                    <p>Next to Falcon's Flight</p>
+                </div>
+                <div class="location-item">
+                    <h4>When</h4>
+                    <p>4 PM - 2 AM</p>
+                    <p>Every day</p>
+                    <p>No exceptions</p>
+                </div>
+                <div class="location-item">
+                    <h4>How</h4>
+                    <p>Just show up</p>
+                    <p>Or book ahead</p>
+                    <p>Either way, we're ready</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer>
+        <div class="container">
+            <div class="footer-logo">FALCAMEL CAFE</div>
+            <div class="footer-tagline">Elevation, Redefined.</div>
+            <p class="footer-note">Grandma's house. 200 meters up. She made too much food again. She always does. Don't keep her waiting.</p>
+        </div>
+    </footer>
+</body>
+</html>

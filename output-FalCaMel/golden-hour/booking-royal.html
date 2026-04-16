@@ -1,0 +1,679 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Royal FalCaMel | By Appointment Only</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=Montserrat:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --gold: #C9A961;
+            --deep-gold: #A68B3D;
+            --champagne: #F7F3E9;
+            --ivory: #FFFEF9;
+            --charcoal: #1C1C1C;
+            --warm-gray: #3D3D3D;
+            --soft-brown: #8B7355;
+            --border-light: rgba(201, 169, 97, 0.2);
+            --border-gold: rgba(201, 169, 97, 0.4);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        body {
+            font-family: 'Montserrat', sans-serif;
+            background-color: var(--charcoal);
+            color: var(--ivory);
+            line-height: 1.7;
+            font-weight: 300;
+            min-height: 100vh;
+        }
+
+        h1, h2, h3, h4 {
+            font-family: 'Cormorant Garamond', serif;
+            font-weight: 500;
+            line-height: 1.2;
+            letter-spacing: 0.02em;
+        }
+
+        /* Hero Section */
+        .hero {
+            min-height: 70vh;
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            padding: 120px 40px 80px;
+        }
+
+        .hero-image {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            z-index: 1;
+        }
+
+        .hero-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(
+                to bottom,
+                rgba(28, 28, 28, 0.7) 0%,
+                rgba(28, 28, 28, 0.85) 50%,
+                rgba(28, 28, 28, 0.95) 100%
+            );
+            z-index: 2;
+        }
+
+        .hero-content {
+            position: relative;
+            z-index: 3;
+            text-align: center;
+            max-width: 900px;
+        }
+
+        .hero-eyebrow {
+            font-size: 0.75rem;
+            font-weight: 500;
+            letter-spacing: 0.4em;
+            text-transform: uppercase;
+            color: var(--gold);
+            margin-bottom: 2rem;
+        }
+
+        .hero h1 {
+            font-size: clamp(3rem, 8vw, 5.5rem);
+            font-weight: 400;
+            margin-bottom: 1.5rem;
+            letter-spacing: 0.05em;
+            color: var(--ivory);
+        }
+
+        .hero-tagline {
+            font-family: 'Cormorant Garamond', serif;
+            font-size: clamp(1.3rem, 3vw, 1.8rem);
+            font-style: italic;
+            color: var(--gold);
+            margin-bottom: 2rem;
+        }
+
+        .hero-description {
+            font-size: 1rem;
+            font-weight: 300;
+            color: rgba(255, 255, 255, 0.7);
+            max-width: 600px;
+            margin: 0 auto 2rem;
+            line-height: 1.9;
+        }
+
+        .hero-price {
+            font-family: 'Cormorant Garamond', serif;
+            font-size: 3rem;
+            color: var(--ivory);
+            letter-spacing: 0.05em;
+        }
+
+        /* Included Section */
+        .included {
+            background: var(--charcoal);
+            padding: 80px 40px;
+            border-top: 1px solid var(--border-light);
+            border-bottom: 1px solid var(--border-light);
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+
+        .included-header {
+            text-align: center;
+            margin-bottom: 60px;
+        }
+
+        .section-eyebrow {
+            font-size: 0.7rem;
+            font-weight: 500;
+            letter-spacing: 0.3em;
+            text-transform: uppercase;
+            color: var(--gold);
+            margin-bottom: 1rem;
+        }
+
+        .section-title {
+            font-size: clamp(2rem, 4vw, 2.8rem);
+            color: var(--ivory);
+        }
+
+        .included-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 30px;
+        }
+
+        .included-item {
+            text-align: center;
+            padding: 30px 20px;
+            border: 1px solid var(--border-light);
+            transition: all 0.4s ease;
+        }
+
+        .included-item:hover {
+            border-color: var(--gold);
+            background: rgba(201, 169, 97, 0.05);
+        }
+
+        .included-item h4 {
+            font-size: 1.3rem;
+            color: var(--gold);
+            margin-bottom: 0.75rem;
+        }
+
+        .included-item p {
+            font-size: 0.85rem;
+            color: rgba(255, 255, 255, 0.6);
+            line-height: 1.6;
+        }
+
+        /* Form Section */
+        .inquiry-section {
+            background: linear-gradient(to bottom, var(--charcoal) 0%, #151515 100%);
+            padding: 100px 40px 120px;
+        }
+
+        .inquiry-header {
+            text-align: center;
+            margin-bottom: 60px;
+        }
+
+        .inquiry-subtitle {
+            font-size: 1rem;
+            color: rgba(255, 255, 255, 0.6);
+            margin-top: 1rem;
+            font-style: italic;
+        }
+
+        .form-container {
+            max-width: 700px;
+            margin: 0 auto;
+        }
+
+        .form-intro {
+            text-align: center;
+            margin-bottom: 50px;
+            padding: 30px;
+            border: 1px solid var(--border-light);
+            background: rgba(201, 169, 97, 0.03);
+        }
+
+        .form-intro p {
+            font-size: 0.9rem;
+            color: rgba(255, 255, 255, 0.7);
+            line-height: 1.8;
+        }
+
+        .form-intro p strong {
+            color: var(--gold);
+            font-weight: 500;
+        }
+
+        .inquiry-form {
+            display: flex;
+            flex-direction: column;
+            gap: 35px;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+        }
+
+        .form-label {
+            font-family: 'Cormorant Garamond', serif;
+            font-size: 1.1rem;
+            color: var(--ivory);
+            letter-spacing: 0.02em;
+        }
+
+        .form-sublabel {
+            font-size: 0.75rem;
+            color: rgba(255, 255, 255, 0.4);
+            letter-spacing: 0.05em;
+            margin-top: -5px;
+        }
+
+        .form-input,
+        .form-textarea,
+        .form-select {
+            background: transparent;
+            border: none;
+            border-bottom: 1px solid var(--border-gold);
+            padding: 15px 0;
+            font-family: 'Montserrat', sans-serif;
+            font-size: 1rem;
+            font-weight: 300;
+            color: var(--ivory);
+            transition: all 0.3s ease;
+        }
+
+        .form-input:focus,
+        .form-textarea:focus,
+        .form-select:focus {
+            outline: none;
+            border-bottom-color: var(--gold);
+        }
+
+        .form-input::placeholder,
+        .form-textarea::placeholder {
+            color: rgba(255, 255, 255, 0.3);
+            font-style: italic;
+        }
+
+        .form-textarea {
+            min-height: 120px;
+            resize: vertical;
+            border: 1px solid var(--border-gold);
+            padding: 15px;
+        }
+
+        .form-textarea:focus {
+            border-color: var(--gold);
+        }
+
+        .form-select {
+            cursor: pointer;
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23C9A961' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 0 center;
+        }
+
+        .form-select option {
+            background: var(--charcoal);
+            color: var(--ivory);
+        }
+
+        .optional-tag {
+            font-size: 0.7rem;
+            color: rgba(255, 255, 255, 0.3);
+            font-style: italic;
+            margin-left: 10px;
+        }
+
+        .submit-container {
+            text-align: center;
+            margin-top: 30px;
+        }
+
+        .submit-btn {
+            background: var(--gold);
+            color: var(--charcoal);
+            border: none;
+            padding: 22px 70px;
+            font-family: 'Montserrat', sans-serif;
+            font-size: 0.85rem;
+            font-weight: 500;
+            letter-spacing: 0.25em;
+            text-transform: uppercase;
+            cursor: pointer;
+            transition: all 0.4s ease;
+        }
+
+        .submit-btn:hover {
+            background: var(--ivory);
+        }
+
+        .submit-note {
+            margin-top: 25px;
+            font-size: 0.8rem;
+            color: rgba(255, 255, 255, 0.4);
+            font-style: italic;
+        }
+
+        /* Confirmation Message */
+        .confirmation {
+            display: none;
+            text-align: center;
+            padding: 80px 40px;
+            animation: fadeIn 0.6s ease;
+        }
+
+        .confirmation.show {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .confirmation-icon {
+            width: 80px;
+            height: 80px;
+            border: 2px solid var(--gold);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 30px;
+        }
+
+        .confirmation-icon svg {
+            width: 36px;
+            height: 36px;
+            stroke: var(--gold);
+        }
+
+        .confirmation h2 {
+            font-size: 2.5rem;
+            color: var(--ivory);
+            margin-bottom: 1.5rem;
+        }
+
+        .confirmation-message {
+            font-size: 1.1rem;
+            color: rgba(255, 255, 255, 0.7);
+            max-width: 500px;
+            margin: 0 auto 2rem;
+            line-height: 1.8;
+        }
+
+        .confirmation-detail {
+            font-size: 0.85rem;
+            color: var(--gold);
+            font-style: italic;
+        }
+
+        .back-link {
+            display: inline-block;
+            margin-top: 40px;
+            color: rgba(255, 255, 255, 0.5);
+            text-decoration: none;
+            font-size: 0.85rem;
+            letter-spacing: 0.1em;
+            transition: color 0.3s ease;
+        }
+
+        .back-link:hover {
+            color: var(--gold);
+        }
+
+        /* Footer */
+        footer {
+            background: #0f0f0f;
+            padding: 60px 40px;
+            text-align: center;
+            border-top: 1px solid var(--border-light);
+        }
+
+        .footer-logo {
+            font-family: 'Cormorant Garamond', serif;
+            font-size: 1.8rem;
+            color: var(--gold);
+            letter-spacing: 0.1em;
+            margin-bottom: 0.75rem;
+        }
+
+        .footer-tagline {
+            font-size: 0.8rem;
+            color: rgba(255, 255, 255, 0.4);
+            font-style: italic;
+            margin-bottom: 1.5rem;
+        }
+
+        .footer-location {
+            font-size: 0.7rem;
+            letter-spacing: 0.2em;
+            text-transform: uppercase;
+            color: rgba(255, 255, 255, 0.25);
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .hero {
+                min-height: 60vh;
+                padding: 100px 24px 60px;
+            }
+
+            .hero-price {
+                font-size: 2.5rem;
+            }
+
+            .included,
+            .inquiry-section {
+                padding: 60px 24px;
+            }
+
+            .form-row {
+                grid-template-columns: 1fr;
+                gap: 35px;
+            }
+
+            .included-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+
+            .submit-btn {
+                width: 100%;
+                padding: 20px 40px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .hero h1 {
+                font-size: 2.5rem;
+            }
+
+            .included-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .confirmation h2 {
+                font-size: 2rem;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Hero -->
+    <section class="hero">
+        <img src="../../images/hero-night.jpeg" alt="FalCaMel Cafe at night" class="hero-image">
+        <div class="hero-overlay"></div>
+        <div class="hero-content">
+            <p class="hero-eyebrow">By Appointment Only</p>
+            <h1>The Royal FalCaMel</h1>
+            <p class="hero-tagline">The cafe closes. You arrive.</p>
+            <p class="hero-description">From sunset until the last star fades, the entire escarpment belongs to you. All four residents. All majlis areas. Every corner of the cliff where the light once touched. This experience is not booked. It is arranged.</p>
+            <p class="hero-price">SAR 7,500</p>
+        </div>
+    </section>
+
+    <!-- What's Included -->
+    <section class="included">
+        <div class="container">
+            <div class="included-header">
+                <p class="section-eyebrow">What Awaits</p>
+                <h2 class="section-title">Everything. Nothing Less.</h2>
+            </div>
+
+            <div class="included-grid">
+                <div class="included-item">
+                    <h4>All Four Residents</h4>
+                    <p>Sultan, Haboob, Shams, and Qamar. The cliff's keepers, at your service.</p>
+                </div>
+                <div class="included-item">
+                    <h4>Exclusive Access</h4>
+                    <p>The entire escarpment. Every majlis. Every view. No one else.</p>
+                </div>
+                <div class="included-item">
+                    <h4>Chef's Selection</h4>
+                    <p>A menu crafted for the evening. Highland honey. Jareen coffee. Delicacies that don't appear on the regular menu.</p>
+                </div>
+                <div class="included-item">
+                    <h4>Sunset Viewing</h4>
+                    <p>Watch the Tuwaiq turn from white to gold to amber. The best seats are reserved.</p>
+                </div>
+                <div class="included-item">
+                    <h4>Private Security</h4>
+                    <p>Discrete. Professional. Ensuring your evening remains undisturbed.</p>
+                </div>
+                <div class="included-item">
+                    <h4>Professional Photography</h4>
+                    <p>Every moment documented. The light, the residents, the cliff. Yours to keep.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Inquiry Form -->
+    <section class="inquiry-section">
+        <div class="container">
+            <div class="inquiry-header">
+                <p class="section-eyebrow">Begin the Conversation</p>
+                <h2 class="section-title">Arrangement Request</h2>
+                <p class="inquiry-subtitle">This experience is arranged, not booked.</p>
+            </div>
+
+            <div class="form-container">
+                <div class="form-intro">
+                    <p>Share your details below. <strong>Our concierge will contact you within 24 hours</strong> to discuss your arrangement, answer any questions, and ensure every detail is attended to.</p>
+                </div>
+
+                <form class="inquiry-form" id="royalInquiryForm">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label" for="name">Your Name</label>
+                            <input type="text" id="name" name="name" class="form-input" placeholder="As you wish to be addressed" required>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" for="phone">Where May We Reach You?</label>
+                            <p class="form-sublabel">Mobile or direct line</p>
+                            <input type="tel" id="phone" name="phone" class="form-input" placeholder="+966" required>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" for="email">Your Email</label>
+                        <p class="form-sublabel">For confirmation and details</p>
+                        <input type="email" id="email" name="email" class="form-input" placeholder="name@domain.com" required>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label" for="dates">Preferred Date or Period</label>
+                            <p class="form-sublabel">Exact dates or a general timeframe</p>
+                            <input type="text" id="dates" name="dates" class="form-input" placeholder="e.g., March 15th, or late March">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" for="guests">Anticipated Guests</label>
+                            <p class="form-sublabel">An estimate is sufficient</p>
+                            <select id="guests" name="guests" class="form-select">
+                                <option value="">Select...</option>
+                                <option value="2">Intimate gathering (2)</option>
+                                <option value="4">Small party (3-4)</option>
+                                <option value="8">Gathering (5-8)</option>
+                                <option value="12">Larger party (9-12)</option>
+                                <option value="more">More than 12</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" for="particulars">Any Particulars We Should Know? <span class="optional-tag">optional</span></label>
+                        <p class="form-sublabel">Dietary requirements, special occasions, specific requests</p>
+                        <textarea id="particulars" name="particulars" class="form-textarea" placeholder="A birthday. An anniversary. Dietary considerations. Anything that would help us prepare..."></textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" for="referral">How Did You Hear of Us? <span class="optional-tag">optional</span></label>
+                        <input type="text" id="referral" name="referral" class="form-input" placeholder="A friend, an article, a whisper on the wind...">
+                    </div>
+
+                    <div class="submit-container">
+                        <button type="submit" class="submit-btn">Request Arrangement</button>
+                        <p class="submit-note">Our concierge will be in touch within 24 hours.</p>
+                    </div>
+                </form>
+
+                <!-- Confirmation Message (hidden by default) -->
+                <div class="confirmation" id="confirmationMessage">
+                    <div class="confirmation-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                            <polyline points="20 6 9 17 4 12"></polyline>
+                        </svg>
+                    </div>
+                    <h2>Request Received</h2>
+                    <p class="confirmation-message">Your inquiry has been received. Our concierge will contact you within 24 hours to discuss your arrangement and ensure every detail is attended to.</p>
+                    <p class="confirmation-detail">The cliff awaits.</p>
+                    <a href="golden-landing.html" class="back-link">Return to FalCaMel</a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer>
+        <p class="footer-logo">FalCaMel</p>
+        <p class="footer-tagline">Elevation, Redefined</p>
+        <p class="footer-location">Tuwaiq Escarpment, Riyadh</p>
+    </footer>
+
+    <script>
+        document.getElementById('royalInquiryForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+
+            // Basic validation
+            const name = document.getElementById('name').value.trim();
+            const phone = document.getElementById('phone').value.trim();
+            const email = document.getElementById('email').value.trim();
+
+            if (!name || !phone || !email) {
+                return;
+            }
+
+            // Email validation
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (!emailRegex.test(email)) {
+                return;
+            }
+
+            // Hide form, show confirmation
+            this.style.display = 'none';
+            document.querySelector('.form-intro').style.display = 'none';
+            document.getElementById('confirmationMessage').classList.add('show');
+
+            // Scroll to confirmation
+            document.getElementById('confirmationMessage').scrollIntoView({
+                behavior: 'smooth',
+                block: 'center'
+            });
+        });
+    </script>
+
+</body>
+</html>

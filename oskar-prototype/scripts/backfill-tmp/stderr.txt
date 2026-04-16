@@ -1,0 +1,2 @@
+[call-dreamer] Prompt: 32274b, model: claude-opus-4-6
+[call-dreamer] Response: 12064 chars

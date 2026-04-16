@@ -1,0 +1,863 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Emanuel Waldmüller | International Commercial Operator</title>
+  <meta name="description" content="Swiss-based commercial operator for strategic accounts, partner-facing growth and cross-border execution across Switzerland, DACH and EMEA." />
+  <style>
+    :root {
+      --bg: #0b1020;
+      --bg-soft: #121931;
+      --panel: rgba(255,255,255,0.06);
+      --panel-strong: rgba(255,255,255,0.09);
+      --line: rgba(255,255,255,0.12);
+      --text: #f3f5fa;
+      --muted: #b5bdd4;
+      --soft: #d9dff0;
+      --accent: #88a8ff;
+      --accent-2: #8de1d1;
+      --max: 1180px;
+      --radius: 22px;
+      --shadow: 0 20px 50px rgba(0,0,0,0.28);
+    }
+
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background:
+        radial-gradient(circle at top left, rgba(136,168,255,0.18), transparent 34%),
+        radial-gradient(circle at top right, rgba(141,225,209,0.14), transparent 26%),
+        linear-gradient(180deg, #0b1020 0%, #10172e 100%);
+      color: var(--text);
+      line-height: 1.55;
+    }
+
+    a { color: inherit; text-decoration: none; }
+    img { max-width: 100%; display: block; }
+
+    .wrap {
+      width: min(var(--max), calc(100% - 40px));
+      margin: 0 auto;
+    }
+
+    .site-header {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      backdrop-filter: blur(16px);
+      background: rgba(11, 16, 32, 0.7);
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+    }
+
+    .site-header .inner {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 24px;
+      min-height: 78px;
+    }
+
+    .brand {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .brand strong {
+      font-size: 1rem;
+      letter-spacing: 0.01em;
+    }
+
+    .brand span {
+      color: var(--muted);
+      font-size: 0.9rem;
+    }
+
+    .nav {
+      display: flex;
+      align-items: center;
+      gap: 18px;
+      flex-wrap: wrap;
+    }
+
+    .nav a {
+      color: var(--muted);
+      font-size: 0.94rem;
+    }
+
+    .nav a:hover { color: var(--text); }
+
+    .button, .button-secondary {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      padding: 14px 20px;
+      border-radius: 999px;
+      font-weight: 700;
+      font-size: 0.95rem;
+      transition: transform 0.18s ease, background 0.18s ease, border-color 0.18s ease;
+      border: 1px solid transparent;
+    }
+
+    .button {
+      background: linear-gradient(135deg, var(--accent), #6e86d9);
+      color: #0b1020;
+      box-shadow: 0 14px 35px rgba(136,168,255,0.26);
+    }
+
+    .button-secondary {
+      background: rgba(255,255,255,0.04);
+      border-color: rgba(255,255,255,0.12);
+      color: var(--text);
+    }
+
+    .button:hover, .button-secondary:hover { transform: translateY(-1px); }
+
+    .hero {
+      padding: 74px 0 34px;
+    }
+
+    .hero-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1.2fr) minmax(340px, 0.8fr);
+      gap: 42px;
+      align-items: center;
+    }
+
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 14px;
+      border-radius: 999px;
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.09);
+      color: var(--soft);
+      font-size: 0.86rem;
+      letter-spacing: 0.02em;
+      margin-bottom: 18px;
+    }
+
+    .hero h1 {
+      margin: 0;
+      font-size: clamp(2.5rem, 5vw, 5rem);
+      line-height: 0.98;
+      letter-spacing: -0.04em;
+      max-width: 12ch;
+    }
+
+    .hero .lede {
+      font-size: 1.13rem;
+      color: var(--soft);
+      max-width: 64ch;
+      margin: 22px 0 0;
+    }
+
+    .hero .summary {
+      margin: 18px 0 0;
+      color: var(--muted);
+      max-width: 66ch;
+      font-size: 1rem;
+    }
+
+    .hero-actions {
+      display: flex;
+      gap: 14px;
+      flex-wrap: wrap;
+      margin: 30px 0 22px;
+    }
+
+    .hero-note {
+      color: var(--muted);
+      font-size: 0.95rem;
+      max-width: 65ch;
+    }
+
+    .hero-card {
+      position: relative;
+      overflow: hidden;
+      border-radius: 28px;
+      background:
+        linear-gradient(180deg, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0.03) 100%),
+        linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+      border: 1px solid rgba(255,255,255,0.1);
+      box-shadow: var(--shadow);
+      min-height: 100%;
+      padding: 28px 28px 0;
+    }
+
+    .hero-card::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(circle at 20% 20%, rgba(136,168,255,0.16), transparent 38%);
+      pointer-events: none;
+    }
+
+    .hero-card-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 16px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .hero-card-top span {
+      color: var(--muted);
+      font-size: 0.92rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    .hero-card-top strong {
+      font-size: 0.92rem;
+      color: var(--accent-2);
+      letter-spacing: 0.04em;
+    }
+
+    .portrait-frame {
+      position: relative;
+      z-index: 1;
+      border-radius: 24px 24px 0 0;
+      overflow: hidden;
+      background: linear-gradient(180deg, rgba(255,255,255,0.08), rgba(255,255,255,0.02));
+    }
+
+    .portrait-frame img {
+      width: 100%;
+      height: auto;
+      object-fit: contain;
+      object-position: center bottom;
+    }
+
+    .metrics {
+      padding: 14px 0 34px;
+    }
+
+    .metrics-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 18px;
+    }
+
+    .metric {
+      padding: 22px;
+      border-radius: var(--radius);
+      background: var(--panel);
+      border: 1px solid var(--line);
+      box-shadow: var(--shadow);
+    }
+
+    .metric .value {
+      display: block;
+      font-size: clamp(1.8rem, 2.8vw, 2.8rem);
+      line-height: 1;
+      letter-spacing: -0.04em;
+      margin-bottom: 8px;
+      font-weight: 800;
+    }
+
+    .metric .label {
+      font-weight: 700;
+      margin-bottom: 8px;
+      color: var(--text);
+    }
+
+    .metric p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 0.97rem;
+    }
+
+    section {
+      padding: 34px 0;
+    }
+
+    .section-title {
+      display: grid;
+      gap: 10px;
+      margin-bottom: 26px;
+      max-width: 800px;
+    }
+
+    .section-title .kicker {
+      color: var(--accent-2);
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      font-size: 0.82rem;
+      font-weight: 800;
+    }
+
+    .section-title h2 {
+      margin: 0;
+      font-size: clamp(1.8rem, 3vw, 3rem);
+      line-height: 1.05;
+      letter-spacing: -0.035em;
+    }
+
+    .section-title p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 1.02rem;
+      max-width: 68ch;
+    }
+
+    .story-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1.05fr) minmax(290px, 0.95fr);
+      gap: 24px;
+      align-items: start;
+    }
+
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 26px;
+      box-shadow: var(--shadow);
+    }
+
+    .story-lead {
+      font-size: 1.25rem;
+      line-height: 1.35;
+      color: var(--text);
+      margin: 0 0 16px;
+    }
+
+    .panel p:last-child { margin-bottom: 0; }
+    .panel p { color: var(--muted); margin: 0 0 14px; }
+
+    .tag-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 18px;
+    }
+
+    .tag {
+      padding: 10px 12px;
+      border-radius: 999px;
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.1);
+      color: var(--soft);
+      font-size: 0.92rem;
+    }
+
+    .cards-3 {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 18px;
+    }
+
+    .cards-3 .panel h3,
+    .experience-card h3,
+    .contact-card h3 {
+      margin: 0 0 12px;
+      font-size: 1.15rem;
+      letter-spacing: -0.02em;
+    }
+
+    .cards-3 .panel p { font-size: 0.98rem; }
+
+    .experience-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 18px;
+    }
+
+    .experience-card {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 26px;
+      box-shadow: var(--shadow);
+    }
+
+    .experience-card .meta {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-bottom: 14px;
+      color: var(--soft);
+      font-size: 0.93rem;
+    }
+
+    .experience-card p {
+      margin: 0;
+      color: var(--muted);
+    }
+
+    .experience-card ul {
+      margin: 16px 0 0;
+      padding-left: 18px;
+      color: var(--muted);
+    }
+
+    .experience-card li + li { margin-top: 10px; }
+
+    .arc {
+      display: grid;
+      gap: 16px;
+    }
+
+    .arc-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 14px;
+    }
+
+    .arc-item {
+      padding: 16px;
+      border-radius: 18px;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.08);
+      color: var(--soft);
+      min-height: 100%;
+    }
+
+    .arc-item strong {
+      display: block;
+      font-size: 0.93rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin-bottom: 8px;
+      color: var(--accent-2);
+    }
+
+    .arc-item span {
+      display: block;
+      font-size: 1rem;
+      color: var(--text);
+    }
+
+    .fit-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 16px;
+    }
+
+    .fit-card {
+      padding: 22px;
+      border-radius: 20px;
+      background: var(--panel);
+      border: 1px solid var(--line);
+      box-shadow: var(--shadow);
+    }
+
+    .fit-card h3 {
+      margin: 0 0 10px;
+      font-size: 1.03rem;
+      letter-spacing: -0.02em;
+    }
+
+    .fit-card p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 0.95rem;
+    }
+
+    .contact {
+      padding-bottom: 72px;
+    }
+
+    .contact-card {
+      display: grid;
+      grid-template-columns: minmax(0, 1.15fr) minmax(280px, 0.85fr);
+      gap: 24px;
+      padding: 30px;
+      border-radius: 30px;
+      background:
+        linear-gradient(135deg, rgba(136,168,255,0.12), rgba(141,225,209,0.07)),
+        rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.12);
+      box-shadow: var(--shadow);
+    }
+
+    .contact-card p {
+      margin: 0;
+      color: var(--soft);
+      max-width: 62ch;
+    }
+
+    .contact-links {
+      display: grid;
+      gap: 12px;
+      align-content: start;
+    }
+
+    .contact-link {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      padding: 14px 16px;
+      border-radius: 16px;
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.1);
+      color: var(--text);
+      font-weight: 600;
+    }
+
+    .contact-link span:last-child {
+      color: var(--muted);
+      font-size: 0.92rem;
+      font-weight: 500;
+    }
+
+    .site-footer {
+      border-top: 1px solid rgba(255,255,255,0.08);
+      padding: 24px 0 40px;
+      color: var(--muted);
+      font-size: 0.92rem;
+    }
+
+    .site-footer .inner {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+
+    @media (max-width: 1080px) {
+      .hero-grid,
+      .story-grid,
+      .contact-card,
+      .metrics-grid,
+      .cards-3,
+      .experience-grid,
+      .arc-grid,
+      .fit-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .hero h1 { max-width: 14ch; }
+      .hero-card { max-width: 560px; }
+    }
+
+    @media (max-width: 780px) {
+      .wrap { width: min(var(--max), calc(100% - 26px)); }
+      .site-header .inner {
+        min-height: 72px;
+        align-items: flex-start;
+        padding: 14px 0;
+      }
+      .nav {
+        gap: 12px;
+      }
+      .nav a { font-size: 0.9rem; }
+      .hero { padding-top: 40px; }
+      .hero h1 { font-size: clamp(2.3rem, 12vw, 3.5rem); }
+      .button, .button-secondary { width: 100%; }
+      .hero-actions { display: grid; grid-template-columns: 1fr; }
+      .contact-link { flex-direction: column; align-items: flex-start; }
+      .site-footer .inner { align-items: flex-start; }
+    }
+  </style>
+</head>
+<body>
+  <header class="site-header">
+    <div class="wrap inner">
+      <a class="brand" href="#top" aria-label="Go to top">
+        <strong>Emanuel Waldmüller</strong>
+        <span>International commercial operator | Zurich with ties to Vienna</span>
+      </a>
+      <nav class="nav" aria-label="Primary navigation">
+        <a href="#proof">Proof</a>
+        <a href="#story">Why me</a>
+        <a href="#experience">Experience</a>
+        <a href="#fit">Fit</a>
+        <a href="#contact">Contact</a>
+      </nav>
+    </div>
+  </header>
+
+  <main id="top">
+    <section class="hero">
+      <div class="wrap hero-grid">
+        <div>
+          <div class="eyebrow">Currently exploring strategic account, partner-facing and cross-border commercial roles</div>
+          <h1>Commercial traction in markets where remote selling is not enough.</h1>
+          <p class="lede">
+            Swiss-based commercial operator who owned a CHF 3-4M territory through a contracting market, helped convert a SIX Group engagement into a CHF 2.5M multi-year managed-services contract, and works best where trust, field presence and cross-border execution decide progress.
+          </p>
+          <p class="summary">
+            Relevant for strategic B2B account management, partner-facing growth and cross-border go-to-market work in stakeholder-heavy environments across Switzerland, DACH and wider EMEA.
+          </p>
+          <div class="hero-actions">
+            <a class="button" href="mailto:emanuel@waldmuller.org">Discuss a role</a>
+            <a class="button-secondary" href="https://waldmuller.org/wp-content/uploads/2026/03/CV_Waldmueller_2026_cbLI.pdf" target="_blank" rel="noopener noreferrer">Download CV</a>
+          </div>
+          <div class="hero-note">
+            I am strongest in roles where commercial success depends on credibility in the room, disciplined follow-through, and the ability to align clients, delivery teams and senior stakeholders across markets.
+          </div>
+        </div>
+
+        <aside class="hero-card" aria-label="Portrait and profile snapshot">
+          <div class="hero-card-top">
+            <span>Selected profile</span>
+            <strong>LL.M. | MSc | MEDDPICC</strong>
+          </div>
+          <div class="portrait-frame">
+            <img src="https://waldmuller.org/wp-content/uploads/2023/04/Emanuel-Waldmuller-023_Bearbeitet-transp.png" alt="Portrait of Emanuel Waldmüller" />
+          </div>
+        </aside>
+      </div>
+    </section>
+
+    <section class="metrics" id="proof">
+      <div class="wrap metrics-grid">
+        <article class="metric">
+          <span class="value">CHF 3-4M</span>
+          <div class="label">Territory ownership</div>
+          <p>Owned across Switzerland and DACH and kept commercially stable through a shrinking market.</p>
+        </article>
+        <article class="metric">
+          <span class="value">CHF 2.5M</span>
+          <div class="label">SIX Group contract</div>
+          <p>Multi-year managed-services contract for Nasdaq Calypso built through client proximity and cross-border coordination.</p>
+        </article>
+        <article class="metric">
+          <span class="value">11 months</span>
+          <div class="label">New York field assignment</div>
+          <p>On-the-ground UBS role supporting an MD-led migration involving 50+ participants and 200+ datasets.</p>
+        </article>
+        <article class="metric">
+          <span class="value">15+</span>
+          <div class="label">Proposals and RFPs yearly</div>
+          <p>Formal proposals, rate-card negotiations, renewals and stakeholder-heavy commercial pursuits.</p>
+        </article>
+      </div>
+    </section>
+
+    <section id="story">
+      <div class="wrap">
+        <div class="section-title">
+          <div class="kicker">Why me</div>
+          <h2>Not a standard Swiss sales profile.</h2>
+          <p>
+            The commercial thread is real, but the path into it was unusual. That is part of the value, not background noise.
+          </p>
+        </div>
+
+        <div class="story-grid">
+          <div class="panel">
+            <p class="story-lead">
+              My profile combines law, international institutional work, field-based exposure and commercial execution.
+            </p>
+            <p>
+              Before leading Zurich commercial activity at Synechron and working on transformation-heavy banking initiatives at UBS in New York, I worked across Geneva, Tel Aviv, Vienna, Sydney, Sarajevo and Tbilisi in roles involving embassy support, trade and policy exposure, parliamentary work, international coordination and short field deployments.
+            </p>
+            <p>
+              That is why I fit best in commercial environments that do not reward script-based selling. The roles I add most value in are the ones where judgment, composure, travel, trust and execution across multiple parties matter as much as pipeline mechanics.
+            </p>
+            <div class="tag-list" aria-label="Selected differentiators">
+              <span class="tag">Law and business education</span>
+              <span class="tag">Strategic accounts and renewals</span>
+              <span class="tag">Cross-border field execution</span>
+              <span class="tag">International institutional exposure</span>
+              <span class="tag">Executive coaching certification</span>
+            </div>
+          </div>
+
+          <div class="panel">
+            <h3>What that translates into</h3>
+            <p>
+              I can represent a business credibly on the ground, keep senior stakeholders aligned, and carry commercial momentum across locations, functions and delivery realities.
+            </p>
+            <p>
+              I am not best used as a narrow volume hunter. I am best used where a company needs someone who can progress complex situations, hold trust with demanding clients and keep things moving when the easy playbook fails.
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <div class="wrap">
+        <div class="section-title">
+          <div class="kicker">How I work</div>
+          <h2>Commercial leadership where trust, travel and execution all matter.</h2>
+          <p>
+            The pattern is consistent: create client proximity, align stakeholders across locations, and turn complexity into commercial movement.
+          </p>
+        </div>
+
+        <div class="cards-3">
+          <article class="panel">
+            <h3>Strategic account growth</h3>
+            <p>
+              Developing complex opportunities, defending and expanding named accounts, maintaining executive coverage, and progressing business in demanding buying environments.
+            </p>
+          </article>
+          <article class="panel">
+            <h3>Commercial orchestration</h3>
+            <p>
+              Aligning clients, nearshore delivery, legal and technical specialists across locations to turn opportunities into executable business.
+            </p>
+          </article>
+          <article class="panel">
+            <h3>Cross-border field execution</h3>
+            <p>
+              Prospecting, client workshops, QBRs, steering meetings and trade-fair presence across markets that build confidence, pipeline and momentum.
+            </p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section id="experience">
+      <div class="wrap">
+        <div class="section-title">
+          <div class="kicker">Experience</div>
+          <h2>Commercially credible operator profile shaped across sales, operations and international field exposure.</h2>
+          <p>
+            Enough range to handle ambiguity. Enough commercial proof to be trusted with real targets, real clients and real delivery consequences.
+          </p>
+        </div>
+
+        <div class="experience-grid">
+          <article class="experience-card">
+            <div class="meta">
+              <strong>Synechron Switzerland</strong>
+              <span>2023 - 2025 | Zurich and DACH</span>
+            </div>
+            <h3>Senior Manager | Key Account Executive and Sales Executive DACH | Zurich Office Commercial Lead</h3>
+            <p>
+              Owned a CHF 3-4M territory across Switzerland and DACH during a market downturn. Acted as the on-the-ground commercial lead near SIX Group while developing named accounts including UBS Switzerland IT, Clearstream and Leonteq.
+            </p>
+            <ul>
+              <li>Led 15+ proposals per year, formal RFPs, annual renewals and rate-card negotiations across demanding accounts.</li>
+              <li>Helped convert a major engagement into a CHF 2.5M multi-year managed-services contract with SIX Group for Nasdaq Calypso.</li>
+              <li>Represented the business across EMEA through prospecting, workshops, QBRs, steering meetings and trade-fair activity.</li>
+            </ul>
+          </article>
+
+          <article class="experience-card">
+            <div class="meta">
+              <strong>UBS</strong>
+              <span>2017 - 2022 | Zurich and New York</span>
+            </div>
+            <h3>Business Manager | Change Lead | Business Analyst</h3>
+            <p>
+              Worked across executive alignment, governance cadence, stakeholder facilitation, rollout readiness and an eleven-month field assignment in New York supporting an MD-led migration.
+            </p>
+            <ul>
+              <li>Aligned global teams on reporting, KPIs, executive forums and decision support in a complex banking environment.</li>
+              <li>Supported migration strategy and the first technical rehearsal involving 50+ participants and 200+ datasets.</li>
+              <li>Built credibility at the intersection of business change, operational coordination and stakeholder-heavy delivery.</li>
+            </ul>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <div class="wrap arc">
+        <div class="section-title">
+          <div class="kicker">Earlier international arc</div>
+          <h2>The earlier path is part of the commercial story.</h2>
+          <p>
+            Not because it looks interesting on paper, but because it explains why I am calm in international, ambiguous and stakeholder-heavy situations.
+          </p>
+        </div>
+
+        <div class="arc-grid">
+          <article class="arc-item">
+            <strong>Geneva</strong>
+            <span>WTO workshop and committee work in a multinational policy environment.</span>
+          </article>
+          <article class="arc-item">
+            <strong>Tel Aviv</strong>
+            <span>Austrian Embassy commercial section support, company visits and delegation exposure.</span>
+          </article>
+          <article class="arc-item">
+            <strong>Sarajevo &amp; Tbilisi</strong>
+            <span>OSCE-linked field exposure and work in politically sensitive contexts.</span>
+          </article>
+          <article class="arc-item">
+            <strong>Vienna &amp; Sydney</strong>
+            <span>Parliamentary and legal-policy work with reporting, coordination and public-sector exposure.</span>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section id="fit">
+      <div class="wrap">
+        <div class="section-title">
+          <div class="kicker">Best fit</div>
+          <h2>Roles where this profile is likely to outperform.</h2>
+          <p>
+            Not every sales role. Not every manager title. The fit is strongest where field presence, senior stakeholder trust and multi-country coordination actually matter.
+          </p>
+        </div>
+
+        <div class="fit-grid">
+          <article class="fit-card">
+            <h3>Strategic account management</h3>
+            <p>Named-account ownership, executive coverage, renewals, expansions and complex stakeholder alignment.</p>
+          </article>
+          <article class="fit-card">
+            <h3>Partner-facing growth</h3>
+            <p>Regional, distributor or channel-adjacent roles where relationship depth and credibility matter more than volume outreach.</p>
+          </article>
+          <article class="fit-card">
+            <h3>Cross-border market development</h3>
+            <p>Roles with Switzerland, DACH or broader EMEA scope that combine travel, relationship building and independent execution.</p>
+          </article>
+          <article class="fit-card">
+            <h3>Commercial operator roles</h3>
+            <p>Positions that sit between front-end commercial work and delivery reality, especially in complex B2B environments.</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="contact" id="contact">
+      <div class="wrap">
+        <div class="contact-card">
+          <div>
+            <div class="section-title" style="margin-bottom: 16px;">
+              <div class="kicker">Contact</div>
+              <h2>Hiring for a role where trust, travel and execution matter?</h2>
+            </div>
+            <p>
+              I am currently open to conversations about strategic account, partner-facing and cross-border commercial roles from a Swiss base. If the mandate requires credibility in the room, disciplined follow-through and comfort across markets, send me a note.
+            </p>
+          </div>
+
+          <div class="contact-links">
+            <a class="contact-link" href="mailto:emanuel@waldmuller.org">
+              <span>emanuel@waldmuller.org</span>
+              <span>Email</span>
+            </a>
+            <a class="contact-link" href="https://linkedin.com/in/emwaldm" target="_blank" rel="noopener noreferrer">
+              <span>linkedin.com/in/emwaldm</span>
+              <span>LinkedIn</span>
+            </a>
+            <a class="contact-link" href="https://waldmuller.org/wp-content/uploads/2026/03/CV_Waldmueller_2026_cbLI.pdf" target="_blank" rel="noopener noreferrer">
+              <span>CV – Emanuel Waldmüller – 2026</span>
+              <span>PDF</span>
+            </a>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="wrap inner">
+      <span>© Emanuel M. Waldmüller, 2026</span>
+      <span>Zurich with ties to Vienna</span>
+    </div>
+  </footer>
+</body>
+</html>

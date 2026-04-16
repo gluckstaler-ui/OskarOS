@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Emanuel M. Waldmüller | International Commercial Manager</title>
+  <meta name="description" content="Swiss-based commercial manager specializing in strategic accounts, cross-border market development, and complex commercial execution.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-color: #ffffff;
+      --text-main: #111827;
+      --text-muted: #4b5563;
+      --text-light: #9ca3af;
+      --accent: #0f172a;
+      --accent-soft: #f3f4f6;
+      --border: #e5e7eb;
+      --max-width: 1000px;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background-color: var(--bg-color);
+      color: var(--text-main);
+      line-height: 1.6;
+    }
+
+    a {
+      color: var(--text-main);
+      text-decoration: none;
+      transition: opacity 0.2s ease;
+    }
+
+    a:hover {
+      opacity: 0.7;
+    }
+
+    /* FIX 1: .container is now ONLY a layout wrapper — never put on semantic elements */
+    .container {
+      max-width: var(--max-width);
+      margin: 0 auto;
+      padding: 0 2rem;
+    }
+
+    /* Header — FIX: padding now on header element without .container conflict */
+    header {
+      padding: 3rem 0;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .header-inner {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+    }
+
+    .brand h1 {
+      font-size: 1.25rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+    }
+
+    .brand p {
+      font-size: 0.875rem;
+      color: var(--text-muted);
+      margin-top: 0.25rem;
+    }
+
+    .nav-links {
+      display: flex;
+      gap: 1.5rem;
+      font-size: 0.875rem;
+      font-weight: 500;
+    }
+
+    /* Hero Section */
+    .hero {
+      padding: 6rem 0 4rem;
+    }
+
+    .hero h2 {
+      font-size: clamp(2.5rem, 5vw, 4rem);
+      font-weight: 700;
+      line-height: 1.1;
+      letter-spacing: -0.04em;
+      max-width: 850px;
+      margin-bottom: 2rem;
+    }
+
+    .hero-lead {
+      font-size: 1.25rem;
+      color: var(--text-muted);
+      max-width: 700px;
+      margin-bottom: 2.5rem;
+      font-weight: 300;
+    }
+
+    .btn {
+      display: inline-block;
+      padding: 0.75rem 1.5rem;
+      background-color: var(--accent);
+      color: #fff;
+      border-radius: 4px;
+      font-size: 0.875rem;
+      font-weight: 500;
+      transition: background-color 0.2s ease;
+    }
+
+    .btn:hover {
+      background-color: #334155;
+      color: #fff;
+      opacity: 1;
+    }
+
+    .btn-outline {
+      background-color: transparent;
+      color: var(--accent);
+      border: 1px solid var(--border);
+    }
+
+    /* FIX 5: btn-outline hover now resets opacity to prevent ghost-out */
+    .btn-outline:hover {
+      background-color: var(--accent-soft);
+      color: var(--accent);
+      opacity: 1;
+    }
+
+    .hero-actions {
+      display: flex;
+      gap: 1rem;
+    }
+
+    /* Proof / Metrics Grid */
+    .metrics {
+      padding: 4rem 0;
+      border-top: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .metrics-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 2rem;
+    }
+
+    .metric-card h3 {
+      font-size: 2rem;
+      font-weight: 700;
+      letter-spacing: -0.03em;
+      margin-bottom: 0.5rem;
+    }
+
+    .metric-card p {
+      font-size: 0.875rem;
+      color: var(--text-muted);
+      line-height: 1.5;
+    }
+
+    /* Section Global — FIX 6: border-bottom controlled by class, not needing inline overrides */
+    section {
+      padding: 6rem 0;
+    }
+
+    section + section {
+      border-top: 1px solid var(--border);
+    }
+
+    .section-header {
+      margin-bottom: 3rem;
+      max-width: 700px;
+    }
+
+    .section-label {
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-light);
+      font-weight: 600;
+      margin-bottom: 1rem;
+      display: block;
+    }
+
+    .section-title {
+      font-size: 2rem;
+      font-weight: 700;
+      letter-spacing: -0.03em;
+      margin-bottom: 1rem;
+    }
+
+    .section-desc {
+      font-size: 1.125rem;
+      color: var(--text-muted);
+      font-weight: 300;
+    }
+
+    /* Two Column Layout */
+    .grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 4rem;
+    }
+
+    .content-block h4 {
+      font-size: 1.125rem;
+      font-weight: 600;
+      margin-bottom: 0.75rem;
+    }
+
+    .content-block p {
+      color: var(--text-muted);
+      margin-bottom: 1rem;
+      font-size: 0.95rem;
+    }
+
+    /* Experience List */
+    .exp-item {
+      margin-bottom: 3rem;
+    }
+
+    .exp-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      margin-bottom: 0.5rem;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 1rem;
+    }
+
+    .exp-company {
+      font-size: 1.25rem;
+      font-weight: 600;
+    }
+
+    .exp-meta {
+      font-size: 0.875rem;
+      color: var(--text-light);
+    }
+
+    .exp-role {
+      font-size: 1rem;
+      font-weight: 500;
+      color: var(--text-main);
+      margin: 1rem 0;
+    }
+
+    .exp-desc {
+      color: var(--text-muted);
+      font-size: 0.95rem;
+    }
+
+    /* Logo Rail / Early Career */
+    .logo-rail {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 2rem;
+      margin-bottom: 2rem;
+    }
+
+    .logo-item {
+      font-size: 0.875rem;
+      font-weight: 600;
+      color: var(--text-light);
+    }
+
+    /* Footer — FIX 4: padding on footer, .container inside */
+    footer {
+      padding: 4rem 0;
+      text-align: center;
+    }
+
+    footer p {
+      color: var(--text-light);
+      font-size: 0.875rem;
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      .header-inner {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 1.5rem;
+      }
+      .grid-2 {
+        grid-template-columns: 1fr;
+        gap: 2rem;
+      }
+      .exp-header {
+        flex-direction: column;
+        gap: 0.5rem;
+        border-bottom: none;
+        padding-bottom: 0;
+      }
+      .exp-company {
+        border-bottom: 1px solid var(--border);
+        padding-bottom: 0.5rem;
+        width: 100%;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- FIX 1: header no longer has .container class — inner div handles centering -->
+  <header>
+    <div class="container header-inner">
+      <div class="brand">
+        <h1>Emanuel M. Waldmüller</h1>
+        <p>LL.M., MSc. | Zurich &amp; Vienna</p>
+      </div>
+      <nav class="nav-links">
+        <a href="#profile">Profile</a>
+        <a href="#experience">Experience</a>
+        <a href="mailto:emanuel@waldmuller.org">Contact</a>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <!-- Hero — FIX 2+3: section owns padding, .container is inner wrapper -->
+    <section class="hero">
+      <div class="container">
+        <h2>Trusted to drive commercial traction where remote selling is not enough.</h2>
+        <p class="hero-lead">Swiss-based commercial operator specializing in strategic B2B accounts, cross-border market development, and complex commercial execution across Switzerland, DACH, and EMEA.</p>
+        <div class="hero-actions">
+          <a href="mailto:emanuel@waldmuller.org" class="btn">Get in touch</a>
+          <a href="https://waldmuller.org/wp-content/uploads/2026/03/CV_Waldmueller_2026_cbLI.pdf" target="_blank" class="btn btn-outline">Download CV (PDF)</a>
+        </div>
+      </div>
+    </section>
+
+    <!-- Metrics — FIX 7: now a <section> for semantic consistency -->
+    <section class="metrics">
+      <div class="container metrics-grid">
+        <div class="metric-card">
+          <h3>CHF 3-4M</h3>
+          <p>Annual territory P&amp;L owned across Switzerland and DACH.</p>
+        </div>
+        <div class="metric-card">
+          <h3>CHF 2.5M</h3>
+          <p>Multi-year managed-services contract converted with SIX Group.</p>
+        </div>
+        <div class="metric-card">
+          <h3>11 Months</h3>
+          <p>On-the-ground field assignment in New York supporting a complex UBS migration.</p>
+        </div>
+        <div class="metric-card">
+          <h3>EMEA</h3>
+          <p>Cross-border execution, from prospecting to steering committees across markets.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Core Competencies — FIX 2: .container is inner div, not on section -->
+    <section id="profile">
+      <div class="container">
+        <div class="section-header">
+          <span class="section-label">Core Competencies</span>
+          <h2 class="section-title">Bridging strategy and execution.</h2>
+          <p class="section-desc">I am highly effective in roles where commercial success depends on credibility in the room, disciplined follow-through, and the ability to align clients, delivery teams, and senior stakeholders across markets.</p>
+        </div>
+
+        <div class="grid-2">
+          <div class="content-block">
+            <h4>Strategic Account Growth</h4>
+            <p>Developing complex opportunities, defending and expanding named accounts, and maintaining executive coverage in demanding, highly-regulated buying environments.</p>
+          </div>
+          <div class="content-block">
+            <h4>Commercial Orchestration</h4>
+            <p>Aligning clients, nearshore delivery centers, legal, and technical specialists across locations to translate opportunities into executable, de-risked business.</p>
+          </div>
+          <div class="content-block">
+            <h4>Cross-Border Field Execution</h4>
+            <p>Conducting client workshops, QBRs, steering meetings, and trade-fair presence across EMEA to build delivery confidence and executive trust.</p>
+          </div>
+          <div class="content-block">
+            <h4>MEDDPICC Certified</h4>
+            <p>Applying rigorous, globally recognized sales methodologies to qualify pipeline accurately and forecast complex enterprise sales cycles reliably.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Experience — FIX 2: same pattern -->
+    <section id="experience">
+      <div class="container">
+        <div class="section-header">
+          <span class="section-label">Professional Experience</span>
+          <h2 class="section-title">A commercially credible operator profile.</h2>
+          <p class="section-desc">Shaped across sales, operations, executive alignment, and international institutional environments.</p>
+        </div>
+
+        <div class="exp-item">
+          <div class="exp-header">
+            <div class="exp-company">Synechron Switzerland</div>
+            <div class="exp-meta">Zurich &amp; DACH | 2023 – 2025</div>
+          </div>
+          <div class="exp-role">Senior Manager | Key Account Executive DACH | Zurich Commercial Lead</div>
+          <p class="exp-desc">Established Zurich commercial presence from zero local footprint. Owned a CHF 3-4M annual territory and built account plans for SIX Group, UBS Switzerland IT, Clearstream, and Leonteq. Led formal RFPs, rate-card negotiations, and annual renewals. Successfully converted a major engagement into a CHF 2.5M multi-year managed-services contract with SIX Group for Nasdaq Calypso.</p>
+        </div>
+
+        <div class="exp-item">
+          <div class="exp-header">
+            <div class="exp-company">UBS</div>
+            <div class="exp-meta">Zurich &amp; New York | 2017 – 2022</div>
+          </div>
+          <div class="exp-role">Business Manager | Change Lead | Business Analyst</div>
+          <p class="exp-desc">Worked across Zurich and New York on executive alignment, governance cadence, stakeholder facilitation, and rollout readiness. Completed an eleven-month field assignment in New York supporting an MD-led migration, conversion strategy, and technical rehearsal involving 50+ participants and 200+ datasets.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Earlier Career — FIX 2+6: no inline style, no .container on section -->
+    <section>
+      <div class="container">
+        <div class="section-header">
+          <span class="section-label">The Foundation</span>
+          <h2 class="section-title">International &amp; Institutional Exposure.</h2>
+          <p class="section-desc">My early career was built in environments that demand diplomacy, structural thinking, and cross-cultural execution.</p>
+        </div>
+
+        <div class="logo-rail">
+          <span class="logo-item">WTO (Geneva)</span>
+          <span class="logo-item">Austrian Embassy (Tel Aviv)</span>
+          <span class="logo-item">DCAF (Zagreb)</span>
+          <span class="logo-item">OSCE (Sarajevo &amp; Tbilisi)</span>
+          <span class="logo-item">Austrian Parliament (Vienna)</span>
+        </div>
+
+        <div class="grid-2">
+          <div class="content-block">
+            <p>Prior to financial services, my experience spanned commercial diplomacy, multilateral institutions, and parliamentary work. This included support for the Austrian Commercial Attaché in Israel, WTO committee work in Geneva, and regional coordination through DCAF.</p>
+          </div>
+          <div class="content-block">
+            <p>This unusual path is what allows me to navigate heavily matrixed corporate environments today. I am comfortable in rooms with competing stakeholder interests, across borders and languages, finding pathways to consensus and execution.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- FIX 4: footer owns its padding, .container is inner wrapper -->
+  <footer>
+    <div class="container">
+      <p>© 2026 Emanuel M. Waldmüller. All rights reserved.</p>
+    </div>
+  </footer>
+
+</body>
+</html>

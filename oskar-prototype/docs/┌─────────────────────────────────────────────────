@@ -1,0 +1,57 @@
+┌─────────────────────────────────────────────────────────────────────────────────────────────────┐
+│                                      SESSION TIMELINE                                            │
+└─────────────────────────────────────────────────────────────────────────────────────────────────┘
+
+TIME ─────────────────────────────────────────────────────────────────────────────────────────────►
+
+│ PHASE 1: DISCOVERY │ PHASE 2: VIBES       │ PHASE 3: BUILD        │ PHASE 4: POLISH           │
+│                    │                      │                       │                           │
+│  User uploads      │  CD develops         │  🚐🚐🚐🚐🚐           │  User reviews vibes       │
+│  images            │  5 vibes             │  MINI-BUSES DEPART    │        ↓                  │
+│        ↓           │        ↓             │        ↓              │  User selects/mixes       │
+│  CD asks           │  CD presents vibes   │  WebDev + Nano Banana │  (Director Mode)          │
+│  questions         │  + IMAGE PROMPTS     │  run in parallel      │        ↓                  │
+│        ↓           │        ↓             │        ↓              │  Final page assembled     │
+│  User answers      │  User approves       │  Vibes land one by    │        ↓                  │
+│        ↓           │  prompts             │  one                  │  User approves            │
+│  CD analyzes       │        ↓             │        ↓              │        ↓                  │
+│  uploaded images   │  CREATIVE BRIEF      │  Images hot-swap      │  DONE                     │
+│        ↓           │  written             │        ↓              │                           │
+│  Discovery         │        ↓             │  User watches,        │                           │
+│  complete          │  ════════════════    │  browses,             │                           │
+│        ↓           │  NO STOP             │  re-prompts           │                           │
+│  STOP              │  TRAIN LEFT          │        ↓              │                           │
+│  (user greenlights │  ════════════════    │  All mini-buses       │                           │
+│   Phase 2)         │                      │  complete             │                           │
+│                    │                      │        ↓              │                           │
+│                    │                      │  Phase 4 begins       │                           │
+│                    │                      │                       │                           │
+└────────────────────┴──────────────────────┴───────────────────────┴───────────────────────────┘
+
+TIME ─────────────────────────────────────────────────────────────────────────────────────────►
+
+WEBDEV          ┌─Build V1─┐ ┌─Build V2─┐ ┌─Build V3─┐ ┌─Build V4─┐ ┌─Build V5─┐
+(sequential)    └──────────┘ └──────────┘ └──────────┘ └──────────┘ └──────────┘
+
+USER            [Approve] [Approve] [Approve] ──── browsing vibes ──── [Re-prompt] ────
+(approving)         │         │         │              ▲                   │
+                    │         │         │              │                   │
+                    ▼         ▼         ▼              │                   ▼
+NANO BANANA     🚐─────────────────────────►           │               🚐──────►
+(parallel)          🚐─────────────────►               │
+                        🚐─────────────────────►       │
+                            🚐───────────────►         │
+                                                       │
+                    ┌──────────────────────────────────┘
+                    │
+IMAGES          ────┼───🖼️────────🖼️──────🖼️────────────────🖼️───────🖼️(v2)────
+LANDING             │     │          │        │                 │         │
+                    ▼     ▼          ▼        ▼                 ▼         ▼
+HOT-SWAP        ───[V1]──[V1]──────[V2]─────[V3]───────────────[V1]─────[V1]────
+
+SNACKBARS       ─────────────────────────────────────────────────────────────────
+                "🖼️ Qahwa hero ready"
+                      "🖼️ Menu bg ready"
+                              "✅ Majlis complete"
+                                      "🖼️ Jareen hero ready"
+                                                        "🔄 Qahwa hero v2"

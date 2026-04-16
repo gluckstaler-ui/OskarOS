@@ -1,0 +1,136 @@
+### USER.MD
+
+# User Memory
+_Last updated: 2026-04-10, 10:00 by Padawan Sage_
+_Source: Session 2026-04-08-4 — rich creative engagement across ~10 hours. Discovery, vibe building, 20+ image evaluations. High-confidence portrait._
+
+## Taste Profile
+
+Steve's first instinct is final. Across 20+ image variant evaluations, v1 held every single time — including four rounds on the AT-AT art detail and four rounds on his own portrait. The only moment of hesitation: the Blue Milk Sour gradient ("gorgeous, close call"), and he still picked v1. He evaluates fast, decides clean, doesn't revisit.
+
+The hierarchy: **cinematic over clean, intimate over spectacular, tight over wide.** Amber underlighting beat natural light for his portrait. Mid-laugh beat polished headshot — "This isn't a headshot — this is the guy who built a Millennium Falcon in Niederdorf." A couple in a smuggler booth beat spacecraft immersion for the evening vibe. A tighter crop of AT-AT legs against pines beat showing more of the walker. Every choice pulls toward the specific and felt, away from the composed and correct.
+
+Craft must be visible at the material level. Canvas weave, impasto brushstrokes, riveted panels, working cockpit switches. The texture is the proof. He commissioned original oil paintings from Sommerhalder (AT-AT in Engadin, X-Wings over Matterhorn, Tauntaun in Appenzell) — not to decorate a themed café but to make art that lives at the intersection of Swiss landscape and Star Wars. The CSS painting frame with gallery attribution was flagged as setting the right tone. This is a gallery-owner instinct applied to a café.
+
+Interactive and tactile details surface unprompted — cockpit bar with working light-up switches, handbuilt lightsaber prize from a craftsman in Winterthur. These are objects with provenance, not props with price tags.
+
+APPROVED: Intimacy, imperfection, warmth earned through texture and story.
+PATTERN: He never once chose the "cleaner" or "more polished" variant. Rough magnetism beats composed beauty every time.
+
+## Quality Bar
+
+Photography is baseline infrastructure, not a feature. Flagged missing images unprompted with zero drama: "I don't see pictures in the vibes, is this intentional?" Expects the obvious to be handled.
+
+Fabrications are poison. The system invented a building year (1943), a visitor from Osaka, and Graubünden geography trivia — all caught and removed. Steve's data must be Steve's data. When his own answers contradicted earlier answers (the Q8-Q10 incident), he resolved it by copy-pasting canonical facts in a plain numbered list. He is the source of truth, not the agent's interpolation.
+
+The enemy is named and specific: lazy themed cafés with Amazon merch and no craft. "I'd rather close." This isn't positioning language — it's a line he'll walk up to. Any deliverable that drifts toward generic themed-café territory will lose him.
+
+Tab labels that carry voice ("The Roast / After Dark / The Kitchen") — this is the quality floor for copy. Navigation should sound like the place, not describe the place.
+
+## Communication Patterns
+
+Volunteers rich detail unprompted when engaged. The proposal in the cockpit, the Kessel Run as his personal after-close drink, the Wampa costume in July he refused to take off the photo wall — these surface as stories, not answers. He's not filling forms; he's telling you who the place is. Listen for these. They're brand moments.
+
+Brief and unruffled when something's broken. "I don't see pictures" — no frustration, no diagnosis attempt, just a clean flag. Expects the system to handle it. Doesn't need to be told what went wrong, just wants to see it fixed.
+
+Resolves conflicts by providing the definitive version, not by discussing the disagreement. Copy-paste, numbered list, move on. Don't ask him to reconcile — give him a clean surface to state the truth.
+
+PATTERN: He answers discovery questions at length but doesn't revisit decisions. The image selection pattern (v1 holds, variants rejected quickly with clear reasoning) maps to how he runs the whole interaction. Forward momentum, first instinct, done.
+
+## Working Context
+
+**Business:** The Cantina — Star Wars-themed café, Zürich Niederdorf
+**Owner:** Steve
+**Positioning:** "What if Star Wars grew up in Switzerland" — not fandom shrine, not third-wave hipster. Themed experience with genuinely good coffee.
+**Roaster:** Kafischmitte, Winterthur (local micro-roaster)
+**Artist:** Sommerhalder — commissioned Swiss-Star Wars oil paintings
+**Seating:** 45 seated / 60 standing
+**Menu anchors:** Darth Roast + Yoda Matcha Latte (visual contrast pair), Wookiee Cookies, Jabba's Wrap, Bantha Burger. Range 12–18 CHF. 5 cocktails including Kessel Run (Steve's personal), Blue Milk Sour, Tatooine Sunset.
+**Events:** Wednesday trivia 7pm (Steve hosts as Han Solo, 40–50 people, year-long leaderboard, handbuilt lightsaber December prize). Cosplay Saturdays (spontaneous, photo wall — best costume: Wampa in July).
+**Customer archetype:** Lisa, 34, Google Zürich — not a Star Wars fan, comes for "actual personality." Brings her team for monthly trivia.
+**Anti-customer:** Laptop squatters, drive-by photo tourists, "themed = childish" crowd.
+**Brand moment:** A proposal happened in the cockpit. She said yes. The cockpit is an emotionally charged space.
+
+**Current project state:** Website vibe exploration. 4 vibes built (Niederdorf Outpost, Alpine Empire, Parsec, Nach Sechs). 9/10 images approved — gallery shot (img-4: three Sommerhalder paintings side by side) still pending. Images now being injected into HTML after defect where WebDev built pages before images existed. CEO selection (choosing the final vibe) not yet reached.
+
+### SESSION.MD
+
+# Session: The Cantina, Zürich Niederdorf
+**Created:** 2026-04-08 00:47
+**Status:** Vibe Building — image injection in progress
+**Business:** The Cantina | Owner: Steve
+
+## Workflow State
+- [X] Images uploaded
+- [X] Images analyzed by CD
+- [X] Discovery complete
+- [X] Vibes developed (4/4)
+- [ ] Image prompts approved — ALL 5 GENERATIONS NOW READY
+- [ ] CEO selection made
+- [ ] Final build complete
+
+### STATE
+- Pending: Image injection into remaining 3 vibes (Alpine Empire, Parsec, Nach Sechs) — system action
+- Pending: img-4 (Alpine Empire gallery — 3 Sommerhalder paintings) — never generated successfully
+- Blocked: Nothing
+- Active files: vibe-1 through vibe-4 HTML, CREATIVE-BRIEF.md (image maps added)
+- Last user action: Flagged missing images in vibes [10:01]
+- Last CD action: Rebuilt Niederdorf Outpost with images, triggered 3 more rebuilds [10:02]
+- Session: 2026-04-08-4 | Started: 00:47 | Turns: ~50+
+
+### LEDGER
+- [00:47] Session started. Business: The Cantina, Zürich Niederdorf. Owner: Steve.
+- [00:50] Discovery: Swiss-Star Wars fusion art (AT-AT in Engadin) = core differentiator. Cockpit bar with working switches. Kafischmitte roaster.
+- [00:51] Menu confirmed: Darth Roast, Yoda Matcha, Wookiee Cookies, Jabba's Wrap, Bantha Burger. 12–18 CHF. Steve's positioning: "not third-wave hipster, themed experience with genuinely good coffee."
+- [00:54] Full menu with prices confirmed. Trivia: Wed 7pm, Steve as Han Solo, 40–50 people, lightsaber prize Dec.
+- [00:54] Customer archetype: Lisa, 34, Google Zürich — not a SW fan. Anti-customer: laptop squatters, photo tourists, "themed = childish."
+- [00:54] Steve's enemy defined: lazy themed cafés with Amazon merch. "I'd rather close." Positioning: "What if Star Wars grew up in Switzerland."
+- [01:09] Session resumed.
+- [01:38] NIEDERDORF OUTPOST built. DEFECT: Tatooine Sunset missing from After Dark. DEFECT: fabricated "Building year: 1943" removed.
+- [01:43] ALPINE EMPIRE built. Gallery-forward, warm cream/burnt umber. CSS painting frame approved as tone-setter.
+- [01:43] DEFECT: Three fabrications removed (painting years, "from Osaka" visitor, geography trivia).
+- [01:51] CONFLICT: Steve's Q8–Q10 answers contradicted 8 established facts. CD blocked builds.
+- [02:03] CANONICAL CONFIRMED: Steve copy-pasted final truth — Sommerhalder, 5 cocktails, correct hours, 45 seated/60 standing, 12 teams × 6.
+- [02:03] Brand moments volunteered: cockpit proposal ("She said yes"), Kessel Run = Steve's personal after-close drink.
+- [02:05] All facts locked. Jedi Training real (kids 5–12). Lightsaber prize from craftsman in Winterthur.
+- [02:05] NIEDERDORF OUTPOST rebuilt clean.
+- [02:06–02:16] Image pipeline blocker: IMAGES.md format defect (plain text fields → parser returned null). CD fixed to bold format, retriggered all prompts. Three fix attempts before resolution.
+- [02:24] IMAGE PIPELINE UNBLOCKED: 12+ images delivered.
+- [02:24] APPROVED: niederdorf-outpost-hero-v1 (Falcon interior, riveted panels, cockpit switches, oil paintings in gold frames).
+- [02:24] APPROVED: all-art-detail-v1 (impasto AT-AT close-up, canvas weave visible). APPROVED: all-portrait-v1 (Steve mid-laugh behind cockpit bar).
+- [02:24–02:29] 12+ variant images evaluated. ALL REJECTED. V1 held every round. Key taste signals: mid-laugh > polished, intimacy > spectacle, tight crop > wide, amber > natural light.
+- [02:27] CLOSE CALL: nach-sechs-cocktail-showcase-v1-2 Blue Milk Sour gradient "gorgeous" — but v1 stays.
+- [02:30] CEO decision: retrigger img-4 (Alpine Empire gallery — three Sommerhalder paintings side by side).
+- [02:44] Two more portrait variants rejected. V1 holds across all four rounds.
+- [03:15] Session resumed. 4 vibes built, 9/10 images, gallery still pending.
+- [09:55] Session resumed. CD confirmed state: 4 vibes, 9/10 images, img-4 still missing.
+- [10:01] Steve flagged missing images in vibes: "I don't see pictures in the vibes, is this intentional?"
+- [10:02] DEFECT: All 4 vibes built with zero image references — WebDev built before images existed, hot-swap never happened.
+- [10:02] CD added explicit Image Map sections to brief, triggered all 4 rebuilds.
+- [10:02] NIEDERDORF OUTPOST rebuilt with images (hero, menu, portrait, art detail all confirmed in HTML).
+- [10:02] Alpine Empire, Parsec, Nach Sechs rebuilds triggered — pending.
+
+### ACTIVE
+
+**User | 10:01:**
+> I don't see pictures in the vibes, is this intentional?
+
+**CD | 10:01:**
+Diagnosed: all four vibes built with zero image references. WebDev built pages before images existed, hot-swap never happened. Added explicit Image Map sections to CREATIVE-BRIEF.md with exact filenames per vibe. Triggered rebuilds of all four.
+
+**System | 10:02:**
+Vibe "NIEDERDORF OUTPOST" built and ready for preview.
+
+**CD | 10:02:**
+Niederdorf Outpost confirmed with all 4 images injected: hero (cockpit interior, dark gradient overlay), menu (Darth Roast + Yoda Matcha), portrait (Steve mid-laugh), art detail (Sommerhalder brushwork). Three more rebuilds incoming — Alpine Empire, Parsec, Nach Sechs.
+
+### CD-MEMORY.MD
+
+**[2026-04-10] Image injection gap pattern:**
+When WebDev builds vibes before images are generated, the images are never retroactively injected. The build system doesn't have a "hot-swap" step — once HTML is written, images must be explicitly mapped in the brief and a rebuild triggered. **Fix for all sessions:** Image Map sections with exact filenames must exist in the brief BEFORE triggering any vibe build. If images arrive after build, a rebuild with explicit image maps is required — don't assume they'll be picked up automatically.
+
+**[2026-04-10] IMAGES.md format sensitivity:**
+The image prompt parser requires `**bold:**` field names. Plain text field names cause `extractField()` to return null silently — no error, just empty results. Three fix attempts were needed before this was identified. All agents writing to IMAGES.md must use bold field formatting.
+
+**[2026-04-10] Fabrication pattern:**
+WebDev and CD both fabricated plausible-sounding details (building years, visitor nationalities, geography facts) when filling template slots. Three separate fabrication incidents in one session. **Rule for all agents:** If a fact isn't in the creative brief or discovery answers, it doesn't exist. Leave the slot empty or use a generic placeholder rather than inventing specifics.

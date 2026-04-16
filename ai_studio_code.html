@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Emanuel M. Waldmüller | International Commercial Operator</title>
+  <meta name="description" content="Swiss-based commercial operator for strategic accounts, cross-border execution, and complex B2B environments across DACH and EMEA." />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #FAFAFA;
+      --surface: #FFFFFF;
+      --text-main: #111827;
+      --text-muted: #6B7280;
+      --border: #E5E7EB;
+      --accent: #2563EB; /* Deep, professional Swiss-tech blue */
+      --accent-hover: #1D4ED8;
+      --radius: 12px;
+      --max-width: 1080px;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; font-size: 16px; }
+    
+    body {
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      background-color: var(--bg);
+      color: var(--text-main);
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    a { text-decoration: none; color: inherit; transition: color 0.2s; }
+    img { max-width: 100%; display: block; }
+
+    /* Layout */
+    .container {
+      width: min(100% - 48px, var(--max-width));
+      margin: 0 auto;
+    }
+
+    /* Navigation */
+    header {
+      position: sticky; top: 0; z-index: 50;
+      background: rgba(250, 250, 250, 0.85);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .nav-inner {
+      display: flex; justify-content: space-between; align-items: center;
+      height: 72px;
+    }
+
+    .nav-brand { font-weight: 700; font-size: 1.1rem; letter-spacing: -0.02em; }
+    .nav-brand span { font-weight: 400; color: var(--text-muted); font-size: 0.95rem; margin-left: 8px;}
+    
+    .nav-links { display: flex; gap: 24px; align-items: center; }
+    .nav-links a { font-size: 0.9rem; font-weight: 500; color: var(--text-muted); }
+    .nav-links a:hover { color: var(--text-main); }
+    
+    .btn {
+      background: var(--text-main); color: var(--surface) !important;
+      padding: 10px 20px; border-radius: 6px; font-weight: 500; font-size: 0.9rem;
+      transition: background 0.2s;
+    }
+    .btn:hover { background: var(--accent); }
+    .btn-outline {
+      background: transparent; color: var(--text-main) !important;
+      border: 1px solid var(--border);
+    }
+    .btn-outline:hover { border-color: var(--text-main); }
+
+    /* Hero Section */
+    .hero { padding: 100px 0 80px; }
+    .hero-grid {
+      display: grid; grid-template-columns: 1fr 400px; gap: 60px; align-items: center;
+    }
+    
+    .hero h1 {
+      font-size: clamp(2.5rem, 5vw, 4rem);
+      font-weight: 700; line-height: 1.05; letter-spacing: -0.04em;
+      margin-bottom: 24px;
+    }
+    
+    .hero p {
+      font-size: 1.125rem; color: var(--text-muted); max-width: 540px; margin-bottom: 32px;
+    }
+
+    .hero-tags { display: flex; gap: 12px; margin-bottom: 24px; flex-wrap: wrap; }
+    .tag {
+      font-size: 0.8rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em;
+      padding: 6px 12px; border-radius: 4px; background: var(--border); color: var(--text-main);
+    }
+
+    .hero-actions { display: flex; gap: 16px; }
+
+    /* Minimalist Portrait */
+    .portrait-wrapper {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 24px;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.03);
+    }
+    .portrait-wrapper img {
+      border-radius: 8px; filter: contrast(1.05) grayscale(0.2);
+    }
+    .portrait-caption {
+      margin-top: 16px; display: flex; justify-content: space-between;
+      font-size: 0.85rem; font-weight: 500; color: var(--text-muted);
+    }
+
+    /* Metrics Strip */
+    .metrics {
+      border-top: 1px solid var(--border); border-bottom: 1px solid var(--border);
+      background: var(--surface); padding: 48px 0;
+    }
+    .metrics-grid {
+      display: grid; grid-template-columns: repeat(4, 1fr); gap: 32px;
+    }
+    .metric h3 {
+      font-size: 2.5rem; font-weight: 700; letter-spacing: -0.04em; color: var(--text-main);
+      margin-bottom: 8px; line-height: 1;
+    }
+    .metric p { font-size: 0.9rem; color: var(--text-muted); line-height: 1.5; }
+
+    /* Content Sections */
+    section { padding: 96px 0; }
+    .section-header { margin-bottom: 48px; max-width: 640px; }
+    .section-header h2 {
+      font-size: 2rem; font-weight: 600; letter-spacing: -0.03em; margin-bottom: 16px;
+    }
+    .section-header p { font-size: 1.05rem; color: var(--text-muted); }
+
+    /* Value Prop Grid */
+    .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 32px; }
+    .card {
+      background: var(--surface); border: 1px solid var(--border);
+      padding: 32px; border-radius: var(--radius);
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .card:hover {
+      transform: translateY(-2px); box-shadow: 0 12px 30px rgba(0,0,0,0.04);
+    }
+    .card h3 { font-size: 1.1rem; font-weight: 600; margin-bottom: 12px; }
+    .card p { font-size: 0.95rem; color: var(--text-muted); }
+
+    /* Experience Timeline */
+    .timeline { border-left: 2px solid var(--border); padding-left: 32px; margin-left: 16px;}
+    .timeline-item { position: relative; margin-bottom: 48px; }
+    .timeline-item:last-child { margin-bottom: 0; }
+    .timeline-item::before {
+      content: ''; position: absolute; left: -39px; top: 6px;
+      width: 12px; height: 12px; border-radius: 50%;
+      background: var(--surface); border: 2px solid var(--text-main);
+    }
+    .timeline-meta { font-size: 0.85rem; font-weight: 600; color: var(--text-muted); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.05em;}
+    .timeline-item h3 { font-size: 1.25rem; font-weight: 600; margin-bottom: 4px; }
+    .timeline-item h4 { font-size: 1rem; font-weight: 500; color: var(--accent); margin-bottom: 12px; }
+    .timeline-item p { font-size: 1rem; color: var(--text-muted); max-width: 700px; }
+
+    /* Footer */
+    footer {
+      background: var(--surface); border-top: 1px solid var(--border);
+      padding: 64px 0 40px; text-align: center;
+    }
+    .footer-quote {
+      font-style: italic; color: var(--text-muted); font-size: 0.95rem; max-width: 600px; margin: 0 auto 24px;
+    }
+    .footer-copy { font-size: 0.85rem; color: var(--text-muted); }
+
+    /* Responsive */
+    @media (max-width: 900px) {
+      .hero-grid { grid-template-columns: 1fr; }
+      .metrics-grid { grid-template-columns: repeat(2, 1fr); }
+      .grid-3 { grid-template-columns: 1fr; }
+      .nav-links { display: none; }
+    }
+    @media (max-width: 600px) {
+      .metrics-grid { grid-template-columns: 1fr; }
+      .hero h1 { font-size: 2.5rem; }
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="container nav-inner">
+      <div class="nav-brand">Emanuel M. Waldmüller <span>Zurich & Vienna</span></div>
+      <nav class="nav-links">
+        <a href="#expertise">Expertise</a>
+        <a href="#experience">Experience</a>
+        <a href="https://waldmuller.org/wp-content/uploads/2026/03/CV_Waldmueller_2026_cbLI.pdf" target="_blank">CV PDF</a>
+        <a href="mailto:emanuel@waldmuller.org" class="btn">Get in touch</a>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <section class="hero container">
+      <div class="hero-grid">
+        <div>
+          <div class="hero-tags">
+            <span class="tag">LL.M. & MSc</span>
+            <span class="tag">MEDDPICC Certified</span>
+          </div>
+          <h1>Trusted to grow business across markets.</h1>
+          <p>Swiss-based commercial operator with a track record in strategic accounts, executive stakeholder alignment, and cross-border execution across complex B2B environments in DACH and EMEA.</p>
+          <div class="hero-actions">
+            <a href="mailto:emanuel@waldmuller.org" class="btn">Discuss a role</a>
+            <a href="https://linkedin.com/in/emwaldm" target="_blank" class="btn btn-outline">LinkedIn Profile</a>
+          </div>
+        </div>
+        <div class="portrait-wrapper">
+          <img src="https://waldmuller.org/wp-content/uploads/2023/04/Emanuel-Waldmuller-023_Bearbeitet-transp.png" alt="Emanuel Waldmüller" />
+          <div class="portrait-caption">
+            <span>Commercial Operator</span>
+            <span>Switzerland / DACH</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <div class="metrics">
+      <div class="container metrics-grid">
+        <div class="metric">
+          <h3>CHF 3-4M</h3>
+          <p>Territory ownership across Switzerland and DACH.</p>
+        </div>
+        <div class="metric">
+          <h3>CHF 2.5M</h3>
+          <p>Multi-year SIX Group managed-services contract converted.</p>
+        </div>
+        <div class="metric">
+          <h3>11 mos</h3>
+          <p>New York field assignment supporting a UBS MD-led migration.</p>
+        </div>
+        <div class="metric">
+          <h3>15+</h3>
+          <p>Formal proposals and RFPs managed per year.</p>
+        </div>
+      </div>
+    </div>
+
+    <section id="expertise" class="container">
+      <div class="section-header">
+        <h2>Commercial leadership where trust and execution matter.</h2>
+        <p>I work best where companies need more than a conventional seller: someone who can open complex opportunities, align multiple stakeholders, and carry client confidence across countries and delivery realities.</p>
+      </div>
+      <div class="grid-3">
+        <div class="card">
+          <h3>Strategic Account Growth</h3>
+          <p>Developing complex opportunities, expanding named accounts, and maintaining executive coverage across demanding buying environments.</p>
+        </div>
+        <div class="card">
+          <h3>Commercial Orchestration</h3>
+          <p>Aligning clients, nearshore delivery, legal, and technical specialists across locations to convert opportunities into executable business.</p>
+        </div>
+        <div class="card">
+          <h3>Cross-Border Execution</h3>
+          <p>Prospecting, client workshops, QBRs, and trade-fair presence across EMEA that build pipeline, delivery confidence, and executive trust.</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="experience" class="container" style="background-color: var(--surface); padding: 96px 48px; border-radius: var(--radius); border: 1px solid var(--border);">
+      <div class="section-header">
+        <h2>Experience</h2>
+        <p>A commercially credible profile shaped across sales, operations, executive alignment, and international institutional environments.</p>
+      </div>
+      
+      <div class="timeline">
+        <div class="timeline-item">
+          <div class="timeline-meta">2023 — 2025</div>
+          <h3>Synechron Switzerland</h3>
+          <h4>Senior Manager | Key Account Executive DACH</h4>
+          <p>Established Zurich commercial presence from zero footprint. Owned a CHF 3-4M territory, led 15+ proposals per year, and converted a major engagement into a CHF 2.5M multi-year managed-services contract with SIX Group for Nasdaq Calypso.</p>
+        </div>
+        
+        <div class="timeline-item">
+          <div class="timeline-meta">2017 — 2022</div>
+          <h3>UBS</h3>
+          <h4>Business Manager | Change Lead | Business Analyst</h4>
+          <p>Worked across Zurich and New York on executive alignment and rollout readiness. Completed an eleven-month field assignment supporting an MD-led migration and technical rehearsal involving 50+ participants and 200+ datasets.</p>
+        </div>
+
+        <div class="timeline-item">
+          <div class="timeline-meta">Prior</div>
+          <h3>International Institutional Work</h3>
+          <h4>WTO, Austrian Embassy, OSCE, DCAF</h4>
+          <p>Earlier experience spanning commercial diplomacy, multilateral institutions, and field-based assignments across Europe and the Middle East. Developed the ability to navigate multinational stakeholder environments, legal-policy reporting, and cross-border coordination.</p>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <footer>
+    <div class="container">
+      <p class="footer-quote">«It is only with the heart that one can see rightly; What is essential is invisible to the eye.»<br>– Antoine de Saint-Exupéry</p>
+      <p class="footer-copy">© Emanuel M. Waldmüller, 2026. All rights reserved. | Zurich with ties to Vienna.</p>
+    </div>
+  </footer>
+
+</body>
+</html>

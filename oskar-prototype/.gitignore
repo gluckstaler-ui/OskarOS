@@ -1,0 +1,29 @@
+# Dependencies
+node_modules/
+
+# Build output
+.next/
+out/
+
+# Test output
+coverage/
+playwright-report/
+
+# OS junk
+.DS_Store
+Thumbs.db
+
+# Secrets
+.env.local
+.env*.local
+.api-key
+
+# Generated outputs
+public/
+
+# Build artifacts
+*.tsbuildinfo
+
+# Misc
+debug-webdev.sh
+lazyblocks-migration/

@@ -1,0 +1,561 @@
+<!DOCTYPE html>
+<html lang="de-CH">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bareggcenter Baden | Vergässe</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant:ital,wght@0,400;0,500;0,600;1,400;1,500&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --release-white: #f5f2ed;
+            --depth-blue: #0a1628;
+            --warm-anchor: #d4a574;
+            --text-light: rgba(245, 242, 237, 0.9);
+            --text-muted: rgba(245, 242, 237, 0.6);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        body {
+            font-family: 'Cormorant', Georgia, serif;
+            background-color: var(--release-white);
+            color: var(--depth-blue);
+            line-height: 1.6;
+            font-size: 18px;
+        }
+
+        /* Hero Section */
+        .hero {
+            min-height: 100vh;
+            background-image: url('../../images/letting-go.jpeg');
+            background-size: cover;
+            background-position: center;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-end;
+            padding: 4rem 2rem;
+            position: relative;
+        }
+
+        .hero-content {
+            max-width: 800px;
+        }
+
+        .hero h1 {
+            font-size: clamp(3rem, 8vw, 5.5rem);
+            font-weight: 400;
+            color: var(--release-white);
+            line-height: 1.1;
+            margin-bottom: 1.5rem;
+            text-shadow: 0 2px 20px rgba(0, 0, 0, 0.5);
+        }
+
+        .hero-subline {
+            font-size: clamp(1.2rem, 2.5vw, 1.6rem);
+            color: var(--release-white);
+            font-style: italic;
+            max-width: 600px;
+            margin-bottom: 2.5rem;
+            text-shadow: 0 2px 15px rgba(0, 0, 0, 0.5);
+            line-height: 1.5;
+        }
+
+        .cta-button {
+            display: inline-block;
+            padding: 1rem 2.5rem;
+            background-color: var(--warm-anchor);
+            color: var(--depth-blue);
+            text-decoration: none;
+            font-size: 1.2rem;
+            font-weight: 500;
+            letter-spacing: 0.05em;
+            transition: all 0.3s ease;
+        }
+
+        .cta-button:hover {
+            background-color: var(--release-white);
+            transform: translateY(-2px);
+        }
+
+        /* Section Styles */
+        section {
+            padding: 6rem 2rem;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        .container-wide {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        /* The Forgetting Section */
+        .forgetting {
+            background-color: var(--depth-blue);
+            color: var(--release-white);
+            padding: 8rem 2rem;
+        }
+
+        .forgetting .section-title {
+            font-size: clamp(2rem, 5vw, 3rem);
+            font-weight: 400;
+            margin-bottom: 3rem;
+            color: var(--warm-anchor);
+        }
+
+        .forgetting-text {
+            font-size: clamp(1.1rem, 2vw, 1.4rem);
+            line-height: 1.9;
+        }
+
+        .forgetting-text p {
+            margin-bottom: 2rem;
+        }
+
+        .forgetting-text p:last-child {
+            margin-bottom: 0;
+        }
+
+        .highlight {
+            color: var(--warm-anchor);
+            font-style: italic;
+        }
+
+        /* Transformation Section */
+        .transformation {
+            background-color: var(--release-white);
+            padding: 8rem 2rem;
+        }
+
+        .transformation .section-title {
+            font-size: clamp(2rem, 5vw, 3rem);
+            font-weight: 400;
+            margin-bottom: 4rem;
+            text-align: center;
+            color: var(--depth-blue);
+        }
+
+        .visit-list {
+            list-style: none;
+        }
+
+        .visit-item {
+            display: grid;
+            grid-template-columns: 120px 1fr;
+            gap: 2rem;
+            padding: 2rem 0;
+            border-bottom: 1px solid rgba(10, 22, 40, 0.1);
+            align-items: baseline;
+        }
+
+        .visit-item:last-child {
+            border-bottom: none;
+        }
+
+        .visit-number {
+            font-size: 1rem;
+            color: var(--warm-anchor);
+            font-weight: 500;
+            letter-spacing: 0.1em;
+        }
+
+        .visit-text {
+            font-size: clamp(1.1rem, 2vw, 1.3rem);
+            color: var(--depth-blue);
+            line-height: 1.7;
+        }
+
+        /* Action Section */
+        .action {
+            padding: 0;
+            position: relative;
+            min-height: 60vh;
+            display: flex;
+            align-items: center;
+        }
+
+        .action-image {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .action-overlay {
+            position: relative;
+            z-index: 1;
+            background-color: rgba(10, 22, 40, 0.7);
+            width: 100%;
+            height: 100%;
+            min-height: 60vh;
+            display: flex;
+            align-items: center;
+            padding: 4rem 2rem;
+        }
+
+        .action-content {
+            max-width: 700px;
+            margin-left: auto;
+            padding-right: 4rem;
+            text-align: right;
+        }
+
+        .action-text {
+            font-size: clamp(1.4rem, 3vw, 2rem);
+            color: var(--release-white);
+            font-style: italic;
+            line-height: 1.6;
+            text-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+        }
+
+        /* Facilities Section */
+        .facilities {
+            background-color: var(--depth-blue);
+            color: var(--release-white);
+            padding: 8rem 2rem;
+        }
+
+        .facilities .section-title {
+            font-size: clamp(2rem, 5vw, 3rem);
+            font-weight: 400;
+            margin-bottom: 1rem;
+            color: var(--warm-anchor);
+        }
+
+        .facilities-intro {
+            font-size: 1.2rem;
+            color: var(--text-muted);
+            margin-bottom: 4rem;
+            font-style: italic;
+        }
+
+        .facilities-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 3rem;
+        }
+
+        .facility-item {
+            padding: 2rem 0;
+            border-top: 1px solid rgba(212, 165, 116, 0.3);
+        }
+
+        .facility-name {
+            font-size: 1.4rem;
+            font-weight: 500;
+            margin-bottom: 0.5rem;
+            color: var(--release-white);
+        }
+
+        .facility-desc {
+            font-size: 1rem;
+            color: var(--text-muted);
+            font-style: italic;
+        }
+
+        /* Bar Section */
+        .bar-section {
+            background-color: var(--release-white);
+            padding: 0;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            min-height: 70vh;
+        }
+
+        .bar-image {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            min-height: 50vh;
+        }
+
+        .bar-content {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            padding: 4rem;
+            background-color: var(--release-white);
+        }
+
+        .bar-title {
+            font-size: clamp(1.8rem, 4vw, 2.5rem);
+            font-weight: 400;
+            margin-bottom: 2rem;
+            color: var(--depth-blue);
+        }
+
+        .bar-text {
+            font-size: 1.2rem;
+            color: var(--depth-blue);
+            line-height: 1.8;
+            margin-bottom: 1.5rem;
+        }
+
+        .bar-text:last-of-type {
+            font-style: italic;
+            color: var(--warm-anchor);
+        }
+
+        /* CTA Section */
+        .cta-section {
+            background-color: var(--depth-blue);
+            color: var(--release-white);
+            padding: 10rem 2rem;
+            text-align: center;
+        }
+
+        .cta-section .section-title {
+            font-size: clamp(2.5rem, 6vw, 4rem);
+            font-weight: 400;
+            margin-bottom: 1.5rem;
+        }
+
+        .cta-section .subline {
+            font-size: clamp(1.2rem, 2.5vw, 1.6rem);
+            color: var(--text-muted);
+            font-style: italic;
+            margin-bottom: 3rem;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .cta-section .cta-button {
+            font-size: 1.4rem;
+            padding: 1.2rem 3rem;
+        }
+
+        /* Footer */
+        footer {
+            background-color: var(--release-white);
+            padding: 4rem 2rem;
+            text-align: center;
+        }
+
+        .footer-logo {
+            max-width: 180px;
+            margin-bottom: 2rem;
+        }
+
+        .footer-tagline {
+            font-size: 1.1rem;
+            color: var(--depth-blue);
+            font-style: italic;
+            margin-bottom: 1.5rem;
+        }
+
+        .footer-address {
+            font-size: 0.95rem;
+            color: rgba(10, 22, 40, 0.6);
+            line-height: 1.8;
+        }
+
+        /* Mobile Responsive */
+        @media (max-width: 768px) {
+            .hero {
+                padding: 3rem 1.5rem;
+            }
+
+            section {
+                padding: 4rem 1.5rem;
+            }
+
+            .forgetting,
+            .transformation,
+            .facilities,
+            .cta-section {
+                padding: 5rem 1.5rem;
+            }
+
+            .visit-item {
+                grid-template-columns: 1fr;
+                gap: 0.5rem;
+            }
+
+            .bar-section {
+                grid-template-columns: 1fr;
+            }
+
+            .bar-content {
+                padding: 3rem 1.5rem;
+            }
+
+            .action-content {
+                padding-right: 1.5rem;
+                padding-left: 1.5rem;
+                text-align: center;
+                margin: 0 auto;
+            }
+
+            .facilities-grid {
+                grid-template-columns: 1fr;
+                gap: 0;
+            }
+
+            .facility-item {
+                padding: 1.5rem 0;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .hero h1 {
+                font-size: 2.5rem;
+            }
+
+            .hero-subline {
+                font-size: 1.1rem;
+            }
+
+            .cta-button {
+                padding: 0.9rem 2rem;
+                font-size: 1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Hero Section -->
+    <section class="hero">
+        <div class="hero-content">
+            <h1>Du bisch nöd neu.<br>Du bisch zrugg.</h1>
+            <p class="hero-subline">S'Vergässe vo allem wo dich drüssä het. S'Erinnere a alles wo du innerlich bisch.</p>
+            <a href="#facilities" class="cta-button">Zrugg cho</a>
+        </div>
+    </section>
+
+    <!-- The Forgetting Section -->
+    <section class="forgetting">
+        <div class="container">
+            <h2 class="section-title">S'Vergässe</h2>
+            <div class="forgetting-text">
+                <p>Du chunsch ine mit allem. D'Inbox. D'Deadline. S'Gspraech wo du no müesch füehre.</p>
+                <p>Du spielsch. Du schwitzesch. Du sitzesch.</p>
+                <p>Und irgendwo zwüschem Platz und de Bar <span class="highlight">vergissesch du</span>. Nod wil du abglenkt bisch. Wil das Gwicht da inne nöd existiert.</p>
+                <p>Du gahsch liechter. Dini Schulterblätter sind zwei Zentimeter tiefer als wo du cho bisch. <span class="highlight">Das isch messbar.</span> Mir messed nöd. Aber du gsesch es.</p>
+                <p>Du bisch nöd neu.</p>
+                <p>Du bisch zrugg.</p>
+                <p>Öppis im Bareggcenter het dich erinneret, wer du gsi bisch. <span class="highlight">Bevor alles passiert isch.</span></p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Transformation Section -->
+    <section class="transformation">
+        <div class="container">
+            <h2 class="section-title">D'Verwandlig</h2>
+            <ul class="visit-list">
+                <li class="visit-item">
+                    <span class="visit-number">ERSCHTE BSUECH</span>
+                    <span class="visit-text">Du parkiersch. Du luegsch s'Gebäud aa. "Also das isch es." Du bisch skeptisch.</span>
+                </li>
+                <li class="visit-item">
+                    <span class="visit-number">DRITTE BSUECH</span>
+                    <span class="visit-text">Du kennsch d'Name vo de Trainer. Ohni je gfragt z'ha.</span>
+                </li>
+                <li class="visit-item">
+                    <span class="visit-number">FUENFTE BSUECH</span>
+                    <span class="visit-text">Du hesch "dini" Garderobe. Du hesch sie nie usgwählt.</span>
+                </li>
+                <li class="visit-item">
+                    <span class="visit-number">SIBTE BSUECH</span>
+                    <span class="visit-text">Du merksch, dass du am Zistig um 19:00 immer frei bisch. Du hesch es nie iitreit.</span>
+                </li>
+                <li class="visit-item">
+                    <span class="visit-number">ZEHNTE BSUECH</span>
+                    <span class="visit-text">Du luegsch nömme ufs Handy. Nod wil du vergissesch. Wil du nöd wottsch.</span>
+                </li>
+            </ul>
+        </div>
+    </section>
+
+    <!-- Action Section -->
+    <section class="action">
+        <img src="../../images/bascchung-fotografie-042.jpg" alt="Motion blur of players in action" class="action-image">
+        <div class="action-overlay">
+            <div class="action-content">
+                <p class="action-text">Im Moment wo du spielsch, existiert nur no de Ball. Nuer no de nächst Schlag. Alles andere wartet drüssä.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Facilities Section -->
+    <section class="facilities" id="facilities">
+        <div class="container-wide">
+            <h2 class="section-title">Was da isch</h2>
+            <p class="facilities-intro">Nod Fitness. Nod Wellness. Vergässe.</p>
+            <div class="facilities-grid">
+                <div class="facility-item">
+                    <h3 class="facility-name">Padel Courts</h3>
+                    <p class="facility-desc">Wo d'Zit verschwindet</p>
+                </div>
+                <div class="facility-item">
+                    <h3 class="facility-name">Badminton</h3>
+                    <p class="facility-desc">Schnell gnueg zum vergässe</p>
+                </div>
+                <div class="facility-item">
+                    <h3 class="facility-name">Squash</h3>
+                    <p class="facility-desc">Vier Wänd. Kei Usred.</p>
+                </div>
+                <div class="facility-item">
+                    <h3 class="facility-name">Fitness</h3>
+                    <p class="facility-desc">De Chopf wird still</p>
+                </div>
+                <div class="facility-item">
+                    <h3 class="facility-name">Sauna & Wellness</h3>
+                    <p class="facility-desc">S'Letschte loslah</p>
+                </div>
+                <div class="facility-item">
+                    <h3 class="facility-name">Ristorante & Bar</h3>
+                    <p class="facility-desc">Wo alles aafaht und ufhört</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Bar Section -->
+    <section class="bar-section">
+        <img src="../../images/padel-after-match.jpg" alt="Friends at the bar after playing" class="bar-image">
+        <div class="bar-content">
+            <h2 class="bar-title">Dazwüsche</h2>
+            <p class="bar-text">Irgendwo zwüschem letscht Punkt und em erschte Schluck passiert's.</p>
+            <p class="bar-text">Du merksch, dass d'Schulterblatter tiefer sind. Dass de Atem länger goht. Dass du zum erschte Mal sit Stunde nöime müesch si.</p>
+            <p class="bar-text">Das isch de Ort wo's passiert.</p>
+        </div>
+    </section>
+
+    <!-- CTA Section -->
+    <section class="cta-section">
+        <h2 class="section-title">Zrugg cho</h2>
+        <p class="subline">Zu dem wo du bisch. Bevor alles passiert isch.</p>
+        <a href="#" class="cta-button">Termin buche</a>
+    </section>
+
+    <!-- Footer -->
+    <footer>
+        <img src="../../images/logo_bareggcenter.png" alt="Bareggcenter Baden" class="footer-logo">
+        <p class="footer-tagline">Nod Fitness. Nod Wellness. Vergässe.</p>
+        <p class="footer-address">
+            Bareggcenter Baden<br>
+            Martinsbergstrasse 34<br>
+            5400 Baden
+        </p>
+    </footer>
+
+</body>
+</html>

@@ -1,0 +1,7 @@
+{
+  "action": "start-session",
+  "payload": {
+    "businessName": "Nachtcafe",
+    "businessDescription": "I'm opening a late-night cafe in Zurich called Nachtcafe. We're open from 10pm to 4am, serving coffee, small plates, and natural wine. The idea is a civilized alternative to clubs - somewhere to go after dinner, before home. No loud music. Conversation-first. Candlelit. In the Langstrasse area but deliberately calm. We want the night owls who are tired of shouting over bass. Opening in 6 weeks, no photos yet."
+  }
+}

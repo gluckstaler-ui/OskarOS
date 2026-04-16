@@ -1,0 +1,888 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bareggcenter Baden | Der Padel-Spot in der Region</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --color-primary: #00B8A9;
+            --color-secondary: #FFFFFF;
+            --color-accent: #FF6B6B;
+            --color-text: #1A1A1A;
+            --color-text-light: #666666;
+            --color-background: #FFFFFF;
+            --font-main: 'Space Grotesk', sans-serif;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        body {
+            font-family: var(--font-main);
+            color: var(--color-text);
+            background-color: var(--color-background);
+            line-height: 1.6;
+        }
+
+        /* Navigation */
+        .nav {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 1000;
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid rgba(0, 184, 169, 0.1);
+        }
+
+        .nav-logo img {
+            height: 50px;
+            width: auto;
+        }
+
+        .nav-cta {
+            background: var(--color-primary);
+            color: white;
+            padding: 0.75rem 1.5rem;
+            text-decoration: none;
+            font-weight: 600;
+            border-radius: 4px;
+            transition: all 0.3s ease;
+        }
+
+        .nav-cta:hover {
+            background: #009688;
+            transform: translateY(-2px);
+        }
+
+        /* Hero Section */
+        .hero {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            background: url('../../images/padel-courts-evening.jpg') center/cover no-repeat;
+            overflow: hidden;
+            padding: 6rem 2rem 4rem;
+        }
+
+        .hero-content {
+            position: relative;
+            z-index: 1;
+            text-align: center;
+            max-width: 900px;
+        }
+
+        .hero-badge {
+            display: inline-block;
+            background: var(--color-accent);
+            color: white;
+            padding: 0.5rem 1.25rem;
+            font-size: 0.875rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            margin-bottom: 2rem;
+            border-radius: 2px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+        }
+
+        .hero h1 {
+            font-size: clamp(2.5rem, 8vw, 5rem);
+            font-weight: 700;
+            color: white;
+            line-height: 1.1;
+            margin-bottom: 1.5rem;
+            letter-spacing: -0.02em;
+            text-shadow: 0 2px 20px rgba(0,0,0,0.8), 0 4px 40px rgba(0,0,0,0.6);
+        }
+
+        .hero-subline {
+            font-size: clamp(1.125rem, 2.5vw, 1.5rem);
+            color: white;
+            margin-bottom: 2.5rem;
+            font-weight: 500;
+            text-shadow: 0 2px 15px rgba(0,0,0,0.8), 0 4px 30px rgba(0,0,0,0.5);
+        }
+
+        .hero-cta {
+            display: inline-block;
+            background: white;
+            color: var(--color-primary);
+            padding: 1.25rem 2.5rem;
+            font-size: 1.125rem;
+            font-weight: 700;
+            text-decoration: none;
+            border-radius: 4px;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+        }
+
+        .hero-cta:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.25);
+        }
+
+        /* Section Styles */
+        section {
+            padding: 6rem 2rem;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .section-label {
+            display: inline-block;
+            color: var(--color-primary);
+            font-size: 0.875rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.15em;
+            margin-bottom: 1rem;
+        }
+
+        .section-title {
+            font-size: clamp(2rem, 5vw, 3rem);
+            font-weight: 700;
+            margin-bottom: 1.5rem;
+            line-height: 1.2;
+        }
+
+        .section-subtitle {
+            font-size: 1.25rem;
+            color: var(--color-text-light);
+            max-width: 600px;
+        }
+
+        /* Warum Padel Section */
+        .warum-padel {
+            background: #F8FAFA;
+        }
+
+        .warum-padel .container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 4rem;
+            align-items: center;
+        }
+
+        .warum-content {
+            max-width: 500px;
+        }
+
+        .warum-list {
+            list-style: none;
+            margin-top: 2rem;
+        }
+
+        .warum-list li {
+            display: flex;
+            align-items: flex-start;
+            margin-bottom: 1.5rem;
+            font-size: 1.125rem;
+        }
+
+        .warum-list li::before {
+            content: '';
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            background: var(--color-accent);
+            border-radius: 50%;
+            margin-right: 1rem;
+            margin-top: 0.5rem;
+            flex-shrink: 0;
+        }
+
+        .warum-image {
+            position: relative;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .warum-image img {
+            width: 100%;
+            height: 500px;
+            object-fit: cover;
+            border-radius: 8px;
+        }
+
+        .warum-tagline {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: var(--color-primary);
+            margin-top: 2rem;
+            padding-top: 2rem;
+            border-top: 2px solid var(--color-primary);
+        }
+
+        /* Plaza de Padel Section */
+        .plaza {
+            background: var(--color-primary);
+            color: white;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .plaza::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -20%;
+            width: 600px;
+            height: 600px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 50%;
+        }
+
+        .plaza .container {
+            position: relative;
+            z-index: 1;
+        }
+
+        .plaza .section-label {
+            color: rgba(255, 255, 255, 0.7);
+        }
+
+        .plaza .section-subtitle {
+            color: rgba(255, 255, 255, 0.9);
+            max-width: 700px;
+        }
+
+        .plaza-features {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 2rem;
+            margin-top: 4rem;
+        }
+
+        .plaza-feature {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 2rem;
+            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .plaza-feature h3 {
+            font-size: 3rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+        }
+
+        .plaza-feature p {
+            font-size: 1.125rem;
+            opacity: 0.9;
+        }
+
+        .plaza-tagline {
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin-top: 4rem;
+            padding: 2rem;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        /* Preise Section */
+        .preise {
+            background: white;
+        }
+
+        .preise-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 2rem;
+            margin-top: 3rem;
+        }
+
+        .preis-card {
+            background: #F8FAFA;
+            padding: 2.5rem;
+            border-radius: 8px;
+            border: 2px solid transparent;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        .preis-card:hover {
+            border-color: var(--color-primary);
+            transform: translateY(-5px);
+        }
+
+        .preis-card.featured {
+            border-color: var(--color-accent);
+            background: white;
+            box-shadow: 0 10px 40px rgba(255, 107, 107, 0.15);
+        }
+
+        .preis-card.featured::before {
+            content: 'Beliebt';
+            position: absolute;
+            top: -12px;
+            right: 20px;
+            background: var(--color-accent);
+            color: white;
+            padding: 0.25rem 1rem;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            border-radius: 2px;
+        }
+
+        .preis-name {
+            font-size: 0.875rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: var(--color-text-light);
+            margin-bottom: 0.5rem;
+        }
+
+        .preis-zeit {
+            font-size: 1.125rem;
+            color: var(--color-text);
+            margin-bottom: 1.5rem;
+        }
+
+        .preis-amount {
+            font-size: 3rem;
+            font-weight: 700;
+            color: var(--color-primary);
+            line-height: 1;
+        }
+
+        .preis-amount span {
+            font-size: 1rem;
+            font-weight: 500;
+            color: var(--color-text-light);
+        }
+
+        .preis-note {
+            margin-top: 1.5rem;
+            font-size: 0.875rem;
+            color: var(--color-text-light);
+        }
+
+        .preise-footer {
+            text-align: center;
+            margin-top: 3rem;
+            padding: 2rem;
+            background: var(--color-primary);
+            border-radius: 8px;
+            color: white;
+        }
+
+        .preise-footer p {
+            font-size: 1.25rem;
+            font-weight: 500;
+        }
+
+        /* Aperitivo Section */
+        .aperitivo {
+            background: linear-gradient(135deg, #1A1A1A 0%, #2D2D2D 100%);
+            color: white;
+        }
+
+        .aperitivo .section-label {
+            color: var(--color-accent);
+        }
+
+        .aperitivo .section-subtitle {
+            color: rgba(255, 255, 255, 0.8);
+        }
+
+        .aperitivo-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 4rem;
+            margin-top: 3rem;
+            align-items: center;
+        }
+
+        .aperitivo-items {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        .aperitivo-item {
+            display: flex;
+            align-items: center;
+            gap: 1.5rem;
+            padding: 1.5rem;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+            border-left: 4px solid var(--color-accent);
+        }
+
+        .aperitivo-icon {
+            font-size: 2rem;
+        }
+
+        .aperitivo-item h4 {
+            font-size: 1.25rem;
+            margin-bottom: 0.25rem;
+        }
+
+        .aperitivo-item p {
+            font-size: 0.9rem;
+            color: rgba(255, 255, 255, 0.7);
+        }
+
+        .aperitivo-highlight {
+            background: var(--color-accent);
+            padding: 3rem;
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        .aperitivo-highlight h3 {
+            font-size: 2rem;
+            margin-bottom: 1rem;
+        }
+
+        .aperitivo-highlight p {
+            font-size: 1.125rem;
+            opacity: 0.9;
+        }
+
+        .aperitivo-hours {
+            margin-top: 2rem;
+            font-size: 1.5rem;
+            font-weight: 700;
+        }
+
+        /* Der Ort Section */
+        .ort {
+            background: #F8FAFA;
+        }
+
+        .ort .container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 4rem;
+            align-items: center;
+        }
+
+        .ort-details {
+            max-width: 500px;
+        }
+
+        .ort-address {
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin-top: 2rem;
+            margin-bottom: 2rem;
+            padding: 1.5rem;
+            background: white;
+            border-radius: 8px;
+            border-left: 4px solid var(--color-primary);
+        }
+
+        .ort-stats {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        .ort-stat {
+            flex: 1;
+            min-width: 150px;
+            padding: 1.5rem;
+            background: white;
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        .ort-stat strong {
+            display: block;
+            font-size: 2rem;
+            color: var(--color-primary);
+            margin-bottom: 0.25rem;
+        }
+
+        .ort-stat span {
+            font-size: 0.875rem;
+            color: var(--color-text-light);
+        }
+
+        .ort-map {
+            background: var(--color-primary);
+            border-radius: 8px;
+            height: 400px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 1.25rem;
+        }
+
+        .ort-hours {
+            margin-top: 2rem;
+            padding: 1.5rem;
+            background: var(--color-primary);
+            color: white;
+            border-radius: 8px;
+            text-align: center;
+            font-size: 1.25rem;
+            font-weight: 500;
+        }
+
+        /* Final CTA Section */
+        .final-cta {
+            background: var(--color-primary);
+            color: white;
+            text-align: center;
+            padding: 6rem 2rem;
+        }
+
+        .final-cta h2 {
+            font-size: clamp(2rem, 5vw, 3.5rem);
+            font-weight: 700;
+            margin-bottom: 1.5rem;
+            line-height: 1.2;
+        }
+
+        .final-cta p {
+            font-size: 1.25rem;
+            margin-bottom: 2.5rem;
+            opacity: 0.9;
+        }
+
+        .final-cta .hero-cta {
+            background: var(--color-accent);
+            color: white;
+        }
+
+        .final-cta .hero-cta:hover {
+            background: #ff5252;
+        }
+
+        /* Footer */
+        .footer {
+            background: #1A1A1A;
+            color: white;
+            padding: 3rem 2rem;
+        }
+
+        .footer .container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .footer-logo img {
+            height: 40px;
+            filter: brightness(0) invert(1);
+        }
+
+        .footer-tagline {
+            font-size: 1.125rem;
+            color: rgba(255, 255, 255, 0.7);
+        }
+
+        .footer-links {
+            display: flex;
+            gap: 2rem;
+        }
+
+        .footer-links a {
+            color: rgba(255, 255, 255, 0.7);
+            text-decoration: none;
+            transition: color 0.3s ease;
+        }
+
+        .footer-links a:hover {
+            color: var(--color-primary);
+        }
+
+        /* Responsive */
+        @media (max-width: 992px) {
+            .warum-padel .container,
+            .ort .container {
+                grid-template-columns: 1fr;
+                gap: 3rem;
+            }
+
+            .warum-image {
+                order: -1;
+            }
+
+            .plaza-features {
+                grid-template-columns: 1fr;
+            }
+
+            .preise-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .aperitivo-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .nav {
+                padding: 1rem;
+            }
+
+            .nav-logo img {
+                height: 40px;
+            }
+
+            .nav-cta {
+                padding: 0.5rem 1rem;
+                font-size: 0.875rem;
+            }
+
+            section {
+                padding: 4rem 1.5rem;
+            }
+
+            .hero {
+                padding: 5rem 1.5rem 3rem;
+            }
+
+            .footer .container {
+                flex-direction: column;
+                gap: 2rem;
+                text-align: center;
+            }
+
+            .footer-links {
+                flex-wrap: wrap;
+                justify-content: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="nav">
+        <div class="nav-logo">
+            <img src="../../images/logo_bareggcenter.png" alt="Bareggcenter Baden">
+        </div>
+        <a href="#buchen" class="nav-cta">Court buchen</a>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="hero">
+        <div class="hero-content">
+            <span class="hero-badge">Der Padel-Spot in der Region</span>
+            <h1>4 Courts. Ausgebucht seit Tag 1.</h1>
+            <p class="hero-subline">Padel ist der Hype. Wir sind der Grund.</p>
+            <a href="#buchen" class="hero-cta">Court buchen, bevor alle anderen es tun</a>
+        </div>
+    </section>
+
+    <!-- Warum Padel Section -->
+    <section class="warum-padel">
+        <div class="container">
+            <div class="warum-content">
+                <span class="section-label">Warum alle Padel spielen</span>
+                <h2 class="section-title">Du hast davon gehört. Deine Kollegen spielen. Jetzt du.</h2>
+                <ul class="warum-list">
+                    <li><strong>Schnell gelernt, sofort süchtig.</strong> Nach 10 Minuten spielst du echte Rallies. Nach einer Stunde willst du nicht mehr aufhören.</li>
+                    <li><strong>Immer zu viert.</strong> Padel ist Doubles-only. Der perfekte Sport, um Leute zu treffen. Oder zu schlagen.</li>
+                    <li><strong>Das Workout, das nicht wehtut.</strong> Cardio, Reaktion, Taktik - aber ohne Muskelkater danach.</li>
+                    <li><strong>Die Wände spielen mit.</strong> Billard trifft Tennis. Überraschend. Taktisch. Anders.</li>
+                </ul>
+                <p class="warum-tagline">Der schnellstwachsende Sport der Welt. Jetzt in Baden.</p>
+            </div>
+            <div class="warum-image">
+                <img src="../../images/bascchung-fotografie-042.jpg" alt="Padel spielen im Bareggcenter">
+            </div>
+        </div>
+    </section>
+
+    <!-- Plaza Image Break -->
+    <div style="height: 400px; background: url('../../images/plaza-de-padel.jpg') center/cover no-repeat;"></div>
+
+    <!-- Plaza de Padel Section -->
+    <section class="plaza">
+        <div class="container">
+            <span class="section-label">Plaza de Padel</span>
+            <h2 class="section-title">Spielen, zuschauen, bleiben.</h2>
+            <p class="section-subtitle">Unsere 4 Indoor-Courts sind mehr als nur Spielfelder. Lounges rund um die Courts. Aperol in der Hand. Deine Freunde beim Spielen anfeuern. Oder auslachen.</p>
+
+            <div class="plaza-features">
+                <div class="plaza-feature">
+                    <h3>4</h3>
+                    <p>Indoor-Courts</p>
+                </div>
+                <div class="plaza-feature">
+                    <h3>365</h3>
+                    <p>Tage im Jahr bespielbar</p>
+                </div>
+                <div class="plaza-feature">
+                    <h3>15</h3>
+                    <p>Stunden täglich geöffnet</p>
+                </div>
+            </div>
+
+            <p class="plaza-tagline">Kein Wetter. Keine Ausreden. Nur Padel.</p>
+        </div>
+    </section>
+
+    <!-- Preise Section -->
+    <section class="preise" id="buchen">
+        <div class="container">
+            <span class="section-label">Preise</span>
+            <h2 class="section-title">Der Preis für 4 Spieler. Teilen und losspielen.</h2>
+
+            <div class="preise-grid">
+                <div class="preis-card">
+                    <p class="preis-name">Padel Tag</p>
+                    <p class="preis-zeit">Montag - Freitag, 07:00 - 17:00</p>
+                    <p class="preis-amount">CHF 48 <span>/ Court / Stunde</span></p>
+                    <p class="preis-note">CHF 12 pro Person bei 4 Spielern</p>
+                </div>
+
+                <div class="preis-card featured">
+                    <p class="preis-name">Padel Abend & Weekend</p>
+                    <p class="preis-zeit">Mo-Fr ab 17:00 + Sa/So ganztags</p>
+                    <p class="preis-amount">CHF 64 <span>/ Court / Stunde</span></p>
+                    <p class="preis-note">CHF 16 pro Person bei 4 Spielern</p>
+                </div>
+
+                <div class="preis-card">
+                    <p class="preis-name">Fixplatz</p>
+                    <p class="preis-zeit">Saison-Abo für Stammgäste</p>
+                    <p class="preis-amount">Auf Anfrage</p>
+                    <p class="preis-note">Dein Court. Deine Zeit. Jede Woche.</p>
+                </div>
+            </div>
+
+            <div class="preise-footer">
+                <p>Schläger und Bälle vor Ort mietbar. Du brauchst nur Sportschuhe.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Restaurant Image Break -->
+    <div style="height: 400px; background: url('../../images/ristorante-baregg.jpg') center/cover no-repeat;"></div>
+
+    <!-- Aperitivo Section -->
+    <section class="aperitivo">
+        <div class="container">
+            <span class="section-label">Post-Match Aperitivo</span>
+            <h2 class="section-title">Padel macht Durst. Wir haben die Lösung.</h2>
+            <p class="section-subtitle">Die Bar ist offen. Lange. Sehr lange.</p>
+
+            <div class="aperitivo-grid">
+                <div class="aperitivo-items">
+                    <div class="aperitivo-item">
+                        <div class="aperitivo-icon">🍹</div>
+                        <div>
+                            <h4>Aperol Spritz</h4>
+                            <p>Der Klassiker nach dem Match</p>
+                        </div>
+                    </div>
+                    <div class="aperitivo-item">
+                        <div class="aperitivo-icon">🍝</div>
+                        <div>
+                            <h4>Italian Bites</h4>
+                            <p>Leichte Happen für den kleinen Hunger</p>
+                        </div>
+                    </div>
+                    <div class="aperitivo-item">
+                        <div class="aperitivo-icon">🍽</div>
+                        <div>
+                            <h4>Ristorante Baregg</h4>
+                            <p>Fuer echten Hunger: Unser Restaurant nebenan</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="aperitivo-highlight">
+                    <h3>Bar offen bis</h3>
+                    <p class="aperitivo-hours">01:00 Uhr</p>
+                    <p>am Wochenende</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Der Ort Section -->
+    <section class="ort">
+        <div class="container">
+            <div class="ort-details">
+                <span class="section-label">Der Ort</span>
+                <h2 class="section-title">15 Minuten von Zürich. 0 Ausreden.</h2>
+
+                <div class="ort-address">
+                    Zelgweg 11<br>
+                    5405 Baden-Daettwil
+                </div>
+
+                <div class="ort-stats">
+                    <div class="ort-stat">
+                        <strong>A1</strong>
+                        <span>Ausfahrt Baden</span>
+                    </div>
+                    <div class="ort-stat">
+                        <strong>200+</strong>
+                        <span>Parkplätze</span>
+                    </div>
+                    <div class="ort-stat">
+                        <strong>15 Min</strong>
+                        <span>ab Zürich</span>
+                    </div>
+                </div>
+
+                <div class="ort-hours">
+                    Geöffnet täglich 08:00 - 23:00
+                </div>
+            </div>
+
+            <div class="ort-map">
+                <span>Karte</span>
+            </div>
+        </div>
+    </section>
+
+    <!-- Final CTA Section -->
+    <section class="final-cta">
+        <div class="container">
+            <h2>Alle reden über Padel.<br>Wir spielen.</h2>
+            <p>4 Courts. Ausgebucht seit Tag 1. Sei dabei, bevor alle anderen es sind.</p>
+            <a href="#buchen" class="hero-cta">Jetzt Court sichern</a>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-logo">
+                <img src="../../images/logo_bareggcenter.png" alt="Bareggcenter Baden">
+            </div>
+            <p class="footer-tagline">Der Padel-Spot in der Region.</p>
+            <div class="footer-links">
+                <a href="#">Kontakt</a>
+                <a href="#">Impressum</a>
+                <a href="#">Datenschutz</a>
+            </div>
+        </div>
+    </footer>
+</body>
+</html>

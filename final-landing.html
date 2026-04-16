@@ -1,0 +1,661 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FalCaMel Café | Heritage Hospitality on the Cliff</title>
+    <link href="https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --sand: #F4F1E8;
+            --gold: #D4AF37;
+            --deep-brown: #2C1810;
+            --warm-white: #FEFCF7;
+            --copper: #B87333;
+            --charcoal: #1A1A1A;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            line-height: 1.6;
+            color: var(--charcoal);
+            overflow-x: hidden;
+        }
+
+        .arabic-font {
+            font-family: 'Amiri', serif;
+        }
+
+        /* Hero Section */
+        .hero {
+            height: 100vh;
+            background: linear-gradient(rgba(26, 26, 26, 0.3), rgba(26, 26, 26, 0.4)),
+                        url('hero.jpg') center/cover fixed;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            color: var(--warm-white);
+            position: relative;
+        }
+
+        .hero-content {
+            max-width: 800px;
+            padding: 2rem;
+            z-index: 2;
+        }
+
+        .hero h1 {
+            font-size: clamp(3rem, 8vw, 6rem);
+            font-weight: 700;
+            margin-bottom: 1rem;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .hero-tagline {
+            font-size: clamp(1.2rem, 3vw, 1.8rem);
+            margin-bottom: 2rem;
+            opacity: 0.95;
+            font-weight: 300;
+        }
+
+        .cta-primary {
+            background: var(--gold);
+            color: var(--deep-brown);
+            padding: 1rem 2.5rem;
+            border: none;
+            border-radius: 50px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        .cta-primary:hover {
+            background: var(--copper);
+            transform: translateY(-2px);
+        }
+
+        /* Hook Section */
+        .hook {
+            min-height: 80vh;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            align-items: center;
+            background: var(--warm-white);
+        }
+
+        .hook-text {
+            padding: 4rem;
+        }
+
+        .hook h2 {
+            font-size: clamp(2.5rem, 5vw, 4rem);
+            margin-bottom: 2rem;
+            color: var(--deep-brown);
+            line-height: 1.2;
+        }
+
+        .hook p {
+            font-size: 1.2rem;
+            margin-bottom: 1.5rem;
+            color: var(--charcoal);
+            opacity: 0.8;
+        }
+
+        .hook-image {
+            height: 80vh;
+            background: url('all-vibes-qahwa-service-v1.jpg') center/cover;
+        }
+
+        /* How It Works */
+        .how-it-works {
+            padding: 6rem 2rem;
+            background: linear-gradient(rgba(44, 24, 16, 0.8), rgba(44, 24, 16, 0.8)),
+                        url('all-vibes-cliff-edge-v1-2.jpg') center/cover fixed;
+            color: var(--warm-white);
+            text-align: center;
+        }
+
+        .how-it-works h2 {
+            font-size: clamp(2.5rem, 5vw, 3.5rem);
+            margin-bottom: 3rem;
+        }
+
+        .steps-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 3rem;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .step {
+            background: rgba(254, 252, 247, 0.1);
+            padding: 2rem;
+            border-radius: 15px;
+            backdrop-filter: blur(10px);
+        }
+
+        .step-number {
+            font-size: 3rem;
+            font-weight: 700;
+            color: var(--gold);
+            margin-bottom: 1rem;
+        }
+
+        /* Residents Section */
+        .residents {
+            padding: 6rem 2rem;
+            background: var(--sand);
+        }
+
+        .residents h2 {
+            text-align: center;
+            font-size: clamp(2.5rem, 5vw, 3.5rem);
+            margin-bottom: 4rem;
+            color: var(--deep-brown);
+        }
+
+        .residents-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 3rem;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .resident-card {
+            background: var(--warm-white);
+            border-radius: 20px;
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            transition: transform 0.3s ease;
+        }
+
+        .resident-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .resident-image {
+            height: 400px;
+            background-size: cover;
+            background-position: center;
+        }
+
+        .resident-info {
+            padding: 2rem;
+        }
+
+        .resident-name {
+            font-size: 1.8rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+            color: var(--deep-brown);
+        }
+
+        .resident-role {
+            color: var(--copper);
+            font-weight: 500;
+            margin-bottom: 1rem;
+        }
+
+        .resident-price {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: var(--gold);
+            margin-top: 1rem;
+        }
+
+        /* Menu Section */
+        .menu {
+            background: var(--deep-brown);
+            color: var(--warm-white);
+            padding: 6rem 2rem;
+        }
+
+        .menu-hero {
+            height: 50vh;
+            background: url('all-vibes-full-spread-v1-1769559088559.jpg') center/cover;
+            margin-bottom: 4rem;
+            border-radius: 20px;
+        }
+
+        .menu h2 {
+            text-align: center;
+            font-size: clamp(2.5rem, 5vw, 3.5rem);
+            margin-bottom: 3rem;
+        }
+
+        .menu-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .menu-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem 0;
+            border-bottom: 1px solid rgba(254, 252, 247, 0.2);
+        }
+
+        .menu-item-name {
+            font-weight: 600;
+            font-size: 1.1rem;
+        }
+
+        .menu-item-price {
+            color: var(--gold);
+            font-weight: 700;
+        }
+
+        /* Experiences */
+        .experiences {
+            padding: 6rem 2rem;
+            background: var(--warm-white);
+        }
+
+        .experiences h2 {
+            text-align: center;
+            font-size: clamp(2.5rem, 5vw, 3.5rem);
+            margin-bottom: 4rem;
+            color: var(--deep-brown);
+        }
+
+        .experiences-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 3rem;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .experience-card {
+            background: var(--charcoal);
+            color: var(--warm-white);
+            border-radius: 20px;
+            overflow: hidden;
+            height: 500px;
+            position: relative;
+        }
+
+        .experience-bg {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-size: cover;
+            background-position: center;
+        }
+
+        .experience-content {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            padding: 2rem;
+            background: linear-gradient(transparent, rgba(26, 26, 26, 0.9));
+        }
+
+        .experience-title {
+            font-size: 1.8rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+        }
+
+        /* Location Section */
+        .location {
+            min-height: 80vh;
+            background: linear-gradient(rgba(26, 26, 26, 0.6), rgba(26, 26, 26, 0.6)),
+                        url('hero.jpg') center/cover fixed;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            color: var(--warm-white);
+            padding: 4rem 2rem;
+        }
+
+        .location-content {
+            max-width: 800px;
+        }
+
+        .location h2 {
+            font-size: clamp(2.5rem, 5vw, 3.5rem);
+            margin-bottom: 2rem;
+        }
+
+        .location-detail {
+            font-size: 1.3rem;
+            margin-bottom: 1.5rem;
+            opacity: 0.9;
+        }
+
+        /* CTA Section */
+        .cta-section {
+            min-height: 60vh;
+            background: linear-gradient(rgba(44, 24, 16, 0.8), rgba(44, 24, 16, 0.8)),
+                        url('hero-night.jpeg') center/cover fixed;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            color: var(--warm-white);
+            padding: 4rem 2rem;
+        }
+
+        .cta-content h2 {
+            font-size: clamp(2.5rem, 5vw, 4rem);
+            margin-bottom: 2rem;
+        }
+
+        .cta-content p {
+            font-size: 1.3rem;
+            margin-bottom: 3rem;
+            opacity: 0.9;
+        }
+
+        /* Footer */
+        .footer {
+            background: var(--charcoal);
+            color: var(--warm-white);
+            text-align: center;
+            padding: 3rem 2rem;
+        }
+
+        .footer-tagline {
+            font-size: 1.2rem;
+            font-style: italic;
+            opacity: 0.8;
+        }
+
+        /* Mobile Responsive */
+        @media (max-width: 768px) {
+            .hook {
+                grid-template-columns: 1fr;
+            }
+
+            .hook-image {
+                height: 50vh;
+                order: -1;
+            }
+
+            .hook-text {
+                padding: 2rem;
+            }
+
+            .residents-grid,
+            .experiences-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .menu-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Hero Section -->
+    <section class="hero" data-usage="hero">
+        <div class="hero-content">
+            <h1 data-editable="hero-title" class="arabic-font">FalCaMel</h1>
+            <p class="hero-tagline" data-editable="hero-tagline">Heritage hospitality on a cliff — grandmother's living room overlooking the future</p>
+            <a href="#residents" class="cta-primary" data-editable="hero-cta">Choose Your Companion</a>
+        </div>
+    </section>
+
+    <!-- Hook Section -->
+    <section class="hook">
+        <div class="hook-text">
+            <h2 data-editable="hook-title">We Were Here First</h2>
+            <p data-editable="hook-p1">The roller coasters are an accident of geography. We've been serving qahwa on this cliff since 1987, when Haboob was young and the world was different.</p>
+            <p data-editable="hook-p2">200 meters above Qiddiya, the man in white isn't performing heritage. He IS heritage. And his animals know every guest who belongs.</p>
+            <p data-editable="hook-p3">This isn't entertainment. This is home.</p>
+        </div>
+        <div class="hook-image" data-usage="hook"></div>
+    </section>
+
+    <!-- How It Works -->
+    <section class="how-it-works">
+        <h2 data-editable="how-title">How the Cliff Works</h2>
+        <div class="steps-grid">
+            <div class="step">
+                <div class="step-number">01</div>
+                <h3 data-editable="step1-title">Choose Your Resident</h3>
+                <p data-editable="step1-desc">Sultan patrols the air. Haboob judges character. The cats handle the rest. Pick who you want to meet.</p>
+            </div>
+            <div class="step">
+                <div class="step-number">02</div>
+                <h3 data-editable="step2-title">Book Your Majlis</h3>
+                <p data-editable="step2-desc">Private table, your chosen companion, and all the time you need. Minimum one hour, but the cliff has no closing time.</p>
+            </div>
+            <div class="step">
+                <div class="step-number">03</div>
+                <h3 data-editable="step3-title">Come As You Are</h3>
+                <p data-editable="step3-desc">No dress code. No performance. Just you, the animals, and the view that never gets old.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Residents Section -->
+    <section class="residents" id="residents">
+        <h2 data-editable="residents-title">The Residents</h2>
+        <div class="residents-grid">
+            <div class="resident-card">
+                <div class="resident-image" style="background-image: url('sultan.jpg')" data-usage="character-portrait"></div>
+                <div class="resident-info">
+                    <h3 class="resident-name" data-editable="sultan-name">Sultan</h3>
+                    <p class="resident-role" data-editable="sultan-role">Peregrine Falcon • Air Patrol</p>
+                    <p data-editable="sultan-bio">Champion of The Race (47-0). Counter-drone specialist. Knows the difference between a tourist and a regular from 500 meters up. Prefers guests who don't try to feed him.</p>
+                    <div class="resident-price" data-editable="sultan-price">SAR 350/hour</div>
+                </div>
+            </div>
+
+            <div class="resident-card">
+                <div class="resident-image" style="background-image: url('haboob.jpg')" data-usage="character-portrait"></div>
+                <div class="resident-info">
+                    <h3 class="resident-name" data-editable="haboob-name">Haboob</h3>
+                    <p class="resident-role" data-editable="haboob-role">Camel • The Judge</p>
+                    <p data-editable="haboob-bio">Here since 1987. Produces the sweetest milk in the kingdom. Can sense pretension from across the plateau. Sits only for those who understand patience.</p>
+                    <div class="resident-price" data-editable="haboob-price">SAR 500/hour</div>
+                </div>
+            </div>
+
+            <div class="resident-card">
+                <div class="resident-image" style="background-image: url('qamar.jpg')" data-usage="character-portrait"></div>
+                <div class="resident-info">
+                    <h3 class="resident-name" data-editable="qamar-name">Qamar</h3>
+                    <p class="resident-role" data-editable="qamar-role">Black Cat • Shadow Operations</p>
+                    <p data-editable="qamar-bio">Problem disappearance specialist. Makes unwelcome guests reconsider their choices. Elegant, silent, effective. Purrs only for the worthy.</p>
+                    <div class="resident-price" data-editable="qamar-price">SAR 150/hour</div>
+                </div>
+            </div>
+
+            <div class="resident-card">
+                <div class="resident-image" style="background-image: url('luna-2.jpeg')" data-usage="character-portrait"></div>
+                <div class="resident-info">
+                    <h3 class="resident-name" data-editable="luna-name">Luna</h3>
+                    <p class="resident-role" data-editable="luna-role">Black Cat • The Gatekeeper</p>
+                    <p data-editable="luna-bio">Guest assessment expert. Golden-green eyes that see through facades. Decides who gets the good table and who doesn't. Usually right.</p>
+                    <div class="resident-price" data-editable="luna-price">SAR 150/hour</div>
+                </div>
+            </div>
+
+            <div class="resident-card">
+                <div class="resident-image" style="background-image: url('shams.jpg')" data-usage="character-portrait"></div>
+                <div class="resident-info">
+                    <h3 class="resident-name" data-editable="shams-name">Shams</h3>
+                    <p class="resident-role" data-editable="shams-role">Orange Tabby • Early Warning System</p>
+                    <p data-editable="shams-bio">First to spot trouble, last to wake up. Comfort specialist for homesick guests. Will sleep on your lap if the cliff approves of you.</p>
+                    <div class="resident-price" data-editable="shams-price">SAR 150/hour</div>
+                </div>
+            </div>
+
+            <div class="resident-card">
+                <div class="resident-image" style="background-image: url('shabby-2.jpeg')" data-usage="character-portrait"></div>
+                <div class="resident-info">
+                    <h3 class="resident-name" data-editable="shabby-name">Shabby</h3>
+                    <p class="resident-role" data-editable="shabby-role">Orange Tabby • Zero Dignity</p>
+                    <p data-editable="shabby-bio">Belly-up specialist. Authenticity enforcer. Makes everyone laugh at exactly the right moment. Proof that not everything needs to be perfect.</p>
+                    <div class="resident-price" data-editable="shabby-price">SAR 150/hour</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Menu Section -->
+    <section class="menu">
+        <div class="menu-hero" data-usage="menu-hero"></div>
+        <h2 data-editable="menu-title">What Grandmother Makes</h2>
+        <div class="menu-grid">
+            <div>
+                <h3 style="color: var(--gold); margin-bottom: 1rem;">Qahwa & Tea</h3>
+                <div class="menu-item">
+                    <span class="menu-item-name">Traditional Qahwa</span>
+                    <span class="menu-item-price">SAR 15</span>
+                </div>
+                <div class="menu-item">
+                    <span class="menu-item-name">Karak Tea</span>
+                    <span class="menu-item-price">SAR 12</span>
+                </div>
+                <div class="menu-item">
+                    <span class="menu-item-name">Mint Tea</span>
+                    <span class="menu-item-price">SAR 10</span>
+                </div>
+                <div class="menu-item">
+                    <span class="menu-item-name">Fresh Camel Milk</span>
+                    <span class="menu-item-price">SAR 20</span>
+                </div>
+            </div>
+
+            <div>
+                <h3 style="color: var(--gold); margin-bottom: 1rem;">Sweets</h3>
+                <div class="menu-item">
+                    <span class="menu-item-name">Luqaimat with Date Syrup</span>
+                    <span class="menu-item-price">SAR 25</span>
+                </div>
+                <div class="menu-item">
+                    <span class="menu-item-name">Kunafa</span>
+                    <span class="menu-item-price">SAR 30</span>
+                </div>
+                <div class="menu-item">
+                    <span class="menu-item-name">Ma'amoul</span>
+                    <span class="menu-item-price">SAR 20</span>
+                </div>
+                <div class="menu-item">
+                    <span class="menu-item-name">Honey Cake</span>
+                    <span class="menu-item-price">SAR 22</span>
+                </div>
+            </div>
+
+            <div>
+                <h3 style="color: var(--gold); margin-bottom: 1rem;">Light Bites</h3>
+                <div class="menu-item">
+                    <span class="menu-item-name">Cheese Sambusa</span>
+                    <span class="menu-item-price">SAR 18</span>
+                </div>
+                <div class="menu-item">
+                    <span class="menu-item-name">Mixed Dates</span>
+                    <span class="menu-item-price">SAR 15</span>
+                </div>
+                <div class="menu-item">
+                    <span class="menu-item-name">Nuts & Seeds</span>
+                    <span class="menu-item-price">SAR 12</span>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Experiences Section -->
+    <section class="experiences">
+        <h2 data-editable="experiences-title">Signature Experiences</h2>
+        <div class="experiences-grid">
+            <div class="experience-card">
+                <div class="experience-bg" style="background-image: url('all-vibes-sultan-flight-v1.jpg')" data-usage="experience"></div>
+                <div class="experience-content">
+                    <h3 class="experience-title" data-editable="race-title">The Race</h3>
+                    <p data-editable="race-desc">Sultan vs. Falcon's Flight coaster. 47 wins, 0 losses. Watch the champion patrol his territory while guests below think they're fast.</p>
+                </div>
+            </div>
+
+            <div class="experience-card">
+                <div class="experience-bg" style="background-image: url('hero.jpg')" data-usage="experience"></div>
+                <div class="experience-content">
+                    <h3 class="experience-title" data-editable="sunset-title">Sunset Ride</h3>
+                    <p data-editable="sunset-desc">Haboob takes evening walks along the cliff edge. Slow, steady, ancient. The best view in the kingdom, seen from the best seat.</p>
+                </div>
+            </div>
+
+            <div class="experience-card">
+                <div class="experience-bg" style="background-image: url('hero-night.jpeg')" data-usage="experience"></div>
+                <div class="experience-content">
+                    <h3 class="experience-title" data-editable="royal-title">Royal FalCaMel</h3>
+                    <p data-editable="royal-desc">Private evening with all residents. Lanterns, stars, and the kind of hospitality kingdoms are built on. By invitation only.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Location Section -->
+    <section class="location">
+        <div class="location-content">
+            <h2 data-editable="location-title">200 Meters Above Everything</h2>
+            <p class="location-detail" data-editable="location-p1">Tuwaiq Escarpment, overlooking Qiddiya</p>
+            <p class="location-detail" data-editable="location-p2">30 minutes from Riyadh</p>
+            <p class="location-detail" data-editable="location-p3">The cliff where the future meets its past</p>
+        </div>
+    </section>
+
+    <!-- CTA Section -->
+    <section class="cta-section">
+        <div class="cta-content">
+            <h2 data-editable="cta-title">Grandmother's Waiting</h2>
+            <p data-editable="cta-text">She's already made too much food. The animals have chosen their favorites. Don't keep them waiting.</p>
+            <a href="#residents" class="cta-primary" data-editable="final-cta">Book Your Majlis</a>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <p class="footer-tagline" data-editable="footer-tagline">"The man in white isn't performing heritage. He IS heritage."</p>
+    </footer>
+
+    <script>
+        // Smooth scrolling for anchor links
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                document.querySelector(this.getAttribute('href')).scrollIntoView({
+                    behavior: 'smooth'
+                });
+            });
+        });
+
+        // Parallax effect for fixed background sections
+        window.addEventListener('scroll', () => {
+            const scrolled = window.pageYOffset;
+            const parallax = document.querySelectorAll('[style*="fixed"]');
+            const speed = 0.5;
+
+            parallax.forEach(element => {
+                const yPos = -(scrolled * speed);
+                element.style.transform = `translateY(${yPos}px)`;
+            });
+        });
+    </script>
+</body>
+</html>

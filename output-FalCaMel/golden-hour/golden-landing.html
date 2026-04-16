@@ -1,0 +1,982 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FalCaMel Cafe | Elevation, Redefined</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=Montserrat:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --gold: #C9A961;
+            --deep-gold: #A68B3D;
+            --champagne: #F7F3E9;
+            --ivory: #FFFEF9;
+            --charcoal: #1C1C1C;
+            --warm-gray: #3D3D3D;
+            --soft-brown: #8B7355;
+            --border-light: rgba(201, 169, 97, 0.2);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        body {
+            font-family: 'Montserrat', sans-serif;
+            background-color: var(--ivory);
+            color: var(--charcoal);
+            line-height: 1.7;
+            font-weight: 300;
+        }
+
+        h1, h2, h3, h4 {
+            font-family: 'Cormorant Garamond', serif;
+            font-weight: 500;
+            line-height: 1.2;
+            letter-spacing: 0.02em;
+        }
+
+        /* Hero Section */
+        .hero {
+            height: 100vh;
+            min-height: 800px;
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+
+        .hero-image {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            z-index: 1;
+        }
+
+        .hero-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(
+                to bottom,
+                rgba(0,0,0,0.1) 0%,
+                rgba(0,0,0,0) 30%,
+                rgba(0,0,0,0) 50%,
+                rgba(0,0,0,0.5) 85%,
+                rgba(0,0,0,0.7) 100%
+            );
+            z-index: 2;
+        }
+
+        .hero-content {
+            position: relative;
+            z-index: 3;
+            text-align: center;
+            color: var(--ivory);
+            max-width: 900px;
+            padding: 0 40px;
+        }
+
+        .hero-eyebrow {
+            font-size: 0.85rem;
+            font-weight: 400;
+            letter-spacing: 0.35em;
+            text-transform: uppercase;
+            color: var(--gold);
+            margin-bottom: 2rem;
+        }
+
+        .hero h1 {
+            font-size: clamp(3.5rem, 10vw, 7rem);
+            font-weight: 400;
+            margin-bottom: 1.5rem;
+            text-shadow: 0 4px 40px rgba(0,0,0,0.3);
+            letter-spacing: 0.05em;
+        }
+
+        .hero-subline {
+            font-size: clamp(1rem, 2vw, 1.2rem);
+            font-weight: 300;
+            margin-bottom: 3rem;
+            text-shadow: 0 2px 20px rgba(0,0,0,0.3);
+            max-width: 500px;
+            margin-left: auto;
+            margin-right: auto;
+            letter-spacing: 0.05em;
+            line-height: 1.8;
+        }
+
+        .cta-primary {
+            display: inline-block;
+            background: transparent;
+            color: var(--ivory);
+            padding: 18px 50px;
+            font-size: 0.85rem;
+            font-weight: 500;
+            text-decoration: none;
+            letter-spacing: 0.2em;
+            text-transform: uppercase;
+            border: 1px solid rgba(255,255,255,0.6);
+            transition: all 0.4s ease;
+        }
+
+        .cta-primary:hover {
+            background: var(--gold);
+            border-color: var(--gold);
+            color: var(--charcoal);
+        }
+
+        .scroll-indicator {
+            position: absolute;
+            bottom: 40px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 3;
+            color: var(--ivory);
+            opacity: 0.6;
+            animation: float 2s ease-in-out infinite;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateX(-50%) translateY(0); }
+            50% { transform: translateX(-50%) translateY(10px); }
+        }
+
+        /* Section Styling */
+        section {
+            padding: 120px 40px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .section-eyebrow {
+            font-size: 0.75rem;
+            font-weight: 500;
+            letter-spacing: 0.3em;
+            text-transform: uppercase;
+            color: var(--gold);
+            margin-bottom: 1.5rem;
+        }
+
+        .section-title {
+            font-size: clamp(2.5rem, 5vw, 4rem);
+            margin-bottom: 1.5rem;
+            color: var(--charcoal);
+        }
+
+        .section-intro {
+            font-size: 1.1rem;
+            color: var(--warm-gray);
+            max-width: 600px;
+            line-height: 1.9;
+        }
+
+        /* The Lounge */
+        .lounge {
+            background: var(--champagne);
+        }
+
+        .lounge-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 80px;
+            align-items: center;
+        }
+
+        .lounge-content .section-intro {
+            margin-bottom: 2rem;
+        }
+
+        .lounge-details {
+            display: flex;
+            gap: 40px;
+            margin-top: 3rem;
+            padding-top: 2rem;
+            border-top: 1px solid var(--border-light);
+        }
+
+        .lounge-detail {
+            text-align: center;
+        }
+
+        .lounge-detail-label {
+            font-size: 0.7rem;
+            letter-spacing: 0.2em;
+            text-transform: uppercase;
+            color: var(--soft-brown);
+            margin-bottom: 0.5rem;
+        }
+
+        .lounge-detail-value {
+            font-family: 'Cormorant Garamond', serif;
+            font-size: 1.3rem;
+            color: var(--charcoal);
+        }
+
+        .lounge-image {
+            position: relative;
+        }
+
+        .lounge-image img {
+            width: 100%;
+            height: 500px;
+            object-fit: cover;
+        }
+
+        /* Menu */
+        .menu {
+            background: var(--ivory);
+        }
+
+        .menu-header {
+            text-align: center;
+            margin-bottom: 80px;
+        }
+
+        .menu-header .section-intro {
+            margin: 0 auto;
+        }
+
+        .menu-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 60px;
+        }
+
+        .menu-category h3 {
+            font-size: 1.5rem;
+            color: var(--charcoal);
+            margin-bottom: 2rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid var(--border-light);
+        }
+
+        .menu-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            padding: 1rem 0;
+        }
+
+        .menu-item-name {
+            font-weight: 400;
+            color: var(--charcoal);
+            font-size: 0.95rem;
+        }
+
+        .menu-item-price {
+            font-family: 'Cormorant Garamond', serif;
+            font-size: 1.1rem;
+            color: var(--soft-brown);
+            margin-left: 20px;
+        }
+
+        /* Residents */
+        .residents {
+            background: var(--charcoal);
+            color: var(--ivory);
+        }
+
+        .residents-header {
+            text-align: center;
+            margin-bottom: 80px;
+        }
+
+        .residents-header .section-eyebrow {
+            color: var(--gold);
+        }
+
+        .residents-header .section-title {
+            color: var(--ivory);
+        }
+
+        .residents-header .section-intro {
+            color: rgba(255,255,255,0.7);
+            margin: 0 auto;
+        }
+
+        .residents-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 30px;
+        }
+
+        .resident-card {
+            text-align: center;
+        }
+
+        .resident-image {
+            width: 100%;
+            height: 300px;
+            object-fit: cover;
+            margin-bottom: 1.5rem;
+            filter: grayscale(20%);
+            transition: filter 0.4s ease;
+        }
+
+        .resident-card:hover .resident-image {
+            filter: grayscale(0%);
+        }
+
+        .resident-name {
+            font-family: 'Cormorant Garamond', serif;
+            font-size: 1.8rem;
+            color: var(--ivory);
+            margin-bottom: 0.5rem;
+        }
+
+        .resident-price {
+            font-size: 0.8rem;
+            color: var(--gold);
+            letter-spacing: 0.1em;
+            margin-bottom: 1rem;
+        }
+
+        .resident-description {
+            font-size: 0.9rem;
+            color: rgba(255,255,255,0.6);
+            font-style: italic;
+            line-height: 1.6;
+        }
+
+        /* Cliff Edge Majlis */
+        .majlis {
+            background: var(--champagne);
+        }
+
+        .majlis-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 80px;
+            align-items: center;
+        }
+
+        .majlis-intro {
+            font-size: 1.15rem;
+            color: var(--warm-gray);
+            line-height: 1.9;
+            margin-bottom: 2rem;
+        }
+
+        .majlis-features {
+            list-style: none;
+            margin-top: 2rem;
+        }
+
+        .majlis-features li {
+            padding: 1rem 0;
+            border-bottom: 1px solid var(--border-light);
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            font-size: 0.95rem;
+            color: var(--warm-gray);
+        }
+
+        .majlis-features li::before {
+            content: '';
+            width: 6px;
+            height: 6px;
+            background: var(--gold);
+            border-radius: 50%;
+        }
+
+        .majlis-image img {
+            width: 100%;
+            height: 600px;
+            object-fit: cover;
+        }
+
+        /* Evening Programs */
+        .programs {
+            background: var(--ivory);
+        }
+
+        .programs-header {
+            text-align: center;
+            margin-bottom: 80px;
+        }
+
+        .programs-header .section-intro {
+            margin: 0 auto;
+        }
+
+        .programs-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 40px;
+        }
+
+        .program-card {
+            background: var(--champagne);
+            padding: 50px;
+            transition: all 0.4s ease;
+        }
+
+        .program-card:hover {
+            background: var(--charcoal);
+            color: var(--ivory);
+        }
+
+        .program-card:hover h3 {
+            color: var(--gold);
+        }
+
+        .program-card:hover .program-price {
+            color: var(--ivory);
+        }
+
+        .program-card:hover p {
+            color: rgba(255,255,255,0.8);
+        }
+
+        .program-card h3 {
+            font-size: 2rem;
+            color: var(--charcoal);
+            margin-bottom: 0.5rem;
+            transition: color 0.4s ease;
+        }
+
+        .program-price {
+            font-family: 'Cormorant Garamond', serif;
+            font-size: 1.5rem;
+            color: var(--soft-brown);
+            margin-bottom: 1.5rem;
+            transition: color 0.4s ease;
+        }
+
+        .program-card p {
+            font-size: 0.95rem;
+            line-height: 1.8;
+            color: var(--warm-gray);
+            transition: color 0.4s ease;
+        }
+
+        /* The Royal */
+        .royal {
+            background: var(--charcoal);
+            color: var(--ivory);
+            padding: 160px 40px;
+        }
+
+        .royal-content {
+            max-width: 900px;
+            margin: 0 auto;
+            text-align: center;
+        }
+
+        .royal .section-eyebrow {
+            color: var(--gold);
+        }
+
+        .royal .section-title {
+            color: var(--ivory);
+            font-size: clamp(3rem, 6vw, 5rem);
+            margin-bottom: 2rem;
+        }
+
+        .royal-tagline {
+            font-family: 'Cormorant Garamond', serif;
+            font-size: 1.5rem;
+            font-style: italic;
+            color: var(--gold);
+            margin-bottom: 3rem;
+        }
+
+        .royal-description {
+            font-size: 1.1rem;
+            line-height: 1.9;
+            color: rgba(255,255,255,0.8);
+            margin-bottom: 3rem;
+        }
+
+        .royal-price {
+            font-family: 'Cormorant Garamond', serif;
+            font-size: 4rem;
+            color: var(--ivory);
+            margin-bottom: 3rem;
+            letter-spacing: 0.05em;
+        }
+
+        .royal-features {
+            display: flex;
+            justify-content: center;
+            gap: 60px;
+            margin-bottom: 4rem;
+            flex-wrap: wrap;
+        }
+
+        .royal-feature {
+            text-align: center;
+        }
+
+        .royal-feature-label {
+            font-size: 0.7rem;
+            letter-spacing: 0.2em;
+            text-transform: uppercase;
+            color: rgba(255,255,255,0.5);
+            margin-bottom: 0.5rem;
+        }
+
+        .royal-feature-value {
+            font-family: 'Cormorant Garamond', serif;
+            font-size: 1.3rem;
+            color: var(--gold);
+        }
+
+        .cta-royal {
+            display: inline-block;
+            background: var(--gold);
+            color: var(--charcoal);
+            padding: 20px 60px;
+            font-size: 0.85rem;
+            font-weight: 500;
+            text-decoration: none;
+            letter-spacing: 0.2em;
+            text-transform: uppercase;
+            transition: all 0.4s ease;
+        }
+
+        .cta-royal:hover {
+            background: var(--ivory);
+        }
+
+        /* Location */
+        .location {
+            background: var(--champagne);
+            text-align: center;
+        }
+
+        .location-grid {
+            display: flex;
+            justify-content: center;
+            gap: 80px;
+            margin-top: 60px;
+            flex-wrap: wrap;
+        }
+
+        .location-item {
+            text-align: center;
+        }
+
+        .location-label {
+            font-size: 0.7rem;
+            letter-spacing: 0.2em;
+            text-transform: uppercase;
+            color: var(--soft-brown);
+            margin-bottom: 0.5rem;
+        }
+
+        .location-value {
+            font-family: 'Cormorant Garamond', serif;
+            font-size: 1.5rem;
+            color: var(--charcoal);
+        }
+
+        /* Footer */
+        footer {
+            background: var(--charcoal);
+            color: var(--ivory);
+            padding: 80px 40px;
+            text-align: center;
+        }
+
+        .footer-logo {
+            font-family: 'Cormorant Garamond', serif;
+            font-size: 2rem;
+            color: var(--gold);
+            margin-bottom: 1rem;
+            letter-spacing: 0.1em;
+        }
+
+        .footer-tagline {
+            font-size: 0.9rem;
+            color: rgba(255,255,255,0.6);
+            font-style: italic;
+            margin-bottom: 2rem;
+        }
+
+        .footer-location {
+            font-size: 0.75rem;
+            letter-spacing: 0.2em;
+            text-transform: uppercase;
+            color: rgba(255,255,255,0.4);
+        }
+
+        /* Responsive */
+        @media (max-width: 1024px) {
+            .lounge-grid,
+            .majlis-content {
+                grid-template-columns: 1fr;
+                gap: 40px;
+            }
+
+            .menu-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+
+            .residents-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media (max-width: 768px) {
+            section {
+                padding: 80px 24px;
+            }
+
+            .menu-grid,
+            .programs-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .residents-grid {
+                grid-template-columns: 1fr;
+                gap: 40px;
+            }
+
+            .lounge-details {
+                flex-direction: column;
+                gap: 20px;
+            }
+
+            .royal-features {
+                flex-direction: column;
+                gap: 30px;
+            }
+
+            .location-grid {
+                flex-direction: column;
+                gap: 30px;
+            }
+
+            .lounge-image img,
+            .majlis-image img {
+                height: 350px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .hero h1 {
+                font-size: 2.8rem;
+            }
+
+            .royal-price {
+                font-size: 3rem;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Hero -->
+    <section class="hero">
+        <img src="../../images/hero.jpg" alt="FalCaMel Cafe at golden hour" class="hero-image">
+        <div class="hero-overlay"></div>
+        <div class="hero-content">
+            <p class="hero-eyebrow">Tuwaiq Escarpment</p>
+            <h1>Elevation, Redefined</h1>
+            <p class="hero-subline">A private café 200 meters above Qiddiya. Coffee, companions, and the view that changes everything.</p>
+            <a href="#lounge" class="cta-primary">Enter</a>
+        </div>
+        <div class="scroll-indicator">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                <path d="M12 5v14M5 12l7 7 7-7"/>
+            </svg>
+        </div>
+    </section>
+
+    <!-- The Lounge -->
+    <section class="lounge" id="lounge">
+        <div class="container">
+            <div class="lounge-grid">
+                <div class="lounge-content">
+                    <p class="section-eyebrow">The Lounge</p>
+                    <h2 class="section-title">Your Table Awaits</h2>
+                    <p class="section-intro">Walk in. No reservation required. Find your seat by the window as the Tuwaiq escarpment shifts from white to gold to amber. The dallah pours. The cardamom rises. Below, Qiddiya hums with energy. Up here, there is only stillness.</p>
+                    <div class="lounge-details">
+                        <div class="lounge-detail">
+                            <p class="lounge-detail-label">Hours</p>
+                            <p class="lounge-detail-value">4 PM – 2 AM</p>
+                        </div>
+                        <div class="lounge-detail">
+                            <p class="lounge-detail-label">Reservations</p>
+                            <p class="lounge-detail-value">Not Required</p>
+                        </div>
+                        <div class="lounge-detail">
+                            <p class="lounge-detail-label">Elevation</p>
+                            <p class="lounge-detail-value">200 Meters</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="lounge-image">
+                    <img src="../../images/dallah.jpg" alt="Traditional qahwa service">
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Menu -->
+    <section class="menu" id="menu">
+        <div class="container">
+            <div class="menu-header">
+                <p class="section-eyebrow">The Menu</p>
+                <h2 class="section-title">From the Highlands</h2>
+                <p class="section-intro">Jareen coffee from the Asir mountains. Camel milk from Haboob's herd. Every cup tells an origin story.</p>
+            </div>
+
+            <div class="menu-grid">
+                <div class="menu-category">
+                    <h3>Qahwa</h3>
+                    <div class="menu-item">
+                        <span class="menu-item-name">Jareen Single Origin</span>
+                        <span class="menu-item-price">SAR 25</span>
+                    </div>
+                    <div class="menu-item">
+                        <span class="menu-item-name">House Blend</span>
+                        <span class="menu-item-price">SAR 18</span>
+                    </div>
+                    <div class="menu-item">
+                        <span class="menu-item-name">Traditional Qahwa</span>
+                        <span class="menu-item-price">SAR 20</span>
+                    </div>
+                </div>
+
+                <div class="menu-category">
+                    <h3>Lattes</h3>
+                    <div class="menu-item">
+                        <span class="menu-item-name">Camel Milk Latte</span>
+                        <span class="menu-item-price">SAR 35</span>
+                    </div>
+                    <div class="menu-item">
+                        <span class="menu-item-name">Highland Honey Latte</span>
+                        <span class="menu-item-price">SAR 40</span>
+                    </div>
+                </div>
+
+                <div class="menu-category">
+                    <h3>Cold</h3>
+                    <div class="menu-item">
+                        <span class="menu-item-name">Jallab</span>
+                        <span class="menu-item-price">SAR 22</span>
+                    </div>
+                    <div class="menu-item">
+                        <span class="menu-item-name">Lemon Mint</span>
+                        <span class="menu-item-price">SAR 18</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="menu-grid" style="margin-top: 60px;">
+                <div class="menu-category">
+                    <h3>Sweets</h3>
+                    <div class="menu-item">
+                        <span class="menu-item-name">Luqaimat</span>
+                        <span class="menu-item-price">SAR 20</span>
+                    </div>
+                    <div class="menu-item">
+                        <span class="menu-item-name">Kunafa</span>
+                        <span class="menu-item-price">SAR 35</span>
+                    </div>
+                    <div class="menu-item">
+                        <span class="menu-item-name">Ma'amoul</span>
+                        <span class="menu-item-price">SAR 25</span>
+                    </div>
+                    <div class="menu-item">
+                        <span class="menu-item-name">Honey Cake</span>
+                        <span class="menu-item-price">SAR 30</span>
+                    </div>
+                </div>
+
+                <div class="menu-category">
+                    <h3>Savory</h3>
+                    <div class="menu-item">
+                        <span class="menu-item-name">Sambusa</span>
+                        <span class="menu-item-price">SAR 20</span>
+                    </div>
+                    <div class="menu-item">
+                        <span class="menu-item-name">Mutabbaq</span>
+                        <span class="menu-item-price">SAR 28</span>
+                    </div>
+                </div>
+
+                <div class="menu-category">
+                    <h3>The Discovery</h3>
+                    <div class="menu-item">
+                        <span class="menu-item-name">Highland Honey Latte + Luqaimat</span>
+                        <span class="menu-item-price">SAR 60</span>
+                    </div>
+                    <p style="font-size: 0.85rem; color: var(--soft-brown); margin-top: 0.5rem; font-style: italic;">Same honey. Same altitude.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Residents -->
+    <section class="residents" id="residents">
+        <div class="container">
+            <div class="residents-header">
+                <p class="section-eyebrow">The Residents</p>
+                <h2 class="section-title">They Were Here First</h2>
+                <p class="section-intro">They live on this cliff. They know its rhythms. Book time with any of them at their private majlis on the escarpment's edge.</p>
+            </div>
+
+            <div class="residents-grid">
+                <div class="resident-card">
+                    <img src="../../images/sultan.jpg" alt="Sultan the falcon" class="resident-image">
+                    <h3 class="resident-name">Sultan</h3>
+                    <p class="resident-price">SAR 350 / hour</p>
+                    <p class="resident-description">Peregrine falcon. Apex predator. At golden hour, he becomes a silhouette against the escarpment. Then he dives.</p>
+                </div>
+
+                <div class="resident-card">
+                    <img src="../../images/haboob.jpg" alt="Haboob the camel" class="resident-image">
+                    <h3 class="resident-name">Haboob</h3>
+                    <p class="resident-price">SAR 500 / hour</p>
+                    <p class="resident-description">His milk is in your latte. He knows it. Backlit at sunset, he is magnificent and utterly unbothered by your presence.</p>
+                </div>
+
+                <div class="resident-card">
+                    <img src="../../images/shams.jpg" alt="Shams the cat" class="resident-image">
+                    <h3 class="resident-name">Shams</h3>
+                    <p class="resident-price">SAR 150 / hour</p>
+                    <p class="resident-description">Finds the last warm patch of light. Does not move until it does. Zero guarantees. Book him anyway.</p>
+                </div>
+
+                <div class="resident-card">
+                    <img src="../../images/qamar.jpg" alt="Qamar the cat" class="resident-image">
+                    <h3 class="resident-name">Qamar</h3>
+                    <p class="resident-price">SAR 150 / hour</p>
+                    <p class="resident-description">Her black fur glows amber at sunset. She will make you feel chosen. That is her gift.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Cliff Edge Majlis -->
+    <section class="majlis">
+        <div class="container">
+            <div class="majlis-content">
+                <div>
+                    <p class="section-eyebrow">Private Majlis</p>
+                    <h2 class="section-title">On the Edge</h2>
+                    <p class="majlis-intro">Four majlis areas on the cliff's edge, each belonging to one of our residents. Book your seat. Choose your companion. Watch the light change from the precipice itself.</p>
+                    <ul class="majlis-features">
+                        <li>Select your specific seat at the resident's majlis</li>
+                        <li>Edge seating with unobstructed views</li>
+                        <li>Two complimentary drinks included</li>
+                        <li>Professional photography available</li>
+                        <li>1-4 hour bookings available</li>
+                    </ul>
+                </div>
+                <div class="majlis-image">
+                    <img src="../../images/hero.jpg" alt="Cliff edge majlis seating">
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Evening Programs -->
+    <section class="programs" id="programs">
+        <div class="container">
+            <div class="programs-header">
+                <p class="section-eyebrow">Evening Programs</p>
+                <h2 class="section-title">When the Light Turns Gold</h2>
+                <p class="section-intro">As sunset approaches, the escarpment transforms. Two signature experiences available by reservation.</p>
+            </div>
+
+            <div class="programs-grid">
+                <div class="program-card">
+                    <h3>The Race</h3>
+                    <p class="program-price">SAR 2,000</p>
+                    <p>Sultan races Falcon's Flight at sunset. 380 km/h falcon versus 250 km/h coaster. They trace parallel lines down the cliff face. He has never lost. Watch from the edge with binoculars and live cliff-cam feed.</p>
+                </div>
+
+                <div class="program-card">
+                    <h3>The Sunset Ride</h3>
+                    <p class="program-price">SAR 2,000</p>
+                    <p>One hour on Haboob along the escarpment at golden hour. The light hits the cliff face and turns everything amber. He walks slowly. He knows the route. You watch your shadow grow longer behind you.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- The Royal -->
+    <section class="royal">
+        <div class="royal-content">
+            <p class="section-eyebrow">By Appointment Only</p>
+            <h2 class="section-title">The Royal FalCaMel</h2>
+            <p class="royal-tagline">The café closes. You arrive.</p>
+            <p class="royal-description">Exclusive access from sunset to close. All four residents at your service. All majlis areas reserved. The entire cliff is yours. Full menu service. Private security detail. The experience that cannot be described, only arranged.</p>
+            <p class="royal-price">SAR 7,500</p>
+            <div class="royal-features">
+                <div class="royal-feature">
+                    <p class="royal-feature-label">Duration</p>
+                    <p class="royal-feature-value">Sunset to Close</p>
+                </div>
+                <div class="royal-feature">
+                    <p class="royal-feature-label">Access</p>
+                    <p class="royal-feature-value">Exclusive</p>
+                </div>
+                <div class="royal-feature">
+                    <p class="royal-feature-label">Residents</p>
+                    <p class="royal-feature-value">All Four</p>
+                </div>
+                <div class="royal-feature">
+                    <p class="royal-feature-label">Menu</p>
+                    <p class="royal-feature-value">Chef's Selection</p>
+                </div>
+            </div>
+            <a href="#" class="cta-royal">Request Appointment</a>
+        </div>
+    </section>
+
+    <!-- Location -->
+    <section class="location">
+        <div class="container">
+            <p class="section-eyebrow">Location</p>
+            <h2 class="section-title">Tuwaiq Escarpment</h2>
+            <p class="section-intro" style="margin: 0 auto;">200 meters above Qiddiya. Adjacent to Falcon's Flight. West-facing for optimal sunset viewing.</p>
+            <div class="location-grid">
+                <div class="location-item">
+                    <p class="location-label">Hours</p>
+                    <p class="location-value">4 PM – 2 AM</p>
+                </div>
+                <div class="location-item">
+                    <p class="location-label">Elevation</p>
+                    <p class="location-value">200 Meters</p>
+                </div>
+                <div class="location-item">
+                    <p class="location-label">Best Light</p>
+                    <p class="location-value">5:30 – 6:15 PM</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer>
+        <p class="footer-logo">FalCaMel</p>
+        <p class="footer-tagline">Elevation, Redefined</p>
+        <p class="footer-location">Tuwaiq Escarpment, Riyadh</p>
+    </footer>
+
+</body>
+</html>

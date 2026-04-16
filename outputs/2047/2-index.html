@@ -1,0 +1,527 @@
+<!DOCTYPE html>
+<html lang="de-CH">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>20:47 | Bareggcenter Baden</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --padel-blue: #0a1628;
+            --transition-orange: #e87a3e;
+            --bar-warm: #d4a574;
+            --text-light: #f5f5f5;
+            --text-muted: #a0a0a0;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        body {
+            font-family: 'Playfair Display', Georgia, serif;
+            background-color: var(--padel-blue);
+            color: var(--text-light);
+            line-height: 1.6;
+        }
+
+        /* Hero Section */
+        .hero {
+            height: 100vh;
+            min-height: 600px;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-end;
+            padding: 0 5vw 10vh;
+            overflow: hidden;
+        }
+
+        .hero-bg {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: url('../../images/transition-orange.jpeg');
+            background-size: cover;
+            background-position: center;
+            z-index: 0;
+        }
+
+        .hero-content {
+            position: relative;
+            z-index: 2;
+            max-width: 800px;
+        }
+
+        .hero-time {
+            font-size: clamp(4rem, 15vw, 12rem);
+            font-weight: 400;
+            letter-spacing: -0.02em;
+            line-height: 0.9;
+            text-shadow: 0 4px 30px rgba(0,0,0,0.5);
+            color: var(--transition-orange);
+        }
+
+        .hero-headline {
+            font-size: clamp(1.5rem, 4vw, 2.5rem);
+            font-weight: 400;
+            font-style: italic;
+            margin-top: 1rem;
+            text-shadow: 0 2px 20px rgba(0,0,0,0.6);
+            max-width: 600px;
+        }
+
+        .hero-subline {
+            font-size: clamp(1rem, 2vw, 1.25rem);
+            font-weight: 400;
+            margin-top: 0.75rem;
+            color: var(--text-muted);
+            text-shadow: 0 2px 15px rgba(0,0,0,0.8);
+        }
+
+        .hero-cta {
+            display: inline-block;
+            margin-top: 2.5rem;
+            padding: 1rem 2.5rem;
+            background-color: var(--transition-orange);
+            color: var(--padel-blue);
+            text-decoration: none;
+            font-size: 1.1rem;
+            font-weight: 500;
+            letter-spacing: 0.02em;
+            transition: all 0.3s ease;
+        }
+
+        .hero-cta:hover {
+            background-color: var(--bar-warm);
+            transform: translateY(-2px);
+        }
+
+        /* The Moment Section */
+        .moment {
+            padding: 15vh 5vw;
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        .moment-time {
+            font-size: clamp(3rem, 8vw, 6rem);
+            font-weight: 400;
+            color: var(--transition-orange);
+            margin-bottom: 2rem;
+        }
+
+        .moment-text {
+            font-size: clamp(1.1rem, 2vw, 1.35rem);
+            line-height: 1.9;
+            color: var(--text-light);
+        }
+
+        .moment-text p {
+            margin-bottom: 1.5rem;
+        }
+
+        .moment-text .emphasis {
+            color: var(--transition-orange);
+            font-style: italic;
+        }
+
+        .moment-text .small {
+            font-size: 0.9em;
+            color: var(--text-muted);
+        }
+
+        .moment-text .standalone {
+            font-size: clamp(1.3rem, 2.5vw, 1.6rem);
+            margin: 2.5rem 0;
+            font-style: italic;
+        }
+
+        /* Aperol Section */
+        .aperol {
+            position: relative;
+            min-height: 80vh;
+            display: flex;
+            align-items: center;
+            overflow: hidden;
+        }
+
+        .aperol-bg {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: url('../../images/aperol-bar-ready.jpeg');
+            background-size: cover;
+            background-position: center;
+            z-index: 0;
+        }
+
+        .aperol-content {
+            position: relative;
+            z-index: 2;
+            padding: 10vh 5vw;
+            max-width: 600px;
+        }
+
+        .aperol-headline {
+            font-size: clamp(2rem, 5vw, 3.5rem);
+            font-weight: 400;
+            font-style: italic;
+            line-height: 1.2;
+            text-shadow: 0 2px 30px rgba(0,0,0,0.7);
+            margin-bottom: 1.5rem;
+        }
+
+        .aperol-text {
+            font-size: clamp(1rem, 1.8vw, 1.2rem);
+            text-shadow: 0 2px 20px rgba(0,0,0,0.8);
+            color: var(--text-light);
+            line-height: 1.8;
+        }
+
+        .aperol-text p {
+            margin-bottom: 1rem;
+        }
+
+        .aperol-name {
+            color: var(--bar-warm);
+            font-style: italic;
+        }
+
+        /* Facilities Section */
+        .facilities {
+            padding: 15vh 5vw;
+            background-color: rgba(10, 22, 40, 0.95);
+        }
+
+        .facilities-inner {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .facilities-header {
+            text-align: center;
+            margin-bottom: 8vh;
+        }
+
+        .facilities-title {
+            font-size: clamp(1.5rem, 3vw, 2rem);
+            font-weight: 400;
+            color: var(--text-muted);
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+        }
+
+        .facilities-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 4rem;
+        }
+
+        .facility {
+            text-align: center;
+        }
+
+        .facility-number {
+            font-size: clamp(3rem, 6vw, 4.5rem);
+            font-weight: 400;
+            color: var(--transition-orange);
+            line-height: 1;
+            margin-bottom: 0.5rem;
+        }
+
+        .facility-label {
+            font-size: 1rem;
+            color: var(--text-muted);
+            letter-spacing: 0.05em;
+        }
+
+        .facility-detail {
+            font-size: 0.9rem;
+            color: var(--bar-warm);
+            margin-top: 0.5rem;
+            font-style: italic;
+        }
+
+        /* Courts Image Section */
+        .courts-image {
+            position: relative;
+            height: 60vh;
+            min-height: 400px;
+        }
+
+        .courts-image-bg {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: url('../../images/padel-courts-evening.jpg');
+            background-size: cover;
+            background-position: center;
+        }
+
+        /* CTA Section */
+        .cta-section {
+            padding: 15vh 5vw;
+            text-align: center;
+            background-color: var(--padel-blue);
+        }
+
+        .cta-inner {
+            max-width: 700px;
+            margin: 0 auto;
+        }
+
+        .cta-time {
+            font-size: clamp(4rem, 10vw, 8rem);
+            font-weight: 400;
+            color: var(--transition-orange);
+            line-height: 1;
+            margin-bottom: 1rem;
+        }
+
+        .cta-headline {
+            font-size: clamp(1.3rem, 3vw, 2rem);
+            font-weight: 400;
+            font-style: italic;
+            margin-bottom: 0.75rem;
+        }
+
+        .cta-subline {
+            font-size: clamp(1rem, 2vw, 1.2rem);
+            color: var(--text-muted);
+            margin-bottom: 3rem;
+        }
+
+        .cta-button {
+            display: inline-block;
+            padding: 1.25rem 3rem;
+            background-color: var(--transition-orange);
+            color: var(--padel-blue);
+            text-decoration: none;
+            font-size: 1.2rem;
+            font-weight: 500;
+            letter-spacing: 0.02em;
+            transition: all 0.3s ease;
+        }
+
+        .cta-button:hover {
+            background-color: var(--bar-warm);
+            transform: translateY(-2px);
+        }
+
+        /* Footer */
+        .footer {
+            padding: 8vh 5vw;
+            background-color: rgba(10, 22, 40, 0.98);
+            text-align: center;
+        }
+
+        .footer-logo {
+            width: 120px;
+            height: auto;
+            margin-bottom: 2rem;
+            opacity: 0.9;
+        }
+
+        .footer-tagline {
+            font-size: 1rem;
+            font-style: italic;
+            color: var(--text-muted);
+            margin-bottom: 2rem;
+            max-width: 400px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .footer-location {
+            font-size: 0.9rem;
+            color: var(--text-muted);
+            margin-bottom: 0.5rem;
+        }
+
+        .footer-address {
+            font-size: 0.85rem;
+            color: var(--bar-warm);
+        }
+
+        .footer-bottom {
+            margin-top: 4rem;
+            padding-top: 2rem;
+            border-top: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .footer-time {
+            font-size: 0.9rem;
+            color: var(--transition-orange);
+            letter-spacing: 0.1em;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .hero {
+                padding: 0 6vw 8vh;
+            }
+
+            .moment {
+                padding: 12vh 6vw;
+            }
+
+            .aperol-content {
+                padding: 8vh 6vw;
+            }
+
+            .facilities {
+                padding: 12vh 6vw;
+            }
+
+            .facilities-grid {
+                gap: 3rem;
+            }
+
+            .cta-section {
+                padding: 12vh 6vw;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .hero-time {
+                font-size: 3.5rem;
+            }
+
+            .moment-time {
+                font-size: 2.5rem;
+            }
+
+            .cta-time {
+                font-size: 3.5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Hero Section -->
+    <section class="hero">
+        <div class="hero-bg"></div>
+        <div class="hero-content">
+            <div class="hero-time">20:47</div>
+            <h1 class="hero-headline">D'Türe gaht uf. Dis Aperol stoht scho da.</h1>
+            <p class="hero-subline">Du hesch nöd bestellt. Du hesch nöd müesse.</p>
+            <a href="#booking" class="hero-cta">Dä Moment buche</a>
+        </div>
+    </section>
+
+    <!-- The Moment Section -->
+    <section class="moment">
+        <div class="moment-time">20:47</div>
+        <div class="moment-text">
+            <p>isch wenn de dritte Satz fertig isch.</p>
+
+            <p>Padel-Spiel. 90 Minute gbuecht. Start um 19:00. De dritte Satz endet im Schnitt um 20:42. Föif Minute zum Schnuufe. Handschlag. Garderobe.</p>
+
+            <p class="standalone">Denn: Bar.</p>
+
+            <p>20:47 isch wenn du aakunsch.</p>
+
+            <p class="emphasis">Ohni bstellt z'ha.</p>
+
+            <p>Din Drink stoht scho da.</p>
+
+            <p>De Simon hinder de Bar het en gmacht bevor du cho bisch. Er seit, er <span class="emphasis">"hets gspürt."</span> Er seit das jedes Mal. Er meints jedes Mal.</p>
+
+            <p>Um 20:47 gaht d'Türe uf. S'Liecht vo de Courts — 1000 Lux LED — mischt sich mit em Bar-Liecht. <span class="emphasis">Für genau drei Sekunde isch alles orange.</span></p>
+
+            <p>De Moment wo du i dem Orange stosch, bisch du nöd i Bade.</p>
+
+            <p class="standalone">Du bisch nirgends.</p>
+
+            <p>Und denn bisch du a de Bar und dis Aperol stoht vor dir und du hesch nie gwüsst dass du's wotsch aber du wotsch es.</p>
+        </div>
+    </section>
+
+    <!-- Aperol Section -->
+    <section class="aperol">
+        <div class="aperol-bg"></div>
+        <div class="aperol-content">
+            <h2 class="aperol-headline">De Simon het's gwüsst bevor du's gwüsst hesch.</h2>
+            <div class="aperol-text">
+                <p>Er stoht hinder de Bar sit föif Jahr. Er kennt d'Ritual. Er kennt d'Gsichter.</p>
+                <p>Wenn d'Türe ufgaht um <span class="aperol-name">20:47</span>, stoht din Drink scho da.</p>
+                <p>Noed well's programmiert isch. Well's <span class="aperol-name">gspürt</span> isch.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Facilities Section -->
+    <section class="facilities">
+        <div class="facilities-inner">
+            <div class="facilities-header">
+                <h2 class="facilities-title">Was vor 20:47 passiert</h2>
+            </div>
+            <div class="facilities-grid">
+                <div class="facility">
+                    <div class="facility-number">7</div>
+                    <div class="facility-label">Padel Courts</div>
+                    <div class="facility-detail">Indoor, ganzjährig</div>
+                </div>
+                <div class="facility">
+                    <div class="facility-number">90</div>
+                    <div class="facility-label">Minute pro Spiel</div>
+                    <div class="facility-detail">Drei Sätz, kei Kompromiss</div>
+                </div>
+                <div class="facility">
+                    <div class="facility-number">1</div>
+                    <div class="facility-label">Bar</div>
+                    <div class="facility-detail">Wo alles endet</div>
+                </div>
+                <div class="facility">
+                    <div class="facility-number">3</div>
+                    <div class="facility-label">Sekunde Orange</div>
+                    <div class="facility-detail">Wenn d'Türe ufgaht</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Courts Image -->
+    <section class="courts-image">
+        <div class="courts-image-bg"></div>
+    </section>
+
+    <!-- CTA Section -->
+    <section class="cta-section" id="booking">
+        <div class="cta-inner">
+            <div class="cta-time">20:47</div>
+            <h2 class="cta-headline">De Moment wo du ufhörsch z'trainiere und afohsch z'sii.</h2>
+            <p class="cta-subline">Court buche. Spiele. De Räscht passiert vo selber.</p>
+            <a href="#" class="cta-button">Dä Moment buche</a>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <img src="../../images/logo_bareggcenter.png" alt="Bareggcenter Baden" class="footer-logo">
+        <p class="footer-tagline">De Moment wo du ufhörsch z'trainiere und afohsch z'sii.</p>
+        <p class="footer-location">Bareggcenter Baden</p>
+        <p class="footer-address">Badenerstrasse, 5400 Baden</p>
+        <div class="footer-bottom">
+            <p class="footer-time">20:47</p>
+        </div>
+    </footer>
+
+</body>
+</html>

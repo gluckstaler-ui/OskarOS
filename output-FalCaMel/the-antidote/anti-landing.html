@@ -1,0 +1,725 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FalCaMel Cafe | The Antidote</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&family=Source+Serif+Pro:ital,wght@0,300;0,400;0,600;1,400&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --sage-green: #8B9A7B;
+            --soft-cream: #F5F3EE;
+            --stone-gray: #6B6B6B;
+            --warm-gold: #B8A179;
+            --deep-sage: #6B7A5B;
+            --light-sage: #A8B89B;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        body {
+            font-family: 'Source Serif Pro', Georgia, serif;
+            background-color: var(--soft-cream);
+            color: var(--stone-gray);
+            line-height: 1.7;
+            font-size: 18px;
+        }
+
+        h1, h2, h3, h4 {
+            font-family: 'Libre Baskerville', Georgia, serif;
+            font-weight: 400;
+            color: var(--stone-gray);
+        }
+
+        /* Hero Section */
+        .hero {
+            min-height: 100vh;
+            background: linear-gradient(to bottom, rgba(0,0,0,0.3), rgba(0,0,0,0.5)), url('../../images/hero-night.jpeg');
+            background-size: cover;
+            background-position: center;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            padding: 2rem;
+            position: relative;
+        }
+
+        .hero-content {
+            max-width: 800px;
+        }
+
+        .hero h1 {
+            font-size: clamp(2.5rem, 6vw, 4.5rem);
+            color: var(--soft-cream);
+            margin-bottom: 1.5rem;
+            letter-spacing: 0.02em;
+            line-height: 1.2;
+        }
+
+        .hero-subline {
+            font-size: clamp(1.1rem, 2.5vw, 1.4rem);
+            color: var(--soft-cream);
+            opacity: 0.9;
+            max-width: 600px;
+            margin: 0 auto 2.5rem;
+            font-style: italic;
+            line-height: 1.8;
+        }
+
+        .btn-primary {
+            display: inline-block;
+            padding: 1rem 2.5rem;
+            background-color: var(--sage-green);
+            color: var(--soft-cream);
+            text-decoration: none;
+            font-family: 'Libre Baskerville', serif;
+            font-size: 1rem;
+            letter-spacing: 0.1em;
+            transition: all 0.3s ease;
+            border: 2px solid var(--sage-green);
+        }
+
+        .btn-primary:hover {
+            background-color: transparent;
+            border-color: var(--soft-cream);
+        }
+
+        /* Section Styling */
+        section {
+            padding: 6rem 2rem;
+        }
+
+        .container {
+            max-width: 1100px;
+            margin: 0 auto;
+        }
+
+        .section-title {
+            font-size: clamp(1.8rem, 4vw, 2.5rem);
+            margin-bottom: 1rem;
+            text-align: center;
+        }
+
+        .section-subtitle {
+            text-align: center;
+            font-style: italic;
+            color: var(--sage-green);
+            margin-bottom: 3rem;
+            font-size: 1.1rem;
+        }
+
+        /* The Lounge */
+        .lounge {
+            background-color: var(--soft-cream);
+            text-align: center;
+        }
+
+        .lounge-content {
+            max-width: 700px;
+            margin: 0 auto;
+        }
+
+        .lounge p {
+            font-size: 1.2rem;
+            margin-bottom: 1.5rem;
+            line-height: 2;
+        }
+
+        .lounge-emphasis {
+            color: var(--sage-green);
+            font-style: italic;
+            font-size: 1.3rem;
+            margin-top: 2rem;
+        }
+
+        /* Residents */
+        .residents {
+            background-color: #E8E6E1;
+        }
+
+        .residents-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 2.5rem;
+            margin-top: 3rem;
+        }
+
+        .resident-card {
+            background: var(--soft-cream);
+            padding: 2rem;
+            text-align: center;
+            transition: transform 0.3s ease;
+        }
+
+        .resident-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .resident-image {
+            width: 180px;
+            height: 180px;
+            object-fit: cover;
+            border-radius: 50%;
+            margin-bottom: 1.5rem;
+            filter: grayscale(20%);
+            transition: filter 0.3s ease;
+        }
+
+        .resident-card:hover .resident-image {
+            filter: grayscale(0%);
+        }
+
+        .resident-name {
+            font-family: 'Libre Baskerville', serif;
+            font-size: 1.4rem;
+            color: var(--stone-gray);
+            margin-bottom: 0.5rem;
+        }
+
+        .resident-price {
+            color: var(--warm-gold);
+            font-size: 0.95rem;
+            margin-bottom: 1rem;
+            letter-spacing: 0.05em;
+        }
+
+        .resident-tagline {
+            font-style: italic;
+            color: var(--sage-green);
+            font-size: 1rem;
+        }
+
+        /* The Contrast */
+        .contrast {
+            background: linear-gradient(135deg, var(--sage-green) 0%, var(--deep-sage) 100%);
+            color: var(--soft-cream);
+            text-align: center;
+        }
+
+        .contrast h2 {
+            color: var(--soft-cream);
+        }
+
+        .contrast-grid {
+            display: grid;
+            grid-template-columns: 1fr auto 1fr;
+            gap: 3rem;
+            align-items: center;
+            max-width: 900px;
+            margin: 3rem auto 0;
+        }
+
+        .contrast-column {
+            padding: 2rem;
+        }
+
+        .contrast-column h3 {
+            font-size: 1.3rem;
+            margin-bottom: 1.5rem;
+            color: var(--soft-cream);
+            opacity: 0.9;
+        }
+
+        .contrast-column ul {
+            list-style: none;
+            font-size: 1.1rem;
+            line-height: 2.2;
+        }
+
+        .contrast-divider {
+            width: 1px;
+            height: 200px;
+            background: rgba(255,255,255,0.3);
+        }
+
+        .contrast-down {
+            opacity: 0.7;
+        }
+
+        .contrast-up {
+            font-style: italic;
+        }
+
+        .contrast-tagline {
+            margin-top: 3rem;
+            font-size: 1.4rem;
+            font-style: italic;
+            opacity: 0.95;
+        }
+
+        /* Menu */
+        .menu {
+            background-color: var(--soft-cream);
+        }
+
+        .menu-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 3rem;
+            margin-top: 3rem;
+        }
+
+        .menu-category h3 {
+            font-size: 1.3rem;
+            color: var(--sage-green);
+            margin-bottom: 1.5rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 1px solid var(--light-sage);
+        }
+
+        .menu-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            padding: 0.8rem 0;
+            border-bottom: 1px dotted #D5D3CE;
+        }
+
+        .menu-item-name {
+            font-family: 'Libre Baskerville', serif;
+            font-size: 1rem;
+        }
+
+        .menu-item-price {
+            color: var(--warm-gold);
+            font-size: 0.95rem;
+            white-space: nowrap;
+            margin-left: 1rem;
+        }
+
+        /* Experiences */
+        .experiences {
+            background-color: #E8E6E1;
+        }
+
+        .experience-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+            margin-top: 3rem;
+        }
+
+        .experience-card {
+            background: var(--soft-cream);
+            padding: 2.5rem;
+            text-align: center;
+        }
+
+        .experience-name {
+            font-family: 'Libre Baskerville', serif;
+            font-size: 1.5rem;
+            color: var(--stone-gray);
+            margin-bottom: 0.75rem;
+        }
+
+        .experience-price {
+            color: var(--warm-gold);
+            font-size: 1.1rem;
+            margin-bottom: 1.5rem;
+            letter-spacing: 0.05em;
+        }
+
+        .experience-description {
+            font-style: italic;
+            color: var(--sage-green);
+            line-height: 1.8;
+        }
+
+        /* Royal */
+        .royal {
+            background: linear-gradient(to right, var(--warm-gold), #C4AD89);
+            text-align: center;
+            color: var(--soft-cream);
+            padding: 5rem 2rem;
+        }
+
+        .royal h2 {
+            color: var(--soft-cream);
+            font-size: clamp(2rem, 4vw, 2.8rem);
+        }
+
+        .royal-price {
+            font-size: 2rem;
+            margin: 1.5rem 0;
+            letter-spacing: 0.1em;
+        }
+
+        .royal-tagline {
+            font-style: italic;
+            font-size: 1.3rem;
+            opacity: 0.95;
+            max-width: 500px;
+            margin: 0 auto;
+        }
+
+        /* Location */
+        .location {
+            background-color: var(--soft-cream);
+            text-align: center;
+        }
+
+        .location-content {
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .location p {
+            font-size: 1.2rem;
+            margin-bottom: 1rem;
+            line-height: 1.9;
+        }
+
+        .location-hours {
+            margin-top: 2rem;
+            padding-top: 2rem;
+            border-top: 1px solid var(--light-sage);
+        }
+
+        .location-hours span {
+            display: block;
+            font-style: italic;
+            color: var(--sage-green);
+            font-size: 1.1rem;
+        }
+
+        /* CTA */
+        .cta {
+            background: var(--stone-gray);
+            text-align: center;
+            padding: 5rem 2rem;
+        }
+
+        .cta h2 {
+            color: var(--soft-cream);
+            font-size: clamp(1.8rem, 4vw, 2.5rem);
+            margin-bottom: 1rem;
+        }
+
+        .cta-subline {
+            color: var(--light-sage);
+            font-style: italic;
+            font-size: 1.2rem;
+            margin-bottom: 2rem;
+        }
+
+        .btn-secondary {
+            display: inline-block;
+            padding: 1rem 2.5rem;
+            background-color: transparent;
+            color: var(--soft-cream);
+            text-decoration: none;
+            font-family: 'Libre Baskerville', serif;
+            font-size: 1rem;
+            letter-spacing: 0.1em;
+            border: 2px solid var(--sage-green);
+            transition: all 0.3s ease;
+        }
+
+        .btn-secondary:hover {
+            background-color: var(--sage-green);
+        }
+
+        /* Footer */
+        footer {
+            background-color: #3A3A3A;
+            color: var(--soft-cream);
+            text-align: center;
+            padding: 3rem 2rem;
+        }
+
+        .footer-logo {
+            font-family: 'Libre Baskerville', serif;
+            font-size: 1.5rem;
+            margin-bottom: 1rem;
+            letter-spacing: 0.05em;
+        }
+
+        .footer-tagline {
+            font-style: italic;
+            opacity: 0.8;
+            font-size: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .footer-location {
+            font-size: 0.9rem;
+            opacity: 0.6;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            section {
+                padding: 4rem 1.5rem;
+            }
+
+            .contrast-grid {
+                grid-template-columns: 1fr;
+                gap: 2rem;
+            }
+
+            .contrast-divider {
+                width: 100px;
+                height: 1px;
+                margin: 0 auto;
+            }
+
+            .residents-grid {
+                grid-template-columns: 1fr 1fr;
+                gap: 1.5rem;
+            }
+
+            .resident-image {
+                width: 120px;
+                height: 120px;
+            }
+
+            .menu-grid {
+                gap: 2rem;
+            }
+        }
+
+        @media (max-width: 500px) {
+            .residents-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .resident-image {
+                width: 150px;
+                height: 150px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Hero -->
+    <section class="hero">
+        <div class="hero-content">
+            <h1>They Scream. You Watch.</h1>
+            <p class="hero-subline">200 meters above the chaos. The world's fastest coaster is down there. You're up here. With coffee.</p>
+            <a href="#lounge" class="btn-primary">Find Your Seat</a>
+        </div>
+    </section>
+
+    <!-- The Lounge -->
+    <section class="lounge" id="lounge">
+        <div class="container">
+            <h2 class="section-title">Where Nothing Is Required</h2>
+            <div class="lounge-content">
+                <p>Walk in. Sit. Breathe.</p>
+                <p>No reservation needed. No agenda. No rush. The door is always open for those who need what we offer.</p>
+                <p class="lounge-emphasis">The door is always open.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- The Residents -->
+    <section class="residents">
+        <div class="container">
+            <h2 class="section-title">The Residents</h2>
+            <p class="section-subtitle">Companions in stillness</p>
+            <div class="residents-grid">
+                <div class="resident-card">
+                    <img src="../../images/sultan.jpg" alt="Sultan the falcon" class="resident-image">
+                    <h3 class="resident-name">Sultan</h3>
+                    <p class="resident-price">SAR 350 / hour</p>
+                    <p class="resident-tagline">Watches. Waits. Dives when ready.</p>
+                </div>
+                <div class="resident-card">
+                    <img src="../../images/haboob.jpg" alt="Haboob the camel" class="resident-image">
+                    <h3 class="resident-name">Haboob</h3>
+                    <p class="resident-price">SAR 500 / hour</p>
+                    <p class="resident-tagline">Unbothered. Magnificent. Present.</p>
+                </div>
+                <div class="resident-card">
+                    <img src="../../images/shams.jpg" alt="Shams the ginger cat" class="resident-image">
+                    <h3 class="resident-name">Shams</h3>
+                    <p class="resident-price">SAR 150 / hour</p>
+                    <p class="resident-tagline">The art of not caring.</p>
+                </div>
+                <div class="resident-card">
+                    <img src="../../images/qamar.jpg" alt="Qamar the black cat" class="resident-image">
+                    <h3 class="resident-name">Qamar</h3>
+                    <p class="resident-price">SAR 150 / hour</p>
+                    <p class="resident-tagline">Appears when you need her.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- The Contrast -->
+    <section class="contrast">
+        <div class="container">
+            <h2 class="section-title">The Contrast</h2>
+            <div class="contrast-grid">
+                <div class="contrast-column contrast-down">
+                    <h3>Down There</h3>
+                    <ul>
+                        <li>Screaming</li>
+                        <li>Lines</li>
+                        <li>Chaos</li>
+                        <li>Exhaustion</li>
+                    </ul>
+                </div>
+                <div class="contrast-divider"></div>
+                <div class="contrast-column contrast-up">
+                    <h3>Up Here</h3>
+                    <ul>
+                        <li>Coffee</li>
+                        <li>Cliff</li>
+                        <li>Quiet</li>
+                        <li>Stillness</li>
+                    </ul>
+                </div>
+            </div>
+            <p class="contrast-tagline">The antidote to exhaustion.</p>
+        </div>
+    </section>
+
+    <!-- Menu -->
+    <section class="menu">
+        <div class="container">
+            <h2 class="section-title">Rest</h2>
+            <p class="section-subtitle">Take your time</p>
+            <div class="menu-grid">
+                <div class="menu-category">
+                    <h3>Qahwa</h3>
+                    <div class="menu-item">
+                        <span class="menu-item-name">Jareen Single Origin</span>
+                        <span class="menu-item-price">SAR 25</span>
+                    </div>
+                    <div class="menu-item">
+                        <span class="menu-item-name">House Blend</span>
+                        <span class="menu-item-price">SAR 18</span>
+                    </div>
+                    <div class="menu-item">
+                        <span class="menu-item-name">Traditional Qahwa</span>
+                        <span class="menu-item-price">SAR 20</span>
+                    </div>
+                </div>
+                <div class="menu-category">
+                    <h3>Lattes</h3>
+                    <div class="menu-item">
+                        <span class="menu-item-name">Camel Milk Latte</span>
+                        <span class="menu-item-price">SAR 35</span>
+                    </div>
+                    <div class="menu-item">
+                        <span class="menu-item-name">Highland Honey Latte</span>
+                        <span class="menu-item-price">SAR 40</span>
+                    </div>
+                </div>
+                <div class="menu-category">
+                    <h3>Cold</h3>
+                    <div class="menu-item">
+                        <span class="menu-item-name">Jallab</span>
+                        <span class="menu-item-price">SAR 22</span>
+                    </div>
+                    <div class="menu-item">
+                        <span class="menu-item-name">Lemon Mint</span>
+                        <span class="menu-item-price">SAR 18</span>
+                    </div>
+                </div>
+                <div class="menu-category">
+                    <h3>Sweets</h3>
+                    <div class="menu-item">
+                        <span class="menu-item-name">Luqaimat</span>
+                        <span class="menu-item-price">SAR 20</span>
+                    </div>
+                    <div class="menu-item">
+                        <span class="menu-item-name">Kunafa</span>
+                        <span class="menu-item-price">SAR 35</span>
+                    </div>
+                    <div class="menu-item">
+                        <span class="menu-item-name">Ma'amoul</span>
+                        <span class="menu-item-price">SAR 25</span>
+                    </div>
+                </div>
+                <div class="menu-category">
+                    <h3>Savory</h3>
+                    <div class="menu-item">
+                        <span class="menu-item-name">Sambusa</span>
+                        <span class="menu-item-price">SAR 20</span>
+                    </div>
+                    <div class="menu-item">
+                        <span class="menu-item-name">Mutabbaq</span>
+                        <span class="menu-item-price">SAR 28</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Experiences -->
+    <section class="experiences">
+        <div class="container">
+            <h2 class="section-title">The Full FalCaMel</h2>
+            <p class="section-subtitle">Evening programs</p>
+            <div class="experience-cards">
+                <div class="experience-card">
+                    <h3 class="experience-name">The Race</h3>
+                    <p class="experience-price">SAR 2,000</p>
+                    <p class="experience-description">Watch from above. No screaming required.</p>
+                </div>
+                <div class="experience-card">
+                    <h3 class="experience-name">The Sunset Ride</h3>
+                    <p class="experience-price">SAR 2,000</p>
+                    <p class="experience-description">Slow. Steady. Golden.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Royal -->
+    <section class="royal">
+        <div class="container">
+            <h2>The Royal FalCaMel</h2>
+            <p class="royal-price">SAR 7,500</p>
+            <p class="royal-tagline">Complete stillness. The whole cliff.</p>
+        </div>
+    </section>
+
+    <!-- Location -->
+    <section class="location">
+        <div class="container">
+            <h2 class="section-title">Above Qiddiya</h2>
+            <div class="location-content">
+                <p>Away from it all.</p>
+                <p>200 meters up. Where the noise fades and the coffee stays hot.</p>
+                <div class="location-hours">
+                    <span>4 PM - 2 AM</span>
+                    <span>Every day the chaos runs</span>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- CTA -->
+    <section class="cta">
+        <div class="container">
+            <h2>Your seat is waiting.</h2>
+            <p class="cta-subline">No rush. It will still be here.</p>
+            <a href="#" class="btn-secondary">Find Your Seat</a>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer>
+        <div class="footer-logo">FalCaMel Cafe</div>
+        <p class="footer-tagline">The antidote to exhaustion.</p>
+        <p class="footer-location">Tuwaiq Escarpment, above Qiddiya</p>
+    </footer>
+
+</body>
+</html>

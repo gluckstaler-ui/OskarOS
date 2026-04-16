@@ -1,0 +1,7 @@
+{
+  "action": "start-session",
+  "payload": {
+    "businessName": "Schallplatte",
+    "businessDescription": "Hi! I am starting a new business in Bern, Switzerland. It is a listening bar called Schallplatte. People come to listen to vinyl records on high-end audio equipment while drinking craft cocktails. We do not have any photos yet - the space is still being built out. The concept is inspired by Japanese kissaten coffee shops but for music. Very intimate, maybe 20 seats max. Opening in 3 months."
+  }
+}

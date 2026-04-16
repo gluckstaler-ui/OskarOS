@@ -1,0 +1,1334 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FalCaMel Cafe | From the Highlands to the Edge</title>
+    <link href="https://fonts.googleapis.com/css2?family=Merriweather:wght@300;400;700;900&family=Lora:ital,wght@0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --forest-green: #2D4A3E;
+            --warm-amber: #C4956A;
+            --cream: #FBF8F3;
+            --deep-brown: #3E2723;
+            --dark-green: #1E3329;
+            --light-amber: #D4A574;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        body {
+            font-family: 'Lora', serif;
+            background-color: var(--cream);
+            color: var(--deep-brown);
+            line-height: 1.7;
+        }
+
+        h1, h2, h3, h4, h5, h6 {
+            font-family: 'Merriweather', serif;
+            font-weight: 700;
+            line-height: 1.3;
+        }
+
+        /* Navigation */
+        nav {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            background: rgba(45, 74, 62, 0.95);
+            backdrop-filter: blur(10px);
+            z-index: 1000;
+            padding: 1rem 2rem;
+        }
+
+        .nav-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .nav-logo {
+            font-family: 'Merriweather', serif;
+            font-size: 1.5rem;
+            color: var(--cream);
+            text-decoration: none;
+            font-weight: 700;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 2rem;
+            list-style: none;
+        }
+
+        .nav-links a {
+            color: var(--cream);
+            text-decoration: none;
+            font-size: 0.95rem;
+            opacity: 0.9;
+            transition: opacity 0.3s;
+        }
+
+        .nav-links a:hover {
+            opacity: 1;
+        }
+
+        .nav-cta {
+            background: var(--warm-amber);
+            color: var(--deep-brown);
+            padding: 0.6rem 1.5rem;
+            border-radius: 4px;
+            text-decoration: none;
+            font-weight: 600;
+            transition: background 0.3s;
+        }
+
+        .nav-cta:hover {
+            background: var(--light-amber);
+        }
+
+        /* Hero Section */
+        .hero {
+            min-height: 100vh;
+            background: linear-gradient(rgba(30, 51, 41, 0.6), rgba(30, 51, 41, 0.7)), url('../../images/asir-highlands.jpg');
+            background-size: cover;
+            background-position: center;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 2rem;
+            position: relative;
+        }
+
+        .hero-content {
+            max-width: 900px;
+            color: var(--cream);
+        }
+
+        .hero-tag {
+            font-size: 0.9rem;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+            color: var(--warm-amber);
+            margin-bottom: 1.5rem;
+        }
+
+        .hero h1 {
+            font-size: clamp(2.5rem, 6vw, 4.5rem);
+            font-weight: 900;
+            margin-bottom: 1.5rem;
+            line-height: 1.1;
+        }
+
+        .hero-subline {
+            font-size: clamp(1.1rem, 2.5vw, 1.4rem);
+            font-style: italic;
+            opacity: 0.95;
+            margin-bottom: 2.5rem;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .hero-cta {
+            display: inline-block;
+            background: var(--warm-amber);
+            color: var(--deep-brown);
+            padding: 1rem 2.5rem;
+            font-size: 1.1rem;
+            font-weight: 600;
+            text-decoration: none;
+            border-radius: 4px;
+            transition: all 0.3s;
+        }
+
+        .hero-cta:hover {
+            background: var(--cream);
+            transform: translateY(-2px);
+        }
+
+        /* Section Base */
+        section {
+            padding: 6rem 2rem;
+        }
+
+        .section-container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .section-tag {
+            font-size: 0.85rem;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            color: var(--warm-amber);
+            margin-bottom: 1rem;
+        }
+
+        .section-title {
+            font-size: clamp(2rem, 4vw, 3rem);
+            color: var(--forest-green);
+            margin-bottom: 1.5rem;
+        }
+
+        /* The Lounge Section */
+        .lounge {
+            background: var(--forest-green);
+            color: var(--cream);
+        }
+
+        .lounge-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 4rem;
+            align-items: center;
+        }
+
+        .lounge-content .section-title {
+            color: var(--cream);
+        }
+
+        .lounge-text {
+            font-size: 1.15rem;
+            opacity: 0.95;
+            margin-bottom: 1.5rem;
+        }
+
+        .lounge-detail {
+            font-style: italic;
+            color: var(--warm-amber);
+            font-size: 1rem;
+        }
+
+        .lounge-image {
+            position: relative;
+        }
+
+        .lounge-image img {
+            width: 100%;
+            border-radius: 8px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        }
+
+        /* Origin Section */
+        .origin {
+            background: var(--cream);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .origin::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, var(--warm-amber), transparent);
+        }
+
+        .origin-content {
+            display: grid;
+            grid-template-columns: 1.2fr 1fr;
+            gap: 4rem;
+            align-items: center;
+        }
+
+        .origin-story {
+            font-size: 1.1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .origin-stats {
+            display: flex;
+            gap: 3rem;
+            margin-top: 2rem;
+            padding-top: 2rem;
+            border-top: 1px solid rgba(62, 39, 35, 0.1);
+        }
+
+        .stat {
+            text-align: center;
+        }
+
+        .stat-number {
+            font-family: 'Merriweather', serif;
+            font-size: 2.5rem;
+            font-weight: 900;
+            color: var(--forest-green);
+            display: block;
+        }
+
+        .stat-label {
+            font-size: 0.85rem;
+            color: var(--warm-amber);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .origin-visual {
+            position: relative;
+        }
+
+        .origin-visual img {
+            width: 100%;
+            border-radius: 8px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+        }
+
+        .elevation-badge {
+            position: absolute;
+            bottom: -20px;
+            right: 20px;
+            background: var(--forest-green);
+            color: var(--cream);
+            padding: 1rem 1.5rem;
+            border-radius: 4px;
+            text-align: center;
+        }
+
+        .elevation-badge span {
+            font-family: 'Merriweather', serif;
+            font-size: 1.8rem;
+            font-weight: 700;
+            display: block;
+        }
+
+        .elevation-badge small {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            opacity: 0.8;
+        }
+
+        /* Residents Section */
+        .residents {
+            background: var(--dark-green);
+            color: var(--cream);
+        }
+
+        .residents .section-title {
+            color: var(--cream);
+            text-align: center;
+            margin-bottom: 0.5rem;
+        }
+
+        .residents-intro {
+            text-align: center;
+            max-width: 600px;
+            margin: 0 auto 4rem;
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+
+        .residents-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 2rem;
+        }
+
+        .resident-card {
+            background: rgba(251, 248, 243, 0.05);
+            border-radius: 8px;
+            overflow: hidden;
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+
+        .resident-card:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+        }
+
+        .resident-image {
+            width: 100%;
+            height: 220px;
+            object-fit: cover;
+        }
+
+        .resident-info {
+            padding: 1.5rem;
+        }
+
+        .resident-name {
+            font-family: 'Merriweather', serif;
+            font-size: 1.3rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .resident-story {
+            font-style: italic;
+            color: var(--warm-amber);
+            font-size: 0.95rem;
+            margin-bottom: 1rem;
+            line-height: 1.5;
+        }
+
+        .resident-price {
+            font-size: 0.9rem;
+            opacity: 0.8;
+        }
+
+        .resident-price strong {
+            font-family: 'Merriweather', serif;
+            font-size: 1.1rem;
+            color: var(--warm-amber);
+        }
+
+        /* Menu Section */
+        .menu {
+            background: var(--cream);
+        }
+
+        .menu .section-title {
+            text-align: center;
+        }
+
+        .menu-intro {
+            text-align: center;
+            max-width: 600px;
+            margin: 0 auto 3rem;
+            font-size: 1.1rem;
+        }
+
+        .menu-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 2.5rem;
+        }
+
+        .menu-category {
+            background: white;
+            padding: 2rem;
+            border-radius: 8px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
+        }
+
+        .menu-category-title {
+            font-family: 'Merriweather', serif;
+            font-size: 1.3rem;
+            color: var(--forest-green);
+            margin-bottom: 1.5rem;
+            padding-bottom: 0.75rem;
+            border-bottom: 2px solid var(--warm-amber);
+        }
+
+        .menu-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 1.25rem;
+            padding-bottom: 1.25rem;
+            border-bottom: 1px solid rgba(62, 39, 35, 0.08);
+        }
+
+        .menu-item:last-child {
+            margin-bottom: 0;
+            padding-bottom: 0;
+            border-bottom: none;
+        }
+
+        .menu-item-info {
+            flex: 1;
+            padding-right: 1rem;
+        }
+
+        .menu-item-name {
+            font-weight: 600;
+            color: var(--deep-brown);
+            margin-bottom: 0.25rem;
+        }
+
+        .menu-item-desc {
+            font-size: 0.85rem;
+            font-style: italic;
+            color: var(--warm-amber);
+        }
+
+        .menu-item-price {
+            font-family: 'Merriweather', serif;
+            font-weight: 700;
+            color: var(--forest-green);
+            white-space: nowrap;
+        }
+
+        /* Featured Item */
+        .featured-item {
+            background: var(--forest-green);
+            color: var(--cream);
+            padding: 2.5rem;
+            border-radius: 8px;
+            margin-top: 3rem;
+            display: grid;
+            grid-template-columns: auto 1fr auto;
+            gap: 2rem;
+            align-items: center;
+        }
+
+        .featured-badge {
+            background: var(--warm-amber);
+            color: var(--deep-brown);
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .featured-content h3 {
+            font-size: 1.5rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .featured-content p {
+            opacity: 0.9;
+            font-style: italic;
+        }
+
+        .featured-price {
+            font-family: 'Merriweather', serif;
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--warm-amber);
+        }
+
+        /* Highland Flight Section */
+        .highland-flight {
+            background: linear-gradient(135deg, var(--forest-green) 0%, var(--dark-green) 100%);
+            color: var(--cream);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .highland-flight::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: url('../../images/asir-highlands.jpg');
+            background-size: cover;
+            background-position: center;
+            opacity: 0.15;
+        }
+
+        .highland-content {
+            position: relative;
+            z-index: 1;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 4rem;
+            align-items: center;
+        }
+
+        .highland-flight .section-title {
+            color: var(--cream);
+        }
+
+        .highland-price {
+            font-family: 'Merriweather', serif;
+            font-size: 3rem;
+            font-weight: 900;
+            color: var(--warm-amber);
+            margin-bottom: 1.5rem;
+        }
+
+        .highland-price span {
+            font-size: 1rem;
+            font-weight: 400;
+            opacity: 0.8;
+        }
+
+        .highland-desc {
+            font-size: 1.15rem;
+            margin-bottom: 2rem;
+            opacity: 0.95;
+        }
+
+        .highland-features {
+            list-style: none;
+        }
+
+        .highland-features li {
+            padding: 0.75rem 0;
+            border-bottom: 1px solid rgba(251, 248, 243, 0.1);
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .highland-features li::before {
+            content: '';
+            width: 8px;
+            height: 8px;
+            background: var(--warm-amber);
+            border-radius: 50%;
+        }
+
+        .highland-visual {
+            text-align: center;
+        }
+
+        .highland-visual img {
+            max-width: 300px;
+            border-radius: 8px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        }
+
+        /* Evening Programs */
+        .evening {
+            background: var(--cream);
+        }
+
+        .evening .section-title {
+            text-align: center;
+        }
+
+        .evening-intro {
+            text-align: center;
+            max-width: 600px;
+            margin: 0 auto 3rem;
+            font-size: 1.1rem;
+        }
+
+        .evening-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+        }
+
+        .evening-card {
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .evening-card-content {
+            padding: 2rem;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .evening-card h3 {
+            font-size: 1.5rem;
+            color: var(--forest-green);
+            margin-bottom: 1rem;
+        }
+
+        .evening-card p {
+            flex: 1;
+            margin-bottom: 1.5rem;
+        }
+
+        .evening-card-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-top: 1rem;
+            border-top: 1px solid rgba(62, 39, 35, 0.1);
+        }
+
+        .evening-price {
+            font-family: 'Merriweather', serif;
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--forest-green);
+        }
+
+        /* Royal Section */
+        .royal {
+            background: var(--deep-brown);
+            color: var(--cream);
+            text-align: center;
+        }
+
+        .royal .section-tag {
+            color: var(--light-amber);
+        }
+
+        .royal .section-title {
+            color: var(--cream);
+            font-size: clamp(2.5rem, 5vw, 3.5rem);
+        }
+
+        .royal-price {
+            font-family: 'Merriweather', serif;
+            font-size: 4rem;
+            font-weight: 900;
+            color: var(--warm-amber);
+            margin: 2rem 0;
+        }
+
+        .royal-tagline {
+            font-size: 1.3rem;
+            font-style: italic;
+            opacity: 0.9;
+            margin-bottom: 2rem;
+        }
+
+        .royal-features {
+            display: flex;
+            justify-content: center;
+            gap: 3rem;
+            flex-wrap: wrap;
+            margin-bottom: 3rem;
+        }
+
+        .royal-feature {
+            text-align: center;
+        }
+
+        .royal-feature-icon {
+            font-size: 2rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .royal-feature span {
+            display: block;
+            font-size: 0.9rem;
+            opacity: 0.8;
+        }
+
+        .royal-cta {
+            display: inline-block;
+            background: var(--warm-amber);
+            color: var(--deep-brown);
+            padding: 1.2rem 3rem;
+            font-size: 1.1rem;
+            font-weight: 600;
+            text-decoration: none;
+            border-radius: 4px;
+            transition: all 0.3s;
+        }
+
+        .royal-cta:hover {
+            background: var(--cream);
+            transform: translateY(-2px);
+        }
+
+        /* Location Section */
+        .location {
+            background: var(--forest-green);
+            color: var(--cream);
+        }
+
+        .location-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 4rem;
+            align-items: center;
+        }
+
+        .location .section-title {
+            color: var(--cream);
+        }
+
+        .location-text {
+            font-size: 1.15rem;
+            margin-bottom: 2rem;
+            opacity: 0.95;
+        }
+
+        .location-details {
+            list-style: none;
+        }
+
+        .location-details li {
+            padding: 1rem 0;
+            border-bottom: 1px solid rgba(251, 248, 243, 0.1);
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .location-details li:last-child {
+            border-bottom: none;
+        }
+
+        .location-label {
+            opacity: 0.7;
+        }
+
+        .location-value {
+            font-weight: 600;
+            color: var(--warm-amber);
+        }
+
+        .location-map {
+            background: rgba(251, 248, 243, 0.1);
+            border-radius: 8px;
+            height: 400px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .location-map::before {
+            content: 'Tuwaiq Escarpment';
+            font-family: 'Merriweather', serif;
+            font-size: 1.5rem;
+            color: var(--warm-amber);
+        }
+
+        /* Footer */
+        footer {
+            background: var(--deep-brown);
+            color: var(--cream);
+            padding: 4rem 2rem 2rem;
+        }
+
+        .footer-content {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .footer-top {
+            display: grid;
+            grid-template-columns: 2fr 1fr 1fr 1fr;
+            gap: 3rem;
+            margin-bottom: 3rem;
+            padding-bottom: 3rem;
+            border-bottom: 1px solid rgba(251, 248, 243, 0.1);
+        }
+
+        .footer-brand h3 {
+            font-size: 1.8rem;
+            margin-bottom: 1rem;
+        }
+
+        .footer-brand p {
+            opacity: 0.8;
+            font-style: italic;
+        }
+
+        .footer-column h4 {
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--warm-amber);
+            margin-bottom: 1rem;
+        }
+
+        .footer-column ul {
+            list-style: none;
+        }
+
+        .footer-column li {
+            margin-bottom: 0.5rem;
+        }
+
+        .footer-column a {
+            color: var(--cream);
+            text-decoration: none;
+            opacity: 0.8;
+            transition: opacity 0.3s;
+        }
+
+        .footer-column a:hover {
+            opacity: 1;
+        }
+
+        .footer-bottom {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            opacity: 0.6;
+            font-size: 0.9rem;
+        }
+
+        /* Mobile Styles */
+        @media (max-width: 1024px) {
+            .residents-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .menu-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+
+            .footer-top {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+
+        @media (max-width: 768px) {
+            nav {
+                padding: 1rem;
+            }
+
+            .nav-links {
+                display: none;
+            }
+
+            .lounge-grid,
+            .origin-content,
+            .highland-content,
+            .location-content,
+            .evening-grid {
+                grid-template-columns: 1fr;
+                gap: 2rem;
+            }
+
+            .residents-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .menu-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .featured-item {
+                grid-template-columns: 1fr;
+                text-align: center;
+            }
+
+            .origin-stats {
+                justify-content: center;
+            }
+
+            .royal-features {
+                flex-direction: column;
+                gap: 1.5rem;
+            }
+
+            .footer-top {
+                grid-template-columns: 1fr;
+                text-align: center;
+            }
+
+            .footer-bottom {
+                flex-direction: column;
+                gap: 1rem;
+                text-align: center;
+            }
+
+            section {
+                padding: 4rem 1.5rem;
+            }
+        }
+
+        /* Smooth animations */
+        @media (prefers-reduced-motion: no-preference) {
+            .resident-card,
+            .menu-category,
+            .evening-card {
+                transition: transform 0.3s ease, box-shadow 0.3s ease;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav>
+        <div class="nav-container">
+            <a href="#" class="nav-logo">FalCaMel</a>
+            <ul class="nav-links">
+                <li><a href="#lounge">The Lounge</a></li>
+                <li><a href="#origin">The Origin</a></li>
+                <li><a href="#residents">Residents</a></li>
+                <li><a href="#menu">Menu</a></li>
+                <li><a href="#experiences">Experiences</a></li>
+            </ul>
+            <a href="#menu" class="nav-cta">Taste the Altitude</a>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="hero">
+        <div class="hero-content">
+            <p class="hero-tag">Where Coffee Tells Its Story</p>
+            <h1>From the Highlands to the Edge.</h1>
+            <p class="hero-subline">Jareen coffee. 2,000 meters of altitude. 200 meters of cliff. One cup.</p>
+            <a href="#lounge" class="hero-cta">Taste the Altitude</a>
+        </div>
+    </section>
+
+    <!-- The Lounge Section -->
+    <section class="lounge" id="lounge">
+        <div class="section-container">
+            <div class="lounge-grid">
+                <div class="lounge-content">
+                    <p class="section-tag">The Lounge</p>
+                    <h2 class="section-title">Where the Story Begins.</h2>
+                    <p class="lounge-text">Walk in. Order qahwa. The highlands come to you in a cup. No reservation needed. Just you, the escarpment, and coffee that traveled 2,000 meters to reach your hands.</p>
+                    <p class="lounge-text">The dallah pours. The cardamom rises. Outside, the Tuwaiq drops into desert. Inside, you hold the terroir of Asir.</p>
+                    <p class="lounge-detail">Open daily. No reservation required for the lounge.</p>
+                </div>
+                <div class="lounge-image">
+                    <img src="../../images/dallah.jpg" alt="Traditional dallah pouring qahwa">
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Origin Section -->
+    <section class="origin" id="origin">
+        <div class="section-container">
+            <div class="origin-content">
+                <div class="origin-text">
+                    <p class="section-tag">The Origin</p>
+                    <h2 class="section-title">Jareen. The Coffee Arabia Almost Forgot.</h2>
+                    <p class="origin-story">In the Asir highlands, where the mountains catch the monsoon mist, terraced farms cling to slopes that seem impossible. Here, one of the only coffees grown in Arabia has survived for centuries.</p>
+                    <p class="origin-story">Jareen is not Yemen. It is not Ethiopia. It is Saudi Arabia's own coffee story, written in elevation and patience. Small farms. Hand-picked cherries. Generations of knowledge compressed into each bean.</p>
+                    <p class="origin-story">When the dallah pours here, 2,000 meters of altitude pour with it. The terroir is not a marketing word. It is the literal earth that shapes what you taste.</p>
+                    <div class="origin-stats">
+                        <div class="stat">
+                            <span class="stat-number">2,000</span>
+                            <span class="stat-label">Meters Elevation</span>
+                        </div>
+                        <div class="stat">
+                            <span class="stat-number">Asir</span>
+                            <span class="stat-label">Region of Origin</span>
+                        </div>
+                        <div class="stat">
+                            <span class="stat-number">200+</span>
+                            <span class="stat-label">Years of Tradition</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="origin-visual">
+                    <img src="../../images/asir-highlands.jpg" alt="Terraced coffee farms of the Asir highlands">
+                    <div class="elevation-badge">
+                        <span>2,000m</span>
+                        <small>Above Sea Level</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Residents Section -->
+    <section class="residents" id="residents">
+        <div class="section-container">
+            <p class="section-tag" style="text-align: center;">The Characters</p>
+            <h2 class="section-title">Every Story Needs Its Cast.</h2>
+            <p class="residents-intro">They live here. They have for years. Each one carries a piece of this place in their presence.</p>
+
+            <div class="residents-grid">
+                <div class="resident-card">
+                    <img src="../../images/sultan.jpg" alt="Sultan the falcon" class="resident-image">
+                    <div class="resident-info">
+                        <h3 class="resident-name">Sultan</h3>
+                        <p class="resident-story">"The falcon who knows these cliffs."</p>
+                        <p class="resident-price"><strong>SAR 350</strong> / hour</p>
+                    </div>
+                </div>
+
+                <div class="resident-card">
+                    <img src="../../images/haboob.jpg" alt="Haboob the camel" class="resident-image">
+                    <div class="resident-info">
+                        <h3 class="resident-name">Haboob</h3>
+                        <p class="resident-story">"His milk tells its own story."</p>
+                        <p class="resident-price"><strong>SAR 500</strong> / hour</p>
+                    </div>
+                </div>
+
+                <div class="resident-card">
+                    <img src="../../images/shams.jpg" alt="Shams the cat" class="resident-image">
+                    <div class="resident-info">
+                        <h3 class="resident-name">Shams</h3>
+                        <p class="resident-story">"Finds the warm spot. Stays."</p>
+                        <p class="resident-price"><strong>SAR 150</strong> / hour</p>
+                    </div>
+                </div>
+
+                <div class="resident-card">
+                    <img src="../../images/qamar.jpg" alt="Qamar the cat" class="resident-image">
+                    <div class="resident-info">
+                        <h3 class="resident-name">Qamar</h3>
+                        <p class="resident-story">"Appears in the story when needed."</p>
+                        <p class="resident-price"><strong>SAR 150</strong> / hour</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Menu Section -->
+    <section class="menu" id="menu">
+        <div class="section-container">
+            <p class="section-tag" style="text-align: center;">The Menu</p>
+            <h2 class="section-title">Every Cup Has a Journey.</h2>
+            <p class="menu-intro">We don't just serve coffee. We serve origins. Every drink here carries the story of where it came from.</p>
+
+            <div class="menu-grid">
+                <div class="menu-category">
+                    <h3 class="menu-category-title">Qahwa</h3>
+                    <div class="menu-item">
+                        <div class="menu-item-info">
+                            <p class="menu-item-name">Jareen Single Origin</p>
+                            <p class="menu-item-desc">2,000m elevation, Asir region</p>
+                        </div>
+                        <span class="menu-item-price">SAR 25</span>
+                    </div>
+                    <div class="menu-item">
+                        <div class="menu-item-info">
+                            <p class="menu-item-name">House Blend</p>
+                            <p class="menu-item-desc">Our daily pour</p>
+                        </div>
+                        <span class="menu-item-price">SAR 18</span>
+                    </div>
+                    <div class="menu-item">
+                        <div class="menu-item-info">
+                            <p class="menu-item-name">Traditional Qahwa</p>
+                            <p class="menu-item-desc">Cardamom, saffron, light roast</p>
+                        </div>
+                        <span class="menu-item-price">SAR 20</span>
+                    </div>
+                </div>
+
+                <div class="menu-category">
+                    <h3 class="menu-category-title">Lattes</h3>
+                    <div class="menu-item">
+                        <div class="menu-item-info">
+                            <p class="menu-item-name">Camel Milk Latte</p>
+                            <p class="menu-item-desc">From Haboob's herd</p>
+                        </div>
+                        <span class="menu-item-price">SAR 35</span>
+                    </div>
+                    <div class="menu-item">
+                        <div class="menu-item-info">
+                            <p class="menu-item-name">Highland Honey Latte</p>
+                            <p class="menu-item-desc">Same honey, same altitude</p>
+                        </div>
+                        <span class="menu-item-price">SAR 40</span>
+                    </div>
+                </div>
+
+                <div class="menu-category">
+                    <h3 class="menu-category-title">Cold</h3>
+                    <div class="menu-item">
+                        <div class="menu-item-info">
+                            <p class="menu-item-name">Jallab</p>
+                            <p class="menu-item-desc">Date syrup, rose water, pine nuts</p>
+                        </div>
+                        <span class="menu-item-price">SAR 22</span>
+                    </div>
+                    <div class="menu-item">
+                        <div class="menu-item-info">
+                            <p class="menu-item-name">Lemon Mint</p>
+                            <p class="menu-item-desc">Fresh pressed</p>
+                        </div>
+                        <span class="menu-item-price">SAR 18</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="menu-grid" style="margin-top: 2.5rem;">
+                <div class="menu-category">
+                    <h3 class="menu-category-title">Sweets</h3>
+                    <div class="menu-item">
+                        <div class="menu-item-info">
+                            <p class="menu-item-name">Luqaimat</p>
+                            <p class="menu-item-desc">Golden dumplings, date syrup</p>
+                        </div>
+                        <span class="menu-item-price">SAR 20</span>
+                    </div>
+                    <div class="menu-item">
+                        <div class="menu-item-info">
+                            <p class="menu-item-name">Kunafa</p>
+                            <p class="menu-item-desc">Crisp threads, sweet cheese</p>
+                        </div>
+                        <span class="menu-item-price">SAR 35</span>
+                    </div>
+                    <div class="menu-item">
+                        <div class="menu-item-info">
+                            <p class="menu-item-name">Ma'amoul</p>
+                            <p class="menu-item-desc">Date-filled semolina cookies</p>
+                        </div>
+                        <span class="menu-item-price">SAR 25</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="featured-item">
+                <span class="featured-badge">The Discovery</span>
+                <div class="featured-content">
+                    <h3>Highland Honey Latte + Luqaimat</h3>
+                    <p>Same honey. Same altitude. The terroir pairing.</p>
+                </div>
+                <span class="featured-price">SAR 60</span>
+            </div>
+        </div>
+    </section>
+
+    <!-- Highland Flight Section -->
+    <section class="highland-flight" id="experiences">
+        <div class="section-container">
+            <div class="highland-content">
+                <div>
+                    <p class="section-tag">The Signature Experience</p>
+                    <h2 class="section-title">The Highland Flight</h2>
+                    <div class="highland-price">SAR 800 <span>/ experience</span></div>
+                    <p class="highland-desc">The terroir experience. Not a tasting. A journey through elevation. From seed to cup, from farm to cliff, the full story of how Jareen coffee reaches your hands.</p>
+                    <ul class="highland-features">
+                        <li>Coffee origin deep-dive with our roaster</li>
+                        <li>Three elevations, three expressions</li>
+                        <li>Highland mist system activated</li>
+                        <li>Paired with Asir honey and dates</li>
+                        <li>The story of Saudi terroir, told in cups</li>
+                    </ul>
+                </div>
+                <div class="highland-visual">
+                    <img src="../../images/luqaimat.jpg" alt="Traditional sweets paired with coffee">
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Evening Programs Section -->
+    <section class="evening">
+        <div class="section-container">
+            <p class="section-tag" style="text-align: center;">Evening Programs</p>
+            <h2 class="section-title">The Full FalCaMel</h2>
+            <p class="evening-intro">When the sun drops below the escarpment, a different story begins.</p>
+
+            <div class="evening-grid">
+                <div class="evening-card">
+                    <div class="evening-card-content">
+                        <h3>The Race</h3>
+                        <p>Sultan hunts at dusk. Watch a master work the thermals above the Tuwaiq. Falcon demonstration, traditional handling, the ancient partnership between human and raptor.</p>
+                        <div class="evening-card-footer">
+                            <span class="evening-price">SAR 2,000</span>
+                            <a href="#" class="nav-cta">Reserve the Hunt</a>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="evening-card">
+                    <div class="evening-card-content">
+                        <h3>The Sunset Ride</h3>
+                        <p>Haboob knows the edge. A camel ride along the Tuwaiq as the desert turns gold. The silence that only exists at this altitude, at this hour.</p>
+                        <div class="evening-card-footer">
+                            <span class="evening-price">SAR 2,000</span>
+                            <a href="#" class="nav-cta">Ride the Edge</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Royal Section -->
+    <section class="royal">
+        <div class="section-container">
+            <p class="section-tag">The Complete Story</p>
+            <h2 class="section-title">The Royal FalCaMel</h2>
+            <div class="royal-price">SAR 7,500</div>
+            <p class="royal-tagline">"The complete story. From highland to edge. From dawn to stars."</p>
+
+            <div class="royal-features">
+                <div class="royal-feature">
+                    <div class="royal-feature-icon">&#9749;</div>
+                    <span>Highland Flight Experience</span>
+                </div>
+                <div class="royal-feature">
+                    <div class="royal-feature-icon">&#128056;</div>
+                    <span>Sunset Camel Ride</span>
+                </div>
+                <div class="royal-feature">
+                    <div class="royal-feature-icon">&#129413;</div>
+                    <span>Falcon Demonstration</span>
+                </div>
+                <div class="royal-feature">
+                    <div class="royal-feature-icon">&#127775;</div>
+                    <span>Private Cliff Dinner</span>
+                </div>
+            </div>
+
+            <a href="#" class="royal-cta">Write Your Chapter</a>
+        </div>
+    </section>
+
+    <!-- Location Section -->
+    <section class="location">
+        <div class="section-container">
+            <div class="location-content">
+                <div>
+                    <p class="section-tag">The Place</p>
+                    <h2 class="section-title">Where the Highlands Meet the Edge.</h2>
+                    <p class="location-text">The Tuwaiq Escarpment. 200 meters of vertical drop. The literal edge of the Arabian shelf. We built here because some stories can only be told at the precipice.</p>
+                    <ul class="location-details">
+                        <li>
+                            <span class="location-label">Hours</span>
+                            <span class="location-value">4 PM - 2 AM</span>
+                        </li>
+                        <li>
+                            <span class="location-label">Location</span>
+                            <span class="location-value">Tuwaiq Escarpment, Riyadh</span>
+                        </li>
+                        <li>
+                            <span class="location-label">Lounge</span>
+                            <span class="location-value">Walk in welcome</span>
+                        </li>
+                        <li>
+                            <span class="location-label">Experiences</span>
+                            <span class="location-value">Reservation required</span>
+                        </li>
+                    </ul>
+                </div>
+                <div class="location-map">
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer>
+        <div class="footer-content">
+            <div class="footer-top">
+                <div class="footer-brand">
+                    <h3>FalCaMel</h3>
+                    <p>From the Highlands to the Edge.</p>
+                </div>
+                <div class="footer-column">
+                    <h4>Visit</h4>
+                    <ul>
+                        <li><a href="#lounge">The Lounge</a></li>
+                        <li><a href="#menu">Menu</a></li>
+                        <li><a href="#experiences">Experiences</a></li>
+                    </ul>
+                </div>
+                <div class="footer-column">
+                    <h4>Stories</h4>
+                    <ul>
+                        <li><a href="#origin">The Origin</a></li>
+                        <li><a href="#residents">The Residents</a></li>
+                        <li><a href="#">Our Roasters</a></li>
+                    </ul>
+                </div>
+                <div class="footer-column">
+                    <h4>Connect</h4>
+                    <ul>
+                        <li><a href="#">Instagram</a></li>
+                        <li><a href="#">Contact</a></li>
+                        <li><a href="#">Press</a></li>
+                    </ul>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>FalCaMel Cafe. Tuwaiq Escarpment, Riyadh.</p>
+                <p>Every cup has a journey.</p>
+            </div>
+        </div>
+    </footer>
+</body>
+</html>

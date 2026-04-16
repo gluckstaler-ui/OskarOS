@@ -1,0 +1,1566 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Choose Your Seat | FalCaMel Cafe</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=Montserrat:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --gold: #C9A961;
+            --deep-gold: #A68B3D;
+            --champagne: #F7F3E9;
+            --ivory: #FFFEF9;
+            --charcoal: #1C1C1C;
+            --warm-gray: #3D3D3D;
+            --soft-brown: #8B7355;
+            --border-light: rgba(201, 169, 97, 0.2);
+            --success: #4A7C59;
+            --unavailable: #D4D4D4;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        body {
+            font-family: 'Montserrat', sans-serif;
+            background-color: var(--ivory);
+            color: var(--charcoal);
+            line-height: 1.7;
+            font-weight: 300;
+            min-height: 100vh;
+        }
+
+        h1, h2, h3, h4 {
+            font-family: 'Cormorant Garamond', serif;
+            font-weight: 500;
+            line-height: 1.2;
+            letter-spacing: 0.02em;
+        }
+
+        /* Header */
+        .booking-header {
+            background: var(--charcoal);
+            padding: 24px 40px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            font-family: 'Cormorant Garamond', serif;
+            font-size: 1.5rem;
+            color: var(--gold);
+            text-decoration: none;
+            letter-spacing: 0.1em;
+        }
+
+        .breadcrumb {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 0.75rem;
+            letter-spacing: 0.15em;
+            text-transform: uppercase;
+            color: rgba(255,255,255,0.4);
+        }
+
+        .breadcrumb .current {
+            color: var(--gold);
+        }
+
+        .breadcrumb span {
+            color: rgba(255,255,255,0.2);
+        }
+
+        /* Progress Steps */
+        .progress-bar {
+            background: var(--champagne);
+            padding: 20px 40px;
+            border-bottom: 1px solid var(--border-light);
+        }
+
+        .progress-steps {
+            display: flex;
+            justify-content: center;
+            gap: 0;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .progress-step {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 0 20px;
+            position: relative;
+        }
+
+        .progress-step:not(:last-child)::after {
+            content: '';
+            position: absolute;
+            right: -20px;
+            width: 40px;
+            height: 1px;
+            background: var(--border-light);
+        }
+
+        .step-number {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.75rem;
+            font-weight: 500;
+            border: 1px solid var(--border-light);
+            color: var(--soft-brown);
+            background: transparent;
+            transition: all 0.3s ease;
+        }
+
+        .progress-step.active .step-number {
+            background: var(--gold);
+            border-color: var(--gold);
+            color: var(--charcoal);
+        }
+
+        .progress-step.completed .step-number {
+            background: var(--charcoal);
+            border-color: var(--charcoal);
+            color: var(--ivory);
+        }
+
+        .step-label {
+            font-size: 0.7rem;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            color: var(--soft-brown);
+            display: none;
+        }
+
+        .progress-step.active .step-label,
+        .progress-step.completed .step-label {
+            color: var(--charcoal);
+        }
+
+        @media (min-width: 768px) {
+            .step-label {
+                display: block;
+            }
+        }
+
+        /* Main Content */
+        .booking-main {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 60px 40px;
+        }
+
+        .step-container {
+            display: none;
+        }
+
+        .step-container.active {
+            display: block;
+        }
+
+        .step-header {
+            text-align: center;
+            margin-bottom: 50px;
+        }
+
+        .step-eyebrow {
+            font-size: 0.75rem;
+            font-weight: 500;
+            letter-spacing: 0.3em;
+            text-transform: uppercase;
+            color: var(--gold);
+            margin-bottom: 1rem;
+        }
+
+        .step-title {
+            font-size: clamp(2rem, 4vw, 3rem);
+            color: var(--charcoal);
+            margin-bottom: 1rem;
+        }
+
+        .step-subtitle {
+            font-size: 1rem;
+            color: var(--warm-gray);
+            max-width: 500px;
+            margin: 0 auto;
+        }
+
+        /* Step 1: Residents */
+        .residents-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+            gap: 30px;
+        }
+
+        .resident-option {
+            background: var(--champagne);
+            cursor: pointer;
+            transition: all 0.4s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .resident-option:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+        }
+
+        .resident-option.selected {
+            box-shadow: 0 0 0 2px var(--gold);
+        }
+
+        .resident-option.selected::after {
+            content: '';
+            position: absolute;
+            top: 16px;
+            right: 16px;
+            width: 24px;
+            height: 24px;
+            background: var(--gold);
+            border-radius: 50%;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%231C1C1C' stroke-width='3'%3E%3Cpath d='M5 12l5 5L20 7'/%3E%3C/svg%3E");
+            background-size: 14px;
+            background-position: center;
+            background-repeat: no-repeat;
+        }
+
+        .resident-image {
+            width: 100%;
+            height: 200px;
+            object-fit: cover;
+            filter: grayscale(20%);
+            transition: filter 0.4s ease;
+        }
+
+        .resident-option:hover .resident-image,
+        .resident-option.selected .resident-image {
+            filter: grayscale(0%);
+        }
+
+        .resident-info {
+            padding: 24px;
+        }
+
+        .resident-name {
+            font-family: 'Cormorant Garamond', serif;
+            font-size: 1.6rem;
+            color: var(--charcoal);
+            margin-bottom: 4px;
+        }
+
+        .resident-price {
+            font-size: 0.85rem;
+            color: var(--gold);
+            letter-spacing: 0.05em;
+            margin-bottom: 12px;
+        }
+
+        .resident-description {
+            font-size: 0.85rem;
+            color: var(--warm-gray);
+            line-height: 1.6;
+            margin-bottom: 16px;
+        }
+
+        .resident-includes {
+            font-size: 0.75rem;
+            color: var(--soft-brown);
+            border-top: 1px solid var(--border-light);
+            padding-top: 12px;
+        }
+
+        .resident-includes span {
+            display: block;
+            margin-bottom: 4px;
+        }
+
+        /* Step 2: Calendar */
+        .calendar-container {
+            max-width: 400px;
+            margin: 0 auto;
+            background: var(--champagne);
+            padding: 40px;
+        }
+
+        .calendar-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+        }
+
+        .calendar-month {
+            font-family: 'Cormorant Garamond', serif;
+            font-size: 1.5rem;
+            color: var(--charcoal);
+        }
+
+        .calendar-nav {
+            display: flex;
+            gap: 10px;
+        }
+
+        .calendar-nav button {
+            width: 36px;
+            height: 36px;
+            border: 1px solid var(--border-light);
+            background: transparent;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+        }
+
+        .calendar-nav button:hover {
+            background: var(--gold);
+            border-color: var(--gold);
+        }
+
+        .calendar-weekdays {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 8px;
+            margin-bottom: 10px;
+        }
+
+        .calendar-weekdays span {
+            text-align: center;
+            font-size: 0.7rem;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            color: var(--soft-brown);
+            padding: 8px 0;
+        }
+
+        .calendar-days {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 8px;
+        }
+
+        .calendar-day {
+            aspect-ratio: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.9rem;
+            border: 1px solid transparent;
+            background: transparent;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            color: var(--charcoal);
+        }
+
+        .calendar-day:hover:not(.disabled):not(.empty) {
+            border-color: var(--gold);
+        }
+
+        .calendar-day.selected {
+            background: var(--gold);
+            color: var(--charcoal);
+        }
+
+        .calendar-day.disabled {
+            color: var(--unavailable);
+            cursor: not-allowed;
+        }
+
+        .calendar-day.empty {
+            cursor: default;
+        }
+
+        .calendar-day.today {
+            border-color: var(--soft-brown);
+        }
+
+        /* Step 3: Seat Map */
+        .seat-map-container {
+            max-width: 700px;
+            margin: 0 auto;
+        }
+
+        .view-indicator {
+            text-align: center;
+            margin-bottom: 40px;
+            padding: 20px;
+            background: linear-gradient(to bottom, var(--champagne), transparent);
+            border-bottom: 2px solid var(--gold);
+        }
+
+        .view-indicator-text {
+            font-size: 0.75rem;
+            letter-spacing: 0.2em;
+            text-transform: uppercase;
+            color: var(--gold);
+        }
+
+        .view-indicator-arrow {
+            margin-top: 10px;
+            color: var(--gold);
+        }
+
+        .seat-map {
+            position: relative;
+            padding: 40px 20px 60px;
+        }
+
+        .seat-row {
+            display: flex;
+            justify-content: center;
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+
+        .seat-row.edge-row {
+            margin-bottom: 40px;
+        }
+
+        .seat {
+            width: 50px;
+            height: 50px;
+            border: 1px solid var(--border-light);
+            background: var(--champagne);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        .seat:hover:not(.unavailable) {
+            border-color: var(--gold);
+            transform: scale(1.05);
+        }
+
+        .seat.selected {
+            background: var(--gold);
+            border-color: var(--gold);
+        }
+
+        .seat.unavailable {
+            background: var(--unavailable);
+            border-color: var(--unavailable);
+            cursor: not-allowed;
+            opacity: 0.5;
+        }
+
+        .seat.edge {
+            border-bottom: 3px solid var(--gold);
+        }
+
+        .seat-number {
+            font-size: 0.85rem;
+            font-weight: 500;
+            color: var(--charcoal);
+        }
+
+        .seat.selected .seat-number {
+            color: var(--charcoal);
+        }
+
+        .seat.unavailable .seat-number {
+            color: var(--warm-gray);
+        }
+
+        .seat-type {
+            font-size: 0.55rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--soft-brown);
+            margin-top: 2px;
+        }
+
+        .seat.edge .seat-type {
+            color: var(--deep-gold);
+        }
+
+        .seat.selected .seat-type {
+            color: var(--charcoal);
+        }
+
+        .seat-legend {
+            display: flex;
+            justify-content: center;
+            gap: 30px;
+            margin-top: 40px;
+            padding-top: 30px;
+            border-top: 1px solid var(--border-light);
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 0.75rem;
+            color: var(--warm-gray);
+        }
+
+        .legend-box {
+            width: 20px;
+            height: 20px;
+            border: 1px solid var(--border-light);
+        }
+
+        .legend-box.available {
+            background: var(--champagne);
+        }
+
+        .legend-box.edge {
+            background: var(--champagne);
+            border-bottom: 2px solid var(--gold);
+        }
+
+        .legend-box.selected {
+            background: var(--gold);
+            border-color: var(--gold);
+        }
+
+        .legend-box.unavailable {
+            background: var(--unavailable);
+            border-color: var(--unavailable);
+            opacity: 0.5;
+        }
+
+        /* Step 4: Duration */
+        .duration-options {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .duration-option {
+            background: var(--champagne);
+            padding: 30px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: 1px solid transparent;
+        }
+
+        .duration-option:hover {
+            border-color: var(--gold);
+        }
+
+        .duration-option.selected {
+            background: var(--charcoal);
+            border-color: var(--charcoal);
+        }
+
+        .duration-hours {
+            font-family: 'Cormorant Garamond', serif;
+            font-size: 3rem;
+            color: var(--charcoal);
+            line-height: 1;
+            margin-bottom: 8px;
+        }
+
+        .duration-option.selected .duration-hours {
+            color: var(--gold);
+        }
+
+        .duration-label {
+            font-size: 0.75rem;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            color: var(--soft-brown);
+            margin-bottom: 16px;
+        }
+
+        .duration-option.selected .duration-label {
+            color: rgba(255,255,255,0.6);
+        }
+
+        .duration-price {
+            font-family: 'Cormorant Garamond', serif;
+            font-size: 1.3rem;
+            color: var(--charcoal);
+        }
+
+        .duration-option.selected .duration-price {
+            color: var(--ivory);
+        }
+
+        /* Step 5: Confirmation */
+        .confirmation-container {
+            max-width: 500px;
+            margin: 0 auto;
+        }
+
+        .booking-summary {
+            background: var(--champagne);
+            padding: 40px;
+            margin-bottom: 30px;
+        }
+
+        .summary-title {
+            font-family: 'Cormorant Garamond', serif;
+            font-size: 1.5rem;
+            color: var(--charcoal);
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid var(--border-light);
+        }
+
+        .summary-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            padding: 12px 0;
+        }
+
+        .summary-label {
+            font-size: 0.8rem;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            color: var(--soft-brown);
+        }
+
+        .summary-value {
+            font-family: 'Cormorant Garamond', serif;
+            font-size: 1.1rem;
+            color: var(--charcoal);
+            text-align: right;
+        }
+
+        .summary-total {
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px solid var(--border-light);
+        }
+
+        .summary-total .summary-label {
+            color: var(--charcoal);
+            font-weight: 500;
+        }
+
+        .summary-total .summary-value {
+            font-size: 2rem;
+            color: var(--gold);
+        }
+
+        .guest-form {
+            background: var(--champagne);
+            padding: 40px;
+        }
+
+        .form-title {
+            font-family: 'Cormorant Garamond', serif;
+            font-size: 1.3rem;
+            color: var(--charcoal);
+            margin-bottom: 24px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-label {
+            display: block;
+            font-size: 0.75rem;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            color: var(--soft-brown);
+            margin-bottom: 8px;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 14px 16px;
+            border: 1px solid var(--border-light);
+            background: var(--ivory);
+            font-family: 'Montserrat', sans-serif;
+            font-size: 0.95rem;
+            color: var(--charcoal);
+            transition: border-color 0.3s ease;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: var(--gold);
+        }
+
+        .form-input::placeholder {
+            color: var(--soft-brown);
+        }
+
+        /* Navigation Buttons */
+        .booking-nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 50px;
+            padding-top: 30px;
+            border-top: 1px solid var(--border-light);
+        }
+
+        .btn-back {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: none;
+            border: none;
+            font-family: 'Montserrat', sans-serif;
+            font-size: 0.8rem;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            color: var(--soft-brown);
+            cursor: pointer;
+            transition: color 0.3s ease;
+        }
+
+        .btn-back:hover {
+            color: var(--charcoal);
+        }
+
+        .btn-next {
+            display: inline-block;
+            background: var(--charcoal);
+            color: var(--ivory);
+            padding: 18px 50px;
+            font-family: 'Montserrat', sans-serif;
+            font-size: 0.8rem;
+            font-weight: 500;
+            letter-spacing: 0.15em;
+            text-transform: uppercase;
+            border: none;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .btn-next:hover {
+            background: var(--gold);
+            color: var(--charcoal);
+        }
+
+        .btn-next:disabled {
+            background: var(--unavailable);
+            cursor: not-allowed;
+        }
+
+        .btn-confirm {
+            background: var(--gold);
+            color: var(--charcoal);
+            width: 100%;
+            padding: 20px;
+            font-family: 'Montserrat', sans-serif;
+            font-size: 0.85rem;
+            font-weight: 500;
+            letter-spacing: 0.15em;
+            text-transform: uppercase;
+            border: none;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-top: 30px;
+        }
+
+        .btn-confirm:hover {
+            background: var(--charcoal);
+            color: var(--ivory);
+        }
+
+        /* Floating Summary */
+        .floating-summary {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: var(--charcoal);
+            padding: 16px 40px;
+            display: none;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 100;
+            box-shadow: 0 -4px 20px rgba(0,0,0,0.1);
+        }
+
+        .floating-summary.visible {
+            display: flex;
+        }
+
+        .floating-summary-text {
+            font-size: 0.85rem;
+            color: rgba(255,255,255,0.8);
+        }
+
+        .floating-summary-text strong {
+            color: var(--gold);
+            font-weight: 500;
+        }
+
+        .floating-summary-total {
+            font-family: 'Cormorant Garamond', serif;
+            font-size: 1.5rem;
+            color: var(--gold);
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .booking-header {
+                flex-direction: column;
+                gap: 16px;
+                text-align: center;
+            }
+
+            .booking-main {
+                padding: 40px 20px;
+            }
+
+            .progress-bar {
+                padding: 16px 20px;
+            }
+
+            .progress-step {
+                padding: 0 8px;
+            }
+
+            .progress-step:not(:last-child)::after {
+                width: 16px;
+                right: -8px;
+            }
+
+            .seat {
+                width: 40px;
+                height: 40px;
+            }
+
+            .seat-number {
+                font-size: 0.75rem;
+            }
+
+            .seat-type {
+                display: none;
+            }
+
+            .calendar-container,
+            .booking-summary,
+            .guest-form {
+                padding: 24px;
+            }
+
+            .floating-summary {
+                flex-direction: column;
+                gap: 12px;
+                text-align: center;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .residents-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .duration-options {
+                grid-template-columns: 1fr 1fr;
+            }
+
+            .seat-legend {
+                flex-wrap: wrap;
+                gap: 16px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Header -->
+    <header class="booking-header">
+        <a href="golden-landing.html" class="logo">FalCaMel</a>
+        <nav class="breadcrumb">
+            <span>The Majlis</span>
+            <span>/</span>
+            <span class="current">Reserve Your Seat</span>
+        </nav>
+    </header>
+
+    <!-- Progress Bar -->
+    <div class="progress-bar">
+        <div class="progress-steps">
+            <div class="progress-step active" data-step="1">
+                <span class="step-number">1</span>
+                <span class="step-label">Host</span>
+            </div>
+            <div class="progress-step" data-step="2">
+                <span class="step-number">2</span>
+                <span class="step-label">Date</span>
+            </div>
+            <div class="progress-step" data-step="3">
+                <span class="step-number">3</span>
+                <span class="step-label">Seat</span>
+            </div>
+            <div class="progress-step" data-step="4">
+                <span class="step-number">4</span>
+                <span class="step-label">Duration</span>
+            </div>
+            <div class="progress-step" data-step="5">
+                <span class="step-number">5</span>
+                <span class="step-label">Confirm</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <main class="booking-main">
+
+        <!-- Step 1: Choose Your Host -->
+        <div class="step-container active" data-step="1">
+            <div class="step-header">
+                <p class="step-eyebrow">Step One</p>
+                <h1 class="step-title">Choose Your Host</h1>
+                <p class="step-subtitle">Each resident has their own majlis on the cliff's edge. Who will keep you company?</p>
+            </div>
+
+            <div class="residents-grid">
+                <div class="resident-option" data-resident="sultan" data-price="350" data-seats="12">
+                    <img src="../../images/sultan.jpg" alt="Sultan the falcon" class="resident-image">
+                    <div class="resident-info">
+                        <h3 class="resident-name">Sultan</h3>
+                        <p class="resident-price">SAR 350 / hour</p>
+                        <p class="resident-description">Peregrine falcon. Apex predator. He watches the valley below like it owes him something. At golden hour, he dives.</p>
+                        <div class="resident-includes">
+                            <span>12 seats at his majlis</span>
+                            <span>Falcon demonstration with master falconer</span>
+                            <span>2 drinks included</span>
+                            <span>Professional photos with Sultan</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="resident-option" data-resident="haboob" data-price="500" data-seats="8">
+                    <img src="../../images/haboob.jpg" alt="Haboob the camel" class="resident-image">
+                    <div class="resident-info">
+                        <h3 class="resident-name">Haboob</h3>
+                        <p class="resident-price">SAR 500 / hour</p>
+                        <p class="resident-description">His milk is in your latte. He knows it. Backlit at sunset, he is magnificent and utterly unbothered by your presence.</p>
+                        <div class="resident-includes">
+                            <span>8 seats at his majlis</span>
+                            <span>15-minute camel ride along the edge</span>
+                            <span>Camel milk latte + 1 drink</span>
+                            <span>Professional photos with Haboob</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="resident-option" data-resident="shams" data-price="150" data-seats="8">
+                    <img src="../../images/shams.jpg" alt="Shams the cat" class="resident-image">
+                    <div class="resident-info">
+                        <h3 class="resident-name">Shams</h3>
+                        <p class="resident-price">SAR 150 / hour</p>
+                        <p class="resident-description">Finds the last warm patch of light. Does not move until it does. Zero guarantees he will acknowledge you. Book him anyway.</p>
+                        <div class="resident-includes">
+                            <span>8 seats at his majlis</span>
+                            <span>2 drinks included</span>
+                            <span>No promises. He shows up when he wants.</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="resident-option" data-resident="qamar" data-price="150" data-seats="8">
+                    <img src="../../images/qamar.jpg" alt="Qamar the cat" class="resident-image">
+                    <div class="resident-info">
+                        <h3 class="resident-name">Qamar</h3>
+                        <p class="resident-price">SAR 150 / hour</p>
+                        <p class="resident-description">Her black fur glows amber at sunset. She will make you feel chosen. That is her gift. Also her trap.</p>
+                        <div class="resident-includes">
+                            <span>8 seats at her majlis</span>
+                            <span>2 drinks included</span>
+                            <span>Emotional manipulation included at no extra cost</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="booking-nav">
+                <div></div>
+                <button class="btn-next" id="btn-step1" disabled>Continue to Date</button>
+            </div>
+        </div>
+
+        <!-- Step 2: Select Your Date -->
+        <div class="step-container" data-step="2">
+            <div class="step-header">
+                <p class="step-eyebrow">Step Two</p>
+                <h1 class="step-title">When Will You Arrive?</h1>
+                <p class="step-subtitle">Golden hour begins around 5:30 PM. Plan accordingly.</p>
+            </div>
+
+            <div class="calendar-container">
+                <div class="calendar-header">
+                    <h3 class="calendar-month" id="calendar-month">January 2026</h3>
+                    <div class="calendar-nav">
+                        <button id="prev-month">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M15 18l-6-6 6-6"/>
+                            </svg>
+                        </button>
+                        <button id="next-month">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M9 18l6-6-6-6"/>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+                <div class="calendar-weekdays">
+                    <span>Sun</span>
+                    <span>Mon</span>
+                    <span>Tue</span>
+                    <span>Wed</span>
+                    <span>Thu</span>
+                    <span>Fri</span>
+                    <span>Sat</span>
+                </div>
+                <div class="calendar-days" id="calendar-days">
+                    <!-- Days will be populated by JavaScript -->
+                </div>
+            </div>
+
+            <div class="booking-nav">
+                <button class="btn-back" data-goto="1">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M15 18l-6-6 6-6"/>
+                    </svg>
+                    Back to Host
+                </button>
+                <button class="btn-next" id="btn-step2" disabled>Continue to Seat</button>
+            </div>
+        </div>
+
+        <!-- Step 3: Choose Your Seat -->
+        <div class="step-container" data-step="3">
+            <div class="step-header">
+                <p class="step-eyebrow">Step Three</p>
+                <h1 class="step-title">Choose Your Vantage Point</h1>
+                <p class="step-subtitle">Edge seats face the escarpment directly. The back rows have their own charm.</p>
+            </div>
+
+            <div class="seat-map-container">
+                <div class="view-indicator">
+                    <p class="view-indicator-text">The View</p>
+                    <div class="view-indicator-arrow">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                            <path d="M12 19V5M5 12l7-7 7 7"/>
+                        </svg>
+                    </div>
+                </div>
+
+                <div class="seat-map" id="seat-map">
+                    <!-- Seats will be populated by JavaScript based on selected resident -->
+                </div>
+
+                <div class="seat-legend">
+                    <div class="legend-item">
+                        <div class="legend-box available"></div>
+                        <span>Available</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-box edge"></div>
+                        <span>Edge Seat</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-box selected"></div>
+                        <span>Your Selection</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-box unavailable"></div>
+                        <span>Taken</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="booking-nav">
+                <button class="btn-back" data-goto="2">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M15 18l-6-6 6-6"/>
+                    </svg>
+                    Back to Date
+                </button>
+                <button class="btn-next" id="btn-step3" disabled>Continue to Duration</button>
+            </div>
+        </div>
+
+        <!-- Step 4: Select Duration -->
+        <div class="step-container" data-step="4">
+            <div class="step-header">
+                <p class="step-eyebrow">Step Four</p>
+                <h1 class="step-title">How Long Will You Stay?</h1>
+                <p class="step-subtitle">The light changes every minute. Most stay longer than planned.</p>
+            </div>
+
+            <div class="duration-options">
+                <div class="duration-option" data-duration="1">
+                    <p class="duration-hours">1</p>
+                    <p class="duration-label">Hour</p>
+                    <p class="duration-price" data-base-price="1">SAR <span class="price-display">0</span></p>
+                </div>
+                <div class="duration-option" data-duration="2">
+                    <p class="duration-hours">2</p>
+                    <p class="duration-label">Hours</p>
+                    <p class="duration-price" data-base-price="2">SAR <span class="price-display">0</span></p>
+                </div>
+                <div class="duration-option" data-duration="3">
+                    <p class="duration-hours">3</p>
+                    <p class="duration-label">Hours</p>
+                    <p class="duration-price" data-base-price="3">SAR <span class="price-display">0</span></p>
+                </div>
+                <div class="duration-option" data-duration="4">
+                    <p class="duration-hours">4</p>
+                    <p class="duration-label">Hours</p>
+                    <p class="duration-price" data-base-price="4">SAR <span class="price-display">0</span></p>
+                </div>
+            </div>
+
+            <div class="booking-nav">
+                <button class="btn-back" data-goto="3">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M15 18l-6-6 6-6"/>
+                    </svg>
+                    Back to Seat
+                </button>
+                <button class="btn-next" id="btn-step4" disabled>Continue to Confirm</button>
+            </div>
+        </div>
+
+        <!-- Step 5: Confirm & Pay -->
+        <div class="step-container" data-step="5">
+            <div class="step-header">
+                <p class="step-eyebrow">Final Step</p>
+                <h1 class="step-title">Confirm Your Reservation</h1>
+                <p class="step-subtitle">Review the details. The cliff awaits.</p>
+            </div>
+
+            <div class="confirmation-container">
+                <div class="booking-summary">
+                    <h3 class="summary-title">Your Reservation</h3>
+                    <div class="summary-row">
+                        <span class="summary-label">Host</span>
+                        <span class="summary-value" id="summary-resident">-</span>
+                    </div>
+                    <div class="summary-row">
+                        <span class="summary-label">Date</span>
+                        <span class="summary-value" id="summary-date">-</span>
+                    </div>
+                    <div class="summary-row">
+                        <span class="summary-label">Seat</span>
+                        <span class="summary-value" id="summary-seat">-</span>
+                    </div>
+                    <div class="summary-row">
+                        <span class="summary-label">Duration</span>
+                        <span class="summary-value" id="summary-duration">-</span>
+                    </div>
+                    <div class="summary-row">
+                        <span class="summary-label">Hourly Rate</span>
+                        <span class="summary-value" id="summary-rate">-</span>
+                    </div>
+                    <div class="summary-row summary-total">
+                        <span class="summary-label">Total</span>
+                        <span class="summary-value" id="summary-total">-</span>
+                    </div>
+                </div>
+
+                <div class="guest-form">
+                    <h3 class="form-title">Where do we send the details?</h3>
+                    <div class="form-group">
+                        <label class="form-label" for="guest-name">Your Name</label>
+                        <input type="text" id="guest-name" class="form-input" placeholder="As you'd like to be greeted">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="guest-email">Email</label>
+                        <input type="email" id="guest-email" class="form-input" placeholder="For your confirmation">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="guest-phone">Phone</label>
+                        <input type="tel" id="guest-phone" class="form-input" placeholder="In case we need to reach you">
+                    </div>
+                    <button class="btn-confirm" id="btn-confirm">Claim Your Seat</button>
+                </div>
+
+                <div class="booking-nav" style="border-top: none; padding-top: 0;">
+                    <button class="btn-back" data-goto="4">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M15 18l-6-6 6-6"/>
+                        </svg>
+                        Back to Duration
+                    </button>
+                    <div></div>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Floating Summary -->
+    <div class="floating-summary" id="floating-summary">
+        <div class="floating-summary-text">
+            <strong id="float-resident">-</strong> | <span id="float-date">-</span> | Seat <span id="float-seat">-</span>
+        </div>
+        <div class="floating-summary-total">
+            SAR <span id="float-total">0</span>
+        </div>
+    </div>
+
+    <script>
+        // Booking State
+        const booking = {
+            resident: null,
+            residentName: null,
+            price: 0,
+            seats: 0,
+            date: null,
+            seat: null,
+            seatType: null,
+            duration: null,
+            total: 0
+        };
+
+        // Seat configurations for each resident
+        const seatConfigs = {
+            sultan: {
+                rows: [
+                    { seats: [1, 2, 3, 4, 5, 6], edge: true },
+                    { seats: [7, 8, 9, 10, 11, 12], edge: false }
+                ],
+                unavailable: [3, 8, 11] // Simulated bookings
+            },
+            haboob: {
+                rows: [
+                    { seats: [1, 2, 3, 4], edge: true },
+                    { seats: [5, 6, 7, 8], edge: false }
+                ],
+                unavailable: [2, 6]
+            },
+            shams: {
+                rows: [
+                    { seats: [1, 2, 3, 4], edge: true },
+                    { seats: [5, 6, 7, 8], edge: false }
+                ],
+                unavailable: [1, 4, 7]
+            },
+            qamar: {
+                rows: [
+                    { seats: [1, 2, 3, 4], edge: true },
+                    { seats: [5, 6, 7, 8], edge: false }
+                ],
+                unavailable: [3, 5]
+            }
+        };
+
+        // Calendar State
+        let currentMonth = new Date().getMonth();
+        let currentYear = new Date().getFullYear();
+
+        // DOM Elements
+        const progressSteps = document.querySelectorAll('.progress-step');
+        const stepContainers = document.querySelectorAll('.step-container');
+        const floatingSummary = document.getElementById('floating-summary');
+
+        // Initialize
+        function init() {
+            setupResidentSelection();
+            setupCalendar();
+            setupDurationSelection();
+            setupNavigation();
+            setupConfirmation();
+        }
+
+        // Step 1: Resident Selection
+        function setupResidentSelection() {
+            const residentOptions = document.querySelectorAll('.resident-option');
+            const btnStep1 = document.getElementById('btn-step1');
+
+            residentOptions.forEach(option => {
+                option.addEventListener('click', () => {
+                    residentOptions.forEach(o => o.classList.remove('selected'));
+                    option.classList.add('selected');
+
+                    booking.resident = option.dataset.resident;
+                    booking.residentName = option.querySelector('.resident-name').textContent;
+                    booking.price = parseInt(option.dataset.price);
+                    booking.seats = parseInt(option.dataset.seats);
+
+                    btnStep1.disabled = false;
+                    updateDurationPrices();
+                });
+            });
+
+            btnStep1.addEventListener('click', () => goToStep(2));
+        }
+
+        // Step 2: Calendar
+        function setupCalendar() {
+            renderCalendar();
+
+            document.getElementById('prev-month').addEventListener('click', () => {
+                currentMonth--;
+                if (currentMonth < 0) {
+                    currentMonth = 11;
+                    currentYear--;
+                }
+                renderCalendar();
+            });
+
+            document.getElementById('next-month').addEventListener('click', () => {
+                currentMonth++;
+                if (currentMonth > 11) {
+                    currentMonth = 0;
+                    currentYear++;
+                }
+                renderCalendar();
+            });
+
+            document.getElementById('btn-step2').addEventListener('click', () => {
+                renderSeatMap();
+                goToStep(3);
+            });
+        }
+
+        function renderCalendar() {
+            const monthNames = ['January', 'February', 'March', 'April', 'May', 'June',
+                'July', 'August', 'September', 'October', 'November', 'December'];
+
+            document.getElementById('calendar-month').textContent = `${monthNames[currentMonth]} ${currentYear}`;
+
+            const calendarDays = document.getElementById('calendar-days');
+            calendarDays.innerHTML = '';
+
+            const firstDay = new Date(currentYear, currentMonth, 1).getDay();
+            const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
+            const today = new Date();
+
+            // Empty days
+            for (let i = 0; i < firstDay; i++) {
+                const emptyDay = document.createElement('div');
+                emptyDay.className = 'calendar-day empty';
+                calendarDays.appendChild(emptyDay);
+            }
+
+            // Actual days
+            for (let day = 1; day <= daysInMonth; day++) {
+                const dayEl = document.createElement('div');
+                dayEl.className = 'calendar-day';
+                dayEl.textContent = day;
+
+                const dateObj = new Date(currentYear, currentMonth, day);
+
+                // Disable past dates
+                if (dateObj < new Date(today.getFullYear(), today.getMonth(), today.getDate())) {
+                    dayEl.classList.add('disabled');
+                } else {
+                    dayEl.addEventListener('click', () => selectDate(dayEl, day));
+                }
+
+                // Highlight today
+                if (day === today.getDate() && currentMonth === today.getMonth() && currentYear === today.getFullYear()) {
+                    dayEl.classList.add('today');
+                }
+
+                // Check if selected
+                if (booking.date && booking.date.day === day && booking.date.month === currentMonth && booking.date.year === currentYear) {
+                    dayEl.classList.add('selected');
+                }
+
+                calendarDays.appendChild(dayEl);
+            }
+        }
+
+        function selectDate(dayEl, day) {
+            document.querySelectorAll('.calendar-day').forEach(d => d.classList.remove('selected'));
+            dayEl.classList.add('selected');
+
+            booking.date = {
+                day: day,
+                month: currentMonth,
+                year: currentYear
+            };
+
+            document.getElementById('btn-step2').disabled = false;
+            updateFloatingSummary();
+        }
+
+        // Step 3: Seat Map
+        function renderSeatMap() {
+            const seatMap = document.getElementById('seat-map');
+            seatMap.innerHTML = '';
+
+            const config = seatConfigs[booking.resident];
+
+            config.rows.forEach((row, rowIndex) => {
+                const rowEl = document.createElement('div');
+                rowEl.className = 'seat-row';
+                if (row.edge) rowEl.classList.add('edge-row');
+
+                row.seats.forEach(seatNum => {
+                    const seatEl = document.createElement('div');
+                    seatEl.className = 'seat';
+                    if (row.edge) seatEl.classList.add('edge');
+                    if (config.unavailable.includes(seatNum)) seatEl.classList.add('unavailable');
+
+                    seatEl.innerHTML = `
+                        <span class="seat-number">${seatNum}</span>
+                        <span class="seat-type">${row.edge ? 'Edge' : 'Back'}</span>
+                    `;
+
+                    seatEl.dataset.seat = seatNum;
+                    seatEl.dataset.type = row.edge ? 'Edge' : 'Back';
+
+                    if (!config.unavailable.includes(seatNum)) {
+                        seatEl.addEventListener('click', () => selectSeat(seatEl, seatNum, row.edge ? 'Edge' : 'Back'));
+                    }
+
+                    rowEl.appendChild(seatEl);
+                });
+
+                seatMap.appendChild(rowEl);
+            });
+        }
+
+        function selectSeat(seatEl, seatNum, seatType) {
+            document.querySelectorAll('.seat').forEach(s => s.classList.remove('selected'));
+            seatEl.classList.add('selected');
+
+            booking.seat = seatNum;
+            booking.seatType = seatType;
+
+            document.getElementById('btn-step3').disabled = false;
+            updateFloatingSummary();
+        }
+
+        document.getElementById('btn-step3').addEventListener('click', () => goToStep(4));
+
+        // Step 4: Duration
+        function setupDurationSelection() {
+            const durationOptions = document.querySelectorAll('.duration-option');
+            const btnStep4 = document.getElementById('btn-step4');
+
+            durationOptions.forEach(option => {
+                option.addEventListener('click', () => {
+                    durationOptions.forEach(o => o.classList.remove('selected'));
+                    option.classList.add('selected');
+
+                    booking.duration = parseInt(option.dataset.duration);
+                    booking.total = booking.price * booking.duration;
+
+                    btnStep4.disabled = false;
+                    updateFloatingSummary();
+                });
+            });
+
+            btnStep4.addEventListener('click', () => {
+                updateSummary();
+                goToStep(5);
+            });
+        }
+
+        function updateDurationPrices() {
+            document.querySelectorAll('.duration-option').forEach(option => {
+                const multiplier = parseInt(option.dataset.duration);
+                const total = booking.price * multiplier;
+                option.querySelector('.price-display').textContent = total.toLocaleString();
+            });
+        }
+
+        // Step 5: Confirmation
+        function setupConfirmation() {
+            document.getElementById('btn-confirm').addEventListener('click', () => {
+                const name = document.getElementById('guest-name').value;
+                const email = document.getElementById('guest-email').value;
+                const phone = document.getElementById('guest-phone').value;
+
+                if (!name || !email || !phone) {
+                    alert('Please fill in all fields.');
+                    return;
+                }
+
+                // In a real app, this would submit to a backend
+                alert(`Thank you, ${name}. Your seat at ${booking.residentName}'s majlis has been reserved. Check your email for confirmation.`);
+            });
+        }
+
+        function updateSummary() {
+            const monthNames = ['January', 'February', 'March', 'April', 'May', 'June',
+                'July', 'August', 'September', 'October', 'November', 'December'];
+
+            document.getElementById('summary-resident').textContent = booking.residentName;
+            document.getElementById('summary-date').textContent = `${monthNames[booking.date.month]} ${booking.date.day}, ${booking.date.year}`;
+            document.getElementById('summary-seat').textContent = `Seat ${booking.seat} (${booking.seatType})`;
+            document.getElementById('summary-duration').textContent = `${booking.duration} hour${booking.duration > 1 ? 's' : ''}`;
+            document.getElementById('summary-rate').textContent = `SAR ${booking.price}`;
+            document.getElementById('summary-total').textContent = `SAR ${booking.total.toLocaleString()}`;
+        }
+
+        // Navigation
+        function setupNavigation() {
+            document.querySelectorAll('.btn-back').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const targetStep = parseInt(btn.dataset.goto);
+                    goToStep(targetStep);
+                });
+            });
+        }
+
+        function goToStep(step) {
+            // Update progress
+            progressSteps.forEach(ps => {
+                const psStep = parseInt(ps.dataset.step);
+                ps.classList.remove('active', 'completed');
+                if (psStep < step) ps.classList.add('completed');
+                if (psStep === step) ps.classList.add('active');
+            });
+
+            // Show correct container
+            stepContainers.forEach(sc => {
+                sc.classList.remove('active');
+                if (parseInt(sc.dataset.step) === step) sc.classList.add('active');
+            });
+
+            // Show/hide floating summary
+            if (step > 1 && step < 5) {
+                floatingSummary.classList.add('visible');
+            } else {
+                floatingSummary.classList.remove('visible');
+            }
+
+            // Scroll to top
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function updateFloatingSummary() {
+            const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+                'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+            document.getElementById('float-resident').textContent = booking.residentName || '-';
+
+            if (booking.date) {
+                document.getElementById('float-date').textContent = `${monthNames[booking.date.month]} ${booking.date.day}`;
+            }
+
+            document.getElementById('float-seat').textContent = booking.seat || '-';
+            document.getElementById('float-total').textContent = booking.total.toLocaleString() || '0';
+        }
+
+        // Initialize on load
+        init();
+    </script>
+
+</body>
+</html>

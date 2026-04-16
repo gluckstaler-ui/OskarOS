@@ -1,0 +1,1054 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Memory Architecture — Claude Code → OskarOS</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+    background: #0a0a0f;
+    color: #e0e0e0;
+    overflow-x: hidden;
+  }
+
+  .header {
+    text-align: center;
+    padding: 40px 20px 20px;
+    border-bottom: 1px solid #1a1a2e;
+  }
+  .header h1 {
+    font-size: 28px;
+    font-weight: 700;
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    margin-bottom: 8px;
+  }
+  .header p {
+    color: #666;
+    font-size: 13px;
+  }
+
+  /* Toggle */
+  .toggle-bar {
+    display: flex;
+    justify-content: center;
+    gap: 0;
+    padding: 24px 20px 16px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background: #0a0a0f;
+    border-bottom: 1px solid #1a1a2e;
+  }
+  .toggle-btn {
+    padding: 10px 32px;
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 600;
+    border: 1px solid #333;
+    background: #111;
+    color: #888;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .toggle-btn:first-child { border-radius: 6px 0 0 6px; }
+  .toggle-btn:last-child { border-radius: 0 6px 6px 0; }
+  .toggle-btn.active-cc {
+    background: #1a1a3e;
+    color: #667eea;
+    border-color: #667eea;
+  }
+  .toggle-btn.active-os {
+    background: #1a2e1a;
+    color: #4ade80;
+    border-color: #4ade80;
+  }
+
+  /* Main layout */
+  .diagram-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 24px;
+  }
+
+  /* System views */
+  .system-view { display: none; }
+  .system-view.active { display: block; }
+
+  /* Layer cards */
+  .layer {
+    background: #111118;
+    border: 1px solid #1a1a2e;
+    border-radius: 12px;
+    margin-bottom: 16px;
+    overflow: hidden;
+    transition: border-color 0.3s;
+  }
+  .layer:hover { border-color: #333; }
+
+  .layer-header {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 16px 20px;
+    cursor: pointer;
+    user-select: none;
+  }
+  .layer-header:hover { background: #14141e; }
+
+  .layer-num {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    font-weight: 700;
+    flex-shrink: 0;
+  }
+  .cc .layer-num { background: #1a1a3e; color: #667eea; }
+  .os .layer-num { background: #1a2e1a; color: #4ade80; }
+
+  .layer-title {
+    flex: 1;
+  }
+  .layer-title h3 {
+    font-size: 15px;
+    font-weight: 600;
+    margin-bottom: 2px;
+  }
+  .cc .layer-title h3 { color: #667eea; }
+  .os .layer-title h3 { color: #4ade80; }
+
+  .layer-title .subtitle {
+    font-size: 11px;
+    color: #555;
+  }
+
+  .layer-status {
+    font-size: 11px;
+    padding: 3px 10px;
+    border-radius: 20px;
+    font-weight: 600;
+    flex-shrink: 0;
+  }
+  .status-exists { background: #1a2e1a; color: #4ade80; }
+  .status-port { background: #2e2a1a; color: #facc15; }
+  .status-adapt { background: #2e1a1a; color: #f87171; }
+  .status-drop { background: #1a1a1a; color: #555; }
+  .status-free { background: #1a2a2e; color: #22d3ee; }
+
+  .expand-icon {
+    color: #444;
+    font-size: 18px;
+    transition: transform 0.2s;
+    flex-shrink: 0;
+  }
+  .layer.open .expand-icon { transform: rotate(90deg); }
+
+  .layer-body {
+    display: none;
+    padding: 0 20px 20px;
+    border-top: 1px solid #1a1a2e;
+  }
+  .layer.open .layer-body { display: block; }
+
+  /* Flow diagrams inside layers */
+  .flow {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+    padding: 16px 0;
+  }
+  .flow-node {
+    padding: 8px 14px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 500;
+    white-space: nowrap;
+  }
+  .flow-arrow {
+    color: #333;
+    font-size: 16px;
+  }
+  .node-file { background: #1a1a2e; color: #667eea; border: 1px solid #2a2a4e; }
+  .node-func { background: #1a2e2a; color: #22d3ee; border: 1px solid #2a4e4a; }
+  .node-api { background: #2e2a1a; color: #facc15; border: 1px solid #4e4a2a; }
+  .node-agent { background: #2e1a2e; color: #c084fc; border: 1px solid #4e2a4e; }
+  .node-trigger { background: #2e1a1a; color: #f87171; border: 1px solid #4e2a2a; }
+  .node-output { background: #1a2e1a; color: #4ade80; border: 1px solid #2a4e2a; }
+
+  /* Detail grids */
+  .detail-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-top: 12px;
+  }
+  @media (max-width: 768px) { .detail-grid { grid-template-columns: 1fr; } }
+
+  .detail-card {
+    background: #0a0a12;
+    border: 1px solid #1a1a2e;
+    border-radius: 8px;
+    padding: 12px 16px;
+  }
+  .detail-card h4 {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 8px;
+  }
+  .cc .detail-card h4 { color: #667eea; }
+  .os .detail-card h4 { color: #4ade80; }
+
+  .detail-card p, .detail-card li {
+    font-size: 12px;
+    color: #999;
+    line-height: 1.6;
+  }
+  .detail-card ul { padding-left: 16px; }
+  .detail-card code {
+    background: #1a1a2e;
+    padding: 1px 6px;
+    border-radius: 3px;
+    font-size: 11px;
+    color: #ccc;
+  }
+
+  /* Mapping arrows between systems */
+  .mapping-section {
+    background: #0d0d14;
+    border: 1px dashed #2a2a3e;
+    border-radius: 12px;
+    padding: 20px;
+    margin: 24px 0;
+  }
+  .mapping-section h3 {
+    font-size: 14px;
+    color: #888;
+    margin-bottom: 16px;
+    text-align: center;
+  }
+  .mapping-row {
+    display: grid;
+    grid-template-columns: 1fr 40px 1fr;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+    font-size: 12px;
+  }
+  .map-left {
+    text-align: right;
+    color: #667eea;
+    padding: 6px 12px;
+    background: #12121e;
+    border-radius: 6px;
+  }
+  .map-arrow { text-align: center; color: #444; }
+  .map-right {
+    color: #4ade80;
+    padding: 6px 12px;
+    background: #121e12;
+    border-radius: 6px;
+  }
+  .map-right.dropped {
+    color: #555;
+    text-decoration: line-through;
+    background: #111;
+  }
+
+  /* Gate diagram */
+  .gates {
+    display: flex;
+    gap: 0;
+    align-items: stretch;
+    margin: 16px 0;
+  }
+  .gate {
+    flex: 1;
+    padding: 12px;
+    text-align: center;
+    border: 1px solid #1a1a2e;
+    position: relative;
+  }
+  .gate:first-child { border-radius: 8px 0 0 8px; }
+  .gate:last-child { border-radius: 0 8px 8px 0; }
+  .gate .gate-num {
+    font-size: 20px;
+    font-weight: 700;
+    margin-bottom: 4px;
+  }
+  .gate .gate-label {
+    font-size: 11px;
+    color: #888;
+  }
+  .gate .gate-detail {
+    font-size: 10px;
+    color: #555;
+    margin-top: 4px;
+  }
+  .gate .gate-cost {
+    font-size: 10px;
+    color: #4ade80;
+    margin-top: 2px;
+  }
+  .gate-connector {
+    width: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #333;
+    font-size: 14px;
+    flex-shrink: 0;
+  }
+
+  .cc .gate { background: #0e0e1e; }
+  .cc .gate .gate-num { color: #667eea; }
+  .os .gate { background: #0e1e0e; }
+  .os .gate .gate-num { color: #4ade80; }
+
+  /* Phase boxes */
+  .phases {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+    margin: 16px 0;
+  }
+  @media (max-width: 768px) { .phases { grid-template-columns: repeat(2, 1fr); } }
+
+  .phase {
+    padding: 12px;
+    border-radius: 8px;
+    border: 1px solid #1a1a2e;
+  }
+  .cc .phase { background: #0e0e1e; }
+  .os .phase { background: #0e1e0e; }
+
+  .phase-num {
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 6px;
+  }
+  .cc .phase-num { color: #667eea; }
+  .os .phase-num { color: #4ade80; }
+
+  .phase h4 {
+    font-size: 13px;
+    font-weight: 600;
+    color: #ccc;
+    margin-bottom: 4px;
+  }
+  .phase p {
+    font-size: 11px;
+    color: #666;
+    line-height: 1.5;
+  }
+
+  /* Cascade animation */
+  .cascade {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    margin: 20px 0;
+  }
+  .cascade-step {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 16px;
+    border-left: 2px solid #1a1a2e;
+    position: relative;
+  }
+  .cascade-step::before {
+    content: '';
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    position: absolute;
+    left: -5px;
+  }
+  .cc .cascade-step::before { background: #667eea; }
+  .os .cascade-step::before { background: #4ade80; }
+
+  .cascade-step .step-time {
+    font-size: 10px;
+    color: #555;
+    width: 80px;
+    flex-shrink: 0;
+  }
+  .cascade-step .step-event {
+    font-size: 12px;
+    color: #ccc;
+  }
+  .cascade-step .step-layer {
+    font-size: 10px;
+    padding: 2px 8px;
+    border-radius: 10px;
+    flex-shrink: 0;
+    margin-left: auto;
+  }
+  .cc .step-layer { background: #1a1a3e; color: #667eea; }
+  .os .step-layer { background: #1a2e1a; color: #4ade80; }
+
+  /* Permission table */
+  .perm-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 12px 0;
+    font-size: 12px;
+  }
+  .perm-table th {
+    text-align: left;
+    padding: 8px 12px;
+    border-bottom: 1px solid #2a2a3e;
+    color: #888;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .perm-table td {
+    padding: 6px 12px;
+    border-bottom: 1px solid #1a1a2e;
+    color: #ccc;
+  }
+  .perm-allow { color: #4ade80; }
+  .perm-deny { color: #f87171; }
+  .perm-restrict { color: #facc15; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>Memory Architecture</h1>
+  <p>Claude Code (leaked source) → OskarOS (adaptation)</p>
+</div>
+
+<div class="toggle-bar">
+  <button class="toggle-btn active-cc" onclick="showView('cc')" id="btn-cc">Claude Code</button>
+  <button class="toggle-btn" onclick="showView('mapping')" id="btn-map">Mapping</button>
+  <button class="toggle-btn" onclick="showView('os')" id="btn-os">OskarOS</button>
+</div>
+
+<div class="diagram-container">
+
+<!-- ============================================ -->
+<!-- CLAUDE CODE VIEW -->
+<!-- ============================================ -->
+<div class="system-view active cc" id="view-cc">
+
+  <!-- Layer 1 -->
+  <div class="layer" onclick="toggleLayer(this)">
+    <div class="layer-header">
+      <div class="layer-num">1</div>
+      <div class="layer-title">
+        <h3>CLAUDE.md — Static Identity</h3>
+        <div class="subtitle">User-written, never auto-modified. Discovered by walking up filesystem.</div>
+      </div>
+      <span class="layer-status status-exists">EXISTS</span>
+      <span class="expand-icon">&#9654;</span>
+    </div>
+    <div class="layer-body">
+      <div class="flow">
+        <span class="flow-node node-file">CLAUDE.md</span>
+        <span class="flow-arrow">→</span>
+        <span class="flow-node node-func">walkUp(cwd→root)</span>
+        <span class="flow-arrow">→</span>
+        <span class="flow-node node-func">dedup by hash</span>
+        <span class="flow-arrow">→</span>
+        <span class="flow-node node-output">System prompt injection</span>
+      </div>
+      <div class="detail-grid">
+        <div class="detail-card">
+          <h4>Budget</h4>
+          <p>4,000 chars/file, 12,000 chars total. Checks <code>CLAUDE.md</code>, <code>CLAUDE.local.md</code>, <code>.claude/CLAUDE.md</code> at each directory level.</p>
+        </div>
+        <div class="detail-card">
+          <h4>Role</h4>
+          <p>Identity. "I am a Python project. We use tabs. The CEO is Sarah." Config file, not architecturally interesting.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Layer 2 -->
+  <div class="layer" onclick="toggleLayer(this)">
+    <div class="layer-header">
+      <div class="layer-num">2</div>
+      <div class="layer-title">
+        <h3>memdir/ — Persistent Topic Files</h3>
+        <div class="subtitle">Filesystem-as-database. MEMORY.md index + topic files with YAML frontmatter.</div>
+      </div>
+      <span class="layer-status status-port">PORT</span>
+      <span class="expand-icon">&#9654;</span>
+    </div>
+    <div class="layer-body">
+      <div class="flow">
+        <span class="flow-node node-file">~/.claude/projects/{git-root}/memory/</span>
+        <span class="flow-arrow">→</span>
+        <span class="flow-node node-file">MEMORY.md (index, 200 lines max)</span>
+        <span class="flow-arrow">+</span>
+        <span class="flow-node node-file">topic-files.md (frontmatter: name, desc, type)</span>
+      </div>
+
+      <div class="detail-grid">
+        <div class="detail-card">
+          <h4>Path Resolution</h4>
+          <ul>
+            <li><code>CLAUDE_COWORK_MEMORY_PATH_OVERRIDE</code> env var</li>
+            <li><code>autoMemoryDirectory</code> in settings.json</li>
+            <li>Default: <code>~/.claude/projects/{sanitized}/memory/</code></li>
+          </ul>
+          <p style="margin-top: 8px">Security: rejects relative, root, UNC, null-byte paths. Excludes projectSettings to prevent malicious repo exploits.</p>
+        </div>
+        <div class="detail-card">
+          <h4>4-Type Taxonomy</h4>
+          <ul>
+            <li><code>user</code> — role, preferences, style</li>
+            <li><code>feedback</code> — corrections + confirmations</li>
+            <li><code>project</code> — ongoing work, deadlines</li>
+            <li><code>reference</code> — external system pointers</li>
+          </ul>
+        </div>
+        <div class="detail-card">
+          <h4>Scanning (memoryScan.ts)</h4>
+          <p>Recursive readdir → filter .md (exclude MEMORY.md) → parallel frontmatter read → sort newest-first → cap at 200. Single-pass stat+read halves syscalls.</p>
+        </div>
+        <div class="detail-card">
+          <h4>Recall (findRelevantMemories.ts)</h4>
+          <p>Scan → filter alreadySurfaced → <strong>Sonnet sideQuery()</strong> picks ≤5 files → inject into system prompt. Only place that uses cheaper model.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Layer 3 -->
+  <div class="layer" onclick="toggleLayer(this)">
+    <div class="layer-header">
+      <div class="layer-num">3</div>
+      <div class="layer-title">
+        <h3>Session Memory — Within-Session Notes</h3>
+        <div class="subtitle">10-section structured notes. Fires as postSamplingHook. Dies with session.</div>
+      </div>
+      <span class="layer-status status-free">FREE IN BRIDGE</span>
+      <span class="expand-icon">&#9654;</span>
+    </div>
+    <div class="layer-body">
+      <div class="flow">
+        <span class="flow-node node-trigger">postSamplingHook</span>
+        <span class="flow-arrow">→</span>
+        <span class="flow-node node-func">shouldExtractMemory()</span>
+        <span class="flow-arrow">→</span>
+        <span class="flow-node node-agent">runForkedAgent()</span>
+        <span class="flow-arrow">→</span>
+        <span class="flow-node node-output">session-memory.md</span>
+      </div>
+      <div class="detail-grid">
+        <div class="detail-card">
+          <h4>Trigger Thresholds</h4>
+          <ul>
+            <li>Init: 10,000 tokens in context</li>
+            <li>Update: 5,000 token growth since last</li>
+            <li>Tool calls: 3 since last extraction</li>
+            <li>Safe point: no active tool calls</li>
+          </ul>
+        </div>
+        <div class="detail-card">
+          <h4>10 Sections</h4>
+          <p>Session Title, Current State, Task Spec, Files & Functions, Workflow, Errors, Codebase Docs, Learnings, Key Results, Worklog. 2K tokens/section, 12K total.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Layer 4 -->
+  <div class="layer" onclick="toggleLayer(this)">
+    <div class="layer-header">
+      <div class="layer-num">4</div>
+      <div class="layer-title">
+        <h3>Extract Memories — Between-Turn Promoter</h3>
+        <div class="subtitle">Background agent after each turn. Promotes signal from session to disk (Layer 2).</div>
+      </div>
+      <span class="layer-status status-adapt">ADAPT</span>
+      <span class="expand-icon">&#9654;</span>
+    </div>
+    <div class="layer-body">
+      <div class="flow">
+        <span class="flow-node node-trigger">stopHooks (post-turn)</span>
+        <span class="flow-arrow">→</span>
+        <span class="flow-node node-func">cursor check (lastMemoryMessageUuid)</span>
+        <span class="flow-arrow">→</span>
+        <span class="flow-node node-func">hasMemoryWritesSince? skip : run</span>
+        <span class="flow-arrow">→</span>
+        <span class="flow-node node-agent">runForkedAgent() (Sonnet)</span>
+        <span class="flow-arrow">→</span>
+        <span class="flow-node node-output">memory/*.md</span>
+      </div>
+      <div class="detail-grid">
+        <div class="detail-card">
+          <h4>Coalesced Execution</h4>
+          <p><code>inProgress</code> flag + <code>pendingContext</code> stash + trailing run in <code>finally</code> block. At most 2 extractions in flight. No backlog, no starvation.</p>
+        </div>
+        <div class="detail-card">
+          <h4>Efficiency Instructions</h4>
+          <p><strong>Turn 1:</strong> all FileRead calls in parallel.<br>
+          <strong>Turn 2:</strong> all FileWrite/Edit calls in parallel.<br>
+          No interleaving. <code>maxTurns: 5</code> hard cap.</p>
+        </div>
+        <div class="detail-card">
+          <h4>Cursor System</h4>
+          <p><code>lastMemoryMessageUuid</code> — only processes messages after this UUID. Advances after successful run. Stays put on error (retry).</p>
+        </div>
+        <div class="detail-card">
+          <h4>Mutual Exclusion</h4>
+          <p>If main agent already wrote to memory dir → skip that range. Main agent's writes are authoritative.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Layer 5 -->
+  <div class="layer open" onclick="toggleLayer(this)">
+    <div class="layer-header">
+      <div class="layer-num">5</div>
+      <div class="layer-title">
+        <h3>autoDream — Cross-Session Consolidator</h3>
+        <div class="subtitle">THE DREAMER. Wakes up periodically. Reads transcripts. Distills into Layer 2.</div>
+      </div>
+      <span class="layer-status status-adapt">ADAPT</span>
+      <span class="expand-icon">&#9654;</span>
+    </div>
+    <div class="layer-body">
+      <h4 style="color:#888; font-size:12px; margin: 12px 0 8px; text-transform: uppercase; letter-spacing: 1px;">Three-Gate Trigger (cheapest first)</h4>
+      <div class="gates">
+        <div class="gate">
+          <div class="gate-num">1</div>
+          <div class="gate-label">TIME</div>
+          <div class="gate-detail">≥24h since last dream</div>
+          <div class="gate-cost">Cost: 1 stat()</div>
+        </div>
+        <div class="gate-connector">→</div>
+        <div class="gate">
+          <div class="gate-num">2</div>
+          <div class="gate-label">SESSIONS</div>
+          <div class="gate-detail">≥5 transcripts modified</div>
+          <div class="gate-cost">Cost: dir listing + stats</div>
+        </div>
+        <div class="gate-connector">→</div>
+        <div class="gate">
+          <div class="gate-num">3</div>
+          <div class="gate-label">LOCK</div>
+          <div class="gate-detail">No other dream running</div>
+          <div class="gate-cost">Cost: PID check</div>
+        </div>
+      </div>
+
+      <h4 style="color:#888; font-size:12px; margin: 20px 0 8px; text-transform: uppercase; letter-spacing: 1px;">Four-Phase Consolidation Prompt</h4>
+      <div class="phases">
+        <div class="phase">
+          <div class="phase-num">Phase 1</div>
+          <h4>Orient</h4>
+          <p>ls memory dir, read MEMORY.md, skim topic files. Know what you know.</p>
+        </div>
+        <div class="phase">
+          <div class="phase-num">Phase 2</div>
+          <h4>Gather</h4>
+          <p>Daily logs → drifted memories → narrow transcript grep. Don't read wholesale.</p>
+        </div>
+        <div class="phase">
+          <div class="phase-num">Phase 3</div>
+          <h4>Consolidate</h4>
+          <p>Merge into existing files. Convert relative dates. Delete contradictions.</p>
+        </div>
+        <div class="phase">
+          <div class="phase-num">Phase 4</div>
+          <h4>Prune</h4>
+          <p>MEMORY.md under 200 lines. ~150 chars/entry. Remove stale pointers.</p>
+        </div>
+      </div>
+
+      <div class="detail-grid">
+        <div class="detail-card">
+          <h4>Lock File (.consolidate-lock)</h4>
+          <p><strong>Triple duty:</strong> mtime = lastConsolidatedAt, body = holder PID, rollback via utimes(). Stale after 60min even if PID live (reuse guard).</p>
+        </div>
+        <div class="detail-card">
+          <h4>Execution</h4>
+          <p><code>runForkedAgent()</code> shares parent prompt cache via <code>cacheSafeParams</code>. Progress tracked by <code>makeDreamProgressWatcher()</code>. Rollback on failure, scan throttle = backoff.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Cascade Timeline -->
+  <h3 style="color:#667eea; font-size:14px; margin: 24px 0 12px; text-align:center;">The Cascade in Action</h3>
+  <div class="cascade">
+    <div class="cascade-step"><span class="step-time">t=0</span><span class="step-event">User starts talking. Context grows.</span><span class="step-layer">—</span></div>
+    <div class="cascade-step"><span class="step-time">t=10K tokens</span><span class="step-event"><strong>Session Memory</strong> initializes. First extraction.</span><span class="step-layer">L3</span></div>
+    <div class="cascade-step"><span class="step-time">each turn</span><span class="step-event"><strong>Extract Memories</strong> checks cursor → promotes to disk.</span><span class="step-layer">L4→L2</span></div>
+    <div class="cascade-step"><span class="step-time">+5K tokens</span><span class="step-event"><strong>Session Memory</strong> updates (token + tool-call threshold met).</span><span class="step-layer">L3</span></div>
+    <div class="cascade-step"><span class="step-time">session end</span><span class="step-event">Session memory file persists. Transcript saved.</span><span class="step-layer">L3</span></div>
+    <div class="cascade-step"><span class="step-time">next session</span><span class="step-event"><strong>Recall</strong>: Sonnet picks ≤5 relevant memories → inject into prompt.</span><span class="step-layer">L2</span></div>
+    <div class="cascade-step"><span class="step-time">24h + 5 sessions</span><span class="step-event"><strong>autoDream</strong> wakes. Reads transcripts. Consolidates. Prunes.</span><span class="step-layer">L5→L2</span></div>
+  </div>
+</div>
+
+<!-- ============================================ -->
+<!-- MAPPING VIEW -->
+<!-- ============================================ -->
+<div class="system-view" id="view-mapping">
+  <div class="mapping-section">
+    <h3>Concept Mapping: Claude Code → OskarOS</h3>
+
+    <h4 style="color:#667eea; font-size:11px; text-transform:uppercase; letter-spacing:1px; margin: 20px 0 12px;">Infrastructure</h4>
+    <div class="mapping-row"><div class="map-left"><code>runForkedAgent()</code> — subprocess fork</div><div class="map-arrow">→</div><div class="map-right"><code>runClaudeAgentLoop()</code> — direct API call</div></div>
+    <div class="mapping-row"><div class="map-left"><code>cacheSafeParams</code> — prompt cache sharing</div><div class="map-arrow">→</div><div class="map-right dropped">DROP — no subprocess to share with</div></div>
+    <div class="mapping-row"><div class="map-left"><code>sideQuery()</code> — Sonnet call</div><div class="map-arrow">→</div><div class="map-right">Direct <code>fetch()</code> to Anthropic API</div></div>
+    <div class="mapping-row"><div class="map-left"><code>createAutoMemCanUseTool()</code></div><div class="map-arrow">→</div><div class="map-right"><code>executeDreamerTool()</code> — wrapper with path checks</div></div>
+
+    <h4 style="color:#667eea; font-size:11px; text-transform:uppercase; letter-spacing:1px; margin: 20px 0 12px;">Storage</h4>
+    <div class="mapping-row"><div class="map-left"><code>~/.claude/projects/{git-root}/memory/</code></div><div class="map-arrow">→</div><div class="map-right"><code>oskar-prototype/memory/</code> (global)</div></div>
+    <div class="mapping-row"><div class="map-left">JSONL transcript files</div><div class="map-arrow">→</div><div class="map-right">SESSION.md / IMAGES.md / BUILD.md / CREATIVE-BRIEF.md</div></div>
+    <div class="mapping-row"><div class="map-left"><code>.consolidate-lock</code> (PID + mtime)</div><div class="map-arrow">→</div><div class="map-right"><code>memory/.consolidate-lock</code> — identical</div></div>
+    <div class="mapping-row"><div class="map-left"><code>MEMORY.md</code> index (200 lines / 25KB)</div><div class="map-arrow">→</div><div class="map-right"><code>memory/MEMORY.md</code> — identical</div></div>
+
+    <h4 style="color:#667eea; font-size:11px; text-transform:uppercase; letter-spacing:1px; margin: 20px 0 12px;">Triggers</h4>
+    <div class="mapping-row"><div class="map-left"><code>stopHooks</code> (per-turn)</div><div class="map-arrow">→</div><div class="map-right"><code>POST /api/dream</code> (API route)</div></div>
+    <div class="mapping-row"><div class="map-left"><code>postSamplingHook</code></div><div class="map-arrow">→</div><div class="map-right">After bridge <code>result</code> event</div></div>
+    <div class="mapping-row"><div class="map-left">Gate 1: 24h since last dream</div><div class="map-arrow">→</div><div class="map-right">Gate 1: <strong>4h</strong> since last dream</div></div>
+    <div class="mapping-row"><div class="map-left">Gate 2: 5 sessions modified</div><div class="map-arrow">→</div><div class="map-right">Gate 2: <strong>3 sessions</strong> modified</div></div>
+    <div class="mapping-row"><div class="map-left">Scan throttle (10min cooldown)</div><div class="map-arrow">→</div><div class="map-right dropped">DROP — API-triggered, not per-turn</div></div>
+
+    <h4 style="color:#667eea; font-size:11px; text-transform:uppercase; letter-spacing:1px; margin: 20px 0 12px;">Models</h4>
+    <div class="mapping-row"><div class="map-left">Dream: inherits parent model</div><div class="map-arrow">→</div><div class="map-right">Dream: <strong>Sonnet</strong> (cost-optimized)</div></div>
+    <div class="mapping-row"><div class="map-left">Extract: inherits parent model</div><div class="map-arrow">→</div><div class="map-right">Extract: <strong>Sonnet</strong> (cost-optimized)</div></div>
+    <div class="mapping-row"><div class="map-left">Recall: explicitly Sonnet</div><div class="map-arrow">→</div><div class="map-right">Recall: <strong>Sonnet</strong> — same</div></div>
+
+    <h4 style="color:#667eea; font-size:11px; text-transform:uppercase; letter-spacing:1px; margin: 20px 0 12px;">Dropped Entirely</h4>
+    <div class="mapping-row"><div class="map-left">Session Memory (10-section notes)</div><div class="map-arrow">→</div><div class="map-right dropped">FREE — bridge mode CLI has it built-in</div></div>
+    <div class="mapping-row"><div class="map-left">Team memory (private/shared dirs)</div><div class="map-arrow">→</div><div class="map-right dropped">DROP — single-user app</div></div>
+    <div class="mapping-row"><div class="map-left">KAIROS daily-log mode</div><div class="map-arrow">→</div><div class="map-right dropped">DROP — premature complexity</div></div>
+    <div class="mapping-row"><div class="map-left">GrowthBook feature flags</div><div class="map-arrow">→</div><div class="map-right dropped">DROP — hardcode thresholds</div></div>
+    <div class="mapping-row"><div class="map-left">Security path validation</div><div class="map-arrow">→</div><div class="map-right dropped">DROP — OskarOS controls its own paths</div></div>
+  </div>
+
+  <!-- Permission comparison -->
+  <div class="mapping-section">
+    <h3>Permission Model Comparison</h3>
+    <table class="perm-table">
+      <thead>
+        <tr><th>Agent</th><th>Read</th><th>Write/Edit</th><th>Bash</th><th>Other</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td style="color:#667eea">CC: Session Memory</td>
+          <td class="perm-deny">NONE</td>
+          <td class="perm-restrict">1 file only</td>
+          <td class="perm-deny">NONE</td>
+          <td class="perm-deny">NONE</td>
+        </tr>
+        <tr>
+          <td style="color:#667eea">CC: Extract / Dream</td>
+          <td class="perm-allow">anywhere</td>
+          <td class="perm-restrict">memory dir only</td>
+          <td class="perm-restrict">read-only</td>
+          <td class="perm-deny">NONE</td>
+        </tr>
+        <tr style="border-top: 2px solid #2a2a3e;">
+          <td style="color:#4ade80">OS: Dreamer</td>
+          <td class="perm-restrict">public/ + memory/</td>
+          <td class="perm-restrict">memory/ only</td>
+          <td class="perm-deny">NONE</td>
+          <td class="perm-deny">NONE</td>
+        </tr>
+        <tr>
+          <td style="color:#4ade80">OS: Extractor</td>
+          <td class="perm-restrict">memory/ only</td>
+          <td class="perm-restrict">memory/ only</td>
+          <td class="perm-deny">NONE</td>
+          <td class="perm-deny">NONE</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ============================================ -->
+<!-- OSKAROS VIEW -->
+<!-- ============================================ -->
+<div class="system-view os" id="view-os">
+
+  <!-- Layer 1 -->
+  <div class="layer" onclick="toggleLayer(this)">
+    <div class="layer-header">
+      <div class="layer-num">1</div>
+      <div class="layer-title">
+        <h3>CD-MEMORY.md — Agent Identity</h3>
+        <div class="subtitle">The JEDI identity file. Read-only. Never auto-modified.</div>
+      </div>
+      <span class="layer-status status-exists">EXISTS</span>
+      <span class="expand-icon">&#9654;</span>
+    </div>
+    <div class="layer-body">
+      <div class="flow">
+        <span class="flow-node node-file">agents/CD-MEMORY.md</span>
+        <span class="flow-arrow">→</span>
+        <span class="flow-node node-func">loadCDAgentPrompt()</span>
+        <span class="flow-arrow">→</span>
+        <span class="flow-node node-output">System prompt injection</span>
+      </div>
+      <div class="detail-card" style="margin-top: 12px">
+        <h4>What's in it</h4>
+        <p>CD agent philosophy, death protocol, force bond concept, image status tags, recovery actions, legacy survival protocol. ~26KB. Loaded by <code>cd-agent-prompt.ts</code>.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Layer 2 -->
+  <div class="layer" onclick="toggleLayer(this)">
+    <div class="layer-header">
+      <div class="layer-num">2</div>
+      <div class="layer-title">
+        <h3>memory/ — Persistent Topic Files</h3>
+        <div class="subtitle">Global memory directory. MEMORY.md index + topic files. Ported from Claude Code.</div>
+      </div>
+      <span class="layer-status status-port">BUILD</span>
+      <span class="expand-icon">&#9654;</span>
+    </div>
+    <div class="layer-body">
+      <div class="flow">
+        <span class="flow-node node-file">oskar-prototype/memory/</span>
+        <span class="flow-arrow">→</span>
+        <span class="flow-node node-file">MEMORY.md (index)</span>
+        <span class="flow-arrow">+</span>
+        <span class="flow-node node-file">*.md (frontmatter: name, desc, type)</span>
+      </div>
+      <div class="detail-grid">
+        <div class="detail-card">
+          <h4>Files (ported from Claude Code)</h4>
+          <ul>
+            <li><code>lib/memory/paths.ts</code> — hardcoded path</li>
+            <li><code>lib/memory/types.ts</code> — 4-type taxonomy prompts</li>
+            <li><code>lib/memory/scan.ts</code> — dir scanner</li>
+            <li><code>lib/memory/age.ts</code> — staleness utils</li>
+            <li><code>lib/memory/truncate.ts</code> — MEMORY.md size caps</li>
+          </ul>
+        </div>
+        <div class="detail-card">
+          <h4>Recall System</h4>
+          <p><code>lib/memory/recall.ts</code> — Sonnet picks ≤5 relevant files per session. Injected into CD prompt via modified <code>buildCDPrompt()</code>. Direct Anthropic API call (no sideQuery).</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Layer 3 -->
+  <div class="layer" onclick="toggleLayer(this)">
+    <div class="layer-header">
+      <div class="layer-num">3</div>
+      <div class="layer-title">
+        <h3>Session Files — Within-Session State</h3>
+        <div class="subtitle">SESSION.md + IMAGES.md + BUILD.md + CREATIVE-BRIEF.md. Written by CD agent.</div>
+      </div>
+      <span class="layer-status status-exists">EXISTS</span>
+      <span class="expand-icon">&#9654;</span>
+    </div>
+    <div class="layer-body">
+      <div class="flow">
+        <span class="flow-node node-agent">CD Agent (bridge)</span>
+        <span class="flow-arrow">→</span>
+        <span class="flow-node node-file">public/{sessionId}/SESSION.md</span>
+        <span class="flow-arrow">+</span>
+        <span class="flow-node node-file">IMAGES.md</span>
+        <span class="flow-arrow">+</span>
+        <span class="flow-node node-file">BUILD.md</span>
+        <span class="flow-arrow">+</span>
+        <span class="flow-node node-file">CREATIVE-BRIEF.md</span>
+      </div>
+      <div class="detail-card" style="margin-top:12px">
+        <h4>Why we don't need Session Memory (Layer 3 from Claude Code)</h4>
+        <p>Bridge mode runs Claude CLI as a persistent subprocess. The CLI already has its own session memory built in. Plus, OskarOS has structured session files that serve the same purpose. Don't rebuild what's free.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Layer 4 -->
+  <div class="layer" onclick="toggleLayer(this)">
+    <div class="layer-header">
+      <div class="layer-num">4</div>
+      <div class="layer-title">
+        <h3>Extract Memories — Post-Turn Promoter</h3>
+        <div class="subtitle">After each bridge response, promotes signal to memory/. Fire-and-forget.</div>
+      </div>
+      <span class="layer-status status-adapt">BUILD</span>
+      <span class="expand-icon">&#9654;</span>
+    </div>
+    <div class="layer-body">
+      <div class="flow">
+        <span class="flow-node node-trigger">Bridge 'result' event</span>
+        <span class="flow-arrow">→</span>
+        <span class="flow-node node-func">extractMemoriesIfNeeded()</span>
+        <span class="flow-arrow">→</span>
+        <span class="flow-node node-func">coalesced execution</span>
+        <span class="flow-arrow">→</span>
+        <span class="flow-node node-api">Anthropic API (Sonnet)</span>
+        <span class="flow-arrow">→</span>
+        <span class="flow-node node-output">memory/*.md</span>
+      </div>
+      <div class="detail-grid">
+        <div class="detail-card">
+          <h4>Coalesced Execution (ported)</h4>
+          <p>Same pattern: <code>inProgress</code> + <code>pendingContext</code> + trailing run. Max 2 extractions in flight. Recent messages passed as string (no cursor UUID needed — bridge gives us the exchange directly).</p>
+        </div>
+        <div class="detail-card">
+          <h4>Integration Point</h4>
+          <p>In <code>chat-stream</code> route, after yielding final <code>result</code> event:<br>
+          <code>extractMemoriesIfNeeded(messages).catch(…)</code><br>
+          Fire-and-forget. Don't block response.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Layer 5 -->
+  <div class="layer open" onclick="toggleLayer(this)">
+    <div class="layer-header">
+      <div class="layer-num">5</div>
+      <div class="layer-title">
+        <h3>Dreamer — Cross-Session Consolidator</h3>
+        <div class="subtitle">POST /api/dream — reads all session folders, consolidates into memory/.</div>
+      </div>
+      <span class="layer-status status-adapt">BUILD</span>
+      <span class="expand-icon">&#9654;</span>
+    </div>
+    <div class="layer-body">
+
+      <h4 style="color:#888; font-size:12px; margin: 12px 0 8px; text-transform: uppercase; letter-spacing: 1px;">Three-Gate Trigger (adapted)</h4>
+      <div class="gates">
+        <div class="gate">
+          <div class="gate-num">1</div>
+          <div class="gate-label">TIME</div>
+          <div class="gate-detail">≥<strong>4h</strong> since last dream</div>
+          <div class="gate-cost">Cost: 1 stat()</div>
+        </div>
+        <div class="gate-connector">→</div>
+        <div class="gate">
+          <div class="gate-num">2</div>
+          <div class="gate-label">SESSIONS</div>
+          <div class="gate-detail">≥<strong>3</strong> sessions modified</div>
+          <div class="gate-cost">Cost: scan public/*/SESSION.md</div>
+        </div>
+        <div class="gate-connector">→</div>
+        <div class="gate">
+          <div class="gate-num">3</div>
+          <div class="gate-label">LOCK</div>
+          <div class="gate-detail">No other dream running</div>
+          <div class="gate-cost">Cost: PID check</div>
+        </div>
+      </div>
+
+      <h4 style="color:#888; font-size:12px; margin: 20px 0 8px; text-transform: uppercase; letter-spacing: 1px;">Four-Phase Prompt (adapted for session files)</h4>
+      <div class="phases">
+        <div class="phase">
+          <div class="phase-num">Phase 1</div>
+          <h4>Orient</h4>
+          <p>Read memory/MEMORY.md index. Skim existing topic files. Know what you know.</p>
+        </div>
+        <div class="phase">
+          <div class="phase-num">Phase 2</div>
+          <h4>Gather</h4>
+          <p>Read SESSION.md, IMAGES.md, BUILD.md, CREATIVE-BRIEF.md from each session. <strong>Structured markdown, not transcript grep.</strong></p>
+        </div>
+        <div class="phase">
+          <div class="phase-num">Phase 3</div>
+          <h4>Consolidate</h4>
+          <p>Merge cross-session patterns. Convert dates. Delete contradictions. Use FileEdit on existing files.</p>
+        </div>
+        <div class="phase">
+          <div class="phase-num">Phase 4</div>
+          <h4>Prune</h4>
+          <p>MEMORY.md under 200 lines. ~150 chars/entry. Remove stale. Resolve conflicts.</p>
+        </div>
+      </div>
+
+      <div class="detail-grid">
+        <div class="detail-card">
+          <h4>API Route</h4>
+          <p><code>POST /api/dream</code> — check gates + dream<br>
+          <code>POST /api/dream?force=true</code> — bypass gates<br>
+          <code>GET /api/dream</code> — gate status check<br>
+          Returns: <code>{ dreamed, reason, filesWritten, turns }</code></p>
+        </div>
+        <div class="detail-card">
+          <h4>Execution</h4>
+          <p>Direct Anthropic API loop with <strong>Sonnet</strong>. Custom tool set (FileRead, FileWrite, FileEdit, Glob, Grep). Split permissions: READ from public/, WRITE to memory/ only. Max 10 turns.</p>
+        </div>
+        <div class="detail-card">
+          <h4>Lock File (identical to Claude Code)</h4>
+          <p><code>memory/.consolidate-lock</code> — mtime = lastConsolidatedAt, body = PID, stale after 60min, rollback via utimes(). Race resolution: last writer wins.</p>
+        </div>
+        <div class="detail-card">
+          <h4>Key Adaptation</h4>
+          <p>Phase 2 reads <strong>structured session files</strong> directly instead of grepping JSONL transcripts. Simpler AND richer signal — files are already organized by concern.</p>
+        </div>
+      </div>
+
+      <h4 style="color:#888; font-size:12px; margin: 20px 0 8px; text-transform: uppercase; letter-spacing: 1px;">Cascade in Action</h4>
+      <div class="cascade">
+        <div class="cascade-step"><span class="step-time">user message</span><span class="step-event">Bridge sends to Claude CLI. Response streams back.</span><span class="step-layer">—</span></div>
+        <div class="cascade-step"><span class="step-time">result event</span><span class="step-event"><strong>Extract Memories</strong> fires (fire-and-forget). Promotes to memory/.</span><span class="step-layer">L4→L2</span></div>
+        <div class="cascade-step"><span class="step-time">session end</span><span class="step-event">Session files persist in public/{sessionId}/.</span><span class="step-layer">L3</span></div>
+        <div class="cascade-step"><span class="step-time">next session</span><span class="step-event"><strong>Recall</strong>: Sonnet picks ≤5 memories → inject into CD prompt.</span><span class="step-layer">L2</span></div>
+        <div class="cascade-step"><span class="step-time">4h + 3 sessions</span><span class="step-event"><strong>Dreamer</strong> wakes. Reads session files. Consolidates. Prunes.</span><span class="step-layer">L5→L2</span></div>
+        <div class="cascade-step"><span class="step-time">manual trigger</span><span class="step-event"><code>POST /api/dream?force=true</code> — dream on demand.</span><span class="step-layer">L5→L2</span></div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+</div>
+
+<script>
+function showView(view) {
+  document.querySelectorAll('.system-view').forEach(v => v.classList.remove('active'));
+  document.querySelectorAll('.toggle-btn').forEach(b => {
+    b.classList.remove('active-cc', 'active-os');
+    b.style.background = '#111';
+    b.style.color = '#888';
+    b.style.borderColor = '#333';
+  });
+
+  if (view === 'cc') {
+    document.getElementById('view-cc').classList.add('active');
+    const btn = document.getElementById('btn-cc');
+    btn.classList.add('active-cc');
+  } else if (view === 'os') {
+    document.getElementById('view-os').classList.add('active');
+    const btn = document.getElementById('btn-os');
+    btn.classList.add('active-os');
+  } else {
+    document.getElementById('view-mapping').classList.add('active');
+    const btn = document.getElementById('btn-map');
+    btn.style.background = '#1a1a2e';
+    btn.style.color = '#ccc';
+    btn.style.borderColor = '#667eea';
+  }
+}
+
+function toggleLayer(el) {
+  // Don't toggle if clicking inside the body
+  if (event.target.closest('.layer-body')) return;
+  el.classList.toggle('open');
+}
+</script>
+</body>
+</html>

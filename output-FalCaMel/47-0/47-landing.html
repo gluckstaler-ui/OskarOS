@@ -1,0 +1,995 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FalCaMel Cafe | 47-0</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Work+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --obsidian: #1A1A1A;
+            --gold: #D4AF37;
+            --white: #FFFFFF;
+            --deep-red: #8B0000;
+            --gray-dark: #2A2A2A;
+            --gray-light: #888888;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        body {
+            font-family: 'Work Sans', sans-serif;
+            background-color: var(--obsidian);
+            color: var(--white);
+            line-height: 1.6;
+        }
+
+        h1, h2, h3, h4, h5 {
+            font-family: 'Bebas Neue', sans-serif;
+            font-weight: 400;
+            letter-spacing: 0.05em;
+        }
+
+        /* Navigation */
+        nav {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 1000;
+            padding: 1.5rem 3rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: linear-gradient(to bottom, rgba(26,26,26,0.95), transparent);
+        }
+
+        .logo {
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 1.5rem;
+            color: var(--gold);
+            text-decoration: none;
+            letter-spacing: 0.1em;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 2rem;
+            list-style: none;
+        }
+
+        .nav-links a {
+            color: var(--white);
+            text-decoration: none;
+            font-size: 0.85rem;
+            font-weight: 500;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+            transition: color 0.3s ease;
+        }
+
+        .nav-links a:hover {
+            color: var(--gold);
+        }
+
+        /* Hero Section */
+        .hero {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .hero-bg {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-image: url('../../images/falcon-diving.jpg');
+            background-size: cover;
+            background-position: center;
+            filter: brightness(0.4);
+            z-index: -1;
+        }
+
+        .hero-content {
+            z-index: 1;
+            padding: 2rem;
+        }
+
+        .record {
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: clamp(8rem, 25vw, 20rem);
+            color: var(--gold);
+            line-height: 0.9;
+            text-shadow: 0 0 60px rgba(212, 175, 55, 0.3);
+        }
+
+        .hero h2 {
+            font-size: clamp(1.5rem, 4vw, 2.5rem);
+            font-weight: 300;
+            margin-top: 1rem;
+            color: var(--white);
+            letter-spacing: 0.1em;
+        }
+
+        .hero-cta {
+            display: inline-block;
+            margin-top: 3rem;
+            padding: 1rem 3rem;
+            background-color: var(--deep-red);
+            color: var(--white);
+            text-decoration: none;
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 1.3rem;
+            letter-spacing: 0.15em;
+            transition: all 0.3s ease;
+            border: 2px solid var(--deep-red);
+        }
+
+        .hero-cta:hover {
+            background-color: transparent;
+            border-color: var(--gold);
+            color: var(--gold);
+        }
+
+        /* Section Styling */
+        section {
+            padding: 6rem 2rem;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .section-title {
+            font-size: clamp(2.5rem, 6vw, 4rem);
+            color: var(--gold);
+            margin-bottom: 1rem;
+            text-transform: uppercase;
+        }
+
+        .section-subtitle {
+            font-size: 1.1rem;
+            color: var(--gray-light);
+            margin-bottom: 3rem;
+            max-width: 600px;
+        }
+
+        /* The Lounge */
+        .lounge {
+            background: linear-gradient(135deg, var(--gray-dark) 0%, var(--obsidian) 100%);
+            padding: 6rem 2rem;
+            text-align: center;
+        }
+
+        .lounge-inner {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .lounge h2 {
+            font-size: clamp(3rem, 8vw, 5rem);
+            color: var(--gold);
+            margin-bottom: 1.5rem;
+        }
+
+        .lounge p {
+            font-size: 1.25rem;
+            line-height: 1.8;
+            color: var(--white);
+            margin-bottom: 1rem;
+        }
+
+        .lounge .tagline {
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 1.5rem;
+            color: var(--gold);
+            letter-spacing: 0.2em;
+            margin-top: 2rem;
+        }
+
+        /* The Roster */
+        #roster {
+            padding: 6rem 2rem;
+        }
+
+        .roster-header {
+            text-align: center;
+            margin-bottom: 4rem;
+        }
+
+        .roster-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 2rem;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .roster-card {
+            background: var(--gray-dark);
+            border: 1px solid rgba(212, 175, 55, 0.2);
+            overflow: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .roster-card:hover {
+            border-color: var(--gold);
+            transform: translateY(-5px);
+        }
+
+        .roster-card.champion {
+            border-color: var(--gold);
+            box-shadow: 0 0 30px rgba(212, 175, 55, 0.2);
+        }
+
+        .roster-card img {
+            width: 100%;
+            height: 220px;
+            object-fit: cover;
+            filter: grayscale(30%);
+            transition: filter 0.3s ease;
+        }
+
+        .roster-card:hover img {
+            filter: grayscale(0%);
+        }
+
+        .roster-info {
+            padding: 1.5rem;
+        }
+
+        .roster-name {
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 2rem;
+            color: var(--gold);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .roster-record {
+            font-size: 1.2rem;
+            color: var(--deep-red);
+        }
+
+        .roster-role {
+            font-size: 0.9rem;
+            color: var(--gray-light);
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            margin: 0.5rem 0;
+        }
+
+        .roster-desc {
+            font-size: 1rem;
+            color: var(--white);
+            margin: 1rem 0;
+        }
+
+        .roster-price {
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 1.5rem;
+            color: var(--white);
+        }
+
+        .roster-price span {
+            font-family: 'Work Sans', sans-serif;
+            font-size: 0.85rem;
+            color: var(--gray-light);
+        }
+
+        /* Stats Section */
+        #stats {
+            background: var(--obsidian);
+            padding: 6rem 2rem;
+            text-align: center;
+        }
+
+        .stats-title {
+            font-size: clamp(2rem, 5vw, 3rem);
+            color: var(--white);
+            margin-bottom: 3rem;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 3rem;
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+
+        .stat-item {
+            padding: 2rem;
+            border: 1px solid rgba(212, 175, 55, 0.3);
+        }
+
+        .stat-number {
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: clamp(3rem, 8vw, 5rem);
+            color: var(--gold);
+            line-height: 1;
+        }
+
+        .stat-unit {
+            font-size: 1.5rem;
+            color: var(--gold);
+        }
+
+        .stat-label {
+            font-size: 1rem;
+            color: var(--gray-light);
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            margin-top: 0.5rem;
+        }
+
+        .stat-note {
+            font-size: 0.9rem;
+            color: var(--white);
+            margin-top: 0.5rem;
+        }
+
+        /* Menu / Fuel Section */
+        #fuel {
+            padding: 6rem 2rem;
+            background: linear-gradient(180deg, var(--obsidian) 0%, var(--gray-dark) 100%);
+        }
+
+        .fuel-header {
+            text-align: center;
+            margin-bottom: 4rem;
+        }
+
+        .fuel-header h2 {
+            font-size: clamp(4rem, 10vw, 7rem);
+            color: var(--gold);
+        }
+
+        .fuel-header p {
+            color: var(--gray-light);
+            font-size: 1.1rem;
+        }
+
+        .menu-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 3rem;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .menu-category {
+            background: rgba(26, 26, 26, 0.8);
+            padding: 2rem;
+            border-left: 3px solid var(--gold);
+        }
+
+        .menu-category h3 {
+            font-size: 1.8rem;
+            color: var(--gold);
+            margin-bottom: 1.5rem;
+            letter-spacing: 0.15em;
+        }
+
+        .menu-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            padding: 0.75rem 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .menu-item:last-child {
+            border-bottom: none;
+        }
+
+        .menu-item-name {
+            font-weight: 500;
+            color: var(--white);
+        }
+
+        .menu-item-price {
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 1.2rem;
+            color: var(--gold);
+        }
+
+        /* Experiences Section */
+        #experiences {
+            padding: 6rem 2rem;
+        }
+
+        .experiences-header {
+            text-align: center;
+            margin-bottom: 4rem;
+        }
+
+        .experience-tier {
+            max-width: 1000px;
+            margin: 0 auto 4rem;
+            background: var(--gray-dark);
+            border: 1px solid rgba(212, 175, 55, 0.3);
+            overflow: hidden;
+        }
+
+        .experience-tier.premium {
+            border-color: var(--gold);
+            box-shadow: 0 0 40px rgba(212, 175, 55, 0.15);
+        }
+
+        .tier-header {
+            background: linear-gradient(135deg, var(--obsidian) 0%, var(--gray-dark) 100%);
+            padding: 2rem;
+            border-bottom: 1px solid rgba(212, 175, 55, 0.3);
+        }
+
+        .tier-header h3 {
+            font-size: 2.5rem;
+            color: var(--gold);
+        }
+
+        .tier-header p {
+            color: var(--gray-light);
+            margin-top: 0.5rem;
+        }
+
+        .tier-content {
+            padding: 2rem;
+        }
+
+        .experience-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            padding: 1.5rem 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .experience-item:last-child {
+            border-bottom: none;
+        }
+
+        .experience-details h4 {
+            font-size: 1.5rem;
+            color: var(--white);
+            margin-bottom: 0.5rem;
+        }
+
+        .experience-details p {
+            color: var(--gray-light);
+            font-size: 0.95rem;
+        }
+
+        .experience-price {
+            text-align: right;
+        }
+
+        .experience-price .amount {
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 2rem;
+            color: var(--gold);
+        }
+
+        .experience-price .unit {
+            font-size: 0.85rem;
+            color: var(--gray-light);
+            display: block;
+        }
+
+        /* Royal Experience */
+        .royal-experience {
+            max-width: 1000px;
+            margin: 0 auto;
+            background: linear-gradient(135deg, rgba(212, 175, 55, 0.1) 0%, var(--gray-dark) 100%);
+            border: 2px solid var(--gold);
+            padding: 4rem;
+            text-align: center;
+        }
+
+        .royal-experience h3 {
+            font-size: clamp(2.5rem, 6vw, 4rem);
+            color: var(--gold);
+            margin-bottom: 1rem;
+        }
+
+        .royal-experience .tagline {
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 1.3rem;
+            color: var(--white);
+            letter-spacing: 0.2em;
+            margin-bottom: 2rem;
+        }
+
+        .royal-experience p {
+            font-size: 1.1rem;
+            color: var(--gray-light);
+            max-width: 600px;
+            margin: 0 auto 2rem;
+        }
+
+        .royal-price {
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 4rem;
+            color: var(--gold);
+        }
+
+        .royal-price span {
+            font-size: 1.5rem;
+            color: var(--gray-light);
+        }
+
+        /* Location Section */
+        #arena {
+            padding: 6rem 2rem;
+            background: var(--gray-dark);
+        }
+
+        .arena-content {
+            max-width: 1000px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 4rem;
+            align-items: center;
+        }
+
+        .arena-text h2 {
+            font-size: clamp(3rem, 7vw, 5rem);
+            color: var(--gold);
+            margin-bottom: 1.5rem;
+        }
+
+        .arena-text p {
+            font-size: 1.1rem;
+            color: var(--white);
+            margin-bottom: 1rem;
+        }
+
+        .arena-text .hours {
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 1.5rem;
+            color: var(--gold);
+            margin-top: 2rem;
+        }
+
+        .arena-image {
+            position: relative;
+        }
+
+        .arena-image img {
+            width: 100%;
+            height: 400px;
+            object-fit: cover;
+            border: 1px solid rgba(212, 175, 55, 0.3);
+        }
+
+        /* CTA Section */
+        .final-cta {
+            padding: 8rem 2rem;
+            text-align: center;
+            background: linear-gradient(180deg, var(--obsidian) 0%, var(--gray-dark) 50%, var(--obsidian) 100%);
+        }
+
+        .final-cta h2 {
+            font-size: clamp(3rem, 8vw, 6rem);
+            color: var(--gold);
+            margin-bottom: 1rem;
+        }
+
+        .final-cta p {
+            font-size: 1.25rem;
+            color: var(--gray-light);
+            margin-bottom: 3rem;
+        }
+
+        .cta-button {
+            display: inline-block;
+            padding: 1.25rem 4rem;
+            background-color: var(--deep-red);
+            color: var(--white);
+            text-decoration: none;
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 1.5rem;
+            letter-spacing: 0.15em;
+            transition: all 0.3s ease;
+            border: 2px solid var(--deep-red);
+        }
+
+        .cta-button:hover {
+            background-color: var(--gold);
+            border-color: var(--gold);
+            color: var(--obsidian);
+        }
+
+        /* Footer */
+        footer {
+            background: var(--obsidian);
+            padding: 4rem 2rem;
+            text-align: center;
+            border-top: 1px solid rgba(212, 175, 55, 0.2);
+        }
+
+        .footer-logo {
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 2rem;
+            color: var(--gold);
+            margin-bottom: 1rem;
+        }
+
+        .footer-tagline {
+            font-size: 0.9rem;
+            color: var(--gray-light);
+            letter-spacing: 0.2em;
+            text-transform: uppercase;
+            margin-bottom: 2rem;
+        }
+
+        .footer-location {
+            color: var(--white);
+            font-size: 1rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .footer-hours {
+            color: var(--gray-light);
+            font-size: 0.9rem;
+        }
+
+        .footer-bottom {
+            margin-top: 3rem;
+            padding-top: 2rem;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            font-size: 0.8rem;
+            color: var(--gray-light);
+        }
+
+        /* Mobile Responsive */
+        @media (max-width: 768px) {
+            nav {
+                padding: 1rem 1.5rem;
+            }
+
+            .nav-links {
+                display: none;
+            }
+
+            section {
+                padding: 4rem 1.5rem;
+            }
+
+            .arena-content {
+                grid-template-columns: 1fr;
+                gap: 2rem;
+            }
+
+            .arena-image {
+                order: -1;
+            }
+
+            .royal-experience {
+                padding: 2rem;
+            }
+
+            .stats-grid {
+                grid-template-columns: 1fr 1fr;
+                gap: 1.5rem;
+            }
+
+            .stat-item {
+                padding: 1.5rem 1rem;
+            }
+
+            .roster-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .record {
+                font-size: 6rem;
+            }
+
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .menu-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav>
+        <a href="#" class="logo">FALCAMEL</a>
+        <ul class="nav-links">
+            <li><a href="#roster">The Roster</a></li>
+            <li><a href="#stats">Stats</a></li>
+            <li><a href="#fuel">Fuel</a></li>
+            <li><a href="#experiences">Experiences</a></li>
+            <li><a href="#arena">The Arena</a></li>
+        </ul>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="hero">
+        <div class="hero-bg"></div>
+        <div class="hero-content">
+            <div class="record">47-0</div>
+            <h2>Sultan has never lost. Watch him extend the streak.</h2>
+            <a href="#experiences" class="hero-cta">Witness the Streak</a>
+        </div>
+    </section>
+
+    <!-- The Lounge Section -->
+    <section class="lounge">
+        <div class="lounge-inner">
+            <h2>THE LOUNGE</h2>
+            <p>The home base. Walk-in cafe on the edge of the Tuwaiq Escarpment. This is where you watch the cliff, not from it. Premium qahwa. The residents roam free. The coasters scream below.</p>
+            <p>No booking required. Champions welcome anytime.</p>
+            <div class="tagline">WALK IN. SIT DOWN. WATCH HISTORY.</div>
+        </div>
+    </section>
+
+    <!-- The Roster Section -->
+    <section id="roster">
+        <div class="roster-header">
+            <h2 class="section-title">THE ROSTER</h2>
+            <p class="section-subtitle">Four residents. One undefeated champion. Zero pretenders.</p>
+        </div>
+        <div class="roster-grid">
+            <!-- Sultan - The Champion -->
+            <div class="roster-card champion">
+                <img src="../../images/sultan.jpg" alt="Sultan the Falcon">
+                <div class="roster-info">
+                    <div class="roster-name">
+                        SULTAN
+                        <span class="roster-record">47-0</span>
+                    </div>
+                    <div class="roster-role">The Apex Predator</div>
+                    <p class="roster-desc">Undefeated. Unmatched. The fastest thing on the escarpment. He races the Falcon's Flight coaster and wins. Every. Single. Time.</p>
+                    <div class="roster-price">SAR 350 <span>/ hour</span></div>
+                </div>
+            </div>
+
+            <!-- Haboob -->
+            <div class="roster-card">
+                <img src="../../images/haboob.jpg" alt="Haboob the Camel">
+                <div class="roster-info">
+                    <div class="roster-name">HABOOB</div>
+                    <div class="roster-role">Ground Control</div>
+                    <p class="roster-desc">Silent judgment. Carries you across the escarpment at sunset while Sultan's victories echo in the distance. The calm after the storm.</p>
+                    <div class="roster-price">SAR 500 <span>/ hour</span></div>
+                </div>
+            </div>
+
+            <!-- Shams -->
+            <div class="roster-card">
+                <img src="../../images/shams.jpg" alt="Shams the Cat">
+                <div class="roster-info">
+                    <div class="roster-name">SHAMS</div>
+                    <div class="roster-role">Zero Concern</div>
+                    <p class="roster-desc">Sleeps through the race. Every race. Unbothered by records, statistics, or the screams of coaster riders. Peak performance is rest.</p>
+                    <div class="roster-price">SAR 150 <span>/ hour</span></div>
+                </div>
+            </div>
+
+            <!-- Qamar -->
+            <div class="roster-card">
+                <img src="../../images/qamar.jpg" alt="Qamar the Cat">
+                <div class="roster-info">
+                    <div class="roster-name">QAMAR</div>
+                    <div class="roster-role">Shadow Ops</div>
+                    <p class="roster-desc">Appears when you least expect. Disappears when you look. Makes you feel chosen. The roster's silent endorsement.</p>
+                    <div class="roster-price">SAR 150 <span>/ hour</span></div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Stats Section -->
+    <section id="stats">
+        <h2 class="stats-title">THE NUMBERS DON'T LIE</h2>
+        <div class="stats-grid">
+            <div class="stat-item">
+                <div class="stat-number">47<span class="stat-unit">-0</span></div>
+                <div class="stat-label">Sultan's Record</div>
+                <div class="stat-note">Undefeated. Undisputed.</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-number">380</div>
+                <div class="stat-label">Falcon Speed (km/h)</div>
+                <div class="stat-note">Terminal velocity dive</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-number">250</div>
+                <div class="stat-label">Coaster Speed (km/h)</div>
+                <div class="stat-note">Falcon's Flight max</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-number">130</div>
+                <div class="stat-label">Speed Differential</div>
+                <div class="stat-note">The race is never close</div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Menu / Fuel Section -->
+    <section id="fuel">
+        <div class="fuel-header">
+            <h2>FUEL</h2>
+            <p>What champions drink. What spectators sip.</p>
+        </div>
+        <div class="menu-grid">
+            <!-- Qahwa -->
+            <div class="menu-category">
+                <h3>QAHWA</h3>
+                <div class="menu-item">
+                    <span class="menu-item-name">Jareen Single Origin</span>
+                    <span class="menu-item-price">SAR 25</span>
+                </div>
+                <div class="menu-item">
+                    <span class="menu-item-name">House Blend</span>
+                    <span class="menu-item-price">SAR 18</span>
+                </div>
+                <div class="menu-item">
+                    <span class="menu-item-name">Traditional Qahwa</span>
+                    <span class="menu-item-price">SAR 20</span>
+                </div>
+            </div>
+
+            <!-- Lattes -->
+            <div class="menu-category">
+                <h3>LATTES</h3>
+                <div class="menu-item">
+                    <span class="menu-item-name">Camel Milk Latte</span>
+                    <span class="menu-item-price">SAR 35</span>
+                </div>
+                <div class="menu-item">
+                    <span class="menu-item-name">Highland Honey Latte</span>
+                    <span class="menu-item-price">SAR 40</span>
+                </div>
+            </div>
+
+            <!-- Cold -->
+            <div class="menu-category">
+                <h3>COLD</h3>
+                <div class="menu-item">
+                    <span class="menu-item-name">Jallab</span>
+                    <span class="menu-item-price">SAR 22</span>
+                </div>
+                <div class="menu-item">
+                    <span class="menu-item-name">Lemon Mint</span>
+                    <span class="menu-item-price">SAR 18</span>
+                </div>
+            </div>
+
+            <!-- Sweets -->
+            <div class="menu-category">
+                <h3>SWEETS</h3>
+                <div class="menu-item">
+                    <span class="menu-item-name">Luqaimat</span>
+                    <span class="menu-item-price">SAR 20</span>
+                </div>
+                <div class="menu-item">
+                    <span class="menu-item-name">Kunafa</span>
+                    <span class="menu-item-price">SAR 35</span>
+                </div>
+                <div class="menu-item">
+                    <span class="menu-item-name">Ma'amoul</span>
+                    <span class="menu-item-price">SAR 25</span>
+                </div>
+            </div>
+
+            <!-- Savory -->
+            <div class="menu-category">
+                <h3>SAVORY</h3>
+                <div class="menu-item">
+                    <span class="menu-item-name">Sambusa</span>
+                    <span class="menu-item-price">SAR 20</span>
+                </div>
+                <div class="menu-item">
+                    <span class="menu-item-name">Mutabbaq</span>
+                    <span class="menu-item-price">SAR 28</span>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Experiences Section -->
+    <section id="experiences">
+        <div class="experiences-header">
+            <h2 class="section-title">THE EXPERIENCES</h2>
+            <p class="section-subtitle">From walk-in spectator to race day VIP.</p>
+        </div>
+
+        <!-- Evening Programs -->
+        <div class="experience-tier premium">
+            <div class="tier-header">
+                <h3>THE FULL FALCAMEL</h3>
+                <p>Evening programs. When the sun drops and the races begin.</p>
+            </div>
+            <div class="tier-content">
+                <div class="experience-item">
+                    <div class="experience-details">
+                        <h4>The Race</h4>
+                        <p>380 km/h vs 250 km/h. Sultan vs Falcon's Flight. Watch the streak extend. It's never close.</p>
+                    </div>
+                    <div class="experience-price">
+                        <span class="amount">SAR 2,000</span>
+                        <span class="unit">per person</span>
+                    </div>
+                </div>
+                <div class="experience-item">
+                    <div class="experience-details">
+                        <h4>The Sunset Ride</h4>
+                        <p>Victory lap with Haboob across the escarpment. Camel pace. Sunset views. The calm after witnessing dominance.</p>
+                    </div>
+                    <div class="experience-price">
+                        <span class="amount">SAR 2,000</span>
+                        <span class="unit">per person</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- The Royal FalCaMel -->
+        <div class="royal-experience">
+            <h3>THE ROYAL FALCAMEL</h3>
+            <div class="tagline">FULL DEPLOYMENT. THE WHOLE ROSTER.</div>
+            <p>Sultan races. Haboob rides. Shams sleeps. Qamar appears. Premium qahwa flows. You don't watch—you're part of the record.</p>
+            <div class="royal-price">SAR 7,500 <span>/ group</span></div>
+        </div>
+    </section>
+
+    <!-- Location / Arena Section -->
+    <section id="arena">
+        <div class="arena-content">
+            <div class="arena-text">
+                <h2>THE ARENA</h2>
+                <p>Tuwaiq Escarpment. Edge of Riyadh. Where the desert meets the sky and the coasters scream 200 meters below.</p>
+                <p>This is where records are set. Where Sultan extends his streak. Where you watch from the champion's perch.</p>
+                <div class="hours">4 PM - 2 AM DAILY</div>
+            </div>
+            <div class="arena-image">
+                <img src="../../images/hero.jpg" alt="FalCaMel Cafe overlooking Six Flags Qiddiya">
+            </div>
+        </div>
+    </section>
+
+    <!-- Final CTA -->
+    <section class="final-cta">
+        <h2>THE STREAK CONTINUES</h2>
+        <p>47 races. 47 wins. Be there for 48.</p>
+        <a href="#experiences" class="cta-button">Witness the Streak</a>
+    </section>
+
+    <!-- Footer -->
+    <footer>
+        <div class="footer-logo">FALCAMEL CAFE</div>
+        <div class="footer-tagline">Elevation. Redefined.</div>
+        <div class="footer-location">Tuwaiq Escarpment, Qiddiya, Riyadh</div>
+        <div class="footer-hours">Daily 4 PM - 2 AM</div>
+        <div class="footer-bottom">
+            The Falcon Has Never Lost.
+        </div>
+    </footer>
+</body>
+</html>

@@ -1,0 +1,742 @@
+<!DOCTYPE html>
+<html lang="de-CH">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bareggcenter Baden | De Nein-Böttön</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --color-orange: #ff6b35;
+            --color-blue: #0a1628;
+            --color-white: #ffffff;
+            --color-gray-light: #f5f5f5;
+            --color-gray: #888888;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background-color: var(--color-blue);
+            color: var(--color-white);
+            line-height: 1.6;
+            overflow-x: hidden;
+        }
+
+        /* Hero Section */
+        .hero {
+            min-height: 100vh;
+            background-image: url('../../images/bascchung-fotografie-049.jpg');
+            background-size: cover;
+            background-position: center;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            padding: 2rem;
+            position: relative;
+        }
+
+        .hero-content {
+            max-width: 900px;
+            z-index: 2;
+            position: relative;
+            width: 100%;
+            min-height: 300px;
+        }
+
+        .hero h1 {
+            font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+            font-size: clamp(4rem, 15vw, 10rem);
+            font-weight: 900;
+            line-height: 1.1;
+            margin-bottom: 1.5rem;
+            text-shadow: 0 4px 20px rgba(0, 0, 0, 0.8), 0 2px 10px rgba(0, 0, 0, 0.6);
+            letter-spacing: -0.02em;
+        }
+
+        .hero h1 span {
+            color: var(--color-orange);
+        }
+
+        .hero-buttons {
+            display: flex;
+            gap: 3rem;
+            justify-content: center;
+            align-items: center;
+            margin-top: 3rem;
+        }
+
+        .hero-btn-ja {
+            display: inline-block;
+            background: var(--color-orange);
+            color: var(--color-white);
+            font-size: clamp(2rem, 5vw, 3.5rem);
+            font-weight: 800;
+            padding: 1.5rem 4rem;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            text-decoration: none;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            box-shadow: 0 8px 30px rgba(255, 107, 53, 0.4);
+        }
+
+        .hero-btn-ja:hover {
+            transform: scale(1.05);
+            box-shadow: 0 12px 40px rgba(255, 107, 53, 0.5);
+        }
+
+        .hero-btn-nei {
+            background: transparent;
+            color: var(--color-white);
+            font-size: clamp(2rem, 5vw, 3.5rem);
+            font-weight: 800;
+            padding: 1.5rem 4rem;
+            border: 3px solid var(--color-white);
+            border-radius: 8px;
+            cursor: pointer;
+            transition: left 2s ease-out, top 2s ease-out, border-color 0.15s ease, color 0.15s ease;
+            user-select: none;
+        }
+
+        .hero-btn-nei:hover {
+            border-color: var(--color-orange);
+            color: var(--color-orange);
+        }
+
+        .hero-reward {
+            margin-top: 2rem;
+            font-size: 1.1rem;
+            opacity: 0.8;
+            text-shadow: 0 2px 10px rgba(0, 0, 0, 0.8);
+        }
+
+        /* Sections */
+        section {
+            padding: 6rem 2rem;
+        }
+
+        .container {
+            max-width: 1100px;
+            margin: 0 auto;
+        }
+
+        /* The Challenge Section */
+        .challenge {
+            background-color: var(--color-white);
+            color: var(--color-blue);
+        }
+
+        .challenge h2 {
+            font-size: clamp(2rem, 5vw, 3.5rem);
+            font-weight: 800;
+            margin-bottom: 2rem;
+            line-height: 1.2;
+        }
+
+        .challenge p {
+            font-size: 1.2rem;
+            line-height: 1.8;
+            margin-bottom: 1.5rem;
+            max-width: 750px;
+        }
+
+        .challenge .highlight {
+            color: var(--color-orange);
+            font-weight: 700;
+        }
+
+        .challenge .mono {
+            font-family: 'SF Mono', 'Monaco', 'Inconsolata', monospace;
+            background: var(--color-gray-light);
+            padding: 0.2em 0.5em;
+            border-radius: 4px;
+            font-size: 0.9em;
+        }
+
+        /* The Girl Story Section */
+        .story {
+            background-color: var(--color-blue);
+            color: var(--color-white);
+            position: relative;
+            padding: 10rem 0;
+        }
+
+        .story-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 5rem;
+            align-items: stretch;
+            width: 100%;
+        }
+
+        @media (min-width: 900px) {
+            .story-grid {
+                grid-template-columns: 1fr 1fr;
+                gap: 1.5rem;
+                align-items: stretch;
+            }
+        }
+
+        .story-text {
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            height: 800px;
+            padding-left: clamp(2rem, 8vw, 10rem);
+            padding-right: 1rem;
+        }
+
+        .story h2 {
+            font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+            font-size: clamp(2.2rem, 5vw, 3.5rem);
+            font-weight: 800;
+            margin-bottom: 2.5rem;
+            line-height: 1.2;
+        }
+
+        .story p {
+            font-size: clamp(1.2rem, 2vw, 1.4rem);
+            line-height: 1.9;
+            margin-bottom: 1.8rem;
+            opacity: 0.9;
+        }
+
+        .story .stat {
+            display: inline-block;
+            background: var(--color-orange);
+            color: var(--color-white);
+            padding: 0.3em 0.6em;
+            border-radius: 4px;
+            font-weight: 700;
+            font-size: 1.1em;
+        }
+
+        .story-visual {
+            display: flex;
+            align-items: center;
+            justify-content: flex-start;
+            height: 100%;
+            padding-right: clamp(2rem, 8vw, 10rem);
+        }
+
+        .story-image {
+            width: auto;
+            height: auto;
+            max-height: 800px;
+            object-fit: contain;
+            border-radius: 12px;
+            box-shadow: 0 30px 80px rgba(0, 0, 0, 0.5);
+        }
+
+        /* Facilities Section */
+        .facilities {
+            background-color: var(--color-gray-light);
+            color: var(--color-blue);
+        }
+
+        .facilities h2 {
+            font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+            font-size: clamp(2rem, 5vw, 3rem);
+            font-weight: 800;
+            margin-bottom: 1rem;
+            text-align: center;
+        }
+
+        .facilities .subtitle {
+            text-align: center;
+            font-size: 1.2rem;
+            opacity: 0.7;
+            margin-bottom: 4rem;
+        }
+
+        .facilities-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 2rem;
+        }
+
+        .facility-card {
+            background: var(--color-white);
+            padding: 2rem;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .facility-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.12);
+        }
+
+        .facility-card h3 {
+            font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+            font-size: 1.4rem;
+            font-weight: 700;
+            margin-bottom: 0.75rem;
+            color: var(--color-blue);
+        }
+
+        .facility-card p {
+            font-size: 1rem;
+            line-height: 1.7;
+            color: var(--color-gray);
+        }
+
+        .facility-card .tag {
+            display: inline-block;
+            background: var(--color-orange);
+            color: var(--color-white);
+            font-size: 0.75rem;
+            font-weight: 600;
+            padding: 0.3em 0.8em;
+            border-radius: 20px;
+            margin-bottom: 1rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        /* The Big Choice Section */
+        .choice {
+            background-color: var(--color-blue);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            padding: 4rem 2rem;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .choice h2 {
+            font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+            font-size: clamp(2rem, 6vw, 4rem);
+            font-weight: 900;
+            margin-bottom: 1rem;
+            line-height: 1.2;
+        }
+
+        .choice .subtext {
+            font-size: 1.2rem;
+            opacity: 0.7;
+            margin-bottom: 4rem;
+            max-width: 500px;
+        }
+
+        .button-arena {
+            position: relative;
+            width: 100%;
+            max-width: 600px;
+            height: 300px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 3rem;
+        }
+
+        .btn-ja {
+            display: inline-block;
+            background: var(--color-orange);
+            color: var(--color-white);
+            font-size: 2rem;
+            font-weight: 800;
+            padding: 1.5rem 4rem;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            text-decoration: none;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            box-shadow: 0 8px 30px rgba(255, 107, 53, 0.4);
+            z-index: 10;
+        }
+
+        .btn-ja:hover {
+            transform: scale(1.05);
+            box-shadow: 0 12px 40px rgba(255, 107, 53, 0.5);
+        }
+
+        .btn-nei {
+            position: absolute;
+            background: transparent;
+            color: var(--color-white);
+            font-size: 2rem;
+            font-weight: 800;
+            padding: 1.5rem 4rem;
+            border: 3px solid var(--color-white);
+            border-radius: 8px;
+            cursor: pointer;
+            transition: left 2s ease-out, top 2s ease-out, border-color 0.15s ease, color 0.15s ease;
+            z-index: 5;
+            user-select: none;
+        }
+
+        .btn-nei:hover {
+            border-color: var(--color-orange);
+            color: var(--color-orange);
+        }
+
+        .btn-nei.paused {
+            animation: pulse 0.3s ease;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+        }
+
+        .choice .warning {
+            margin-top: 3rem;
+            font-size: 0.9rem;
+            opacity: 0.5;
+            font-style: italic;
+        }
+
+        .jump-counter {
+            position: absolute;
+            bottom: 2rem;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 0.85rem;
+            opacity: 0.4;
+            font-family: 'SF Mono', 'Monaco', 'Inconsolata', monospace;
+        }
+
+        /* Footer */
+        footer {
+            background: var(--color-blue);
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 4rem 2rem;
+            text-align: center;
+        }
+
+        .footer-logo {
+            max-width: 180px;
+            margin-bottom: 1.5rem;
+            opacity: 0.9;
+        }
+
+        footer p {
+            font-size: 0.95rem;
+            opacity: 0.6;
+            margin-bottom: 0.5rem;
+        }
+
+        footer .tagline {
+            font-size: 1.1rem;
+            font-weight: 600;
+            opacity: 0.9;
+            color: var(--color-orange);
+            margin-top: 1.5rem;
+        }
+
+        /* Mobile Adjustments */
+        @media (max-width: 600px) {
+            .button-arena {
+                flex-direction: column;
+                height: 400px;
+            }
+
+            .btn-ja, .btn-nei {
+                font-size: 1.5rem;
+                padding: 1.2rem 3rem;
+            }
+        }
+
+        /* Padel Courts Image Section */
+        .courts-showcase {
+            padding: 0;
+            position: relative;
+        }
+
+        .courts-showcase img {
+            width: 100%;
+            display: block;
+        }
+
+        .courts-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            padding: 2rem;
+        }
+
+        .price-text {
+            font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+            font-size: clamp(4rem, 12vw, 10rem);
+            font-weight: 700;
+            line-height: 1.1;
+            text-shadow: 0 4px 30px rgba(0, 0, 0, 0.8);
+        }
+
+        .price-question {
+            font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+            font-size: clamp(4rem, 12vw, 10rem);
+            font-weight: 700;
+            margin-top: 1rem;
+            text-shadow: 0 4px 30px rgba(0, 0, 0, 0.8);
+        }
+    </style>
+</head>
+<body>
+    <!-- Hero -->
+    <section class="hero">
+        <div class="hero-content">
+            <h1>Wötsch nöd cho?</h1>
+            <div class="hero-buttons">
+                <a href="#booking" class="hero-btn-ja">Ja</a>
+                <button class="hero-btn-nei" id="heroBtnNei">Nei</button>
+            </div>
+        </div>
+    </section>
+
+    <!-- The Story -->
+    <section class="story">
+        <div class="story-grid">
+            <div class="story-text">
+                <p style="font-size: 1.3rem; margin-bottom: 2rem;">
+                    Es git en <span style="color: var(--color-orange); font-weight: 700;">'Nei'</span> Böttön uf dere Siite. Wenn du würkli nöd wotsch cho — wenn du echt, ehrlich gseit, nöd wotsch da sii — denn klick eifach druf.
+                </p>
+                <p style="font-size: 1.3rem; margin-bottom: 2.5rem; opacity: 0.8;">
+                    Wenn du de 'Nei' Böttön verwütschsch, überchunsch ein Monat gratis Tennis und Pizza.
+                </p>
+                <h2>Die Letscht isch es <span style="color: var(--color-orange);">12-jährigs Meitli</span> gsi.</h2>
+                <p>
+                    Sie het de Böttön gjagt wie es Videogame. <span class="stat">47 Minute</span>. Ihre Cursor isch <span class="stat">3 Pixel</span> vom Böttön entfernt gsi.
+                </p>
+                <p>
+                    De Böttön het pausiert. Für genau <span class="mono" style="background: rgba(255,255,255,0.1);">0.3 Sekunde</span>. Wie wenn er würd nadenke.
+                </p>
+                <p style="font-weight: 800; font-size: clamp(2.2rem, 5vw, 3.5rem); margin-top: 2rem; color: var(--color-orange); line-height: 1.2;">
+                    Denn hät's sie ihn sich gschnappt.
+                </p>
+                <p>
+                    Dänn isch sie zu öis cho go Tennis spiele und de Rescht isch Gschicht.
+                </p>
+            </div>
+            <div class="story-visual">
+                <img src="../../images/Martina Hingis.jpeg" alt="Martina Hingis" class="story-image">
+            </div>
+        </div>
+    </section>
+
+    <!-- Padel Courts Showcase -->
+    <section class="courts-showcase">
+        <img src="../../images/padel-courts-evening.jpg" alt="Padel Courts in the evening at Bareggcenter">
+        <div class="courts-overlay">
+            <p class="price-text">Padel: CHF 64.<br>Tennis: CHF 28.</p>
+            <p class="price-question">Fragä?</p>
+        </div>
+    </section>
+
+    <!-- Facilities -->
+    <section class="facilities">
+        <div class="container">
+            <h2>Was uf di wartet</h2>
+            <p class="subtitle">Wenn du de Böttön nöd erwütschsch. Was du wahrschinli nöd wotsch.</p>
+
+            <div class="facilities-grid">
+                <div class="facility-card">
+                    <span class="tag">Padel</span>
+                    <h3>8 Padel Courts</h3>
+                    <p>Indoor und Outdoor. Für Afänger wo sage "das isch wie Tennis" und fuer Profis wo wüssed dass es das nöd isch.</p>
+                </div>
+
+                <div class="facility-card">
+                    <span class="tag">Tennis</span>
+                    <h3>6 Tennis Courts</h3>
+                    <p>Für die wo scho Padel probiert hend und zrugg zu ihrere Comfort Zone wend.</p>
+                </div>
+
+                <div class="facility-card">
+                    <span class="tag">Squash</span>
+                    <h3>4 Squash Courts</h3>
+                    <p>En Chaste wo du de Ball gegen d'Wand schlahsch. Wie Therapie, aber produktiver.</p>
+                </div>
+
+                <div class="facility-card">
+                    <span class="tag">Fitness</span>
+                    <h3>Fitnesscenter</h3>
+                    <p>Geraet wo di stärker mached. Damit du de nächst Mal de Böttön vilicht doch no erwütschsch.</p>
+                </div>
+
+                <div class="facility-card">
+                    <span class="tag">Wellness</span>
+                    <h3>Sauna & Wellness</h3>
+                    <p>Für nach dem Sport. Oder anstatt Sport. Mir verurteilet nöd.</p>
+                </div>
+
+                <div class="facility-card">
+                    <span class="tag">Restaurant</span>
+                    <h3>Ristorante Baregg</h3>
+                    <p>Italienischi Chuchi. Wil nach em Sport bruchsch Carbs. Das isch Wüsseschaft.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- The Big Choice -->
+    <section class="choice" id="choice">
+        <h2>Also. Wotsch cho?</h2>
+        <p class="subtext">Eine Entscheidig. Zwei Böttöns. Eine lauft dervoo.</p>
+
+        <div class="button-arena" id="buttonArena">
+            <a href="#booking" class="btn-ja">Ja</a>
+            <button class="btn-nei" id="btnNei">Nei</button>
+        </div>
+
+        <div class="jump-counter" id="jumpCounter"></div>
+    </section>
+
+    <!-- Footer -->
+    <footer>
+        <img src="../../images/logo_bareggcenter.png" alt="Bareggcenter Baden" class="footer-logo">
+        <p>Bareggcenter Baden</p>
+        <p>Obersiggenthalerstrasse 3, 5400 Baden</p>
+        <p class="tagline">De Böttön wartet.</p>
+    </footer>
+
+    <script>
+        // Hero Nei Button - jumps around the hero section
+        const heroBtnNei = document.getElementById('heroBtnNei');
+        const heroSection = document.querySelector('.hero');
+
+        function jumpHeroButton() {
+            const heroRect = heroSection.getBoundingClientRect();
+            const btnRect = heroBtnNei.getBoundingClientRect();
+
+            const maxX = heroRect.width - btnRect.width - 40;
+            const maxY = heroRect.height - btnRect.height - 40;
+
+            const randomX = Math.random() * maxX + 20;
+            const randomY = Math.random() * maxY + 20;
+
+            heroBtnNei.style.position = 'absolute';
+            heroBtnNei.style.left = randomX + 'px';
+            heroBtnNei.style.top = randomY + 'px';
+        }
+
+        heroBtnNei.addEventListener('mouseenter', jumpHeroButton);
+        heroBtnNei.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            jumpHeroButton();
+        });
+
+        // Arena Nei Button Algorithm
+        const btnNei = document.getElementById('btnNei');
+        const arena = document.getElementById('buttonArena');
+        const jumpCounter = document.getElementById('jumpCounter');
+
+        let jumpCount = 0;
+        let baseDistance = 100;
+        let isPaused = false;
+
+        // Initialize button position
+        function initButtonPosition() {
+            const arenaRect = arena.getBoundingClientRect();
+            btnNei.style.right = '0';
+            btnNei.style.top = '50%';
+            btnNei.style.transform = 'translateY(-50%)';
+        }
+
+        // Get random position within arena bounds
+        function getRandomPosition() {
+            const arenaRect = arena.getBoundingClientRect();
+            const btnRect = btnNei.getBoundingClientRect();
+
+            const maxX = arenaRect.width - btnRect.width - 20;
+            const maxY = arenaRect.height - btnRect.height - 20;
+
+            const randomX = Math.random() * maxX + 10;
+            const randomY = Math.random() * maxY + 10;
+
+            return { x: randomX, y: randomY };
+        }
+
+        // Jump the button
+        function jumpButton() {
+            if (isPaused) return;
+
+            jumpCount++;
+
+            // Every 10 jumps, pause briefly (the 0.3 second pause from the story)
+            if (jumpCount % 10 === 0) {
+                isPaused = true;
+                btnNei.classList.add('paused');
+
+                setTimeout(() => {
+                    isPaused = false;
+                    btnNei.classList.remove('paused');
+                    performJump();
+                }, 300);
+
+                return;
+            }
+
+            performJump();
+        }
+
+        function performJump() {
+            const newPos = getRandomPosition();
+
+            btnNei.style.left = newPos.x + 'px';
+            btnNei.style.top = newPos.y + 'px';
+            btnNei.style.right = 'auto';
+            btnNei.style.transform = 'none';
+
+            // Update counter
+            jumpCounter.textContent = `Sprüng: ${jumpCount}`;
+        }
+
+        // Event listeners
+        btnNei.addEventListener('mouseenter', jumpButton);
+        btnNei.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            jumpButton();
+        });
+
+        // Also jump if mouse gets close (for extra difficulty)
+        arena.addEventListener('mousemove', (e) => {
+            if (isPaused) return;
+
+            const btnRect = btnNei.getBoundingClientRect();
+            const btnCenterX = btnRect.left + btnRect.width / 2;
+            const btnCenterY = btnRect.top + btnRect.height / 2;
+
+            const distance = Math.sqrt(
+                Math.pow(e.clientX - btnCenterX, 2) +
+                Math.pow(e.clientY - btnCenterY, 2)
+            );
+
+            // If cursor gets within 50px, jump
+            if (distance < 50) {
+                jumpButton();
+            }
+        });
+
+        // Initialize
+        initButtonPosition();
+    </script>
+</body>
+</html>

@@ -1,0 +1,992 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bareggcenter Baden | Dein Platz. Deine Leute.</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Crimson+Pro:wght@400;500;600;700&family=Source+Sans+Pro:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --forest-green: #2E7D32;
+            --forest-green-dark: #1B5E20;
+            --warm-sand: #E8DCC8;
+            --warm-sand-light: #F5F0E6;
+            --gold: #F9A825;
+            --gold-dark: #F57F17;
+            --cream: #FAF8F5;
+            --text-dark: #2C2C2C;
+            --text-muted: #5C5C5C;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        body {
+            font-family: 'Source Sans Pro', sans-serif;
+            background-color: var(--cream);
+            color: var(--text-dark);
+            line-height: 1.6;
+        }
+
+        h1, h2, h3, h4, h5, h6 {
+            font-family: 'Crimson Pro', serif;
+            font-weight: 600;
+        }
+
+        /* Navigation */
+        .nav {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            background: rgba(250, 248, 245, 0.95);
+            backdrop-filter: blur(10px);
+            z-index: 1000;
+            padding: 1rem 2rem;
+            border-bottom: 1px solid rgba(46, 125, 50, 0.1);
+        }
+
+        .nav-inner {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .nav-logo img {
+            height: 50px;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 2rem;
+            list-style: none;
+        }
+
+        .nav-links a {
+            color: var(--text-dark);
+            text-decoration: none;
+            font-weight: 500;
+            font-size: 0.95rem;
+            transition: color 0.3s ease;
+        }
+
+        .nav-links a:hover {
+            color: var(--forest-green);
+        }
+
+        .nav-cta {
+            background: var(--forest-green);
+            color: white !important;
+            padding: 0.6rem 1.2rem;
+            border-radius: 4px;
+            transition: background 0.3s ease !important;
+        }
+
+        .nav-cta:hover {
+            background: var(--forest-green-dark) !important;
+        }
+
+        .mobile-menu-btn {
+            display: none;
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: var(--forest-green);
+        }
+
+        /* Hero Section */
+        .hero {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            position: relative;
+            background: url('../../images/padel-courts-evening.jpg') center center / cover no-repeat;
+            padding: 8rem 2rem 4rem;
+            overflow: hidden;
+        }
+
+        .hero-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            position: relative;
+            z-index: 1;
+        }
+
+        .hero-tag {
+            display: inline-block;
+            background: var(--forest-green);
+            color: white;
+            padding: 0.4rem 1rem;
+            font-size: 0.85rem;
+            font-weight: 600;
+            letter-spacing: 0.05em;
+            margin-bottom: 1.5rem;
+            border-radius: 2px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+        }
+
+        .hero h1 {
+            font-size: clamp(2.5rem, 6vw, 4.5rem);
+            line-height: 1.1;
+            color: white;
+            margin-bottom: 1.5rem;
+            max-width: 700px;
+            text-shadow: 0 2px 20px rgba(0,0,0,0.8), 0 4px 40px rgba(0,0,0,0.6);
+        }
+
+        .hero-subline {
+            font-size: 1.4rem;
+            color: white;
+            margin-bottom: 2.5rem;
+            max-width: 500px;
+            font-weight: 300;
+            text-shadow: 0 2px 15px rgba(0,0,0,0.8), 0 4px 30px rgba(0,0,0,0.5);
+        }
+
+        .btn-primary {
+            display: inline-block;
+            background: var(--gold);
+            color: var(--text-dark);
+            padding: 1rem 2rem;
+            font-size: 1.1rem;
+            font-weight: 600;
+            text-decoration: none;
+            border-radius: 4px;
+            transition: all 0.3s ease;
+            border: none;
+            cursor: pointer;
+        }
+
+        .btn-primary:hover {
+            background: var(--gold-dark);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(249, 168, 37, 0.4);
+        }
+
+        .btn-secondary {
+            display: inline-block;
+            background: transparent;
+            color: var(--forest-green);
+            padding: 1rem 2rem;
+            font-size: 1.1rem;
+            font-weight: 600;
+            text-decoration: none;
+            border: 2px solid var(--forest-green);
+            border-radius: 4px;
+            transition: all 0.3s ease;
+            margin-left: 1rem;
+        }
+
+        .btn-secondary:hover {
+            background: var(--forest-green);
+            color: white;
+        }
+
+        /* Section Styles */
+        section {
+            padding: 5rem 2rem;
+        }
+
+        .section-inner {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .section-tag {
+            display: inline-block;
+            color: var(--forest-green);
+            font-size: 0.85rem;
+            font-weight: 600;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            margin-bottom: 1rem;
+        }
+
+        .section-title {
+            font-size: clamp(2rem, 4vw, 3rem);
+            margin-bottom: 1.5rem;
+            color: var(--text-dark);
+        }
+
+        .section-subtitle {
+            font-size: 1.2rem;
+            color: var(--text-muted);
+            max-width: 600px;
+            font-weight: 300;
+        }
+
+        /* Fixplatz Section */
+        .fixplatz {
+            background: var(--forest-green);
+            color: white;
+        }
+
+        .fixplatz .section-tag {
+            color: var(--gold);
+        }
+
+        .fixplatz .section-title {
+            color: white;
+        }
+
+        .fixplatz .section-subtitle {
+            color: rgba(255, 255, 255, 0.85);
+        }
+
+        .fixplatz-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 2rem;
+            margin-top: 3rem;
+        }
+
+        .fixplatz-card {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 2rem;
+            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+        }
+
+        .fixplatz-card h3 {
+            font-size: 1.5rem;
+            margin-bottom: 0.5rem;
+            color: var(--gold);
+        }
+
+        .fixplatz-card .weeks {
+            font-size: 2.5rem;
+            font-family: 'Crimson Pro', serif;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+        }
+
+        .fixplatz-card p {
+            opacity: 0.85;
+        }
+
+        .fixplatz-promise {
+            margin-top: 3rem;
+            padding: 2rem;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        .fixplatz-promise p {
+            font-family: 'Crimson Pro', serif;
+            font-size: 1.5rem;
+            font-style: italic;
+        }
+
+        /* Stammgäste Section */
+        .stammgaeste {
+            background: var(--warm-sand);
+        }
+
+        .stammgaeste-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 4rem;
+            align-items: center;
+            margin-top: 3rem;
+        }
+
+        .stammgaeste-image {
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+        }
+
+        .stammgaeste-image img {
+            width: 100%;
+            height: auto;
+            display: block;
+        }
+
+        .stammgaeste-text h3 {
+            font-size: 1.8rem;
+            margin-bottom: 1.5rem;
+            color: var(--forest-green);
+        }
+
+        .stammgaeste-quotes {
+            list-style: none;
+        }
+
+        .stammgaeste-quotes li {
+            padding: 1rem 0;
+            border-bottom: 1px solid rgba(46, 125, 50, 0.2);
+            font-size: 1.1rem;
+            position: relative;
+            padding-left: 2rem;
+        }
+
+        .stammgaeste-quotes li::before {
+            content: '"';
+            position: absolute;
+            left: 0;
+            top: 0.8rem;
+            font-family: 'Crimson Pro', serif;
+            font-size: 2rem;
+            color: var(--forest-green);
+            line-height: 1;
+        }
+
+        .stammgaeste-quotes li:last-child {
+            border-bottom: none;
+        }
+
+        /* Nach dem Spiel Section */
+        .nach-spiel {
+            background: var(--cream);
+            position: relative;
+        }
+
+        .nach-spiel-content {
+            display: grid;
+            grid-template-columns: 1.5fr 1fr;
+            gap: 4rem;
+            margin-top: 3rem;
+        }
+
+        .ritual-text {
+            font-family: 'Crimson Pro', serif;
+            font-size: 2rem;
+            line-height: 1.5;
+            color: var(--text-dark);
+            margin-bottom: 2rem;
+        }
+
+        .ritual-text span {
+            color: var(--forest-green);
+        }
+
+        .hours-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1.5rem;
+        }
+
+        .hours-card {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 8px;
+            border: 1px solid var(--warm-sand);
+        }
+
+        .hours-card h4 {
+            color: var(--forest-green);
+            margin-bottom: 0.5rem;
+            font-size: 1.2rem;
+        }
+
+        .hours-card p {
+            color: var(--text-muted);
+        }
+
+        .hours-card .highlight {
+            color: var(--gold-dark);
+            font-weight: 600;
+        }
+
+        /* Sportarten Section */
+        .sportarten {
+            background: white;
+        }
+
+        .sport-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+            margin-top: 3rem;
+        }
+
+        .sport-card {
+            background: var(--cream);
+            padding: 2rem;
+            border-radius: 8px;
+            border: 2px solid transparent;
+            transition: all 0.3s ease;
+        }
+
+        .sport-card:hover {
+            border-color: var(--forest-green);
+            transform: translateY(-4px);
+        }
+
+        .sport-card h3 {
+            font-size: 1.5rem;
+            color: var(--forest-green);
+            margin-bottom: 0.5rem;
+        }
+
+        .sport-card .courts {
+            font-size: 0.9rem;
+            color: var(--text-muted);
+            margin-bottom: 1rem;
+        }
+
+        .sport-card .price {
+            font-size: 1.3rem;
+            font-weight: 600;
+            color: var(--text-dark);
+            margin-bottom: 0.5rem;
+        }
+
+        .sport-card .fixplatz-badge {
+            display: inline-block;
+            background: var(--gold);
+            color: var(--text-dark);
+            font-size: 0.75rem;
+            font-weight: 600;
+            padding: 0.3rem 0.6rem;
+            border-radius: 2px;
+        }
+
+        /* Newcomers Section */
+        .newcomers {
+            background: var(--warm-sand-light);
+        }
+
+        .newcomers-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 4rem;
+            align-items: center;
+            margin-top: 3rem;
+        }
+
+        .newcomers-text h3 {
+            font-size: 1.8rem;
+            color: var(--forest-green);
+            margin-bottom: 1.5rem;
+        }
+
+        .newcomers-list {
+            list-style: none;
+        }
+
+        .newcomers-list li {
+            padding: 0.8rem 0;
+            padding-left: 2rem;
+            position: relative;
+            font-size: 1.1rem;
+        }
+
+        .newcomers-list li::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 8px;
+            height: 8px;
+            background: var(--gold);
+            border-radius: 50%;
+        }
+
+        .newcomers-image {
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+        }
+
+        .newcomers-image img {
+            width: 100%;
+            height: auto;
+            display: block;
+        }
+
+        /* Standort Section */
+        .standort {
+            background: var(--forest-green);
+            color: white;
+        }
+
+        .standort .section-tag {
+            color: var(--gold);
+        }
+
+        .standort .section-title {
+            color: white;
+        }
+
+        .standort-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 4rem;
+            margin-top: 3rem;
+        }
+
+        .standort-info h3 {
+            font-size: 1.5rem;
+            margin-bottom: 1rem;
+            color: var(--gold);
+        }
+
+        .standort-info address {
+            font-style: normal;
+            font-size: 1.2rem;
+            line-height: 1.8;
+            margin-bottom: 1.5rem;
+        }
+
+        .standort-info .insider {
+            font-family: 'Crimson Pro', serif;
+            font-style: italic;
+            font-size: 1.2rem;
+            opacity: 0.85;
+            margin-bottom: 2rem;
+        }
+
+        .standort-details {
+            display: flex;
+            gap: 2rem;
+            margin-top: 1.5rem;
+        }
+
+        .standort-detail {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .standort-detail .icon {
+            width: 24px;
+            height: 24px;
+            background: var(--gold);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.8rem;
+        }
+
+        .standort-map {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            height: 300px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .standort-map a {
+            color: white;
+            text-decoration: none;
+            padding: 1rem 2rem;
+            border: 2px solid white;
+            border-radius: 4px;
+            transition: all 0.3s ease;
+        }
+
+        .standort-map a:hover {
+            background: white;
+            color: var(--forest-green);
+        }
+
+        /* Footer */
+        .footer {
+            background: var(--text-dark);
+            color: white;
+            padding: 4rem 2rem 2rem;
+        }
+
+        .footer-inner {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .footer-top {
+            display: grid;
+            grid-template-columns: 2fr 1fr 1fr 1fr;
+            gap: 3rem;
+            padding-bottom: 3rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .footer-brand p {
+            margin-top: 1rem;
+            opacity: 0.7;
+            font-size: 0.95rem;
+            line-height: 1.7;
+        }
+
+        .footer-links h4 {
+            color: var(--gold);
+            font-size: 1rem;
+            margin-bottom: 1rem;
+            font-family: 'Source Sans Pro', sans-serif;
+            font-weight: 600;
+        }
+
+        .footer-links ul {
+            list-style: none;
+        }
+
+        .footer-links li {
+            margin-bottom: 0.5rem;
+        }
+
+        .footer-links a {
+            color: rgba(255, 255, 255, 0.7);
+            text-decoration: none;
+            transition: color 0.3s ease;
+        }
+
+        .footer-links a:hover {
+            color: white;
+        }
+
+        .footer-bottom {
+            padding-top: 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.9rem;
+            opacity: 0.6;
+        }
+
+        /* Responsive */
+        @media (max-width: 968px) {
+            .nav-links {
+                display: none;
+            }
+
+            .mobile-menu-btn {
+                display: block;
+            }
+
+            .stammgaeste-content,
+            .nach-spiel-content,
+            .newcomers-content,
+            .standort-content {
+                grid-template-columns: 1fr;
+                gap: 2rem;
+            }
+
+            .newcomers-image {
+                order: -1;
+            }
+
+            .footer-top {
+                grid-template-columns: 1fr 1fr;
+                gap: 2rem;
+            }
+
+            .hours-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 600px) {
+            section {
+                padding: 3rem 1.5rem;
+            }
+
+            .hero {
+                padding: 6rem 1.5rem 3rem;
+            }
+
+            .btn-secondary {
+                display: block;
+                margin-left: 0;
+                margin-top: 1rem;
+                text-align: center;
+            }
+
+            .footer-top {
+                grid-template-columns: 1fr;
+            }
+
+            .footer-bottom {
+                flex-direction: column;
+                gap: 1rem;
+                text-align: center;
+            }
+
+            .standort-details {
+                flex-direction: column;
+                gap: 1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="nav">
+        <div class="nav-inner">
+            <a href="#" class="nav-logo">
+                <img src="../../images/logo_bareggcenter.png" alt="Bareggcenter Baden">
+            </a>
+            <ul class="nav-links">
+                <li><a href="#fixplatz">Fixplatz</a></li>
+                <li><a href="#sportarten">Sportarten</a></li>
+                <li><a href="#restaurant">Restaurant</a></li>
+                <li><a href="#standort">Standort</a></li>
+                <li><a href="#fixplatz" class="nav-cta">Fixplatz anfragen</a></li>
+            </ul>
+            <button class="mobile-menu-btn" aria-label="Menu">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="3" y1="6" x2="21" y2="6"></line>
+                    <line x1="3" y1="12" x2="21" y2="12"></line>
+                    <line x1="3" y1="18" x2="21" y2="18"></line>
+                </svg>
+            </button>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="hero">
+        <div class="hero-content">
+            <span class="hero-tag">Dein Platz. Deine Leute.</span>
+            <h1>Dein Dienstag. 18:00. Court 3.</h1>
+            <p class="hero-subline">Fixplatz-Holder wissen: Das hier ist mehr als Sport.</p>
+            <a href="#fixplatz" class="btn-primary">Fixplatz anfragen</a>
+            <a href="#sportarten" class="btn-secondary">Einzelbuchung</a>
+        </div>
+    </section>
+
+    <!-- Fixplatz Section -->
+    <section class="fixplatz" id="fixplatz">
+        <div class="section-inner">
+            <span class="section-tag">Warum Fixplatz</span>
+            <h2 class="section-title">Dein Court, dein Tag, deine Zeit.</h2>
+            <p class="section-subtitle">Die ganze Saison. Keine Suche. Kein Hoffen. Dein Slot.</p>
+
+            <div class="fixplatz-grid">
+                <div class="fixplatz-card">
+                    <h3>Wintersaison</h3>
+                    <div class="weeks">32 Wochen</div>
+                    <p>Oktober bis Mai. Jede Woche, gleiche Zeit, gleicher Court, gleiche Leute.</p>
+                </div>
+                <div class="fixplatz-card">
+                    <h3>Sommersaison</h3>
+                    <div class="weeks">20 Wochen</div>
+                    <p>Mai bis September. Dein Platz bleibt dein Platz - auch wenn die Sonne scheint.</p>
+                </div>
+                <div class="fixplatz-card">
+                    <h3>Dein Vorteil</h3>
+                    <div class="weeks">100%</div>
+                    <p>Reserviert. Garantiert. Ohne Stress. Ohne Last-Minute-Suche.</p>
+                </div>
+            </div>
+
+            <div class="fixplatz-promise">
+                <p>"Die Dienstag-18:00-Crew weiss Bescheid. Court 3 ist reserviert."</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Stammgäste Section -->
+    <section class="stammgaeste">
+        <div class="section-inner">
+            <span class="section-tag">Die Stammgäste</span>
+            <h2 class="section-title">Hier kennt man sich.</h2>
+
+            <div class="stammgaeste-content">
+                <div class="stammgaeste-image">
+                    <img src="../../images/fixplatz-regulars.jpg" alt="Stammgäste an der Bar">
+                </div>
+                <div class="stammgaeste-text">
+                    <h3>Das Bareggcenter ist kein anonymes Sportzentrum.</h3>
+                    <ul class="stammgaeste-quotes">
+                        <li>Dienstag 18:00 kennt sich. Donnerstag 19:00 auch.</li>
+                        <li>Hier spielen Leute, die wiederkommen.</li>
+                        <li>Nach drei Wochen kennt dich der Barkeeper.</li>
+                        <li>Die gleichen Gesichter. Die gleichen Sprüche. Die gleiche gute Zeit.</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Nach dem Spiel Section -->
+    <section class="nach-spiel" id="restaurant">
+        <div class="section-inner">
+            <span class="section-tag">Nach dem Spiel</span>
+            <h2 class="section-title">Das Ritual.</h2>
+
+            <div class="nach-spiel-content">
+                <div>
+                    <p class="ritual-text">
+                        <span>Costantinos Pizza.</span> Das Bier an der Bar.
+                        Der Tisch am Fenster. Das Gespräch, das länger dauert als das Match.
+                    </p>
+                    <p class="section-subtitle">
+                        Sport ist der Anfang. Was danach kommt, ist der Grund, warum man wiederkommt.
+                    </p>
+                    <div style="margin-top: 2rem; border-radius: 8px; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.1);">
+                        <img src="../../images/ristorante-baregg.jpg" alt="Ristorante Baregg" style="width: 100%; height: auto; display: block;">
+                    </div>
+                </div>
+                <div class="hours-grid">
+                    <div class="hours-card">
+                        <h4>Restaurant</h4>
+                        <p>Mo - Fr: 11:00 - 14:00</p>
+                        <p>Mo - Fr: 17:00 - 23:00</p>
+                        <p>Sa - So: 11:00 - 23:00</p>
+                    </div>
+                    <div class="hours-card">
+                        <h4>Bar</h4>
+                        <p>Täglich bis <span class="highlight">Mitternacht</span></p>
+                        <p>Fr + Sa bis <span class="highlight">01:00</span></p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Sportarten Section -->
+    <section class="sportarten" id="sportarten">
+        <div class="section-inner">
+            <span class="section-tag">Die Sportarten</span>
+            <h2 class="section-title">Was du bei uns spielst.</h2>
+            <p class="section-subtitle">Alle Courts sind Fixplatz-fähig. Alle Courts sind einzeln buchbar.</p>
+
+            <div class="sport-grid">
+                <div class="sport-card">
+                    <h3>Padel</h3>
+                    <p class="courts">4 Courts</p>
+                    <p class="price">CHF 48 - 64 / Stunde</p>
+                    <span class="fixplatz-badge">Fixplatz verfügbar</span>
+                </div>
+                <div class="sport-card">
+                    <h3>Tennis</h3>
+                    <p class="courts">3 Courts</p>
+                    <p class="price">ab CHF 28 / Stunde</p>
+                    <span class="fixplatz-badge">Fixplatz verfügbar</span>
+                </div>
+                <div class="sport-card">
+                    <h3>Squash</h3>
+                    <p class="courts">3 Courts</p>
+                    <p class="price">ab CHF 27 / Stunde</p>
+                    <span class="fixplatz-badge">Fixplatz verfügbar</span>
+                </div>
+                <div class="sport-card">
+                    <h3>Badminton</h3>
+                    <p class="courts">5 Courts</p>
+                    <p class="price">Preis auf Anfrage</p>
+                    <span class="fixplatz-badge">Fixplatz verfügbar</span>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Newcomers Section -->
+    <section class="newcomers">
+        <div class="section-inner">
+            <span class="section-tag">Noch nie hier gewesen?</span>
+            <h2 class="section-title">Komm vorbei. Schnupper rein.</h2>
+
+            <div class="newcomers-content">
+                <div class="newcomers-text">
+                    <h3>Kein Abo. Kein Commitment.</h3>
+                    <ul class="newcomers-list">
+                        <li>Einzelne Stunde buchen - ganz einfach online</li>
+                        <li>14 Tage im Voraus buchbar</li>
+                        <li>Schläger-Miete vor Ort möglich</li>
+                        <li>Wenn's dir gefällt: Fixplatz-Anfrage läuft</li>
+                    </ul>
+                    <a href="#fixplatz" class="btn-primary" style="margin-top: 2rem;">Stunde buchen</a>
+                </div>
+                <div class="newcomers-image">
+                    <img src="../../../images/bascchung-fotografie-049.jpg" alt="Squash Court">
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Standort Section -->
+    <section class="standort" id="standort">
+        <div class="section-inner">
+            <span class="section-tag">Standort</span>
+            <h2 class="section-title">Die, die kommen, wissen wo.</h2>
+
+            <div class="standort-content">
+                <div class="standort-info">
+                    <h3>Bareggcenter Baden</h3>
+                    <address>
+                        Zelgweg 11<br>
+                        5405 Baden-Daettwil<br>
+                        Schweiz
+                    </address>
+                    <p class="insider">"Beim Kreisel links, dann siehst du's schon."</p>
+
+                    <div class="standort-details">
+                        <div class="standort-detail">
+                            <span class="icon">P</span>
+                            <span>200 Parkplätze</span>
+                        </div>
+                        <div class="standort-detail">
+                            <span class="icon">T</span>
+                            <span>+41 56 493 44 55</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="standort-map">
+                    <a href="https://maps.google.com/?q=Zelgweg+11+5405+Baden-Dättwil" target="_blank" rel="noopener">
+                        Auf Google Maps öffnen
+                    </a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="footer-inner">
+            <div class="footer-top">
+                <div class="footer-brand">
+                    <img src="../../images/logo_bareggcenter.png" alt="Bareggcenter Baden" style="height: 50px; filter: brightness(0) invert(1);">
+                    <p>
+                        Dein Platz. Deine Leute.<br>
+                        Seit Jahren der Treffpunkt für alle, die Sport und Gemeinschaft suchen.
+                    </p>
+                </div>
+                <div class="footer-links">
+                    <h4>Sportarten</h4>
+                    <ul>
+                        <li><a href="#sportarten">Padel</a></li>
+                        <li><a href="#sportarten">Tennis</a></li>
+                        <li><a href="#sportarten">Squash</a></li>
+                        <li><a href="#sportarten">Badminton</a></li>
+                    </ul>
+                </div>
+                <div class="footer-links">
+                    <h4>Angebot</h4>
+                    <ul>
+                        <li><a href="#fixplatz">Fixplatz</a></li>
+                        <li><a href="#restaurant">Restaurant</a></li>
+                        <li><a href="#standort">Kontakt</a></li>
+                    </ul>
+                </div>
+                <div class="footer-links">
+                    <h4>Oeffnungszeiten</h4>
+                    <ul>
+                        <li><a href="#">Mo - Fr: 07:00 - 23:00</a></li>
+                        <li><a href="#">Sa - So: 08:00 - 22:00</a></li>
+                    </ul>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>2024 Bareggcenter Baden. Alle Rechte vorbehalten.</p>
+                <p>Impressum | Datenschutz | AGB</p>
+            </div>
+        </div>
+    </footer>
+</body>
+</html>

@@ -1,0 +1,1395 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Evening Programs | FalCaMel Cafe</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=Montserrat:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --gold: #C9A961;
+            --deep-gold: #A68B3D;
+            --champagne: #F7F3E9;
+            --ivory: #FFFEF9;
+            --charcoal: #1C1C1C;
+            --warm-gray: #3D3D3D;
+            --soft-brown: #8B7355;
+            --border-light: rgba(201, 169, 97, 0.2);
+            --border-gold: rgba(201, 169, 97, 0.4);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        body {
+            font-family: 'Montserrat', sans-serif;
+            background-color: var(--ivory);
+            color: var(--charcoal);
+            line-height: 1.7;
+            font-weight: 300;
+            min-height: 100vh;
+        }
+
+        h1, h2, h3, h4 {
+            font-family: 'Cormorant Garamond', serif;
+            font-weight: 500;
+            line-height: 1.2;
+            letter-spacing: 0.02em;
+        }
+
+        /* Header */
+        .booking-header {
+            background: var(--charcoal);
+            padding: 24px 40px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            font-family: 'Cormorant Garamond', serif;
+            font-size: 1.5rem;
+            color: var(--gold);
+            text-decoration: none;
+            letter-spacing: 0.1em;
+        }
+
+        .back-link {
+            font-size: 0.8rem;
+            color: rgba(255,255,255,0.6);
+            text-decoration: none;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            transition: color 0.3s ease;
+        }
+
+        .back-link:hover {
+            color: var(--gold);
+        }
+
+        /* Progress Steps */
+        .progress-bar {
+            background: var(--champagne);
+            padding: 30px 40px;
+            border-bottom: 1px solid var(--border-light);
+        }
+
+        .progress-steps {
+            display: flex;
+            justify-content: center;
+            gap: 60px;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .progress-step {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            opacity: 0.4;
+            transition: opacity 0.4s ease;
+        }
+
+        .progress-step.active {
+            opacity: 1;
+        }
+
+        .progress-step.completed {
+            opacity: 0.7;
+        }
+
+        .step-number {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            border: 1px solid var(--soft-brown);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.8rem;
+            font-weight: 500;
+            color: var(--soft-brown);
+            transition: all 0.4s ease;
+        }
+
+        .progress-step.active .step-number {
+            background: var(--gold);
+            border-color: var(--gold);
+            color: var(--charcoal);
+        }
+
+        .progress-step.completed .step-number {
+            background: var(--charcoal);
+            border-color: var(--charcoal);
+            color: var(--ivory);
+        }
+
+        .step-label {
+            font-size: 0.75rem;
+            letter-spacing: 0.15em;
+            text-transform: uppercase;
+            color: var(--warm-gray);
+        }
+
+        /* Main Content */
+        .booking-main {
+            display: flex;
+            min-height: calc(100vh - 140px);
+        }
+
+        .booking-content {
+            flex: 1;
+            padding: 60px 80px;
+            max-width: 900px;
+        }
+
+        .booking-summary {
+            width: 400px;
+            background: var(--charcoal);
+            padding: 60px 40px;
+            color: var(--ivory);
+        }
+
+        /* Step Sections */
+        .step-section {
+            display: none;
+        }
+
+        .step-section.active {
+            display: block;
+            animation: fadeIn 0.5s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .step-eyebrow {
+            font-size: 0.7rem;
+            font-weight: 500;
+            letter-spacing: 0.3em;
+            text-transform: uppercase;
+            color: var(--gold);
+            margin-bottom: 1rem;
+        }
+
+        .step-title {
+            font-size: clamp(2rem, 4vw, 3rem);
+            color: var(--charcoal);
+            margin-bottom: 1rem;
+        }
+
+        .step-intro {
+            font-size: 1rem;
+            color: var(--warm-gray);
+            margin-bottom: 3rem;
+            max-width: 500px;
+        }
+
+        /* Step 1: Program Selection */
+        .program-cards {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 30px;
+        }
+
+        .program-card {
+            position: relative;
+            background: var(--champagne);
+            border: 2px solid transparent;
+            cursor: pointer;
+            transition: all 0.4s ease;
+            overflow: hidden;
+        }
+
+        .program-card:hover {
+            border-color: var(--border-gold);
+        }
+
+        .program-card.selected {
+            border-color: var(--gold);
+        }
+
+        .program-card-image {
+            width: 100%;
+            height: 220px;
+            object-fit: cover;
+        }
+
+        .program-card-content {
+            padding: 30px;
+        }
+
+        .program-card h3 {
+            font-size: 1.8rem;
+            color: var(--charcoal);
+            margin-bottom: 0.5rem;
+        }
+
+        .program-card-price {
+            font-family: 'Cormorant Garamond', serif;
+            font-size: 1.3rem;
+            color: var(--gold);
+            margin-bottom: 1rem;
+        }
+
+        .program-card-time {
+            font-size: 0.75rem;
+            letter-spacing: 0.15em;
+            text-transform: uppercase;
+            color: var(--soft-brown);
+            margin-bottom: 1rem;
+        }
+
+        .program-card p {
+            font-size: 0.9rem;
+            color: var(--warm-gray);
+            line-height: 1.7;
+        }
+
+        .program-check {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            background: var(--gold);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            transform: scale(0);
+            transition: all 0.3s ease;
+        }
+
+        .program-card.selected .program-check {
+            opacity: 1;
+            transform: scale(1);
+        }
+
+        .program-check svg {
+            width: 14px;
+            height: 14px;
+            stroke: var(--charcoal);
+        }
+
+        /* Step 2: Calendar */
+        .calendar-container {
+            max-width: 500px;
+        }
+
+        .calendar-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+        }
+
+        .calendar-month {
+            font-family: 'Cormorant Garamond', serif;
+            font-size: 1.5rem;
+            color: var(--charcoal);
+        }
+
+        .calendar-nav {
+            display: flex;
+            gap: 10px;
+        }
+
+        .calendar-nav button {
+            width: 40px;
+            height: 40px;
+            border: 1px solid var(--border-light);
+            background: transparent;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+        }
+
+        .calendar-nav button:hover {
+            background: var(--champagne);
+            border-color: var(--gold);
+        }
+
+        .calendar-nav button svg {
+            width: 16px;
+            height: 16px;
+            stroke: var(--charcoal);
+        }
+
+        .calendar-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 8px;
+        }
+
+        .calendar-weekday {
+            text-align: center;
+            font-size: 0.7rem;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            color: var(--soft-brown);
+            padding: 10px 0;
+        }
+
+        .calendar-day {
+            aspect-ratio: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.9rem;
+            border: 1px solid transparent;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .calendar-day:not(.empty):not(.unavailable):hover {
+            background: var(--champagne);
+            border-color: var(--border-gold);
+        }
+
+        .calendar-day.selected {
+            background: var(--gold);
+            color: var(--charcoal);
+            font-weight: 500;
+        }
+
+        .calendar-day.unavailable {
+            color: rgba(0,0,0,0.2);
+            cursor: not-allowed;
+            text-decoration: line-through;
+        }
+
+        .calendar-day.empty {
+            cursor: default;
+        }
+
+        .calendar-legend {
+            display: flex;
+            gap: 30px;
+            margin-top: 2rem;
+            padding-top: 1.5rem;
+            border-top: 1px solid var(--border-light);
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.75rem;
+            color: var(--warm-gray);
+        }
+
+        .legend-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 2px;
+        }
+
+        .legend-dot.available {
+            background: var(--ivory);
+            border: 1px solid var(--charcoal);
+        }
+
+        .legend-dot.sold-out {
+            background: rgba(0,0,0,0.1);
+        }
+
+        /* Step 3: Party Size */
+        .party-selector {
+            max-width: 400px;
+        }
+
+        .party-label {
+            font-size: 0.85rem;
+            color: var(--warm-gray);
+            margin-bottom: 1.5rem;
+        }
+
+        .party-counter {
+            display: flex;
+            align-items: center;
+            gap: 30px;
+        }
+
+        .party-counter button {
+            width: 50px;
+            height: 50px;
+            border: 1px solid var(--border-light);
+            background: transparent;
+            cursor: pointer;
+            font-size: 1.5rem;
+            color: var(--charcoal);
+            transition: all 0.3s ease;
+        }
+
+        .party-counter button:hover:not(:disabled) {
+            background: var(--champagne);
+            border-color: var(--gold);
+        }
+
+        .party-counter button:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+        }
+
+        .party-count {
+            font-family: 'Cormorant Garamond', serif;
+            font-size: 3rem;
+            color: var(--charcoal);
+            min-width: 60px;
+            text-align: center;
+        }
+
+        .party-price-line {
+            margin-top: 2rem;
+            padding-top: 1.5rem;
+            border-top: 1px solid var(--border-light);
+        }
+
+        .party-calculation {
+            font-size: 0.9rem;
+            color: var(--warm-gray);
+        }
+
+        .party-total {
+            font-family: 'Cormorant Garamond', serif;
+            font-size: 2rem;
+            color: var(--charcoal);
+            margin-top: 0.5rem;
+        }
+
+        .party-note {
+            font-size: 0.8rem;
+            color: var(--soft-brown);
+            font-style: italic;
+            margin-top: 2rem;
+        }
+
+        /* Step 4: Confirmation */
+        .confirmation-details {
+            margin-bottom: 3rem;
+        }
+
+        .confirmation-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 1.2rem 0;
+            border-bottom: 1px solid var(--border-light);
+        }
+
+        .confirmation-label {
+            font-size: 0.75rem;
+            letter-spacing: 0.15em;
+            text-transform: uppercase;
+            color: var(--soft-brown);
+        }
+
+        .confirmation-value {
+            font-family: 'Cormorant Garamond', serif;
+            font-size: 1.2rem;
+            color: var(--charcoal);
+            text-align: right;
+        }
+
+        .confirmation-total-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 1.5rem 0;
+            margin-top: 1rem;
+        }
+
+        .confirmation-total-label {
+            font-size: 0.85rem;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            color: var(--charcoal);
+        }
+
+        .confirmation-total-value {
+            font-family: 'Cormorant Garamond', serif;
+            font-size: 2.5rem;
+            color: var(--gold);
+        }
+
+        .contact-form {
+            margin-top: 3rem;
+            padding-top: 2rem;
+            border-top: 1px solid var(--border-light);
+        }
+
+        .form-title {
+            font-family: 'Cormorant Garamond', serif;
+            font-size: 1.5rem;
+            color: var(--charcoal);
+            margin-bottom: 1.5rem;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-label {
+            display: block;
+            font-size: 0.75rem;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            color: var(--soft-brown);
+            margin-bottom: 8px;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 14px 16px;
+            border: 1px solid var(--border-light);
+            background: var(--ivory);
+            font-family: 'Montserrat', sans-serif;
+            font-size: 0.95rem;
+            color: var(--charcoal);
+            transition: border-color 0.3s ease;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: var(--gold);
+        }
+
+        .form-input::placeholder {
+            color: rgba(0,0,0,0.3);
+        }
+
+        /* Buttons */
+        .btn-primary {
+            display: inline-block;
+            background: var(--gold);
+            color: var(--charcoal);
+            padding: 18px 50px;
+            font-size: 0.85rem;
+            font-weight: 500;
+            text-decoration: none;
+            letter-spacing: 0.2em;
+            text-transform: uppercase;
+            border: none;
+            cursor: pointer;
+            transition: all 0.4s ease;
+        }
+
+        .btn-primary:hover {
+            background: var(--charcoal);
+            color: var(--ivory);
+        }
+
+        .btn-primary:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+
+        .btn-secondary {
+            display: inline-block;
+            background: transparent;
+            color: var(--charcoal);
+            padding: 18px 40px;
+            font-size: 0.85rem;
+            font-weight: 400;
+            text-decoration: none;
+            letter-spacing: 0.15em;
+            text-transform: uppercase;
+            border: 1px solid var(--border-light);
+            cursor: pointer;
+            transition: all 0.4s ease;
+            margin-right: 20px;
+        }
+
+        .btn-secondary:hover {
+            border-color: var(--gold);
+        }
+
+        .step-actions {
+            margin-top: 4rem;
+            padding-top: 2rem;
+            border-top: 1px solid var(--border-light);
+        }
+
+        /* Summary Sidebar */
+        .summary-title {
+            font-size: 0.7rem;
+            letter-spacing: 0.3em;
+            text-transform: uppercase;
+            color: var(--gold);
+            margin-bottom: 2rem;
+        }
+
+        .summary-program {
+            margin-bottom: 3rem;
+        }
+
+        .summary-program-name {
+            font-family: 'Cormorant Garamond', serif;
+            font-size: 1.8rem;
+            color: var(--ivory);
+            margin-bottom: 0.5rem;
+        }
+
+        .summary-program-time {
+            font-size: 0.8rem;
+            color: rgba(255,255,255,0.5);
+        }
+
+        .summary-empty {
+            font-size: 0.9rem;
+            color: rgba(255,255,255,0.4);
+            font-style: italic;
+        }
+
+        .summary-details {
+            margin-bottom: 3rem;
+        }
+
+        .summary-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 1rem 0;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .summary-label {
+            font-size: 0.75rem;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            color: rgba(255,255,255,0.5);
+        }
+
+        .summary-value {
+            font-size: 0.95rem;
+            color: var(--ivory);
+        }
+
+        .summary-total {
+            padding-top: 2rem;
+        }
+
+        .summary-total-label {
+            font-size: 0.75rem;
+            letter-spacing: 0.15em;
+            text-transform: uppercase;
+            color: var(--gold);
+            margin-bottom: 0.5rem;
+        }
+
+        .summary-total-value {
+            font-family: 'Cormorant Garamond', serif;
+            font-size: 3rem;
+            color: var(--ivory);
+        }
+
+        .summary-note {
+            font-size: 0.75rem;
+            color: rgba(255,255,255,0.4);
+            font-style: italic;
+            margin-top: 3rem;
+            line-height: 1.7;
+        }
+
+        /* Success State */
+        .success-state {
+            display: none;
+            text-align: center;
+            padding: 60px 40px;
+        }
+
+        .success-state.active {
+            display: block;
+            animation: fadeIn 0.5s ease;
+        }
+
+        .success-icon {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            background: var(--gold);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 2rem;
+        }
+
+        .success-icon svg {
+            width: 40px;
+            height: 40px;
+            stroke: var(--charcoal);
+        }
+
+        .success-title {
+            font-family: 'Cormorant Garamond', serif;
+            font-size: 2.5rem;
+            color: var(--charcoal);
+            margin-bottom: 1rem;
+        }
+
+        .success-message {
+            font-size: 1rem;
+            color: var(--warm-gray);
+            margin-bottom: 2rem;
+            max-width: 400px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .success-details {
+            background: var(--champagne);
+            padding: 30px;
+            max-width: 400px;
+            margin: 0 auto 2rem;
+            text-align: left;
+        }
+
+        .success-detail-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 0.8rem 0;
+            border-bottom: 1px solid var(--border-light);
+        }
+
+        .success-detail-row:last-child {
+            border-bottom: none;
+        }
+
+        /* Responsive */
+        @media (max-width: 1200px) {
+            .booking-main {
+                flex-direction: column;
+            }
+
+            .booking-summary {
+                width: 100%;
+                order: -1;
+                padding: 30px 40px;
+            }
+
+            .summary-total {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                padding-top: 0;
+            }
+
+            .summary-total-value {
+                font-size: 2rem;
+            }
+
+            .summary-note {
+                display: none;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .booking-header {
+                padding: 20px 24px;
+            }
+
+            .progress-bar {
+                padding: 20px 24px;
+                overflow-x: auto;
+            }
+
+            .progress-steps {
+                gap: 30px;
+                justify-content: flex-start;
+            }
+
+            .step-label {
+                display: none;
+            }
+
+            .booking-content {
+                padding: 40px 24px;
+            }
+
+            .booking-summary {
+                padding: 24px;
+            }
+
+            .program-cards {
+                grid-template-columns: 1fr;
+            }
+
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+
+            .btn-secondary {
+                display: block;
+                margin-right: 0;
+                margin-bottom: 15px;
+                text-align: center;
+            }
+
+            .btn-primary {
+                display: block;
+                width: 100%;
+                text-align: center;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Header -->
+    <header class="booking-header">
+        <a href="golden-landing.html" class="logo">FalCaMel</a>
+        <a href="golden-landing.html" class="back-link">Return to Cafe</a>
+    </header>
+
+    <!-- Progress Bar -->
+    <div class="progress-bar">
+        <div class="progress-steps">
+            <div class="progress-step active" data-step="1">
+                <span class="step-number">1</span>
+                <span class="step-label">Choose Your Sunset</span>
+            </div>
+            <div class="progress-step" data-step="2">
+                <span class="step-number">2</span>
+                <span class="step-label">Select Your Date</span>
+            </div>
+            <div class="progress-step" data-step="3">
+                <span class="step-number">3</span>
+                <span class="step-label">Your Party</span>
+            </div>
+            <div class="progress-step" data-step="4">
+                <span class="step-number">4</span>
+                <span class="step-label">Confirm</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="booking-main">
+        <div class="booking-content">
+
+            <!-- Step 1: Choose Program -->
+            <div class="step-section active" id="step-1">
+                <p class="step-eyebrow">Evening Programs</p>
+                <h1 class="step-title">Choose Your Sunset</h1>
+                <p class="step-intro">Two ways to witness the escarpment at golden hour. Both unforgettable. Neither repeatable.</p>
+
+                <div class="program-cards">
+                    <div class="program-card" data-program="race" data-price="2000">
+                        <div class="program-check">
+                            <svg viewBox="0 0 24 24" fill="none" stroke-width="3">
+                                <path d="M5 12l5 5L20 7"/>
+                            </svg>
+                        </div>
+                        <img src="../../images/falcon-diving.jpg" alt="Sultan racing Falcon's Flight" class="program-card-image">
+                        <div class="program-card-content">
+                            <h3>The Race</h3>
+                            <p class="program-card-price">SAR 2,000 per person</p>
+                            <p class="program-card-time">Sunset (approx. 6:00 PM)</p>
+                            <p>Sultan races Falcon's Flight. 380 km/h falcon versus 250 km/h coaster. Parallel lines down the cliff face. His record: 47-0. Premium edge seating with binoculars and live cliff-cam feed. Falconer commentary as they dive.</p>
+                        </div>
+                    </div>
+
+                    <div class="program-card" data-program="ride" data-price="2000">
+                        <div class="program-check">
+                            <svg viewBox="0 0 24 24" fill="none" stroke-width="3">
+                                <path d="M5 12l5 5L20 7"/>
+                            </svg>
+                        </div>
+                        <img src="../../images/haboob.jpg" alt="Haboob at golden hour" class="program-card-image">
+                        <div class="program-card-content">
+                            <h3>The Sunset Ride</h3>
+                            <p class="program-card-price">SAR 2,000 per person</p>
+                            <p class="program-card-time">Golden Hour (approx. 5:30 PM)</p>
+                            <p>One hour on Haboob along the escarpment edge. The cliff face turns amber. He walks slowly. He knows the route. You watch your shadow grow longer behind you. The light does things you cannot photograph.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="step-actions">
+                    <button class="btn-primary" id="btn-step-1" disabled>Continue to Date Selection</button>
+                </div>
+            </div>
+
+            <!-- Step 2: Select Date -->
+            <div class="step-section" id="step-2">
+                <p class="step-eyebrow">Select Your Date</p>
+                <h1 class="step-title">When Will You Witness?</h1>
+                <p class="step-intro">The light is different every evening. The experience is the same: extraordinary.</p>
+
+                <div class="calendar-container">
+                    <div class="calendar-header">
+                        <span class="calendar-month" id="calendar-month">January 2026</span>
+                        <div class="calendar-nav">
+                            <button id="prev-month">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M15 18l-6-6 6-6"/>
+                                </svg>
+                            </button>
+                            <button id="next-month">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M9 18l6-6-6-6"/>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="calendar-grid" id="calendar-grid">
+                        <div class="calendar-weekday">Sun</div>
+                        <div class="calendar-weekday">Mon</div>
+                        <div class="calendar-weekday">Tue</div>
+                        <div class="calendar-weekday">Wed</div>
+                        <div class="calendar-weekday">Thu</div>
+                        <div class="calendar-weekday">Fri</div>
+                        <div class="calendar-weekday">Sat</div>
+                    </div>
+
+                    <div class="calendar-legend">
+                        <div class="legend-item">
+                            <span class="legend-dot available"></span>
+                            <span>Available</span>
+                        </div>
+                        <div class="legend-item">
+                            <span class="legend-dot sold-out"></span>
+                            <span>Sold Out</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="step-actions">
+                    <button class="btn-secondary" id="btn-back-1">Back</button>
+                    <button class="btn-primary" id="btn-step-2" disabled>Continue to Party Size</button>
+                </div>
+            </div>
+
+            <!-- Step 3: Party Size -->
+            <div class="step-section" id="step-3">
+                <p class="step-eyebrow">Your Party</p>
+                <h1 class="step-title">How Many Will Witness?</h1>
+                <p class="step-intro">Limited to six guests per session. The experience demands intimacy.</p>
+
+                <div class="party-selector">
+                    <p class="party-label">Number of guests joining this sunset</p>
+                    <div class="party-counter">
+                        <button id="party-minus" disabled>-</button>
+                        <span class="party-count" id="party-count">1</span>
+                        <button id="party-plus">+</button>
+                    </div>
+
+                    <div class="party-price-line">
+                        <p class="party-calculation" id="party-calculation">1 guest x SAR 2,000</p>
+                        <p class="party-total" id="party-total">SAR 2,000</p>
+                    </div>
+
+                    <p class="party-note">Each guest receives their own viewing position with binoculars, refreshments, and commemorative photograph.</p>
+                </div>
+
+                <div class="step-actions">
+                    <button class="btn-secondary" id="btn-back-2">Back</button>
+                    <button class="btn-primary" id="btn-step-3">Continue to Confirmation</button>
+                </div>
+            </div>
+
+            <!-- Step 4: Confirmation -->
+            <div class="step-section" id="step-4">
+                <p class="step-eyebrow">Confirm Your Sunset</p>
+                <h1 class="step-title">The Light Awaits</h1>
+                <p class="step-intro">Review your evening and complete your booking.</p>
+
+                <div class="confirmation-details">
+                    <div class="confirmation-row">
+                        <span class="confirmation-label">Experience</span>
+                        <span class="confirmation-value" id="confirm-program">-</span>
+                    </div>
+                    <div class="confirmation-row">
+                        <span class="confirmation-label">Date</span>
+                        <span class="confirmation-value" id="confirm-date">-</span>
+                    </div>
+                    <div class="confirmation-row">
+                        <span class="confirmation-label">Time</span>
+                        <span class="confirmation-value" id="confirm-time">-</span>
+                    </div>
+                    <div class="confirmation-row">
+                        <span class="confirmation-label">Guests</span>
+                        <span class="confirmation-value" id="confirm-guests">-</span>
+                    </div>
+                    <div class="confirmation-total-row">
+                        <span class="confirmation-total-label">Total</span>
+                        <span class="confirmation-total-value" id="confirm-total">-</span>
+                    </div>
+                </div>
+
+                <div class="contact-form">
+                    <h3 class="form-title">Where Do We Reach You?</h3>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label" for="first-name">First Name</label>
+                            <input type="text" id="first-name" class="form-input" placeholder="Your first name">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" for="last-name">Last Name</label>
+                            <input type="text" id="last-name" class="form-input" placeholder="Your family name">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="email">Email</label>
+                        <input type="email" id="email" class="form-input" placeholder="Where we send confirmation">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="phone">Phone</label>
+                        <input type="tel" id="phone" class="form-input" placeholder="+966">
+                    </div>
+                </div>
+
+                <div class="step-actions">
+                    <button class="btn-secondary" id="btn-back-3">Back</button>
+                    <button class="btn-primary" id="btn-confirm">Secure Your Sunset</button>
+                </div>
+            </div>
+
+            <!-- Success State -->
+            <div class="success-state" id="success-state">
+                <div class="success-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke-width="2">
+                        <path d="M5 12l5 5L20 7"/>
+                    </svg>
+                </div>
+                <h2 class="success-title">Your Sunset is Secured</h2>
+                <p class="success-message">Confirmation details have been sent to your email. Arrive 30 minutes before the scheduled time to find your position on the edge.</p>
+                <div class="success-details">
+                    <div class="success-detail-row">
+                        <span class="confirmation-label">Confirmation</span>
+                        <span class="confirmation-value" id="success-confirmation">#FCM-2026-0001</span>
+                    </div>
+                    <div class="success-detail-row">
+                        <span class="confirmation-label">Experience</span>
+                        <span class="confirmation-value" id="success-program">-</span>
+                    </div>
+                    <div class="success-detail-row">
+                        <span class="confirmation-label">Date</span>
+                        <span class="confirmation-value" id="success-date">-</span>
+                    </div>
+                </div>
+                <a href="golden-landing.html" class="btn-primary">Return to FalCaMel</a>
+            </div>
+
+        </div>
+
+        <!-- Summary Sidebar -->
+        <aside class="booking-summary">
+            <p class="summary-title">Your Evening</p>
+
+            <div class="summary-program">
+                <p class="summary-program-name" id="summary-program">No program selected</p>
+                <p class="summary-program-time" id="summary-time"></p>
+            </div>
+
+            <div class="summary-details" id="summary-details" style="display: none;">
+                <div class="summary-row">
+                    <span class="summary-label">Date</span>
+                    <span class="summary-value" id="summary-date">-</span>
+                </div>
+                <div class="summary-row">
+                    <span class="summary-label">Guests</span>
+                    <span class="summary-value" id="summary-guests">1</span>
+                </div>
+            </div>
+
+            <div class="summary-total">
+                <p class="summary-total-label">Total</p>
+                <p class="summary-total-value" id="summary-total">SAR 0</p>
+            </div>
+
+            <p class="summary-note">The escarpment turns gold for approximately 45 minutes. Sultan has never lost. Haboob has never hurried. Both are unforgettable.</p>
+        </aside>
+    </div>
+
+    <script>
+        // Booking State
+        const bookingState = {
+            program: null,
+            programName: null,
+            price: 0,
+            date: null,
+            guests: 1,
+            currentMonth: new Date(2026, 0, 1) // January 2026
+        };
+
+        // Unavailable dates (simulate some sold out dates)
+        const unavailableDates = [
+            '2026-01-10', '2026-01-11', '2026-01-17', '2026-01-24',
+            '2026-02-07', '2026-02-14', '2026-02-21'
+        ];
+
+        // DOM Elements
+        const programCards = document.querySelectorAll('.program-card');
+        const progressSteps = document.querySelectorAll('.progress-step');
+        const stepSections = document.querySelectorAll('.step-section');
+
+        // Step navigation buttons
+        const btnStep1 = document.getElementById('btn-step-1');
+        const btnStep2 = document.getElementById('btn-step-2');
+        const btnStep3 = document.getElementById('btn-step-3');
+        const btnBack1 = document.getElementById('btn-back-1');
+        const btnBack2 = document.getElementById('btn-back-2');
+        const btnBack3 = document.getElementById('btn-back-3');
+        const btnConfirm = document.getElementById('btn-confirm');
+
+        // Party size elements
+        const partyMinus = document.getElementById('party-minus');
+        const partyPlus = document.getElementById('party-plus');
+        const partyCount = document.getElementById('party-count');
+        const partyCalculation = document.getElementById('party-calculation');
+        const partyTotal = document.getElementById('party-total');
+
+        // Summary elements
+        const summaryProgram = document.getElementById('summary-program');
+        const summaryTime = document.getElementById('summary-time');
+        const summaryDate = document.getElementById('summary-date');
+        const summaryGuests = document.getElementById('summary-guests');
+        const summaryTotal = document.getElementById('summary-total');
+        const summaryDetails = document.getElementById('summary-details');
+
+        // Step 1: Program Selection
+        programCards.forEach(card => {
+            card.addEventListener('click', () => {
+                programCards.forEach(c => c.classList.remove('selected'));
+                card.classList.add('selected');
+
+                bookingState.program = card.dataset.program;
+                bookingState.price = parseInt(card.dataset.price);
+
+                if (bookingState.program === 'race') {
+                    bookingState.programName = 'The Race';
+                    summaryTime.textContent = 'Sunset (approx. 6:00 PM)';
+                } else {
+                    bookingState.programName = 'The Sunset Ride';
+                    summaryTime.textContent = 'Golden Hour (approx. 5:30 PM)';
+                }
+
+                summaryProgram.textContent = bookingState.programName;
+                updateTotal();
+                btnStep1.disabled = false;
+            });
+        });
+
+        // Step Navigation
+        function goToStep(stepNumber) {
+            // Update progress steps
+            progressSteps.forEach((step, index) => {
+                step.classList.remove('active', 'completed');
+                if (index + 1 < stepNumber) {
+                    step.classList.add('completed');
+                } else if (index + 1 === stepNumber) {
+                    step.classList.add('active');
+                }
+            });
+
+            // Show correct section
+            stepSections.forEach(section => section.classList.remove('active'));
+            document.getElementById(`step-${stepNumber}`).classList.add('active');
+
+            // Show summary details after step 1
+            if (stepNumber > 1) {
+                summaryDetails.style.display = 'block';
+            }
+
+            // Update confirmation details on step 4
+            if (stepNumber === 4) {
+                updateConfirmation();
+            }
+
+            // Scroll to top
+            window.scrollTo(0, 0);
+        }
+
+        btnStep1.addEventListener('click', () => goToStep(2));
+        btnStep2.addEventListener('click', () => goToStep(3));
+        btnStep3.addEventListener('click', () => goToStep(4));
+        btnBack1.addEventListener('click', () => goToStep(1));
+        btnBack2.addEventListener('click', () => goToStep(2));
+        btnBack3.addEventListener('click', () => goToStep(3));
+
+        // Step 2: Calendar
+        const calendarGrid = document.getElementById('calendar-grid');
+        const calendarMonth = document.getElementById('calendar-month');
+        const prevMonth = document.getElementById('prev-month');
+        const nextMonth = document.getElementById('next-month');
+
+        function renderCalendar() {
+            // Clear existing days
+            const existingDays = calendarGrid.querySelectorAll('.calendar-day');
+            existingDays.forEach(day => day.remove());
+
+            const year = bookingState.currentMonth.getFullYear();
+            const month = bookingState.currentMonth.getMonth();
+
+            // Update month display
+            const monthNames = ['January', 'February', 'March', 'April', 'May', 'June',
+                               'July', 'August', 'September', 'October', 'November', 'December'];
+            calendarMonth.textContent = `${monthNames[month]} ${year}`;
+
+            // Get first day of month and number of days
+            const firstDay = new Date(year, month, 1).getDay();
+            const daysInMonth = new Date(year, month + 1, 0).getDate();
+            const today = new Date();
+
+            // Add empty cells for days before first of month
+            for (let i = 0; i < firstDay; i++) {
+                const emptyCell = document.createElement('div');
+                emptyCell.className = 'calendar-day empty';
+                calendarGrid.appendChild(emptyCell);
+            }
+
+            // Add day cells
+            for (let day = 1; day <= daysInMonth; day++) {
+                const dayCell = document.createElement('div');
+                dayCell.className = 'calendar-day';
+                dayCell.textContent = day;
+
+                const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                const dateObj = new Date(year, month, day);
+
+                // Check if date is in the past
+                if (dateObj < today) {
+                    dayCell.classList.add('unavailable');
+                }
+                // Check if date is unavailable (sold out)
+                else if (unavailableDates.includes(dateStr)) {
+                    dayCell.classList.add('unavailable');
+                }
+                // Available date
+                else {
+                    dayCell.addEventListener('click', () => selectDate(dayCell, dateStr, dateObj));
+                }
+
+                // Check if this is the selected date
+                if (bookingState.date === dateStr) {
+                    dayCell.classList.add('selected');
+                }
+
+                calendarGrid.appendChild(dayCell);
+            }
+        }
+
+        function selectDate(dayCell, dateStr, dateObj) {
+            // Remove previous selection
+            calendarGrid.querySelectorAll('.calendar-day').forEach(d => d.classList.remove('selected'));
+            dayCell.classList.add('selected');
+
+            bookingState.date = dateStr;
+
+            // Format date for display
+            const options = { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' };
+            const formattedDate = dateObj.toLocaleDateString('en-US', options);
+            summaryDate.textContent = formattedDate;
+
+            btnStep2.disabled = false;
+        }
+
+        prevMonth.addEventListener('click', () => {
+            bookingState.currentMonth.setMonth(bookingState.currentMonth.getMonth() - 1);
+            renderCalendar();
+        });
+
+        nextMonth.addEventListener('click', () => {
+            bookingState.currentMonth.setMonth(bookingState.currentMonth.getMonth() + 1);
+            renderCalendar();
+        });
+
+        // Initialize calendar
+        renderCalendar();
+
+        // Step 3: Party Size
+        function updatePartySize() {
+            partyCount.textContent = bookingState.guests;
+            summaryGuests.textContent = bookingState.guests;
+            partyCalculation.textContent = `${bookingState.guests} guest${bookingState.guests > 1 ? 's' : ''} x SAR ${bookingState.price.toLocaleString()}`;
+            updateTotal();
+
+            partyMinus.disabled = bookingState.guests <= 1;
+            partyPlus.disabled = bookingState.guests >= 6;
+        }
+
+        partyMinus.addEventListener('click', () => {
+            if (bookingState.guests > 1) {
+                bookingState.guests--;
+                updatePartySize();
+            }
+        });
+
+        partyPlus.addEventListener('click', () => {
+            if (bookingState.guests < 6) {
+                bookingState.guests++;
+                updatePartySize();
+            }
+        });
+
+        function updateTotal() {
+            const total = bookingState.price * bookingState.guests;
+            summaryTotal.textContent = `SAR ${total.toLocaleString()}`;
+            partyTotal.textContent = `SAR ${total.toLocaleString()}`;
+        }
+
+        // Step 4: Confirmation
+        function updateConfirmation() {
+            document.getElementById('confirm-program').textContent = bookingState.programName;
+            document.getElementById('confirm-date').textContent = summaryDate.textContent;
+            document.getElementById('confirm-time').textContent = summaryTime.textContent;
+            document.getElementById('confirm-guests').textContent = bookingState.guests;
+
+            const total = bookingState.price * bookingState.guests;
+            document.getElementById('confirm-total').textContent = `SAR ${total.toLocaleString()}`;
+        }
+
+        // Confirmation
+        btnConfirm.addEventListener('click', () => {
+            // Validate form
+            const firstName = document.getElementById('first-name').value;
+            const lastName = document.getElementById('last-name').value;
+            const email = document.getElementById('email').value;
+            const phone = document.getElementById('phone').value;
+
+            if (!firstName || !lastName || !email || !phone) {
+                alert('Please complete all fields to secure your sunset.');
+                return;
+            }
+
+            // Generate confirmation number
+            const confNum = `FCM-2026-${String(Math.floor(Math.random() * 9999)).padStart(4, '0')}`;
+            document.getElementById('success-confirmation').textContent = confNum;
+            document.getElementById('success-program').textContent = bookingState.programName;
+            document.getElementById('success-date').textContent = summaryDate.textContent;
+
+            // Hide step 4, show success
+            document.getElementById('step-4').classList.remove('active');
+            document.getElementById('success-state').classList.add('active');
+
+            // Update progress to all completed
+            progressSteps.forEach(step => {
+                step.classList.remove('active');
+                step.classList.add('completed');
+            });
+        });
+    </script>
+
+</body>
+</html>

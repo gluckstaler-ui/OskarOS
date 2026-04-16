@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bareggcenter Baden</title>
+    <style>
+        :root {
+            --color-black: #000000;
+            --color-white: #FFFFFF;
+            --color-orange: #F07D00;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html {
+            font-size: 16px;
+        }
+
+        body {
+            font-family: 'Helvetica Neue', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background-color: var(--color-white);
+            color: var(--color-black);
+            line-height: 1.4;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        /* Image Section with Text */
+        .image-section {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            padding: 2rem;
+            position: relative;
+            background-size: cover;
+            background-position: center;
+        }
+
+        .image-section h2 {
+            font-size: clamp(3rem, 10vw, 8rem);
+            font-weight: 700;
+            letter-spacing: -0.03em;
+            line-height: 1.05;
+            color: white;
+            text-shadow: 0 2px 20px rgba(0,0,0,0.8), 0 4px 40px rgba(0,0,0,0.6);
+            max-width: 1200px;
+            margin: 0 auto;
+            width: 100%;
+        }
+
+        /* Content Section */
+        .content-section {
+            padding: 6rem 2rem;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .section-label {
+            font-size: 0.75rem;
+            font-weight: 500;
+            letter-spacing: 0.15em;
+            text-transform: uppercase;
+            margin-bottom: 3rem;
+            opacity: 0.5;
+        }
+
+        /* Rows */
+        .row {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            padding: 1rem 0;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+        }
+
+        .row:last-child {
+            border-bottom: none;
+        }
+
+        .row-label {
+            font-size: clamp(1rem, 2vw, 1.25rem);
+            font-weight: 400;
+        }
+
+        .row-value {
+            font-size: clamp(1rem, 2vw, 1.25rem);
+            font-weight: 500;
+            text-align: right;
+        }
+
+        /* CTA */
+        .cta-button {
+            display: inline-block;
+            background-color: var(--color-black);
+            color: var(--color-white);
+            padding: 1rem 3rem;
+            font-size: 1rem;
+            font-weight: 500;
+            text-decoration: none;
+            letter-spacing: 0.05em;
+            transition: background-color 0.2s ease;
+        }
+
+        .cta-button:hover {
+            background-color: var(--color-orange);
+        }
+
+        .big-cta {
+            display: inline-block;
+            background: white;
+            color: var(--color-black);
+            font-size: clamp(2rem, 6vw, 5rem);
+            font-weight: 700;
+            padding: 1rem 4rem;
+            text-decoration: none;
+            letter-spacing: -0.02em;
+            transition: transform 0.2s ease, background-color 0.2s ease;
+        }
+
+        .big-cta:hover {
+            transform: scale(1.1);
+            background-color: var(--color-black);
+            color: white;
+        }
+
+        .nein-cta {
+            display: inline-block;
+            background: transparent;
+            color: white;
+            font-size: clamp(2rem, 6vw, 5rem);
+            font-weight: 700;
+            padding: 1rem 4rem;
+            text-decoration: none;
+            letter-spacing: -0.02em;
+            border: 4px solid white;
+            position: relative;
+            transition: none;
+        }
+
+        /* Location */
+        .location-main {
+            font-size: clamp(1.25rem, 3vw, 1.75rem);
+            font-weight: 500;
+            margin-bottom: 2rem;
+        }
+
+        .location-details {
+            display: grid;
+            gap: 0.5rem;
+            font-size: 1rem;
+            opacity: 0.7;
+        }
+
+        .location-details a {
+            color: var(--color-black);
+            text-decoration: none;
+        }
+
+        .location-details a:hover {
+            color: var(--color-orange);
+        }
+
+        /* Footer */
+        footer {
+            padding: 4rem 2rem;
+            border-top: 1px solid rgba(0, 0, 0, 0.1);
+        }
+
+        .footer-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .footer-logo {
+            height: 40px;
+            width: auto;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .image-section {
+                padding: 1.5rem;
+                min-height: 70vh;
+            }
+
+            .content-section {
+                padding: 4rem 1.5rem;
+            }
+
+            .row {
+                flex-direction: column;
+                gap: 0.25rem;
+                align-items: flex-start;
+            }
+
+            .row-value {
+                text-align: left;
+                opacity: 0.7;
+            }
+
+            .footer-content {
+                flex-direction: column;
+                gap: 1rem;
+                text-align: center;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Hero: Buchen -->
+    <section class="image-section" style="background-image: url('../../images/padel-courts-evening.jpg');">
+        <h2>Padel:&nbsp;CHF&nbsp;64.<br>Tennis:&nbsp;CHF&nbsp;28.<br>Fragen?</h2>
+    </section>
+
+    <div class="content-section">
+        <p class="section-label">Preise</p>
+        <div class="row">
+            <span class="row-label">Padel (Tag, bis 17:00)</span>
+            <span class="row-value">CHF 48/Court/h</span>
+        </div>
+        <div class="row">
+            <span class="row-label">Padel (Abend + Wochenende)</span>
+            <span class="row-value">CHF 64/Court/h</span>
+        </div>
+        <div class="row">
+            <span class="row-label">Tennis</span>
+            <span class="row-value">ab CHF 28/Court/h</span>
+        </div>
+        <div class="row">
+            <span class="row-label">Squash</span>
+            <span class="row-value">ab CHF 27/Court/h</span>
+        </div>
+        <div class="row">
+            <span class="row-label">Badminton</span>
+            <span class="row-value">Preis auf Anfrage</span>
+        </div>
+        <div style="margin-top: 3rem;">
+            <a href="#" class="cta-button">Buchen</a>
+        </div>
+    </div>
+
+    <!-- Courts -->
+    <section class="image-section" style="background-image: url('../../images/plaza-de-padel.jpg');">
+        <h2>4&nbsp;Padel.<br>3&nbsp;Tennis.<br>3&nbsp;Squash.<br>5&nbsp;Badminton.</h2>
+    </section>
+
+    <div class="content-section">
+        <p class="section-label">Courts</p>
+        <div class="row">
+            <span class="row-label">Padel</span>
+            <span class="row-value">4 Indoor-Courts</span>
+        </div>
+        <div class="row">
+            <span class="row-label">Tennis</span>
+            <span class="row-value">3 Courts</span>
+        </div>
+        <div class="row">
+            <span class="row-label">Squash</span>
+            <span class="row-value">3 Courts</span>
+        </div>
+        <div class="row">
+            <span class="row-label">Badminton</span>
+            <span class="row-value">5 Courts</span>
+        </div>
+        <div class="row">
+            <span class="row-label">Schläger-Miete</span>
+            <span class="row-value">Vor Ort möglich</span>
+        </div>
+    </div>
+
+    <!-- Nach dem Sport -->
+    <section class="image-section" style="background-image: url('../../images/padel-after-match.jpg');">
+        <h2>Bier.<br>Pizza.<br>Sauna.</h2>
+    </section>
+
+    <div class="content-section">
+        <p class="section-label">Nach dem Sport</p>
+        <div class="row">
+            <span class="row-label">Bar</span>
+            <span class="row-value">Bis 23:30 (Fr/Sa bis 01:00)</span>
+        </div>
+        <div class="row">
+            <span class="row-label">Restaurant</span>
+            <span class="row-value">Italienisch. Costantino aus Apulien.</span>
+        </div>
+        <div class="row">
+            <span class="row-label">Sauna</span>
+            <span class="row-value">CHF 10</span>
+        </div>
+        <div class="row">
+            <span class="row-label">Massage</span>
+            <span class="row-value">CHF 100/h</span>
+        </div>
+        <div class="row">
+            <span class="row-label">Billard</span>
+            <span class="row-value">ab CHF 16/h</span>
+        </div>
+    </div>
+
+    <!-- Restaurant -->
+    <section class="image-section" style="background-image: url('../../images/ristorante-baregg.jpg');">
+        <h2>Costantino.<br>Apulien.<br>9&nbsp;Jahre.</h2>
+    </section>
+
+    <div class="content-section">
+        <p class="section-label">Restaurant</p>
+        <div class="row">
+            <span class="row-label">Küche</span>
+            <span class="row-value">Italienisch. Keine Kompromisse.</span>
+        </div>
+        <div class="row">
+            <span class="row-label">Öffnungszeiten</span>
+            <span class="row-value">Mo-Fr 6:30-23, Sa 17-22</span>
+        </div>
+        <div class="row">
+            <span class="row-label">Reservation</span>
+            <span class="row-value">+41 56 493 44 55</span>
+        </div>
+    </div>
+
+    <!-- Team Events -->
+    <section class="image-section" style="background-image: url('../../images/team-event-group.jpg');">
+        <h2>Team&nbsp;Event.<br>Ein&nbsp;Anruf.</h2>
+    </section>
+
+    <div class="content-section">
+        <p class="section-label">Team Events</p>
+        <div class="row">
+            <span class="row-label">Padel-Turnier + Abendessen</span>
+            <span class="row-value">Auf Anfrage</span>
+        </div>
+        <div class="row">
+            <span class="row-label">Bowling + Bar</span>
+            <span class="row-value">Auf Anfrage</span>
+        </div>
+        <div class="row">
+            <span class="row-label">Komplettes Programm</span>
+            <span class="row-value">Sport, Essen, Bar</span>
+        </div>
+        <div class="row">
+            <span class="row-label">Kontakt</span>
+            <span class="row-value">+41 56 493 44 55</span>
+        </div>
+    </div>
+
+    <!-- Öffnungszeiten -->
+    <section class="image-section" style="background-image: url('../../images/fixplatz-regulars.jpg');">
+        <h2>8&nbsp;Uhr.<br>Bis&nbsp;23&nbsp;Uhr.</h2>
+    </section>
+
+    <div class="content-section">
+        <p class="section-label">Öffnungszeiten</p>
+        <div class="row">
+            <span class="row-label">Sport</span>
+            <span class="row-value">8-23 Uhr</span>
+        </div>
+        <div class="row">
+            <span class="row-label">Sauna</span>
+            <span class="row-value">8-22 Uhr</span>
+        </div>
+        <div class="row">
+            <span class="row-label">Bar</span>
+            <span class="row-value">17-23:30 (Fr/Sa bis 01:00)</span>
+        </div>
+        <div class="row">
+            <span class="row-label">Restaurant</span>
+            <span class="row-value">Mo-Fr 6:30-23, Sa 17-22</span>
+        </div>
+    </div>
+
+    <!-- Standort -->
+    <section class="image-section" style="background: var(--color-black);">
+        <h2>15&nbsp;Min<br>von&nbsp;Zürich.</h2>
+    </section>
+
+    <div class="content-section">
+        <p class="section-label">Wo</p>
+        <p class="location-main">Zelgweg 11, 5405 Baden-Dättwil</p>
+        <div class="location-details">
+            <span>15 Min Zürich, A1</span>
+            <span>200 Parkplätze</span>
+            <span>Aparthotel nebenan</span>
+            <a href="tel:+41564934455">+41 56 493 44 55</a>
+        </div>
+    </div>
+
+    <!-- Final CTA -->
+    <section class="image-section" style="background: var(--color-orange); text-align: center;">
+        <div style="max-width: 1200px; margin: 0 auto; width: 100%;">
+            <h2 style="margin-bottom: 4rem; text-shadow: none;">Buchen?</h2>
+            <div style="display: flex; justify-content: center; align-items: center; gap: 2rem; flex-wrap: wrap;">
+                <a href="#" class="big-cta">Ja</a>
+                <a href="#" class="nein-cta" id="nein-btn">Nein</a>
+            </div>
+        </div>
+    </section>
+
+    <script>
+        const neinBtn = document.getElementById('nein-btn');
+        neinBtn.addEventListener('mouseenter', function() {
+            const rect = this.getBoundingClientRect();
+            const jumpDistance = 150;
+            const angle = Math.random() * Math.PI * 2;
+            let newX = rect.left + Math.cos(angle) * jumpDistance;
+            let newY = rect.top + Math.sin(angle) * jumpDistance;
+
+            // Keep it on screen
+            newX = Math.max(20, Math.min(window.innerWidth - 200, newX));
+            newY = Math.max(20, Math.min(window.innerHeight - 100, newY));
+
+            this.style.position = 'fixed';
+            this.style.left = newX + 'px';
+            this.style.top = newY + 'px';
+            this.style.margin = '0';
+            this.style.zIndex = '9999';
+        });
+    </script>
+
+    <!-- Footer -->
+    <footer>
+        <div class="footer-content">
+            <img src="../../images/logo_bareggcenter.png" alt="Bareggcenter Baden" class="footer-logo">
+        </div>
+    </footer>
+
+</body>
+</html>
