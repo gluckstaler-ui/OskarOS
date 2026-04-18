@@ -15,8 +15,10 @@ import {
 } from '@/lib/session-actions'
 import type { CreativeBriefContent } from '@/lib/session'
 import { AssetsPanel } from '@/components/AssetsPanel'
+import { AdvancedMode, type AdvancedTab } from '@/components/AdvancedMode'
 import { VibesGallery, type VibeCardData } from '@/components/VibesGallery'
 import { CanvasPanel } from '@/components/CanvasPanel'
+import { LivePreviewWithDirector } from '@/components/studio/LivePreviewWithDirector'
 import { ConversationPanel } from '@/components/ConversationPanel'
 import { TopBar, type Order66Status } from '@/components/TopBar'
 import { CompactionOverlay } from '@/components/CompactionOverlay'
@@ -27,6 +29,7 @@ import {
   emitVibeReady,
   emitRegenerating,
   emitError,
+  emitCDUploadEvaluated,
   sessionEvents,
   SessionEvent
 } from '@/lib/session-events'
@@ -72,7 +75,7 @@ export default function Home() {
   const [layoutMode, setLayoutModeState] = useState<LayoutMode>('2-panel')
   useEffect(() => {
     const saved = localStorage.getItem('oskar-layout-mode')
-    if (saved === '2-panel' || saved === '3-panel' || saved === 'gallery') {
+    if (saved === '2-panel' || saved === '3-panel' || saved === 'image' || saved === 'gallery') {
       setLayoutModeState(saved)
     }
   }, [])
@@ -112,6 +115,26 @@ export default function Home() {
   const [imageManifests, setImageManifests] = useState<ImageManifest[]>([])
   const [selectedAsset, setSelectedAsset] = useState<ImageAsset | undefined>(undefined)
 
+  // Advanced Mode overlay (WP-1A)
+  const [advancedMode, setAdvancedMode] = useState<{
+    open: boolean
+    initialTab: AdvancedTab
+    initialImage: SourceImage | null
+  }>({ open: false, initialTab: 'view', initialImage: null })
+
+  const openAdvancedMode = useCallback(
+    (opts: { tab?: AdvancedTab; image?: SourceImage | null } = {}) => {
+      setAdvancedMode({
+        open: true,
+        initialTab: opts.tab ?? 'view',
+        initialImage: opts.image ?? null,
+      })
+      // Switch to IMAGE layout mode
+      setLayoutMode('image')
+    },
+    [setLayoutMode]
+  )
+
   // Conversation
   const [messages, setMessages] = useState<ConversationMessage[]>([])
   const [isLoading, setIsLoading] = useState(false)
@@ -130,7 +153,7 @@ export default function Home() {
   })
   const [useStreaming, setUseStreaming] = useState(true) // Toggle streaming mode
   const [billingMode, setBillingMode] = useState<'cli' | 'api'>('cli') // Billing mode: CLI (subscription) or API (per-token)
-  const [webDevModel, setWebDevModel] = useState<'claude-opus-4-6' | 'claude-sonnet-4-6' | 'gemini-3.1-pro-preview'>('claude-sonnet-4-6') // WebDev model
+  const [webDevModel, setWebDevModel] = useState<'claude-opus-4-7' | 'claude-sonnet-4-6' | 'gemini-3.1-pro-preview'>('claude-sonnet-4-6') // WebDev model
   const [theme, setTheme] = useState<'onyx' | 'polar'>('onyx') // Theme: ONYX (dark) or POLAR (light)
   const [contextPct, setContextPct] = useState(0) // Context window fill percentage
   const [cachedInputTokens, setCachedInputTokens] = useState(0) // Cached input tokens (system prompt, session files)
@@ -153,6 +176,15 @@ export default function Home() {
   const pendingBootSequenceRef = useRef(false)
   const bootSequenceTriggeredRef = useRef(false)
   const hasBridgeMappingRef = useRef(false)  // true = bridge can --resume (skip boot sequence)
+
+  // Single-flight dedup for ensureSession. Without this, double-click-send or
+  // paste+Enter while auto-inject is running causes two concurrent callers to
+  // both see `sessionId === null` (React state hasn't flushed yet), both call
+  // createSessionAction, and disk gets two orphan session folders. The promise
+  // cache makes the first caller "own" the creation; subsequent callers await
+  // the same promise. Cleared in `finally` so a future fresh session can also
+  // be created if this one ever resolves to null/error.
+  const sessionPromiseRef = useRef<Promise<string> | null>(null)
 
   // Ref to hold the message handler for session events (allows effect to access latest handler)
   const messageHandlerRef = useRef<((content: string) => void) | null>(null)
@@ -649,6 +681,72 @@ export default function Home() {
           }
         }
       })
+      // ── WP-1C/2C (2026-04-17): hydrate generation lineage ──
+      // For every record in LINEAGE.json, either enrich an existing
+      // SourceImage with parentImage/generationMode/preset/isGenerated, OR
+      // synthesize a fresh entry for generated images that aren't in `data.images`
+      // (the admin route currently filters them out).
+      try {
+        const lineageRes = await fetch(`/api/sessions/${loadSessionId}/lineage`)
+        if (lineageRes.ok) {
+          const { records = [] } = await lineageRes.json() as { records?: any[] }
+          const existingByName = new Map<string, SourceImage>(
+            updatedImages.map((img) => [img.filename, img])
+          )
+          for (const rec of records) {
+            // WP-15 audit fields: prefer the new prompt fields, fall back to
+            // the deprecated `prompt` for legacy LINEAGE.json entries written
+            // before 2026-04-17. The actually-sent prompt drives sourcePrompt
+            // because that's what produced THIS specific result.
+            const sourcePrompt: string =
+              rec.actualPromptSent || rec.userPrompt || rec.prompt || ''
+            const existing = existingByName.get(rec.resultImage)
+            if (existing) {
+              // Enrich in place — preserve any analysis already loaded
+              existing.parentImage = rec.parentImage
+              existing.parentImages = rec.sourceImages?.length > 1
+                ? rec.sourceImages
+                : undefined
+              existing.generationMode = rec.mode
+              existing.preset = rec.preset || undefined
+              existing.isGenerated = true
+              existing.sourcePrompt = sourcePrompt
+              if (rec.description && !existing.analysis?.description) {
+                existing.analysis = {
+                  elements: existing.analysis?.elements || [],
+                  description: rec.description,
+                  suggestedExtractions: existing.analysis?.suggestedExtractions || [],
+                }
+              }
+            } else {
+              // Synthesize — generated image not present in admin file list
+              const synth: SourceImage = {
+                id: rec.id || rec.resultImage,
+                filename: rec.resultImage,
+                path: `/${loadSessionId}/${rec.resultImage}`,
+                uploadedAt: rec.timestamp || new Date().toISOString(),
+                isGenerated: true,
+                sourcePrompt,
+                parentImage: rec.parentImage,
+                parentImages: rec.sourceImages?.length > 1
+                  ? rec.sourceImages
+                  : undefined,
+                generationMode: rec.mode,
+                preset: rec.preset || undefined,
+                analysis: { elements: [], description: '', suggestedExtractions: [] },
+              }
+              updatedImages.push(synth)
+              existingByName.set(synth.filename, synth)
+            }
+          }
+          if (records.length > 0) {
+            console.log(`📸 Hydrated ${records.length} lineage records`)
+          }
+        }
+      } catch (lineageErr) {
+        console.warn('Failed to load lineage:', lineageErr)
+      }
+
       setSourceImages(updatedImages)
       console.log('📸 Loaded', updatedImages.length, 'source images:', updatedImages.map(i => i.filename))
 
@@ -813,6 +911,32 @@ export default function Home() {
       if (sessionId) {
         await logImageUploadAction(sessionId, data.filename, data.analysis)
         await updateWorkflowStateAction(sessionId, { imagesUploaded: true })
+
+        // ── WP-15 rule 7 (added 2026-04-17): every upload triggers CD eval ──
+        // Fire-and-emit pattern: don't block the upload UX, but surface CD's
+        // take as a snackbar a beat later. SnackbarProvider already
+        // subscribes to `cd.upload-evaluated`; emitter was missing.
+        try {
+          const evalRes = await fetch('/api/cd-evaluate-upload', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ sessionId, filename: data.filename }),
+          })
+          if (evalRes.ok) {
+            const ev = await evalRes.json() as {
+              verdict: '✓' | '≈' | '✗' | 'error'
+              note: string
+            }
+            // Always emit — including 'error'. Silent failures hide bugs.
+            emitCDUploadEvaluated(sessionId, {
+              filename: data.filename,
+              verdict: ev.verdict === 'error' ? '✗' : ev.verdict,
+              note: ev.verdict === 'error' ? `Eval failed: ${ev.note}` : ev.note,
+            })
+          }
+        } catch (evalErr) {
+          console.warn('[upload] CD eval failed:', evalErr)
+        }
       }
     } catch (error) {
       console.error('Upload failed:', error)
@@ -821,56 +945,73 @@ export default function Home() {
 
   // Create session on first message - extracts business name from content
   // Per AUDIT Section 9.1: "Call createSessionAction(businessName) when user starts first chat"
+  //
+  // Race-safe via sessionPromiseRef: the first caller starts the create flow
+  // and stores its promise on the ref; subsequent concurrent callers await
+  // the SAME promise instead of starting their own create. Without this,
+  // double-click-send / paste-and-enter spawned duplicate session folders.
   const ensureSession = useCallback(async (messageContent: string): Promise<string> => {
     if (sessionId) return sessionId
+    if (sessionPromiseRef.current) return sessionPromiseRef.current
 
-    // Extract business name from message patterns like "my business is X", "I run X", "called X"
-    const nameMatch = messageContent.match(/(?:called|named|is|run|own|for)\s+["']?([A-Z][^"'\n,.!?]+)/i)
-    const extractedName = nameMatch?.[1]?.trim() || businessName || 'New Business'
+    sessionPromiseRef.current = (async (): Promise<string> => {
+      // Extract business name from message patterns like "my business is X", "I run X", "called X"
+      const nameMatch = messageContent.match(/(?:called|named|is|run|own|for)\s+["']?([A-Z][^"'\n,.!?]+)/i)
+      const extractedName = nameMatch?.[1]?.trim() || businessName || 'New Business'
 
-    console.log('📁 Creating session for:', extractedName)
-    const result = await createSessionAction(extractedName)
+      console.log('📁 Creating session for:', extractedName)
+      const result = await createSessionAction(extractedName)
 
-    if (!result.success || !result.sessionId) {
-      throw new Error(result.error || 'Failed to create session')
-    }
-
-    const newSessionId = result.sessionId
-    setSessionId(newSessionId)
-    setBusinessName(extractedName)
-    console.log('📁 Session created:', newSessionId)
-
-    // If there are images uploaded to /uploads/ staging area, move them to session folder
-    const uploadedImages = sourceImages.filter(img => img.path.startsWith('/uploads/'))
-    if (uploadedImages.length > 0) {
-      console.log('📦 Moving', uploadedImages.length, 'images from uploads to session folder')
-      const moveResult = await moveImagesToSessionAction(
-        newSessionId,
-        uploadedImages.map(img => img.path)
-      )
-
-      if (moveResult.success && moveResult.movedImages) {
-        // Update sourceImages with new paths
-        setSourceImages(prev => prev.map(img => {
-          const moved = moveResult.movedImages?.find(m => m.oldPath === img.path)
-          if (moved) {
-            console.log('📦 Updated path:', img.path, '->', moved.newPath)
-            return { ...img, path: moved.newPath }
-          }
-          return img
-        }))
-
-        // Log each moved image to IMAGES.md
-        for (const movedImg of moveResult.movedImages) {
-          const originalImg = uploadedImages.find(img => img.path === movedImg.oldPath)
-          await logImageUploadAction(newSessionId, movedImg.filename, originalImg?.analysis)
-          console.log('📝 Logged to IMAGES.md:', movedImg.filename)
-        }
-        await updateWorkflowStateAction(newSessionId, { imagesUploaded: true })
+      if (!result.success || !result.sessionId) {
+        throw new Error(result.error || 'Failed to create session')
       }
-    }
 
-    return newSessionId
+      const newSessionId = result.sessionId
+      setSessionId(newSessionId)
+      setBusinessName(extractedName)
+      console.log('📁 Session created:', newSessionId)
+
+      // If there are images uploaded to /uploads/ staging area, move them to session folder
+      const uploadedImages = sourceImages.filter(img => img.path.startsWith('/uploads/'))
+      if (uploadedImages.length > 0) {
+        console.log('📦 Moving', uploadedImages.length, 'images from uploads to session folder')
+        const moveResult = await moveImagesToSessionAction(
+          newSessionId,
+          uploadedImages.map(img => img.path)
+        )
+
+        if (moveResult.success && moveResult.movedImages) {
+          // Update sourceImages with new paths
+          setSourceImages(prev => prev.map(img => {
+            const moved = moveResult.movedImages?.find(m => m.oldPath === img.path)
+            if (moved) {
+              console.log('📦 Updated path:', img.path, '->', moved.newPath)
+              return { ...img, path: moved.newPath }
+            }
+            return img
+          }))
+
+          // Log each moved image to IMAGES.md
+          for (const movedImg of moveResult.movedImages) {
+            const originalImg = uploadedImages.find(img => img.path === movedImg.oldPath)
+            await logImageUploadAction(newSessionId, movedImg.filename, originalImg?.analysis)
+            console.log('📝 Logged to IMAGES.md:', movedImg.filename)
+          }
+          await updateWorkflowStateAction(newSessionId, { imagesUploaded: true })
+        }
+      }
+
+      return newSessionId
+    })()
+
+    try {
+      return await sessionPromiseRef.current
+    } finally {
+      // Clear the ref so a NEW session can be created later if the user
+      // clears state. The committed sessionId is now in React state, so
+      // future callers hit the `if (sessionId)` short-circuit above.
+      sessionPromiseRef.current = null
+    }
   }, [sessionId, businessName, sourceImages])
 
   // Send message to CD agent
@@ -1123,7 +1264,7 @@ export default function Home() {
           cliSessionId,  // Pass CLI session UUID (for --session-id flag)
           isResume: isResumedSession,  // Tell CD agent if this is a resumed session
           executionMode: billingMode,  // 'cli' | 'api' — determines WebDev execution path
-          webDevModel  // 'claude-opus-4-6' | 'claude-sonnet-4-6' | 'gemini-3.1-pro-preview'
+          webDevModel  // 'claude-opus-4-7' | 'claude-sonnet-4-6' | 'gemini-3.1-pro-preview'
         })
       })
 
@@ -2517,6 +2658,52 @@ export default function Home() {
       {/* App Container - All layouts rendered, visibility controlled by CSS */}
       {/* This keeps components mounted to preserve state (chat input, scroll position, etc.) */}
 
+      {/* IMAGE LAYOUT - Advanced Mode fills content area below TopBar */}
+      {layoutMode === 'image' && sessionId && (
+        <AdvancedMode
+          sessionId={sessionId}
+          sourceImages={sourceImages}
+          imageManifests={imageManifests}
+          initialTab={advancedMode.initialTab}
+          initialImage={advancedMode.initialImage}
+          onImageGenerated={(newImage) => setSourceImages((prev) => [...prev, newImage])}
+          // WP-B5: Brand tab needs vibe data + session business name.
+          vibes={vibes}
+          businessName={businessName}
+          // (2026-04-18) Chat column — shared conversation with Studio Briefing.
+          // Same `messages` array, same bridge. One CD, one log.
+          chatMessages={messages}
+          onAppendUserMessage={(content) =>
+            setMessages((prev) => [
+              ...prev,
+              {
+                id: `img-user-${Date.now()}`,
+                role: 'user',
+                content,
+                timestamp: new Date().toISOString(),
+              },
+            ])
+          }
+          onAppendAssistantMessage={(content) =>
+            setMessages((prev) => [
+              ...prev,
+              {
+                id: `img-cd-${Date.now()}`,
+                role: 'assistant',
+                content,
+                timestamp: new Date().toISOString(),
+              },
+            ])
+          }
+          // Vibe Preview mode inside the chat column uses the same vibes the
+          // session has built — picker lets the user audit a generated image
+          // in the context of an assigned vibe without leaving Image mode.
+          vibeOptions={vibes
+            .filter((v) => !!v.htmlPath)
+            .map((v) => ({ label: v.name, htmlPath: v.htmlPath }))}
+        />
+      )}
+
       {/* GALLERY LAYOUT - Vibes list on left, preview on right */}
       <div style={{
         display: layoutMode === 'gallery' ? 'grid' : 'none',
@@ -2543,7 +2730,9 @@ export default function Home() {
             />
           </div>
 
-          {/* Right: Preview */}
+          {/* Right: Preview — now with Director Mode + Studio image picker.
+              Clicking any [data-slot] image (with Director ON) opens the
+              picker and swaps via the shared hotSwapToVibe backend. */}
           <div
             className="bento-card"
             style={{
@@ -2552,38 +2741,22 @@ export default function Home() {
               flexDirection: 'column',
             }}
           >
-            {selectedVibe?.htmlPath ? (
-              <iframe
-                src={selectedVibe.htmlPath}
-                style={{
-                  width: '100%',
-                  height: '100%',
-                  border: 'none',
-                  borderRadius: '12px',
-                }}
-                title={`Preview: ${selectedVibe.name}`}
-              />
-            ) : (
-              <div style={{
-                flex: 1,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                color: 'var(--text-muted)',
-                fontSize: '14px',
-              }}>
-                {vibes.length > 0 ? 'Select a vibe to preview' : 'No vibes generated yet'}
-              </div>
-            )}
+            <LivePreviewWithDirector
+              htmlPath={selectedVibe?.htmlPath || null}
+              title={selectedVibe ? `Preview: ${selectedVibe.name}` : undefined}
+              emptyMessage={
+                vibes.length > 0 ? 'Select a vibe to preview' : 'No vibes generated yet'
+              }
+            />
           </div>
         </div>
 
       {/* STUDIO LAYOUT - 2-panel or 3-panel */}
       <div style={{
-        display: layoutMode !== 'gallery' ? 'grid' : 'none',
+        display: (layoutMode === '2-panel' || layoutMode === '3-panel') ? 'grid' : 'none',
         gridTemplateColumns: 'repeat(12, 1fr)',
         gap: 'var(--gap-app)',
-        flex: layoutMode !== 'gallery' ? 1 : undefined,
+        flex: (layoutMode === '2-panel' || layoutMode === '3-panel') ? 1 : undefined,
         overflow: 'hidden',
         minHeight: 0
       }}>
@@ -2611,6 +2784,7 @@ export default function Home() {
             onSourceImageDelete={handleSourceImageDelete}
             selectedAssetId={selectedAsset?.id}
             layoutMode={layoutMode}
+            onOpenAdvancedMode={openAdvancedMode}
           />
         </div>
 
@@ -2690,6 +2864,8 @@ export default function Home() {
           onComplete={handleCompactionComplete}
         />
       )}
+
+      {/* Old overlay mode removed — Advanced Mode now lives in IMAGE tab */}
     </div>
   )
 }
