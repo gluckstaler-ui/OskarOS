@@ -155,7 +155,7 @@ TEST_FILE="${SESSION_PATH}/_debug-test.txt"
 rm -f "$TEST_FILE"
 
 "$CLAUDE_PATH" --print \
-  --model claude-opus-4-6 \
+  --model claude-opus-4-7 \
   --permission-mode bypassPermissions \
   "Write the text 'debug-ok' to the file ${TEST_FILE}. Use your file writing tool. Then say 'Done.'" \
   2>/dev/null
@@ -173,7 +173,7 @@ else
 
   rm -f "$TEST_FILE"
   timeout 30 "$CLAUDE_PATH" \
-    --model claude-opus-4-6 \
+    --model claude-opus-4-7 \
     --permission-mode bypassPermissions \
     "Write the text 'debug-ok' to the file ${TEST_FILE}. Use your file writing tool. Then say 'Done.'" \
     2>/dev/null || true
@@ -214,7 +214,7 @@ rm -f "$TARGET"
 (timeout 600 "$CLAUDE_PATH" \
   --verbose \
   --output-format stream-json \
-  --model claude-opus-4-6 \
+  --model claude-opus-4-7 \
   --permission-mode bypassPermissions \
   --print \
   "You are WEBDEV. Build Vibe ${VIBE_INDEX}: ${VIBE_NAME}.

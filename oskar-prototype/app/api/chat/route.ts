@@ -288,7 +288,7 @@ async function callAnthropicAPI(
       const timeoutId = setTimeout(() => controller.abort(), 600000) // 10 minutes
 
       const requestBody: any = {
-        model: 'claude-opus-4-6',
+        model: 'claude-opus-4-7',
         max_tokens: 128000,
         system: system,
         messages: messages,
@@ -314,6 +314,15 @@ async function callAnthropicAPI(
           'Content-Type': 'application/json',
           'x-api-key': apiKey,
           'anthropic-version': '2023-06-01',
+          // 2026-04-17 (corrected): the 1M-context beta header IS required.
+          // The docs page lists Opus 4.7's context window as "1M tokens" but
+          // that's the model's spec, not the API default — without this
+          // opt-in header the API gates the request to 200K. Empirically
+          // confirmed by Ralph: Cowork (API direct, no header) gets 200K;
+          // Claude Code CLI needs the `[1m]` suffix to opt in.
+          // The `context-1m-2025-08-07` value was originally the Sonnet 1M
+          // opt-in but Anthropic's beta-header convention is forward-compatible
+          // — the same value continues to enable 1M for Opus 4.6 and 4.7.
           'anthropic-beta': 'context-1m-2025-08-07',
         },
         body: JSON.stringify(requestBody),

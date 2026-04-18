@@ -52,6 +52,19 @@
   --padding-app: 12px;
   --shadow-card: 0 1px 3px 0 rgba(0, 0, 0, 0.2), 0 1px 2px -1px rgba(0, 0, 0, 0.1);
 
+  /* Advanced Mode tokens for ONYX */
+  --pill-bg: rgba(9,9,11,0.5);
+  --pill-border: rgba(39,39,42,0.5);
+  --hover-overlay: rgba(255,255,255,0.04);
+  --hover-overlay-strong: rgba(255,255,255,0.08);
+  --backdrop-overlay: rgba(14,14,14,0.88);
+  --desc-text: rgba(255,255,255,0.55);
+  --desc-btn-border: rgba(255,255,255,0.15);
+  --desc-btn-bg: rgba(255,255,255,0.06);
+  --desc-btn-text: rgba(255,255,255,0.4);
+  --desc-btn-hover-text: rgba(255,255,255,0.7);
+  --desc-btn-hover-border: rgba(255,255,255,0.3);
+
   /* Legacy mappings */
   --background: var(--bg-app);
   --surface: var(--bg-card);
@@ -83,6 +96,19 @@
   --gap-app: 20px;
   --padding-app: 20px;
   --shadow-card: 0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -2px rgba(0, 0, 0, 0.025);
+
+  /* Advanced Mode tokens for POLAR */
+  --pill-bg: rgba(255,255,255,0.6);
+  --pill-border: rgba(226,232,240,0.5);
+  --hover-overlay: rgba(0,0,0,0.03);
+  --hover-overlay-strong: rgba(0,0,0,0.06);
+  --backdrop-overlay: rgba(255,255,255,0.88);
+  --desc-text: rgba(0,0,0,0.55);
+  --desc-btn-border: rgba(0,0,0,0.15);
+  --desc-btn-bg: rgba(0,0,0,0.04);
+  --desc-btn-text: rgba(0,0,0,0.4);
+  --desc-btn-hover-text: rgba(0,0,0,0.7);
+  --desc-btn-hover-border: rgba(0,0,0,0.3);
 
   /* Legacy mappings for polar */
   --background: var(--bg-app);

@@ -416,7 +416,8 @@ export async function editImageWithText(request: ImageEditRequest): Promise<{ im
     labeledInstruction = `Source images (in order): ${request.sourceFilenames.join(', ')}.\n\n${request.instruction}`
   }
 
-  parts.push({ text: labeledInstruction })
+  // Task 1 (user's instruction) + Task 2 (self-describe)
+  parts.push({ text: labeledInstruction + TASK_2_SELF_DESCRIBE })
 
   for (const img of request.sourceImages) {
     parts.push({
@@ -474,6 +475,75 @@ export async function editImageWithText(request: ImageEditRequest): Promise<{ im
   }
 
   return { imageUrl, geminiText }
+}
+
+/**
+ * WP-6B Turn 2: Describe a generated image.
+ *
+ * Used as fallback when Turn 1 (generate/edit) didn't return a text description.
+ * TEXT-only response — no image generation, cheap and fast.
+ *
+ * Returns a grounded ~100-word visual description of the actual pixels,
+ * NOT a restatement of the prompt.
+ */
+export async function describeGeneratedImage(
+  imageBase64: string,
+  context?: { prompt?: string; mode?: string; sourceFilenames?: string[] }
+): Promise<string | null> {
+  if (!GEMINI_API_KEY) return null
+
+  try {
+    const parts: any[] = [
+      {
+        inline_data: {
+          mime_type: 'image/jpeg',
+          data: imageBase64.replace(/^data:image\/\w+;base64,/, '')
+        }
+      },
+      {
+        text: `Describe this image in ~100 words. This is an AI-generated image${context?.mode ? ` (${context.mode} mode)` : ''}${context?.sourceFilenames?.length ? ` using source images: ${context.sourceFilenames.join(', ')}` : ''}.
+
+Describe what you SEE in the final image — not what was requested. Include:
+- Subject matter and composition
+- Lighting and dominant colors
+- Mood and atmosphere
+- Any specific distinguishing details
+${context?.sourceFilenames?.length ? `\nWhen referencing source material, use the original filenames (${context.sourceFilenames.join(', ')}), not generic labels.` : ''}
+
+Be vivid and specific. This description will be used for future edits and version tracking.`
+      }
+    ]
+
+    const response = await fetch(`${GEMINI_API_URL}?key=${GEMINI_API_KEY}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        contents: [{ parts }],
+        generationConfig: {
+          responseModalities: ['TEXT'],
+          temperature: 0.2,
+          maxOutputTokens: 512,
+        }
+      })
+    })
+
+    if (!response.ok) {
+      console.error(`[Turn 2] Gemini API error: ${response.status}`)
+      return null
+    }
+
+    const data = await response.json()
+    const text = data.candidates?.[0]?.content?.parts?.[0]?.text
+    if (text?.trim()) {
+      console.log(`[Turn 2] Description: ${text.trim().length} chars`)
+      return text.trim()
+    }
+
+    return null
+  } catch (err) {
+    console.error('[Turn 2] describeGeneratedImage failed:', err)
+    return null
+  }
 }
 
 // Legacy single-image edit function for backwards compatibility

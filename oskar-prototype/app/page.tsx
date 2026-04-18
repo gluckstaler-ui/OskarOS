@@ -20,6 +20,8 @@ import { VibesGallery, type VibeCardData } from '@/components/VibesGallery'
 import { CanvasPanel } from '@/components/CanvasPanel'
 import { LivePreviewWithDirector } from '@/components/studio/LivePreviewWithDirector'
 import { ConversationPanel } from '@/components/ConversationPanel'
+import { useImagePipeline } from '@/lib/hooks/useImagePipeline'
+import { resolveVibes } from '@/lib/vibe-resolver'
 import { TopBar, type Order66Status } from '@/components/TopBar'
 import { CompactionOverlay } from '@/components/CompactionOverlay'
 import { FinalApprovalModal } from '@/components/PhaseGate'
@@ -97,9 +99,6 @@ export default function Home() {
   // Moodboard
   const [moodboard, setMoodboard] = useState<MoodboardData | undefined>(undefined)
 
-  // Image generation queue
-  const [imageQueue, setImageQueue] = useState<ImageQueueItem[]>([])
-
   // Source images (uploaded by user)
   const [sourceImages, setSourceImages] = useState<SourceImage[]>([])
 
@@ -111,9 +110,24 @@ export default function Home() {
   const [availableVibes, setAvailableVibes] = useState<VibePreview[]>([])
   const [selectedVibeFile, setSelectedVibeFile] = useState<string | null>(null)
 
-  // Image manifests (per-vibe assets)
-  const [imageManifests, setImageManifests] = useState<ImageManifest[]>([])
+  // Currently-viewed asset in the image editor UI.
   const [selectedAsset, setSelectedAsset] = useState<ImageAsset | undefined>(undefined)
+
+  // Image pipeline subsystem — owns imageQueue + imageManifests + generateAsset.
+  // See lib/hooks/useImagePipeline.ts for the full state machine.
+  const {
+    imageQueue,
+    setImageQueue,
+    imageManifests,
+    setImageManifests,
+    generateAsset,
+  } = useImagePipeline({
+    sessionId,
+    selectedAssetId: selectedAsset?.id ?? null,
+    onSelectedAssetUpdate: setSelectedAsset,
+    onAssetRegenerated: (newImage) =>
+      setSourceImages((prev) => [...prev, newImage]),
+  })
 
   // Advanced Mode overlay (WP-1A)
   const [advancedMode, setAdvancedMode] = useState<{
@@ -154,7 +168,29 @@ export default function Home() {
   const [useStreaming, setUseStreaming] = useState(true) // Toggle streaming mode
   const [billingMode, setBillingMode] = useState<'cli' | 'api'>('cli') // Billing mode: CLI (subscription) or API (per-token)
   const [webDevModel, setWebDevModel] = useState<'claude-opus-4-7' | 'claude-sonnet-4-6' | 'gemini-3.1-pro-preview'>('claude-sonnet-4-6') // WebDev model
-  const [theme, setTheme] = useState<'onyx' | 'polar'>('onyx') // Theme: ONYX (dark) or POLAR (light)
+  const [theme, setThemeState] = useState<'onyx' | 'polar'>('onyx') // Theme: ONYX (dark) or POLAR (light)
+
+  // Apply theme synchronously at click time (before React commits). Without
+  // this, the data-theme attribute is set in a useEffect AFTER the render,
+  // which pushes the CSS-variable cascade one frame later than the click.
+  // Toggles should feel instant.
+  const setTheme = useCallback((next: 'onyx' | 'polar') => {
+    if (typeof document !== 'undefined') {
+      document.documentElement.setAttribute('data-theme', next)
+      // Persist in the same synchronous step so a refresh mid-animation is safe
+      try { localStorage.setItem('oskar_theme', next) } catch { /* SSR / incognito */ }
+    }
+    setThemeState(next)
+  }, [])
+
+  // Ref that always holds the latest webDevModel. handleStreamingMessage is
+  // a 532-line useCallback that reads webDevModel but can't list it in its
+  // dep array without re-creating every callback in the chain on every model
+  // toggle. Instead, read from the ref — which is always fresh — at the
+  // exact moment the fetch body is built. Click OPUS → ref updates this
+  // render → next send uses OPUS. No stale closure.
+  const webDevModelRef = useRef(webDevModel)
+  webDevModelRef.current = webDevModel
   const [contextPct, setContextPct] = useState(0) // Context window fill percentage
   const [cachedInputTokens, setCachedInputTokens] = useState(0) // Cached input tokens (system prompt, session files)
   const [realInputTokens, setRealInputTokens] = useState(0) // Real input tokens (new this turn)
@@ -203,80 +239,21 @@ export default function Home() {
     ]
 
     return vibes.map((vibe, index) => {
-      // Try to find a hero image for this vibe - use multiple strategies
-      const vibeSlug = vibe.name.toLowerCase().replace(/[''—–-]+/g, '-').replace(/\s+/g, '-').replace(/--+/g, '-')
-      const vibeNameLower = vibe.name.toLowerCase()
-      const vibeIndex = index + 1
-
-      // Keyword mapping for FalCaMel vibes to help match images
-      // Each vibe has associated keywords that should match image filenames
-      const vibeKeywords: Record<string, string[]> = {
-        'qahwa': ['dallah', 'coffee', 'grandmother', 'qahwa', 'cup', 'arabic-coffee'],
-        'jareen': ['highlands', 'asir', 'mountain', 'green', 'jareen', 'highland'],
-        'race': ['haboob', 'sand', 'desert', 'storm', 'dune', 'race', 'adrenaline'],
-        'majlis': ['falcon', 'royal', 'luxury', 'sultan', 'majlis', 'privacy', 'diving'],
-      }
-
-      // Find which keyword set applies to this vibe
-      let vibeKeywordSet: string[] = []
-      for (const [key, keywords] of Object.entries(vibeKeywords)) {
-        if (vibeNameLower.includes(key)) {
-          vibeKeywordSet = keywords
-          break
-        }
-      }
-
-      // Strategy 1: Find image matching vibe keywords
-      const keywordMatchedImage = sourceImages.find(img => {
-        const imgLower = img.filename.toLowerCase()
-        return vibeKeywordSet.some(keyword => imgLower.includes(keyword))
-      })
-
-      // Strategy 2: Find image with vibe name + hero
-      const vibeHeroImage = sourceImages.find(img =>
-        img.filename.toLowerCase().includes(vibeSlug.split('-')[0]) &&
-        img.filename.toLowerCase().includes('hero')
-      )
-
-      // Strategy 3: Find image tagged for this vibe
-      const vibeTaggedImage = sourceImages.find(img =>
-        img.tag === 'HERO' && img.filename.toLowerCase().includes(vibeSlug.split('-')[0])
-      )
-
-      // Strategy 4: Use any uploaded image for this vibe index (rotate through available images)
-      // Use index directly to ensure different vibes get different images
-      const availableImages = sourceImages.filter(img => !img.tag || img.tag !== 'TRASH')
-      const indexedImage = availableImages.length > 0
-        ? availableImages[index % availableImages.length]
-        : null
-
-      // Strategy 5: Use the first HERO tagged image
-      const heroTaggedImage = sourceImages.find(img => img.tag === 'HERO')
-
-      // Strategy 6: Use a placeholder based on index to ensure visual variety
-      const placeholderIndex = (vibeIndex % 4) + 1
-      const placeholder = sessionId
-        ? `/${sessionId}/hero-${placeholderIndex}.jpg`
-        : `/placeholder-hero-${placeholderIndex}.jpg`
-
-      // SIMPLE LOGIC: If heroImage specified in Creative Brief, USE IT. Period.
-      // Only fall back to auto-detection if no heroImage was specified.
-      const heroImage = vibe.heroImage ||
-        keywordMatchedImage?.path ||
-        vibeHeroImage?.path ||
-        vibeTaggedImage?.path ||
-        indexedImage?.path ||
-        heroTaggedImage?.path ||
-        placeholder
-
-      console.log(`🖼️ VIBE CARD for "${vibe.name}":`, {
-        'vibe.heroImage': vibe.heroImage,
-        'vibe.heroImage TRUTHY': !!vibe.heroImage,
-        'WOULD USE vibe.heroImage': !!vibe.heroImage,
-        'keywordMatch': keywordMatchedImage?.filename,
-        'RESOLVED heroImage': heroImage,
-        'SOURCE': vibe.heroImage ? 'vibe.heroImage' : (keywordMatchedImage ? 'keyword' : 'fallback')
-      })
+      // Hero image = whatever the CD set. No fallbacks, no heuristics.
+      //
+      // Previously this had 6 "strategies" (keyword match, slug match, HERO
+      // tag, index rotation, any-HERO, numbered placeholder) that combined
+      // to produce *a* hero even when the CD hadn't picked one. The first
+      // two were FalCaMel-specific heuristics (hardcoded qahwa/jareen/race/
+      // majlis keyword map) — useless for any other brand. The last three
+      // were pure facade (index math, arbitrary pick). An agent reading
+      // this couldn't tell real signal from fallback.
+      //
+      // New rule: `vibe.heroImage` or null. When null, VibesGallery renders
+      // a gradient-colored placeholder using the vibe's own palette so the
+      // user sees "no hero assigned yet" clearly instead of a random image
+      // pretending to be the chosen one.
+      const heroImage: string | null = vibe.heroImage || null
 
       // Use actual vibe colors - handle both array and object formats
       // vibe.colors can be: string[] (from API) or { primary, secondary, accent, text } (from parser)
@@ -319,21 +296,6 @@ export default function Home() {
       const mood = vibe.mood
         || vibe.voiceSamples?.[0]
         || 'Distinctive, memorable, impactful'
-
-      // Debug: Log what we're getting for ALL vibes
-      console.log(`🎨 Vibe card data for "${vibe.name}" (index ${index}):`, {
-        'vibe.heroImage': vibe.heroImage,
-        'resolved heroImage': heroImage,
-        'vibe.colors': vibe.colors,
-        'computed colors': colors,
-        'vibe.typography': vibe.typography,
-        'computed fonts': fonts,
-        'vibe.audience': vibe.audience,
-        'vibe.mood': vibe.mood,
-        'vibe.voiceSamples': vibe.voiceSamples,
-        'computed whoItsFor': whoItsFor,
-        'computed mood': mood
-      })
 
       // Extract filename from htmlPath (e.g., "/2026-01-27-31/vibe-1-grandmas-cliff.html" → "vibe-1-grandmas-cliff.html")
       const filename = vibe.htmlPath?.split('/').pop() || ''
@@ -393,163 +355,31 @@ export default function Home() {
 
       // Note: Images are loaded later with their CD analysis from IMAGES.md
 
-      // Load vibes from htmlFiles - show ALL vibe files (no deduplication)
+      // Load vibes from htmlFiles - show ALL vibe files (no deduplication).
+      // Filename parsing, sorting (by index, then version), and joining against
+      // parsed CREATIVE-BRIEF / VIBE-N.md data all live in lib/vibe-resolver.ts
+      // as a pure function. Previously this was ~150 lines inline here.
       const htmlFiles = data.htmlFiles || []
-      console.log(`📁 API returned ${htmlFiles.length} HTML files:`, htmlFiles.map((h: any) => h.name))
+      const parsedVibes = data.vibes || []
+      // Exposed for the availableVibes block below — kept as a local so the
+      // existing VibePreview construction logic still has the htmlFiles list
+      // to iterate without re-fetching.
+      const allVibeFiles = htmlFiles
       if (htmlFiles.length > 0) {
-        // Accept ALL vibe HTML files: vibe-N-*.html patterns
-        // NO deduplication - show every HTML file as a separate entry in the gallery
-        const vibeFiles: { file: any; vibeIndex: number; vibeKey: string; version: number }[] = []
-
-        for (const h of htmlFiles) {
-          const filename = h.name || ''
-
-          // Match any vibe file: vibe-N-name.html or vibe-N-name-v2.html
-          const vibeMatch = filename.match(/^vibe-(\d+)-(.+?)(?:-v(\d+))?\.html$/)
-
-          if (vibeMatch) {
-            const vibeIndex = parseInt(vibeMatch[1])
-            const vibeKey = vibeMatch[2].toLowerCase()
-            const version = vibeMatch[3] ? parseInt(vibeMatch[3]) : 1
-            vibeFiles.push({ file: h, vibeIndex, vibeKey, version })
-            console.log(`📁 Vibe file: ${filename} → index=${vibeIndex}, key="${vibeKey}", v${version}`)
-          }
-        }
-
-        // Sort by index, then by version (so vibe-1 comes before vibe-2, and v1 before v2)
-        vibeFiles.sort((a, b) => {
-          if (a.vibeIndex !== b.vibeIndex) return a.vibeIndex - b.vibeIndex
-          return a.version - b.version
+        const loadedVibes = resolveVibes({
+          htmlFiles,
+          parsedVibes,
+          // Toggle debug tracing when something is off. Leaving off by default
+          // so normal loads stay quiet in the console.
+          debug: false,
         })
-        const allVibeFiles = vibeFiles.map(v => v.file)
-        console.log(`📁 Loaded ${allVibeFiles.length} vibe files: ${vibeFiles.map(v => `${v.vibeIndex}:${v.vibeKey}${v.version > 1 ? '-v' + v.version : ''}`).join(', ')}`)
-
-        // Create vibes from ALL HTML files, enriched with data from CREATIVE-BRIEF.md
-        // API returns vibes from ## Vibe Preview section, keyed by filename (slug)
-        const parsedVibes = data.vibes || [] // Vibes parsed from CREATIVE-BRIEF.md with colors/fonts
-        console.log('📋 Parsed vibes from API:', parsedVibes.map((pv: any) => ({
-          name: pv.name,
-          index: pv.index,
-          slug: pv.slug,
-          audience: pv.audience,
-          mood: pv.mood,
-          colors: pv.colors,
-          fonts: pv.fonts,
-          heroImage: pv.heroImage  // ADDED: Debug hero image
-        })))
-        const loadedVibes: VibeData[] = allVibeFiles.map((h: any, idx: number) => {
-          const filename = h.name || ''
-          const slug = filename.replace('.html', '')
-
-          // Parse vibe index from filename (for fallback)
-          let vibeIndex = idx + 1
-          const vibeIdxMatch = filename.match(/vibe-(\d+)-/)
-          if (vibeIdxMatch) {
-            vibeIndex = parseInt(vibeIdxMatch[1])
-          }
-
-          // Find matching vibe from API by slug/filename first (preferred - has per-file audience/mood)
-          // Fall back to index matching for backwards compatibility
-          const matchedBySlug = parsedVibes.find((pv: any) => pv.slug === slug)
-          const matchedByIndex = parsedVibes.find((pv: any) => pv.index === vibeIndex)
-          const matchedParsed = matchedBySlug || matchedByIndex
-
-          // DEBUG: Log the exact matching process
-          console.log(`🔍 MATCHING "${filename}":`, {
-            slug,
-            vibeIndex,
-            matchedBySlug: matchedBySlug ? { name: matchedBySlug.name, heroImage: matchedBySlug.heroImage } : 'NOT FOUND',
-            matchedByIndex: matchedByIndex ? { name: matchedByIndex.name, heroImage: matchedByIndex.heroImage } : 'NOT FOUND',
-            finalMatch: matchedParsed ? { name: matchedParsed.name, heroImage: matchedParsed.heroImage } : 'NONE',
-            htmlHeroImage: h.heroImage
-          })
-
-          // Parse version from filename (e.g., vibe-1-qahwa-v2.html → version 2)
-          const versionMatch = filename.match(/-v(\d+)\.html$/)
-          const versionSuffix = versionMatch ? ` (v${versionMatch[1]})` : ''
-
-          // Use parsed vibe name if found, otherwise extract from filename
-          // Add version suffix to distinguish variants
-          let name: string
-          if (matchedParsed) {
-            name = matchedParsed.name + versionSuffix
-          } else {
-            // Fallback to filename parsing - extract full name including any extra parts
-            const vibeNameMatch = filename.match(/vibe-\d+-(.+?)(?:-v\d+)?\.html$/)
-            if (vibeNameMatch) {
-              name = vibeNameMatch[1].replace(/-/g, ' ').replace(/\b\w/g, (c: string) => c.toUpperCase()) + versionSuffix
-            } else {
-              name = filename.replace('.html', '').replace(/-/g, ' ').replace(/\b\w/g, (c: string) => c.toUpperCase())
-            }
-          }
-
-          console.log(`📋 Matching vibe for file "${filename}" (slug="${slug}", index ${vibeIndex}):`, matchedParsed ? {
-            matched: matchedParsed.name,
-            matchedBy: matchedBySlug ? 'slug' : 'index',
-            audience: matchedParsed.audience?.substring(0, 50),
-            mood: matchedParsed.mood?.substring(0, 30),
-            fonts: matchedParsed.fonts,
-            heroImage: matchedParsed.heroImage  // ADDED: Debug hero image
-          } : 'NO MATCH')
-
-          // Extract colors from parsed vibe (colors is an object { primary, secondary, accent, text })
-          // Fallback colors if no match
-          const fallbackColorSets = [
-            ['#8B4513', '#F5F5DC', '#722F37', '#2C1810'],  // QAHWA - warm browns
-            ['#2F4F4F', '#DEB887', '#006400', '#1A1A1A'],  // JAREEN - highlands
-            ['#1C1C1C', '#FFD700', '#DC143C', '#FFFFFF'],  // THE RACE - night gold
-            ['#1A1A2E', '#C9A227', '#4A0E0E', '#F5F5F0'],  // MAJLIS - deep luxury
-          ]
-          let colors: string[] = fallbackColorSets[idx % fallbackColorSets.length]
-
-          if (matchedParsed?.colors) {
-            if (typeof matchedParsed.colors === 'object' && !Array.isArray(matchedParsed.colors)) {
-              const c = matchedParsed.colors
-              colors = [c.primary || colors[0], c.secondary || colors[1], c.accent || colors[2], c.text || colors[3]]
-            } else if (Array.isArray(matchedParsed.colors) && matchedParsed.colors.length >= 4) {
-              colors = matchedParsed.colors.slice(0, 4)
-            }
-          }
-
-          // Extract fonts from parsed vibe
-          let typography = { heading: 'Playfair Display', body: 'Inter' }
-          if (matchedParsed?.fonts) {
-            typography = {
-              heading: matchedParsed.fonts.headings || matchedParsed.fonts.heading || 'Playfair Display',
-              body: matchedParsed.fonts.body || 'Inter'
-            }
-          }
-
-          return {
-            id: `vibe-${idx}`,
-            name: matchedParsed?.name || name,
-            category: 'premium',
-            headline: matchedParsed?.oneLiner || '',
-            tagline: '',
-            colors,
-            typography,
-            voiceSamples: matchedParsed ? [matchedParsed.voice || '', matchedParsed.whoFor || ''] : [],
-            // Gallery display fields (audience and mood for vibe cards)
-            audience: matchedParsed?.audience || '',
-            mood: matchedParsed?.mood || '',
-            htmlPath: h.path || '',
-            html: '',
-            heroImage: matchedParsed?.heroImage || h.heroImage || undefined
-          } as VibeData
-        })
-        console.log('🔧 Setting vibes from session load:', loadedVibes.map(v => ({
-          name: v.name,
-          colors: v.colors,
-          typography: v.typography,
-          audience: v.audience,
-          mood: v.mood,
-          heroImage: v.heroImage,  // ADDED: Debug hero image
-          voiceSamples: v.voiceSamples?.map((s: string) => s.substring(0, 50) + '...')
-        })))
+        console.log(
+          `📁 Loaded ${loadedVibes.length} vibe(s) from ${htmlFiles.length} HTML file(s):`,
+          loadedVibes.map((v) => v.name).join(', ')
+        )
         setVibes(loadedVibes)
         if (loadedVibes.length > 0) {
           setSelectedVibe(loadedVibes[0])
-  
           setWorkflowPhase('generation')
         }
 
@@ -820,11 +650,9 @@ export default function Home() {
     }
   }, [isResumedSession, sessionId])
 
-  // Apply theme to document and save to localStorage
-  useEffect(() => {
-    document.documentElement.setAttribute('data-theme', theme)
-    localStorage.setItem('oskar_theme', theme)
-  }, [theme])
+  // Theme → document + localStorage is now handled synchronously inside the
+  // setTheme wrapper so the toggle feels instant instead of waiting for
+  // React's commit phase. No effect needed here.
 
   // Listen for session events and post system messages to chat
   // For image-ready events, also trigger Claude CLI to evaluate the image
@@ -1264,7 +1092,10 @@ export default function Home() {
           cliSessionId,  // Pass CLI session UUID (for --session-id flag)
           isResume: isResumedSession,  // Tell CD agent if this is a resumed session
           executionMode: billingMode,  // 'cli' | 'api' — determines WebDev execution path
-          webDevModel  // 'claude-opus-4-7' | 'claude-sonnet-4-6' | 'gemini-3.1-pro-preview'
+          // Read from ref — always latest. If we referenced `webDevModel`
+          // directly, the enclosing useCallback would need it in deps, which
+          // would re-create the whole 532-line callback on every model toggle.
+          webDevModel: webDevModelRef.current
         })
       })
 
@@ -1755,16 +1586,32 @@ export default function Home() {
     setStreamingProgress({ phase: 'idle', message: '' })
   }, [messages, sourceImages, selectedVibe, vibeEdits, handleUpload, ensureSession, cliSessionId, moodboard, businessName, sessionId, isResumedSession])
 
+  // ─────────────────────────────────────────────────────────────────────────
+  // ChatCoordinator — SINGLE MESSAGE ENTRY POINT.
+  //
+  // Was: 8 call sites each branching `billingMode === 'cli' ? stream : api`.
+  // Bugs in the branch logic had to be fixed in 8 places; agents (or us)
+  // routinely forgot one. Now every send goes through `handleSend`, the one
+  // branch lives here, and callers don't know or care about billing mode.
+  //
+  // handleStreamingMessage + handleSendMessage stay as the actual transports —
+  // this is just the routing layer. Further extraction (merge transports,
+  // hook-ify, etc.) can happen later without touching call sites.
+  // ─────────────────────────────────────────────────────────────────────────
+  const handleSend = useCallback(
+    (content: string, images?: File[]) => {
+      if (billingMode === 'cli') {
+        return handleStreamingMessage(content, images)
+      }
+      return handleSendMessage(content, images)
+    },
+    [billingMode, handleStreamingMessage, handleSendMessage]
+  )
+
   // Keep messageHandlerRef updated with the current handler for session events
   useEffect(() => {
-    messageHandlerRef.current = (content: string) => {
-      if (billingMode === 'cli') {
-        handleStreamingMessage(content)
-      } else {
-        handleSendMessage(content)
-      }
-    }
-  }, [billingMode, handleStreamingMessage, handleSendMessage])
+    messageHandlerRef.current = handleSend
+  }, [handleSend])
 
   // AUTO-TRIGGER: Send boot/resume message through normal conversation flow
   // Two modes: bridge resume (has BRIDGE.json) = "I'm back." | cold start = boot protocol
@@ -1784,168 +1631,21 @@ export default function Home() {
 
       console.log(`🔄 ${hasBridgeMappingRef.current ? 'Bridge resume' : 'Cold start'} → sending: "${bootMessage.split('\n')[0]}"...`)
 
-      if (billingMode === 'cli') {
-        handleStreamingMessage(bootMessage)
-      } else {
-        handleSendMessage(bootMessage)
-      }
+      handleSend(bootMessage)
     }
-  }, [isResumedSession, sessionId, isLoading, billingMode, handleStreamingMessage, handleSendMessage])
+  }, [isResumedSession, sessionId, isLoading, handleSend])
 
   // Select an asset to view/edit
   const handleAssetSelect = useCallback((asset: ImageAsset) => {
     setSelectedAsset(asset)
   }, [])
 
-  // Generate or regenerate an asset
-  const handleAssetGenerate = useCallback(async (asset: ImageAsset) => {
-    // Update asset status to generating — or add to manifests if new (e.g. from GenerateTile)
-    setImageManifests(prev => {
-      const exists = prev.some(m => m.assets.some(a => a.id === asset.id))
-      if (exists) {
-        return prev.map(manifest => ({
-          ...manifest,
-          assets: manifest.assets.map(a =>
-            a.id === asset.id ? { ...a, status: 'generating' as const } : a
-          )
-        }))
-      }
-      // New standalone asset — add to existing 'standalone' manifest or create one
-      const standaloneIdx = prev.findIndex(m => m.vibeId === 'standalone')
-      const generatingAsset = { ...asset, status: 'generating' as const }
-      if (standaloneIdx >= 0) {
-        return prev.map((m, i) => i === standaloneIdx
-          ? { ...m, assets: [...m.assets, generatingAsset] }
-          : m
-        )
-      }
-      return [...prev, { vibeId: 'standalone', vibeName: 'Generated', assets: [generatingAsset] }]
-    })
-
-    // Also update selected asset if viewing
-    if (selectedAsset?.id === asset.id) {
-      setSelectedAsset({ ...asset, status: 'generating' })
-    }
-
-    // Emit regenerating event for snackbar
-    if (sessionId) {
-      emitRegenerating(sessionId, asset.filename, asset.instruction)
-    }
-
-    try {
-      const response = await fetch('/api/edit-image', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          sourceImagePaths: asset.sourceImages,
-          instruction: asset.instruction,
-          filename: asset.filename,
-          imageSize: asset.resolution,
-          aspectRatio: asset.aspectRatio,
-          operation: asset.operation,  // 'generate' for pure generation, 'compose'/'edit' for transformations
-          sessionId  // Pass sessionId so images save to session folder
-        })
-      })
-
-      const data = await response.json()
-
-      if (data.error) {
-        throw new Error(data.error)
-      }
-
-      // Update asset with result
-      // Note: resultUrl is the base64 data URL (temporary)
-      // generatedUrl is what RepromptCard uses to display the image
-      const updatedAsset: ImageAsset = {
-        ...asset,
-        status: 'complete',
-        resultPath: data.savedPath,
-        resultUrl: data.imageUrl,
-        generatedUrl: data.savedPath  // Use savedPath (e.g., /session-id/filename.jpg) for display
-      }
-
-      setImageManifests(prev => prev.map(manifest => ({
-        ...manifest,
-        assets: manifest.assets.map(a =>
-          a.id === asset.id ? updatedAsset : a
-        )
-      })))
-
-      if (selectedAsset?.id === asset.id) {
-        setSelectedAsset(updatedAsset)
-      }
-
-      console.log(`Generated ${asset.filename} -> ${data.savedPath}`)
-
-      // Log to IMAGES.md if we have a session
-      if (sessionId && data.savedPath) {
-        const filename = data.savedPath.split('/').pop() || asset.filename
-
-        // Add generated image to sourceImages so it shows in the Assets panel
-        const newImage: SourceImage = {
-          id: `generated-${asset.id}-${Date.now()}`,
-          filename,
-          path: data.savedPath,
-          uploadedAt: new Date().toISOString(),
-          analysis: {
-            elements: [],
-            description: `Generated for ${asset.vibeName} (${asset.usage}): ${asset.instruction.slice(0, 100)}`,
-            suggestedExtractions: []
-          },
-          isGenerated: true,
-          sourcePrompt: asset.instruction,
-          generationStatus: 'pending',
-          tag: asset.vibeName?.toUpperCase() || 'B-ROLL'
-        }
-        setSourceImages(prev => [...prev, newImage])
-
-        // Pass vibeName and usage (purpose) separately for proper matching
-        await logImageGenerationAction(sessionId, filename, asset.instruction, asset.vibeName, asset.usage, data.geminiText || undefined)
-
-        // Emit event for snackbar notification (include Gemini's text if any)
-        emitImageReady(sessionId, filename, asset.usage, data.geminiText || undefined)
-
-        // Hot-swap: Replace placeholder in vibe HTML files with generated image
-        // Uses data-slot attribute to find matching slots (e.g., data-slot="hero")
-        if (asset.usage) {
-          const swapResult = await hotSwapAction(sessionId, filename, asset.usage)
-          if (swapResult.success && swapResult.result?.vibesUpdated.length) {
-            console.log(`🔄 Hot-swapped ${filename} into ${swapResult.result.vibesUpdated.length} vibes`)
-
-            // Emit hot-swap event for snackbar
-            for (const swap of swapResult.result.slotsSwapped) {
-              emitHotSwap(sessionId, swapResult.result.vibesUpdated, swap.slot, swap.oldImage, swap.newImage)
-            }
-          }
-        }
-      }
-
-    } catch (error) {
-      console.error('Generation error:', error)
-
-      const errorAsset: ImageAsset = {
-        ...asset,
-        status: 'error',
-        error: String(error)
-      }
-
-      setImageManifests(prev => prev.map(manifest => ({
-        ...manifest,
-        assets: manifest.assets.map(a =>
-          a.id === asset.id ? errorAsset : a
-        )
-      })))
-
-      if (selectedAsset?.id === asset.id) {
-        setSelectedAsset(errorAsset)
-      }
-
-      // Emit error event for snackbar
-      if (sessionId) {
-        emitError(sessionId, `Failed to generate ${asset.filename}: ${error}`)
-      }
-    }
-  }, [selectedAsset, sessionId])
+  // `handleAssetGenerate` has moved to lib/hooks/useImagePipeline.ts as
+  // `generateAsset`. The state machine (generating → complete | error),
+  // /api/edit-image call, IMAGES.md logging, and hot-swap all live in the
+  // hook. Page.tsx no longer owns any of it. An alias preserves the old
+  // name at call sites without re-exporting the pipeline internals.
+  const handleAssetGenerate = generateAsset
 
   // Update asset (e.g., edited instruction)
   const handleAssetUpdate = useCallback((asset: ImageAsset) => {
@@ -2163,12 +1863,8 @@ export default function Home() {
 
     // Notify CD agent — same pattern as image uploads
     const message = `I've deleted the image "${imageToDelete.filename}".`
-    if (billingMode === 'cli') {
-      handleStreamingMessage(message)
-    } else {
-      handleSendMessage(message)
-    }
-  }, [sessionId, billingMode, handleStreamingMessage, handleSendMessage])
+    handleSend(message)
+  }, [sessionId, handleSend])
 
   // Handle Director Mode element selection from iframe
   const handleElementSelect = useCallback((element: SelectedElement | null) => {
@@ -2313,13 +2009,8 @@ export default function Home() {
       return img
     }))
 
-    // Use streaming handler for CLI mode, regular handler for API mode
-    if (billingMode === 'cli') {
-      handleStreamingMessage(message)
-    } else {
-      handleSendMessage(message)
-    }
-  }, [sourceImages, billingMode, handleStreamingMessage, handleSendMessage])
+    handleSend(message)
+  }, [sourceImages, handleSend])
 
   // ==========================================
   // Final Approval Handlers (Simple 4-Phase Flow)
@@ -2414,12 +2105,8 @@ export default function Home() {
     const vibeName = filename.replace('.html', '').replace(/^vibe-\d+-/, '').replace(/-/g, ' ')
     const message = `I've deleted the vibe "${vibeName}" (${filename}).`
 
-    if (billingMode === 'cli') {
-      handleStreamingMessage(message)
-    } else {
-      handleSendMessage(message)
-    }
-  }, [sessionId, availableVibes, billingMode, handleStreamingMessage, handleSendMessage])
+    handleSend(message)
+  }, [sessionId, availableVibes, handleSend])
 
   const handleVibeToggle = useCallback((vibeId: string) => {
     setWorkflowProgress(prev => {
@@ -2450,7 +2137,8 @@ export default function Home() {
 
       // Actions
       sendMessage: (content: string) => {
-        handleSendMessage(content)
+        // Use the coordinator so the test hook respects the current billing mode
+        handleSend(content)
         return { success: true, message: 'Message sent' }
       },
 
@@ -2553,7 +2241,7 @@ export default function Home() {
   }, [
     workflowPhase, layoutMode, moodboard, sourceImages, vibes, selectedVibe,
     messages, isLoading, imageQueue, imageManifests, directorMode, vibeEdits,
-    handleSendMessage, handleSubmitImages, handleMoodboardSelect,
+    handleSend, handleSubmitImages, handleMoodboardSelect,
     handleApproveImage, handleSkipImage, handleAssetGenerate, handleTextEdit
   ])
 
@@ -2816,11 +2504,7 @@ export default function Home() {
               onImageEditRequest={(imageUrl, instruction) => {
                 // Send image edit request through chat
                 const message = `[Director Mode Image Edit]\n\nEdit this image: ${imageUrl}\n\nInstruction: ${instruction}`
-                if (billingMode === 'cli') {
-                  handleStreamingMessage(message)
-                } else {
-                  handleSendMessage(message)
-                }
+                handleSend(message)
               }}
             />
           </div>
@@ -2834,7 +2518,7 @@ export default function Home() {
           <ConversationPanel
             messages={messages}
             moodboard={moodboard}
-            onSendMessage={billingMode === 'cli' ? handleStreamingMessage : handleSendMessage}
+            onSendMessage={handleSend}
             onMoodboardSelect={handleMoodboardSelect}
             isLoading={isLoading}
             layoutMode={layoutMode}

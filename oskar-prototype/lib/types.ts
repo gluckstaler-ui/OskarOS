@@ -1,3 +1,8 @@
+// WP-B5: Re-export brand types alongside other shared types so consumers
+// can import from '@/lib/types' as a single source.
+export type { BrandData } from './brand-data'
+export type { DeliverableTemplate, DeliverableId } from './brand-deliverables'
+
 // Image operation types
 export type ImageOperation = 'generate' | 'compose' | 'extract' | 'adjust' | 'enhance' | 'edit'
 export type ImageUsage = 'hero' | 'background' | 'portrait' | 'icon' | 'gallery' | 'logo-overlay' | 'extracted'
@@ -47,6 +52,12 @@ export interface SourceImage {
   generationStatus?: GenerationStatus  // pending review, approved, b-roll, trash
   tag?: ImageTag                  // HERO, PORTRAIT, MENU, LOCATION, B-ROLL, TRASH, READY
   cdNotes?: string                // CD agent notes about this image
+
+  // Lineage (WP-1C) — enables version sidebar traversal
+  parentImage?: string            // Filename of the source image this was derived from (null for uploads + pure generate)
+  parentImages?: string[]         // Multiple parents (for compose) — overrides parentImage when present
+  generationMode?: 'generate' | 'edit' | 'compose' | 'layout'  // How this was made
+  preset?: string                 // Preset label used at generation time
 }
 
 // Individual image asset in the pipeline
@@ -75,6 +86,60 @@ export interface ImageManifest {
   vibeId: string
   vibeName: string
   assets: ImageAsset[]
+}
+
+/**
+ * WP-1C / WP-2C / WP-15: Generation lineage record. One per generated image.
+ * Persisted to LINEAGE.json (sidecar) so lineage + audit data survives reload.
+ *
+ * Audit shape extended 2026-04-17 per WP-15 §"Prompt integrity":
+ *   - `userPrompt`        — what the user typed/clicked BEFORE proofread
+ *   - `actualPromptSent`  — what Nano actually received (differs on rewrite)
+ *   - `proofreadResult`   — CD's pre-Nano evaluation (severity + note)
+ *   - `verdict`           — CD's post-Nano evaluation (rating + note + adj.)
+ *
+ * Without these, any silent CD rewrite leaves no audit trail and the
+ * "actualPromptSent === userPrompt unless explained" check that WP-15 §"Test
+ * 2" requires can't run. Lineage was a Potemkin subclause without them.
+ */
+export interface GenerationRecord {
+  id: string
+  /** Filename of the single source image (for edit/generate), null for layout/pure generate. */
+  parentImage?: string
+  /** All source filenames (used for compose + layout). */
+  sourceImages: string[]
+  preset: string                 // Preset label used ('' if none)
+  /** What the user typed/clicked. Pre-proofread. */
+  userPrompt: string
+  /** What Nano Banana actually received. Equal to userPrompt unless `proofreadResult.severity === 'rewritten'`. */
+  actualPromptSent: string
+  resultImage: string            // Filename of generated result
+  aspectRatio: AspectRatio
+  resolution: ImageSize
+  /** ISO 8601 timestamp string. (Migrated from numeric epoch 2026-04-17.) */
+  timestamp: string
+  mode: 'generate' | 'edit' | 'compose' | 'layout' | 'brand'
+  /** Nano Banana's Turn-2 self-description, possibly overridden by `verdict.adjustedDescription`. */
+  description?: string
+  /** CD's pre-Nano proofread outcome (WP-15 rule 3).
+   *  'error' replaces the pre-2026-04-17 'timeout' state — no caps. */
+  proofreadResult?: {
+    severity: 'pass' | 'advisory' | 'rewritten' | 'error'
+    note: string
+  }
+  /** CD's post-Nano verdict (WP-15 rule 6). `rating` mirrors VerdictOutcome.verdict.
+   *  'error' replaces the pre-2026-04-17 'timeout' state — no caps. */
+  verdict?: {
+    rating: '✓' | '≈' | '✗' | 'error'
+    note: string
+    adjustedDescription?: string
+  }
+  /**
+   * @deprecated Pre-WP-15 single-prompt field. Older LINEAGE.json entries
+   * have this and lack `userPrompt`/`actualPromptSent`. Readers should
+   * prefer the new fields and only fall back to `prompt` for legacy entries.
+   */
+  prompt?: string
 }
 
 // Vibe data
@@ -155,7 +220,7 @@ export interface WorkflowProgress {
 }
 
 // Layout modes
-export type LayoutMode = '2-panel' | '3-panel' | 'gallery'
+export type LayoutMode = '2-panel' | '3-panel' | 'image' | 'gallery'
 
 // Moodboard quadrant position
 export type QuadrantPosition = 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right'

@@ -130,8 +130,29 @@ export function ConversationPanel({
           <MoodboardSelector moodboard={moodboard} onSelect={onMoodboardSelect} />
         )}
 
-        {/* Messages */}
-        {messages.map(msg => (
+        {/* Messages
+            WP-15 (2026-04-17): hide [OSKAR-SYSTEM ...] turns from the
+            Briefing display. They still live in the bridge's conversation
+            history for the paper trail, but visually they would distract
+            the user — these are app→CD machine messages, not user chat.
+            We also hide CD's responses to system messages (replies that
+            start with the structured ## SEVERITY/## VERDICT/## NOTE blocks). */}
+        {messages
+          .filter(msg => {
+            const c = msg.content || ''
+            // Hide outgoing system requests
+            if (c.startsWith('[OSKAR-SYSTEM ')) return false
+            // Hide CD replies to those — recognized by the structured headers
+            if (msg.role === 'assistant') {
+              const trimmed = c.trim()
+              if (
+                trimmed.startsWith('## SEVERITY') ||
+                trimmed.startsWith('## VERDICT')
+              ) return false
+            }
+            return true
+          })
+          .map(msg => (
           <ChatBubble key={msg.id} role={msg.role}>
             <MarkdownRenderer content={msg.content} />
             {msg.images && msg.images.length > 0 && (

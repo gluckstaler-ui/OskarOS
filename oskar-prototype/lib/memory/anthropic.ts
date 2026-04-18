@@ -11,7 +11,12 @@ import { writeFileSync, unlinkSync } from 'fs'
 import { tmpdir } from 'os'
 import path from 'path'
 
-export type MemoryModel = 'claude-sonnet-4-6' | 'claude-haiku-4-5-20251001' | 'claude-opus-4-6'
+// 2026-04-17: removed 'claude-haiku-4-5-20251001' from the union per Ralph's
+// "all sonnet/haiku → 4.6" pass. Memory agents (dreamer, lumberjack) use
+// Sonnet 4.6; Big CD uses Opus 4.7. No Haiku surface in OUR code.
+// (Note: the Claude Code CLI itself spawns Haiku internally for sub-tasks
+// like summarization — that's not our code, can't disable from here.)
+export type MemoryModel = 'claude-sonnet-4-6' | 'claude-opus-4-7'
 
 /**
  * Call claude --print. Returns null on failure (memory agents are best-effort).

@@ -7,7 +7,7 @@ import { UsageBadge } from './UsageBadge'
 // TOPBAR - MATCHING BENTO.HTML REFERENCE EXACTLY
 // ============================================================================
 
-type WebDevModel = 'claude-opus-4-6' | 'claude-sonnet-4-6' | 'gemini-3.1-pro-preview'
+type WebDevModel = 'claude-opus-4-7' | 'claude-sonnet-4-6' | 'gemini-3.1-pro-preview'
 
 export type Order66Status = 'idle' | 'running' | 'complete'
 
@@ -54,6 +54,13 @@ const GridIcon = () => (
     <rect width="7" height="7" x="14" y="3" rx="1"/>
     <rect width="7" height="7" x="14" y="14" rx="1"/>
     <rect width="7" height="7" x="3" y="14" rx="1"/>
+  </svg>
+)
+
+const ImageIcon = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/>
+    <circle cx="12" cy="13" r="3"/>
   </svg>
 )
 
@@ -117,7 +124,11 @@ export function TopBar({
     border: theme === 'polar' ? '1px solid #e5e7eb' : '1px solid rgba(39, 39, 42, 0.5)'
   }
 
-  // Pill button base style - active = emerald green, inactive = readable text
+  // Pill button base style - active = emerald green, inactive = readable text.
+  // NOTE: `transition` is scoped to box-shadow only — the active/inactive
+  // background swap must be INSTANT. A `transition: all` here makes state
+  // toggles (billing, model, theme) feel laggy because the color animates
+  // over 200ms after the click.
   const getPillStyle = (isActive: boolean): React.CSSProperties => ({
     padding: '6px 12px',
     fontSize: '10px',
@@ -126,7 +137,7 @@ export function TopBar({
     borderRadius: '6px',
     border: 'none',
     cursor: 'pointer',
-    transition: 'all 0.2s',
+    transition: 'box-shadow 0.15s',
     display: 'flex',
     alignItems: 'center',
     gap: '6px',
@@ -135,13 +146,13 @@ export function TopBar({
     boxShadow: isActive ? '0 1px 3px rgba(16, 185, 129, 0.3)' : 'none'
   })
 
-  // Icon button style - active = emerald green, inactive = readable
+  // Icon button — same rule: transition scoped so color swap is instant.
   const getIconBtnStyle = (isActive: boolean): React.CSSProperties => ({
     padding: '6px',
     borderRadius: '6px',
     border: 'none',
     cursor: 'pointer',
-    transition: 'all 0.2s',
+    transition: 'box-shadow 0.15s',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
@@ -160,7 +171,9 @@ export function TopBar({
       padding: '0 24px',
       backgroundColor: 'var(--bg-card)',
       userSelect: 'none',
-      transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)'
+      // No `transition: all` — the header bg was animating 400ms on every
+      // state change, which compounded the toggle-feels-laggy perception.
+      // CSS var change from theme swap is instant; no animation needed.
     }}>
       {/* LEFT: Logo + Session */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '24px' }}>
@@ -237,6 +250,14 @@ export function TopBar({
             STUDIO
           </button>
           <button
+            onClick={() => onLayoutChange('image')}
+            style={getPillStyle(layoutMode === 'image')}
+            title="Image Mode (Advanced image editor)"
+          >
+            <ImageIcon />
+            IMAGE
+          </button>
+          <button
             onClick={() => onLayoutChange('gallery')}
             style={getPillStyle(layoutMode === 'gallery')}
             title="Gallery Mode (vibes grid)"
@@ -286,8 +307,8 @@ export function TopBar({
         {/* Model Switch — always shows all 3, Gemini disabled in CLI mode */}
         <div style={pillGroupStyle}>
           <button
-            onClick={() => onModelChange('claude-opus-4-6')}
-            style={getPillStyle(webDevModel === 'claude-opus-4-6')}
+            onClick={() => onModelChange('claude-opus-4-7')}
+            style={getPillStyle(webDevModel === 'claude-opus-4-7')}
           >
             OPUS
           </button>

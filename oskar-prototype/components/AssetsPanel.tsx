@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect, memo } from 'react'
 import { SourceImage, ImageAsset, ImageManifest, ImageQueueItem, LayoutMode } from '@/lib/types'
+import { resolvePrompt } from '@/lib/image-prompt-resolver'
 import { getImageEntriesAction } from '@/lib/session-actions'
 
 // ============================================================================
@@ -74,6 +75,8 @@ interface AssetsPanelProps {
   onSourceImageDelete?: (sourceImage: SourceImage) => void
   selectedAssetId?: string
   layoutMode: LayoutMode
+  /** Open the Advanced Mode overlay. WP-1A entry point. Hover redesign with View/Edit buttons comes in WP-1B. */
+  onOpenAdvancedMode?: (opts?: { tab?: 'view' | 'generate' | 'edit' | 'compose' | 'layout'; image?: SourceImage | null }) => void
 }
 
 // Operation types parsed from prompt keywords
@@ -107,6 +110,7 @@ interface BentoTileProps {
   onEdit: () => void
   onDelete: () => void
   onFullscreen?: () => void  // Open fullscreen modal
+  onOpenAdvancedMode?: (opts?: { tab?: 'view' | 'generate' | 'edit' | 'compose' | 'layout'; image?: SourceImage | null }) => void
   allImages: SourceImage[]  // All available images for compose selection
 }
 
@@ -120,387 +124,14 @@ function BentoTile({
   onEdit,
   onDelete,
   onFullscreen,
+  onOpenAdvancedMode,
   allImages
 }: BentoTileProps) {
-  // Check if prompt has been modified from original
-  const isModified = prompt !== originalPrompt
-  const [showComposeDropdown, setShowComposeDropdown] = useState(false)
-  const [selectedComposeImages, setSelectedComposeImages] = useState<Set<string>>(new Set())
-
-  // Get clean filename without timestamp prefix
   const cleanFilename = (filename: string) => filename.replace(/^\d+-/, '')
+  const isHero = image.tag === 'HERO'
+  const nanoDesc = image.analysis?.description || ''
+  const promptPreview = prompt.trim()
 
-  // Handle compose image selection - immediately updates prompt
-  const handleComposeSelect = (selectedImg: SourceImage) => {
-    const newSelected = new Set(selectedComposeImages)
-    if (newSelected.has(selectedImg.id)) {
-      newSelected.delete(selectedImg.id)
-    } else {
-      newSelected.add(selectedImg.id)
-    }
-    setSelectedComposeImages(newSelected)
-
-    // Immediately update prompt with COMPOSE at the BEGINNING
-    if (newSelected.size > 0) {
-      const selectedFilenames = allImages
-        .filter(img => newSelected.has(img.id))
-        .map(img => cleanFilename(img.filename))
-      const composeText = `COMPOSE [${selectedFilenames.join(' + ')}]: `
-
-      // Remove any existing COMPOSE prefix first
-      const cleanedPrompt = prompt.replace(/^COMPOSE\s*\[[^\]]*\]\s*:\s*/i, '')
-      // PREPEND compose text to existing prompt
-      const newPrompt = composeText + cleanedPrompt
-      onPromptChange(newPrompt)
-    } else {
-      // If no images selected, remove COMPOSE prefix
-      const cleanedPrompt = prompt.replace(/^COMPOSE\s*\[[^\]]*\]\s*:\s*/i, '')
-      onPromptChange(cleanedPrompt)
-    }
-  }
-
-  // Show ALL images in dropdown (including current image)
-  const composeOptions = allImages
-
-  return (
-    <div
-      onMouseEnter={() => onHover(true)}
-      onMouseLeave={() => {
-        if (!showComposeDropdown) onHover(false)
-      }}
-      style={{
-        position: 'relative',
-        aspectRatio: '1',
-        borderRadius: '12px',
-        overflow: 'visible',  // Allow dropdown to overflow
-        cursor: 'pointer',
-        height: '100%'
-      }}
-    >
-      {/* Image */}
-      {(() => {
-        // Parse operation from prompt for badges
-        // Image Library cards are always for EXISTING images, so default is EDIT (blue)
-        // GENERATE (green) is only for the GenerateTile (new images from scratch)
-        const upperPrompt = prompt.toUpperCase().trim()
-        const isCompose = upperPrompt.startsWith('COMPOSE')
-        // For existing images: COMPOSE or EDIT (default) - never GENERATE
-        const operation = isCompose ? 'COMPOSE' : 'EDIT'
-        const operationColor = isCompose ? '#8B5CF6' : '#3B82F6'
-
-        return (
-          <div style={{
-            position: 'relative',
-            width: '100%',
-            height: '100%',
-            borderRadius: '12px',
-            overflow: 'hidden'
-          }}>
-            <img
-              src={image.path}
-              alt={image.filename}
-              style={{
-                width: '100%',
-                height: '100%',
-                objectFit: 'cover',
-                transition: 'transform 0.2s',
-                transform: isHovered ? 'scale(1.02)' : 'scale(1)'
-              }}
-            />
-
-            {/* Always-visible tag badge (bottom-right) */}
-            {!isHovered && (() => {
-              // Tag display logic based on IMAGES.md Status field:
-              // HERO → Green tag | INGESTED/APPROVED → Green checkmark | B-ROLL → Gray tag | TRASH/REDO → Red tag
-              const displayTag = image.tag
-
-              // INGESTED and APPROVED show as green checkmarks, not tag badges
-              if (displayTag === 'INGESTED' || displayTag === 'APPROVED') {
-                return (
-                  <div style={{
-                    position: 'absolute',
-                    bottom: '8px',
-                    right: '8px',
-                    width: '14px',
-                    height: '14px',
-                    borderRadius: '50%',
-                    backgroundColor: '#10B981',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center'
-                  }}>
-                    <svg xmlns="http://www.w3.org/2000/svg" width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round">
-                      <polyline points="20 6 9 17 4 12"></polyline>
-                    </svg>
-                  </div>
-                )
-              }
-
-              // Other tags show as colored badges (INGESTED/APPROVED already handled above)
-              if (displayTag) {
-                return (
-                  <div style={{
-                    position: 'absolute',
-                    bottom: '8px',
-                    right: '8px',
-                    padding: '2px 6px',
-                    borderRadius: '4px',
-                    fontSize: '7px',
-                    fontWeight: 700,
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.5px',
-                    color: 'white',
-                    backgroundColor: displayTag === 'HERO' ? '#10B981' :
-                      displayTag === 'READY' ? '#10B981' :
-                      displayTag === 'TRASH' ? '#EF4444' :
-                      displayTag === 'REDO' ? '#EF4444' :
-                      '#6B7280'  // B-ROLL and others are gray
-                  }}>
-                    {displayTag}
-                  </div>
-                )
-              }
-
-              // No tag - show nothing or subtle indicator for images with prompts
-              if (prompt.trim()) {
-                return (
-                  <div style={{
-                    position: 'absolute',
-                    bottom: '8px',
-                    right: '8px',
-                    width: '14px',
-                    height: '14px',
-                    borderRadius: '50%',
-                    backgroundColor: isModified ? '#F59E0B' : 'rgba(255,255,255,0.3)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center'
-                  }} />
-                )
-              }
-
-              return null
-            })()}
-
-        {/* Hover overlay */}
-        <div style={{
-          position: 'absolute',
-          inset: 0,
-          backgroundColor: 'rgba(0,0,0,0.85)',
-          opacity: isHovered ? 1 : 0,
-          transition: 'opacity 0.2s',
-          display: 'flex',
-          flexDirection: 'column',
-          padding: '12px',
-          pointerEvents: isHovered ? 'auto' : 'none'
-        }}>
-          {/* Header: Filename + Maximize + Delete buttons */}
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            marginBottom: '8px'
-          }}>
-            {/* Fullscreen button (left) */}
-            {onFullscreen && (
-              <button
-                onClick={(e) => {
-                  e.stopPropagation()
-                  onFullscreen()
-                }}
-                style={{
-                  width: '24px',
-                  height: '24px',
-                  padding: 0,
-                  border: 'none',
-                  backgroundColor: 'rgba(255,255,255,0.2)',
-                  borderRadius: '4px',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  flexShrink: 0
-                }}
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2">
-                  <polyline points="15 3 21 3 21 9"/>
-                  <polyline points="9 21 3 21 3 15"/>
-                  <line x1="21" y1="3" x2="14" y2="10"/>
-                  <line x1="3" y1="21" x2="10" y2="14"/>
-                </svg>
-              </button>
-            )}
-            <div style={{
-              fontSize: '10px',
-              fontWeight: 600,
-              color: 'white',
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-              whiteSpace: 'nowrap',
-              flex: 1,
-              marginLeft: '8px'
-            }}>
-              {cleanFilename(image.filename)}
-            </div>
-            <div style={{ display: 'flex', gap: '4px', marginLeft: '8px' }}>
-              {/* Delete button */}
-              <button
-                onClick={(e) => {
-                  e.stopPropagation()
-                  onDelete()
-                }}
-                style={{
-                  width: '24px',
-                  height: '24px',
-                  padding: 0,
-                  border: 'none',
-                  backgroundColor: 'rgba(239, 68, 68, 0.8)',
-                  borderRadius: '4px',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  flexShrink: 0
-                }}
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5">
-                  <line x1="18" y1="6" x2="6" y2="18"/>
-                  <line x1="6" y1="6" x2="18" y2="18"/>
-                </svg>
-              </button>
-            </div>
-          </div>
-
-          {/* Prompt textarea */}
-          <DebouncedTextarea
-            value={prompt}
-            onChange={onPromptChange}
-            onClick={(e) => e.stopPropagation()}
-            style={{
-              flex: 1,
-              width: '100%',
-              padding: '8px',
-              fontSize: '10px',
-              fontFamily: 'var(--font-mono)',
-              color: 'white',
-              backgroundColor: 'rgba(255,255,255,0.1)',
-              border: '1px solid rgba(255,255,255,0.2)',
-              borderRadius: '6px',
-              resize: 'none',
-              outline: 'none',
-              lineHeight: 1.4
-            }}
-            placeholder="Enter reprompt..."
-          />
-
-          {/* Buttons */}
-          {(() => {
-            // Parse operation from prompt
-            // Image Library = existing images, so only COMPOSE or EDIT (default)
-            const upperPrompt = prompt.toUpperCase().trim()
-            const isCompose = upperPrompt.startsWith('COMPOSE')
-
-            // Colors and icons: COMPOSE (purple) or EDIT (blue) - no GENERATE for existing images
-            const generateColor = isCompose ? '#8B5CF6' : '#3B82F6'
-            const generateIcon = isCompose ? (
-              // Compose icon - layers/stack
-              <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <rect x="8" y="8" width="12" height="12" rx="2"/>
-                <path d="M4 16V6a2 2 0 0 1 2-2h10"/>
-              </svg>
-            ) : (
-              // Edit icon - pencil (default for existing images)
-              <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M12 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
-                <path d="M18.375 2.625a1 1 0 0 1 3 3l-9.013 9.014a2 2 0 0 1-.853.505l-2.873.84a.5.5 0 0 1-.62-.62l.84-2.873a2 2 0 0 1 .506-.852z"/>
-              </svg>
-            )
-
-            return (
-              <div style={{ display: 'flex', gap: '6px', marginTop: '8px' }}>
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    if (onFullscreen) onFullscreen()
-                  }}
-                  style={{
-                    flex: 1,
-                    padding: '8px',
-                    fontSize: '9px',
-                    fontWeight: 700,
-                    textTransform: 'uppercase',
-                    backgroundColor: '#F59E0B',
-                    color: 'white',
-                    border: 'none',
-                    borderRadius: '4px',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '4px'
-                  }}
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <polyline points="15 3 21 3 21 9"/>
-                    <polyline points="9 21 3 21 3 15"/>
-                    <line x1="21" y1="3" x2="14" y2="10"/>
-                    <line x1="3" y1="21" x2="10" y2="14"/>
-                  </svg>
-                  Advanced
-                </button>
-                <button
-                  onClick={(e) => { e.stopPropagation(); onEdit(); }}
-                  style={{
-                    flex: 1,
-                    padding: '8px',
-                    fontSize: '9px',
-                    fontWeight: 700,
-                    textTransform: 'uppercase',
-                    backgroundColor: generateColor,
-                    color: 'white',
-                    border: 'none',
-                    borderRadius: '4px',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '4px'
-                  }}
-                >
-                  {generateIcon}
-                  Generate
-                </button>
-              </div>
-            )
-          })()}
-        </div>
-      </div>
-        )
-      })()}
-
-      {/* Compose dropdown removed — now accessed via Advanced/fullscreen overlay */}
-    </div>
-  )
-}
-
-// ============================================================================
-// GENERATE TILE - Empty tile for creating new images from scratch
-// ============================================================================
-interface GenerateTileProps {
-  isHovered: boolean
-  onHover: (hovered: boolean) => void
-  prompt: string
-  onPromptChange: (text: string) => void
-  onGenerate: () => void
-}
-
-function GenerateTile({
-  isHovered,
-  onHover,
-  prompt,
-  onPromptChange,
-  onGenerate
-}: GenerateTileProps) {
   return (
     <div
       onMouseEnter={() => onHover(true)}
@@ -509,96 +140,248 @@ function GenerateTile({
         position: 'relative',
         aspectRatio: '1',
         borderRadius: '12px',
-        border: '2px dashed var(--border-card)',
-        backgroundColor: isHovered ? 'var(--bg-card)' : 'var(--bg-app)',
-        transition: 'background-color 0.2s',
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        justifyContent: 'center',
+        overflow: 'hidden',
         cursor: 'pointer',
-        overflow: 'hidden'
+        height: '100%',
+        border: isHero ? '2px solid rgba(16,185,129,0.3)' : '2px solid transparent',
+        transition: 'border-color 0.15s'
       }}
     >
-      {!isHovered ? (
-        /* Default state - plus icon */
+      <div style={{
+        position: 'relative',
+        width: '100%',
+        height: '100%',
+        borderRadius: '10px',
+        overflow: 'hidden'
+      }}>
+        <img
+          src={image.path}
+          alt={image.filename}
+          style={{
+            width: '100%',
+            height: '100%',
+            objectFit: 'cover',
+            transition: 'transform 0.2s',
+            transform: isHovered ? 'scale(1.02)' : 'scale(1)'
+          }}
+        />
+
+        {/* HERO badge — always visible */}
+        {isHero && (
+          <div style={{
+            position: 'absolute',
+            top: '6px',
+            left: '6px',
+            height: '18px',
+            padding: '0 6px',
+            borderRadius: '4px',
+            fontSize: '8px',
+            fontWeight: 700,
+            color: '#fff',
+            backgroundColor: '#10B981',
+            display: 'flex',
+            alignItems: 'center',
+            textTransform: 'uppercase',
+            letterSpacing: '0.5px'
+          }}>
+            HERO
+          </div>
+        )}
+
+        {/* Always-visible tag badge (non-hero tags) */}
+        {!isHovered && !isHero && (() => {
+          const displayTag = image.tag
+          if (displayTag === 'INGESTED' || displayTag === 'APPROVED') {
+            return (
+              <div style={{
+                position: 'absolute', bottom: '8px', right: '8px',
+                width: '14px', height: '14px', borderRadius: '50%',
+                backgroundColor: '#10B981',
+                display: 'flex', alignItems: 'center', justifyContent: 'center'
+              }}>
+                <svg xmlns="http://www.w3.org/2000/svg" width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="20 6 9 17 4 12"></polyline>
+                </svg>
+              </div>
+            )
+          }
+          if (displayTag) {
+            return (
+              <div style={{
+                position: 'absolute', bottom: '8px', right: '8px',
+                padding: '2px 6px', borderRadius: '4px',
+                fontSize: '7px', fontWeight: 700, textTransform: 'uppercase',
+                letterSpacing: '0.5px', color: 'white',
+                backgroundColor: displayTag === 'READY' ? '#10B981' :
+                  displayTag === 'TRASH' ? '#EF4444' :
+                  displayTag === 'REDO' ? '#EF4444' : '#6B7280'
+              }}>
+                {displayTag}
+              </div>
+            )
+          }
+          return null
+        })()}
+
+        {/* Hover overlay — new design: description + prompt preview + View/Edit */}
         <div style={{
+          position: 'absolute',
+          inset: 0,
+          backgroundColor: 'rgba(0,0,0,0.8)',
+          opacity: isHovered ? 1 : 0,
+          transition: 'opacity 0.2s',
           display: 'flex',
           flexDirection: 'column',
-          alignItems: 'center',
-          gap: '8px',
-          color: 'var(--text-muted)'
+          padding: '10px',
+          pointerEvents: isHovered ? 'auto' : 'none'
         }}>
-          <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-            <circle cx="12" cy="12" r="10"/>
-            <line x1="12" y1="8" x2="12" y2="16"/>
-            <line x1="8" y1="12" x2="16" y2="12"/>
-          </svg>
-          <span style={{ fontSize: '11px', fontWeight: 600 }}>Generate</span>
-        </div>
-      ) : (
-        /* Hover state - prompt input */
-        <div style={{
-          width: '100%',
-          height: '100%',
-          padding: '12px',
-          display: 'flex',
-          flexDirection: 'column'
-        }}>
+          {/* Header: Filename + Delete */}
           <div style={{
-            fontSize: '10px',
-            fontWeight: 600,
-            color: 'var(--text-main)',
-            marginBottom: '8px'
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            marginBottom: '8px',
+            flexShrink: 0
           }}>
-            New Image
+            <div style={{
+              fontSize: '10px',
+              fontWeight: 600,
+              color: '#e4e4e7',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap',
+              flex: 1
+            }}>
+              {cleanFilename(image.filename)}
+            </div>
+            <button
+              onClick={(e) => { e.stopPropagation(); onDelete() }}
+              style={{
+                width: '20px', height: '20px', padding: 0, border: 'none',
+                backgroundColor: 'rgba(239,68,68,0.15)', borderRadius: '4px',
+                cursor: 'pointer', display: 'flex', alignItems: 'center',
+                justifyContent: 'center', flexShrink: 0
+              }}
+              onMouseEnter={(e) => { (e.target as HTMLElement).style.backgroundColor = 'rgba(239,68,68,0.3)' }}
+              onMouseLeave={(e) => { (e.target as HTMLElement).style.backgroundColor = 'rgba(239,68,68,0.15)' }}
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#EF4444" strokeWidth="2.5">
+                <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+              </svg>
+            </button>
           </div>
 
-          <DebouncedTextarea
-            value={prompt}
-            onChange={onPromptChange}
-            onClick={(e) => e.stopPropagation()}
-            style={{
-              flex: 1,
-              width: '100%',
-              padding: '8px',
-              fontSize: '10px',
-              fontFamily: 'var(--font-mono)',
-              color: 'var(--text-main)',
-              backgroundColor: 'var(--bg-app)',
-              border: '1px solid var(--border-card)',
-              borderRadius: '6px',
-              resize: 'none',
-              outline: 'none',
-              lineHeight: 1.4
-            }}
-            placeholder="Describe the image..."
-          />
+          {/* Description + Prompt preview */}
+          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '4px', overflow: 'hidden' }}>
+            {/* Nano Banana description — 3-line clamp */}
+            {nanoDesc && (
+              <div style={{
+                fontSize: '10px',
+                lineHeight: 1.5,
+                color: 'rgba(255,255,255,0.55)',
+                display: '-webkit-box',
+                WebkitLineClamp: 3,
+                WebkitBoxOrient: 'vertical' as const,
+                overflow: 'hidden'
+              }}>
+                {nanoDesc}
+              </div>
+            )}
 
-          <button
-            onClick={(e) => { e.stopPropagation(); onGenerate(); }}
-            disabled={!prompt.trim()}
-            style={{
-              marginTop: '8px',
-              padding: '10px',
-              fontSize: '10px',
-              fontWeight: 700,
-              textTransform: 'uppercase',
-              backgroundColor: prompt.trim() ? '#10B981' : 'var(--text-dim)',
-              color: 'white',
-              border: 'none',
-              borderRadius: '4px',
-              cursor: prompt.trim() ? 'pointer' : 'not-allowed',
-              opacity: prompt.trim() ? 1 : 0.5
-            }}
-          >
-            Generate
-          </button>
+            {/* Prompt preview — green italic, single line */}
+            {promptPreview ? (
+              <div style={{
+                fontSize: '9px',
+                lineHeight: 1.4,
+                color: 'rgba(16,185,129,0.6)',
+                fontStyle: 'italic',
+                whiteSpace: 'nowrap',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis'
+              }}>
+                <span style={{ fontStyle: 'normal', color: 'rgba(16,185,129,0.4)' }}>Prompt: </span>
+                {promptPreview}
+              </div>
+            ) : (
+              <div style={{
+                fontSize: '9px',
+                color: 'rgba(255,255,255,0.2)',
+                fontStyle: 'italic'
+              }}>
+                No edit prompt — click Edit to start
+              </div>
+            )}
+          </div>
+
+          {/* View + Edit buttons — pinned at bottom */}
+          <div style={{ display: 'flex', gap: '6px', marginTop: 'auto', paddingTop: '8px', flexShrink: 0 }}>
+            <button
+              onClick={(e) => {
+                e.stopPropagation()
+                if (onOpenAdvancedMode) {
+                  onOpenAdvancedMode({ tab: 'view', image })
+                } else if (onFullscreen) {
+                  onFullscreen()
+                }
+              }}
+              style={{
+                flex: 1, height: '30px', borderRadius: '6px',
+                border: '1px solid #3f3f46',
+                backgroundColor: 'rgba(255,255,255,0.08)',
+                color: '#a1a1aa',
+                fontSize: '10px', fontWeight: 700, textTransform: 'uppercase' as const,
+                letterSpacing: '0.05em',
+                cursor: 'pointer',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '5px',
+                transition: 'all 0.12s'
+              }}
+              onMouseEnter={(e) => {
+                const t = e.currentTarget; t.style.backgroundColor = 'rgba(255,255,255,0.12)';
+                t.style.color = '#f4f4f5'; t.style.borderColor = '#52525b'
+              }}
+              onMouseLeave={(e) => {
+                const t = e.currentTarget; t.style.backgroundColor = 'rgba(255,255,255,0.08)';
+                t.style.color = '#a1a1aa'; t.style.borderColor = '#3f3f46'
+              }}
+            >
+              👁 View
+            </button>
+            <button
+              onClick={(e) => {
+                e.stopPropagation()
+                if (onOpenAdvancedMode) {
+                  onOpenAdvancedMode({ tab: 'edit', image })
+                } else {
+                  onEdit()
+                }
+              }}
+              style={{
+                flex: 1, height: '30px', borderRadius: '6px',
+                border: 'none',
+                backgroundColor: '#F59E0B',
+                color: '#fff',
+                fontSize: '10px', fontWeight: 700, textTransform: 'uppercase' as const,
+                letterSpacing: '0.05em',
+                cursor: 'pointer',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '5px',
+                transition: 'all 0.12s'
+              }}
+              onMouseEnter={(e) => { e.currentTarget.style.filter = 'brightness(1.1)' }}
+              onMouseLeave={(e) => { e.currentTarget.style.filter = 'brightness(1)' }}
+            >
+              ✏️ Edit
+            </button>
+          </div>
         </div>
-      )}
+      </div>
     </div>
   )
 }
+
+// ============================================================================
+// GenerateTile removed — generation now lives in Advanced Mode Generate tab
+// (WP-1B: AssetsPanel hover redesign + WP-2B: Generate tab UI)
+// ============================================================================
 
 // ============================================================================
 // REPROMPT CARD - Card with image tile (hover for prompt) + permanent buttons
@@ -1074,43 +857,7 @@ function RepromptCard({
         gap: '6px',
         borderTop: '1px solid var(--border-card)'
       }}>
-        {/* Advanced button (for EDIT/COMPOSE) — opens fullscreen overlay */}
-        {(operation === 'EDIT' || operation === 'COMPOSE') && onFullscreen && (
-          <div style={{ position: 'relative', flex: 1 }}>
-            <button
-              onClick={(e) => {
-                e.stopPropagation()
-                if (onFullscreen) onFullscreen()
-              }}
-              style={{
-                width: '100%',
-                padding: '8px',
-                fontSize: '9px',
-                fontWeight: 700,
-                textTransform: 'uppercase',
-                backgroundColor: '#F59E0B',
-                color: 'white',
-                border: 'none',
-                borderRadius: '4px',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '4px'
-              }}
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <polyline points="15 3 21 3 21 9"/>
-                <polyline points="9 21 3 21 3 15"/>
-                <line x1="21" y1="3" x2="14" y2="10"/>
-                <line x1="3" y1="21" x2="10" y2="14"/>
-              </svg>
-              Advanced
-            </button>
-
-            {/* Image selection dropdown removed — now accessed via Advanced/fullscreen overlay */}
-          </div>
-        )}
+        {/* Advanced button removed — now accessed via IMAGE tab in TopBar */}
 
         {/* Generate button - outline style when complete (not urgent) */}
         <button
@@ -1167,7 +914,8 @@ export function AssetsPanel({
   onSourceImageUpdate,
   onSourceImageDelete,
   selectedAssetId,
-  layoutMode
+  layoutMode,
+  onOpenAdvancedMode
 }: AssetsPanelProps) {
   const [expandedVibes, setExpandedVibes] = useState<Set<string>>(new Set())
   const [imageLibraryExpanded, setImageLibraryExpanded] = useState(true)
@@ -1259,9 +1007,14 @@ export function AssetsPanel({
   const evaluatedImages = sourceImages.filter(img => img.analysis?.description || isGeneratedImage(img) || img.tag)
 
   // Get/set prompts for Track 1 evaluated images
+  // WP-1B fix (2026-04-17): use the full 4-tier waterfall from
+  // lib/image-prompt-resolver.ts instead of skipping Tier 1 (manifest).
+  // Hero/manifest-backed images now show the prompt CD wrote in IMAGES.md
+  // — matching what loads in Zone 4 of Advanced Mode.
   const getPrompt = (img: SourceImage): string => {
-    // Priority: user edits > CD reprompt > source prompt (for generated images)
-    return editedPrompts[img.id] ?? img.analysis?.reprompt ?? img.sourcePrompt ?? ''
+    if (editedPrompts[img.id] !== undefined) return editedPrompts[img.id]
+    const resolved = resolvePrompt(img, imageManifests)
+    return resolved.prompt
   }
   const setPrompt = (imgId: string, text: string) => {
     setEditedPrompts(prev => ({ ...prev, [imgId]: text }))
@@ -1374,6 +1127,37 @@ export function AssetsPanel({
           </svg>
           Assets
         </span>
+        <div style={{ flex: 1 }} />
+        {onOpenAdvancedMode && (
+          <button
+            onClick={() => onOpenAdvancedMode({ tab: 'view' })}
+            style={{
+              fontSize: '10px',
+              fontWeight: 700,
+              letterSpacing: '0.05em',
+              textTransform: 'uppercase',
+              padding: '5px 10px',
+              borderRadius: '6px',
+              border: '1px solid var(--border-card)',
+              background: 'transparent',
+              color: 'var(--text-muted)',
+              cursor: 'pointer',
+              fontFamily: 'inherit',
+              transition: 'all 0.15s',
+            }}
+            onMouseEnter={(e) => {
+              ;(e.currentTarget as HTMLElement).style.borderColor = '#F59E0B'
+              ;(e.currentTarget as HTMLElement).style.color = '#F59E0B'
+            }}
+            onMouseLeave={(e) => {
+              ;(e.currentTarget as HTMLElement).style.borderColor = 'var(--border-card)'
+              ;(e.currentTarget as HTMLElement).style.color = 'var(--text-muted)'
+            }}
+            title="Open Advanced Mode — full image workstation"
+          >
+            ✨ Advanced
+          </button>
+        )}
         <span style={{
           fontSize: '10px',
           fontFamily: 'var(--font-mono)',
@@ -1657,36 +1441,13 @@ export function AssetsPanel({
                           url: img.path,
                           title: img.filename.replace(/^\d+-/, '')
                         })}
+                        onOpenAdvancedMode={onOpenAdvancedMode}
                         allImages={evaluatedImages}
                       />
                     )
                   })}
 
-                  {/* Empty tile for GENERATE - always at the end */}
-                  <GenerateTile
-                    isHovered={hoveredTile === 'generate-new'}
-                    onHover={(hovered) => setHoveredTile(hovered ? 'generate-new' : null)}
-                    prompt={newGeneratePrompt}
-                    onPromptChange={setNewGeneratePrompt}
-                    onGenerate={() => {
-                      if (!newGeneratePrompt.trim()) return
-                      const newAsset: ImageAsset = {
-                        id: `gen-${Date.now()}`,
-                        filename: `generated-${Date.now()}.jpg`,
-                        operation: 'generate',
-                        sourceImages: [],
-                        instruction: newGeneratePrompt.trim(),
-                        usage: 'gallery',
-                        aspectRatio: '1:1',
-                        resolution: '1K',
-                        status: 'pending',
-                        vibeId: 'standalone',
-                        vibeName: 'Generated'
-                      }
-                      onAssetGenerate(newAsset)
-                      setNewGeneratePrompt('')
-                    }}
-                  />
+                  {/* GenerateTile removed — generation now lives in Advanced Mode Generate tab */}
                 </div>
               </>
             )}

@@ -1,7 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { readFile, writeFile, mkdir, access } from 'fs/promises'
 import path from 'path'
-import { editImageWithText, generateImage, ImageSize, AspectRatio } from '@/lib/gemini'
+import { editImageWithText, generateImage, describeGeneratedImage, ImageSize, AspectRatio } from '@/lib/gemini'
+import { appendLineage, newGenerationId } from '@/lib/lineage-store'
+import type { GenerationRecord } from '@/lib/types'
+import { runProofread, type ProofreadOutcome } from '@/lib/cd-proofread'
+import { runVerdict, type VerdictOutcome } from '@/lib/cd-verdict'
+import { logToChat } from '@/lib/chat-logger'
 
 // Check if file exists
 async function fileExists(filePath: string): Promise<boolean> {
@@ -42,7 +47,9 @@ export async function POST(req: NextRequest) {
       imageSize,
       aspectRatio,
       operation,          // 'generate' for pure generation, anything else uses edit
-      sessionId           // Optional: if provided, save to session folder
+      sessionId,          // Optional: if provided, save to session folder
+      preset,             // WP-1C/2C: preset label used for this generation (for lineage)
+      mode,               // WP-1C/2C: tab mode (generate|edit|compose|layout)
     } = await req.json()
 
     if (!instruction) {
@@ -68,14 +75,57 @@ export async function POST(req: NextRequest) {
       }
     }
 
+    // ── WP-15 (added 2026-04-17): Proofread before Nano ──
+    // CD reviews the prompt. If CD finds an objective defect, it rewrites in
+    // place; we send the rewrite to Nano and surface a snackbar via the
+    // response payload. If CD doesn't reply within 2s, we fire as-is.
+    // sessionId must be present — without it we can't reach Big CD.
+    let proofread: ProofreadOutcome | null = null
+    let actualPrompt = instruction
+    if (sessionId) {
+      const sourceFilenamesForCtx = (sourceImagePaths || []).map(
+        (p: string) => p.split('/').pop() || `image`
+      )
+      proofread = await runProofread({
+        sessionId,
+        mode: (mode || operation || 'generate') as 'generate' | 'edit' | 'compose' | 'layout',
+        prompt: instruction,
+        image:
+          sourceFilenamesForCtx.length > 0
+            ? { filename: sourceFilenamesForCtx[0] }
+            : undefined,
+        stagedImages:
+          sourceFilenamesForCtx.length > 1
+            ? { scene: sourceFilenamesForCtx[0], subjects: sourceFilenamesForCtx.slice(1) }
+            : undefined,
+      })
+      actualPrompt = proofread.finalPrompt
+
+      // Augenmass paper-trail: only `rewritten` lands in chat. `advisory`
+      // and `timeout` stay snackbar-only per WP-15 §"Paper-trail filter".
+      if (proofread.severity === 'rewritten') {
+        await logToChat(sessionId, {
+          kind: 'cd-rewrite',
+          content: `**Note:** ${proofread.note}\n\n**Original:**\n\`\`\`\n${instruction}\n\`\`\`\n\n**CD's rewrite:**\n\`\`\`\n${actualPrompt}\n\`\`\``,
+          source: `image-mode:${mode || operation}`,
+        })
+      }
+
+      console.log(
+        `[edit-image] Proofread: severity=${proofread.severity} ${proofread.durationMs}ms — sending to Nano now`
+      )
+    }
+
     let imageUrl: string
     let geminiText: string | null = null
+    // Lifted to outer scope so the response payload can include it.
+    let verdict: VerdictOutcome | null = null
 
     // Pure generation: no source images, just create from prompt
     if (operation === 'generate') {
-      console.log(`Generating new image from prompt: "${instruction.substring(0, 80)}..."`)
+      console.log(`Generating new image from prompt: "${actualPrompt.substring(0, 80)}..."`)
       const genResult = await generateImage({
-        prompt: instruction,
+        prompt: actualPrompt,
         style: 'photorealistic',
         imageSize: (imageSize as ImageSize) || '1K',
         aspectRatio: (aspectRatio as AspectRatio) || '16:9'
@@ -86,11 +136,11 @@ export async function POST(req: NextRequest) {
       // Edit/compose: transform existing images
       // Extract filenames from paths for image labeling
       const sourceFilenames = (sourceImagePaths || []).map((p: string) => p.split('/').pop() || `image`)
-      console.log(`Editing image with ${sourceImages.length} sources (${sourceFilenames.join(', ')}): "${instruction.substring(0, 50)}..."`)
+      console.log(`Editing image with ${sourceImages.length} sources (${sourceFilenames.join(', ')}): "${actualPrompt.substring(0, 50)}..."`)
       const result = await editImageWithText({
         sourceImages,
         sourceFilenames,
-        instruction,
+        instruction: actualPrompt,
         imageSize: (imageSize as ImageSize) || '1K',
         aspectRatio: (aspectRatio as AspectRatio) || '16:9'
       })
@@ -131,13 +181,127 @@ export async function POST(req: NextRequest) {
 
       savedPath = `${publicPathPrefix}/${finalFilename}`
       console.log(`Edited image saved to: ${savedPath}`)
+
+      // ── WP-6B: Turn 2 fallback — describe the generated image if Turn 1 didn't ──
+      if (!geminiText && imageUrl) {
+        console.log(`[Turn 2] No description from Turn 1 — running self-describe...`)
+        const sourceFilenames = (sourceImagePaths || []).map((p: string) => p.split('/').pop() || 'image')
+        const turn2Description = await describeGeneratedImage(imageUrl, {
+          prompt: instruction,
+          mode: operation || 'generate',
+          sourceFilenames: sourceFilenames.length > 0 ? sourceFilenames : undefined,
+        })
+        if (turn2Description) {
+          geminiText = turn2Description
+          console.log(`[Turn 2] Got description: ${turn2Description.length} chars`)
+        } else {
+          console.warn(`[Turn 2] describeGeneratedImage returned null — no description available`)
+        }
+      }
+
+      // ── WP-15 (added 2026-04-17): Post-generation verdict ──
+      // CD reads the saved image (via FileRead in its own tools) + Nano's
+      // self-description. Returns ✓/≈/✗ + note + optional description fix.
+      // Soft 3s timeout — if CD is busy, we still record the generation but
+      // skip the verdict. ✗ verdicts go to chat per Augenmass; others stay
+      // in snackbars only.
+      if (sessionId) {
+        verdict = await runVerdict({
+          sessionId,
+          filename: finalFilename,
+          nanoDescription: geminiText || undefined,
+          originalPrompt: actualPrompt,
+          mode: (mode || operation || 'generate') as 'generate' | 'edit' | 'compose' | 'layout',
+        })
+        console.log(
+          `[edit-image] Verdict: ${verdict.verdict} ${verdict.durationMs}ms — note="${verdict.note?.slice(0, 80)}"`
+        )
+        if (verdict.verdict === '✗') {
+          await logToChat(sessionId, {
+            kind: 'cd-verdict-fail',
+            content: `**Verdict:** ✗\n**Note:** ${verdict.note}`,
+            ref: finalFilename,
+            source: `image-mode:${mode || operation}`,
+          })
+        }
+        // CD's adjusted description supersedes Nano's self-description.
+        if (verdict.adjustedDescription) {
+          geminiText = verdict.adjustedDescription
+        }
+      }
+
+      // ── WP-6B: Write description to IMAGES.md ──
+      // Updated 2026-04-17: prefer CD's adjusted description over Nano's when present.
+      if (geminiText && sessionId) {
+        try {
+          const imagesPath = path.join(process.cwd(), 'public', sessionId, 'IMAGES.md')
+          const existing = await readFile(imagesPath, 'utf-8').catch(() => '# Image Descriptions\n')
+          // 'error' results still log — the failure mode is part of the audit trail.
+          const verdictLine = verdict
+            ? `\n- **CD verdict:** ${verdict.verdict} — ${verdict.note}`
+            : ''
+          const entry = `\n### ${finalFilename}\n- **Operation:** ${operation || 'edit'}\n- **Prompt:** ${instruction.slice(0, 200)}${instruction.length > 200 ? '...' : ''}\n- **Nano Banana:** ${geminiText}${verdictLine}\n`
+          await writeFile(imagesPath, existing + entry, 'utf-8')
+          console.log(`[IMAGES.md] Appended description for ${finalFilename}`)
+        } catch (imgErr) {
+          console.error(`[IMAGES.md] Failed to write:`, imgErr)
+        }
+      }
+
+      // ── WP-1C/2C (added 2026-04-17): Persist GenerationRecord to LINEAGE.json ──
+      // Lineage data was previously in-memory only; refresh wiped the version
+      // sidebar's history. Sidecar JSON survives reload without conflicting
+      // with CD edits to IMAGES.md.
+      if (sessionId) {
+        try {
+          const sourceFilenames = (sourceImagePaths || []).map(
+            (p: string) => p.split('/').pop() || p
+          )
+          // WP-15 audit trail: capture what the user typed AND what Nano
+          // actually received, plus both CD evaluations. Without these the
+          // "did CD rewrite silently?" check cannot run from disk later.
+          const record: GenerationRecord = {
+            id: newGenerationId(),
+            parentImage: sourceFilenames[0] || undefined,
+            sourceImages: sourceFilenames,
+            preset: preset || '',
+            userPrompt: instruction,
+            actualPromptSent: actualPrompt,
+            resultImage: finalFilename,
+            aspectRatio: (aspectRatio as AspectRatio) || '16:9',
+            resolution: (imageSize as ImageSize) || '1K',
+            timestamp: new Date().toISOString(),
+            mode: (mode || operation || 'generate') as GenerationRecord['mode'],
+            description: geminiText || undefined,
+            proofreadResult: proofread
+              ? { severity: proofread.severity, note: proofread.note }
+              : undefined,
+            verdict: verdict
+              ? {
+                  rating: verdict.verdict,
+                  note: verdict.note,
+                  adjustedDescription: verdict.adjustedDescription,
+                }
+              : undefined,
+          }
+          await appendLineage(sessionId, record)
+          console.log(`[LINEAGE] Appended record ${record.id} for ${finalFilename}`)
+        } catch (lineageErr) {
+          console.error('[LINEAGE] Failed to append:', lineageErr)
+        }
+      }
     }
 
     return NextResponse.json({
       imageUrl,
       savedPath,
       filename: filename || 'edited-image.jpg',
-      geminiText
+      geminiText,
+      // WP-15 (added 2026-04-17): structured CD outcomes for client-side
+      // snackbar emission. Both null when sessionId was missing or the
+      // bridge call timed out.
+      proofread,
+      verdict,
     })
 
   } catch (error) {

@@ -49,7 +49,9 @@ export async function POST(request: NextRequest) {
     }
 
     const message = await anthropic.messages.create({
-      model: 'claude-sonnet-4-20250514',
+      // 2026-04-17: was 'claude-sonnet-4-20250514' (deprecated, retires Jun 15 2026).
+      // Migrated to current Sonnet 4.6 per Ralph's "all sonnet/haiku → 4.6" pass.
+      model: 'claude-sonnet-4-6',
       max_tokens: 500,
       system: systemPrompt,
       messages: [{ role: 'user', content: userPrompt }]

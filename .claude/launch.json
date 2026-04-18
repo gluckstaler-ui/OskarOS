@@ -1,0 +1,12 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "oskar-prototype",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["--prefix", "/Users/ralphlengler/OskarOS/oskar-prototype", "run", "dev"],
+      "port": 3000,
+      "autoPort": true
+    }
+  ]
+}

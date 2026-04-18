@@ -65,12 +65,15 @@ export async function POST(req: NextRequest) {
       userPrompt = `${actionPrompt}\n\nOriginal description:\n"${currentValue}"\n\nNew description:`
     }
 
-    console.log(`[QuickEdit] Calling Haiku API - Action: ${action}`)
+    console.log(`[QuickEdit] Calling Sonnet 4.6 - Action: ${action}`)
     console.log(`[QuickEdit] Original text: "${currentValue}"`)
     console.log(`[QuickEdit] User prompt: "${userPrompt}"`)
 
     const message = await anthropic.messages.create({
-      model: 'claude-haiku-4-5-20251001',
+      // 2026-04-17: was Haiku 4.5 (claude-haiku-4-5-20251001).
+      // Migrated to Sonnet 4.6 per Ralph's "all sonnet/haiku → 4.6" pass —
+      // one model family across the app, no Haiku detour.
+      model: 'claude-sonnet-4-6',
       max_tokens: 500,
       system: systemPrompt,
       messages: [

@@ -24,6 +24,12 @@ export type SessionEventType =
   | 'error'
   | 'phase-change'
   | 'brief-updated'
+  // ─── WP-15 (added 2026-04-17): CD signal channel ──────────────────────
+  | 'cd.proofread.advisory'    // CD looked at prompt, has an opinion, did NOT rewrite
+  | 'cd.proofread.rewritten'   // CD rewrote the prompt; user sees new value in Zone 4
+  | 'cd.verdict'               // post-gen verdict (✓ ≈ ✗) — extended-toast
+  | 'cd.comment'               // CD reply in Image Mode (Ask CD response surfaces here)
+  | 'cd.upload-evaluated'      // CD evaluated an upload; snackbar with the take
 
 export interface SessionEvent {
   type: SessionEventType
@@ -223,5 +229,86 @@ export function emitBriefUpdated(sessionId: string, changes: string): void {
     type: 'brief-updated',
     sessionId,
     data: { changes }
+  })
+}
+
+// ─── WP-15 emitters (added 2026-04-17) ────────────────────────────────────
+
+/**
+ * CD looked at a prompt and has commentary, but did NOT rewrite.
+ * Snackbar only — never logged to chat per WP-15 §"Paper-trail filter".
+ */
+export function emitCDProofreadAdvisory(
+  sessionId: string,
+  data: { note: string; mode?: string; filename?: string }
+): void {
+  sessionEvents.emit({
+    type: 'cd.proofread.advisory',
+    sessionId,
+    data,
+  })
+}
+
+/**
+ * CD rewrote a prompt before sending to Nano. Snackbar AND chat per spec.
+ * The new prompt should already be in Zone 4 by the time this fires.
+ */
+export function emitCDProofreadRewritten(
+  sessionId: string,
+  data: { note: string; oldPrompt: string; newPrompt: string; mode?: string }
+): void {
+  sessionEvents.emit({
+    type: 'cd.proofread.rewritten',
+    sessionId,
+    data,
+  })
+}
+
+/**
+ * Post-generation verdict. ✓ → snackbar only. ≈ → snackbar only.
+ * ✗ → snackbar + chat per Augenmass filter (caller decides).
+ */
+export function emitCDVerdict(
+  sessionId: string,
+  data: {
+    verdict: '✓' | '≈' | '✗'
+    note: string
+    filename: string
+    mode?: string
+  }
+): void {
+  sessionEvents.emit({
+    type: 'cd.verdict',
+    sessionId,
+    data,
+  })
+}
+
+/**
+ * CD conversational reply in Image Mode (Ask CD pill).
+ * Snackbar AND chat per WP-15 rule 8.
+ */
+export function emitCDComment(
+  sessionId: string,
+  data: { content: string; source?: string }
+): void {
+  sessionEvents.emit({
+    type: 'cd.comment',
+    sessionId,
+    data,
+  })
+}
+
+/**
+ * CD evaluated an uploaded image. Snackbar AND chat per WP-15 rule 7.
+ */
+export function emitCDUploadEvaluated(
+  sessionId: string,
+  data: { filename: string; verdict: '✓' | '≈' | '✗'; note: string }
+): void {
+  sessionEvents.emit({
+    type: 'cd.upload-evaluated',
+    sessionId,
+    data,
   })
 }

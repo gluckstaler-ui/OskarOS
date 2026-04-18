@@ -173,6 +173,47 @@ export function SnackbarProvider({ children }: { children: ReactNode }) {
             duration: 3000
           })
           break
+
+        // ── WP-15 (added 2026-04-17): Big CD signal channel ──
+
+        case 'cd.proofread.advisory':
+          // CD looked at the prompt, has a comment, did NOT rewrite.
+          // Snackbar only — never logged to chat per WP-15 §"Paper-trail filter".
+          show('info', `CD: ${event.data.note}`, { duration: 5000 })
+          break
+
+        case 'cd.proofread.rewritten':
+          // CD rewrote the prompt before sending to Nano. Caller already
+          // overwrote Zone 4 in place; snackbar tells the user what changed.
+          show('info', `✏️ CD rewrote your prompt — ${event.data.note}`, {
+            duration: 7000,
+          })
+          break
+
+        case 'cd.verdict': {
+          // Extended-toast per WP-15 rule 6 — sticks until dismissed.
+          // Variant by verdict glyph: ✓ success, ≈ info, ✗ error.
+          const v = event.data.verdict as '✓' | '≈' | '✗'
+          const variant = v === '✓' ? 'success' : v === '✗' ? 'error' : 'info'
+          show(variant, `${v} ${event.data.filename} — ${event.data.note}`, {
+            duration: 0, // sticks until dismissed
+          })
+          break
+        }
+
+        case 'cd.comment':
+          // CD reply in Image Mode (Ask CD pill).
+          show('info', `CD: ${event.data.content}`, { duration: 0 })
+          break
+
+        case 'cd.upload-evaluated': {
+          const v = event.data.verdict as '✓' | '≈' | '✗'
+          const variant = v === '✓' ? 'success' : v === '✗' ? 'error' : 'info'
+          show(variant, `${v} ${event.data.filename} — ${event.data.note}`, {
+            duration: 7000,
+          })
+          break
+        }
       }
     })
 

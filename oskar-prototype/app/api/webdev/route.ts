@@ -266,7 +266,9 @@ export async function POST(req: NextRequest) {
     const claudePath = findClaudeBinary()
 
     // Run Claude CLI
-    const command = `"${claudePath}" --print --verbose --no-session-persistence --model claude-sonnet-4-20250514 --output-format stream-json --permission-mode bypassPermissions --system-prompt "$(cat '${systemFile}')" "$(cat '${promptFile}')"`
+    // 2026-04-17: model was 'claude-sonnet-4-20250514' (deprecated, retires Jun 15 2026).
+    // Migrated to current Sonnet 4.6 per Ralph's "all sonnet/haiku → 4.6" pass.
+    const command = `"${claudePath}" --print --verbose --no-session-persistence --model claude-sonnet-4-6 --output-format stream-json --permission-mode bypassPermissions --system-prompt "$(cat '${systemFile}')" "$(cat '${promptFile}')"`
 
     console.log(`[WebDev ${requestId}] Running Claude CLI...`)
 

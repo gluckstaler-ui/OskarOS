@@ -27,7 +27,7 @@ import type { ParsedVibe } from './creative-brief-parser'
 
 export type ExecutionMode = 'cli' | 'api'
 
-export type Model = 'claude-opus-4-6' | 'claude-sonnet-4-6' | 'gemini-3.1-pro-preview'
+export type Model = 'claude-opus-4-7' | 'claude-sonnet-4-6' | 'gemini-3.1-pro-preview'
 
 // Valid combinations:
 // CLI:  opus, sonnet
@@ -173,7 +173,7 @@ export async function runWebDev(request: WebDevBuildRequest): Promise<VibeBuildR
   const userPrompt = buildUserPrompt(request)
 
   // Claude models (Opus, Sonnet) → Anthropic API
-  if (model === 'claude-opus-4-6' || model === 'claude-sonnet-4-6') {
+  if (model === 'claude-opus-4-7' || model === 'claude-sonnet-4-6') {
     const result = await runClaudeAgentLoop({
       model,
       systemPrompt: agentPrompt,

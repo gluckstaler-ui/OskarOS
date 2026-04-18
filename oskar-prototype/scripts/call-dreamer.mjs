@@ -53,12 +53,12 @@ Now produce your output in the exact format defined in OUTPUT FORMAT above.
 `
 
 const promptSize = Buffer.byteLength(prompt, 'utf-8')
-console.error(`[call-dreamer] Prompt: ${promptSize}b, model: claude-opus-4-6`)
+console.error(`[call-dreamer] Prompt: ${promptSize}b, model: claude-opus-4-7`)
 
 // --- Run claude --print from /tmp (no CLAUDE.md, no project memory) ---
 const child = spawn('claude', [
   '--print',
-  '--model', 'claude-opus-4-6',
+  '--model', 'claude-opus-4-7',
   '--tools', '',
 ], {
   cwd: '/tmp',

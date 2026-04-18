@@ -3,6 +3,8 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { ImageAsset, VibeData, VibePreview, AspectRatio, ImageSize, MoodboardData, SelectedElement, TextQuickAction, ImageQuickAction } from '@/lib/types'
 import { MagicToolbar } from './MagicToolbar'
+import { StudioImagePicker, type StudioPickTarget } from './studio/StudioImagePicker'
+import { STUDIO_BRIDGE_PATCH, parseHtmlPath, humanizeSlot } from '@/lib/studio-bridge'
 
 // ============================================================================
 // CANVAS PANEL - COMPLETELY REWRITTEN TO MATCH BENTO.HTML
@@ -70,6 +72,8 @@ export function CanvasPanel({
   const [isProcessing, setIsProcessing] = useState(false)
   const [showMagicToolbar, setShowMagicToolbar] = useState(false)
   const [imageEditInstruction, setImageEditInstruction] = useState('')
+  // Studio Mode slot-swap picker (WP-8B inverse flow)
+  const [studioTarget, setStudioTarget] = useState<StudioPickTarget | null>(null)
 
   // Show magic toolbar when TEXT element is selected (not images)
   useEffect(() => {
@@ -133,10 +137,30 @@ export function CanvasPanel({
           rect: adjustedRect
         })
       }
+
+      // Studio Mode slot click: [data-slot] IMG tapped in iframe
+      // Opens the StudioImagePicker so user can swap the image
+      if (event.data.type === 'SLOT_SELECTED') {
+        const { sessionId: sid, pageFilename } = parseHtmlPath(
+          typeof vibeToShow?.htmlPath === 'string' ? vibeToShow.htmlPath : undefined
+        )
+        if (!sid || !pageFilename) {
+          console.warn('🎨 Studio: SLOT_SELECTED ignored — no session/page context')
+          return
+        }
+        console.log('🎨 Studio: slot clicked', event.data.slot, 'on', pageFilename)
+        setStudioTarget({
+          pageFilename,
+          slot: event.data.slot,
+          humanLabel: humanizeSlot(event.data.slot),
+          currentImage: event.data.currentSrc || '',
+          context: event.data.headingText || null,
+        })
+      }
     }
     window.addEventListener('message', handleMessage)
     return () => window.removeEventListener('message', handleMessage)
-  }, [onElementSelect])
+  }, [onElementSelect, vibeToShow?.htmlPath])
 
   // Reset bridge ready when vibe changes
   useEffect(() => {
@@ -157,6 +181,67 @@ export function CanvasPanel({
       return () => clearTimeout(timer)
     }
   }, [directorMode, vibeToShow?.htmlPath])
+
+  // Studio Mode bridge patch — injected into the iframe's DOM so that
+  // existing vibes (which ship with the OLD bridge that doesn't know about
+  // data-slot) gain click-to-swap functionality without re-saving the file.
+  //
+  // Same-origin iframe, so we can directly mutate contentDocument.
+  // The patch:
+  //   1. Captures clicks on <img data-slot="..."> when Director Mode is on
+  //   2. Posts SLOT_SELECTED to the parent with slot + current src + heading
+  //   3. Listens for UPDATE_SLOT_IMAGE to swap the image in place
+  useEffect(() => {
+    const iframeEl = iframeRef.current
+    if (!iframeEl) return
+    if (!vibeToShow?.htmlPath) return
+
+    function injectPatch() {
+      try {
+        const doc = iframeEl?.contentDocument
+        if (!doc) return
+        if (doc.getElementById('oskar-studio-patch')) return // already injected
+        const s = doc.createElement('script')
+        s.id = 'oskar-studio-patch'
+        s.textContent = STUDIO_BRIDGE_PATCH
+        doc.body.appendChild(s)
+        console.log('🎨 Studio: bridge patch injected')
+      } catch (err) {
+        console.warn('🎨 Studio: could not inject bridge patch', err)
+      }
+    }
+
+    // If already loaded, inject now. Otherwise wait for onload.
+    if (iframeEl.contentDocument?.readyState === 'complete') {
+      injectPatch()
+    } else {
+      iframeEl.addEventListener('load', injectPatch)
+      return () => iframeEl.removeEventListener('load', injectPatch)
+    }
+  }, [vibeToShow?.htmlPath])
+
+  // Studio Mode: fire after a successful slot swap.
+  // Tells the iframe to swap the image in place + clears the picker state.
+  const handleStudioPicked = useCallback(
+    (result: { filename: string; slot: string; pageFilename: string; oldImage?: string }) => {
+      const iframeWin = iframeRef.current?.contentWindow
+      if (iframeWin) {
+        iframeWin.postMessage(
+          {
+            type: 'UPDATE_SLOT_IMAGE',
+            slot: result.slot,
+            url: result.filename, // relative path — iframe is same-origin as session folder
+          },
+          '*'
+        )
+      }
+      setStudioTarget(null)
+      console.log(
+        `🎨 Studio: slot "${result.slot}" on ${result.pageFilename} now shows ${result.filename}`
+      )
+    },
+    []
+  )
 
   // Persist edit to HTML file
   const persistEdit = useCallback(async (elementId: string, newValue: string, elementType: 'text' | 'image') => {
@@ -591,6 +676,23 @@ export function CanvasPanel({
                 isProcessing={isProcessing}
               />
             )}
+
+            {/* STUDIO MODE — slot swap picker (WP-8B inverse flow).
+                Opens when the user clicks a [data-slot] image in the iframe
+                while Director Mode is on. Grid of session images; click one
+                → hotSwapToVibe + UPDATE_SLOT_IMAGE back to the iframe. */}
+            {studioTarget && (() => {
+              const { sessionId: sid } = parseHtmlPath(vibeToShow?.htmlPath)
+              if (!sid) return null
+              return (
+                <StudioImagePicker
+                  sessionId={sid}
+                  target={studioTarget}
+                  onClose={() => setStudioTarget(null)}
+                  onPicked={handleStudioPicked}
+                />
+              )
+            })()}
 
             {/* IMAGE EDIT PANEL - for images in Director Mode */}
             {showImageEditPanel && selectedElement && (
@@ -1372,3 +1474,4 @@ function DirectorToolbar({
     </div>
   )
 }
+

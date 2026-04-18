@@ -656,7 +656,7 @@ export async function POST(req: NextRequest) {
 
           // Stream response from bridge
           for await (const event of bridgeManager.sendMessage(effectiveSessionId, currentMessage, {
-            model: 'claude-opus-4-6[1m]',
+            model: 'claude-opus-4-7[1m]',
             systemPrompt: fullSystemPrompt,
             cwd: process.cwd()
           })) {
@@ -709,10 +709,28 @@ export async function POST(req: NextRequest) {
               let realInputTokens = 0
               let estimatedContextSize = 0
               let contextWindow = 200000
-              // Get contextWindow from modelUsage (only place it exists)
+              // Get contextWindow from modelUsage (only place it exists).
+              //
+              // 2026-04-17 fix: the previous code took `Object.keys(modelUsage)[0]`
+              // which silently picks whichever model the CLI inserted FIRST.
+              // For requests served by Opus 4.7 [1m], the CLI also reports
+              // Haiku as a sub-model (likely an internal summarizer), and
+              // Haiku appears first in the object → we got Haiku's 200K
+              // window instead of Opus[1m]'s 1M. Result: every USAGE.json
+              // entry showed contextWindow=200000 and contextPct values >100%
+              // (130-150%), making the "we have 1M" promise look broken.
+              //
+              // Fix: pick the LARGEST contextWindow among reported models.
+              // The answering model is always at least as big as any helper
+              // model, so max() gives us the true window. If only one model
+              // is reported, max() returns that one. Always honest.
               if (event.modelUsage) {
-                const modelKey = Object.keys(event.modelUsage)[0]
-                if (modelKey) contextWindow = event.modelUsage[modelKey].contextWindow || 200000
+                const windows = Object.values(event.modelUsage)
+                  .map((u: any) => u?.contextWindow)
+                  .filter((n: any) => typeof n === 'number' && n > 0)
+                if (windows.length > 0) {
+                  contextWindow = Math.max(...windows)
+                }
               }
               // Estimate actual context fill
               if (event.usage) {

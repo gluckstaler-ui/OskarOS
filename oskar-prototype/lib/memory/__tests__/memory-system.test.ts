@@ -639,7 +639,8 @@ describe('P5: anthropic.ts (mocked)', () => {
 
   it('callAnthropic returns null on failure', async () => {
     mockCallAnthropic.mockResolvedValueOnce(null)
-    const result = await callAnthropic('claude-haiku-4-5-20251001', 'test', 512)
+    // 2026-04-17: Haiku removed from MemoryModel union — test now uses Sonnet 4.6.
+    const result = await callAnthropic('claude-sonnet-4-6', 'test', 512)
     expect(result).toBeNull()
   })
 })

@@ -29,7 +29,14 @@ const FONT_SIZES = {
 export interface VibeCardData {
   id: string
   name: string
-  heroImage: string           // Path to hero image
+  /**
+   * Hero image path, or null when the CD hasn't selected one yet.
+   * The card renders a gradient placeholder (using the vibe's colors) for
+   * null. Previously this was a non-nullable string backed by a 6-strategy
+   * fallback chain; that's been removed — agents couldn't tell real signal
+   * from facade. One source of truth now: the CD sets heroImage or it's null.
+   */
+  heroImage: string | null
   whoItsFor: string           // Target audience description (displayed on image)
   mood: string                // Mood/feeling description (displayed below image)
   colors: string[]            // 4 hex color codes [primary, secondary, accent, text]
@@ -169,22 +176,46 @@ const VibeCard = memo(function VibeCard({ vibe, isSelected, onSelect, onDelete, 
         </button>
       )}
 
-      {/* Hero Image with Vibe Name + Who It's For overlay — ALL LEFT ALIGNED */}
+      {/* Hero area — renders the CD-chosen image when set; otherwise a
+          gradient placeholder using the vibe's own palette so the card
+          reads as "this vibe exists, hero not yet assigned" rather than
+          showing a random arbitrary image or a broken-image icon. */}
       <div style={{
         position: 'relative',
         width: '100%',
         aspectRatio: '16/9',
         overflow: 'hidden',
       }}>
-        <img
-          src={vibe.heroImage}
-          alt={vibe.name}
-          style={{
-            width: '100%',
-            height: '100%',
-            objectFit: 'cover',
-          }}
-        />
+        {vibe.heroImage ? (
+          <img
+            src={vibe.heroImage}
+            alt={vibe.name}
+            style={{
+              width: '100%',
+              height: '100%',
+              objectFit: 'cover',
+            }}
+          />
+        ) : (
+          <div
+            style={{
+              width: '100%',
+              height: '100%',
+              background: `linear-gradient(135deg, ${vibe.colors[0] || '#1C1C1E'} 0%, ${vibe.colors[2] || vibe.colors[1] || '#3a3a3c'} 100%)`,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: vibe.colors[3] || '#ffffff',
+              fontSize: '11px',
+              fontWeight: 700,
+              letterSpacing: '0.1em',
+              textTransform: 'uppercase',
+              opacity: 0.7,
+            }}
+          >
+            No hero image yet
+          </div>
+        )}
         {/* Dark gradient overlay for text readability */}
         <div style={{
           position: 'absolute',
