@@ -88,7 +88,7 @@ Every Sith is a shortcut that feels faster. Every one ends in regression.
 
 ## What shipped this session (verify via `git log` + `git status`)
 
-### Committed as `ae56652`
+### Committed as `ae56652` (first batch)
 - `ensureSession` race fix → `sessionPromiseRef` single-flight in `app/page.tsx`
 - Director persistence → `app/api/director/save-edits/route.ts` (jsdom-based) + `saveAll` wiring in `components/studio/LivePreviewWithDirector.tsx`
 - Lumberjack prompts externalized → `agents/lumberjack-stages/` (7 stage files + `_read-instructions.md`) + `lib/memory/prompts.ts` loader + `lib/memory/lumberjack.ts` collapsed `buildStages()`
@@ -97,7 +97,7 @@ Every Sith is a shortcut that feels faster. Every one ends in regression.
 - `webDevModelRef` → stale-closure fix for OPUS/SONNET/GEMINI toggle
 - Theme setter synchronous → pill button + header transitions killed for instant toggles
 
-### Shipped but NOT YET committed (dirty working tree)
+### Committed as `cb1db42` (second batch)
 - **Potemkin removal** → 6-strategy hero-resolution chain in `vibeCards` memo collapsed to `vibe.heroImage || null`; load-session fallback `h.heroImage` dropped; `VibesGallery` renders gradient placeholder for null
 - **Vibe Resolver extraction** → `lib/vibe-resolver.ts` (pure function, ~265 lines) + `resolveVibes(...)` call replacing 150-line inline block in `loadSession`
 
@@ -111,14 +111,9 @@ Line count: `page.tsx` went from 2871 → **2555** across these changes.
 
 1. **TEST what's shipped.** Ralph explicitly paused refactors pending this. Use the Chrome extension (`mcp__Claude_in_Chrome__*`) to click through: load session → toggle billing/model → Director Mode on, edit text + swap image + gear-panel styling → Order 65/66 compaction → Gallery. Fix regressions, don't pile on more refactors.
 
-2. **Commit the dirty work** (Potemkin removal + Vibe Resolver). Don't stage unrelated files; stage specifically:
-   - `app/page.tsx`
-   - `components/VibesGallery.tsx`
-   - `lib/vibe-resolver.ts`
+2. **Preferences Context** — small, mechanical refactor. Only pull out slow-changing toggles: `billingMode`, `webDevModel`, `theme`, `useStreaming`. NOT `sessionId` or `cliSessionId` (those have different lifecycles). Removes these from 5 useCallback dep arrays. ~40 lines of new code, ~1 hour job.
 
-3. **Preferences Context** — small, mechanical refactor. Only pull out slow-changing toggles: `billingMode`, `webDevModel`, `theme`, `useStreaming`. NOT `sessionId` or `cliSessionId` (those have different lifecycles). Removes these from 5 useCallback dep arrays. ~40 lines of new code, ~1 hour job.
-
-4. **StreamHandler** — biggest remaining refactor. 551-line switch in `handleStreamingMessage` with 15 SSE event cases. The right shape is parser (pure) + reducer (React). **Requires a recorded-stream test harness FIRST**: capture one real SSE session, replay it against current impl, assert state matches. Without that, shipping blind is a net loss — streaming is the chat critical path.
+3. **StreamHandler** — biggest remaining refactor. 551-line switch in `handleStreamingMessage` with 15 SSE event cases. The right shape is parser (pure) + reducer (React). **Requires a recorded-stream test harness FIRST**: capture one real SSE session, replay it against current impl, assert state matches. Without that, shipping blind is a net loss — streaming is the chat critical path.
 
 ---
 
@@ -161,7 +156,7 @@ If any of these fail, that's the thing to debug — do not start new refactors.
 
 ## The one-liner for re-entry if compact went too lossy
 
-> "Continuing OskarOS refactor session. Previous instance shipped ensureSession race fix, Director persistence API, Lumberjack externalization, handleSend coordinator, useImagePipeline, webDevModelRef, Potemkin removal, and Vibe Resolver. Latter two not yet committed. Git HEAD: ae56652. Next: test everything in Chrome → commit dirty work → Preferences Context → StreamHandler with test harness. Read `agents/RESURRECTION.md` for full context."
+> "Continuing OskarOS refactor session. Previous instances shipped ensureSession race fix, Director persistence API, Lumberjack externalization, handleSend coordinator, useImagePipeline, webDevModelRef, Potemkin removal, and Vibe Resolver across two commits: `ae56652` + `cb1db42`. Working tree is clean on the refactor work (old `outputs/` deletions are unrelated). Next: test everything in Chrome → Preferences Context → StreamHandler with test harness. Read `.claude/RESURRECTION.md` at the repo root for full context."
 
 --- 
 
