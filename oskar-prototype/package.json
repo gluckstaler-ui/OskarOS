@@ -21,7 +21,6 @@
   "dependencies": {
     "@anthropic-ai/claude-code": "^2.1.17",
     "@anthropic-ai/sdk": "^0.71.2",
-    "@rollup/rollup-linux-arm64-gnu": "^4.60.1",
     "@types/node": "^25.0.10",
     "@types/react": "^19.2.9",
     "clsx": "^2.1.1",
