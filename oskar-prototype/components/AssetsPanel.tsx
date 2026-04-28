@@ -4,6 +4,7 @@ import { useState, useRef, useEffect, memo } from 'react'
 import { SourceImage, ImageAsset, ImageManifest, ImageQueueItem, LayoutMode } from '@/lib/types'
 import { resolvePrompt } from '@/lib/image-prompt-resolver'
 import { getImageEntriesAction } from '@/lib/session-actions'
+import { SentinelTiPanel } from './SentinelTiPanel'
 
 // ============================================================================
 // DEBOUNCED TEXTAREA - Prevents re-renders on every keystroke
@@ -77,6 +78,14 @@ interface AssetsPanelProps {
   layoutMode: LayoutMode
   /** Open the Advanced Mode overlay. WP-1A entry point. Hover redesign with View/Edit buttons comes in WP-1B. */
   onOpenAdvancedMode?: (opts?: { tab?: 'view' | 'generate' | 'edit' | 'compose' | 'layout'; image?: SourceImage | null }) => void
+  /** ASSETS / FEEDBACK toggle in panel header. Default 'assets'. */
+  assetsView?: 'assets' | 'feedback'
+  onAssetsViewChange?: (view: 'assets' | 'feedback') => void
+  /** When TopBar 🛡 fires, the page sets this so the panel auto-runs Ti. Reset via onConsumePendingCritiqueTarget. */
+  pendingCritiqueTarget?: string | null
+  onConsumePendingCritiqueTarget?: () => void
+  /** Vibe HTML filenames in this session, used by Ti for target selection */
+  vibeFilenames?: string[]
 }
 
 // Operation types parsed from prompt keywords
@@ -129,6 +138,16 @@ function BentoTile({
 }: BentoTileProps) {
   const cleanFilename = (filename: string) => filename.replace(/^\d+-/, '')
   const isHero = image.tag === 'HERO'
+  // HERO and USED coexist in display: HERO pill (top-left) + USED pill (bottom-right).
+  // USED is determined by ACTUAL vibe-HTML reference (image.usedIn), not by
+  // the tag — so a HERO that's been designated but not yet placed in any
+  // vibe shows the HERO pill but NOT the USED pill. The `tag === 'USED'`
+  // fallback covers the reconciled-on-disk case where IMAGES.md was rewritten
+  // before the parser had a chance to attach usedIn from the vibe scan.
+  // (Ralph 2026-04-25: USED is a state — "is it in a vibe? yes/no" — not
+  // a default property of HERO images.)
+  const isUsed =
+    (image.usedIn && image.usedIn.length > 0) || image.tag === 'USED'
   const nanoDesc = image.analysis?.description || ''
   const promptPreview = prompt.trim()
 
@@ -188,10 +207,32 @@ function BentoTile({
           </div>
         )}
 
-        {/* Always-visible tag badge (non-hero tags) */}
-        {!isHovered && !isHero && (() => {
+        {/* Bottom-right badge. USED pill renders for both HERO (which implies USED) and plain USED. */}
+        {!isHovered && (() => {
+          // USED pill — coexists with HERO pill (HERO is top-left, USED is bottom-right).
+          if (isUsed) {
+            return (
+              <div style={{
+                position: 'absolute', bottom: '8px', right: '8px',
+                padding: '2px 6px', borderRadius: '4px',
+                fontSize: '7px', fontWeight: 700, textTransform: 'uppercase',
+                letterSpacing: '0.5px', color: 'white',
+                backgroundColor: '#10B981'
+              }}>
+                USED
+              </div>
+            )
+          }
+          // Below: non-HERO, non-USED tags only.
+          if (isHero) return null
           const displayTag = image.tag
-          if (displayTag === 'INGESTED' || displayTag === 'APPROVED') {
+          // Green check ONLY for APPROVED — that's the genuine CD-review
+          // signal. INGESTED used to share this badge but it was just a
+          // "exists in the system" placeholder; rendering it as APPROVED
+          // falsely implied CD review. INGESTED still exists as a
+          // transient pending-section gate but renders no badge.
+          // (Ralph 2026-04-25.)
+          if (displayTag === 'APPROVED') {
             return (
               <div style={{
                 position: 'absolute', bottom: '8px', right: '8px',
@@ -915,7 +956,12 @@ export function AssetsPanel({
   onSourceImageDelete,
   selectedAssetId,
   layoutMode,
-  onOpenAdvancedMode
+  onOpenAdvancedMode,
+  assetsView = 'assets',
+  onAssetsViewChange,
+  pendingCritiqueTarget,
+  onConsumePendingCritiqueTarget,
+  vibeFilenames = []
 }: AssetsPanelProps) {
   const [expandedVibes, setExpandedVibes] = useState<Set<string>>(new Set())
   const [imageLibraryExpanded, setImageLibraryExpanded] = useState(true)
@@ -1110,54 +1156,69 @@ export function AssetsPanel({
         padding: '0 20px',
         flexShrink: 0
       }}>
-        <span style={{
-          fontSize: '12px',
-          fontWeight: 700,
-          textTransform: 'uppercase',
-          letterSpacing: '0.05em',
-          color: 'var(--text-main)',
+        {/* ASSETS / FEEDBACK toggle — replaces the old Assets label + Advanced button. */}
+        <div style={{
           display: 'flex',
           alignItems: 'center',
-          gap: '8px'
+          gap: '2px',
+          padding: '3px',
+          backgroundColor: 'var(--bg-app)',
+          borderRadius: '7px',
+          border: '1px solid var(--border-card)'
         }}>
-          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--accent, #3B82F6)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M20 7h-3a2 2 0 0 1-2-2V2"></path>
-            <path d="M9 18a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h7l4 4v10a2 2 0 0 1-2 2Z"></path>
-            <path d="M3 7.6v12.8A1.6 1.6 0 0 0 4.6 22h9.8"></path>
-          </svg>
-          Assets
-        </span>
-        <div style={{ flex: 1 }} />
-        {onOpenAdvancedMode && (
           <button
-            onClick={() => onOpenAdvancedMode({ tab: 'view' })}
+            onClick={() => onAssetsViewChange?.('assets')}
             style={{
+              padding: '5px 12px',
               fontSize: '10px',
               fontWeight: 700,
               letterSpacing: '0.05em',
-              textTransform: 'uppercase',
-              padding: '5px 10px',
-              borderRadius: '6px',
-              border: '1px solid var(--border-card)',
-              background: 'transparent',
-              color: 'var(--text-muted)',
+              borderRadius: '5px',
+              border: 'none',
               cursor: 'pointer',
-              fontFamily: 'inherit',
-              transition: 'all 0.15s',
+              transition: 'box-shadow 0.15s',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              backgroundColor: assetsView === 'assets' ? '#10b981' : 'transparent',
+              color: assetsView === 'assets' ? '#ffffff' : 'var(--text-main)',
+              boxShadow: assetsView === 'assets' ? '0 1px 3px rgba(16, 185, 129, 0.3)' : 'none',
             }}
-            onMouseEnter={(e) => {
-              ;(e.currentTarget as HTMLElement).style.borderColor = '#F59E0B'
-              ;(e.currentTarget as HTMLElement).style.color = '#F59E0B'
-            }}
-            onMouseLeave={(e) => {
-              ;(e.currentTarget as HTMLElement).style.borderColor = 'var(--border-card)'
-              ;(e.currentTarget as HTMLElement).style.color = 'var(--text-muted)'
-            }}
-            title="Open Advanced Mode — full image workstation"
           >
-            ✨ Advanced
+            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M20 7h-3a2 2 0 0 1-2-2V2"></path>
+              <path d="M9 18a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h7l4 4v10a2 2 0 0 1-2 2Z"></path>
+              <path d="M3 7.6v12.8A1.6 1.6 0 0 0 4.6 22h9.8"></path>
+            </svg>
+            ASSETS
           </button>
-        )}
+          <button
+            onClick={() => onAssetsViewChange?.('feedback')}
+            title="Sentinel Ti — critique reports"
+            style={{
+              padding: '5px 12px',
+              fontSize: '10px',
+              fontWeight: 700,
+              letterSpacing: '0.05em',
+              borderRadius: '5px',
+              border: 'none',
+              cursor: 'pointer',
+              transition: 'box-shadow 0.15s',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              backgroundColor: assetsView === 'feedback' ? '#6366f1' : 'transparent',
+              color: assetsView === 'feedback' ? '#ffffff' : 'var(--text-main)',
+              boxShadow: assetsView === 'feedback' ? '0 1px 3px rgba(99, 102, 241, 0.4)' : 'none',
+            }}
+          >
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10"/>
+            </svg>
+            FEEDBACK
+          </button>
+        </div>
+        <div style={{ flex: 1 }} />
         <span style={{
           fontSize: '10px',
           fontFamily: 'var(--font-mono)',
@@ -1167,13 +1228,28 @@ export function AssetsPanel({
           backgroundColor: 'var(--bg-app)',
           border: '1px solid var(--border-card)'
         }}>
-          {sourceImages.length} items
+          {assetsView === 'assets' ? `${sourceImages.length} items` : '🛡 Sentinel Ti'}
         </span>
       </div>
 
       {/* ================================================================== */}
-      {/* SCROLLABLE CONTENT                                                */}
+      {/* FEEDBACK VIEW — Sentinel Ti critique reports                       */}
       {/* ================================================================== */}
+      {assetsView === 'feedback' && (
+        <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
+          <SentinelTiPanel
+            sessionId={sessionId}
+            vibeFilenames={vibeFilenames}
+            pendingTarget={pendingCritiqueTarget}
+            onConsumePendingTarget={onConsumePendingCritiqueTarget}
+          />
+        </div>
+      )}
+
+      {/* ================================================================== */}
+      {/* SCROLLABLE CONTENT — Assets view (images)                         */}
+      {/* ================================================================== */}
+      {assetsView === 'assets' && (
       <div style={{
         flex: 1,
         overflowY: 'auto',
@@ -1602,9 +1678,10 @@ export function AssetsPanel({
           </div>
         )}
       </div>
+      )}
 
-      {/* Progress Bar */}
-      {totalAssets > 0 && (
+      {/* Progress Bar (assets view only) */}
+      {assetsView === 'assets' && totalAssets > 0 && (
         <div style={{
           padding: '12px 16px',
           borderTop: '1px solid var(--border-card)',

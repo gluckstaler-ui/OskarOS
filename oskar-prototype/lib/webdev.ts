@@ -4,11 +4,12 @@
 // ==========================================
 
 import { spawn } from 'child_process'
-import { existsSync, readFileSync } from 'fs'
-import { readFile, writeFile } from 'fs/promises'
+import { existsSync, readFileSync, createWriteStream } from 'fs'
+import { readFile, writeFile, readdir, mkdir } from 'fs/promises'
 import { join } from 'path'
 import type { ParsedVibe } from './creative-brief-parser'
 import { trackUsageFromCLIOutput } from './usage-tracker'
+import { verifyVibeHtml, parseTrailingJson } from './vibe-verify'
 
 // ==========================================
 // Load WebDev Agent Prompt from MD file
@@ -341,22 +342,23 @@ export interface VibeBuildResult {
 
 export async function buildVibeHTML(
   sessionId: string,
-  vibe: ParsedVibe,
+  target: string,
   sessionPath: string,
-  sessionImages: string[],
   model: string = 'claude-sonnet-4-6'
 ): Promise<VibeBuildResult> {
-  const filename = `vibe-${vibe.index}-${vibe.slug}.html`
-  const filePath = join(sessionPath, filename)
   const requestId = Date.now()
-
-  // Build the vibe details
-  const vibeDetails = buildVibePrompt(vibe, sessionImages)
 
   // Load the full agent prompt from webdev-agent.md
   const agentPrompt = loadWebDevAgentPrompt()
 
-  // User prompt: agent identity + session context + vibe details + action
+  // Ralph 2026-04-26: agent-friendly prompt. WebDev (a Claude instance) finds
+  // the matching VIBE file itself by reading the session folder. We DON'T
+  // pre-parse the brief into a struct — that path was the silent-failure surface
+  // (case-sensitive header regex etc.). Hand WebDev the target string and let
+  // it figure out which vibe file matches.
+  //
+  // The agent ends with a JSON manifest line so we can parse the actual
+  // filename + index it produced (it picks the slug, we accept it).
   const userPrompt = `
 ${agentPrompt}
 
@@ -364,51 +366,103 @@ ${agentPrompt}
 
 ## SESSION CONTEXT
 
-**Session Path:** ${sessionPath}
-**Target File:** ${filePath}
-**Target Filename:** ${filename}
+**Session folder:** ${sessionPath}
+**Target the user asked for:** "${target}"
 
-### Required Reading Files
-- **VIBE-${vibe.index}.md:** ${join(sessionPath, `VIBE-${vibe.index}.md`)} ← Contains creative brief + image assignments for THIS vibe
-- **BUILD.md:** ${join(sessionPath, 'BUILD.md')}
+The session folder contains one or more vibe spec files (typically named
+\`VIBE-N.md\` or \`vibe-N.md\` where N is a number). Find the one that matches
+"${target}" by:
+- File name (e.g. target "vibe-5" matches VIBE-5.md or vibe-5.md)
+- The \`#\` heading inside the file (e.g. "# Vibe 5: Oskar Home Staging")
+- The vibe slug or display name in the heading
+
+If no file matches, list the vibe files you DID find and ask the user to
+clarify — don't guess.
+
+There may also be a BUILD.md in the folder with cross-vibe context.
 
 ---
 
 ## YOUR TASK
 
-Build the complete HTML landing page for **Vibe ${vibe.index}: ${vibe.name}**.
+Build the complete HTML landing page for the vibe matching "${target}".
 
-**Read VIBE-${vibe.index}.md first.** It contains the full creative brief, image map, and image assignments for this vibe. Then follow your process (Step 0 through Step 6).
+Write the HTML to a file in the session folder named \`vibe-{N}-{slug}.html\`
+where {N} is the vibe number and {slug} is a kebab-case version of the vibe
+name. (Example: \`vibe-5-oskar-home-staging.html\`.)
 
-Write the HTML file to: \`${filePath}\`
+Do NOT output the HTML in chat. Use your file writing capability.
 
-Do NOT output the HTML in chat. Use your file writing capability to create the file directly.
-After writing, confirm with exactly: "File written: ${filename}"
+---
 
-### Vibe Details (Quick Reference)
+## REQUIRED OUTPUT FORMAT
 
-${vibeDetails}
+After writing the file, end your response with EXACTLY this — a single JSON
+line, on its own line, as the last thing in your response:
 
-NOW READ VIBE-${vibe.index}.md AND BUILD.
+\`\`\`
+{"filename": "vibe-N-slug.html", "vibeIndex": N, "vibeName": "The Vibe Name"}
+\`\`\`
+
+The orchestrator parses this line to know what file you produced. Don't skip
+it. Don't wrap it in extra text after.
 `
+
+  // Ralph 2026-04-25: when images are present, WebDev "overthinks" them —
+  // analyzes each image, plans placement, second-guesses, and routinely
+  // blows past the 8-min budget. Double the timeout to 16 min on
+  // image-bearing vibes. Image-free vibes keep the original budget so
+  // simple builds don't sit waiting on a stuck process.
+  // Detected by checking the session folder for any image files.
+  const sessionImages = await readdir(sessionPath).catch(() => [] as string[])
+    .then(files => files.filter(f => /\.(jpg|jpeg|png|webp|gif|avif)$/i.test(f)))
+  const hasImages = sessionImages.length > 0
+  const TIMEOUT_MS = hasImages ? 16 * 60 * 1000 : 8 * 60 * 1000
+  const TIMEOUT_LABEL = hasImages ? '16 min (images present)' : '8 min'
+
+  // ── Set up the per-build debug log up here (outside the Promise executor)
+  // so we can `await mkdir` safely. Inside `new Promise(...)` an async executor
+  // would swallow rejections — antipattern. (Ralph 2026-04-26)
+  const logTimestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, -5)
+  const logsDir = join(sessionPath, 'logs')
+  const debugLogPath = join(logsDir, `_debug-webdev-${logTimestamp}-${target.replace(/[^a-zA-Z0-9-]/g, '_')}.log`)
+  let debugStream: ReturnType<typeof createWriteStream> | null = null
+  try {
+    await mkdir(logsDir, { recursive: true })
+    debugStream = createWriteStream(debugLogPath, { flags: 'a' })
+    debugStream.write(`# WebDev debug log — target="${target}" — ${new Date().toISOString()}\n`)
+    debugStream.write(`# model=${model} timeout=${TIMEOUT_LABEL} hasImages=${hasImages} (${sessionImages.length} files)\n`)
+    debugStream.write(`# raw stream-json from claude --print follows:\n\n`)
+    console.log(`[WebDev] Debug log: ${debugLogPath}`)
+  } catch (err) {
+    console.error(`[WebDev] Failed to open debug log ${debugLogPath}:`, err)
+    debugStream = null
+  }
 
   return new Promise((resolve) => {
     const cleanup = () => {}  // No temp files to clean up anymore
 
     const claudePath = findClaudeBinary()
 
-    console.log(`[WebDev] Building vibe ${vibe.index}: ${vibe.name}...`)
-    console.log(`[WebDev] Target file: ${filePath}`)
+    console.log(`[WebDev] Building vibe target="${target}"...`)
+    console.log(`[WebDev] Session path: ${sessionPath}`)
     console.log(`[WebDev] Claude binary: ${claudePath}`)
     console.log(`[WebDev] Prompt length: ${userPrompt.length} chars`)
     console.log(`[WebDev] Session path exists: ${existsSync(sessionPath)}`)
+    console.log(`[WebDev] Timeout budget: ${TIMEOUT_LABEL} (${sessionImages.length} images)`)
 
     // Spawn Claude Code directly with args array — NO shell expansion.
     // Previously used sh -c with $(cat promptFile) which broke on backticks/$/{} in the agent prompt.
     // Now we pass the prompt as a direct positional arg to avoid shell interpretation.
+    //
+    // Ralph 2026-04-26: --include-partial-messages surfaces extended-thinking
+    // text in the JSONL/stream-json. Without it, opus-4-7 returns thinking blocks
+    // with empty `thinking` text + signature only — same redaction we hit on
+    // every prior failed build. Adding it makes the debug log actually useful.
     const child = spawn(claudePath, [
       '--verbose',
       '--output-format', 'stream-json',
+      '--include-partial-messages',
       '--model', model,
       '--permission-mode', 'bypassPermissions',
       '--print',
@@ -424,44 +478,72 @@ NOW READ VIBE-${vibe.index}.md AND BUILD.
       }
     })
 
+    // Debug log was opened above the Promise — `debugStream` is closed-over here.
+
     let fullOutput = ''
 
-    const timeout = setTimeout(() => {
+    const timeout = setTimeout(async () => {
       child.kill('SIGTERM')
       cleanup()
-      // Check if the file was written BEFORE the timeout killed the process
-      if (existsSync(filePath)) {
-        console.log(`[WebDev] ⏱️ Timeout fired but file EXISTS: ${filePath}`)
+      // Wait briefly for any in-flight stdout to drain, so our recovery scan
+      // sees the agent's last events (especially the tool_result from the
+      // wc/ls call after writing the file).
+      await new Promise<void>((r) => setTimeout(r, 1000))
+
+      // Try every recovery path — same logic as the close handler. The agent
+      // very often writes the file successfully but gets killed before it can
+      // emit the manifest line. We don't want to throw away that work.
+      let manifest = parseTrailingJson(fullOutput)
+      if (!manifest) {
+        const recovered = recoverFilenameFromOutput(fullOutput, sessionPath)
+        if (recovered) manifest = { filename: recovered, vibeIndex: extractVibeIndexFromFilename(recovered), vibeName: target }
+      }
+      if (!manifest) {
+        const recent = await findRecentlyWrittenVibeHtml(sessionPath, target, requestId)
+        if (recent) manifest = { filename: recent, vibeIndex: extractVibeIndexFromFilename(recent), vibeName: target }
+      }
+
+      if (manifest && existsSync(join(sessionPath, manifest.filename))) {
+        console.log(`[WebDev] ⏱️ Timeout fired but file EXISTS: ${manifest.filename} (recovered)`)
         resolve({
-          vibeIndex: vibe.index,
-          vibeName: vibe.name,
-          filename,
-          status: 'complete'
+          vibeIndex: manifest.vibeIndex,
+          vibeName: manifest.vibeName,
+          filename: manifest.filename,
+          status: 'complete',
         })
       } else {
         resolve({
-          vibeIndex: vibe.index,
-          vibeName: vibe.name,
-          filename,
+          vibeIndex: 0,
+          vibeName: target,
+          filename: '',
           status: 'error',
-          error: `Vibe ${vibe.index} build timed out after 8 minutes and no file was written`
+          error: `Build for "${target}" timed out after ${TIMEOUT_LABEL} and no output file was found`,
         })
       }
-    }, 480000) // 8 min timeout per vibe
+    }, TIMEOUT_MS)
 
     child.stdout.on('data', (data) => {
       fullOutput += data.toString()
+      if (debugStream) debugStream.write(data)
     })
 
     child.stderr.on('data', (data) => {
       const stderr = data.toString()
-      console.error(`[WebDev] vibe ${vibe.index} stderr:`, stderr.substring(0, 500))
+      console.error(`[WebDev] target="${target}" stderr:`, stderr.substring(0, 500))
+      if (debugStream) {
+        debugStream.write(`\n[STDERR ${new Date().toISOString()}]\n`)
+        debugStream.write(data)
+      }
     })
 
     child.stdout.on('end', () => {
-      console.log(`[WebDev] vibe ${vibe.index} stdout ended. Output length: ${fullOutput.length} chars`)
+      console.log(`[WebDev] target="${target}" stdout ended. Output length: ${fullOutput.length} chars`)
       if (fullOutput.length < 100) {
         console.log(`[WebDev] Full output: ${fullOutput}`)
+      }
+      if (debugStream) {
+        debugStream.write(`\n# stdout ended — total ${fullOutput.length} chars\n`)
+        debugStream.end()
       }
     })
 
@@ -469,9 +551,9 @@ NOW READ VIBE-${vibe.index}.md AND BUILD.
       clearTimeout(timeout)
       cleanup()
       resolve({
-        vibeIndex: vibe.index,
-        vibeName: vibe.name,
-        filename,
+        vibeIndex: 0,
+        vibeName: target,
+        filename: '',
         status: 'error',
         error: error.message
       })
@@ -488,76 +570,123 @@ NOW READ VIBE-${vibe.index}.md AND BUILD.
 
       // Track WebDev token usage (even on error - we still used tokens)
       try {
-        await trackUsageFromCLIOutput(sessionId, 'WebDev', fullOutput, `Build vibe ${vibe.index}: ${vibe.name}`)
+        await trackUsageFromCLIOutput(sessionId, 'WebDev', fullOutput, `Build target: ${target}`)
       } catch (usageError) {
         console.error(`[WebDev] Failed to track usage:`, usageError)
       }
 
-      // VERIFY: Check if the file was actually written — regardless of exit code.
-      // The agent often writes the HTML file successfully but gets killed (code 143)
-      // while doing post-build work (logging to BUILD.md, etc.)
-      if (!existsSync(filePath)) {
-        if (code !== 0) {
-          resolve({
-            vibeIndex: vibe.index,
-            vibeName: vibe.name,
-            filename,
-            status: 'error',
-            error: `CLI exited with code ${code} and no file was written`
-          })
-          return
+      // PARSE: extract the agent's manifest (filename + metadata).
+      // Ralph 2026-04-26: WebDev picks the filename itself; agent ends with
+      // a JSON manifest line giving us what it produced.
+      let manifest = parseTrailingJson(fullOutput)
+
+      // FALLBACK 1 (Ralph 2026-04-26): when the agent gets killed by the
+      // timeout BEFORE it can emit the manifest, scan the agent's output
+      // for any `tool_result` that mentions a `vibe-*.html` file in this
+      // session folder — that's the file the agent wrote. The work was
+      // done; we just lost the receipt.
+      if (!manifest) {
+        const recovered = recoverFilenameFromOutput(fullOutput, sessionPath)
+        if (recovered) {
+          console.warn(`[WebDev] ⚠️ No manifest line; recovered filename from tool output: ${recovered}`)
+          manifest = {
+            filename: recovered,
+            vibeIndex: extractVibeIndexFromFilename(recovered),
+            vibeName: target,
+          }
         }
-        console.error(`[WebDev] ❌ File not created: ${filePath}`)
-        console.error(`[WebDev] CLI output:`, fullOutput.substring(0, 2000))
+      }
+
+      // FALLBACK 2: scan the session folder for any vibe-*.html modified
+      // during the build window. Last-ditch — useful when the agent wrote
+      // via Bash heredocs that don't surface as parseable tool_result paths.
+      if (!manifest) {
+        const recent = await findRecentlyWrittenVibeHtml(sessionPath, target, requestId)
+        if (recent) {
+          console.warn(`[WebDev] ⚠️ No manifest, no tool_result hit; found recent vibe HTML on disk: ${recent}`)
+          manifest = {
+            filename: recent,
+            vibeIndex: extractVibeIndexFromFilename(recent),
+            vibeName: target,
+          }
+        }
+      }
+
+      if (!manifest) {
+        console.error(`[WebDev] ❌ No manifest, no tool_result file path, no recent vibe HTML on disk. Last 500 chars:`)
+        console.error(fullOutput.substring(Math.max(0, fullOutput.length - 500)))
         resolve({
-          vibeIndex: vibe.index,
-          vibeName: vibe.name,
-          filename,
+          vibeIndex: 0,
+          vibeName: target,
+          filename: '',
           status: 'error',
-          error: `WebDev failed to create file: ${filename}`
+          error: `Agent finished but produced no manifest and no detectable output file. CLI exit=${code}.`,
+        })
+        return
+      }
+      const filePath = join(sessionPath, manifest.filename)
+
+      // VERIFY: file exists on disk
+      if (!existsSync(filePath)) {
+        resolve({
+          vibeIndex: manifest.vibeIndex,
+          vibeName: manifest.vibeName,
+          filename: manifest.filename,
+          status: 'error',
+          error: `Manifest claims ${manifest.filename} was written, but the file isn't on disk (CLI exit=${code})`,
         })
         return
       }
 
-      // File exists - inject bridge script and scrollbar CSS
+      // VERIFY: HTML parses, image refs resolve, no obvious corruption
+      const issues = await verifyVibeHtml(manifest.filename, sessionPath)
+      if (issues.length > 0) {
+        const summary = issues.slice(0, 5).map((i) => `${i.kind}: ${i.detail}`).join('; ')
+        console.warn(`[WebDev] ⚠️ Verification found ${issues.length} issue(s) in ${manifest.filename}: ${summary}`)
+        // For now, log the issues but still mark as complete unless ALL images are missing.
+        // Eventually this should be configurable per-issue-kind.
+        const fatalKinds = new Set(['parse', 'no-body'])
+        const fatalCount = issues.filter((i) => fatalKinds.has(i.kind)).length
+        if (fatalCount > 0) {
+          resolve({
+            vibeIndex: manifest.vibeIndex,
+            vibeName: manifest.vibeName,
+            filename: manifest.filename,
+            status: 'error',
+            error: `Build wrote file but failed verification: ${summary}`,
+          })
+          return
+        }
+      }
+
+      // POST-PROCESS: inject scrollbar CSS only.
+      // (Bridge-script injection removed 2026-04-26 — was the source of the
+      // Director Mode click-eating bug. Parent app owns Director Mode now.)
       try {
         let html = await readFile(filePath, 'utf-8')
-
-        // Inject scrollbar CSS into <head> if not already present
         if (!html.includes('data-oskar-scrollbar')) {
           if (html.includes('</head>')) {
             html = html.replace('</head>', SCROLLBAR_CSS + '</head>')
           } else if (html.includes('<style>')) {
-            // Insert after first <style> tag
             html = html.replace('<style>', '<style>' + SCROLLBAR_CSS.replace(/<\/?style[^>]*>/g, ''))
           }
         }
-
-        // Inject bridge script for live preview
-        if (!html.includes('oskar-selected')) {
-          if (html.includes('</body>')) {
-            html = html.replace('</body>', BRIDGE_SCRIPT + '</body>')
-          } else {
-            html += BRIDGE_SCRIPT
-          }
-        }
-
         await writeFile(filePath, html, 'utf-8')
 
-        console.log(`[WebDev] ✅ Vibe ${vibe.index} built: ${filename}`)
+        console.log(`[WebDev] ✅ Built: ${manifest.filename} (${issues.length} non-fatal verify issues)`)
         resolve({
-          vibeIndex: vibe.index,
-          vibeName: vibe.name,
-          filename,
-          status: 'complete'
+          vibeIndex: manifest.vibeIndex,
+          vibeName: manifest.vibeName,
+          filename: manifest.filename,
+          status: 'complete',
         })
       } catch (err) {
         resolve({
-          vibeIndex: vibe.index,
-          vibeName: vibe.name,
-          filename,
+          vibeIndex: manifest.vibeIndex,
+          vibeName: manifest.vibeName,
+          filename: manifest.filename,
           status: 'error',
-          error: `Failed to inject bridge script: ${err}`
+          error: `Failed to inject scrollbar CSS: ${err}`,
         })
       }
     })
@@ -570,17 +699,14 @@ NOW READ VIBE-${vibe.index}.md AND BUILD.
 
 export async function buildVibeHTMLGemini(
   sessionId: string,
-  vibe: ParsedVibe,
+  target: string,
   sessionPath: string,
-  sessionImages: string[]
 ): Promise<VibeBuildResult> {
-  const filename = `vibe-${vibe.index}-${vibe.slug}.html`
-  const filePath = join(sessionPath, filename)
   const requestId = Date.now()
-
-  const vibeDetails = buildVibePrompt(vibe, sessionImages)
   const agentPrompt = loadWebDevAgentPrompt()
 
+  // Same agent-friendly prompt as the Claude path. WebDev finds the matching
+  // VIBE file itself; we don't pre-parse anything.
   const userPrompt = `
 ${agentPrompt}
 
@@ -588,41 +714,50 @@ ${agentPrompt}
 
 ## SESSION CONTEXT
 
-**Session Path:** ${sessionPath}
-**Target File:** ${filePath}
-**Target Filename:** ${filename}
+**Session folder:** ${sessionPath}
+**Target the user asked for:** "${target}"
 
-### Required Reading Files
-- **VIBE-${vibe.index}.md:** ${join(sessionPath, `VIBE-${vibe.index}.md`)}
-- **BUILD.md:** ${join(sessionPath, 'BUILD.md')}
+The session folder contains one or more vibe spec files (typically named
+\`VIBE-N.md\` or \`vibe-N.md\` where N is a number). Find the one that matches
+"${target}" by file name, by the heading inside the file, or by slug/name.
+
+If no file matches, list what you found and ask the user to clarify — don't guess.
 
 ---
 
 ## YOUR TASK
 
-Build the complete HTML landing page for **Vibe ${vibe.index}: ${vibe.name}**.
+Build the complete HTML landing page for the vibe matching "${target}".
+Write the HTML to a file in the session folder named \`vibe-{N}-{slug}.html\`.
 
-**Read VIBE-${vibe.index}.md first** using shell commands (cat). It contains the full creative brief, image map, and image assignments for this vibe.
+Do NOT output the HTML in chat. Use shell file writing.
 
-Write the HTML file to: \`${filePath}\`
+---
 
-Do NOT output the HTML in chat. Use your file writing capability to create the file directly.
-After writing, confirm with exactly: "File written: ${filename}"
+## REQUIRED OUTPUT FORMAT
 
-### Vibe Details (Quick Reference)
+End your response with EXACTLY this single JSON line on its own line:
 
-${vibeDetails}
-
-NOW READ VIBE-${vibe.index}.md AND BUILD.
+\`\`\`
+{"filename": "vibe-N-slug.html", "vibeIndex": N, "vibeName": "The Vibe Name"}
+\`\`\`
 `
+
+  // Same overthink-on-images problem — double timeout when images are present
+  const sessionImages = await readdir(sessionPath).catch(() => [] as string[])
+    .then(files => files.filter(f => /\.(jpg|jpeg|png|webp|gif|avif)$/i.test(f)))
+  const hasImagesGem = sessionImages.length > 0
+  const TIMEOUT_MS_GEM = hasImagesGem ? 20 * 60 * 1000 : 10 * 60 * 1000
+  const TIMEOUT_LABEL_GEM = hasImagesGem ? '20 min (images present)' : '10 min'
 
   return new Promise((resolve) => {
     const geminiPath = findGeminiBinary()
 
-    console.log(`[WebDev-Gemini] Building vibe ${vibe.index}: ${vibe.name}...`)
-    console.log(`[WebDev-Gemini] Target file: ${filePath}`)
+    console.log(`[WebDev-Gemini] Building target="${target}"`)
+    console.log(`[WebDev-Gemini] Session path: ${sessionPath}`)
     console.log(`[WebDev-Gemini] Gemini binary: ${geminiPath}`)
     console.log(`[WebDev-Gemini] Prompt length: ${userPrompt.length} chars`)
+    console.log(`[WebDev-Gemini] Timeout budget: ${TIMEOUT_LABEL_GEM} (${sessionImages.length} images)`)
 
     const child = spawn(geminiPath, [
       '-m', 'gemini-3.1-pro-preview',
@@ -640,62 +775,158 @@ NOW READ VIBE-${vibe.index}.md AND BUILD.
       }
     })
 
-    // Close stdin so Gemini doesn't wait for input
     child.stdin.end()
-
     let fullOutput = ''
 
     const timeout = setTimeout(() => {
       child.kill('SIGTERM')
-      if (existsSync(filePath)) {
-        console.log(`[WebDev-Gemini] Timeout but file EXISTS: ${filePath}`)
-        resolve({ vibeIndex: vibe.index, vibeName: vibe.name, filename, status: 'complete' })
+      const partial = parseTrailingJson(fullOutput)
+      if (partial && existsSync(join(sessionPath, partial.filename))) {
+        resolve({ vibeIndex: partial.vibeIndex, vibeName: partial.vibeName, filename: partial.filename, status: 'complete' })
       } else {
-        resolve({ vibeIndex: vibe.index, vibeName: vibe.name, filename, status: 'error', error: 'Gemini build timed out after 10 minutes' })
+        resolve({ vibeIndex: 0, vibeName: target, filename: '', status: 'error', error: `Gemini build for "${target}" timed out after ${TIMEOUT_LABEL_GEM}` })
       }
-    }, 600000) // 10 min timeout
+    }, TIMEOUT_MS_GEM)
 
     child.stdout.on('data', (data) => { fullOutput += data.toString() })
     child.stderr.on('data', (data) => { console.error(`[WebDev-Gemini] stderr:`, data.toString().substring(0, 500)) })
 
     child.on('error', (error) => {
       clearTimeout(timeout)
-      resolve({ vibeIndex: vibe.index, vibeName: vibe.name, filename, status: 'error', error: error.message })
+      resolve({ vibeIndex: 0, vibeName: target, filename: '', status: 'error', error: error.message })
     })
 
     child.on('close', async (code) => {
       clearTimeout(timeout)
       console.log(`[WebDev-Gemini] Gemini exited with code ${code}. Output: ${fullOutput.length} chars`)
 
+      let manifest = parseTrailingJson(fullOutput)
+      // Same recovery fallbacks as the Claude path
+      if (!manifest) {
+        const recovered = recoverFilenameFromOutput(fullOutput, sessionPath)
+        if (recovered) manifest = { filename: recovered, vibeIndex: extractVibeIndexFromFilename(recovered), vibeName: target }
+      }
+      if (!manifest) {
+        const recent = await findRecentlyWrittenVibeHtml(sessionPath, target, requestId)
+        if (recent) manifest = { filename: recent, vibeIndex: extractVibeIndexFromFilename(recent), vibeName: target }
+      }
+      if (!manifest) {
+        resolve({ vibeIndex: 0, vibeName: target, filename: '', status: 'error', error: `Gemini finished but produced no manifest and no detectable output file` })
+        return
+      }
+      const filePath = join(sessionPath, manifest.filename)
       if (!existsSync(filePath)) {
-        resolve({ vibeIndex: vibe.index, vibeName: vibe.name, filename, status: 'error', error: `Gemini exited with code ${code}, no file written` })
+        resolve({ vibeIndex: manifest.vibeIndex, vibeName: manifest.vibeName, filename: manifest.filename, status: 'error', error: `Manifest claims ${manifest.filename} was written, but file isn't on disk (exit=${code})` })
         return
       }
 
-      // Inject bridge script and scrollbar CSS
+      // Verification floor (parse + image refs resolve)
+      const issues = await verifyVibeHtml(manifest.filename, sessionPath)
+      const fatalKinds = new Set(['parse', 'no-body'])
+      const fatalCount = issues.filter((i) => fatalKinds.has(i.kind)).length
+      if (fatalCount > 0) {
+        const summary = issues.slice(0, 5).map((i) => `${i.kind}: ${i.detail}`).join('; ')
+        resolve({ vibeIndex: manifest.vibeIndex, vibeName: manifest.vibeName, filename: manifest.filename, status: 'error', error: `Build wrote file but failed verification: ${summary}` })
+        return
+      }
+
+      // Scrollbar CSS only — bridge script removed (was Director Mode bug source)
       try {
         let html = await readFile(filePath, 'utf-8')
-
         if (!html.includes('data-oskar-scrollbar')) {
           if (html.includes('</head>')) {
             html = html.replace('</head>', SCROLLBAR_CSS + '</head>')
           }
         }
-
-        if (!html.includes('oskar-selected')) {
-          if (html.includes('</body>')) {
-            html = html.replace('</body>', BRIDGE_SCRIPT + '</body>')
-          } else {
-            html += BRIDGE_SCRIPT
-          }
-        }
-
         await writeFile(filePath, html, 'utf-8')
-        console.log(`[WebDev-Gemini] Vibe ${vibe.index} built: ${filename}`)
-        resolve({ vibeIndex: vibe.index, vibeName: vibe.name, filename, status: 'complete' })
+        console.log(`[WebDev-Gemini] ✅ Built: ${manifest.filename}`)
+        resolve({ vibeIndex: manifest.vibeIndex, vibeName: manifest.vibeName, filename: manifest.filename, status: 'complete' })
       } catch (err) {
-        resolve({ vibeIndex: vibe.index, vibeName: vibe.name, filename, status: 'error', error: `Failed to inject bridge script: ${err}` })
+        resolve({ vibeIndex: manifest.vibeIndex, vibeName: manifest.vibeName, filename: manifest.filename, status: 'error', error: `Failed to inject scrollbar CSS: ${err}` })
       }
     })
   })
+}
+
+// ============================================================================
+// Manifest-recovery fallbacks (Ralph 2026-04-26)
+//
+// When the timeout kills the agent before it can emit its final JSON manifest
+// line, the FILE was usually written but we don't know its name. These two
+// helpers scrape that information from anywhere we can find it:
+//
+//   1. recoverFilenameFromOutput — scan the agent's stream-json output for
+//      tool_result events that mention a vibe-*.html path in the session
+//      folder. The agent typically runs `wc -c` or `ls -la` after writing.
+//
+//   2. findRecentlyWrittenVibeHtml — last resort. Scan the session folder
+//      for any vibe-*.html modified within the build window (matched against
+//      the request's start time). Pick the closest match to the target name.
+// ============================================================================
+
+function recoverFilenameFromOutput(output: string, sessionPath: string): string | null {
+  // Match any reference to a vibe-*.html under the session path. Look in the
+  // last 8KB of output (where the most recent tool_results live).
+  const tail = output.slice(-8192)
+  const escaped = sessionPath.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+  const re = new RegExp(`${escaped}/(vibe-[A-Za-z0-9_-]+\\.html)`, 'g')
+  const matches = [...tail.matchAll(re)]
+  if (matches.length === 0) return null
+  // Take the LAST match (most recent file the agent touched)
+  return matches[matches.length - 1][1]
+}
+
+async function findRecentlyWrittenVibeHtml(
+  sessionPath: string,
+  target: string,
+  buildStartMs: number,
+): Promise<string | null> {
+  try {
+    const { stat } = await import('fs/promises')
+    const files = await readdir(sessionPath)
+    const vibeFiles = files.filter((f) => /^vibe-.+\.html$/i.test(f))
+    if (vibeFiles.length === 0) return null
+
+    // Find the candidate whose mtime is most recent AND newer than buildStartMs
+    let best: { name: string; mtimeMs: number } | null = null
+    for (const f of vibeFiles) {
+      try {
+        const s = await stat(join(sessionPath, f))
+        if (s.mtimeMs < buildStartMs) continue
+        if (!best || s.mtimeMs > best.mtimeMs) {
+          best = { name: f, mtimeMs: s.mtimeMs }
+        }
+      } catch { /* skip */ }
+    }
+    if (!best) return null
+
+    // Prefer a file whose name contains the target (or close to it). This is
+    // a tiebreaker if the agent wrote multiple files during the build.
+    const targetLower = target.toLowerCase()
+    const targetMatching = vibeFiles.filter((f) => f.toLowerCase().includes(targetLower))
+    if (targetMatching.length > 0) {
+      // If our best-by-mtime is in the matching set, return it; otherwise
+      // return the best of the matching set
+      if (targetMatching.includes(best.name)) return best.name
+      let bestMatching: { name: string; mtimeMs: number } | null = null
+      for (const f of targetMatching) {
+        try {
+          const s = await stat(join(sessionPath, f))
+          if (s.mtimeMs < buildStartMs) continue
+          if (!bestMatching || s.mtimeMs > bestMatching.mtimeMs) {
+            bestMatching = { name: f, mtimeMs: s.mtimeMs }
+          }
+        } catch { /* skip */ }
+      }
+      if (bestMatching) return bestMatching.name
+    }
+    return best.name
+  } catch {
+    return null
+  }
+}
+
+function extractVibeIndexFromFilename(filename: string): number {
+  const m = filename.match(/^vibe-(\d+)/i)
+  return m ? parseInt(m[1], 10) : 0
 }

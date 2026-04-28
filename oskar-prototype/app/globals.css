@@ -211,6 +211,11 @@ html {
   border-radius: var(--radius-card);
   box-shadow: var(--shadow-card);
   overflow: hidden;
+  /* Grid items default to min-height: auto (fit content), which causes them
+     to grow beyond their grid row and break inner scrolling. Force the item
+     to respect its track. align-self stretches to fill the row vertically. */
+  min-height: 0;
+  align-self: stretch;
   transition: var(--transition-theme);
 }
 

@@ -59,6 +59,12 @@ export default function Home() {
   const [sessionId, setSessionIdState] = useState<string | null>(null)
   const [businessName, setBusinessName] = useState<string>('')
 
+  // Sentinel Ti — manual critique trigger from TopBar 🛡 button.
+  // Switches AssetsPanel to FEEDBACK view and seeds the panel with a target;
+  // the panel auto-runs the critique then clears pendingCritiqueTarget.
+  const [assetsView, setAssetsView] = useState<'assets' | 'feedback'>('assets')
+  const [pendingCritiqueTarget, setPendingCritiqueTarget] = useState<string | null>(null)
+
   // Persist sessionId so refresh reloads the same session
   const setSessionId = useCallback((id: string | null) => {
     setSessionIdState(id)
@@ -425,8 +431,13 @@ export default function Home() {
         const sessionMd = data.rawFiles.session
         const conversationLog = sessionMd.split('## Conversation Log')[1] || ''
 
-        // Parse entries like: #### CD → User | 06:18:32 or #### User → CD | 06:18:32
-        const entryRegex = /####\s+(CD|User|COO)\s*(?:→|->)?\s*(User|CD)?\s*\|\s*(\d{2}:\d{2}:\d{2})\n([\s\S]*?)(?=####|$)/gi
+        // Parse entries like:
+        //   #### CD → User | 06:18:32
+        //   #### User → CD | 06:18:32
+        //   #### CD | 2026-04-20 14:32:05      (new DATE + TIME format)
+        // The timestamp capture accepts an optional `YYYY-MM-DD ` prefix so
+        // historical sessions written before the format change still load.
+        const entryRegex = /####\s+(CD|User|COO)\s*(?:→|->)?\s*(User|CD)?\s*\|\s*((?:\d{4}-\d{2}-\d{2}\s+)?\d{2}:\d{2}:\d{2})\n([\s\S]*?)(?=####|$)/gi
         const loadedMessages: ConversationMessage[] = []
         let match
 
@@ -494,8 +505,11 @@ export default function Home() {
           filename: img.filename,
           path: img.path,
           uploadedAt: new Date().toISOString(),
-          // Session-restored images: use IMAGES.md tag, or default to INGESTED
-          // so they never reappear as "pending uploads" after refresh
+          // Session-restored images: use the tag from IMAGES.md when present;
+          // fall back to INGESTED so the image doesn't slide into Studio's
+          // "Uploads (pending)" section after a refresh. INGESTED is a SILENT
+          // gate now — the checkmark badge only renders for `APPROVED` (genuine
+          // CD review), so falling back here is no longer a false-approval. */
           tag: entry?.tag || 'INGESTED' as const,
           analysis: entry ? {
             elements: [],
@@ -516,6 +530,21 @@ export default function Home() {
       // SourceImage with parentImage/generationMode/preset/isGenerated, OR
       // synthesize a fresh entry for generated images that aren't in `data.images`
       // (the admin route currently filters them out).
+      //
+      // Ralph 2026-04-25 — ghost-deletion fix: synth path used to trust
+      // every LINEAGE record blindly. When a user deleted a generated image,
+      // the file went away on disk, IMAGES.md entry was scrubbed, BUT
+      // LINEAGE.json kept the record (history). Next session reload, the
+      // synth branch hydrated from LINEAGE → image reappeared as a ghost
+      // tile pointing at a 404 path. Fix: cross-reference against
+      // `data.files` (every file actually on disk) and skip records whose
+      // resultImage no longer exists. LINEAGE history stays intact for
+      // audit; the panel just stops resurrecting deleted assets.
+      const filesOnDisk: Set<string> = new Set(
+        (data.files || [])
+          .filter((f: { type?: string }) => f.type === 'image')
+          .map((f: { name: string }) => f.name),
+      )
       try {
         const lineageRes = await fetch(`/api/sessions/${loadSessionId}/lineage`)
         if (lineageRes.ok) {
@@ -548,8 +577,15 @@ export default function Home() {
                   suggestedExtractions: existing.analysis?.suggestedExtractions || [],
                 }
               }
+            } else if (!filesOnDisk.has(rec.resultImage)) {
+              // Ghost guard (Ralph 2026-04-25): the record points at a file
+              // that has been deleted from disk. Skip — don't synth a tile
+              // for something that no longer exists. LINEAGE.json keeps
+              // the record so history/audit isn't lost.
+              continue
             } else {
               // Synthesize — generated image not present in admin file list
+              // but DOES exist on disk (admin's pattern filter excluded it).
               const synth: SourceImage = {
                 id: rec.id || rec.resultImage,
                 filename: rec.resultImage,
@@ -703,6 +739,36 @@ export default function Home() {
   }, [sessionId])
 
   // Upload a new image
+  /**
+   * Re-read IMAGES.md and refresh tag + usedIn on every existing source
+   * image. Used by AdvancedMode after Replace-everywhere completes —
+   * server reconciles tags into IMAGES.md, this pulls them back. Same
+   * logic as the inline post-handleSend hydration paths but extracted so
+   * non-chat actions can trigger it. (Ralph 2026-04-25.)
+   */
+  const refreshSourceImageTags = useCallback(async () => {
+    if (!sessionId) return
+    const entriesResult = await getImageEntriesAction(sessionId)
+    if (!entriesResult.success || !entriesResult.entries) return
+    const entries = entriesResult.entries
+    setSourceImages(prev => prev.map(img => {
+      const imgFilename = img.filename.replace(/^\d+-/, '')
+      const entry = Object.values(entries).find(e =>
+        e.filename === img.filename || e.filename === imgFilename,
+      )
+      if (!entry) {
+        // Same INGESTED-fallback discipline as the load-time hydration:
+        // keep an existing tag, otherwise mark INGESTED (silent — no badge).
+        return img.tag ? img : { ...img, tag: 'INGESTED' as const }
+      }
+      return {
+        ...img,
+        tag: entry.tag || img.tag || 'INGESTED' as const,
+        usedIn: entry.usedIn,
+      }
+    }))
+  }, [sessionId])
+
   const handleUpload = useCallback(async (file: File) => {
     try {
       const formData = new FormData()
@@ -1002,6 +1068,11 @@ export default function Home() {
             return {
               ...img,
               tag: entry.tag || img.tag || 'INGESTED' as const,
+              // usedIn (Ralph 2026-04-25): independent of tag so HERO+USED
+              // can coexist visually. Computed from vibe HTML scan in
+              // parseImagesMd. Always overwrite from the parser so toggling
+              // a vibe slot updates the bottom-right pill on next refresh.
+              usedIn: entry.usedIn,
               analysis: {
                 ...img.analysis,
                 elements: img.analysis?.elements || [],
@@ -1013,7 +1084,9 @@ export default function Home() {
               }
             }
           }
-          // No IMAGES.md entry — keep existing tag, or default to INGESTED for session-loaded images
+          // No IMAGES.md entry — keep existing tag; otherwise default to
+          // INGESTED so the image doesn't slip into the pending-uploads
+          // bucket on next render. INGESTED is a SILENT gate — no badge.
           return img.tag ? img : { ...img, tag: 'INGESTED' as const }
         }))
         console.log('📸 Updated sourceImages with reprompts and tags from IMAGES.md (API mode)')
@@ -1549,6 +1622,11 @@ export default function Home() {
             return {
               ...img,
               tag: entry.tag || img.tag || 'INGESTED' as const,
+              // usedIn (Ralph 2026-04-25): independent of tag so HERO+USED
+              // can coexist visually. Computed from vibe HTML scan in
+              // parseImagesMd. Always overwrite from the parser so toggling
+              // a vibe slot updates the bottom-right pill on next refresh.
+              usedIn: entry.usedIn,
               analysis: {
                 ...img.analysis,
                 elements: img.analysis?.elements || [],
@@ -1560,7 +1638,9 @@ export default function Home() {
               }
             }
           }
-          // No IMAGES.md entry — keep existing tag, or default to INGESTED for session-loaded images
+          // No IMAGES.md entry — keep existing tag; otherwise default to
+          // INGESTED so the image doesn't slip into the pending-uploads
+          // bucket on next render. INGESTED is a SILENT gate — no badge.
           return img.tag ? img : { ...img, tag: 'INGESTED' as const }
         }))
         console.log('📸 Updated sourceImages with reprompts and tags from IMAGES.md (streaming mode)')
@@ -1688,13 +1768,32 @@ export default function Home() {
     console.log(`🎨 ${operation === 'edit' ? 'Editing' : 'Generating from'} ${sourceImage.filename} with: ${instruction}`)
 
     try {
+      // Build a filename hint: `{intent-slug}-{source-base}` for edits,
+      // `{intent-slug}` for pure generates. Server uses this when present
+      // and not generic. (Ralph 2026-04-25: previously this path discarded
+      // the hint entirely, forcing camera-vocab names from Nano descriptions.)
+      const intentSlug = instruction
+        .toLowerCase()
+        .replace(/[^a-z0-9\s]/g, ' ')
+        .split(/\s+/)
+        .filter(Boolean)
+        .slice(0, 3)
+        .join('-')
+      const sourceBase =
+        operation === 'edit'
+          ? sourceImage.filename.replace(/\.[^/.]+$/, '')
+          : ''
+      const filenameHint = sourceBase
+        ? (intentSlug ? `${intentSlug}-${sourceBase}` : sourceBase)
+        : (intentSlug || undefined)
+
       const response = await fetch('/api/edit-image', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           sourceImagePaths: operation === 'edit' ? [sourceImage.path] : [],
           instruction: instruction,
-          filename: operation === 'edit' ? `edited-${sourceImage.filename}` : `generated-${Date.now()}`,
+          filename: filenameHint,
           imageSize: '2K',
           aspectRatio: '16:9',
           operation: apiOperation,
@@ -1757,13 +1856,26 @@ export default function Home() {
     console.log(`   Instruction: ${instruction}`)
 
     try {
+      // Compose hint: anchor on the base image's name. (Ralph 2026-04-25.)
+      const composeIntentSlug = instruction
+        .toLowerCase()
+        .replace(/[^a-z0-9\s]/g, ' ')
+        .split(/\s+/)
+        .filter(Boolean)
+        .slice(0, 2)
+        .join('-')
+      const composeBase = baseImage.filename.replace(/\.[^/.]+$/, '')
+      const composeFilenameHint = composeIntentSlug
+        ? `${composeIntentSlug}-${composeBase}`
+        : composeBase
+
       const response = await fetch('/api/edit-image', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           sourceImagePaths: [baseImage.path, extractImage.path],  // Both images
           instruction: instruction,
-          filename: `composed-${baseImage.filename.replace(/\.[^/.]+$/, '')}-${extractImage.filename.replace(/\.[^/.]+$/, '')}`,
+          filename: composeFilenameHint,
           imageSize: '2K',
           aspectRatio: '16:9',
           operation: 'compose',
@@ -2001,7 +2113,11 @@ export default function Home() {
     const message = `I've uploaded these images: ${imageList}`
     console.log(`📷 Submitting ${newImages.length} new images (${sourceImages.length - newImages.length} already analyzed)`)
 
-    // Mark submitted images with INGESTED tag so they leave the pending section immediately
+    // Mark submitted images with INGESTED so they leave Studio's "Uploads
+    // (pending)" section immediately, before CD's async evaluation lands.
+    // INGESTED is now PURELY a pending-section gate — it renders no visual
+    // badge (the green checkmark only fires for genuine APPROVED).
+    // (Ralph 2026-04-25.)
     setSourceImages(prev => prev.map(img => {
       if (!img.tag && !img.analysis?.description) {
         return { ...img, tag: 'INGESTED' as const }
@@ -2054,7 +2170,15 @@ export default function Home() {
 
   // Toggle vibe selection in final approval modal
   // Delete a vibe: remove HTML file, remove from all state, add system message for CD
-  const handleVibeDelete = useCallback(async (filename: string) => {
+  /**
+   * Vibe delete (Ralph 2026-04-23): DESTRUCTIVE — removes the HTML file
+   * from disk, strips the vibe section from CREATIVE-BRIEF.md, and fires
+   * a CD chat notification. Previously ran on one click from the red ×
+   * overlay; Ralph nuked a vibe by accident. Now the red × calls
+   * `requestVibeDelete` which stages a confirmation modal; only the
+   * modal's "Delete" button runs the destructive chain below.
+   */
+  const executeVibeDelete = useCallback(async (filename: string) => {
     if (!sessionId) return
 
     // Optimistically remove from UI state
@@ -2107,6 +2231,27 @@ export default function Home() {
 
     handleSend(message)
   }, [sessionId, availableVibes, handleSend])
+
+  /**
+   * Vibe-delete confirmation gate (Ralph 2026-04-23). Both the Studio
+   * tab overlay and the Gallery card overlay call `requestVibeDelete`,
+   * which stages intent into this state. The modal rendered below
+   * resolves the vibe's display name from `availableVibes` and requires
+   * an explicit click to run `executeVibeDelete`.
+   */
+  const [vibeDeleteConfirm, setVibeDeleteConfirm] = useState<{
+    filename: string
+    name: string
+  } | null>(null)
+
+  const requestVibeDelete = useCallback((filename: string) => {
+    const match = availableVibes.find(v => v.filename === filename)
+    // Prefer the vibe's display name; fall back to a stripped filename
+    // so the modal is meaningful even if availableVibes is stale.
+    const name = match?.name
+      ?? filename.replace(/^vibe-\d+-/, '').replace(/\.html$/, '').replace(/-/g, ' ')
+    setVibeDeleteConfirm({ filename, name })
+  }, [availableVibes])
 
   const handleVibeToggle = useCallback((vibeId: string) => {
     setWorkflowProgress(prev => {
@@ -2355,6 +2500,21 @@ export default function Home() {
           initialTab={advancedMode.initialTab}
           initialImage={advancedMode.initialImage}
           onImageGenerated={(newImage) => setSourceImages((prev) => [...prev, newImage])}
+          // Ralph 2026-04-23: AdvancedMode.executeDelete calls this after
+          // the server-side delete succeeds. Previously unset, so the
+          // asset panel never refreshed — the image stayed visible even
+          // though the file was gone on disk. (Undo path re-adds via the
+          // existing onImageGenerated callback above.)
+          onRemoveImage={(id) =>
+            setSourceImages((prev) => prev.filter((img) => img.id !== id))
+          }
+          // Ralph 2026-04-25: Image-mode upload — same handler the BRIEF/STUDIO
+          // AssetsPanel uses. Without this, the user couldn't add images
+          // while inside an image manipulation workflow.
+          onUpload={handleUpload}
+          // Ralph 2026-04-25: re-read IMAGES.md after Replace-everywhere so
+          // the freshly reconciled USED / B-ROLL tags reach the panel.
+          onSourceImagesRefresh={refreshSourceImageTags}
           // WP-B5: Brand tab needs vibe data + session business name.
           vibes={vibes}
           businessName={businessName}
@@ -2413,7 +2573,7 @@ export default function Home() {
                 const vibe = vibes.find(v => v.id === id)
                 if (vibe) setSelectedVibe(vibe)
               }}
-              onVibeDelete={handleVibeDelete}
+              onVibeDelete={requestVibeDelete}
               title="Vibes"
             />
           </div>
@@ -2432,6 +2592,7 @@ export default function Home() {
             <LivePreviewWithDirector
               htmlPath={selectedVibe?.htmlPath || null}
               title={selectedVibe ? `Preview: ${selectedVibe.name}` : undefined}
+              surface="gallery"
               emptyMessage={
                 vibes.length > 0 ? 'Select a vibe to preview' : 'No vibes generated yet'
               }
@@ -2443,6 +2604,12 @@ export default function Home() {
       <div style={{
         display: (layoutMode === '2-panel' || layoutMode === '3-panel') ? 'grid' : 'none',
         gridTemplateColumns: 'repeat(12, 1fr)',
+        // Without an explicit row template the grid rows default to `auto`
+        // (content-sized). With one panel rendering 2000+px of report, the
+        // row expands and the panel's internal scroll never activates.
+        // `minmax(0, 1fr)` forces the row to fill available space and lets
+        // children with `minHeight: 0` shrink/scroll properly.
+        gridAutoRows: 'minmax(0, 1fr)',
         gap: 'var(--gap-app)',
         flex: (layoutMode === '2-panel' || layoutMode === '3-panel') ? 1 : undefined,
         overflow: 'hidden',
@@ -2473,6 +2640,13 @@ export default function Home() {
             selectedAssetId={selectedAsset?.id}
             layoutMode={layoutMode}
             onOpenAdvancedMode={openAdvancedMode}
+            assetsView={assetsView}
+            onAssetsViewChange={setAssetsView}
+            pendingCritiqueTarget={pendingCritiqueTarget}
+            onConsumePendingCritiqueTarget={() => setPendingCritiqueTarget(null)}
+            vibeFilenames={vibes
+              .map((v) => v.htmlPath?.split('/').pop() || '')
+              .filter((fn) => fn.endsWith('.html'))}
           />
         </div>
 
@@ -2500,7 +2674,7 @@ export default function Home() {
               availableVibes={availableVibes}
               selectedVibeFile={selectedVibeFile}
               onVibeFileSelect={setSelectedVibeFile}
-              onVibeDelete={handleVibeDelete}
+              onVibeDelete={requestVibeDelete}
               onImageEditRequest={(imageUrl, instruction) => {
                 // Send image edit request through chat
                 const message = `[Director Mode Image Edit]\n\nEdit this image: ${imageUrl}\n\nInstruction: ${instruction}`
@@ -2547,6 +2721,74 @@ export default function Home() {
           onContinue={handleCompactionContinue}
           onComplete={handleCompactionComplete}
         />
+      )}
+
+      {/* Vibe-delete confirmation (Ralph 2026-04-23). Styling matches the
+          image-delete dialog in AdvancedMode so the affordance is familiar.
+          Click-outside dismisses (cancels); Cancel button dismisses;
+          Delete button runs executeVibeDelete and then clears state. */}
+      {vibeDeleteConfirm && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(0,0,0,0.6)',
+            zIndex: 9999,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+          onClick={() => setVibeDeleteConfirm(null)}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              background: 'var(--bg-card)',
+              border: '1px solid var(--border-card)',
+              borderRadius: 12,
+              padding: 24,
+              maxWidth: 420,
+              width: '90%',
+              boxShadow: '0 20px 60px rgba(0,0,0,0.5)',
+            }}
+          >
+            <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-main)', marginBottom: 10 }}>
+              Delete vibe “{vibeDeleteConfirm.name}”?
+            </div>
+            <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 18, lineHeight: 1.6 }}>
+              This will remove <code style={{ fontFamily: 'JetBrains Mono, monospace' }}>{vibeDeleteConfirm.filename}</code> from disk,
+              strip its section from <code style={{ fontFamily: 'JetBrains Mono, monospace' }}>CREATIVE-BRIEF.md</code>,
+              and notify CD. It cannot be undone.
+            </div>
+            <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+              <button
+                onClick={() => setVibeDeleteConfirm(null)}
+                style={{
+                  padding: '6px 16px', borderRadius: 6, border: '1px solid var(--border-card)',
+                  background: 'transparent', color: 'var(--text-muted)', fontSize: 11, fontWeight: 600,
+                  cursor: 'pointer', fontFamily: 'inherit',
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => {
+                  const target = vibeDeleteConfirm
+                  setVibeDeleteConfirm(null)
+                  void executeVibeDelete(target.filename)
+                }}
+                autoFocus
+                style={{
+                  padding: '6px 16px', borderRadius: 6, border: '1px solid rgba(239,68,68,0.4)',
+                  background: 'rgba(239,68,68,0.15)', color: '#f87171', fontSize: 11, fontWeight: 700,
+                  cursor: 'pointer', fontFamily: 'inherit',
+                }}
+              >
+                Delete vibe
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* Old overlay mode removed — Advanced Mode now lives in IMAGE tab */}
