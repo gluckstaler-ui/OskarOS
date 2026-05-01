@@ -247,6 +247,54 @@ If — and ONLY if — you observe a PATTERN that would help agents working with
 **What qualifies:** Repeated pipeline failures. Structural insights about signal flow between layers. New Dark Side temptations you discovered.
 **What does NOT qualify:** Anything about a specific user — that's user.md. One-time events. Self-congratulation.
 
+
+### Job 4: The 240/40 Rule (SESSION.md compression)
+
+**Trigger:** On wake (ORDER 66) check if SESSION.md > 240 kb.
+
+**Action:** Cut exactly TWO blocks of ~20 kb each. 40 kb total.
+
+**Method — block-narrative compression, NEVER stumps:**
+
+For each of the two blocks: pick a topic-coherent dialogue segment of ~20 kb that has already been resolved (decisions made, conclusions captured upstream). Compress into a coherent prose narrative (with user quotes inline) that becomes a bulleted LEDGER entry under the appropriate date header. **Then delete the existing LEDGER one-liners that fall within that block's timestamp range** — they are now represented in the new bulleted narrative; leaving them in place creates duplication. Finally, leave a 3-line summary at the original tissue position pointing back to the LEDGER entry.
+
+The full per-block procedure:
+1. Snapshot SESSION.md (see Safety rail below)
+2. Identify the block: line range + timestamp range + topic
+3. Write the bulleted LEDGER narrative (`- **HH:MM** [prose]` per significant moment)
+4. Insert the new LEDGER entry at the chronological position within the appropriate date header
+5. Delete the existing LEDGER one-liners whose timestamps fall in the block's range
+6. Replace the tissue dialogue with a 3-line block summary (`**Block X — Title** (HH:MM → HH:MM)` + 3 content lines)
+7. Log `[240/40-CUT]` triage entry naming the block
+
+**Stumps are forbidden.** Replacing CD replies with `[STUMPED: see LEDGER]` placeholders trades readability for zero byte savings (proven by direct comparison: 51-byte difference between a stumped block and the equivalent narrative block at the same compression level — session 2026-01-27-31). Worse, stumping deletes the original CD prose irreversibly — narratives are reconstructions, not transcripts. Once stumped, the original voice is gone. Compress with prose or do not compress.
+
+**Protected zones — never touch:**
+- LEDGER (full file — you ADD entries via the procedure above; you never delete LEDGER entries that aren't being folded into a new block narrative)
+- STATES (workflow state header at top)
+- DISCOVERY (formal CD↔COO Q&A blocks if present)
+- First 20 kb of the file
+- Last 20 kb of entries
+
+**Safety rail — snapshot before cut:**
+
+Copy SESSION.md to `SESSION.md.pre-prune-{YYYYMMDD-HHMMSS}` before applying any cut. If the cut breaks something (script overshoot, lost content, wrong block selected), the snapshot is the only path back. Session 2026-01-27-31 lost Blocks L/M/N/O original tissue to a Python script overshoot bug; without backup, recovery was hand-reconstruction from LEDGER alone — a degraded artifact.
+
+**Execution — autonomous, no approval to wait for:**
+
+You run during ORDER 66. There is no user present. Do not propose-first; nobody is listening to a proposal. Snapshot, cut, log what you cut in the triage log under `[240/40-CUT]` tags so the next Sage (and any human reading later) can see exactly what was removed. Two `[240/40-CUT]` entries per cycle, one per block.
+
+**Stop condition — log, don't force:**
+
+If you cannot find TWO blocks of ~20 kb each that compress safely (without touching protected zones, without damaging signal, without folding in load-bearing original prose like CD letters that aren't yet captured in LEDGER), STOP. Log a `[240/40-SKIP]` triage entry naming the obstruction:
+- "no eligible blocks — every >20kb segment contains protected content"
+- "only one eligible block found — cut applied, second skipped"
+- "file at 245 kb but tissue is already lean (narratives + protected); convergence floor reached"
+
+The rule has a convergence floor. After enough passes, the file approaches an irreducible minimum. At that point, more cuts damage signal. Better to leave the file above 240 kb than cut into bone — log the situation and let the next Sage (or the user) decide whether to raise the trigger.
+
+**Why 240/40 specifically:** The 240 trigger gives meaningful headroom above the natural compressed state (~120-180 kb after a few passes); 40 kb (two ~20 kb blocks) is roughly what one Sage cycle can responsibly compress without overreach in a single autonomous pass.
+
 ---
 
 ## WHAT YOU NEVER TOUCH

@@ -27,6 +27,7 @@
 
 import { bridgeManager, type BridgeOptions, type BridgeEvent } from './bridge-process-manager'
 import { buildCDPrompt } from './cd-agent-prompt'
+import { makeToolCollector, type ToolCalls } from './mcp-tool-collector'
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Per-session mutex — prevents bridge stdin/stdout interleaving.
@@ -55,6 +56,17 @@ function withSessionLock<T>(sessionId: string, fn: () => Promise<T>): Promise<T>
 export interface CallCDOptions extends Partial<BridgeOptions> {
   /** Override the default model — defaults to claude-opus-4-7[1m] (Big CD). */
   model?: string
+  /**
+   * Phase 2 (2026-04-30): structured-response migration. When the caller
+   * expects CD to call a specific MCP tool (e.g. `submit_proofread`,
+   * `submit_image_verdict`), pass the tool name(s) here. The bridge stream
+   * is scanned for matching `tool_use` events; the typed args land in the
+   * returned `result.toolCalls` map. The wrapping endpoint reads structured
+   * data from there instead of regexing CD's text.
+   *
+   * Empty / omitted = behave like before, only collect text.
+   */
+  expectedTools?: readonly string[]
 }
 
 export interface CDCallResult {
@@ -62,6 +74,12 @@ export interface CDCallResult {
   text: string
   /** Raw events captured. Useful for debugging / downstream parsing. */
   events: BridgeEvent[]
+  /**
+   * Captured `tool_use` args, keyed by bare tool name (the MCP `mcp__server__`
+   * prefix is stripped by lib/mcp-tool-collector). Populated only for tool
+   * names listed in `opts.expectedTools`. Last-write-wins per tool.
+   */
+  toolCalls: ToolCalls
   /** Time spent waiting (ms). Pure measurement; no timeout policy attached. */
   durationMs: number
 }
@@ -79,7 +97,7 @@ export async function callCDBridge(
   opts: CallCDOptions = {}
 ): Promise<CDCallResult> {
   if (!sessionId) {
-    return { text: '', events: [], durationMs: 0 }
+    return { text: '', events: [], toolCalls: {}, durationMs: 0 }
   }
 
   // BridgeOptions has required fields. If the caller didn't supply a
@@ -107,6 +125,11 @@ export async function callCDBridge(
     cwd: opts.cwd || process.cwd(),
   }
 
+  // Phase 2: optional tool-call collector. When the caller declares the
+  // tools it expects (e.g. submit_proofread for the proofread endpoint),
+  // we scan the stream for matching tool_use events and surface their args.
+  const toolCollector = makeToolCollector(opts.expectedTools || [])
+
   return withSessionLock(sessionId, async () => {
     const start = Date.now()
     const events: BridgeEvent[] = []
@@ -117,6 +140,9 @@ export async function callCDBridge(
     // surfacing, not papering over with a fake "passed" fallthrough.
     for await (const event of bridgeManager.sendMessage(sessionId, content, options)) {
       events.push(event)
+      // Always feed the tool collector — it's a no-op when expectedTools is
+      // empty (the internal Set is empty so nothing matches).
+      toolCollector.consume(event)
       if (event.type === 'assistant' && event.message?.content) {
         for (const block of event.message.content) {
           if (block.type === 'text' && typeof block.text === 'string') {
@@ -130,6 +156,7 @@ export async function callCDBridge(
     return {
       text,
       events,
+      toolCalls: toolCollector.getToolCalls(),
       durationMs: Date.now() - start,
     }
   })

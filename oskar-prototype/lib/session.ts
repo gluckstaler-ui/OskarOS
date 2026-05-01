@@ -19,6 +19,7 @@ import {
   getLogsDir, getSessionMdPath, getUserMemoryPath,
 } from './memory/paths'
 import { SESSION_MD_SEED, getUserMdTemplate } from './memory/templates'
+import { matchField, matchFieldMultiline } from './markdown-fields'
 
 // Session phases from the spec
 export type SessionPhase =
@@ -123,6 +124,15 @@ function generateSlug(businessName: string): string {
 }
 
 // Create initial SESSION.md content
+//
+// Top-level sections, top-to-bottom:
+//   ## Workflow State      — checkbox list
+//   ## Discovery Summary   — populated after CD↔COO discovery
+//   ## LEDGER              — one-liners (Lumberjack) + Block entries (Sage-240/40)
+//                            under `### <YYYY-MM-DD>` sub-headers
+//   ## USER SESSION DATA   — landmark marker. Raw User/CD dialogue goes BELOW
+//                            this line. Sage walks past this marker to find
+//                            non-summarized tissue to fold.
 function createInitialSessionMd(businessName: string): string {
   const now = new Date().toISOString()
   return `# Session: ${businessName}
@@ -148,7 +158,12 @@ function createInitialSessionMd(businessName: string): string {
 
 ---
 
-## Conversation Log
+## LEDGER
+*No entries yet*
+
+---
+
+## USER SESSION DATA
 
 `
 }
@@ -203,21 +218,21 @@ _No active operation._
 
 ## Hot-Swap Log
 
-| Time | Vibe | Slot | Old | New |
+| When | Vibe | Slot | Old | New |
 |------|------|------|-----|-----|
 
 ---
 
 ## Brief Update Log
 
-| Time | Change | Affected Vibes | Action |
+| When | Change | Affected Vibes | Action |
 |------|--------|----------------|--------|
 
 ---
 
 ## Checkpoint History
 
-| Time | Operation | Files | Status |
+| When | Operation | Files | Status |
 |------|-----------|-------|--------|
 `
 }
@@ -343,7 +358,10 @@ export async function renameSession(oldSessionId: string, businessName: string):
     // Update SESSION.md with new business name
     const sessionMdPath = path.join(newPath, 'SESSION.md')
     let sessionMd = await readFile(sessionMdPath, 'utf-8')
-    sessionMd = sessionMd.replace(/\*\*Business:\*\* .+/, `**Business:** ${businessName}`)
+    sessionMd = sessionMd.replace(
+      /((?:\*+\s*)?Business(?:\s*\*+)?:(?:\s*\*+)?\s*).+/,
+      (_full, prefix) => `${prefix}${businessName}`,
+    )
     sessionMd = sessionMd.replace(/^# Session: .+/m, `# Session: ${businessName}`)
     await writeFile(sessionMdPath, sessionMd)
 
@@ -452,17 +470,14 @@ export async function listSessions(): Promise<SessionListItem[]> {
  * Parse SESSION.md to extract metadata
  */
 function parseSessionMd(sessionId: string, content: string): SessionMeta {
-  // Extract business name
-  const businessMatch = content.match(/\*\*Business:\*\*\s*(.+)/)
-  const businessName = businessMatch ? businessMatch[1].trim() : 'Unknown'
-
-  // Extract created date
-  const createdMatch = content.match(/\*\*Created:\*\*\s*(.+)/)
-  const createdAt = createdMatch ? createdMatch[1].trim() : new Date().toISOString()
-
-  // Extract phase
-  const phaseMatch = content.match(/\*\*Status:\*\*\s*(PHASE_\d_\w+|COMPLETE)/)
-  const phase = (phaseMatch ? phaseMatch[1] : 'PHASE_1_DISCOVERY') as SessionPhase
+  // All field reads use the shared `matchField` helper (accepts both
+  // bold-labeled `**Field:**` and plain `Field:`). See lib/markdown-fields.ts.
+  const businessName = matchField(content, 'Business') || 'Unknown'
+  const createdAt = matchField(content, 'Created') || new Date().toISOString()
+  // Status is constrained to PHASE_X_NAME / COMPLETE — validate after match.
+  const statusValue = matchField(content, 'Status') || ''
+  const phaseFromStatus = statusValue.match(/^(PHASE_\d_\w+|COMPLETE)$/)
+  const phase = (phaseFromStatus ? phaseFromStatus[1] : 'PHASE_1_DISCOVERY') as SessionPhase
 
   // Parse workflow checkboxes
   const workflowState: WorkflowState = {
@@ -486,17 +501,13 @@ function parseSessionMd(sessionId: string, content: string): SessionMeta {
   const summarySection = content.match(/## Discovery Summary\n([\s\S]*?)(?=\n---|\n## |$)/)
   if (summarySection && !summarySection[1].includes('Not yet complete')) {
     const summaryText = summarySection[1]
-    const oneSentenceMatch = summaryText.match(/\*\*One-sentence:\*\*\s*(.+)/)
-    const customerMatch = summaryText.match(/\*\*Customer:\*\*\s*(.+)/)
-    const weirdMatch = summaryText.match(/\*\*Weird detail:\*\*\s*(.+)/)
-    const enemyMatch = summaryText.match(/\*\*Enemy:\*\*\s*(.+)/)
-
-    if (oneSentenceMatch) {
+    const oneSentence = matchField(summaryText, 'One-sentence')
+    if (oneSentence) {
       discoverySummary = {
-        oneSentence: oneSentenceMatch[1].trim(),
-        customer: customerMatch ? customerMatch[1].trim() : '',
-        weirdDetail: weirdMatch ? weirdMatch[1].trim() : '',
-        enemy: enemyMatch ? enemyMatch[1].trim() : '',
+        oneSentence,
+        customer: matchField(summaryText, 'Customer') || '',
+        weirdDetail: matchField(summaryText, 'Weird detail') || '',
+        enemy: matchField(summaryText, 'Enemy') || '',
       }
     }
   }
@@ -785,51 +796,42 @@ export async function readCreativeBrief(sessionId: string): Promise<CreativeBrie
     const nameMatch = content.match(/# Creative Brief: (.+)/)
     const businessName = nameMatch ? nameMatch[1].trim() : 'Unknown'
 
-    // Parse status
-    const statusMatch = content.match(/\*\*Status:\*\*\s*(\w+)/)
-    const status = (statusMatch ? statusMatch[1] : 'DRAFT') as CreativeBriefContent['status']
+    // All field reads via shared helper — accepts both bold and plain.
+    const status = (matchField(content, 'Status') || 'DRAFT') as CreativeBriefContent['status']
 
     // If it's still just the skeleton, return minimal content
-    if (content.includes('*To be completed after discovery*') && !content.includes('**One-sentence:**')) {
+    if (content.includes('*To be completed after discovery*') && !matchField(content, 'One-sentence')) {
       return { businessName, status }
     }
 
     // Parse identity section
     let identity: BriefBusinessIdentity | undefined
-    const oneSentenceMatch = content.match(/\*\*One-sentence:\*\*\s*(.+)/)
-    if (oneSentenceMatch) {
-      const conceptMatch = content.match(/\*\*Concept:\*\*\s*(.+)/)
-      const locationMatch = content.match(/\*\*Location:\*\*\s*(.+)/)
-      const customerMatch = content.match(/\*\*Customer:\*\*\s*(.+)/)
-      const weirdMatch = content.match(/\*\*Weird detail:\*\*\s*(.+)/)
-
+    const oneSentence = matchField(content, 'One-sentence')
+    if (oneSentence) {
       identity = {
-        oneSentence: oneSentenceMatch[1].trim(),
-        concept: conceptMatch ? conceptMatch[1].trim() : '',
-        location: locationMatch ? locationMatch[1].trim() : undefined,
-        customer: customerMatch ? customerMatch[1].trim() : '',
-        weirdDetail: weirdMatch ? weirdMatch[1].trim() : undefined,
+        oneSentence,
+        concept: matchField(content, 'Concept') || '',
+        location: matchField(content, 'Location') || undefined,
+        customer: matchField(content, 'Customer') || '',
+        weirdDetail: matchField(content, 'Weird detail') || undefined,
       }
     }
 
     // Parse voice section
     let voice: BriefVoice | undefined
-    const toneMatch = content.match(/\*\*Tone:\*\*\s*(.+)/)
-    if (toneMatch) {
-      const attitudeMatch = content.match(/\*\*Attitude:\*\*\s*(.+)/)
-      const enemyMatch = content.match(/\*\*Enemy:\*\*\s*(.+)/)
-
+    const tone = matchField(content, 'Tone')
+    if (tone) {
       voice = {
-        tone: toneMatch[1].trim(),
-        attitude: attitudeMatch ? attitudeMatch[1].trim() : '',
-        enemy: enemyMatch ? enemyMatch[1].trim() : '',
+        tone,
+        attitude: matchField(content, 'Attitude') || '',
+        enemy: matchField(content, 'Enemy') || '',
       }
     }
 
     // Parse selected vibes
     let selectedVibeIds: string[] | undefined
-    const selectedMatch = content.match(/\*\*Selected:\*\*\s*(.+)/)
-    const mixedMatch = content.match(/\*\*Mixed from:\*\*\s*(.+)/)
+    const selectedMatch = matchField(content, 'Selected')
+    const mixedMatch = matchField(content, 'Mixed from')
     if (selectedMatch || mixedMatch) {
       // We'd need the vibe IDs from context, for now just mark as having selection
       selectedVibeIds = []
@@ -848,6 +850,23 @@ export async function readCreativeBrief(sessionId: string): Promise<CreativeBrie
 }
 
 /**
+ * Format a log timestamp as `YYYY-MM-DD HH:MM:SS` (24-hour, local time).
+ *
+ * Sessions can span multiple days (especially with Lumberjack compaction
+ * resumes), so logs need date context — seeing just `14:32:05` and not knowing
+ * whether it's today or three days ago is useless for forensics.
+ *
+ * Exported so sibling loggers (IMAGES.md, BUILD.md) can share one format
+ * when/if we align them.
+ */
+export function formatLogTimestamp(d: Date = new Date()): string {
+  const pad = (n: number) => n.toString().padStart(2, '0')
+  const date = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
+  const time = `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`
+  return `${date} ${time}`
+}
+
+/**
  * Append a conversation entry to SESSION.md
  */
 export async function appendToSessionLog(
@@ -859,12 +878,7 @@ export async function appendToSessionLog(
   const sessionMdPath = path.join(sessionPath, 'SESSION.md')
 
   const existingContent = await readFile(sessionMdPath, 'utf-8')
-  const timestamp = new Date().toLocaleTimeString('en-US', {
-    hour12: false,
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit'
-  })
+  const timestamp = formatLogTimestamp()
 
   const entry = `
 ---
@@ -945,17 +959,21 @@ export async function updateSessionPhase(
   const session = await getSession(sessionId)
   if (!session) throw new Error(`Session ${sessionId} not found`)
 
+  // Replace status — accepts both bold-labeled and plain. The pattern
+  // captures the prefix (whatever shape it has — `**Status:** `, `Status: `,
+  // `**Status**: `) and re-emits it with the new value, preserving
+  // whichever format the file already used so we don't churn formatting.
   const content = session.sessionMd.replace(
-    /\*\*Status:\*\*\s*(PHASE_\d_\w+|COMPLETE)/,
-    `**Status:** ${phase}`
+    /((?:\*+\s*)?Status(?:\s*\*+)?:(?:\s*\*+)?\s*)(PHASE_\d_\w+|COMPLETE)/,
+    (_full, prefix) => `${prefix}${phase}`,
   )
 
   await updateSessionMd(sessionId, content)
 
-  // Also update BUILD.md phase
+  // Same pattern for BUILD.md's `Current Phase` field
   const buildContent = session.buildMd.replace(
-    /\*\*Current Phase:\*\*\s*(PHASE_\d_\w+|COMPLETE)/,
-    `**Current Phase:** ${phase}`
+    /((?:\*+\s*)?Current Phase(?:\s*\*+)?:(?:\s*\*+)?\s*)(PHASE_\d_\w+|COMPLETE)/,
+    (_full, prefix) => `${prefix}${phase}`,
   )
   await updateBuildMd(sessionId, buildContent)
 }
@@ -1075,7 +1093,25 @@ export async function saveVibeHtml(
     .replace(/^-|-$/g, '')
 
   const filename = `vibe-${vibeNumber}-${safeName}-${pageType}.html`
-  await writeFile(path.join(sessionPath, filename), html)
+  const target = path.join(sessionPath, filename)
+
+  // Phase 2 (2026-04-30): snapshot the previous build to `.cache/last-build/`
+  // BEFORE overwriting. The `vibe_diff` tool reads this snapshot to compute
+  // "what changed since last build". First build has no snapshot — the diff
+  // tool returns empty + a note in that case.
+  try {
+    const fs = require('fs')
+    const fsp = require('fs/promises')
+    if (fs.existsSync(target)) {
+      const cacheDir = path.join(sessionPath, '.cache', 'last-build')
+      if (!fs.existsSync(cacheDir)) await fsp.mkdir(cacheDir, { recursive: true })
+      await fsp.copyFile(target, path.join(cacheDir, filename))
+    }
+  } catch {
+    // Snapshot is best-effort — never block the build for a snapshot failure.
+  }
+
+  await writeFile(target, html)
 
   return filename
 }
@@ -1141,20 +1177,299 @@ export interface ParsedImageEntry {
   suggestedUses?: string[]
   suggestedVibes?: string[]
   reprompt?: string
-  status?: string  // Raw status from IMAGES.md (e.g., "✓ HERO", "B-ROLL", "✗ TRASH", "INGESTED")
-  tag?: 'HERO' | 'B-ROLL' | 'TRASH' | 'READY' | 'INGESTED' | 'APPROVED' | 'REDO'  // Parsed tag for display
+  status?: string  // Raw status from IMAGES.md (e.g., "HERO", "USED", "B-ROLL", "TRASH")
+  tag?: 'HERO' | 'USED' | 'B-ROLL' | 'TRASH' | 'READY' | 'INGESTED' | 'APPROVED' | 'REDO'  // Parsed tag for display
+  /** Vibe HTML files this image is referenced in. Populated by
+   *  parseImagesMd via scanVibeHtmlsForUsedImages. Independent of `tag`
+   *  so a HERO image can also be USED — both badges render. */
+  usedIn?: string[]
+}
+
+/**
+ * Scan all vibe-*.html files in a session and build a map of
+ * imageFilename -> list of vibe HTML files that reference it.
+ *
+ * Detects both `<img src="foo.jpg">` and CSS `url('foo.jpg')` references.
+ * This is the SOURCE OF TRUTH for "is this image USED" — the HTML files
+ * are the contract, IMAGES.md tags are semantic only.
+ */
+export async function scanVibeHtmlsForUsedImages(sessionId: string): Promise<Map<string, string[]>> {
+  const sessionPath = getSessionPath(sessionId)
+  const usedIn = new Map<string, string[]>()
+
+  try {
+    const files = await readdir(sessionPath)
+    const vibeHtmls = files.filter(f => /^vibe-.*\.html$/i.test(f))
+
+    // Match `src="foo.jpg"` (or src='foo.jpg') and `url(foo.jpg)` / `url('foo.jpg')` / `url("foo.jpg")`
+    // Capture group 1 covers src=, group 2 covers url(); we coalesce.
+    const refPattern = /(?:src\s*=\s*["']([^"']+\.(?:jpg|jpeg|png|webp|avif|gif))["'])|(?:url\s*\(\s*['"]?([^'")]+\.(?:jpg|jpeg|png|webp|avif|gif))['"]?\s*\))/gi
+
+    for (const vibeFile of vibeHtmls) {
+      let html: string
+      try {
+        html = await readFile(path.join(sessionPath, vibeFile), 'utf-8')
+      } catch {
+        continue
+      }
+
+      const seen = new Set<string>()
+      let match: RegExpExecArray | null
+      refPattern.lastIndex = 0
+      while ((match = refPattern.exec(html)) !== null) {
+        const raw = (match[1] || match[2] || '').trim()
+        if (!raw) continue
+        // Reduce to bare filename (strip any leading path / query / hash)
+        const filename = raw.split(/[?#]/)[0].split('/').pop() || raw
+        if (!filename || seen.has(filename)) continue
+        seen.add(filename)
+        const list = usedIn.get(filename) || []
+        if (!list.includes(vibeFile)) list.push(vibeFile)
+        usedIn.set(filename, list)
+      }
+    }
+  } catch (err) {
+    console.error(`[scanVibeHtmlsForUsedImages] Failed for session ${sessionId}:`, err)
+  }
+
+  return usedIn
+}
+
+/**
+ * Scan vibe HTMLs for images referenced inside `<section class="hero">…</section>`.
+ *
+ * Returns a Map<filename, vibeFile[]> for every image whose filename appears
+ * via `<img src=...>` or CSS `url(...)` inside any vibe's hero section.
+ *
+ * (Ralph 2026-04-25: HERO assignment is mechanical, not a CD judgment.
+ * Hero membership = "appears in the hero section of any vibe HTML.")
+ */
+export async function scanVibeHtmlsForHeroImages(sessionId: string): Promise<Map<string, string[]>> {
+  const sessionPath = getSessionPath(sessionId)
+  const heroIn = new Map<string, string[]>()
+
+  try {
+    const files = await readdir(sessionPath)
+    const vibeHtmls = files.filter(f => /^vibe-.*\.html$/i.test(f))
+
+    // Match `<section ... class="...hero..." ...>` open tag through `</section>`.
+    // Tolerant to other classes alongside "hero" and to attribute order.
+    // [\s\S]*? = any char including newlines, non-greedy so we stop at the
+    // first matching </section>.
+    const heroSectionPattern =
+      /<section\b[^>]*\bclass\s*=\s*["'][^"']*\bhero\b[^"']*["'][^>]*>([\s\S]*?)<\/section>/gi
+    const refPattern = /(?:src\s*=\s*["']([^"']+\.(?:jpg|jpeg|png|webp|avif|gif))["'])|(?:url\s*\(\s*['"]?([^'")]+\.(?:jpg|jpeg|png|webp|avif|gif))['"]?\s*\))/gi
+
+    for (const vibeFile of vibeHtmls) {
+      let html: string
+      try {
+        html = await readFile(path.join(sessionPath, vibeFile), 'utf-8')
+      } catch {
+        continue
+      }
+
+      heroSectionPattern.lastIndex = 0
+      let sectionMatch: RegExpExecArray | null
+      while ((sectionMatch = heroSectionPattern.exec(html)) !== null) {
+        const sectionBody = sectionMatch[1] || ''
+        const seen = new Set<string>()
+        refPattern.lastIndex = 0
+        let refMatch: RegExpExecArray | null
+        while ((refMatch = refPattern.exec(sectionBody)) !== null) {
+          const raw = (refMatch[1] || refMatch[2] || '').trim()
+          if (!raw) continue
+          const filename = raw.split(/[?#]/)[0].split('/').pop() || raw
+          if (!filename || seen.has(filename)) continue
+          seen.add(filename)
+          const list = heroIn.get(filename) || []
+          if (!list.includes(vibeFile)) list.push(vibeFile)
+          heroIn.set(filename, list)
+        }
+      }
+
+      // Also catch CSS-driven heroes: a `.hero-bg` / `.hero-image` rule with
+      // `background-image: url(...)`. These don't sit inside the section tag
+      // so the section regex misses them.
+      const heroBgPattern =
+        /\.hero(?:[-_]bg|[-_]image|[-_]background)?\b[^{]*\{[^}]*background(?:-image)?\s*:\s*[^;}]*url\(\s*['"]?([^'")]+\.(?:jpg|jpeg|png|webp|avif|gif))['"]?\s*\)/gi
+      heroBgPattern.lastIndex = 0
+      let bgMatch: RegExpExecArray | null
+      while ((bgMatch = heroBgPattern.exec(html)) !== null) {
+        const raw = (bgMatch[1] || '').trim()
+        if (!raw) continue
+        const filename = raw.split(/[?#]/)[0].split('/').pop() || raw
+        if (!filename) continue
+        const list = heroIn.get(filename) || []
+        if (!list.includes(vibeFile)) list.push(vibeFile)
+        heroIn.set(filename, list)
+      }
+    }
+  } catch (err) {
+    console.error(`[scanVibeHtmlsForHeroImages] Failed for session ${sessionId}:`, err)
+  }
+
+  return heroIn
+}
+
+/**
+ * Reconcile USED + HERO tags in IMAGES.md against the actual vibe HTMLs.
+ * SOURCE OF TRUTH = the vibe HTML files. IMAGES.md is the persisted shadow.
+ *
+ * Rules:
+ *   - HERO promotion (Ralph 2026-04-25): an image referenced inside any
+ *     vibe's `<section class="hero">` (or in a `.hero-bg` / `.hero-image`
+ *     CSS rule) gets `Status: HERO`. Mechanical, not a judgment.
+ *   - TRASH is sacred. TRASH images stay TRASH (the user banned them deliberately).
+ *   - For everything else:
+ *       referenced in HTML  → set Status: USED
+ *       NOT referenced      → set Status: B-ROLL
+ *   - HERO supersedes USED in the persisted tag (single Status field), but
+ *     the visual coexistence is handled at render time via `usedIn`.
+ *
+ * Returns a summary of changes made.
+ */
+export async function reconcileUsedTags(sessionId: string): Promise<{ promoted: string[]; demoted: string[]; heroPromoted: string[]; unchanged: number }> {
+  const sessionPath = getSessionPath(sessionId)
+  const usedMap = await scanVibeHtmlsForUsedImages(sessionId)
+  const usedSet = new Set(usedMap.keys())
+  const heroMap = await scanVibeHtmlsForHeroImages(sessionId)
+  const heroSet = new Set(heroMap.keys())
+
+  const imagesPath = path.join(sessionPath, 'IMAGES.md')
+  let content: string
+  try {
+    content = await readFile(imagesPath, 'utf-8')
+  } catch {
+    return { promoted: [], demoted: [], heroPromoted: [], unchanged: 0 }
+  }
+
+  const promoted: string[] = []  // moved → USED
+  const demoted: string[] = []   // moved → B-ROLL
+  const heroPromoted: string[] = []  // moved → HERO
+  let unchanged = 0
+
+  // Walk the file line-by-line, tracking the most recent #### filename block.
+  const lines = content.split('\n')
+  const out: string[] = []
+  let currentFilename: string | null = null
+
+  for (const line of lines) {
+    // #### filename.jpg (or .jpeg/.png/etc) under "Image Prompts + Generated"
+    const fnMatch = /^#### (\S+\.(?:jpg|jpeg|png|webp|avif|gif))\s*$/i.exec(line)
+    if (fnMatch) {
+      currentFilename = fnMatch[1]
+      out.push(line)
+      continue
+    }
+
+    // Status line within the current block — rewrite if needed.
+    // Pattern accepts both `**Status:** value` and `Status: value`.
+    if (currentFilename) {
+      const statusMatch = /^(?:\*+\s*)?Status(?:\s*\*+)?:(?:\s*\*+)?\s*(.+?)\s*$/i.exec(line)
+      if (statusMatch) {
+        const oldStatus = statusMatch[1]
+        const oldTag = parseTagFromStatus(oldStatus)
+        const isReferenced = usedSet.has(currentFilename)
+        const isHero = heroSet.has(currentFilename)
+
+        let newTag: string | null = null
+        // TRASH is sacred — banned by the user, never auto-overwrite.
+        // PENDING is sacred — a prompt slot with no generated image yet.
+        // HERO is NO LONGER sacred (Ralph 2026-04-25): it's mechanical, so
+        // a stale HERO tag on an image that's no longer in any hero section
+        // gets corrected by the same pass that promotes new heroes.
+        if (oldTag === 'TRASH' || oldTag === 'PENDING' as never) {
+          newTag = null
+        } else if (oldStatus.toUpperCase() === 'PENDING') {
+          newTag = null
+        } else if (isHero && oldTag !== 'HERO') {
+          newTag = 'HERO'
+          heroPromoted.push(currentFilename)
+        } else if (!isHero && oldTag === 'HERO') {
+          // Hero demoted out of hero section — fall through to USED/B-ROLL
+          // depending on whether it's still referenced anywhere.
+          if (isReferenced) {
+            newTag = 'USED'
+            promoted.push(currentFilename)
+          } else {
+            newTag = 'B-ROLL'
+            demoted.push(currentFilename)
+          }
+        } else if (isReferenced && oldTag !== 'USED' && oldTag !== 'HERO') {
+          newTag = 'USED'
+          promoted.push(currentFilename)
+        } else if (!isReferenced && oldTag === 'USED') {
+          newTag = 'B-ROLL'
+          demoted.push(currentFilename)
+        }
+
+        if (newTag) {
+          out.push(`**Status:** ${newTag}`)
+        } else {
+          out.push(line)
+          unchanged++
+        }
+        currentFilename = null  // only rewrite the first Status under each #### block
+        continue
+      }
+    }
+
+    out.push(line)
+  }
+
+  // Self-healing: any image referenced in HTML but with no #### block in IMAGES.md
+  // gets a stub block appended. Stub Status is USED (it's referenced — that's the contract).
+  const haveBlock = new Set<string>()
+  const blockRegex = /^#### (\S+\.(?:jpg|jpeg|png|webp|avif|gif))\s*$/gim
+  let m: RegExpExecArray | null
+  const finalContent = out.join('\n')
+  while ((m = blockRegex.exec(finalContent)) !== null) haveBlock.add(m[1])
+
+  const orphans = [...usedSet].filter(fn => !haveBlock.has(fn))
+  let appended = ''
+  if (orphans.length > 0) {
+    // Insert stub blocks just before the "## Manipulations" section, falling back to end of file.
+    const manipIdx = out.findIndex(line => line.trim() === '## Manipulations')
+    const stubs = orphans.map(fn => {
+      // If the orphan is in a hero section, stub with HERO; else USED.
+      const stubStatus = heroSet.has(fn) ? 'HERO' : 'USED'
+      return `#### ${fn}\n**Generated:** ${new Date().toISOString().slice(0, 10)}\n**Status:** ${stubStatus}\n**Nano Banana:** (auto-stub created by reconcileUsedTags — image is referenced in a vibe HTML but had no entry. Update with real description if known.)\n\n`
+    }).join('')
+    if (manipIdx > 0) {
+      out.splice(manipIdx, 0, stubs.trimEnd())
+    } else {
+      out.push(stubs.trimEnd())
+    }
+    appended = orphans.join(', ')
+  }
+
+  // Only rewrite if anything changed
+  if (promoted.length || demoted.length || heroPromoted.length || orphans.length) {
+    await writeFile(imagesPath, out.join('\n'), 'utf-8')
+    console.log(`[reconcileUsedTags] session=${sessionId} hero=+${heroPromoted.length} promoted=+${promoted.length} demoted=-${demoted.length} stubsAdded=${orphans.length}${orphans.length ? ' [' + appended + ']' : ''}`)
+  }
+
+  return { promoted, demoted, heroPromoted, unchanged }
 }
 
 // Helper to extract tag from status string
-function parseTagFromStatus(status: string): 'HERO' | 'B-ROLL' | 'TRASH' | 'READY' | 'INGESTED' | 'APPROVED' | 'REDO' | undefined {
+// Order matters: check more specific tags before less specific ones (e.g. HERO before B-ROLL).
+function parseTagFromStatus(status: string): 'HERO' | 'USED' | 'B-ROLL' | 'TRASH' | 'READY' | 'INGESTED' | 'APPROVED' | 'REDO' | undefined {
   const upper = status.toUpperCase()
   if (upper.includes('HERO')) return 'HERO'
   if (upper.includes('TRASH')) return 'TRASH'
   if (upper.includes('B-ROLL')) return 'B-ROLL'
+  if (upper.includes('USED')) return 'USED'
   if (upper.includes('READY')) return 'READY'
   if (upper.includes('INGESTED')) return 'INGESTED'
   if (upper.includes('APPROVED')) return 'APPROVED'
   if (upper.includes('REDO')) return 'REDO'
+  // Bug 8 fix (Ralph 2026-04-30): legacy status "ACTIVE" was written by a
+  // deprecated ingestion step and lived outside the documented vocabulary.
+  // Normalize to USED so v2-aware code paths never surface it. The raw
+  // status string remains in entry.status for forensics; entry.tag (this
+  // function's return) is what summaries should prefer.
+  if (upper.includes('ACTIVE')) return 'USED'
   return undefined
 }
 
@@ -1165,6 +1480,16 @@ function parseTagFromStatus(status: string): 'HERO' | 'B-ROLL' | 'TRASH' | 'READ
 export async function parseImagesMd(sessionId: string): Promise<Map<string, ParsedImageEntry>> {
   const sessionPath = getSessionPath(sessionId)
   const result = new Map<string, ParsedImageEntry>()
+
+  // Run the vibe HTML scanner once and attach `usedIn` to every entry below.
+  // Independent of the `tag` parsed from IMAGES.md so HERO images can also
+  // surface USED in the AssetsPanel (HERO badge top-left + USED pill bottom-right).
+  let usedInMap: Map<string, string[]> = new Map()
+  try {
+    usedInMap = await scanVibeHtmlsForUsedImages(sessionId)
+  } catch (err) {
+    console.warn(`[parseImagesMd] usedIn scan failed for ${sessionId}:`, err)
+  }
 
   try {
     const content = await readFile(path.join(sessionPath, 'IMAGES.md'), 'utf-8')
@@ -1186,32 +1511,23 @@ export async function parseImagesMd(sessionId: string): Promise<Map<string, Pars
       const filename = filenameMatch[1].trim()
 
       // Parse Uploaded timestamp
-      const uploadedMatch = entry.match(/\*\*Uploaded:\*\*\s*(.+)/)
-      const uploadedAt = uploadedMatch ? uploadedMatch[1].trim() : undefined
+      // All field extraction via shared helper — accepts both bold-labeled
+      // and plain formats. See lib/markdown-fields.ts.
+      const uploadedAt = matchField(entry, 'Uploaded') || undefined
+      const cdAnalysis = matchFieldMultiline(entry, 'CD Analysis') || undefined
 
-      // Parse CD Analysis (use [\s\S] instead of /s flag for ES2017 compatibility)
-      const analysisMatch = entry.match(/\*\*CD Analysis:\*\*\s*([\s\S]+?)(?=\n\*\*|$)/)
-      const cdAnalysis = analysisMatch ? analysisMatch[1].trim() : undefined
-
-      // Parse Suggested uses
-      const usesMatch = entry.match(/\*\*Suggested uses:\*\*\s*(.+)/)
-      const suggestedUses = usesMatch
-        ? usesMatch[1].split(',').map(s => s.trim()).filter(Boolean)
+      const usesValue = matchField(entry, 'Suggested uses')
+      const suggestedUses = usesValue
+        ? usesValue.split(',').map(s => s.trim()).filter(Boolean)
         : undefined
 
-      // Parse Suggested vibes
-      const vibesMatch = entry.match(/\*\*Suggested vibes:\*\*\s*(.+)/)
-      const suggestedVibes = vibesMatch
-        ? vibesMatch[1].split(',').map(s => s.trim()).filter(Boolean)
+      const vibesValue = matchField(entry, 'Suggested vibes')
+      const suggestedVibes = vibesValue
+        ? vibesValue.split(',').map(s => s.trim()).filter(Boolean)
         : undefined
 
-      // Parse Reprompt (use [\s\S] instead of /s flag for ES2017 compatibility)
-      const repromptMatch = entry.match(/\*\*Reprompt:\*\*\s*([\s\S]+?)(?=\n\*\*|\n###|$)/)
-      const reprompt = repromptMatch ? repromptMatch[1].trim() : undefined
-
-      // Parse Status
-      const statusMatch = entry.match(/\*\*Status:\*\*\s*(.+)/)
-      const status = statusMatch ? statusMatch[1].trim() : undefined
+      const reprompt = matchFieldMultiline(entry, 'Reprompt') || undefined
+      const status = matchField(entry, 'Status') || undefined
       const tag = status ? parseTagFromStatus(status) : undefined
 
       result.set(filename, {
@@ -1222,7 +1538,8 @@ export async function parseImagesMd(sessionId: string): Promise<Map<string, Pars
         suggestedVibes,
         reprompt,
         status,
-        tag
+        tag,
+        usedIn: usedInMap.get(filename),
       })
     }
 
@@ -1241,28 +1558,26 @@ export async function parseImagesMd(sessionId: string): Promise<Map<string, Pars
         if (!filenameMatch) continue
         const filename = filenameMatch[1].trim()
 
-        // Parse Generated timestamp
-        const generatedMatch = entry.match(/\*\*Generated:\*\*\s*(.+)/)
-        const uploadedAt = generatedMatch ? generatedMatch[1].trim() : undefined
-
-        // Parse Status
-        const statusMatch = entry.match(/\*\*Status:\*\*\s*(.+)/)
-        const status = statusMatch ? statusMatch[1].trim() : undefined
+        // All via shared helper. CD Analysis / Evaluation: try both names.
+        const uploadedAt = matchField(entry, 'Generated') || undefined
+        const status = matchField(entry, 'Status') || undefined
         const tag = status ? parseTagFromStatus(status) : undefined
-
-        // Parse CD Analysis or Evaluation
-        const analysisMatch = entry.match(/\*\*(?:CD Analysis|Evaluation):\*\*\s*([\s\S]+?)(?=\n\*\*|\n####|$)/)
-        const cdAnalysis = analysisMatch ? analysisMatch[1].trim() : undefined
+        const cdAnalysis =
+          matchFieldMultiline(entry, 'CD Analysis')
+          || matchFieldMultiline(entry, 'Evaluation')
+          || undefined
 
         result.set(filename, {
           filename,
           uploadedAt,
           cdAnalysis,
           status,
-          tag
+          tag,
+          usedIn: usedInMap.get(filename),
         })
       }
     }
+
   } catch (error) {
     console.error(`Failed to parse IMAGES.md for session ${sessionId}:`, error)
   }

@@ -1,3 +1,7 @@
+> **INTEGRATED 2026-04-30.** This plan has been folded into `docs/HUASHU-INTEGRATION-PROPOSAL.md` v4 §A1 (the BRANDING tab section). All 17 sections of this document — user flow, deliverables catalog, architecture, data model, prompt templates, workpackages WP-B1 through WP-B5, output naming, aspect ratio handling, auto-cataloging, phasing, open decisions, test plan, success criteria, risks — are present in the integration proposal in full. Future edits should go to `HUASHU-INTEGRATION-PROPOSAL.md` v4 §A1, not this file. This file is preserved as historical record.
+
+---
+
 # Branding Tab — Implementation Plan
 
 **Status:** Proposal · **Owner:** Dev · **Scope:** 1-2 sessions for Phase 1 MVP

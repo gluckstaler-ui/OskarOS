@@ -4,12 +4,14 @@
 // ==========================================
 
 import { spawn } from 'child_process'
-import { existsSync, readFileSync, createWriteStream } from 'fs'
+import { existsSync, readFileSync, createWriteStream, appendFileSync } from 'fs'
 import { readFile, writeFile, readdir, mkdir } from 'fs/promises'
 import { join } from 'path'
 import type { ParsedVibe } from './creative-brief-parser'
 import { trackUsageFromCLIOutput } from './usage-tracker'
 import { verifyVibeHtml, parseTrailingJson } from './vibe-verify'
+import { ensureMcpConfig, WEBDEV_ALLOWED_TOOLS } from './mcp-config'
+import { collectFromStdout } from './mcp-tool-collector'
 
 // ==========================================
 // Load WebDev Agent Prompt from MD file
@@ -17,14 +19,55 @@ import { verifyVibeHtml, parseTrailingJson } from './vibe-verify'
 
 function loadWebDevAgentPrompt(): string {
   try {
-    // Go up one level from oskar-prototype to OskarOS base directory
-    const mdPath = join(process.cwd(), '..', 'webdev-agent.md')
+    // Load from agents/ directory, matching the CD/Sage/Sentinel TI pattern
+    const mdPath = join(process.cwd(), 'agents', 'webdev-agent.md')
     return readFileSync(mdPath, 'utf-8')
   } catch (error) {
     console.error('Failed to load webdev-agent.md:', error)
-    console.error('Expected location:', join(process.cwd(), '..', 'webdev-agent.md'))
+    console.error('Expected location:', join(process.cwd(), 'agents', 'webdev-agent.md'))
     // Return empty string — the vibe prompt still works, just without the full agent context
     return ''
+  }
+}
+
+// ==========================================
+// Phase 2 (2026-04-30) — manifest extraction from MCP tool call
+// ==========================================
+
+/**
+ * Read `report_build_complete` args from the agent's stream-json output.
+ * Returns the manifest in the same shape as parseTrailingJson did, so all
+ * downstream code keeps working unchanged. This is the PRIMARY path; the
+ * trailing-JSON parser + fallbacks remain as safety net.
+ */
+function readReportBuildCompleteFromStdout(
+  stdout: string,
+): { filename: string; vibeIndex: number; vibeName: string } | null {
+  const calls = collectFromStdout(stdout, ['report_build_complete'])
+  const args = calls.report_build_complete as
+    | { filename?: unknown; vibeIndex?: unknown; vibeName?: unknown }
+    | undefined
+  if (!args) return null
+  if (typeof args.filename !== 'string' || !args.filename.endsWith('.html')) return null
+  if (typeof args.vibeIndex !== 'number') return null
+  if (typeof args.vibeName !== 'string') return null
+  return { filename: args.filename, vibeIndex: args.vibeIndex, vibeName: args.vibeName }
+}
+
+/**
+ * Append a fallback-fired entry to `_debug-webdev-fallback.log` per Phase 2
+ * plan. Used by the monitoring story: if the rate climbs we know the tool
+ * contract is breaking somewhere (network, permission misconfig, agent
+ * prompt drift). Best-effort write; failure is non-fatal.
+ */
+function logFallbackFired(sessionPath: string, target: string, fallbackName: string): void {
+  try {
+    const logPath = join(sessionPath, 'logs', '_debug-webdev-fallback.log')
+    const entry = `${new Date().toISOString()}\ttarget="${target}"\tfallback=${fallbackName}\n`
+    appendFileSync(logPath, entry, 'utf-8')
+  } catch {
+    // logs/ may not exist on a brand-new session before the bridge ran;
+    // we tried, that's enough for the metric story.
   }
 }
 
@@ -344,7 +387,8 @@ export async function buildVibeHTML(
   sessionId: string,
   target: string,
   sessionPath: string,
-  model: string = 'claude-sonnet-4-6'
+  model: string = 'claude-sonnet-4-6',
+  abortSignal?: AbortSignal,
 ): Promise<VibeBuildResult> {
   const requestId = Date.now()
 
@@ -395,17 +439,32 @@ Do NOT output the HTML in chat. Use your file writing capability.
 
 ---
 
-## REQUIRED OUTPUT FORMAT
+## REQUIRED OUTPUT — Phase 2 (2026-04-30)
 
-After writing the file, end your response with EXACTLY this — a single JSON
-line, on its own line, as the last thing in your response:
+After writing the file, **call the \`report_build_complete\` MCP tool** with
+the structured manifest:
 
 \`\`\`
-{"filename": "vibe-N-slug.html", "vibeIndex": N, "vibeName": "The Vibe Name"}
+report_build_complete({
+  filename: "vibe-N-slug.html",
+  vibeIndex: N,
+  vibeName: "The Vibe Name",
+  sectionsBuilt: ["hero", "menu", "residents", ...],
+  imagesUsed: ["hero.jpg", "menu-bg.jpg", ...]
+})
 \`\`\`
 
-The orchestrator parses this line to know what file you produced. Don't skip
-it. Don't wrap it in extra text after.
+Do NOT write \`## BUILD COMPLETE\` headers or trailing JSON manifest lines.
+The legacy parser was retired 2026-04-30 — those strings in chat do nothing.
+The tool call IS the contract.
+
+If the build fails partway, call \`report_build_failed({error: "..."})\` and stop.
+For mid-build progress visibility (optional), call \`report_build_progress({milestone: "..."})\`.
+
+The orchestrator captures these tool calls from the stream-json output. If
+the tool call is missing the orchestrator falls back to scanning your
+output for a trailing JSON line — but that's a defensive safety net. **Always
+call \`report_build_complete\` as your primary signal.**
 `
 
   // Ralph 2026-04-25: when images are present, WebDev "overthinks" them —
@@ -459,12 +518,22 @@ it. Don't wrap it in extra text after.
     // text in the JSONL/stream-json. Without it, opus-4-7 returns thinking blocks
     // with empty `thinking` text + signature only — same redaction we hit on
     // every prior failed build. Adding it makes the debug log actually useful.
+    //
+    // Phase 2 (2026-04-30): WebDev now gets --mcp-config + the WebDev-scoped
+    // allowed-tools whitelist. The agent calls `report_build_complete` after
+    // writing the file; we capture the args from the stream-json output via
+    // lib/mcp-tool-collector. parseTrailingJson + the disk-mtime fallback
+    // chain stay as defensive last-resort — when the tool call is missing,
+    // we log to _debug-webdev-fallback.log so we can monitor the rate.
+    const mcpConfigFile = ensureMcpConfig({ sessionId, cwd: process.cwd(), agentRole: 'webdev' })
     const child = spawn(claudePath, [
       '--verbose',
       '--output-format', 'stream-json',
       '--include-partial-messages',
       '--model', model,
       '--permission-mode', 'bypassPermissions',
+      '--mcp-config', mcpConfigFile,
+      '--allowed-tools', WEBDEV_ALLOWED_TOOLS,
       '--print',
       userPrompt  // direct arg — no shell, no expansion, no backtick issues
     ], {
@@ -482,6 +551,21 @@ it. Don't wrap it in extra text after.
 
     let fullOutput = ''
 
+    // Phase 2.5 (Ralph 2026-04-30): cancel_job propagates here. When the
+    // escrow's AbortController fires, kill the child the same way the
+    // existing timeout path does. The result returned upstream is
+    // {status:'error', error:'cancelled'} so the escrow records 'failed'
+    // (the escrow itself sets status='cancelled' before this path runs,
+    // so the runner result is discarded by the escrow's already-cancelled
+    // check).
+    const onAbort = () => {
+      try { child.kill('SIGTERM') } catch {}
+    }
+    if (abortSignal) {
+      if (abortSignal.aborted) onAbort()
+      else abortSignal.addEventListener('abort', onAbort, { once: true })
+    }
+
     const timeout = setTimeout(async () => {
       child.kill('SIGTERM')
       cleanup()
@@ -492,15 +576,25 @@ it. Don't wrap it in extra text after.
 
       // Try every recovery path — same logic as the close handler. The agent
       // very often writes the file successfully but gets killed before it can
-      // emit the manifest line. We don't want to throw away that work.
-      let manifest = parseTrailingJson(fullOutput)
+      // emit the manifest line / call the tool. We don't want to throw away that work.
+      let manifest = readReportBuildCompleteFromStdout(fullOutput)
+      if (!manifest) {
+        manifest = parseTrailingJson(fullOutput)
+        if (manifest) logFallbackFired(sessionPath, target, 'parseTrailingJson (timeout path)')
+      }
       if (!manifest) {
         const recovered = recoverFilenameFromOutput(fullOutput, sessionPath)
-        if (recovered) manifest = { filename: recovered, vibeIndex: extractVibeIndexFromFilename(recovered), vibeName: target }
+        if (recovered) {
+          manifest = { filename: recovered, vibeIndex: extractVibeIndexFromFilename(recovered), vibeName: target }
+          logFallbackFired(sessionPath, target, 'recoverFilenameFromOutput (timeout path)')
+        }
       }
       if (!manifest) {
         const recent = await findRecentlyWrittenVibeHtml(sessionPath, target, requestId)
-        if (recent) manifest = { filename: recent, vibeIndex: extractVibeIndexFromFilename(recent), vibeName: target }
+        if (recent) {
+          manifest = { filename: recent, vibeIndex: extractVibeIndexFromFilename(recent), vibeName: target }
+          logFallbackFired(sessionPath, target, 'findRecentlyWrittenVibeHtml (timeout path)')
+        }
       }
 
       if (manifest && existsSync(join(sessionPath, manifest.filename))) {
@@ -575,12 +669,24 @@ it. Don't wrap it in extra text after.
         console.error(`[WebDev] Failed to track usage:`, usageError)
       }
 
-      // PARSE: extract the agent's manifest (filename + metadata).
-      // Ralph 2026-04-26: WebDev picks the filename itself; agent ends with
-      // a JSON manifest line giving us what it produced.
-      let manifest = parseTrailingJson(fullOutput)
+      // Phase 2 PRIMARY: read the agent's `report_build_complete` tool call.
+      // This is the structured-args contract — typed, validated, no regex.
+      let manifest = readReportBuildCompleteFromStdout(fullOutput)
 
-      // FALLBACK 1 (Ralph 2026-04-26): when the agent gets killed by the
+      // FALLBACK 1: parseTrailingJson — legacy contract. Kept as defensive
+      // safety net for ALL backends per Phase 2 plan: Claude's MCP tool call
+      // can fail for the same reasons Gemini's can (network blip, permission
+      // misconfig, agent forgetting the contract on a long run). When this
+      // fires, log to _debug-webdev-fallback.log for monitoring.
+      if (!manifest) {
+        manifest = parseTrailingJson(fullOutput)
+        if (manifest) {
+          console.warn(`[WebDev] ⚠️ report_build_complete missing; recovered via parseTrailingJson`)
+          logFallbackFired(sessionPath, target, 'parseTrailingJson')
+        }
+      }
+
+      // FALLBACK 2 (Ralph 2026-04-26): when the agent gets killed by the
       // timeout BEFORE it can emit the manifest, scan the agent's output
       // for any `tool_result` that mentions a `vibe-*.html` file in this
       // session folder — that's the file the agent wrote. The work was
@@ -594,10 +700,11 @@ it. Don't wrap it in extra text after.
             vibeIndex: extractVibeIndexFromFilename(recovered),
             vibeName: target,
           }
+          logFallbackFired(sessionPath, target, 'recoverFilenameFromOutput')
         }
       }
 
-      // FALLBACK 2: scan the session folder for any vibe-*.html modified
+      // FALLBACK 3: scan the session folder for any vibe-*.html modified
       // during the build window. Last-ditch — useful when the agent wrote
       // via Bash heredocs that don't surface as parseable tool_result paths.
       if (!manifest) {
@@ -609,6 +716,7 @@ it. Don't wrap it in extra text after.
             vibeIndex: extractVibeIndexFromFilename(recent),
             vibeName: target,
           }
+          logFallbackFired(sessionPath, target, 'findRecentlyWrittenVibeHtml')
         }
       }
 
@@ -701,6 +809,7 @@ export async function buildVibeHTMLGemini(
   sessionId: string,
   target: string,
   sessionPath: string,
+  abortSignal?: AbortSignal,
 ): Promise<VibeBuildResult> {
   const requestId = Date.now()
   const agentPrompt = loadWebDevAgentPrompt()
@@ -734,13 +843,22 @@ Do NOT output the HTML in chat. Use shell file writing.
 
 ---
 
-## REQUIRED OUTPUT FORMAT
+## REQUIRED OUTPUT — Phase 2 (2026-04-30)
 
-End your response with EXACTLY this single JSON line on its own line:
+After writing the file, **call the \`report_build_complete\` MCP tool**:
 
 \`\`\`
-{"filename": "vibe-N-slug.html", "vibeIndex": N, "vibeName": "The Vibe Name"}
+report_build_complete({
+  filename: "vibe-N-slug.html",
+  vibeIndex: N,
+  vibeName: "The Vibe Name",
+  sectionsBuilt: [...],
+  imagesUsed: [...]
+})
 \`\`\`
+
+Do NOT write trailing JSON manifest lines or \`## BUILD COMPLETE\` headers.
+The legacy parser remains as a defensive fallback only — call the tool.
 `
 
   // Same overthink-on-images problem — double timeout when images are present
@@ -759,10 +877,18 @@ End your response with EXACTLY this single JSON line on its own line:
     console.log(`[WebDev-Gemini] Prompt length: ${userPrompt.length} chars`)
     console.log(`[WebDev-Gemini] Timeout budget: ${TIMEOUT_LABEL_GEM} (${sessionImages.length} images)`)
 
+    // Phase 2 (2026-04-30): Gemini gets the same MCP wiring as Claude. The
+    // Gemini CLI accepts `--mcp-config` and emits tool_use blocks in
+    // stream-json, so the same tool collector reads `report_build_complete`
+    // args. parseTrailingJson + fallbacks remain as defensive last-resort —
+    // Gemini's MCP support is documented but less battle-tested than Claude's.
+    const mcpConfigFileGemini = ensureMcpConfig({ sessionId, cwd: process.cwd(), agentRole: 'webdev' })
     const child = spawn(geminiPath, [
       '-m', 'gemini-3.1-pro-preview',
       '--yolo',
       '-o', 'stream-json',
+      '--mcp-config', mcpConfigFileGemini,
+      '--allowed-tools', WEBDEV_ALLOWED_TOOLS,
       '-p', userPrompt
     ], {
       cwd: process.cwd(),
@@ -778,9 +904,22 @@ End your response with EXACTLY this single JSON line on its own line:
     child.stdin.end()
     let fullOutput = ''
 
+    // Phase 2.5 (Ralph 2026-04-30): cancel_job propagation, mirrors the
+    // Claude path. Same SIGTERM kill, same orphan-tolerance.
+    const onAbort = () => { try { child.kill('SIGTERM') } catch {} }
+    if (abortSignal) {
+      if (abortSignal.aborted) onAbort()
+      else abortSignal.addEventListener('abort', onAbort, { once: true })
+    }
+
     const timeout = setTimeout(() => {
       child.kill('SIGTERM')
-      const partial = parseTrailingJson(fullOutput)
+      // Phase 2: tool-call read first, then fallbacks
+      let partial = readReportBuildCompleteFromStdout(fullOutput)
+      if (!partial) {
+        partial = parseTrailingJson(fullOutput)
+        if (partial) logFallbackFired(sessionPath, target, 'parseTrailingJson (gemini timeout)')
+      }
       if (partial && existsSync(join(sessionPath, partial.filename))) {
         resolve({ vibeIndex: partial.vibeIndex, vibeName: partial.vibeName, filename: partial.filename, status: 'complete' })
       } else {
@@ -800,15 +939,30 @@ End your response with EXACTLY this single JSON line on its own line:
       clearTimeout(timeout)
       console.log(`[WebDev-Gemini] Gemini exited with code ${code}. Output: ${fullOutput.length} chars`)
 
-      let manifest = parseTrailingJson(fullOutput)
-      // Same recovery fallbacks as the Claude path
+      // Phase 2 PRIMARY: structured tool call.
+      let manifest = readReportBuildCompleteFromStdout(fullOutput)
+
+      // Same recovery fallbacks as the Claude path. Logged for monitoring.
+      if (!manifest) {
+        manifest = parseTrailingJson(fullOutput)
+        if (manifest) {
+          console.warn(`[WebDev-Gemini] ⚠️ report_build_complete missing; recovered via parseTrailingJson`)
+          logFallbackFired(sessionPath, target, 'parseTrailingJson (gemini)')
+        }
+      }
       if (!manifest) {
         const recovered = recoverFilenameFromOutput(fullOutput, sessionPath)
-        if (recovered) manifest = { filename: recovered, vibeIndex: extractVibeIndexFromFilename(recovered), vibeName: target }
+        if (recovered) {
+          manifest = { filename: recovered, vibeIndex: extractVibeIndexFromFilename(recovered), vibeName: target }
+          logFallbackFired(sessionPath, target, 'recoverFilenameFromOutput (gemini)')
+        }
       }
       if (!manifest) {
         const recent = await findRecentlyWrittenVibeHtml(sessionPath, target, requestId)
-        if (recent) manifest = { filename: recent, vibeIndex: extractVibeIndexFromFilename(recent), vibeName: target }
+        if (recent) {
+          manifest = { filename: recent, vibeIndex: extractVibeIndexFromFilename(recent), vibeName: target }
+          logFallbackFired(sessionPath, target, 'findRecentlyWrittenVibeHtml (gemini)')
+        }
       }
       if (!manifest) {
         resolve({ vibeIndex: 0, vibeName: target, filename: '', status: 'error', error: `Gemini finished but produced no manifest and no detectable output file` })

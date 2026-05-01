@@ -214,6 +214,57 @@ export function SnackbarProvider({ children }: { children: ReactNode }) {
           })
           break
         }
+
+        // 2026-04-30 (Ralph) — Phase 2 Tier S `snackbar` MCP tool. Routed
+        // through the existing SnackbarProvider so it uses the SAME UI
+        // every other snackbar in the app uses (e.g. the image pipeline).
+        //
+        // 2026-04-30 (Ralph, late) — full 5-severity parity with the
+        // existing palette:
+        //   info     → blue,        5s auto-dismiss
+        //   success  → green,       5s auto-dismiss
+        //   progress → cyan,        sticky (an op is in flight; caller dismisses)
+        //   warning  → yellow/orange, sticky
+        //   error    → red,         sticky
+        //
+        // `sticky` is ORTHOGONAL to severity. Pass sticky:true to make
+        // info/success persist; pass sticky:false to make warning/error/
+        // progress auto-dismiss (5s). Both `'warn'` and `'warning'` are
+        // accepted on the agent side; we normalize to 'warning' (the
+        // SnackbarType the underlying component declares).
+        case 'cd.snackbar': {
+          const text = event.data.text as string | undefined
+          if (!text) break
+          const sevRaw = event.data.severity as
+            | 'info' | 'success' | 'progress' | 'warn' | 'warning' | 'error'
+            | undefined
+          const sev = sevRaw === 'warn' ? 'warning' : sevRaw
+          // Default sticky-ness per severity.
+          const defaultSticky = sev === 'warning' || sev === 'error' || sev === 'progress'
+          const sticky = typeof event.data.sticky === 'boolean'
+            ? event.data.sticky
+            : defaultSticky
+          const duration = sticky ? 0 : 5000
+          switch (sev) {
+            case 'success':
+              show('success', text, { duration })
+              break
+            case 'progress':
+              show('progress', text, { duration, isProgress: true })
+              break
+            case 'warning':
+              show('warning', text, { duration })
+              break
+            case 'error':
+              show('error', text, { duration })
+              break
+            case 'info':
+            default:
+              show('info', text, { duration })
+              break
+          }
+          break
+        }
       }
     })
 

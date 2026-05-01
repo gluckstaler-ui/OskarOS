@@ -254,4 +254,51 @@ describe('hot-swap HTML patterns', () => {
       expect(match![2]).toBe('/2026-01-29-1/hero-v1.jpg')
     })
   })
+
+  // ── REGRESSION 2026-04-26 — assign/swap HTML-corruption guards ────────
+  // Two latent bugs in the swap path that could silently corrupt HTML:
+  //   A) `slot` interpolated into RegExp source without escaping → regex
+  //      metachars in slot names matched the wrong substrings
+  //   B) `newImage` interpolated into String.replace replacement string
+  //      → `$1`, `$&`, etc. interpreted as backreferences
+  // Removing or weakening these tests is forbidden.
+  describe('REGRESSION 2026-04-26 — swap HTML-safety guards', () => {
+    function escapeRegex(s: string): string {
+      return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+    }
+
+    it('escaped slot with dots matches literally, not as wildcards', () => {
+      const slot = 'bgimg:hero.jpg'
+      const escaped = escapeRegex(slot)
+      const pattern = new RegExp(`data-slot="${escaped}"`, 'gi')
+      expect(pattern.test('<img data-slot="bgimg:hero.jpg">')).toBe(true)
+      pattern.lastIndex = 0
+      expect(pattern.test('<img data-slot="bgimgXheroXjpg">')).toBe(false)
+    })
+
+    it('escaped slot with parens compiles and matches literally', () => {
+      const slot = 'bgimg:img(1).jpg'
+      const escaped = escapeRegex(slot)
+      expect(() => new RegExp(`data-slot="${escaped}"`, 'gi')).not.toThrow()
+      const pattern = new RegExp(`data-slot="${escaped}"`, 'gi')
+      expect(pattern.test('<img data-slot="bgimg:img(1).jpg">')).toBe(true)
+    })
+
+    it('callback-based replace is immune to $-substitution in newImage', () => {
+      const tag = '<img src="old.jpg" alt="x">'
+      const newImage = 'new$&corrupt.jpg'
+      // String replacement substitutes $& (the bug we fixed)
+      const buggyResult = tag.replace(
+        /\bsrc=(["'])[^"']+\1/i,
+        `src="${newImage}"`,
+      )
+      expect(buggyResult).toContain('src="old.jpg"corrupt.jpg"')
+      // Callback replacement preserves the literal value (the fix)
+      const fixedResult = tag.replace(
+        /\bsrc=(["'])[^"']+\1/i,
+        () => `src="${newImage}"`,
+      )
+      expect(fixedResult).toBe('<img src="new$&corrupt.jpg" alt="x">')
+    })
+  })
 })

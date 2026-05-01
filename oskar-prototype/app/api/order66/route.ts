@@ -1,20 +1,26 @@
 /**
  * /api/order66 — SSE endpoint (hard compaction)
  *
- * Kills the bridge FIRST, then runs LJ + Sage.
- * Bridge must be respawned after — next chat message auto-spawns via getOrSpawn().
+ * Kills the bridge FIRST, then runs the two Sage agents.
+ *
+ * 2026-04-21: Lumberjack removed from order66 — the 7-stage Lumberjack
+ * architecture was failing on every call (see git history). Lumberjack's
+ * per-10-minute piggyback cadence still runs via maybeRunLumberjack in the
+ * chat routes. Order 66 now runs:
+ *   - Sage-240/40   — SESSION.md compression (only if >240KB, fast skip otherwise)
+ *   - Sage-Portrait — user.md painting (parallel to 240/40, writes a different file)
  *
  * Flow:
  *   1. Kill current bridge process
- *   2. Fire Lumberjack + Sage IN PARALLEL (they write to different files)
- *   3. Stream real-time ProgressEvents to the overlay
- *   4. When both complete, signal bridge-ready (next chat message auto-spawns)
- *   5. If client disconnects (Continue button), abort in-flight work
+ *   2. Start Sage-240/40 (may cut SESSION.md in place)
+ *   3. Start Sage-Portrait in parallel (writes user.md — different file, safe)
+ *   4. Stream real-time ProgressEvents to the overlay
+ *   5. When both complete, signal bridge-ready (next chat message auto-spawns)
+ *   6. If client disconnects (Continue button), abort in-flight work
  */
 
 import { NextRequest } from 'next/server'
-import { runLumberjack } from '@/lib/memory/lumberjack'
-import { runDreamerOrder66 } from '@/lib/memory/dreamer'
+import { runSagePortrait, runSage240_40 } from '@/lib/memory/dreamer'
 import type { ProgressEvent } from '@/lib/memory/lumberjack'
 import { bridgeManager } from '@/lib/bridge-process-manager'
 
@@ -66,9 +72,18 @@ export async function GET(req: NextRequest) {
           const mappingPath = join(process.cwd(), 'public', sessionId, 'logs', 'BRIDGE.json')
           if (existsSync(mappingPath)) unlinkSync(mappingPath)
         } catch {}
+        // Phase 2 (2026-04-30): wipe accumulated screenshots from MCP
+        // `screenshot` tool. Ralph wants compaction to be a clean slate —
+        // screenshots are session-scoped evidence, not durable state.
+        try {
+          const { rmSync } = require('fs')
+          const { join } = require('path')
+          const screensDir = join(process.cwd(), 'public', sessionId, 'screenshots')
+          rmSync(screensDir, { recursive: true, force: true })
+        } catch {}
         console.log(`[order66] Bridge killed for ${sessionId}`)
 
-        // ── LJ + Sage in parallel ─────────────────────────────────
+        // ── Two Sages in parallel ─────────────────────────────────
         // Shared progress callback → SSE events
         const onProgress = (event: ProgressEvent) => {
           if (aborted || streamClosed) return
@@ -82,41 +97,54 @@ export async function GET(req: NextRequest) {
 
         send({ phase: 'compaction-started' })
 
-        // Stagger starts by 3s — two simultaneous `claude --print`
-        // processes fight over the CLI's OAuth lock and one starves.
-        // Sage kicks off 3s after LJ. Still parallel once both are running.
-        const ljPromise = runLumberjack(sessionId, onProgress)
-        await new Promise(r => setTimeout(r, 3000))
-        const sagePromise = runDreamerOrder66(sessionId, onProgress)
-
-        const [ljResult, sageResult] = await Promise.all([
-          ljPromise,
-          sagePromise,
+        // Sage-240/40 and Sage-Portrait write to different files (SESSION.md
+        // vs user.md), so they're parallel-safe.
+        //
+        // 3s stagger is for `claude --print` OAuth-lock contention only —
+        // two simultaneous spawns starve one process's auth handshake. NOT
+        // for audio. The audio bug was React reconciliation cost from the
+        // live feed; that fix lives in CompactionOverlay.tsx's throttled
+        // flush. Stagger length here is incidental.
+        const sage240Promise = runSage240_40(sessionId, onProgress)
+        await new Promise((r) => setTimeout(r, 3000))
+        const portraitPromise = runSagePortrait(sessionId, onProgress)
+        const [sage240Result, portraitResult] = await Promise.all([
+          sage240Promise,
+          portraitPromise,
         ])
 
         if (aborted) { close(); return }
 
-        // ── Phase 3: Results ──────────────────────────────────────
+        // ── Results ────────────────────────────────────────────────
         send({
           phase: 'compaction-complete',
-          lumberjack: {
-            status: ljResult.status,
-            inputSize: ljResult.inputSize,
-            outputSize: ljResult.outputSize,
-            compression: ljResult.compressionRatio,
-            stagesCompleted: ljResult.stagesCompleted,
-            stagesFailed: ljResult.stagesFailed,
-          },
+          // Keep the legacy `sage` field so older clients don't break.
+          // It mirrors Portrait's stats (the user.md signal).
           sage: {
-            userMemoryUpdated: sageResult.stats.userMemoryUpdated,
-            sessionMdSize: sageResult.stats.sessionMdSize,
+            userMemoryUpdated: portraitResult.stats.userMemoryUpdated,
+            sessionMdSize: portraitResult.stats.sessionMdSize,
+          },
+          sagePortrait: {
+            userMemoryUpdated: portraitResult.stats.userMemoryUpdated,
+            sessionMdSize: portraitResult.stats.sessionMdSize,
+            triageLog: portraitResult.stats.triageLog,
+          },
+          sage240_40: {
+            triggered: sage240Result.stats.triggered,
+            sessionMdSize: sage240Result.stats.sessionMdSize,
+            sessionMdSizeAfter: sage240Result.stats.sessionMdSizeAfter,
+            bytesCut: sage240Result.stats.bytesCut,
+            snapshotPath: sage240Result.stats.snapshotPath,
           },
         })
 
         // Bridge auto-spawns on next chat message via getOrSpawn()
-        // No need to explicitly spawn here
         send({ phase: 'bridge-ready' })
-        console.log(`[order66] Complete for ${sessionId} — LJ:${ljResult.status}, Sage:${sageResult.stats.userMemoryUpdated ? 'updated' : 'unchanged'}`)
+        console.log(
+          `[order66] Complete for ${sessionId} — ` +
+          `Portrait:${portraitResult.stats.userMemoryUpdated ? 'updated' : 'unchanged'}, ` +
+          `240/40:${sage240Result.stats.triggered ? `cut ${sage240Result.stats.bytesCut}B` : 'skipped'}`,
+        )
 
       } catch (err) {
         if (!aborted) {

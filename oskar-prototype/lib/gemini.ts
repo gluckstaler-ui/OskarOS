@@ -25,6 +25,36 @@ function requireApiKey() {
 export type ImageSize = '1K' | '2K' | '4K';
 export type AspectRatio = '1:1' | '2:3' | '3:2' | '3:4' | '4:3' | '4:5' | '5:4' | '9:16' | '16:9' | '21:9';
 
+/**
+ * Aspect ratios the Gemini image API will accept. Kept in sync with the
+ * error the API throws ("aspect_ratio must be one of ..."). The app's own
+ * `AspectRatio` type is a subset of this — but upstream callers (CD
+ * proposals parsed from IMAGES.md, chat-stream regex-parsed prompts) type
+ * as raw strings, so an invalid value can slip through. Anything not in
+ * this set gets dropped just before the API call (Gemini then picks its
+ * own default — effectively "auto"). This stops one bad prompt from
+ * killing the whole generation pipeline.
+ */
+const VALID_GEMINI_ASPECT_RATIOS = new Set<string>([
+  '1:1', '1:4', '1:8', '2:3', '3:2', '3:4',
+  '4:1', '4:3', '4:5', '5:4', '8:1', '9:16', '16:9', '21:9',
+])
+
+/**
+ * Returns the aspect ratio unchanged if Gemini accepts it, otherwise
+ * returns undefined (caller should omit the field → Gemini uses default).
+ * Warns once per invalid value to make future debugging cheap.
+ */
+function sanitizeAspectRatio(ar: string | undefined | null): string | undefined {
+  if (!ar) return undefined
+  if (VALID_GEMINI_ASPECT_RATIOS.has(ar)) return ar
+  console.warn(
+    `[gemini] Dropping invalid aspect_ratio "${ar}" — not in Gemini's allowed set. ` +
+    `Valid: ${[...VALID_GEMINI_ASPECT_RATIOS].join(', ')}. Falling back to API default.`
+  )
+  return undefined
+}
+
 export interface ImageGenerationRequest {
   prompt: string;
   referenceImages?: string[]; // base64 encoded images
@@ -157,8 +187,9 @@ export async function generateImage(request: ImageGenerationRequest): Promise<{ 
     imageConfig: {},
   };
 
-  if (request.aspectRatio) {
-    generationConfig.imageConfig.aspectRatio = request.aspectRatio;
+  const sanitizedAR = sanitizeAspectRatio(request.aspectRatio)
+  if (sanitizedAR) {
+    generationConfig.imageConfig.aspectRatio = sanitizedAR;
   }
   if (request.imageSize) {
     generationConfig.imageConfig.imageSize = request.imageSize;
@@ -359,8 +390,9 @@ export async function editImage(request: ImageEditRequest): Promise<string> {
     imageConfig: {},
   }
 
-  if (request.aspectRatio) {
-    generationConfig.imageConfig.aspectRatio = request.aspectRatio
+  const sanitizedAR = sanitizeAspectRatio(request.aspectRatio)
+  if (sanitizedAR) {
+    generationConfig.imageConfig.aspectRatio = sanitizedAR
   }
   if (request.imageSize) {
     generationConfig.imageConfig.imageSize = request.imageSize
@@ -433,8 +465,9 @@ export async function editImageWithText(request: ImageEditRequest): Promise<{ im
     imageConfig: {},
   }
 
-  if (request.aspectRatio) {
-    generationConfig.imageConfig.aspectRatio = request.aspectRatio
+  const sanitizedAR = sanitizeAspectRatio(request.aspectRatio)
+  if (sanitizedAR) {
+    generationConfig.imageConfig.aspectRatio = sanitizedAR
   }
   if (request.imageSize) {
     generationConfig.imageConfig.imageSize = request.imageSize

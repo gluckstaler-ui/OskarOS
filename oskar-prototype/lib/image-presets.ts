@@ -2,7 +2,7 @@
  * image-presets.ts — WP-2A: Presets Data Structure
  *
  * Pure data. No React, no UI, no side effects.
- * 69 presets across 4 modes (View has none), organized by category.
+ * 70 presets across 4 modes (View has none), organized by category.
  *
  * Preset types by mode:
  *   - Generate: static prompt string (.prompt)
@@ -203,7 +203,7 @@ const GENERATE_CREATIVE: PresetCategory = {
 }
 
 // ============================================================================
-// Edit Presets (26) — Object Edits +Motion Blur; Art Direction +Cinematic Noir,
+// Edit Presets (27) — Object Edits +Motion Blur +Home Staging; Art Direction +Cinematic Noir,
 // +Pixel Art, +Exploded Diagram; Advanced +Camera Angle (user-prunable list)
 // ============================================================================
 
@@ -260,6 +260,11 @@ const EDIT_OBJECT: PresetCategory = {
       kind: 'edit',
       label: 'Motion Blur',
       editFn: (d) => `Add controlled, dynamic motion blur. The central subject must remain sharp, clear, and perfectly masked, while the surrounding background and non-central objects are streaked horizontally to create an intense sense of speed and motion. Flawless subject isolation.\n\n${d}`,
+    },
+    {
+      kind: 'edit',
+      label: 'Home Staging',
+      editFn: (d) => `Declutter and depersonalize the room shown in this image — ${d} — into a magazine-ready listing photograph WITHOUT replacing any major furniture, fixtures, or fittings. Preserve every existing piece exactly: same chairs, same desks, same sofas, same beds, same lamps, same plants, same shelving, same artwork frames — just clean and refresh their visible condition (no scuffs, no stains, look freshly maintained). Remove every person from the scene. Remove all personal photos, paperwork, sticky notes, cables, electronics clutter, food and water bottles, mugs, tissues, kitsch decor, and visual noise from every surface. If wall paint or wallpaper is dated or drab, repaint walls in a warm neutral (Edgecomb Gray / Swiss Coffee register) — trim, ceiling, and architectural details stay as-is. Replace heavy drapes with sheer white panels or simply open the existing curtains to flood the room with bright natural daylight. Switch on every existing lamp to cast warm inviting light. Empty surfaces, clean floors. The result is the same room with the same furniture and the same architecture, photographed at its absolute professional best — depersonalized and listing-ready, never redesigned.`,
     },
   ],
 }

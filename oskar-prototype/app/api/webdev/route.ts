@@ -132,14 +132,14 @@ async function buildVibesStreaming(
       for (const vibe of vibes) {
         console.log(`[WebDev ${requestId}] Starting vibe ${vibe.index}: ${vibe.name}`)
 
-        // Route through runWebDev — handles CLI, Claude API, and Gemini
+        // Ralph 2026-04-26: pass raw target string ("vibe-N"), not the parsed
+        // struct. WebDev resolves the brief itself.
         const result = await runWebDev({
           mode,
           model,
           sessionId,
           sessionPath,
-          vibe,
-          sessionImages
+          target: `vibe-${vibe.index}`,
         })
 
         if (result.status === 'complete') {

@@ -7,6 +7,7 @@ import type { GenerationRecord } from '@/lib/types'
 import { runProofread, type ProofreadOutcome } from '@/lib/cd-proofread'
 import { runVerdict, type VerdictOutcome } from '@/lib/cd-verdict'
 import { logToChat } from '@/lib/chat-logger'
+import { publish } from '@/lib/event-bus'
 
 // Check if file exists
 async function fileExists(filePath: string): Promise<boolean> {
@@ -36,6 +37,138 @@ async function getUniqueFilename(dir: string, baseName: string, ext: string): Pr
 
   // Fallback to timestamp only if 100+ collisions
   return `${baseName}-${Date.now()}.${ext}`
+}
+
+// Words we don't want as filenames — determiners, fillers, generic image
+// terms, AND camera/composition descriptors that Nano's descriptions
+// constantly lead with. If slugTwoWordsFromDescription strips everything,
+// we fall back to 'image'.
+//
+// Ralph 2026-04-25: previously this list was tiny, so Nano's typical opener
+// "A close-up, low-angle photograph captures..." would slug to `close-low.jpg`
+// — pure camera vocabulary, zero subject content. Filenames went from
+// `sultan.jpg` / `haboob.jpg` quality down to `wide-angle-7.jpg` /
+// `top-down-5.jpg` garbage. The expanded set below kills the
+// composition vocabulary AND the verb prefixes Nano uses to introduce
+// the actual subject ("captures", "depicts", "shows", "features").
+const FILENAME_STOPWORDS = new Set([
+  // Determiners / pronouns / prepositions / conjunctions
+  'a', 'an', 'the', 'this', 'that', 'these', 'those', 'it', 'its', "it's",
+  'he', 'she', 'they', 'we', 'you', 'me', 'us', 'them', 'his', 'her',
+  'their', 'our', 'your', 'my', 'who', 'whom', 'which', 'what', 'whose',
+  'of', 'to', 'in', 'on', 'at', 'for', 'with', 'by', 'from',
+  'into', 'onto', 'over', 'under', 'about', 'before', 'after', 'between',
+  'and', 'or', 'but', 'as', 'while',
+  // Auxiliary / linking verbs
+  'is', 'are', 'was', 'were', 'be', 'been', 'being', 'has', 'have', 'had',
+  'do', 'does', 'did', 'will', 'would', 'can', 'could', 'should', 'may',
+  'might', 'must',
+  // Verbs Nano uses to introduce the subject ("...captures a falcon...")
+  'captures', 'capture', 'capturing', 'shows', 'showing', 'show', 'depicts', 'depict',
+  'depicting', 'features', 'feature', 'featuring', 'illustrates',
+  'illustrate', 'illustrating', 'portrays', 'portray', 'portraying',
+  'represents', 'represent', 'displays', 'display', 'displaying',
+  'reveals', 'reveal', 'revealing', 'highlights', 'highlight',
+  'highlighting', 'emphasizes', 'emphasize', 'emphasizing',
+  'demonstrates', 'demonstrate', 'demonstrating', 'presents', 'present',
+  'presenting', 'taken', 'taking', 'placed', 'positioned', 'set', 'made',
+  // Generic image / medium nouns
+  'photo', 'photograph', 'photography', 'image', 'picture', 'shot',
+  'scene', 'render', 'rendering', 'view', 'composition', 'capture',
+  'depiction', 'portrait', 'landscape', 'illustration', 'frame',
+  'framing', 'snapshot', 'still', 'visual',
+  // CAMERA ANGLES / COMPOSITION DESCRIPTORS — the load-bearing additions.
+  // These are what Nano leads with and what was producing the garbage names.
+  'close', 'closeup', 'wide', 'medium', 'long', 'macro', 'micro',
+  'extreme', 'high', 'low', 'overhead', 'aerial', 'panoramic',
+  'cinematic', 'angle', 'angled', 'angles', 'detailed', 'detail',
+  'symmetrical', 'asymmetrical', 'candid', 'formal', 'casual',
+  'top', 'down', 'side', 'front', 'back', 'rear', 'three', 'quarter',
+  'first', 'second', 'third', 'fourth', 'fifth', 'sixth',
+  'flat', 'lay', 'oblique', 'tilted', 'straight', 'level', 'eye',
+  'birds', 'worms', 'dutch', 'tracking', 'establishing',
+  // Filler intensifiers / quantifiers
+  'very', 'really', 'quite', 'highly', 'extremely', 'somewhat', 'rather',
+  'fairly', 'pretty', 'some', 'any', 'all', 'each', 'every', 'much',
+  'many', 'few', 'one', 'two', 'three', 'four', 'five', 'six', 'seven',
+  'eight', 'nine', 'ten', 'several', 'multiple', 'numerous',
+  // Generic descriptive adjectives that aren't subjects
+  'soft', 'hard', 'large', 'small', 'big', 'little', 'tall', 'short',
+  'narrow', 'thick', 'thin', 'light', 'dark', 'bright', 'dim',
+  'natural', 'artificial', 'warm', 'cool', 'hot', 'cold', 'old', 'new',
+  'modern', 'traditional', 'classic', 'contemporary', 'vintage',
+  'antique', 'fresh', 'worn', 'aged', 'clean', 'dirty', 'polished',
+  'rough', 'smooth', 'textured', 'simple', 'complex', 'minimal',
+  'minimalist', 'rich', 'sparse', 'busy', 'quiet', 'loud', 'subtle',
+  'bold', 'vibrant', 'muted', 'pale', 'deep', 'shallow', 'good', 'bad',
+  'great', 'nice', 'beautiful', 'ugly', 'pretty', 'lovely', 'gorgeous',
+  'stunning', 'sharp', 'blurred', 'blurry', 'crisp', 'precise',
+  // Common adverbs / connective filler
+  'also', 'too', 'just', 'only', 'even', 'still', 'now', 'then', 'here',
+  'there', 'where', 'when', 'how', 'why', 'much', 'more', 'most', 'less',
+  // Common framing verbs / nouns about the picture itself
+  'created', 'creating', 'generated', 'showing', 'including', 'including',
+  'standing', 'sitting', 'lying', 'resting', 'against',
+])
+
+/**
+ * Strip the boilerplate intro phrase Nano uses to introduce the subject.
+ *
+ * Patterns handled (case-insensitive):
+ *   "A/An <camera-adj> photograph/shot/image of/captures/shows... a/an/the SUBJECT"
+ *   "An overhead photograph captures the dossier ..."   →  starts at "dossier ..."
+ *   "A close-up, low-angle photograph captures the precise intersection of..." →  starts at "intersection of ..."
+ *
+ * Without this, the slugger picks up adjectives like `close`/`low`/`wide`
+ * before reaching the actual subject noun.
+ */
+function stripDescriptionPreamble(text: string): string {
+  // Match leading "A/An [up to ~6 adjective/comma tokens] [medium-noun]
+  // [optional verb] [optional article]" and remove it.
+  const pattern =
+    /^\s*(?:a|an|the)\s+(?:[a-z][a-z-]*(?:,\s*|\s+)){0,6}(?:photograph|photo|photography|image|picture|shot|scene|render|rendering|view|composition|capture|depiction|portrait|landscape|illustration|frame|snapshot|still|visual|diptych|triptych)\s+(?:captures?|shows?|showing|depicts?|depicting|features?|featuring|illustrates?|illustrating|portrays?|portraying|reveals?|displays?|displaying|highlights?|emphasizes?|presents?|of|taken|made)?\s*(?:a|an|the|some|two|three|four|five|six|several|multiple)?\s*/i
+  return text.replace(pattern, '')
+}
+
+/**
+ * Derive a two-word filename slug from Nano's description.
+ *
+ * Three-stage pipeline:
+ *   1. Strip Nano's "A close-up photograph captures the..." preamble so we
+ *      start at the actual subject.
+ *   2. Tokenize, lowercase, drop stopwords (which now include the camera/
+ *      composition vocabulary that pre-2026-04-25 was leaking into names).
+ *   3. Take the first two surviving tokens.
+ *
+ * Returns 'image' if nothing useful survives.
+ */
+/**
+ * Normalize a client-sent filename hint into a safe slug (extension stripped,
+ * lowercased, non-alphanumerics collapsed to single dashes, leading/trailing
+ * dashes removed). Returns 'image' if the input collapses to nothing.
+ *
+ * Used only for the client-hint path — keeps the semantic name the client
+ * built (e.g. `vibrant-sultan`) intact while making it filesystem-safe.
+ */
+function sanitizeFilenameBase(raw: string): string {
+  const noExt = raw.replace(/\.[^/.]+$/, '')
+  const slug = noExt
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+  return slug || 'image'
+}
+
+function slugTwoWordsFromDescription(description: string | null | undefined): string {
+  if (!description) return 'image'
+  const stripped = stripDescriptionPreamble(description.toLowerCase())
+  const words = stripped
+    .replace(/[^a-z0-9\s]/g, ' ')
+    .split(/\s+/)
+    .filter((w) => w.length >= 3 && !FILENAME_STOPWORDS.has(w))
+  if (words.length === 0) return 'image'
+  const pair = words.slice(0, 2).join('-')
+  return pair || 'image'
 }
 
 export async function POST(req: NextRequest) {
@@ -150,10 +283,37 @@ export async function POST(req: NextRequest) {
 
     // Save to disk
     let savedPath: string | null = null
-    const base64Match = imageUrl.match(/^data:image\/(\w+);base64,(.+)$/)
-    if (base64Match) {
-      const extension = base64Match[1] === 'jpeg' ? 'jpg' : base64Match[1]
-      const base64Data = base64Match[2]
+    // Lifted so the response payload below can report the real saved name
+    // (not the client-sent hint). Stays null if Nano didn't return a
+    // base64 image — in that case nothing was written.
+    let savedFilename: string | null = null
+
+    // 2026-04-20: Parse the data URL with startsWith + indexOf instead of
+    // a regex. Previous `/^data:image\/(\w+);base64,(.+)$/` threw
+    // `RangeError: Maximum call stack size exceeded` at `String.match` on
+    // certain imageUrl values returned by the Gemini generate path. The
+    // regex engine flattens V8 cons-strings (rope trees) via recursion;
+    // when Gemini's JSON decoder produces a deeply-nested rope for a multi-
+    // MB base64 blob, the flatten blows the stack even though the pattern
+    // itself is bounded. startsWith/indexOf/slice are all iterative in V8
+    // and handle ropes without touching the stack. Ralph's repro hit 1K
+    // images, not 2K — the trigger is rope depth, not byte count, so
+    // resolution alone doesn't predict it.
+    const DATA_PREFIX = 'data:image/'
+    const BASE64_SEP = ';base64,'
+    let parsed: { extension: string; base64Data: string } | null = null
+    if (imageUrl.startsWith(DATA_PREFIX)) {
+      const sepIdx = imageUrl.indexOf(BASE64_SEP, DATA_PREFIX.length)
+      if (sepIdx !== -1) {
+        const rawExt = imageUrl.slice(DATA_PREFIX.length, sepIdx)
+        const extension = rawExt === 'jpeg' ? 'jpg' : rawExt
+        const base64Data = imageUrl.slice(sepIdx + BASE64_SEP.length)
+        parsed = { extension, base64Data }
+      }
+    }
+
+    if (parsed) {
+      const { extension, base64Data } = parsed
 
       // Determine output directory based on sessionId
       let outputDir: string
@@ -171,18 +331,11 @@ export async function POST(req: NextRequest) {
 
       await mkdir(outputDir, { recursive: true })
 
-      const baseFilename = filename?.replace(/\.[^/.]+$/, '') || 'edited-image'
-      const safeFilename = baseFilename.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/-+$/, '')
-      const finalFilename = await getUniqueFilename(outputDir, safeFilename, extension)
-      const filePath = path.join(outputDir, finalFilename)
-
-      const imageBuffer = Buffer.from(base64Data, 'base64')
-      await writeFile(filePath, imageBuffer)
-
-      savedPath = `${publicPathPrefix}/${finalFilename}`
-      console.log(`Edited image saved to: ${savedPath}`)
-
       // ── WP-6B: Turn 2 fallback — describe the generated image if Turn 1 didn't ──
+      // MOVED earlier (2026-04-20): used to run AFTER the write. Now runs
+      // BEFORE, because the filename is derived from Nano's description
+      // (first two content words → slug). Without Turn 2's text we'd have
+      // to invent a name.
       if (!geminiText && imageUrl) {
         console.log(`[Turn 2] No description from Turn 1 — running self-describe...`)
         const sourceFilenames = (sourceImagePaths || []).map((p: string) => p.split('/').pop() || 'image')
@@ -198,6 +351,41 @@ export async function POST(req: NextRequest) {
           console.warn(`[Turn 2] describeGeneratedImage returned null — no description available`)
         }
       }
+
+      // Filename selection (Ralph 2026-04-25 — restored client-hint primacy):
+      //
+      //   1. Client-sent `filename` wins when present and not generic. The
+      //      client (AdvancedMode.handleGenerate) builds it from the source
+      //      image's root filename + the preset/action that's being applied,
+      //      e.g. `vibrant-sultan`, `night-cliff-majlis`. That preserves the
+      //      semantic context the user actually cares about — what was
+      //      edited and how — instead of whatever camera-vocabulary noise
+      //      Nano happens to lead its description with.
+      //
+      //   2. Fallback: `slugTwoWordsFromDescription(geminiText)` — the
+      //      description-derived slug. Used only when the client doesn't
+      //      send a hint OR sends a known generic placeholder. The expanded
+      //      stopwords list still kicks in here.
+      //
+      // The pre-2026-04-20 recursion bug (`gen-gen-gen-image.jpg`) came
+      // from the client unconditionally prefixing `gen-` on every re-edit.
+      // The new client formula uses preset + source-ROOT (walks the parent
+      // chain to the original upload), so prefixes don't accumulate.
+      const isGenericClientName =
+        !filename ||
+        /^(?:image|edited-image|generated-image|untitled)(?:-\d+)?(?:\.[a-z]+)?$/i.test(filename)
+      const baseFilename = !isGenericClientName
+        ? sanitizeFilenameBase(filename)
+        : slugTwoWordsFromDescription(geminiText)
+      const finalFilename = await getUniqueFilename(outputDir, baseFilename, extension)
+      const filePath = path.join(outputDir, finalFilename)
+
+      const imageBuffer = Buffer.from(base64Data, 'base64')
+      await writeFile(filePath, imageBuffer)
+
+      savedPath = `${publicPathPrefix}/${finalFilename}`
+      savedFilename = finalFilename
+      console.log(`Edited image saved to: ${savedPath}`)
 
       // ── WP-15 (added 2026-04-17): Post-generation verdict ──
       // CD reads the saved image (via FileRead in its own tools) + Nano's
@@ -292,10 +480,28 @@ export async function POST(req: NextRequest) {
       }
     }
 
+    // Phase 2: server-side publish on success so /api/events delivers
+    // image_ready to BOTH the frontend (UI) and the MCP server (CD). The
+    // legacy duplicate emitImageReady call in app/page.tsx (line ~1920)
+    // can be deleted now — this is the single source of truth.
+    if (sessionId && (savedFilename || filename)) {
+      publish(sessionId, {
+        type: 'image_ready',
+        filename: savedFilename || filename || 'edited-image.jpg',
+        imageName: savedFilename || filename || 'edited-image.jpg',
+        slot: 'composed',
+        geminiText: geminiText || null,
+        nanoText: geminiText || null,
+        savedPath,
+      })
+    }
+
     return NextResponse.json({
       imageUrl,
       savedPath,
-      filename: filename || 'edited-image.jpg',
+      // The real saved name (derived from Nano's description). Falls back
+      // to the client-sent hint if nothing was written to disk.
+      filename: savedFilename || filename || 'edited-image.jpg',
       geminiText,
       // WP-15 (added 2026-04-17): structured CD outcomes for client-side
       // snackbar emission. Both null when sessionId was missing or the
@@ -306,6 +512,14 @@ export async function POST(req: NextRequest) {
 
   } catch (error) {
     console.error('Image edit error:', error)
+    const sessionIdForFailure = (await req.clone().json().catch(() => ({}))).sessionId
+    if (sessionIdForFailure) {
+      publish(sessionIdForFailure, {
+        type: 'image_failed',
+        error: String(error),
+        level: 'error',
+      })
+    }
     return NextResponse.json(
       { error: `Failed to edit image: ${error}` },
       { status: 500 }

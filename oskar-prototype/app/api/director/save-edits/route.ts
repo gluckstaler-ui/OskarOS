@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { readFile, writeFile } from 'fs/promises'
 import path from 'path'
 import { JSDOM } from 'jsdom'
+import { publish } from '@/lib/event-bus'
 
 /**
  * Director-mode persistence — image swaps + inline-style edits.
@@ -139,6 +140,26 @@ export async function POST(req: NextRequest) {
     console.log(
       `[save-edits] ${body.pageFilename}: applied ${applied}/${body.edits.length} edits`
     )
+
+    // Phase 2 (2026-04-30): push the diff to CD via event-bus so CD doesn't
+    // have to poll vibe_diff. This is the `director_save` event referenced
+    // in the Phase 2 plan — payload {vibe, diff, savedAt}. The diff is a
+    // lightweight summary of what selectors changed; full content lives on
+    // disk in the saved HTML. CD's notification channel surfaces this as
+    // a system message in the next bridge call.
+    try {
+      const changedSelectors = results.filter((r) => r.ok).map((r) => r.selector)
+      const vibeMatch = body.pageFilename.match(/^vibe-(\d+)/i)
+      const vibe = vibeMatch ? `vibe-${vibeMatch[1]}` : body.pageFilename
+      publish(body.sessionId, {
+        type: 'director_save',
+        vibe,
+        diff: changedSelectors.join('\n'),
+        savedAt: new Date().toISOString(),
+      } as any)
+    } catch (err) {
+      console.warn('[save-edits] director_save publish failed:', err)
+    }
 
     return NextResponse.json({ success: true, applied, results })
   } catch (error) {

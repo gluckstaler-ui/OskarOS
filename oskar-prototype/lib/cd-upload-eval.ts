@@ -48,18 +48,36 @@ export async function runUploadEval(input: UploadEvalInput): Promise<UploadEvalO
     '',
     ctx.size > 0 ? '---\nSession context:\n' + ctx.block : '',
     '',
-    'Respond per the SYSTEM MESSAGES protocol in your agent file (## VERDICT, ## NOTE, ## SUGGESTED_USES).',
+    'Respond by calling the `submit_upload_eval` MCP tool with structured ' +
+    '{verdict, note, suggestedUses[]} args. Do NOT write `## VERDICT` / ' +
+    '`## NOTE` / `## SUGGESTED_USES` headers in chat — those parsers were ' +
+    'retired 2026-04-30 (Phase 2 MCP migration). The tool call IS the response.',
   ]
     .filter(Boolean)
     .join('\n')
 
   try {
-    const result = await callCDBridge(input.sessionId, tagged)
-    const parsed = parseUploadEvalResponse(result.text)
+    const result = await callCDBridge(input.sessionId, tagged, {
+      expectedTools: ['submit_upload_eval'],
+    })
+    const args = (result.toolCalls.submit_upload_eval as UploadEvalToolArgs | undefined) || null
+    if (!args) {
+      console.warn(
+        `[cd-upload-eval] CD did not call submit_upload_eval for session ${input.sessionId}.`,
+      )
+      return {
+        verdict: '≈',
+        note: 'CD did not commit to a structured upload-eval.',
+        suggestedUses: [],
+        durationMs: result.durationMs,
+      }
+    }
     return {
-      verdict: parsed.verdict,
-      note: parsed.note,
-      suggestedUses: parsed.suggestedUses,
+      verdict: normalizeVerdict(args.verdict),
+      note: typeof args.note === 'string' ? args.note : '',
+      suggestedUses: Array.isArray(args.suggestedUses)
+        ? args.suggestedUses.filter((s): s is string => typeof s === 'string').slice(0, 6)
+        : [],
       durationMs: result.durationMs,
     }
   } catch (err) {
@@ -73,34 +91,17 @@ export async function runUploadEval(input: UploadEvalInput): Promise<UploadEvalO
   }
 }
 
-interface ParsedUploadEval {
-  verdict: '✓' | '≈' | '✗'
+// ─────────────────────────────────────────────────────────────────────────────
+// Tool args shape — must match mcp-server/tools-cd.ts:submit_upload_eval.
+// ─────────────────────────────────────────────────────────────────────────────
+
+interface UploadEvalToolArgs {
+  verdict: string
   note: string
-  suggestedUses: string[]
+  suggestedUses: unknown
 }
 
-function parseUploadEvalResponse(text: string): ParsedUploadEval {
-  const verdictRaw = extractBlock(text, 'VERDICT') || ''
-  const note = extractBlock(text, 'NOTE') || ''
-  const usesRaw = extractBlock(text, 'SUGGESTED_USES') || ''
-
-  let verdict: '✓' | '≈' | '✗' = '≈'
-  const v = verdictRaw.trim()
-  if (v.startsWith('✓') || /^pass\b|^ok\b|^good\b/i.test(v)) verdict = '✓'
-  else if (v.startsWith('✗') || /^fail\b|^bad\b|^reject\b/i.test(v)) verdict = '✗'
-  else if (v.startsWith('≈') || /^maybe\b|^okay\b|^usable\b/i.test(v)) verdict = '≈'
-
-  const suggestedUses = usesRaw
-    .split(/[,\n]/)
-    .map((s) => s.trim().replace(/^[-•]\s*/, ''))
-    .filter(Boolean)
-    .slice(0, 6)
-
-  return { verdict, note: note.trim(), suggestedUses }
-}
-
-function extractBlock(text: string, header: string): string | null {
-  const re = new RegExp(`##\\s+${header}\\s*\\n([\\s\\S]*?)(?=\\n##\\s+|$)`, 'i')
-  const m = text.match(re)
-  return m ? m[1].trim() : null
+function normalizeVerdict(v: unknown): '✓' | '≈' | '✗' {
+  if (v === '✓' || v === '≈' || v === '✗') return v
+  return '≈'
 }

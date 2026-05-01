@@ -25,7 +25,7 @@
  */
 
 import { useEffect, useMemo, useRef, useState } from 'react'
-import type { ConversationMessage } from '@/lib/types'
+import type { ConversationMessage, SourceImage } from '@/lib/types'
 import {
   LivePreviewWithDirector,
   type LivePreviewWithDirectorHandle,
@@ -63,6 +63,9 @@ export interface ImageChatPanelProps {
   /** The image currently selected in Zone 1 (asset grid). Director Mode
    *  in the preview uses this as the primary-click swap source. */
   zone1SelectedImage?: { filename: string; sessionId: string } | null
+  /** Ralph 2026-04-23: forwarded to the embedded preview so AI-edits
+   *  performed inside Director Mode surface in the parent's AssetsPanel. */
+  onImageGenerated?: (image: SourceImage) => void
 }
 
 export function ImageChatPanel({
@@ -78,13 +81,18 @@ export function ImageChatPanel({
   selectedVibePath,
   onSelectVibePath,
   zone1SelectedImage = null,
+  onImageGenerated,
 }: ImageChatPanelProps) {
   const [input, setInput] = useState('')
   const feedRef = useRef<HTMLDivElement>(null)
   // Director Mode lives in the header (right side, same line as CHAT/PREVIEW).
-  // Default ON in Image mode — the whole point of the preview here is editing.
-  // (Gallery defaults OFF because it's a browse/select surface.)
-  const [directorMode, setDirectorMode] = useState(true)
+  // Default OFF — user explicitly opts in by clicking the toggle. Previously
+  // defaulted ON, but mount-time initialization raced with iframe hydration
+  // and Director Mode was unreliable on fresh page load. Defaulting OFF
+  // means the user only turns it ON after the iframe is definitely ready,
+  // so setup always runs against a live document. (Matches Claude Design
+  // and Gemini Stitch which also default-off their edit mode.)
+  const [directorMode, setDirectorMode] = useState(false)
   // Ref to the live preview so header buttons can call .revertAll() / .saveAll()
   const previewRef = useRef<LivePreviewWithDirectorHandle>(null)
 
@@ -176,24 +184,54 @@ export function ImageChatPanel({
           />
         )}
 
-        {/* Toggle 3 — DIRECTOR (click-to-edit). Only in PREVIEW mode.
-            Right side of the header, same line as CHAT/PREVIEW per Ralph. */}
+        {/* Revert — rendered BEFORE Edit HTML in DOM order so that when
+            editing toggles on, Revert appears to the LEFT of the Edit HTML
+            button and Edit HTML stays in the same position. Rendering
+            Revert after Edit HTML would push Edit HTML sideways when it
+            appears ("the button jumps"). Only visible in Preview mode when
+            editing is ON. Save is handled automatically on leave (toggle-off,
+            unmount, beforeunload via sendBeacon, pagehide, visibilitychange);
+            Revert stays explicit because it's destructive. */}
+        {contentMode === 'vibe' && directorMode && (
+          <button
+            onClick={() => previewRef.current?.revertAll()}
+            title="Undo every edit since Edit HTML turned on"
+            style={{
+              padding: '5px 10px', borderRadius: 6,
+              border: '1px solid rgba(239,68,68,0.55)',
+              background: 'rgba(239,68,68,0.16)', color: 'rgba(239,68,68,1)',
+              fontSize: 9, fontWeight: 700, letterSpacing: '0.06em',
+              textTransform: 'uppercase', cursor: 'pointer', fontFamily: 'inherit',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            Revert
+          </button>
+        )}
+
+        {/* Toggle 3 — EDIT HTML (click-to-edit). Only in PREVIEW mode.
+            Right side of the header, same line as CHAT/PREVIEW per Ralph.
+            OFF = green CTA ("click to start editing"); ON = recessed white
+            with a visible slate border so it reads on both the Onyx dark
+            header and the Polar light header. Save-on-leave is wired in
+            LivePreviewWithDirector (beforeunload + pagehide + visibility +
+            unmount + toggle-off → saveAll/sendBeacon); no manual Save needed. */}
         {contentMode === 'vibe' && (
           <button
             onClick={() => setDirectorMode((m) => !m)}
             title={
               directorMode
-                ? 'Director ON — click any image or text in the preview to edit'
-                : 'Click Director, then edit images and text directly in the preview'
+                ? 'Editing HTML — click any image or text in the preview to edit'
+                : 'Click to edit HTML directly in the preview'
             }
             style={{
               padding: '5px 11px',
               borderRadius: 6,
               border: directorMode
-                ? '1px solid rgba(16, 185, 129, 0.9)'
-                : '1px solid var(--pill-border)',
-              background: directorMode ? 'rgba(16, 185, 129, 0.95)' : 'var(--pill-bg)',
-              color: directorMode ? '#fff' : 'var(--text-muted)',
+                ? '1px solid #cbd5e1'
+                : '1px solid var(--success)',
+              background: directorMode ? '#ffffff' : 'var(--success)',
+              color: directorMode ? '#0f172a' : '#ffffff',
               fontSize: 9,
               fontWeight: 700,
               letterSpacing: '0.06em',
@@ -207,6 +245,7 @@ export function ImageChatPanel({
               transition: 'all 0.15s',
             }}
           >
+            {/* Feather edit-3 — pencil on baseline */}
             <svg
               width="10"
               height="10"
@@ -216,50 +255,13 @@ export function ImageChatPanel({
               strokeWidth="2.2"
               strokeLinecap="round"
               strokeLinejoin="round"
+              aria-hidden="true"
             >
-              <path d="M12 19l7-7 3 3-7 7-3-3z" />
-              <path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z" />
-              <path d="M2 2l7.586 7.586" />
-              <circle cx="11" cy="11" r="2" />
+              <path d="M12 20h9" />
+              <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
             </svg>
-            {directorMode ? 'Director On' : 'Director'}
+            Edit HTML
           </button>
-        )}
-
-        {/* Save + Revert — only visible in Preview mode when Director is ON.
-            Default on leave is SAVE (handled by LivePreviewWithDirector's
-            unmount effect). These buttons let the user be explicit. */}
-        {contentMode === 'vibe' && directorMode && (
-          <>
-            <button
-              onClick={() => previewRef.current?.saveAll()}
-              title="Commit pending edits (default when leaving)"
-              style={{
-                padding: '5px 10px', borderRadius: 6,
-                border: '1px solid rgba(16,185,129,0.55)',
-                background: 'rgba(16,185,129,0.16)', color: 'rgba(16,185,129,1)',
-                fontSize: 9, fontWeight: 700, letterSpacing: '0.06em',
-                textTransform: 'uppercase', cursor: 'pointer', fontFamily: 'inherit',
-                whiteSpace: 'nowrap',
-              }}
-            >
-              Save
-            </button>
-            <button
-              onClick={() => previewRef.current?.revertAll()}
-              title="Undo every edit since Director turned on"
-              style={{
-                padding: '5px 10px', borderRadius: 6,
-                border: '1px solid rgba(239,68,68,0.55)',
-                background: 'rgba(239,68,68,0.16)', color: 'rgba(239,68,68,1)',
-                fontSize: 9, fontWeight: 700, letterSpacing: '0.06em',
-                textTransform: 'uppercase', cursor: 'pointer', fontFamily: 'inherit',
-                whiteSpace: 'nowrap',
-              }}
-            >
-              Revert
-            </button>
-          </>
         )}
       </div>
 
@@ -274,6 +276,7 @@ export function ImageChatPanel({
           onDirectorModeChange={setDirectorMode}
           zone1SelectedImage={zone1SelectedImage}
           previewRef={previewRef}
+          onImageGenerated={onImageGenerated}
         />
       ) : (
         <>
@@ -509,6 +512,7 @@ function VibePreviewBody({
   onDirectorModeChange,
   zone1SelectedImage,
   previewRef,
+  onImageGenerated,
 }: {
   sessionId: string
   options: VibeOption[]
@@ -518,6 +522,7 @@ function VibePreviewBody({
   onDirectorModeChange: (next: boolean) => void
   zone1SelectedImage: { filename: string; sessionId: string } | null
   previewRef: React.RefObject<LivePreviewWithDirectorHandle | null>
+  onImageGenerated?: (image: SourceImage) => void
 }) {
   const current = selected || options[0]?.htmlPath || null
 
@@ -594,7 +599,9 @@ function VibePreviewBody({
           hideBuiltInDirectorButton={true}
           // Image Mode provides Ask CD in Zone 3 — suppress the in-iframe overlay
           hideAskCDOverlay={true}
+          surface="image"
           zone1SelectedImage={zone1SelectedImage}
+          onImageGenerated={onImageGenerated}
         />
       ) : (
         <div

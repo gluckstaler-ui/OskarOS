@@ -3,11 +3,19 @@
 /**
  * AssetGrid — Zone 1 of Advanced Mode
  *
- * Thumbnail grid of all session images. Click to select.
- * Selected image gets green border. Compose/Layout modes show role badges.
+ * Thumbnail grid of all session images with upload support and tag badges
+ * (Ralph 2026-04-25 parity pass: brought to feature-parity with the BRIEF/STUDIO
+ * AssetsPanel — uploads, tag-driven badges including HERO + USED, drag/drop.)
+ *
+ * - Click to select; selected image gets green border.
+ * - Compose/Layout modes show role badges (Scene/Subject/etc).
+ * - HERO badge top-left for tag === 'HERO'.
+ * - USED pill bottom-right when image is referenced in any vibe HTML
+ *   (image.usedIn.length > 0) OR tag === 'USED'.
+ * - Upload tile + drop zone at the top.
  */
 
-import { memo } from 'react'
+import { memo, useRef } from 'react'
 import { SourceImage } from '@/lib/types'
 
 export interface AssetGridProps {
@@ -20,10 +28,23 @@ export interface AssetGridProps {
   onDelete?: (image: SourceImage) => void
   /** WP-11B: Fired when user clicks "Replace everywhere" on a tile. */
   onReplaceAll?: (image: SourceImage) => void
+  /** Ralph 2026-04-25: Upload from inside Image mode — same affordance as
+   *  the BRIEF/STUDIO AssetsPanel. Receives the chosen File; parent adds it
+   *  to sourceImages + IMAGES.md the same way upload-from-Studio does. */
+  onUpload?: (file: File) => void
 }
 
-function AssetGridImpl({ sourceImages, selectedImageId, onSelect, roleBadgeMap = {}, onDelete, onReplaceAll }: AssetGridProps) {
+function AssetGridImpl({ sourceImages, selectedImageId, onSelect, roleBadgeMap = {}, onDelete, onReplaceAll, onUpload }: AssetGridProps) {
   const cleanName = (filename: string) => filename.replace(/^\d+-/, '')
+  const fileInputRef = useRef<HTMLInputElement>(null)
+
+  const handleDrop = (e: React.DragEvent) => {
+    if (!onUpload) return
+    e.preventDefault()
+    Array.from(e.dataTransfer.files).forEach((f) => {
+      if (f.type.startsWith('image/')) onUpload(f)
+    })
+  }
 
   return (
     <div
@@ -119,8 +140,59 @@ function AssetGridImpl({ sourceImages, selectedImageId, onSelect, roleBadgeMap =
           alignContent: 'start',
         }}
         className="adv-asset-grid"
+        onDrop={handleDrop}
+        onDragOver={(e) => e.preventDefault()}
       >
-        {sourceImages.length === 0 && (
+        {/* Upload tile — same affordance as BRIEF/STUDIO AssetsPanel.
+            Click to file-pick OR drag-drop anywhere on the grid container. */}
+        {onUpload && (
+          <div
+            onClick={() => fileInputRef.current?.click()}
+            style={{
+              aspectRatio: '1',
+              borderRadius: 12,
+              border: '2px dashed var(--border-card)',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 4,
+              color: 'var(--text-muted)',
+              cursor: 'pointer',
+              backgroundColor: 'var(--bg-app)',
+              transition: 'border-color 0.12s, color 0.12s',
+            }}
+            onMouseEnter={(e) => {
+              ;(e.currentTarget as HTMLElement).style.borderColor = 'var(--border-active)'
+              ;(e.currentTarget as HTMLElement).style.color = 'var(--text-main)'
+            }}
+            onMouseLeave={(e) => {
+              ;(e.currentTarget as HTMLElement).style.borderColor = 'var(--border-card)'
+              ;(e.currentTarget as HTMLElement).style.color = 'var(--text-muted)'
+            }}
+            title="Upload image (or drag-drop into the panel)"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+              <polyline points="17 8 12 3 7 8"/>
+              <line x1="12" y1="3" x2="12" y2="15"/>
+            </svg>
+            <span style={{ fontSize: 9, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Add</span>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              multiple
+              onChange={(e) => {
+                Array.from(e.target.files || []).forEach((f) => onUpload(f))
+                e.target.value = ''
+              }}
+              style={{ display: 'none' }}
+            />
+          </div>
+        )}
+
+        {sourceImages.length === 0 && !onUpload && (
           <div
             style={{
               gridColumn: '1 / -1',
@@ -131,7 +203,7 @@ function AssetGridImpl({ sourceImages, selectedImageId, onSelect, roleBadgeMap =
               lineHeight: 1.6,
             }}
           >
-            No images yet. Upload from the main panel to get started.
+            No images yet.
           </div>
         )}
 
@@ -140,6 +212,17 @@ function AssetGridImpl({ sourceImages, selectedImageId, onSelect, roleBadgeMap =
           const badge = roleBadgeMap[img.id]
           const borderColor = badge ? badge.color : isSelected ? '#10B981' : 'transparent'
           const showBorder = isSelected || !!badge
+          // Tag-system badges (Ralph 2026-04-25 parity with BRIEF/STUDIO):
+          // HERO badge top-left, USED pill bottom-right. HERO + USED coexist.
+          // The role badge (Scene/Subject) takes precedence over HERO in the
+          // top-left slot during compose/layout — that's a workflow signal,
+          // semantic hierarchy stays consistent.
+          const isHero = !badge && img.tag === 'HERO'
+          const isUsed =
+            (img.usedIn && img.usedIn.length > 0) || img.tag === 'USED'
+          const otherTag = img.tag && img.tag !== 'HERO' && img.tag !== 'USED'
+            ? img.tag
+            : null
 
           return (
             <div
@@ -185,7 +268,7 @@ function AssetGridImpl({ sourceImages, selectedImageId, onSelect, roleBadgeMap =
                   }}
                   draggable={false}
                 />
-                {/* Role badge */}
+                {/* Role badge (compose/layout) — takes the top-left slot. */}
                 {badge && (
                   <div
                     style={{
@@ -205,6 +288,81 @@ function AssetGridImpl({ sourceImages, selectedImageId, onSelect, roleBadgeMap =
                     }}
                   >
                     {badge.label}
+                  </div>
+                )}
+                {/* HERO pill — top-left when no role badge is occupying the slot. */}
+                {isHero && (
+                  <div
+                    style={{
+                      position: 'absolute',
+                      top: 3,
+                      left: 3,
+                      height: 14,
+                      padding: '0 4px',
+                      borderRadius: 3,
+                      fontSize: 7,
+                      fontWeight: 700,
+                      color: '#fff',
+                      backgroundColor: '#10B981',
+                      display: 'flex',
+                      alignItems: 'center',
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.05em',
+                    }}
+                  >
+                    HERO
+                  </div>
+                )}
+                {/* USED pill — BOTTOM-RIGHT to match BRIEF/STUDIO. Coexists
+                    with HERO (top-left) and the role badge (top-left during
+                    compose/layout). */}
+                {isUsed && (
+                  <div
+                    style={{
+                      position: 'absolute',
+                      bottom: 3,
+                      right: 3,
+                      height: 14,
+                      padding: '0 4px',
+                      borderRadius: 3,
+                      fontSize: 7,
+                      fontWeight: 700,
+                      color: '#fff',
+                      backgroundColor: '#10B981',
+                      display: 'flex',
+                      alignItems: 'center',
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.05em',
+                    }}
+                  >
+                    USED
+                  </div>
+                )}
+                {/* Other non-HERO non-USED tags (B-ROLL, TRASH, READY, REDO).
+                    Bottom-right, same slot as USED — they're mutually exclusive
+                    with USED for a given image so there's no overlap. */}
+                {!isUsed && otherTag && (
+                  <div
+                    style={{
+                      position: 'absolute',
+                      bottom: 3,
+                      right: 3,
+                      height: 14,
+                      padding: '0 4px',
+                      borderRadius: 3,
+                      fontSize: 7,
+                      fontWeight: 700,
+                      color: '#fff',
+                      backgroundColor:
+                        otherTag === 'TRASH' || otherTag === 'REDO' ? '#EF4444' :
+                        otherTag === 'READY' ? '#10B981' : '#6B7280',
+                      display: 'flex',
+                      alignItems: 'center',
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.05em',
+                    }}
+                  >
+                    {otherTag}
                   </div>
                 )}
                 {/* WP-11A: Delete button — visible on hover via CSS class */}
@@ -240,7 +398,11 @@ function AssetGridImpl({ sourceImages, selectedImageId, onSelect, roleBadgeMap =
                     ✕
                   </button>
                 )}
-                {/* WP-11B: Replace everywhere button — visible on hover */}
+                {/* WP-11B: Replace everywhere — visible on hover. Bottom-LEFT
+                    so it doesn't collide with the bottom-right tag slot
+                    (USED / B-ROLL / TRASH / READY / REDO). It's an action,
+                    not a tag — the visual treatment differs (blue border,
+                    "Replace" verb label). (Ralph 2026-04-25.) */}
                 {onReplaceAll && (
                   <button
                     className="adv-asset-replace-btn"
@@ -252,7 +414,7 @@ function AssetGridImpl({ sourceImages, selectedImageId, onSelect, roleBadgeMap =
                     style={{
                       position: 'absolute',
                       bottom: 3,
-                      right: 3,
+                      left: 3,
                       height: 16,
                       padding: '0 5px',
                       borderRadius: 3,

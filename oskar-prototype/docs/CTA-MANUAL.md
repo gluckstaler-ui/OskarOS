@@ -1,3 +1,5 @@
+> **MOVED 2026-04-30.** This document has been relocated and broadened. Live version: `skills/references/cta-manual.md` — now covers all narrative artifacts (landing pages, slide decks, scrollytelling pages, dashboards, etc.), not just landing pages. The CD agent reads it from the skills folder. Future edits should go to the live version, not this one.
+
 # How to Construct a Great CTA
 
 ## An instruction manual for LLMs building landing pages, booking flows, and personal sites.

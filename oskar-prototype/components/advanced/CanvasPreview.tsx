@@ -101,15 +101,49 @@ function CanvasPreviewImpl({
             }}
           >
             {selectedImage ? (
-              <img
-                src={selectedImage.path}
-                alt={selectedImage.filename}
-                style={{
-                  maxWidth: '100%',
-                  maxHeight: '100%',
-                  objectFit: 'contain',
-                }}
-              />
+              <>
+                <img
+                  src={selectedImage.path}
+                  alt={selectedImage.filename}
+                  style={{
+                    maxWidth: '100%',
+                    maxHeight: '100%',
+                    objectFit: 'contain',
+                  }}
+                />
+                {/* Filename pill — top-right of the preview. The filename
+                    is the image's identity downstream (used in HTML, CD
+                    references it, version sidebar groups by it). Sits on
+                    the right edge so it doesn't collide with the bottom
+                    description overlay. Offsets left of the version
+                    sidebar (90px) when one is open. (Ralph 2026-04-25.) */}
+                <div
+                  title={selectedImage.filename}
+                  style={{
+                    position: 'absolute',
+                    top: 12,
+                    right: showSidebar ? 102 : 12,
+                    maxWidth: 'calc(100% - 24px)',
+                    padding: '4px 8px',
+                    borderRadius: 4,
+                    background: 'rgba(0, 0, 0, 0.65)',
+                    color: '#fff',
+                    fontSize: 10,
+                    fontWeight: 600,
+                    fontFamily: 'JetBrains Mono, var(--font-mono), monospace',
+                    letterSpacing: '-0.02em',
+                    backdropFilter: 'blur(6px)',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap',
+                    zIndex: 5,
+                    pointerEvents: 'auto',
+                    userSelect: 'text',
+                  }}
+                >
+                  {selectedImage.filename.replace(/^\d+-/, '')}
+                </div>
+              </>
             ) : (
               <div
                 style={{

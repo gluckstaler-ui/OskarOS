@@ -512,4 +512,47 @@ This is not an HTML file
       expect(result.has('vibe-1-qahwa.html')).toBe(true)
     })
   })
+
+  // ── REGRESSION 2026-04-26 — vibe-5.md silent parser failure ──────────
+  // CD wrote `# Vibe 5: Title` (single hash, mixed-case "Vibe"). The old
+  // patterns required either uppercase `VIBE` for `#`/`##`, or `###` for
+  // mixed-case. Result: vibe-5 silently failed to parse → WebDev never
+  // built it. Removing or weakening these tests is forbidden.
+  describe('REGRESSION 2026-04-26 — case-insensitive vibe headers', () => {
+    it('parses `# Vibe N: name` (single hash, mixed-case)', () => {
+      const brief = '# Vibe 5: Oskar Home Staging\n\nVoice: Confident.\n'
+      const vibes = parseVibesFromBrief(brief)
+      expect(vibes.length).toBe(1)
+      expect(vibes[0].index).toBe(5)
+      expect(vibes[0].name).toBe('Oskar Home Staging')
+    })
+
+    it('parses `# vibe N: name` (single hash, all lowercase)', () => {
+      const brief = '# vibe 2: Some Name\n\nVoice: foo.\n'
+      const vibes = parseVibesFromBrief(brief)
+      expect(vibes.length).toBe(1)
+      expect(vibes[0].index).toBe(2)
+    })
+
+    it('parses `## Vibe N: name` (double hash, mixed-case)', () => {
+      const brief = '## Vibe 3: Another\n\nVoice: bar.\n'
+      const vibes = parseVibesFromBrief(brief)
+      expect(vibes.length).toBe(1)
+      expect(vibes[0].index).toBe(3)
+    })
+
+    it('parses `### VIBE N: name` (triple hash, all uppercase)', () => {
+      const brief = '### VIBE 4: Third\n\nVoice: baz.\n'
+      const vibes = parseVibesFromBrief(brief)
+      expect(vibes.length).toBe(1)
+      expect(vibes[0].index).toBe(4)
+    })
+
+    it('still parses canonical `# VIBE N: name` (uppercase, single hash)', () => {
+      const brief = '# VIBE 1: Original Style\n\nVoice: classic.\n'
+      const vibes = parseVibesFromBrief(brief)
+      expect(vibes.length).toBe(1)
+      expect(vibes[0].index).toBe(1)
+    })
+  })
 })

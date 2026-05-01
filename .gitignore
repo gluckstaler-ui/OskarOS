@@ -33,3 +33,22 @@ lazyblocks-migration/
 # External / do not commit
 vnx-orchestration/
 claude-code-source/
+external/
+
+# Local worktrees (claude-code git worktrees)
+.claude/worktrees/
+
+# Per-session MCP config / agent caches — auto-generated each spawn
+.cache/
+oskar-prototype/.cache/
+
+# Per-developer MCP client configuration (absolute paths + session ids)
+.mcp.json
+oskar-prototype/.mcp.json
+
+# One-off / stray dev scripts (manual reruns, debug helpers, snapshot probes)
+oskar-prototype/_snap-resident.mjs
+oskar-prototype/scripts/_manual_build_vibes_*.ts
+oskar-prototype/scripts/verify-vibe-*.mjs
+oskar-prototype/docs/debug-*.sh
+debug-*.sh

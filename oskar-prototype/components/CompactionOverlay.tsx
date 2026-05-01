@@ -49,6 +49,24 @@ export function CompactionOverlay({ sessionId, endpoint = 'order66', onContinue,
   const [ljStatus, setLjStatus] = useState<'waiting' | 'running' | 'done' | 'failed'>('waiting')
   const [sageStatus, setSageStatus] = useState<'waiting' | 'running' | 'done' | 'failed'>('waiting')
 
+  // 2026-04-29: live event feed panel (left side). Each `phase: 'stream'`
+  // SSE event from callAnthropic appends a one-line entry. Capped at 400
+  // lines so the user can scroll back through the full Sage run history
+  // without the panel growing unbounded on multi-hour sessions.
+  //
+  // 2026-04-30 (audio fix, real one this time): events buffer into a ref and
+  // flush on a 200ms interval instead of firing setStreamLines synchronously
+  // per event. The previous design re-rendered the 400-item list on EVERY
+  // SSE event during the audio decode window (0-3s) — Sage-240/40 streams
+  // dozens of 4-8KB thinking blocks in those first seconds, each one
+  // saturating the main thread, starving the audio decoder. Stagger between
+  // Sage-240/40 and Sage-Portrait is irrelevant: Sage-240/40 alone is the
+  // firehose, and it always starts at t=0. Throttling to 5 flushes/sec gives
+  // the audio decoder its CPU budget back without losing observability.
+  const [streamLines, setStreamLines] = useState<{ agent: string; type: string; detail: string; ts: number }[]>([])
+  const streamBufferRef = useRef<{ agent: string; type: string; detail: string; ts: number }[]>([])
+  const streamScrollRef = useRef<HTMLDivElement>(null)
+
   // Bridge-ready end state — context bar snaps to post-compaction value + green
   const [bridgeReady, setBridgeReady] = useState(false)
   const [postCompactionPct, setPostCompactionPct] = useState(5) // fallback 5%
@@ -63,6 +81,32 @@ export function CompactionOverlay({ sessionId, endpoint = 'order66', onContinue,
   const cleanup = useCallback(() => {
     esRef.current?.close()
     esRef.current = null
+  }, [])
+
+  // Auto-scroll the live feed to the bottom as new lines stream in.
+  useEffect(() => {
+    if (streamScrollRef.current) {
+      streamScrollRef.current.scrollTop = streamScrollRef.current.scrollHeight
+    }
+  }, [streamLines])
+
+  // Flush buffered stream events to React state at 5Hz. Lets dozens of SSE
+  // events arrive between flushes without triggering 400-item reconciliation
+  // per event. Critical for the audio decode window — see streamBufferRef
+  // comment above.
+  useEffect(() => {
+    const flush = setInterval(() => {
+      const buf = streamBufferRef.current
+      if (buf.length === 0) return
+      streamBufferRef.current = []
+      setStreamLines(prev => {
+        const next = prev.length + buf.length > 400
+          ? [...prev, ...buf].slice(-400)
+          : [...prev, ...buf]
+        return next
+      })
+    }, 200)
+    return () => clearInterval(flush)
   }, [])
 
   const handleContinue = useCallback(() => {
@@ -149,6 +193,21 @@ export function CompactionOverlay({ sessionId, endpoint = 'order66', onContinue,
             // Forward to overlay HTML for completion tracking
             window.postMessage({ type: 'compaction-event', ...data }, '*')
 
+            // 'stream' phase = live agent activity from callAnthropic.
+            // Append to the buffer ref (NOT React state). The 200ms flush
+            // interval batches into the live feed. Synchronous setStreamLines
+            // here would saturate the main thread during the audio decode
+            // window — see streamBufferRef comment.
+            if (data.phase === 'stream' && (data.agent === 'lumberjack' || data.agent === 'sage')) {
+              streamBufferRef.current.push({
+                agent: data.agent,
+                type: data.stage || 'event',
+                detail: data.detail || '',
+                ts: Date.now(),
+              })
+              return
+            }
+
             // Update React bar state (Layer 3)
             if (data.agent === 'lumberjack') {
               // LJ has 7 stages during compacting — use stage-level percentages
@@ -218,6 +277,97 @@ export function CompactionOverlay({ sessionId, endpoint = 'order66', onContinue,
           overflow: 'hidden',
         }}
       />
+
+      {/* Compaction Live Feed — LEFT side, no panel chrome.
+          Just text floating on the dark cinematic backdrop. Each line is a
+          parsed claude --print stream-json event from callAnthropic,
+          forwarded via dreamer.ts → /api/order66 SSE. */}
+      <div style={{
+        position: 'fixed',
+        top: '4vh',
+        left: '2vw',
+        width: '600px',
+        height: '92vh',
+        zIndex: 2003,
+        pointerEvents: 'auto',
+        fontFamily: "'JetBrains Mono', monospace",
+        fontSize: '13px',
+        color: 'rgba(255, 255, 255, 0.92)',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 10,
+      }}>
+        <div style={{
+          fontFamily: "'Orbitron', monospace",
+          fontSize: '13px',
+          letterSpacing: 4,
+          fontWeight: 700,
+          color: '#4fc3f7',
+          paddingBottom: 8,
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+        }}>
+          <span>COMPACTION LIVE FEED</span>
+          <span style={{
+            fontSize: '10px',
+            opacity: 0.55,
+            fontWeight: 500,
+            letterSpacing: 2,
+          }}>
+            {streamLines.length} {streamLines.length === 1 ? 'event' : 'events'}
+          </span>
+        </div>
+        <div ref={streamScrollRef} style={{
+          flex: 1,
+          // CRITICAL: flex children default to min-height: auto, which lets
+          // content push past the container's height instead of triggering
+          // overflow. Setting min-height: 0 forces the child to respect the
+          // parent's flex-allocated size — that's what makes overflowY scroll
+          // instead of overflowing off the bottom of the screen.
+          minHeight: 0,
+          overflowY: 'auto',
+          paddingRight: 6,
+          lineHeight: 1.55,
+        }}>
+          {streamLines.length === 0 ? (
+            <div style={{ opacity: 0.5, fontStyle: 'italic', fontSize: '12px' }}>
+              Waiting for agent events…
+            </div>
+          ) : (
+            streamLines.map((line, i) => (
+              <div key={i} style={{
+                marginBottom: 10,
+                wordBreak: 'break-word',
+              }}>
+                <div style={{ display: 'flex', gap: 10, marginBottom: 2, fontSize: '10px', letterSpacing: 1.5 }}>
+                  <span style={{
+                    color: line.agent === 'sage' ? '#4fc3f7' : '#10b981',
+                    fontWeight: 700,
+                    minWidth: 70,
+                  }}>
+                    {line.agent === 'sage' ? 'PORTRAIT' : '240/40'}
+                  </span>
+                  <span style={{ color: 'rgba(255,255,255,0.45)', textTransform: 'uppercase' }}>
+                    {line.type}
+                  </span>
+                </div>
+                <div style={{
+                  color: 'rgba(255,255,255,0.9)',
+                  fontSize: '12.5px',
+                  // pre-wrap preserves newlines from the agent's actual
+                  // output (Block paragraphs, thinking transcripts) AND
+                  // wraps long lines to the panel width.
+                  whiteSpace: 'pre-wrap',
+                  wordBreak: 'break-word',
+                }}>
+                  {line.detail}
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+      </div>
 
       {/* Layer 3: HUD foreground — ALWAYS visible from frame zero */}
       <div style={{

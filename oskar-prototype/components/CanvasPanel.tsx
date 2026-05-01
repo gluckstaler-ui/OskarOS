@@ -441,7 +441,12 @@ export function CanvasPanel({
                   >
                     {vibe.name}
                   </button>
-                  {/* Delete button — visible on hover via CSS class */}
+                  {/* Delete button — visible on hover via CSS class.
+                      Confirmation modal lives in `page.tsx` so both this
+                      Studio-tab path and the Gallery-card path share one
+                      guard. `onVibeDelete` here is the `requestVibeDelete`
+                      trigger; the actual destructive call is gated by the
+                      confirm modal at the shell level. */}
                   {onVibeDelete && (
                     <button
                       className="vibe-tab-delete"

@@ -30,6 +30,10 @@ export type SessionEventType =
   | 'cd.verdict'               // post-gen verdict (✓ ≈ ✗) — extended-toast
   | 'cd.comment'               // CD reply in Image Mode (Ask CD response surfaces here)
   | 'cd.upload-evaluated'      // CD evaluated an upload; snackbar with the take
+  // ─── Phase 2 Tier S (2026-04-30): agent-initiated user-facing events ────
+  | 'cd.snackbar'              // any agent: fire-and-forget snackbar (info/warn)
+  | 'cd.ask-user'              // any agent: synchronous question modal (open)
+  | 'cd.ask-user-resolved'     // user picked an option (modal close signal)
 
 export interface SessionEvent {
   type: SessionEventType

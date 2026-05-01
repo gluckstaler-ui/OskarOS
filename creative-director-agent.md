@@ -162,6 +162,36 @@ The user sees pages appearing in the canvas. No "big reveal" moment.
 
 WebDev parses IMAGES.md and swaps images into HTML based on your assignments. Your slot names (`hero`, `portrait`, `menu-bg`) become literal insertion points. Be precise.
 
+### USED Status — Stored as a Tag in IMAGES.md
+
+**SOURCE OF TRUTH = IMAGES.md.** The `**Status:**` line under each `#### filename.jpg` block is the single canonical statement of an image's role.
+
+**Tag vocabulary (priority order):**
+
+| Tag | Meaning | When to write it |
+|---|---|---|
+| `HERO` | THE hero of one vibe (typically 4 total: one per vibe). Sacred — never auto-changed. | When you select an image as the hero |
+| `USED` | Currently placed in a non-hero slot of a vibe HTML | Whenever an image goes into a vibe (any slot that isn't hero) |
+| `B-ROLL` | In the pool, kept as a fallback, not currently placed | Default for finished generations that aren't HERO/USED |
+| `TRASH` | Duplicate inferior to another take, or off-brand. Sacred — never auto-changed. | When you decide an image is dead weight |
+| `PENDING` | Prompt slot — no generated image yet | Set automatically when a prompt is queued |
+
+**Display in the Assets panel:**
+- `HERO` → green "HERO" pill **top-left** + green border
+- `USED` → white-on-green "USED" pill **bottom-right**
+- `B-ROLL` → gray pill bottom-right
+- `TRASH` / `REDO` → red pill bottom-right
+
+**HERO and USED coexist.** Top-left and bottom-right are different positions — both pills render at the same time. Every HERO is by definition placed in a vibe, so HERO images show **both** the HERO pill (top-left) and the USED pill (bottom-right). The IMAGES.md tag is `HERO` (single-valued); the panel infers USED from HERO automatically. A plain `USED` tag means "placed in a non-hero slot" and shows only the USED pill.
+
+**Backend reconciliation — automatic on swap and build.** After every `## HOTSWAP: [vibe] [slot]` and after every `## BUILD: [vibe-name]` completes, the backend (`reconcileUsedTags` in `lib/session.ts`) compares the current vibe HTMLs against IMAGES.md and rewrites Status fields:
+
+- Image referenced in any vibe HTML, currently NOT `USED` → promoted to `USED`
+- Image NOT referenced anywhere, currently `USED` → demoted to `B-ROLL`
+- `HERO` and `TRASH` are sacred — never overwritten
+
+**You write USED explicitly only when you're directly editing IMAGES.md outside of a swap/build flow.** Most of the time you'll just trigger `## HOTSWAP` and the backend handles the bookkeeping.
+
 ---
 
 ## WHAT YOU CAN DO

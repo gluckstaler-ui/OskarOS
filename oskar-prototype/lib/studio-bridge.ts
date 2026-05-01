@@ -7,7 +7,20 @@
  *
  * Kept as plain strings/functions (no React) so it can be imported by
  * server and client code alike without pulling in the React runtime.
+ *
+ * Attribute/class names are imported from `lib/director-css.ts` and
+ * interpolated into the injected JS string via template literals — the
+ * patch still ships as a runtime-only string (can't import TS at runtime)
+ * but the source of truth is the shared constant. If studio ever renames
+ * `data-oskar-bgimg`, change it in one place (director-css.ts) and both
+ * the patch and any consumer on the parent side stay in sync.
  */
+
+import {
+  BG_IMAGE_SRC_ATTR,
+  DIRECTOR_ACTIVE_CLASS,
+  OSKAR_ID_ATTR,
+} from './director-css'
 
 /**
  * Split an htmlPath like `/2026-01-27-31/vibe-1.html` into sessionId +
@@ -103,6 +116,14 @@ export const STUDIO_BRIDGE_PATCH = `
   if (window.__oskarStudioPatchInstalled) return;
   window.__oskarStudioPatchInstalled = true;
 
+  // Shared-contract names — interpolated from lib/director-css.ts so there's
+  // only one owner for these identifiers. DO NOT hardcode them below.
+  var BG_IMAGE_SRC_ATTR = ${JSON.stringify(BG_IMAGE_SRC_ATTR)};
+  var BG_IMAGE_SRC_SEL = '[' + BG_IMAGE_SRC_ATTR + ']';
+  var DIRECTOR_ACTIVE_CLASS = ${JSON.stringify(DIRECTOR_ACTIVE_CLASS)};
+  var DIRECTOR_ACTIVE_SEL = '.' + DIRECTOR_ACTIVE_CLASS;
+  var OSKAR_ID_ATTR = ${JSON.stringify(OSKAR_ID_ATTR)};
+
   // CSS for ALL director-mode swappable <img> — the data-slot contract is
   // no longer required. Marked (data-slot) images keep the solid green
   // treatment; bare images get a subtler dashed look so the hierarchy is
@@ -111,35 +132,35 @@ export const STUDIO_BRIDGE_PATCH = `
   style.id = 'oskar-studio-slot-styles';
   style.textContent =
     // Marked images (original contract)
-    '.oskar-director-active img[data-slot]:not([data-usage]):not([data-editable]) {' +
+    DIRECTOR_ACTIVE_SEL + ' img[data-slot]:not([data-usage]):not([data-editable]) {' +
     '  outline: 2px dashed rgba(16, 185, 129, 0.5) !important;' +
     '  outline-offset: 2px;' +
     '  cursor: pointer !important;' +
     '  transition: outline 0.2s, filter 0.2s;' +
     '}' +
-    '.oskar-director-active img[data-slot]:not([data-usage]):not([data-editable]):hover {' +
+    DIRECTOR_ACTIVE_SEL + ' img[data-slot]:not([data-usage]):not([data-editable]):hover {' +
     '  outline: 2px solid rgba(16, 185, 129, 0.9) !important;' +
     '  filter: brightness(1.05);' +
     '}' +
     // Bare images (no data-slot, no data-usage) — lighter emerald dash
-    '.oskar-director-active img:not([data-slot]):not([data-usage]):not([data-editable]) {' +
+    DIRECTOR_ACTIVE_SEL + ' img:not([data-slot]):not([data-usage]):not([data-editable]) {' +
     '  outline: 2px dashed rgba(16, 185, 129, 0.35) !important;' +
     '  outline-offset: 2px;' +
     '  cursor: pointer !important;' +
     '  transition: outline 0.2s, filter 0.2s;' +
     '}' +
-    '.oskar-director-active img:not([data-slot]):not([data-usage]):not([data-editable]):hover {' +
+    DIRECTOR_ACTIVE_SEL + ' img:not([data-slot]):not([data-usage]):not([data-editable]):hover {' +
     '  outline: 2px solid rgba(16, 185, 129, 0.85) !important;' +
     '  filter: brightness(1.05);' +
     '}' +
     // WP-10A: Background-image elements — dashed amber so they're distinct from <img>
-    '.oskar-director-active [data-oskar-bgimg] {' +
+    DIRECTOR_ACTIVE_SEL + ' ' + BG_IMAGE_SRC_SEL + ' {' +
     '  outline: 2px dashed rgba(245, 158, 11, 0.4) !important;' +
     '  outline-offset: -2px;' +
     '  cursor: pointer !important;' +
     '  transition: outline 0.2s, filter 0.2s;' +
     '}' +
-    '.oskar-director-active [data-oskar-bgimg]:hover {' +
+    DIRECTOR_ACTIVE_SEL + ' ' + BG_IMAGE_SRC_SEL + ':hover {' +
     '  outline: 2px solid rgba(245, 158, 11, 0.85) !important;' +
     '  filter: brightness(1.05);' +
     '}';
@@ -148,8 +169,8 @@ export const STUDIO_BRIDGE_PATCH = `
   // WP-10A: Scan for background-image elements and tag them
   function scanBgImages() {
     // Remove stale tags
-    document.querySelectorAll('[data-oskar-bgimg]').forEach(function(el) {
-      el.removeAttribute('data-oskar-bgimg');
+    document.querySelectorAll(BG_IMAGE_SRC_SEL).forEach(function(el) {
+      el.removeAttribute(BG_IMAGE_SRC_ATTR);
     });
     // Walk ALL elements looking for background-image — not just section/div.
     // Previously restricted to a small tag list; that missed custom elements
@@ -171,7 +192,7 @@ export const STUDIO_BRIDGE_PATCH = `
       // vibes with https://images.unsplash.com hero URLs used to be
       // unswappable; now they're fair game.
       if (/^data:/i.test(src)) continue;
-      el.setAttribute('data-oskar-bgimg', src);
+      el.setAttribute(BG_IMAGE_SRC_ATTR, src);
     }
   }
 
@@ -179,18 +200,18 @@ export const STUDIO_BRIDGE_PATCH = `
   // the original save-vibes bridge (hand-written prototypes, imports, etc.)
   var directorOn = false;
   function isDirectorActive() {
-    return directorOn || document.body.classList.contains('oskar-director-active');
+    return directorOn || document.body.classList.contains(DIRECTOR_ACTIVE_CLASS);
   }
 
   window.addEventListener('message', function(e) {
     if (e.data && e.data.type === 'SET_DIRECTOR_MODE') {
       directorOn = !!e.data.enabled;
       if (directorOn) {
-        document.body.classList.add('oskar-director-active');
+        document.body.classList.add(DIRECTOR_ACTIVE_CLASS);
         // Re-scan on every ON in case the DOM changed since last time.
         scanBgImages();
       } else {
-        document.body.classList.remove('oskar-director-active');
+        document.body.classList.remove(DIRECTOR_ACTIVE_CLASS);
         document.querySelectorAll('.oskar-selected').forEach(function(n) {
           n.classList.remove('oskar-selected');
         });
@@ -257,9 +278,9 @@ export const STUDIO_BRIDGE_PATCH = `
     if (!isDirectorActive()) return;
 
     // WP-10A: Check for background-image element first
-    var bgEl = e.target && e.target.closest ? e.target.closest('[data-oskar-bgimg]') : null;
+    var bgEl = e.target && e.target.closest ? e.target.closest(BG_IMAGE_SRC_SEL) : null;
     if (bgEl) {
-      var bgSrc = bgEl.getAttribute('data-oskar-bgimg');
+      var bgSrc = bgEl.getAttribute(BG_IMAGE_SRC_ATTR);
       if (bgSrc) {
         e.preventDefault();
         e.stopPropagation();
@@ -318,12 +339,12 @@ export const STUDIO_BRIDGE_PATCH = `
     // WP-10A: Background-image slot: "bgimg:<src>" — rewrite inline style
     if (d.slot.indexOf('bgimg:') === 0) {
       var bgSrc = d.slot.slice(6);
-      var bgEls = document.querySelectorAll('[data-oskar-bgimg="' + bgSrc + '"]');
+      var bgEls = document.querySelectorAll('[' + BG_IMAGE_SRC_ATTR + '="' + bgSrc + '"]');
       bgEls.forEach(function(el) {
         el.style.transition = 'opacity 0.2s';
         el.style.opacity = '0.3';
         el.style.backgroundImage = 'url(' + d.url + ')';
-        el.setAttribute('data-oskar-bgimg', d.url);
+        el.setAttribute(BG_IMAGE_SRC_ATTR, d.url);
         setTimeout(function() { el.style.opacity = '1'; }, 100);
       });
       return;
@@ -410,7 +431,7 @@ export const STUDIO_BRIDGE_PATCH = `
     // Remove stale tags
     document.querySelectorAll('[data-oskar-editable]').forEach(function(el) {
       el.removeAttribute('data-oskar-editable');
-      el.removeAttribute('data-oskar-id');
+      el.removeAttribute(OSKAR_ID_ATTR);
     });
     textIdCounter = 0;
     var elements = document.querySelectorAll(textEditableSelector);
@@ -418,11 +439,11 @@ export const STUDIO_BRIDGE_PATCH = `
       var el = elements[i];
       // Skip images, slots, and already-tagged parents
       if (el.closest('[data-slot]') || el.closest('[data-usage]')) continue;
-      if (el.closest('[data-oskar-bgimg]')) continue;
+      if (el.closest(BG_IMAGE_SRC_SEL)) continue;
       if (!isTextOnlyLeaf(el)) continue;
       textIdCounter += 1;
       el.setAttribute('data-oskar-editable', 'text');
-      el.setAttribute('data-oskar-id', 'txt-' + textIdCounter);
+      el.setAttribute(OSKAR_ID_ATTR, 'txt-' + textIdCounter);
     }
   }
 
@@ -430,13 +451,13 @@ export const STUDIO_BRIDGE_PATCH = `
   var textStyle = document.createElement('style');
   textStyle.id = 'oskar-text-edit-styles';
   textStyle.textContent =
-    '.oskar-director-active [data-oskar-editable="text"] {' +
+    DIRECTOR_ACTIVE_SEL + ' [data-oskar-editable="text"] {' +
     '  outline: 1px dashed rgba(59, 130, 246, 0.3) !important;' +
     '  outline-offset: 1px;' +
     '  cursor: text !important;' +
     '  transition: outline 0.2s;' +
     '}' +
-    '.oskar-director-active [data-oskar-editable="text"]:hover {' +
+    DIRECTOR_ACTIVE_SEL + ' [data-oskar-editable="text"]:hover {' +
     '  outline: 1px solid rgba(59, 130, 246, 0.7) !important;' +
     '  background: rgba(59, 130, 246, 0.04) !important;' +
     '}' +
@@ -476,7 +497,7 @@ export const STUDIO_BRIDGE_PATCH = `
     el.contentEditable = 'false';
     el.classList.remove('oskar-text-editing');
     var newText = el.textContent || '';
-    var oskarId = el.getAttribute('data-oskar-id');
+    var oskarId = el.getAttribute(OSKAR_ID_ATTR);
     if (oskarId && newText.trim()) {
       window.parent.postMessage({
         type: 'TEXT_EDITED',
@@ -493,7 +514,7 @@ export const STUDIO_BRIDGE_PATCH = `
     var textEl = e.target && e.target.closest ? e.target.closest('[data-oskar-editable="text"]') : null;
     if (!textEl) return;
     // Don't enter text edit if clicking on an image or bgimg inside the text area
-    if (e.target.closest('img') || e.target.closest('[data-oskar-bgimg]')) return;
+    if (e.target.closest('img') || e.target.closest(BG_IMAGE_SRC_SEL)) return;
 
     e.preventDefault();
     e.stopPropagation();

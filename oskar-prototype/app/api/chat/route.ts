@@ -3,6 +3,12 @@ import { writeFile, mkdir, appendFile, readFile, readdir } from 'fs/promises'
 import { existsSync, readFileSync } from 'fs'
 import path from 'path'
 import { buildCDPrompt } from '@/lib/cd-agent-prompt'
+import { buildSagePrompt } from '@/lib/sage-agent-prompt'
+
+// Which agent powers the main chat (API-mode path). Must match
+// `MAIN_CHAT_AGENT` in `chat-stream/route.ts` so CLI and API modes route
+// to the same identity.
+const MAIN_CHAT_AGENT: 'sage' | 'cd' = 'cd'
 import { ImageAsset, ImageManifest, VibeToolInput, AspectRatio, ImageSize, ImageOperation } from '@/lib/types'
 import { appendUsage, calculateCost } from '@/lib/usage-tracker'
 import {
@@ -551,12 +557,17 @@ export async function POST(req: NextRequest) {
       }
     })()
 
-    // Build system prompt with source image info + memory context
-    let systemPrompt = buildCDPrompt(sourceImages || [], effectiveSessionId, isResume || false, memorySessionFiles)
+    // Build system prompt with source image info + memory context.
+    // Route to Sage or CD based on MAIN_CHAT_AGENT flag at the top of this file.
+    let systemPrompt = MAIN_CHAT_AGENT === 'sage'
+      ? buildSagePrompt(effectiveSessionId, isResume || false, memorySessionFiles)
+      : buildCDPrompt(sourceImages || [], effectiveSessionId, isResume || false, memorySessionFiles)
 
-    // Pre-load CD-MEMORY.md into system prompt (boot file)
+    // Pre-load CD-MEMORY.md into system prompt (boot file).
+    // Only CD has institutional memory here; Sage reads user.md which the
+    // session-files block already injects. Skip CD-MEMORY when Sage is active.
     const cdMemoryPath = path.join(process.cwd(), 'agents', 'CD-MEMORY.md')
-    if (existsSync(cdMemoryPath)) {
+    if (MAIN_CHAT_AGENT === 'cd' && existsSync(cdMemoryPath)) {
       try {
         const cdMemory = await readFile(cdMemoryPath, 'utf-8')
         systemPrompt = `## CD-MEMORY (Your Learnings)\n\n${cdMemory}\n\n---\n\n${systemPrompt}`

@@ -200,6 +200,15 @@ In order:
 7. `skills/references/animation-best-practices.md` — motion design language.
 8. `skills/references/slide-decks.md` — deck-specific (only when subject is a deck).
 
+**Project memory:**
+1. `docs/INSTITUTIONAL-MEMORY.md` — project-wide log of bugs that took 3+ turns
+   to fix. Read the Don't-Do List at the top before any audit so you can flag
+   when CD or WebDev is reaching for a known trap. **The 3-turn rule (added
+   2026-04-30):** if YOU burn 3+ iterations on a single Ti audit (re-running
+   the same dimension, fixing the same regression, adjusting the same
+   misread school fingerprint), you log the entry. Animation is one domain
+   among many — UX, race conditions, doctrine misalignment, all count.
+
 **Session context:**
 1. Most recent `outputs/logs/session-*.md` — the narrative.
 2. `IMAGES.md` — image inventory and roles.

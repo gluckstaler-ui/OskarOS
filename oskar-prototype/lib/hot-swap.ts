@@ -14,7 +14,7 @@
 
 import { readFile, writeFile, readdir } from 'fs/promises'
 import path from 'path'
-import { updateBuildMd } from './session'
+import { updateBuildMd, formatLogTimestamp } from './session'
 
 export interface HotSwapResult {
   success: boolean
@@ -123,9 +123,18 @@ async function swapInFile(
   let oldImage: string | null = null
   let swapped = false
 
+  // Ralph 2026-04-26 BUG FIX: `slot` was interpolated into these regex
+  // sources WITHOUT escaping. For typical slots like "hero" or "menu-bg"
+  // this is harmless; for any slot containing regex metacharacters
+  // (`. * + ? ( ) [ ] { } | \ ^ $`), the pattern either fails to compile
+  // or matches the wrong substring and silently corrupts the HTML on
+  // replace. `vibe-slots.ts` already escapes via `escapeRegex()`; this
+  // file was the inconsistent twin.
+  const escapedSlot = escapeRegex(slot)
+
   // Pattern 1: img tag with data-slot before src
   const pattern = new RegExp(
-    `(<img[^>]*data-slot="${slot}"[^>]*src=")([^"]+)("[^>]*>)`,
+    `(<img[^>]*data-slot="${escapedSlot}"[^>]*src=")([^"]+)("[^>]*>)`,
     'gi'
   )
 
@@ -138,7 +147,7 @@ async function swapInFile(
   // Pattern 2: img tag with src before data-slot
   if (!swapped) {
     const altPattern = new RegExp(
-      `(<img[^>]*src=")([^"]+)("[^>]*data-slot="${slot}"[^>]*>)`,
+      `(<img[^>]*src=")([^"]+)("[^>]*data-slot="${escapedSlot}"[^>]*>)`,
       'gi'
     )
 
@@ -153,7 +162,7 @@ async function swapInFile(
   // e.g., /* data-slot: hero */ url('image.jpg')
   if (!swapped) {
     const cssPattern = new RegExp(
-      `(\\/\\*\\s*data-slot:\\s*${slot}\\s*\\*\\/[^)]*url\\(['"]?)([^'"\\)\\s]+)(['"]?\\))`,
+      `(\\/\\*\\s*data-slot:\\s*${escapedSlot}\\s*\\*\\/[^)]*url\\(['"]?)([^'"\\)\\s]+)(['"]?\\))`,
       'gi'
     )
 
@@ -252,12 +261,7 @@ async function logSwapToBuildMd(
 
   try {
     const content = await readFile(buildMdPath, 'utf-8')
-    const timestamp = new Date().toLocaleTimeString('en-US', {
-      hour12: false,
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit'
-    })
+    const timestamp = formatLogTimestamp()
 
     // Find the Hot-Swap Log table and add entries
     const logSection = content.match(/(## Hot-Swap Log[\s\S]*?\|[\s\S]*?\|[\s\S]*?\|[\s\S]*?\|[\s\S]*?\|[\s\S]*?\|)/m)
@@ -298,9 +302,10 @@ export async function updateVibeSlotStatus(
   try {
     const content = await readFile(buildMdPath, 'utf-8')
 
-    // Find the vibe section and update the slot
+    // Find the vibe section and update the slot. `slot` escaped — see
+    // the swap functions above for the rationale (regex metachars).
     const vibeSection = new RegExp(
-      `(### Vibe ${vibeNumber}:[\\s\\S]*?\\| ${slot} \\|)([^|]+)(\\|[^|]*\\|)`,
+      `(### Vibe ${vibeNumber}:[\\s\\S]*?\\| ${escapeRegex(slot)} \\|)([^|]+)(\\|[^|]*\\|)`,
       'i'
     )
 
@@ -368,4 +373,12 @@ export async function autoHotSwap(
   }
 
   return hotSwap(sessionId, newImageFilename, slot)
+}
+
+/** Escape a string for safe inclusion in a RegExp source. Mirrors the
+ *  helper in `vibe-slots.ts`. Used by the swap functions above so that
+ *  slot names containing regex metacharacters (e.g. dots in `bgimg:hero.jpg`)
+ *  are matched literally instead of as wildcards. */
+function escapeRegex(s: string): string {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 }

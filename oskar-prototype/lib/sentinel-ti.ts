@@ -10,6 +10,8 @@ import { existsSync } from 'fs'
 import { spawn } from 'child_process'
 import path from 'path'
 import { findClaudeBinary } from './webdev'
+import { ensureMcpConfig, SENTINEL_ALLOWED_TOOLS } from './mcp-config'
+import { makeToolCollector } from './mcp-tool-collector'
 
 export interface SentinelTiRequest {
   sessionId: string
@@ -22,10 +24,23 @@ export interface SentinelTiRequest {
   onEvent?: (event: any) => void
 }
 
+/** Phase 2: structured critique args from submit_critique tool call. */
+export interface SentinelTiCritiqueScores {
+  target: string
+  scores: Array<{ dimension: string; score: number; note: string }>
+  summary: string
+  recommendations: string[]
+}
+
 export interface SentinelTiResult {
   status: 'complete' | 'error'
   reportPath?: string
+  /** Narrative critique text streamed from the agent. */
   reportText?: string
+  /** Phase 2 (2026-04-30): structured args from submit_critique tool call.
+   *  Populated when the agent called the tool; null if it forgot. UI
+   *  renders score badges from these args (no re-parsing the narrative). */
+  scores?: SentinelTiCritiqueScores | null
   error?: string
 }
 
@@ -84,17 +99,39 @@ You are running in CLI mode with full tools (Read, Bash, Grep, etc.).
    from DIFFERENT philosophical groups. Anchor each recommendation in the
    brief's voice/audience/output type.
 
-## OUTPUT
+## OUTPUT — Phase 2 (2026-04-30)
 
-Write your complete report to BOTH:
-- stdout (it will stream to the chat)
-- the file: \`${req.sessionPath}/critique/sentinel-ti-${req.target}-${new Date()
+Two outputs, in order:
+
+1. **Narrative critique (text).** Stream the long-form report to stdout —
+   it surfaces live in the Compaction Live Feed. Write the same report to
+   the file: \`${req.sessionPath}/critique/sentinel-ti-${req.target}-${new Date()
     .toISOString()
-    .replace(/[:.]/g, '-')}.md\`
+    .replace(/[:.]/g, '-')}.md\`. Create the \`critique/\` folder if needed.
 
-Create the \`critique/\` folder if it doesn't exist. Use your Bash tool.
+2. **Structured scores (tool call).** AFTER the narrative is written, call
+   the \`submit_critique\` MCP tool with:
 
-End your response with the Force-ghost signature.
+   \`\`\`
+   submit_critique({
+     target: "${req.target}",
+     scores: [
+       { dimension: "philosophy_alignment", score: 7.5, note: "..." },
+       { dimension: "visual_hierarchy",     score: 6.0, note: "..." },
+       { dimension: "craft",                score: 8.5, note: "..." },
+       { dimension: "functionality",        score: 7.0, note: "..." },
+       { dimension: "originality",          score: 6.5, note: "..." }
+     ],
+     summary: "<one paragraph headline>",
+     recommendations: ["<one sentence each>", ...]
+   })
+   \`\`\`
+
+   The UI renders score badges from this tool call — do NOT embed the
+   scores in the narrative as parseable text. The header-format parser
+   was retired 2026-04-30. Tool call IS the structured contract.
+
+End your narrative with the Force-ghost signature, THEN call submit_critique.
 
 NOW BEGIN.`
 }
@@ -135,6 +172,11 @@ to the file path the user prompt specifies. Do not invent file paths.`
   const claudePath = findClaudeBinary()
   console.log(`[SentinelTi] claude binary: ${claudePath}`)
 
+  // Phase 2 (2026-04-30): Ti gets the same MCP wiring as CD/WebDev. Its
+  // only allowed MCP tool is `submit_critique` — structured scores. The
+  // narrative text still streams via stdout as before.
+  const mcpConfigFile = ensureMcpConfig({ sessionId: req.sessionId, cwd: process.cwd(), agentRole: 'sentinel' })
+
   // Sentinel Ti runs on OPUS — critique requires deeper reasoning than
   // sonnet provides. The 1m context variant fits the full huashu reference
   // set + session files + every vibe HTML in one read pass.
@@ -148,6 +190,10 @@ to the file path the user prompt specifies. Do not invent file paths.`
     'stream-json',
     '--permission-mode',
     'bypassPermissions',
+    '--mcp-config',
+    mcpConfigFile,
+    '--allowed-tools',
+    SENTINEL_ALLOWED_TOOLS,
     '--system-prompt',
     systemPrompt,
     userPrompt,
@@ -157,6 +203,14 @@ to the file path the user prompt specifies. Do not invent file paths.`
     let collectedText = ''
     let stderrBuf = ''
     let parseBuf = ''
+
+    // Phase 2 — parallel jobs from one stream:
+    //   Job A — forward text chunks to req.onText (live feed; existing)
+    //   Job B — capture submit_critique tool_use args via the collector
+    // Both read from the same stream-json events; they write to different
+    // sinks. Order is enforced by the agent prompt (narrative first, tool
+    // call last), not by buffering.
+    const toolCollector = makeToolCollector(['submit_critique'])
 
     const child = spawn(claudePath, args, {
       cwd: req.sessionPath,
@@ -174,7 +228,10 @@ to the file path the user prompt specifies. Do not invent file paths.`
         try {
           const event = JSON.parse(line)
           req.onEvent?.(event)
-          // Extract text deltas from assistant messages
+          // Job B: capture submit_critique tool_use args (last-write-wins
+          // if Ti calls it twice, which it shouldn't).
+          toolCollector.consume(event)
+          // Job A: forward narrative text deltas to onText.
           if (event.type === 'assistant' && event.message?.content) {
             for (const block of event.message.content) {
               if (block.type === 'text' && typeof block.text === 'string') {
@@ -229,10 +286,18 @@ to the file path the user prompt specifies. Do not invent file paths.`
         console.error('[SentinelTi] failed to write report:', err)
       }
 
+      // Phase 2: surface structured critique scores from the captured
+      // submit_critique tool call. Null if Ti didn't call the tool —
+      // UI shows narrative only, no badges.
+      const submitArgs = toolCollector.getToolCalls().submit_critique as
+        | SentinelTiCritiqueScores
+        | undefined
+
       resolve({
         status: 'complete',
         reportPath,
         reportText: collectedText,
+        scores: submitArgs || null,
       })
     })
   })

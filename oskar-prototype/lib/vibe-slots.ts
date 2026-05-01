@@ -41,7 +41,7 @@
 import { readFile, writeFile, readdir, stat } from 'fs/promises'
 import path from 'path'
 import { findAllSlots, inferSlotFromFilename } from './hot-swap'
-import { updateBuildMd } from './session'
+import { updateBuildMd, formatLogTimestamp } from './session'
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Types — the shape the drawer (and any future Studio picker) will consume.
@@ -839,11 +839,17 @@ function swapBareImage(
 
     oldImage = srcMatch[1]
     swapped = true
-    // Replace ONLY the src attribute value, preserve quoting + everything else
+    // Replace ONLY the src attribute value, preserve quoting + everything else.
+    //
+    // Ralph 2026-04-26 BUG FIX: previous version passed the new value as a
+    // STRING to .replace(), which interprets `$1`, `$&`, `$'`, `$\``, `$$`
+    // as backreferences. If `newImage` ever contained a `$` (e.g. composed
+    // CDN URLs, or future filename schemes), the swap would silently corrupt
+    // the HTML. Using a callback function disables `$`-substitution.
     const quote = srcMatch[0].includes('"') ? '"' : "'"
     return tag.replace(
       /\bsrc=(["'])[^"']+\1/i,
-      `src=${quote}${newImage}${quote}`
+      () => `src=${quote}${newImage}${quote}`,
     )
   })
 
@@ -901,12 +907,7 @@ async function logAssignToBuildMd(
     const sessionPath = path.join(process.cwd(), 'public', sessionId)
     const buildMdPath = path.join(sessionPath, 'BUILD.md')
     const buildMd = await readFile(buildMdPath, 'utf-8')
-    const timestamp = new Date().toLocaleTimeString('en-US', {
-      hour12: false,
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit',
-    })
+    const timestamp = formatLogTimestamp()
     const vibeName = vibe.replace(/^vibe-/, '').replace(/\.html$/, '')
     const newRow = `\n| ${timestamp} | ${vibeName} | ${slot} | ${oldImage} | ${newImage} |`
 

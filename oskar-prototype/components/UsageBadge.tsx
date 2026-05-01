@@ -54,6 +54,11 @@ export function UsageBadge({ sessionId, refreshTrigger, theme = 'onyx', contextP
   const [usage, setUsage] = useState<UsageData | null>(null)
   const [loading, setLoading] = useState(false)
   const [showDetails, setShowDetails] = useState(false)
+  // 2026-04-30: replaced the two-click arm pattern with a native confirm
+  // dialog. The arm dance was too easy to miss — Ralph kept clicking, the
+  // 3-second timeout would expire between clicks, and each new click was
+  // just re-arming instead of committing. Confirm dialog is unmissable.
+  const [resetting, setResetting] = useState(false)
 
   const fetchUsage = useCallback(async () => {
     if (!sessionId) {
@@ -63,15 +68,21 @@ export function UsageBadge({ sessionId, refreshTrigger, theme = 'onyx', contextP
 
     setLoading(true)
     try {
-      const res = await fetch(`/api/sessions/${sessionId}/usage`)
+      // Bust both browser and Next.js fetch cache — without this, the reset
+      // button looks broken because the GET that follows DELETE returns a
+      // stale cost from cache. (Ralph 2026-04-22)
+      const url = `/api/sessions/${sessionId}/usage?t=${Date.now()}`
+      const res = await fetch(url, { cache: 'no-store' })
       if (res.ok) {
         const data = await res.json()
+        console.log(`[UsageBadge] GET ${url} → cost=${data?.display?.cost} totals=$${data?.totals?.cost}`)
         setUsage(data)
       } else {
+        console.warn(`[UsageBadge] GET ${url} → HTTP ${res.status}`)
         setUsage(null)
       }
     } catch (err) {
-      console.error('Failed to fetch usage:', err)
+      console.error('[UsageBadge] fetch failed:', err)
       setUsage(null)
     } finally {
       setLoading(false)
@@ -81,6 +92,50 @@ export function UsageBadge({ sessionId, refreshTrigger, theme = 'onyx', contextP
   useEffect(() => {
     fetchUsage()
   }, [fetchUsage, refreshTrigger])
+
+  const handleResetClick = useCallback(async () => {
+    console.log('[UsageBadge] reset button clicked, sessionId=', sessionId)
+    if (!sessionId) {
+      console.warn('[UsageBadge] reset aborted — no sessionId')
+      return
+    }
+    // Native confirm dialog. One click, one prompt, one decision. No more
+    // two-click arm-then-commit pattern with a 3s window that the user
+    // could miss.
+    const ok = window.confirm(
+      `Reset the dollar / token counter for session ${sessionId}?\n\nThis zeros the displayed total but preserves the bridge cost baseline so future turns count correctly.`,
+    )
+    if (!ok) {
+      console.log('[UsageBadge] reset cancelled by user')
+      return
+    }
+    setResetting(true)
+    try {
+      const url = `/api/sessions/${sessionId}/usage`
+      console.log(`[UsageBadge] DELETE ${url}`)
+      const res = await fetch(url, { method: 'DELETE' })
+      const text = await res.text()
+      console.log(`[UsageBadge] DELETE ${url} → HTTP ${res.status} body=${text}`)
+      if (!res.ok) {
+        console.error('[UsageBadge] Reset failed:', text)
+        window.alert(`Reset failed: HTTP ${res.status}\n${text}`)
+        return
+      }
+      // Immediate refetch so the badge reflects the zeroed state.
+      await fetchUsage()
+      // Belt-and-suspenders second refetch after a beat — if something
+      // racing the DELETE (a chat-stream completion, a manual edit) wrote
+      // back to USAGE.json, this catches the new state too.
+      await new Promise((r) => setTimeout(r, 300))
+      await fetchUsage()
+      console.log('[UsageBadge] reset complete')
+    } catch (err) {
+      console.error('[UsageBadge] Reset error:', err)
+      window.alert(`Reset error: ${err instanceof Error ? err.message : String(err)}`)
+    } finally {
+      setResetting(false)
+    }
+  }, [sessionId, fetchUsage])
 
   if (!sessionId) return null
 
@@ -132,7 +187,9 @@ export function UsageBadge({ sessionId, refreshTrigger, theme = 'onyx', contextP
         cursor: 'pointer',
         transition: 'all 0.2s',
       }}>
-        {/* Cost */}
+        {/* Cost + Reset — reset is a tiny ↻ icon directly next to the $
+            so the user's eye finds it without hunting. Two-step click
+            (arm → confirm) to prevent accidents. */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
           <span style={{ color: hasCost ? '#10b981' : 'var(--text-muted)' }}>
             <DollarIcon />
@@ -146,6 +203,44 @@ export function UsageBadge({ sessionId, refreshTrigger, theme = 'onyx', contextP
           }}>
             {costDisplay}
           </span>
+          <button
+            onClick={(e) => {
+              e.stopPropagation()
+              handleResetClick()
+            }}
+            disabled={resetting}
+            title={resetting ? 'Resetting…' : 'Reset dollar counter for this session'}
+            style={{
+              marginLeft: 2,
+              width: 16,
+              height: 16,
+              padding: 0,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              border: 'none',
+              borderRadius: 4,
+              background: 'transparent',
+              color: 'var(--text-dim)',
+              cursor: resetting ? 'wait' : 'pointer',
+              opacity: resetting ? 0.5 : 1,
+              transition: 'all 0.12s',
+              fontFamily: 'inherit',
+            }}
+            onMouseEnter={(e) => {
+              if (!resetting) {
+                ;(e.currentTarget as HTMLElement).style.color = 'var(--text-main)'
+              }
+            }}
+            onMouseLeave={(e) => {
+              ;(e.currentTarget as HTMLElement).style.color = 'var(--text-dim)'
+            }}
+          >
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M3 12a9 9 0 1 0 3-6.7" />
+              <path d="M3 3v6h6" />
+            </svg>
+          </button>
         </div>
 
         {/* Divider */}
@@ -343,6 +438,7 @@ export function UsageBadge({ sessionId, refreshTrigger, theme = 'onyx', contextP
               {usage.display.cost}
             </span>
           </div>
+
         </div>
       )}
     </div>

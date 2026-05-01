@@ -21,14 +21,36 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { callCDBridge } from '@/lib/cd-bridge-call'
 import { buildCDContext } from '@/lib/cd-context'
-import { parseCDResponse, type CDParsedResponse } from '@/lib/cd-response-parser'
 import { logToChat } from '@/lib/chat-logger'
 
+// Phase 2 (2026-04-30): replaced lib/cd-response-parser.ts (deleted) with
+// a direct read from the bridge's tool_use capture. CD calls
+// `submit_image_prompt(prompt, feedback?)` when committing to a prompt;
+// otherwise the reply is plain conversational text. The previous file
+// had Tier 1/2/5 fallback regex over text — gone with the parser.
+//
+// Backward-compat for AdvancedMode.handleAskCD: response keeps the same
+// shape `{imagePrompt, feedback, tier, raw}` but `tier` now collapses to:
+//   1 → CD called submit_image_prompt (committed)
+//   5 → No tool call (conversational)
+// Tier 2/3/4 (loose-match) are dead — they only existed to forgive header
+// drift, which can't happen with typed tool calls.
+type AskCDTier = 1 | 5
+interface AskCDResult {
+  imagePrompt: string | null
+  feedback: string | null
+  tier: AskCDTier
+  raw: string
+}
+
 export interface AskCDRequestBody {
-  source: 'advanced-mode'
-  mode: 'generate' | 'edit' | 'compose' | 'layout'
+  /** Which UI surface the question came from. CD uses this to shape its
+   *  reply (e.g. image-mode's Zone 4 expects the committed ## IMAGE PROMPT
+   *  shape; gallery/studio are conversational only). */
+  source: 'gallery' | 'studio' | 'image' | 'advanced-mode'
+  mode?: 'generate' | 'edit' | 'compose' | 'layout'
   image?: { filename: string; description: string }
-  currentPrompt: string
+  currentPrompt?: string
   stagedImages?: { scene?: string; subjects?: string[]; slots?: string[] }
   userMessage: string
   /** Required for the bridge call. Older callers may not pass this — we
@@ -54,25 +76,41 @@ export async function POST(req: NextRequest) {
     }
 
     console.log(
-      `[ask-cd ${requestId}] mode=${body.mode} image=${body.image?.filename || 'none'} msg="${body.userMessage.slice(0, 80)}"`
+      `[ask-cd ${requestId}] source=${body.source} mode=${body.mode || '-'} image=${body.image?.filename || 'none'} msg="${body.userMessage.slice(0, 80)}"`
     )
 
     const tagged = await buildAskCDMessage(body)
-    const result = await callCDBridge(body.sessionId, tagged)
+    const result = await callCDBridge(body.sessionId, tagged, {
+      expectedTools: ['submit_image_prompt'],
+    })
 
-    if (!result.text) {
-      console.error(`[ask-cd ${requestId}] Empty CD reply`)
+    if (!result.text && Object.keys(result.toolCalls).length === 0) {
+      console.error(`[ask-cd ${requestId}] Empty CD reply (no text, no tool call)`)
       return NextResponse.json(
         { error: 'CD did not respond. Try again.' },
         { status: 502 }
       )
     }
 
-    // Use the existing parser so any future `## IMAGE PROMPT` blocks still
-    // route to Zone 4. With the WP-15 conversational contract most replies
-    // won't have one — the parser falls through to tier 5 and returns the
-    // raw text as `feedback`.
-    const parsed: CDParsedResponse = parseCDResponse(result.text)
+    // Phase 2: structured response. CD called submit_image_prompt when
+    // committing to a prompt; otherwise it's pure conversation (the
+    // text body is the user-facing reply).
+    const promptArgs = result.toolCalls.submit_image_prompt as
+      | { prompt?: string; feedback?: string }
+      | undefined
+    const parsed: AskCDResult = promptArgs?.prompt
+      ? {
+          imagePrompt: String(promptArgs.prompt),
+          feedback: promptArgs.feedback ? String(promptArgs.feedback) : (result.text || null),
+          tier: 1,
+          raw: result.text,
+        }
+      : {
+          imagePrompt: null,
+          feedback: result.text || null,
+          tier: 5,
+          raw: result.text,
+        }
 
     console.log(
       `[ask-cd ${requestId}] tier=${parsed.tier} promptLen=${parsed.imagePrompt?.length || 0} feedbackLen=${parsed.feedback?.length || 0} ${result.durationMs}ms`
@@ -82,20 +120,26 @@ export async function POST(req: NextRequest) {
     // user message AND CD's reply to SESSION.md §"CD Activity". Snackbar
     // is the immediate signal; the chat log is the audit trail. Without
     // this, Ask CD interactions vanish after the snackbar dismisses.
+    // Chat-log tag reflects where the question came from so replay /
+    // audit can attribute each entry to its UI surface.
+    const logSource =
+      body.source === 'advanced-mode' || body.source === 'image'
+        ? `image-mode:${body.mode || '?'}`
+        : body.source
     try {
       await logToChat(body.sessionId, {
         kind: 'user',
         content: body.userMessage,
-        source: `image-mode:${body.mode}`,
+        source: logSource,
         ref: body.image?.filename,
       })
       await logToChat(body.sessionId, {
         kind: 'cd-reply',
         content:
-          parsed.imagePrompt && (parsed.tier === 1 || parsed.tier === 2)
+          parsed.imagePrompt && parsed.tier === 1
             ? `**CD committed prompt** (routed to Zone 4):\n\n\`\`\`\n${parsed.imagePrompt}\n\`\`\`\n\n${parsed.feedback ? `**Note:** ${parsed.feedback}` : ''}`
             : parsed.feedback || result.text,
-        source: `image-mode:${body.mode}`,
+        source: logSource,
         ref: body.image?.filename,
       })
     } catch (logErr) {
@@ -124,14 +168,15 @@ async function buildAskCDMessage(body: AskCDRequestBody): Promise<string> {
   return [
     '[OSKAR-SYSTEM ASK-CD]',
     '',
-    `Mode: ${body.mode}`,
+    `Source: ${body.source}`,
+    body.mode ? `Mode: ${body.mode}` : '',
     body.image
       ? `Selected image: ${body.image.filename}` +
         (body.image.description ? `\n  Description: ${body.image.description}` : '')
-      : 'Selected image: (none)',
-    body.currentPrompt.trim()
+      : '',
+    body.currentPrompt && body.currentPrompt.trim()
       ? `Current prompt in Zone 4:\n\`\`\`\n${body.currentPrompt}\n\`\`\``
-      : 'Current prompt: (empty)',
+      : '',
     stagedImagesText,
     '',
     '---',
@@ -139,7 +184,14 @@ async function buildAskCDMessage(body: AskCDRequestBody): Promise<string> {
     '',
     ctx.size > 0 ? '---\nContext for your judgment:\n' + ctx.block : '',
     '',
-    'Reply conversationally per the SYSTEM MESSAGES protocol in your agent file. Keep it under ~200 words.',
+    'Reply rules:',
+    '  • If the user wants you to commit to a Nano-ready image prompt, ' +
+      'call the `submit_image_prompt(prompt, feedback?)` MCP tool. The ' +
+      'tool call routes the prompt to Zone 4. Do NOT write `## IMAGE PROMPT` ' +
+      'headers — that parser was retired 2026-04-30 (Phase 2 MCP migration).',
+    '  • If the user just wants to chat (asking a question, exploring ' +
+      'options, sounding out an idea), reply conversationally without ' +
+      'calling any tool. Keep it under ~200 words.',
   ]
     .filter(Boolean)
     .join('\n')

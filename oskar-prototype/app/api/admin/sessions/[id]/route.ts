@@ -8,6 +8,7 @@ import { readdir, readFile, stat } from 'fs/promises'
 import { existsSync } from 'fs'
 import { join } from 'path'
 import { readSessionUsage, formatCost, formatTokens } from '@/lib/usage-tracker'
+import { matchField, matchFieldMultiline } from '@/lib/markdown-fields'
 import { parseVibesFromFiles, parseVibePreview } from '@/lib/creative-brief-parser'
 
 // ==========================================
@@ -633,26 +634,17 @@ function parseImagePrompts(imagesContent: string): ImagePrompt[] {
     // Skip if not an image file
     if (!/\.(jpg|jpeg|png|webp|gif)$/i.test(filename)) continue
 
-    // Extract Reprompt field
-    const repromptMatch = block.match(/\*\*Reprompt:\*\*\s*([^\n]+(?:\n(?!\*\*)[^\n]+)*)/i)
-    if (!repromptMatch) continue
-
-    const reprompt = repromptMatch[1].trim()
+    // Extract Reprompt field — accepts both bold-labeled and plain formats.
+    const reprompt = matchFieldMultiline(block, 'Reprompt')
+    if (!reprompt) continue
 
     // Skip empty or placeholder reprompts
     if (!reprompt || reprompt.length < 10) continue
 
-    // Extract CD Analysis
-    const analysisMatch = block.match(/\*\*CD Analysis:\*\*\s*([^\n]+(?:\n(?!\*\*)[^\n]+)*)/i)
-    const analysis = analysisMatch ? analysisMatch[1].trim() : undefined
-
-    // Extract suggested uses
-    const usesMatch = block.match(/\*\*Suggested uses:\*\*\s*([^\n]+)/i)
-    const suggestedUses = usesMatch ? usesMatch[1].trim() : undefined
-
-    // Extract suggested vibes
-    const vibesMatch = block.match(/\*\*Suggested vibes:\*\*\s*([^\n]+)/i)
-    const suggestedVibes = vibesMatch ? vibesMatch[1].trim() : undefined
+    // All field reads via shared helpers — accept both bold and plain.
+    const analysis = matchFieldMultiline(block, 'CD Analysis') || undefined
+    const suggestedUses = matchField(block, 'Suggested uses') || undefined
+    const suggestedVibes = matchField(block, 'Suggested vibes') || undefined
 
     // Determine aspect ratio from prompt or default
     let aspectRatio = '16:9'

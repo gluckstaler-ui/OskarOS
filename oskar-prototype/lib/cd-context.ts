@@ -81,9 +81,15 @@ function summarizeAllImages(
 
   const lines: string[] = []
   for (const [filename, entry] of recent) {
+    // Bug 8 fix (Ralph 2026-04-30): prefer the normalized .tag (frozen
+    // vocabulary) over the raw .status string. Old IMAGES.md files
+    // contain `Status: ACTIVE` which is not in the documented enum;
+    // .tag normalizes ACTIVE → USED so the agent never sees the
+    // deprecated label.
     const summary =
       entry.cdAnalysis?.split('\n')[0]?.slice(0, 140) ||
       entry.reprompt?.split('\n')[0]?.slice(0, 140) ||
+      entry.tag ||
       entry.status ||
       '(no analysis)'
     lines.push(`- ${filename}: ${summary}`)

@@ -9,7 +9,28 @@ import path from 'path'
  *   - `scan` (default): Returns all references to the image across HTMLs and markdown.
  *   - `delete`: Hard-deletes the file, removes IMAGES.md entry, replaces HTML refs
  *     with `placeholder.jpg`.
+ *
+ * Reference `kind` (Ralph 2026-04-23):
+ *   - `html`  → the image is ACTUALLY USED on a page. Deleting without
+ *               swapping will break visible content. Client should block.
+ *   - `metadata` → the image is only MENTIONED in a markdown file
+ *               (SESSION.md log, CREATIVE-BRIEF.md, IMAGES.md status,
+ *               BUILD.md log, vibe-*.md drafts). Safe to delete — the
+ *               metadata remains as history of what existed. Client can
+ *               auto-delete in this case.
+ *
+ * Delete action cleans IMAGES.md (status index, not history) and swaps
+ * HTML references to `placeholder.jpg`. It deliberately does NOT strip
+ * mentions from SESSION.md / CREATIVE-BRIEF.md / BUILD.md / vibe-*.md —
+ * those are historical logs and doctoring them is worse than a dangling
+ * filename reference.
  */
+
+/** Metadata markdown files in a session folder that scan should treat as
+ *  "safe" references (block on HTML only). Any *.md with `vibe-` in its
+ *  name also joins this set at scan time — vibes drafts are metadata. */
+const METADATA_MDS = ['IMAGES.md', 'BUILD.md', 'CREATIVE-BRIEF.md', 'SESSION.md']
+
 export async function POST(req: NextRequest) {
   try {
     const { sessionId, filename, action = 'scan' } = await req.json()
@@ -24,7 +45,13 @@ export async function POST(req: NextRequest) {
     const sessionPath = path.join(process.cwd(), 'public', sessionId)
 
     // ── Scan for references ──
-    const references: Array<{ file: string; context: string }> = []
+    const references: Array<{
+      file: string
+      context: string
+      /** 'html' = blocking, 'metadata' = safe. Client uses this to decide
+       *  whether to prompt the user or auto-delete. */
+      kind: 'html' | 'metadata'
+    }> = []
 
     // Get all HTML files
     const files = await readdir(sessionPath).catch(() => [] as string[])
@@ -49,36 +76,24 @@ export async function POST(req: NextRequest) {
           contexts.push('background-image')
         }
         if (contexts.length === 0) contexts.push('text reference')
-        references.push({ file: htmlFile, context: contexts.join(', ') })
+        references.push({ file: htmlFile, context: contexts.join(', '), kind: 'html' })
       }
     }
 
-    // Check IMAGES.md
-    const imagesPath = path.join(sessionPath, 'IMAGES.md')
-    const imagesMd = await readFile(imagesPath, 'utf-8').catch(() => '')
-    if (imagesMd.includes(filename)) {
-      references.push({ file: 'IMAGES.md', context: 'status entry' })
-    }
+    // Scan known metadata markdown files + any `vibe-*.md` drafts.
+    const vibeMdFiles = files.filter((f) => /^vibe.*\.md$/i.test(f))
+    const metadataFiles = Array.from(new Set([...METADATA_MDS, ...vibeMdFiles]))
 
-    // Check BUILD.md
-    const buildPath = path.join(sessionPath, 'BUILD.md')
-    const buildMd = await readFile(buildPath, 'utf-8').catch(() => '')
-    if (buildMd.includes(filename)) {
-      references.push({ file: 'BUILD.md', context: 'build log' })
-    }
-
-    // Check CREATIVE-BRIEF.md
-    const briefPath = path.join(sessionPath, 'CREATIVE-BRIEF.md')
-    const briefMd = await readFile(briefPath, 'utf-8').catch(() => '')
-    if (briefMd.includes(filename)) {
-      references.push({ file: 'CREATIVE-BRIEF.md', context: 'brief mention' })
-    }
-
-    // Check SESSION.md
-    const sessionMdPath = path.join(sessionPath, 'SESSION.md')
-    const sessionMd = await readFile(sessionMdPath, 'utf-8').catch(() => '')
-    if (sessionMd.includes(filename)) {
-      references.push({ file: 'SESSION.md', context: 'session note' })
+    for (const mdName of metadataFiles) {
+      const mdPath = path.join(sessionPath, mdName)
+      const md = await readFile(mdPath, 'utf-8').catch(() => '')
+      if (md && md.includes(filename)) {
+        references.push({
+          file: mdName,
+          context: mdContextLabel(mdName),
+          kind: 'metadata',
+        })
+      }
     }
 
     if (action === 'scan') {
@@ -110,7 +125,12 @@ export async function POST(req: NextRequest) {
       await writeFile(htmlPath, html, 'utf-8')
     }
 
-    // 2. Remove IMAGES.md entry (remove the ### block for this filename)
+    // 2. Remove IMAGES.md entry (remove the ### block for this filename).
+    //    IMAGES.md is the active STATUS index of what exists — strip on
+    //    delete. SESSION.md / CREATIVE-BRIEF.md / BUILD.md / vibe-*.md are
+    //    HISTORY / DRAFTS and are left untouched so the log stays honest.
+    const imagesPath = path.join(sessionPath, 'IMAGES.md')
+    const imagesMd = await readFile(imagesPath, 'utf-8').catch(() => '')
     if (imagesMd.includes(filename)) {
       const lines = imagesMd.split('\n')
       const newLines: string[] = []
@@ -155,4 +175,22 @@ export async function POST(req: NextRequest) {
 
 function escapeRegex(s: string): string {
   return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+}
+
+/** Human label for markdown reference entries. Keeps dialog output
+ *  identical to the pre-2026-04-23 behavior for the four canonical files,
+ *  and gives vibe-*.md drafts a consistent description. */
+function mdContextLabel(filename: string): string {
+  switch (filename) {
+    case 'IMAGES.md':
+      return 'status entry'
+    case 'BUILD.md':
+      return 'build log'
+    case 'CREATIVE-BRIEF.md':
+      return 'brief mention'
+    case 'SESSION.md':
+      return 'session note'
+    default:
+      return /^vibe/i.test(filename) ? 'vibe draft' : 'metadata'
+  }
 }

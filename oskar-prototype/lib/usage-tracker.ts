@@ -32,6 +32,21 @@ export interface SessionUsage {
     latestContextPct?: number
     latestInputTokens?: number
     latestContextWindow?: number
+    /**
+     * Last `total_cost_usd` value the bridge emitted for this session.
+     *
+     * Why: Claude Agent SDK's `total_cost_usd` is MONOTONICALLY CUMULATIVE
+     * for the bridge's lifetime (since bridge boot), not per-turn. To get
+     * the per-turn cost we have to subtract: turnCost = current - last.
+     *
+     * This field PERSISTS across reset (DELETE wipes entries[] and the
+     * displayed `cost`, but keeps `lastBridgeCumulativeCost`). Otherwise
+     * the next turn's delta would be the bridge's full lifetime total
+     * and the reset would silently undo itself on the next chat turn —
+     * which is exactly the bug the field was added to fix.
+     * (Ralph 2026-04-25)
+     */
+    lastBridgeCumulativeCost?: number
   }
 }
 
@@ -138,12 +153,44 @@ export async function appendUsage(
   agent: 'CD' | 'WebDev',
   usage: CLIUsageResult,
   task?: string,
-  context?: { contextPct: number; contextWindow: number }
+  context?: { contextPct: number; contextWindow: number },
+  /**
+   * If `usage.cost` is the BRIDGE'S CUMULATIVE total_cost_usd (monotonic
+   * since bridge boot), pass it here too. We compute the per-turn delta
+   * against `totals.lastBridgeCumulativeCost` from the previous write.
+   *
+   * If omitted (legacy callers, WebDev CLI track), `usage.cost` is taken
+   * as-is — assumed to be per-turn already.
+   *
+   * Bridge restart detection: if `bridgeCumulativeCost < stored`, the
+   * bridge restarted (counter went back to 0); we treat the new value
+   * as the turn cost directly.
+   *
+   * Reset preservation: even after `DELETE /api/sessions/:id/usage`
+   * wipes entries[] and `totals.cost`, `totals.lastBridgeCumulativeCost`
+   * is preserved by the DELETE handler so this delta math stays correct.
+   * (Ralph 2026-04-25)
+   */
+  bridgeCumulativeCost?: number,
 ): Promise<void> {
   const usagePath = getUsagePath(sessionId)
 
   // Read existing
   const sessionUsage = await readSessionUsage(sessionId)
+
+  // Compute the actual per-turn cost
+  let entryCost = usage.cost
+  if (typeof bridgeCumulativeCost === 'number') {
+    const stored = sessionUsage.totals.lastBridgeCumulativeCost ?? 0
+    if (bridgeCumulativeCost < stored) {
+      // Bridge restarted (cumulative reset to 0 or near-0). Treat the
+      // emitted value as the turn cost directly.
+      entryCost = bridgeCumulativeCost
+      console.log(`[Usage] ${sessionId} | bridge restart detected (was=${stored}, now=${bridgeCumulativeCost})`)
+    } else {
+      entryCost = Math.max(0, bridgeCumulativeCost - stored)
+    }
+  }
 
   // Create entry
   const entry: UsageEntry = {
@@ -152,7 +199,7 @@ export async function appendUsage(
     task,
     inputTokens: usage.inputTokens,
     outputTokens: usage.outputTokens,
-    cost: usage.cost,
+    cost: entryCost,
     ...(context && { contextPct: context.contextPct, contextWindow: context.contextWindow }),
   }
 
@@ -174,12 +221,19 @@ export async function appendUsage(
     latestContextPct: context?.contextPct ?? sessionUsage.totals.latestContextPct,
     latestInputTokens: usage.inputTokens,
     latestContextWindow: context?.contextWindow ?? sessionUsage.totals.latestContextWindow,
+    // Preserve OR update the bridge baseline:
+    // - If we just delta'd against it, advance to the new high-water mark
+    // - Otherwise, keep whatever was already there (legacy callers don't bump it)
+    lastBridgeCumulativeCost:
+      typeof bridgeCumulativeCost === 'number'
+        ? bridgeCumulativeCost
+        : sessionUsage.totals.lastBridgeCumulativeCost,
   }
 
   // Write back
   await writeFile(usagePath, JSON.stringify(sessionUsage, null, 2), 'utf-8')
 
-  console.log(`[Usage] ${sessionId} | ${agent} | +${usage.inputTokens}in +${usage.outputTokens}out | $${usage.cost} | Total: $${sessionUsage.totals.cost} | Context: ${context?.contextPct ?? '?'}%`)
+  console.log(`[Usage] ${sessionId} | ${agent} | +${usage.inputTokens}in +${usage.outputTokens}out | turn:$${entryCost.toFixed(4)} | Total: $${sessionUsage.totals.cost} | Context: ${context?.contextPct ?? '?'}%`)
 }
 
 // ==========================================

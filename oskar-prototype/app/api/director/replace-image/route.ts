@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { readFile, writeFile, readdir, appendFile } from 'fs/promises'
 import path from 'path'
+import { reconcileUsedTags } from '@/lib/session'
 
 /**
  * WP-11B: Replace all occurrences of one image with another across all vibe HTMLs.
@@ -127,12 +128,29 @@ export async function POST(req: NextRequest) {
 
     console.log(`[replace-image] Replaced ${sourceFilename} → ${targetFilename}: ${replacedTotal} refs in ${replacedFiles.length} files`)
 
+    // Ralph 2026-04-25: reconcile USED tags now that vibe HTML refs changed.
+    // The displaced source is no longer referenced anywhere → demote to
+    // B-ROLL. The new target is now referenced → promote to USED. Without
+    // this, IMAGES.md tags drift from reality and the asset panel keeps
+    // showing the old USED/B-ROLL state. HERO + TRASH are sacred and
+    // untouched per the existing reconcile rules.
+    let reconcile: { promoted: string[]; demoted: string[]; unchanged: number } | null = null
+    try {
+      reconcile = await reconcileUsedTags(sessionId)
+      console.log(
+        `[replace-image] Reconciled tags: +${reconcile.promoted.length} USED, -${reconcile.demoted.length} demoted`,
+      )
+    } catch (err) {
+      console.error('[replace-image] reconcileUsedTags failed:', err)
+    }
+
     return NextResponse.json({
       success: true,
       sourceFilename,
       targetFilename,
       replacedTotal,
       replacedFiles,
+      reconcile,
     })
   } catch (error) {
     console.error('[replace-image] Error:', error)

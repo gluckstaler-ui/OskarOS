@@ -1,10 +1,16 @@
 ## TARGET FILE
 {{sessionPath}}
 
-## HOW TO READ
-The file may be thousands of lines. Read tool returns ~2000 lines per call.
-First call: no offset (lines 1-2000). Then offset=2000, offset=4000, etc.
-Read the ENTIRE file before making edits.
+## HOW TO WORK
+The current SESSION.md content is inlined at the END of this prompt under
+`## CURRENT SESSION.md CONTENT`. That block IS the live state — do NOT call the
+Read tool. Use ONLY the Edit tool to write changes back to the file at the path
+above.
+
+(2026-04-20: switched from "Read the entire file before editing" to inlined
+content. Reason: the Read tool's 25K-token output ceiling forced a multi-round
+paging cycle per stage, costing ≈14 ceiling errors per 7-stage run on a 140KB
+file. Inlining the content skips the ceiling entirely.)
 
 ## RULES
 - Every cut leaves exactly ONE replacement line. No holes.

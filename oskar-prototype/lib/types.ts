@@ -32,7 +32,7 @@ export interface SourceAnalysis {
 }
 
 // Tags for categorizing images (assigned by CD agent or user)
-export type ImageTag = 'HERO' | 'PORTRAIT' | 'MENU' | 'LOCATION' | 'B-ROLL' | 'TRASH' | 'READY' | 'INGESTED' | 'APPROVED' | 'REDO'
+export type ImageTag = 'HERO' | 'USED' | 'PORTRAIT' | 'MENU' | 'LOCATION' | 'B-ROLL' | 'TRASH' | 'READY' | 'INGESTED' | 'APPROVED' | 'REDO'
 
 // Generation status for images that came from the AI pipeline
 export type GenerationStatus = 'pending' | 'approved' | 'b-roll' | 'trash'
@@ -50,7 +50,12 @@ export interface SourceImage {
   sourcePrompt?: string           // the prompt that created this image
   sourceAssetId?: string          // reference to the ImageAsset that generated this
   generationStatus?: GenerationStatus  // pending review, approved, b-roll, trash
-  tag?: ImageTag                  // HERO, PORTRAIT, MENU, LOCATION, B-ROLL, TRASH, READY
+  tag?: ImageTag                  // HERO, USED, PORTRAIT, MENU, LOCATION, B-ROLL, TRASH, READY
+  /** Vibe HTML files this image is referenced in (computed from
+   *  scanVibeHtmlsForUsedImages on parse). Independent of `tag`: a HERO
+   *  image can also be in a vibe → both HERO badge + USED pill render.
+   *  Empty / undefined = not used in any vibe. */
+  usedIn?: string[]
   cdNotes?: string                // CD agent notes about this image
 
   // Lineage (WP-1C) — enables version sidebar traversal

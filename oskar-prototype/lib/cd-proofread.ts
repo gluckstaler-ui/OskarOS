@@ -62,19 +62,39 @@ export async function runProofread(input: ProofreadInput): Promise<ProofreadOutc
     '',
     ctx.size > 0 ? '---\nContext for your judgment:\n' + ctx.block : '',
     '',
-    'Respond with the three blocks per the SYSTEM MESSAGES protocol in your agent file (## SEVERITY, ## NOTE, ## REWRITTEN_PROMPT).',
+    'Respond by calling the `submit_proofread` MCP tool with structured ' +
+    '{severity, note, rewrittenPrompt?} args. Do NOT write `## SEVERITY` / ' +
+    '`## NOTE` / `## REWRITTEN_PROMPT` headers in chat — those parsers were ' +
+    'retired 2026-04-30 (Phase 2 MCP migration). The tool call IS the response.',
   ]
     .filter(Boolean)
     .join('\n')
 
   try {
-    const result = await callCDBridge(input.sessionId, tagged)
-    const parsed = parseProofreadResponse(result.text)
+    const result = await callCDBridge(input.sessionId, tagged, {
+      expectedTools: ['submit_proofread'],
+    })
+    const args = (result.toolCalls.submit_proofread as ProofreadToolArgs | undefined) || null
+    if (!args) {
+      // CD didn't call the tool — treat as advisory pass-through. Logging
+      // surfaces the failure so we can tune the agent prompt or retry.
+      console.warn(
+        `[cd-proofread] CD did not call submit_proofread for session ${input.sessionId}. ` +
+        `text length=${result.text.length}, events=${result.events.length}`,
+      )
+      return {
+        finalPrompt: input.prompt,
+        severity: 'advisory',
+        note: 'CD did not commit to a structured proofread; passing prompt through.',
+        durationMs: result.durationMs,
+      }
+    }
+    const severity = normalizeSeverity(args.severity)
     return {
       finalPrompt:
-        parsed.severity === 'rewritten' && parsed.rewritten ? parsed.rewritten : input.prompt,
-      severity: parsed.severity,
-      note: parsed.note,
+        severity === 'rewritten' && args.rewrittenPrompt ? args.rewrittenPrompt : input.prompt,
+      severity,
+      note: args.note || '',
       durationMs: result.durationMs,
     }
   } catch (err) {
@@ -89,34 +109,20 @@ export async function runProofread(input: ProofreadInput): Promise<ProofreadOutc
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Parsing — generous: tolerates missing blocks / surrounding whitespace.
+// Tool args shape — must match mcp-server/tools-cd.ts:submit_proofread schema.
 // ─────────────────────────────────────────────────────────────────────────────
 
-interface ParsedProofread {
-  severity: 'pass' | 'advisory' | 'rewritten'
+interface ProofreadToolArgs {
+  severity: string
   note: string
-  rewritten: string
+  rewrittenPrompt?: string
 }
 
-function parseProofreadResponse(text: string): ParsedProofread {
-  const sev = extractBlock(text, 'SEVERITY')
-    ?.toLowerCase()
-    .trim() as ParsedProofread['severity'] | undefined
-  const note = extractBlock(text, 'NOTE')?.trim() || ''
-  const rewritten = extractBlock(text, 'REWRITTEN_PROMPT')?.trim() || ''
-
-  let severity: ParsedProofread['severity']
-  if (rewritten) severity = 'rewritten'
-  else if (sev === 'advisory' || sev === 'pass' || sev === 'rewritten') severity = sev
-  else severity = note ? 'advisory' : 'pass'
-
-  return { severity, note, rewritten }
-}
-
-function extractBlock(text: string, header: string): string | null {
-  const re = new RegExp(`##\\s+${header}\\s*\\n([\\s\\S]*?)(?=\\n##\\s+|$)`, 'i')
-  const m = text.match(re)
-  return m ? m[1].trim() : null
+function normalizeSeverity(s: unknown): ProofreadOutcome['severity'] {
+  if (s === 'pass' || s === 'advisory' || s === 'rewritten') return s
+  // Defensive: malformed severity from a misbehaving agent → advisory so the
+  // prompt still goes through but the caller knows something was off.
+  return 'advisory'
 }
 
 function buildStagedImagesText(staged: { scene?: string; subjects?: string[] }): string {

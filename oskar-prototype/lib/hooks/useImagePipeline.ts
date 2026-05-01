@@ -34,12 +34,11 @@
 import { useCallback, useState } from 'react'
 import type { ImageAsset, ImageManifest, ImageQueueItem, SourceImage } from '@/lib/types'
 import { logImageGenerationAction, hotSwapAction } from '@/lib/session-actions'
-import {
-  emitError,
-  emitHotSwap,
-  emitImageReady,
-  emitRegenerating,
-} from '@/lib/session-events'
+// 2026-04-30 Phase 2: emitHotSwap + emitImageReady removed from this hook.
+// Server-side publish in /api/edit-image, /api/generate-image, and
+// /api/sessions/[id]/assign-slot is the single source of truth now.
+// We still need emitError + emitRegenerating for client-only flows.
+import { emitError, emitRegenerating } from '@/lib/session-events'
 
 export interface UseImagePipelineConfig {
   /** Current session id — required for /api/edit-image + IMAGES.md logging +
@@ -128,6 +127,13 @@ export function useImagePipeline({
           body: JSON.stringify({
             sourceImagePaths: asset.sourceImages,
             instruction: asset.instruction,
+            // Send the asset's target filename (CD-supplied or
+            // manifest-constructed, e.g. `vibe-1-the-standard-hero-v1.jpg`)
+            // as the hint. The server respects this when present and not
+            // generic; falls back to slugging Nano's description only
+            // when no real hint exists. Restored Ralph 2026-04-25 — the
+            // pipeline was previously discarding `asset.filename` and
+            // letting Nano's camera-vocabulary preamble name the file.
             filename: asset.filename,
             imageSize: asset.resolution,
             aspectRatio: asset.aspectRatio,
@@ -194,24 +200,22 @@ export function useImagePipeline({
             data.geminiText || undefined
           )
 
-          emitImageReady(sessionId, filename, asset.usage, data.geminiText || undefined)
+          // 2026-04-30 Phase 2: removed `emitImageReady(...)` here.
+          // /api/edit-image and /api/generate-image already publish
+          // `image_ready` to the event-bus server-side; the /api/events SSE
+          // delivers it to BOTH the frontend (sessionEvents) AND the MCP
+          // server (CD as logging notification). Single source of truth.
 
-          // Hot-swap — fills matching data-slot elements in vibe HTMLs
+          // Hot-swap — fills matching data-slot elements in vibe HTMLs.
+          // 2026-04-30 Phase 2: removed `emitHotSwap(...)` here for the
+          // same reason. /api/sessions/[id]/assign-slot publishes
+          // `hotswap_complete` server-side. Client-side emit was a duplicate.
           if (asset.usage) {
             const swapResult = await hotSwapAction(sessionId, filename, asset.usage)
             if (swapResult.success && swapResult.result?.vibesUpdated.length) {
               console.log(
                 `🔄 Hot-swapped ${filename} into ${swapResult.result.vibesUpdated.length} vibes`
               )
-              for (const swap of swapResult.result.slotsSwapped) {
-                emitHotSwap(
-                  sessionId,
-                  swapResult.result.vibesUpdated,
-                  swap.slot,
-                  swap.oldImage,
-                  swap.newImage
-                )
-              }
             }
           }
         }

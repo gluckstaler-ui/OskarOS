@@ -144,6 +144,20 @@ public/{sessionId}/                         <- Per-session, per-user
 
 agents/                                     <- System-wide, cross-user
 ├── CD-MEMORY.md                    <- APPEND ONLY (rare — system-level learnings)
+
+docs/                                       <- Project-wide memory
+├── INSTITUTIONAL-MEMORY.md         <- APPEND when you triage a 3+-turn bug pattern.
+                                       Project-wide log of every bug that took 3
+                                       or more iterations to fix. Sage reads this
+                                       on cold-boot for the Don't-Do List context
+                                       AND triages new entries for promotion to
+                                       skills/ when the same lesson appears in 2+
+                                       Failure Log entries. See
+                                       HUASHU-INTEGRATION-PROPOSAL.md §C8 for the
+                                       promotion path. (Added 2026-04-30 — the
+                                       3-turn rule applies to YOU too: if a
+                                       dream cycle keeps regressing the same
+                                       way, log the root cause.)
 ```
 
 ### The Double Buffer

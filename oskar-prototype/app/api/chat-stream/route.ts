@@ -1,14 +1,20 @@
 import { NextRequest } from 'next/server'
-import { existsSync } from 'fs'
-import { readFile, readdir, writeFile } from 'fs/promises'
+import { readFile } from 'fs/promises'
 import path from 'path'
 import { buildCDPrompt } from '@/lib/cd-agent-prompt'
-import { parseVibesFromFiles } from '@/lib/creative-brief-parser'
-import { type VibeBuildResult } from '@/lib/webdev'
-import { runWebDev, type ExecutionMode, type Model } from '@/lib/run-webdev'
-import { trackUsageFromCLIOutput, appendUsage } from '@/lib/usage-tracker'
-import { bridgeManager, type BridgeEvent } from '@/lib/bridge-process-manager'
-// Consolidator removed — Lumberjack runs on 10-minute timer instead
+import { buildSagePrompt } from '@/lib/sage-agent-prompt'
+
+// Which agent powers the main chat. Flip this between 'sage' and 'cd' to
+// change who the user talks to on web-app load. CD-specific routes
+// (ask-cd, proofread, verdict, evaluate) keep using CD regardless.
+const MAIN_CHAT_AGENT: 'sage' | 'cd' = 'cd'
+import { type ExecutionMode, type Model } from '@/lib/run-webdev'
+import { appendUsage } from '@/lib/usage-tracker'
+import { bridgeManager } from '@/lib/bridge-process-manager'
+// Consolidator removed — Lumberjack runs on 10-minute timer instead.
+// All build/hotswap/asset-refresh actions moved to MCP tool calls
+// (mcp-server/) in the 2026-04-29 cutover; this route no longer parses
+// CD's prose for triggers.
 
 export const maxDuration = 300 // 5 minutes
 
@@ -30,224 +36,13 @@ interface ImagePrompt {
   aspectRatio?: string
 }
 
-// Parse image generation requests from CD output into ImageManifest format
-function parseImagePromptsToManifests(text: string, sessionId: string): { manifests: any[], prompts: ImagePrompt[] } {
-  const prompts: ImagePrompt[] = []
-  const manifestMap: Map<string, any> = new Map()
-
-  // Format 0: Look for "## IMAGES NEEDED" or "IMAGES NEEDED" section with "**For VibeName:**" subsections
-  const imagesNeededSection = text.match(/(?:##\s*)?IMAGES NEEDED\s*\n([\s\S]*?)(?=\n## VIBE|\n---\n## |$)/i)
-  if (imagesNeededSection) {
-    const section = imagesNeededSection[1]
-    const forVibePattern = /\*\*For\s+(?:All Vibes|([^:(]+?)(?:\s*\([^)]+\))?):\*\*/gi
-    const forVibeMatches = [...section.matchAll(forVibePattern)]
-
-    for (let i = 0; i < forVibeMatches.length; i++) {
-      const match = forVibeMatches[i]
-      const rawVibeName = match[1]?.trim() || 'all'
-      const vibeName = rawVibeName.toLowerCase().replace(/\s+/g, '-')
-      const vibeId = vibeName === 'all' ? 'vibe-all' : `vibe-${vibeName}`
-
-      const startPos = match.index!
-      const endPos = forVibeMatches[i + 1]?.index || section.length
-      const subsection = section.slice(startPos, endPos)
-
-      const assets: any[] = []
-      const bullets = subsection.matchAll(/[-•*]\s*([^\n]+)/gi)
-      let assetIndex = 1
-
-      for (const bullet of bullets) {
-        const description = bullet[1].trim()
-        if (description.length > 15) {
-          let usage = 'hero'
-          let aspectRatio = '16:9'
-          let operation = 'generate'
-          let sourceImages: string[] = []
-          let instruction = description
-
-          const useAsIsMatch = description.match(/^USE\s+AS-IS\s+([^:]+):\s*(.+)$/i)
-          if (useAsIsMatch) { operation = 'use-as-is'; sourceImages = [useAsIsMatch[1].trim()]; instruction = useAsIsMatch[2].trim() }
-
-          const editMatchNoBrackets = description.match(/^EDIT\s+([^:\[\]]+\.(?:jpg|jpeg|png)):\s*(.+)$/i)
-          if (editMatchNoBrackets) { operation = 'edit'; sourceImages = [editMatchNoBrackets[1].trim()]; instruction = editMatchNoBrackets[2].trim() }
-
-          const editMatchBrackets = description.match(/^EDIT\s*\[([^\]]+)\]\s*:\s*(.+)$/i)
-          if (editMatchBrackets) { operation = 'edit'; sourceImages = [editMatchBrackets[1].trim()]; instruction = editMatchBrackets[2].trim() }
-
-          const composeMatch = description.match(/^COMPOSE\s*\[([^\]]+)\]\s*:\s*(.+)$/i)
-          if (composeMatch) { operation = 'compose'; sourceImages = composeMatch[1].split('+').map((s: string) => s.trim()).filter(Boolean); instruction = composeMatch[2].trim() }
-
-          const generateMatch = description.match(/^GENERATE\s*:\s*(.+)$/i)
-          if (generateMatch) { operation = 'generate'; instruction = generateMatch[1].trim() }
-
-          const lowerDesc = instruction.toLowerCase()
-          if (lowerDesc.includes('portrait') || lowerDesc.includes('close-up') || lowerDesc.includes('closeup')) { usage = 'portrait'; aspectRatio = '3:4' }
-          else if (lowerDesc.includes('icon') || lowerDesc.includes('avatar')) { usage = 'icon'; aspectRatio = '1:1' }
-          else if (lowerDesc.includes('interior') || lowerDesc.includes('lounge') || lowerDesc.includes('majlis')) { usage = 'gallery'; aspectRatio = '4:3' }
-          else if (lowerDesc.includes('coffee') || lowerDesc.includes('flight') || lowerDesc.includes('food') || lowerDesc.includes('plated')) { usage = 'product'; aspectRatio = '4:3' }
-          else if (lowerDesc.includes('hands') || lowerDesc.includes('pouring') || lowerDesc.includes('group')) { usage = 'lifestyle'; aspectRatio = '4:3' }
-
-          const assetId = `${vibeId}-asset-${assetIndex}`
-          const cleanVibeName = vibeName === 'all' ? 'shared' : vibeName
-          const filename = `${cleanVibeName}-${usage}-${assetIndex}.jpg`
-
-          assets.push({
-            id: assetId, filename, operation, sourceImages, instruction, usage, aspectRatio,
-            resolution: '2K', status: 'pending', vibeId,
-            vibeName: rawVibeName === 'all' ? 'All Vibes' : rawVibeName.charAt(0).toUpperCase() + rawVibeName.slice(1)
-          })
-          prompts.push({ vibe: cleanVibeName, purpose: `${usage}-${assetIndex}`, prompt: description, aspectRatio })
-          assetIndex++
-        }
-      }
-
-      if (assets.length > 0) {
-        const displayName = rawVibeName === 'all' ? 'All Vibes (Shared)' : rawVibeName.charAt(0).toUpperCase() + rawVibeName.slice(1)
-        manifestMap.set(vibeId, { vibeId, vibeName: displayName, assets })
-      }
-    }
-  }
-
-  // Format 1: "IMAGES NEEDED (VIBE NAME)" sections
-  const imagesNeededPattern = /IMAGES NEEDED\s*\(([^)]+)\s*(?:VIBE)?\)/gi
-  for (const match of text.matchAll(imagesNeededPattern)) {
-    const vibeName = match[1].toLowerCase().replace(/\s*vibe\s*/gi, '').trim()
-    const vibeId = `vibe-${vibeName}`
-    if (manifestMap.has(vibeId)) continue
-
-    const startPos = match.index!
-    const afterMatch = text.slice(startPos + match[0].length)
-    const endMatch = afterMatch.match(/\n(?:VIBE \d+:|IMAGES NEEDED|IMAGE USAGE|MY RECOMMENDATION|##)/i)
-    const sectionEnd = endMatch ? startPos + match[0].length + endMatch.index! : text.length
-    const section = text.slice(startPos, sectionEnd)
-
-    const assets: any[] = []
-    let assetIndex = 1
-    for (const bullet of section.matchAll(/[-•*]\s*([^\n]+)/gi)) {
-      const description = bullet[1].trim()
-      if (description.length > 15 && !description.toLowerCase().startsWith('image')) {
-        let usage = 'hero'; let aspectRatio = '16:9'; let operation = 'generate'; let sourceImages: string[] = []; let instruction = description
-        const useAsIsMatch = description.match(/^USE\s+AS-IS\s+([^:]+):\s*(.+)$/i)
-        if (useAsIsMatch) { operation = 'use-as-is'; sourceImages = [useAsIsMatch[1].trim()]; instruction = useAsIsMatch[2].trim() }
-        const editMatch = description.match(/^EDIT\s+([^:\[\]]+\.(?:jpg|jpeg|png)):\s*(.+)$/i)
-        if (editMatch) { operation = 'edit'; sourceImages = [editMatch[1].trim()]; instruction = editMatch[2].trim() }
-        const editBrackets = description.match(/^EDIT\s*\[([^\]]+)\]\s*:\s*(.+)$/i)
-        if (editBrackets) { operation = 'edit'; sourceImages = [editBrackets[1].trim()]; instruction = editBrackets[2].trim() }
-        const composeMatch = description.match(/^COMPOSE\s*\[([^\]]+)\]\s*:\s*(.+)$/i)
-        if (composeMatch) { operation = 'compose'; sourceImages = composeMatch[1].split('+').map((s: string) => s.trim()).filter(Boolean); instruction = composeMatch[2].trim() }
-        const generateMatch = description.match(/^GENERATE\s*:\s*(.+)$/i)
-        if (generateMatch) { operation = 'generate'; instruction = generateMatch[1].trim() }
-        const lowerDesc = instruction.toLowerCase()
-        if (lowerDesc.includes('portrait') || lowerDesc.includes('person') || lowerDesc.includes('shot')) { usage = 'portrait'; aspectRatio = '3:4' }
-        else if (lowerDesc.includes('icon') || lowerDesc.includes('avatar')) { usage = 'icon'; aspectRatio = '1:1' }
-        else if (lowerDesc.includes('background') || lowerDesc.includes('texture')) { usage = 'background' }
-        else if (lowerDesc.includes('interior') || lowerDesc.includes('lounge') || lowerDesc.includes('space')) { usage = 'gallery'; aspectRatio = '4:3' }
-        else if (lowerDesc.includes('sunset') || lowerDesc.includes('silhouette') || lowerDesc.includes('ride')) { usage = 'hero'; aspectRatio = '16:9' }
-        else if (lowerDesc.includes('table') || lowerDesc.includes('spread') || lowerDesc.includes('food')) { usage = 'gallery'; aspectRatio = '4:3' }
-
-        const assetId = `${vibeId}-asset-${assetIndex}`
-        const filename = `${vibeName}-${usage}-${assetIndex}.jpg`
-        assets.push({ id: assetId, filename, operation, sourceImages, instruction, usage, aspectRatio, resolution: '2K', status: 'pending', vibeId, vibeName: vibeName.charAt(0).toUpperCase() + vibeName.slice(1) })
-        prompts.push({ vibe: vibeName, purpose: `${usage}-${assetIndex}`, prompt: description, aspectRatio })
-        assetIndex++
-      }
-    }
-    if (assets.length > 0) {
-      if (manifestMap.has(vibeId)) { manifestMap.get(vibeId).assets.push(...assets) }
-      else { manifestMap.set(vibeId, { vibeId, vibeName: vibeName.charAt(0).toUpperCase() + vibeName.slice(1), assets }) }
-    }
-  }
-
-  // Format 2: "IMAGES NEEDED" within VIBE sections
-  for (const vibeMatch of text.matchAll(/VIBE \d+:\s*(\w+)/gi)) {
-    const vibeName = vibeMatch[1].toLowerCase()
-    const vibeId = `vibe-${vibeName}`
-    if (manifestMap.has(vibeId)) continue
-    const startPos = vibeMatch.index!
-    const vibeSection = text.slice(startPos)
-    const imagesMatch = vibeSection.match(/IMAGES NEEDED[^]*?(?=\n\n[A-Z]|\n##|$)/i)
-    if (imagesMatch) {
-      const assets: any[] = []
-      let assetIndex = 1
-      for (const bullet of imagesMatch[0].matchAll(/[-•*]\s*([^\n]+)/gi)) {
-        const desc = bullet[1].trim()
-        if (desc.length > 15) {
-          let usage = 'hero'; let aspectRatio = '16:9'
-          const ld = desc.toLowerCase()
-          if (ld.includes('portrait') || ld.includes('person')) { usage = 'portrait'; aspectRatio = '3:4' }
-          else if (ld.includes('interior') || ld.includes('space')) { usage = 'gallery'; aspectRatio = '4:3' }
-          assets.push({ id: `${vibeId}-asset-${assetIndex}`, filename: `${vibeName}-${usage}-${assetIndex}.jpg`, operation: 'generate', sourceImages: [], instruction: desc, usage, aspectRatio, resolution: '2K', status: 'pending', vibeId, vibeName: vibeName.charAt(0).toUpperCase() + vibeName.slice(1) })
-          prompts.push({ vibe: vibeName, purpose: `${usage}-${assetIndex}`, prompt: desc, aspectRatio })
-          assetIndex++
-        }
-      }
-      if (assets.length > 0) { manifestMap.set(vibeId, { vibeId, vibeName: vibeName.charAt(0).toUpperCase() + vibeName.slice(1), assets }) }
-    }
-  }
-
-  // Format 3: ```image-prompt blocks
-  for (const match of text.matchAll(/```image-prompt\s*\n([\s\S]*?)\n```/gi)) {
-    try {
-      const parsed = JSON.parse(match[1])
-      if (parsed.vibe && parsed.purpose && parsed.prompt) {
-        const vibeId = `vibe-${parsed.vibe}`
-        if (!manifestMap.has(vibeId)) { manifestMap.set(vibeId, { vibeId, vibeName: parsed.vibe.charAt(0).toUpperCase() + parsed.vibe.slice(1), assets: [] }) }
-        manifestMap.get(vibeId).assets.push({ id: `${vibeId}-${parsed.purpose}`, filename: `${parsed.vibe}-${parsed.purpose}.jpg`, operation: 'generate', sourceImages: [], instruction: parsed.prompt, usage: parsed.purpose.includes('hero') ? 'hero' : 'gallery', aspectRatio: parsed.aspectRatio || '16:9', resolution: '2K', status: 'pending', vibeId, vibeName: parsed.vibe.charAt(0).toUpperCase() + parsed.vibe.slice(1) })
-        prompts.push(parsed)
-      }
-    } catch {}
-  }
-
-  // Format 4: img-N (VIBE_NAME purpose, ratio) blocks — what the CD agent actually outputs
-  // Example: "img-1 (NIEDERDORF OUTPOST hero, 16:9)\nGENERATE: Interior of a dim..."
-  for (const match of text.matchAll(/img-(\d+)\s*\(([^)]+)\)\s*\n\s*(GENERATE|EDIT|COMPOSE)[:\s]+([^\n](?:[\s\S]*?)?)(?=\nimg-\d+\s*\(|$)/gi)) {
-    const imgNum = match[1]
-    const meta = match[2].trim() // e.g. "NIEDERDORF OUTPOST hero, 16:9"
-    const operation = match[3].toLowerCase()
-    const instruction = match[4].trim()
-
-    // Parse meta: last part after comma is ratio, middle word(s) before comma are purpose, first words are vibe name
-    const metaParts = meta.split(',').map(s => s.trim())
-    const ratioRaw = metaParts.length > 1 ? metaParts[metaParts.length - 1] : '16:9'
-    const aspectRatio = /^\d+:\d+$/.test(ratioRaw) ? ratioRaw : '16:9'
-    const nameAndPurpose = metaParts[0] // e.g. "NIEDERDORF OUTPOST hero"
-    const words = nameAndPurpose.split(/\s+/)
-
-    // Last word is usage/purpose, rest is vibe name
-    const usageWord = words.length > 1 ? words[words.length - 1].toLowerCase() : 'hero'
-    const rawVibeName = words.length > 1 ? words.slice(0, -1).join(' ') : nameAndPurpose
-    const vibeName = rawVibeName.toLowerCase().replace(/\s+/g, '-')
-    const vibeId = `vibe-${vibeName}`
-
-    const usage = ['hero', 'portrait', 'gallery', 'product', 'lifestyle', 'icon', 'background'].includes(usageWord) ? usageWord : 'hero'
-
-    // Parse source images for EDIT/COMPOSE
-    let sourceImages: string[] = []
-    if (operation === 'edit') {
-      const editMatch = instruction.match(/^\[([^\]]+)\]\s*:\s*(.+)$/s)
-      if (editMatch) { sourceImages = [editMatch[1].trim()]; }
-    } else if (operation === 'compose') {
-      const composeMatch = instruction.match(/^\[([^\]]+)\]\s*:\s*(.+)$/s)
-      if (composeMatch) { sourceImages = composeMatch[1].split('+').map((s: string) => s.trim()).filter(Boolean) }
-    }
-
-    const assetId = `${vibeId}-asset-${imgNum}`
-    const cleanVibeName = vibeName
-    const filename = `${cleanVibeName}-${usage}-${imgNum}.jpg`
-
-    if (!manifestMap.has(vibeId)) {
-      manifestMap.set(vibeId, { vibeId, vibeName: rawVibeName, assets: [] })
-    }
-    manifestMap.get(vibeId).assets.push({
-      id: assetId, filename, operation, sourceImages, instruction, usage, aspectRatio,
-      resolution: '2K', status: 'pending', vibeId, vibeName: rawVibeName
-    })
-    prompts.push({ vibe: cleanVibeName, purpose: `${usage}-${imgNum}`, prompt: instruction, aspectRatio })
-  }
-
-  console.log(`Parsed ${prompts.length} image prompts across ${manifestMap.size} vibes`)
-  return { manifests: Array.from(manifestMap.values()), prompts }
-}
+// Legacy prose-parsing of CD's response was deleted in the 2026-04-29 MCP
+// cutover. CD now signals build/hotswap/refresh actions through typed MCP
+// tool calls (`build_vibe`, `build_all_vibes`, `build_final`, `hotswap`,
+// `images_needed`, `refresh_assets`) — see `mcp-server/`. Nothing in CD's
+// text response can fire any of those actions any more. IMAGES.md is the
+// file-based source of truth for prompts; we re-parse it after every
+// response via `parseImagePromptsFromImagesMd` below.
 
 // ==========================================
 // IMAGES.md Parser
@@ -325,47 +120,34 @@ function parseImagePromptsFromImagesMd(imagesMd: string, sessionId: string): { m
 }
 
 // ==========================================
-// Magic Word Processing
+// Per-response IMAGES.md refresh
 // ==========================================
-// Checks CD agent output for trigger words and executes corresponding actions.
-// Extracted from the old child.on('close') handler — same logic, now called per-response.
+// CD writes prompts into IMAGES.md as part of its normal work. After every
+// chat turn we re-read that file and push the parsed manifests to the
+// frontend so the Assets panel stays in sync without requiring CD to call
+// a tool. This is the ONLY remaining response-time side effect — every
+// other build/hotswap/refresh action is now an MCP tool call.
 
-async function processResponseMagicWords(
-  fullOutput: string,
+async function parseSessionImages(
   effectiveSessionId: string,
   sendEvent: (event: object) => void,
-  activeMode: ExecutionMode,
-  activeModel: Model,
   requestId: number
 ): Promise<{ manifests: any[] }> {
-
-  // Parse image prompts from IMAGES NEEDED trigger
   let manifests: any[] = []
   let prompts: ImagePrompt[] = []
-
-  if (/(?:##\s*)?IMAGES NEEDED/i.test(fullOutput)) {
-    // IMAGES.md is always the authoritative source — prefer it over inline text parsing.
-    // The inline parser produces garbled results when the CD agent's text partially
-    // contains prompt fragments alongside the magic word.
-    console.log(`[${requestId}] IMAGES NEEDED detected — reading IMAGES.md`)
-    try {
-      const imagesPath = path.join(process.cwd(), 'public', effectiveSessionId, 'IMAGES.md')
-      const imagesMd = await readFile(imagesPath, 'utf-8')
+  try {
+    const imagesPath = path.join(process.cwd(), 'public', effectiveSessionId, 'IMAGES.md')
+    const imagesMd = await readFile(imagesPath, 'utf-8').catch(() => '')
+    if (imagesMd) {
       const parsed = parseImagePromptsFromImagesMd(imagesMd, effectiveSessionId)
       manifests = parsed.manifests
       prompts = parsed.prompts
-      console.log(`[${requestId}] Parsed ${prompts.length} prompts from IMAGES.md across ${manifests.length} vibes`)
-    } catch (err) {
-      console.error(`[${requestId}] Failed to read IMAGES.md:`, err)
+      if (prompts.length > 0) {
+        console.log(`[${requestId}] Parsed ${prompts.length} prompts from IMAGES.md across ${manifests.length} vibes`)
+      }
     }
-
-    // Fallback to inline parsing only if IMAGES.md had nothing
-    if (manifests.length === 0) {
-      console.log(`[${requestId}] IMAGES.md had no prompts — trying inline parse`)
-      const inline = parseImagePromptsToManifests(fullOutput, effectiveSessionId)
-      manifests = inline.manifests
-      prompts = inline.prompts
-    }
+  } catch (err) {
+    console.error(`[${requestId}] Failed to read IMAGES.md:`, err)
   }
 
   if (manifests.length > 0) {
@@ -374,166 +156,6 @@ async function processResponseMagicWords(
       manifests,
       message: `Found ${prompts.length} images across ${manifests.length} vibes`
     })
-  }
-
-  // ## VIBES READY — build all vibe pages
-  if (fullOutput.includes('## VIBES READY') || fullOutput.includes('VIBES READY')) {
-    console.log(`[${requestId}] VIBES READY detected - building vibe pages`)
-    sendEvent({ type: 'vibes_ready', sessionId: effectiveSessionId })
-
-    try {
-      const sessionPath = path.join(process.cwd(), 'public', effectiveSessionId)
-      const vibes = await parseVibesFromFiles(sessionPath)
-      console.log(`[${requestId}] Found ${vibes.length} vibes to build`)
-
-      if (vibes.length === 0) {
-        sendEvent({ type: 'error', message: 'No vibes found (no VIBE-*.md files or CREATIVE-BRIEF.md)' })
-      } else {
-        let sessionImages: string[] = []
-        try { const files = await readdir(sessionPath); sessionImages = files.filter(f => /\.(jpg|jpeg|png|webp)$/.test(f)) } catch {}
-
-        const buildMdPath = path.join(sessionPath, 'BUILD.md')
-        let successCount = 0
-        for (const vibe of vibes) {
-          console.log(`[${requestId}] Building vibe ${vibe.index}: ${vibe.name}`)
-          try {
-            const existing = await readFile(buildMdPath, 'utf-8').catch(() => '# Build Log\n')
-            await writeFile(buildMdPath, existing + `\n## [${new Date().toISOString()}] BUILD: Vibe ${vibe.index} "${vibe.name}"\n**Status:** BUILDING\n**Mode:** ${activeMode}\n**Model:** ${activeModel}\n`)
-          } catch {}
-
-          const result: VibeBuildResult = await runWebDev({ mode: activeMode, model: activeModel, sessionId: effectiveSessionId, sessionPath, vibe, sessionImages })
-
-          if (result.status === 'complete') {
-            successCount++
-            try { const cur = await readFile(buildMdPath, 'utf-8'); await writeFile(buildMdPath, cur + `**Result:** COMPLETE -> ${result.filename}\n`) } catch {}
-            sendEvent({
-              type: 'vibe_complete',
-              vibe: { index: result.vibeIndex, name: result.vibeName, slug: vibe.slug, filename: result.filename, oneLiner: vibe.oneLiner, voice: vibe.voice, whoFor: vibe.whoFor, colors: vibe.colors, fonts: vibe.fonts, htmlPath: `/${effectiveSessionId}/${result.filename}` }
-            })
-            sendEvent({ type: 'text', content: `\n\nVibe ${result.vibeIndex} "${result.vibeName}" is ready for preview.\n` })
-            console.log(`[${requestId}] Vibe ${result.vibeIndex} complete: ${result.filename}`)
-          } else {
-            try { const cur = await readFile(buildMdPath, 'utf-8'); await writeFile(buildMdPath, cur + `**Result:** FAILED -- ${result.error}\n`) } catch {}
-            console.error(`[${requestId}] Vibe ${vibe.index} failed: ${result.error}`)
-            sendEvent({ type: 'vibe_error', vibeIndex: vibe.index, vibeName: vibe.name, error: result.error })
-          }
-        }
-        sendEvent({ type: 'all_vibes_complete', vibeCount: successCount })
-        console.log(`[${requestId}] All vibes complete (${successCount}/${vibes.length} succeeded)`)
-      }
-    } catch (err) {
-      console.error(`[${requestId}] Vibe build failed:`, err)
-      sendEvent({ type: 'error', message: `Failed to build vibes: ${err}` })
-    }
-  }
-
-  // ## BUILD READY — final WebDev build
-  if (fullOutput.includes('## BUILD READY') || fullOutput.includes('BUILD READY')) {
-    console.log(`[${requestId}] BUILD READY detected`)
-    sendEvent({ type: 'build_ready', sessionId: effectiveSessionId })
-    try {
-      const resp = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/api/webdev`, {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ sessionId: effectiveSessionId, mode: 'final', executionMode: activeMode, webDevModel: activeModel })
-      })
-      const result = await resp.json()
-      if (result.success) { sendEvent({ type: 'webdev_complete', paths: result.paths }) }
-      else { sendEvent({ type: 'webdev_error', error: result.error }) }
-    } catch (err) { console.error(`[${requestId}] WebDev call failed:`, err) }
-  }
-
-  // ## BUILD: [vibe-name] — build one vibe
-  const buildMatch = fullOutput.match(/## BUILD:\s*([a-zA-Z0-9_ -]+)/i)
-  if (buildMatch) {
-    const vibeName = buildMatch[1].trim()
-    console.log(`[${requestId}] BUILD detected for vibe: ${vibeName}`)
-    sendEvent({ type: 'rebuild_started', vibeName })
-
-    try {
-      const sessionPath = path.join(process.cwd(), 'public', effectiveSessionId)
-      const vibes = await parseVibesFromFiles(sessionPath)
-      const searchName = vibeName.toLowerCase().trim()
-      const targetVibe = vibes.find(v => {
-        const slug = v.slug.toLowerCase(); const name = v.name.toLowerCase()
-        return name === searchName || slug === searchName || slug === searchName.replace(/\s+/g, '-') || `vibe-${v.index}-${slug}` === searchName || searchName === `vibe-${v.index}` || searchName === String(v.index)
-      })
-
-      if (!targetVibe) {
-        sendEvent({ type: 'rebuild_error', vibeName, error: `Vibe "${vibeName}" not found` })
-      } else {
-        let sessionImages: string[] = []
-        try { const files = await readdir(sessionPath); sessionImages = files.filter(f => /\.(jpg|jpeg|png|webp)$/.test(f)) } catch {}
-
-        const buildMdPath = path.join(sessionPath, 'BUILD.md')
-        try {
-          const existing = await readFile(buildMdPath, 'utf-8').catch(() => '# Build Log\n')
-          await writeFile(buildMdPath, existing + `\n## [${new Date().toISOString()}] BUILD: Vibe ${targetVibe.index} "${targetVibe.name}"\n**Status:** BUILDING\n**Mode:** ${activeMode}\n**Model:** ${activeModel}\n`)
-        } catch {}
-
-        const result: VibeBuildResult = await runWebDev({ mode: activeMode, model: activeModel, sessionId: effectiveSessionId, sessionPath, vibe: targetVibe, sessionImages })
-
-        if (result.status === 'complete') {
-          try { const cur = await readFile(buildMdPath, 'utf-8'); await writeFile(buildMdPath, cur + `**Result:** COMPLETE -> ${result.filename}\n`) } catch {}
-          sendEvent({
-            type: 'vibe_complete',
-            vibe: { index: result.vibeIndex, name: result.vibeName, slug: targetVibe.slug, filename: result.filename, oneLiner: targetVibe.oneLiner, voice: targetVibe.voice, whoFor: targetVibe.whoFor, colors: targetVibe.colors, fonts: targetVibe.fonts, htmlPath: `/${effectiveSessionId}/${result.filename}` }
-          })
-          sendEvent({ type: 'text', content: `\n\nVibe "${result.vibeName}" built successfully.\n` })
-        } else {
-          try { const cur = await readFile(buildMdPath, 'utf-8'); await writeFile(buildMdPath, cur + `**Result:** FAILED -- ${result.error}\n`) } catch {}
-          sendEvent({ type: 'rebuild_error', vibeName, error: result.error })
-        }
-      }
-    } catch (err) {
-      sendEvent({ type: 'rebuild_error', vibeName, error: String(err) })
-    }
-  }
-
-  // ## HOTSWAP: [vibe-name] [slot]
-  const hotswapMatch = fullOutput.match(/## HOTSWAP:\s*(\S+)\s+(\S+)/i)
-  if (hotswapMatch) {
-    const vibeName = hotswapMatch[1].trim(); const slot = hotswapMatch[2].trim()
-    console.log(`[${requestId}] HOTSWAP detected: ${vibeName} / ${slot}`)
-    sendEvent({ type: 'hotswap_started', vibeName, slot })
-
-    try {
-      const sessionPath = path.join(process.cwd(), 'public', effectiveSessionId)
-      const imagesContent = await readFile(path.join(sessionPath, 'IMAGES.md'), 'utf-8')
-      const assignmentPattern = new RegExp(`\\|\\s*${slot}\\s*\\|\\s*([^|]+)\\s*\\|[^|]*\\|\\s*✓\\s*ready`, 'i')
-      const assignmentMatch = imagesContent.match(assignmentPattern)
-
-      if (!assignmentMatch) {
-        sendEvent({ type: 'hotswap_error', vibeName, slot, error: `No approved image found for slot "${slot}"` })
-      } else {
-        const sourceImage = assignmentMatch[1].trim()
-        const vibeSlug = vibeName.toLowerCase().replace(/\s+/g, '-')
-        const files = await readdir(sessionPath)
-        const vibeFile = files.find(f => f.includes(vibeSlug) && f.endsWith('.html'))
-
-        if (!vibeFile) {
-          sendEvent({ type: 'hotswap_error', vibeName, slot, error: `HTML file not found for vibe "${vibeName}"` })
-        } else {
-          const htmlPath = path.join(sessionPath, vibeFile)
-          const html = await readFile(htmlPath, 'utf-8')
-          const newHtml = html.replace(new RegExp(`(<img[^>]*data-usage="${slot}"[^>]*src=")[^"]*(")`,'gi'), `$1${sourceImage}$2`)
-          if (newHtml === html) {
-            sendEvent({ type: 'hotswap_error', vibeName, slot, error: `No image with data-usage="${slot}" found in HTML` })
-          } else {
-            await writeFile(htmlPath, newHtml, 'utf-8')
-            sendEvent({ type: 'hotswap_complete', vibeName, slot, sourceImage, htmlPath: `/${effectiveSessionId}/${vibeFile}` })
-            sendEvent({ type: 'text', content: `\n\nImage swapped: ${sourceImage} -> ${vibeName} (${slot})\n` })
-          }
-        }
-      }
-    } catch (err) {
-      sendEvent({ type: 'hotswap_error', vibeName, slot, error: String(err) })
-    }
-  }
-
-  // ## UPDATE ASSETS
-  if (fullOutput.includes('## UPDATE ASSETS') || fullOutput.includes('UPDATE ASSETS')) {
-    console.log(`[${requestId}] UPDATE ASSETS detected`)
-    sendEvent({ type: 'update_assets', sessionId: effectiveSessionId })
   }
 
   return { manifests }
@@ -596,7 +218,10 @@ export async function POST(req: NextRequest) {
     const bridgeResumed = willBridgeResume || hasDiskMapping
 
     // Build system prompt (only used on first spawn — bridge remembers after that)
-    const systemPrompt = buildCDPrompt(sourceImages || [], effectiveSessionId, isResume || false, memorySessionFiles, bridgeResumed)
+    // Route to Sage or CD based on MAIN_CHAT_AGENT flag at the top of this file.
+    const systemPrompt = MAIN_CHAT_AGENT === 'sage'
+      ? buildSagePrompt(effectiveSessionId, isResume || false, memorySessionFiles, bridgeResumed)
+      : buildCDPrompt(sourceImages || [], effectiveSessionId, isResume || false, memorySessionFiles, bridgeResumed)
 
     // Include conversation history in system prompt for first spawn only
     // Skip if bridge is resuming — it already has full history
@@ -612,7 +237,7 @@ export async function POST(req: NextRequest) {
             historyText += `User: ${msg.content}\n\n`
           } else {
             const textOnly = msg.content.replace(/```[\s\S]*?```/g, '[code block]').trim()
-            historyText += `You (CD): ${textOnly.substring(0, 1000)}${textOnly.length > 1000 ? '...' : ''}\n\n`
+            historyText += `You (${MAIN_CHAT_AGENT === 'sage' ? 'Sage' : 'CD'}): ${textOnly.substring(0, 1000)}${textOnly.length > 1000 ? '...' : ''}\n\n`
           }
         }
         historyText += '=== END RECENT HISTORY ===\n\nContinue the conversation. The user just said:\n'
@@ -669,9 +294,10 @@ export async function POST(req: NextRequest) {
                 }
                 if (block.type === 'tool_use') {
                   sendEvent({ type: 'tool_use', tool: block.name, input: block.input })
-                  // Include tool input content in fullOutput so magic words
-                  // written via file tools (e.g. "## IMAGES NEEDED" in a write_file)
-                  // are detected by processResponseMagicWords
+                  // Include tool-input content in fullOutput for downstream
+                  // analytics/debugging (vibe progress counter still scans
+                  // it). No regex triggers fire on this content any more —
+                  // builds/hotswaps/refreshes are all explicit MCP tool calls.
                   if (block.input?.content && typeof block.input.content === 'string') {
                     fullOutput += '\n' + block.input.content
                   }
@@ -745,16 +371,32 @@ export async function POST(req: NextRequest) {
                 console.log(`[${requestId}] Context: ${contextPct}% (${estimatedContextSize}/${contextWindow} — turns:${numTurns} cached:${cachedInputTokens} new:${realInputTokens} raw_billing:${cacheRead + cacheCreation + realInputTokens})`)
               }
 
-              // Process magic words
-              const { manifests } = await processResponseMagicWords(fullOutput, effectiveSessionId, sendEvent, activeMode, activeModel, requestId)
+              // Re-parse IMAGES.md and push manifests to the Assets panel.
+              // No prose triggers run; build/hotswap/refresh are MCP tools.
+              const { manifests } = await parseSessionImages(effectiveSessionId, sendEvent, requestId)
 
               // Track usage from structured event (NOT from CLI text output — bridge doesn't put usage in fullOutput)
+              //
+              // Ralph 2026-04-25 BUG FIX: `event.total_cost_usd` is the bridge's
+              // MONOTONICALLY CUMULATIVE total since boot, not per-turn. Pass it
+              // as `bridgeCumulativeCost` so appendUsage computes the per-turn
+              // delta against the previously stored baseline. Without this, the
+              // dollar reset button silently undid itself on the next chat turn
+              // because the next turn would dump the entire bridge lifetime
+              // cost into a single new entry.
               try {
                 if (event.usage) {
                   const inputTokens = (event.usage.input_tokens || 0) + (event.usage.cache_creation_input_tokens || 0) + (event.usage.cache_read_input_tokens || 0)
                   const outputTokens = event.usage.output_tokens || 0
-                  const cost = event.total_cost_usd || 0
-                  await appendUsage(effectiveSessionId, 'CD', { inputTokens, outputTokens, cost }, 'Chat interaction (bridge)', { contextPct, contextWindow })
+                  const bridgeCumulativeCost = event.total_cost_usd || 0
+                  await appendUsage(
+                    effectiveSessionId,
+                    'CD',
+                    { inputTokens, outputTokens, cost: bridgeCumulativeCost },
+                    'Chat interaction (bridge)',
+                    { contextPct, contextWindow },
+                    bridgeCumulativeCost,
+                  )
                 }
               } catch (err) { console.error(`[${requestId}] Failed to track usage:`, err) }
 

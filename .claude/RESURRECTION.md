@@ -86,7 +86,67 @@ Every Sith is a shortcut that feels faster. Every one ends in regression.
 
 ---
 
+## The 3-turn rule (added 2026-04-30 — read before you start)
+
+**File:** `docs/INSTITUTIONAL-MEMORY.md` — project-wide log of every bug that took 3+ iterations to fix.
+
+**Why this exists:** the dollar-reset bug burned 6+ turns across multiple sessions on what should have been a 5-minute fix. Root cause was a custom UX pattern (two-click arm with a 16×16 amber-icon visual cue and 3s timeout) that some prior Claude shipped without speccing with Ralph and without telling him how it worked. Two failures stacked: the speccing failure AND the documentation failure. The lesson would have died with that session if there were no project-wide log.
+
+**Your responsibility:**
+1. **Read `docs/INSTITUTIONAL-MEMORY.md` on cold-boot.** Every Jedi reads it. The Don't-Do List at the top is one-line rules promoted from repeat failures — the highest-leverage section. If you're about to do something the list warns against, stop.
+2. **Log every 3+-turn bug YOU burn.** Domain doesn't matter — animation, UX, API plumbing, race condition, doctrine misalignment, MCP wiring, stdin pipes, caching, agent prompts. The fix isn't done until the entry is written. Seven required fields documented in the file's "How to add an entry" section.
+3. **Promote patterns.** When the same lesson appears in 2+ Failure Log entries, lift it to the Don't-Do List. Sage triages on cold-boot for promotion to `skills/` per HUASHU-INTEGRATION-PROPOSAL.md §C8.
+
+**Originally specced as `ANIMATION-MEMORY.md` per-session (animation-only, owned by Sentinel Ti)** in HUASHU-INTEGRATION-PROPOSAL.md v3 §1C. Generalized 2026-04-30 because animation isn't the only domain where bugs eat 3+ turns. Animation gets a sub-section in the new file but isn't special.
+
+---
+
 ## What shipped this session (verify via `git log` + `git status`)
+
+### Phase 2 MCP Refactor — Commits A + B + C landed (2026-04-30, NOT YET COMMITTED)
+
+**The work that's IN your tree but not yet a commit:** Foundation + all three capability tiers (S, A, B). 124/124 Phase 2 tests passing, 349 tests total in the suite. The two file-level vitest failures in `lib/memory/__tests__/memory-system.test.ts` + `e2e-journey.test.ts` are pre-existing and NOT regressions — they reference deleted `consolidator`/`dreamer-timer` modules.
+
+**Commit A — Foundation (text-output parsers → typed MCP tool calls):**
+- New: `lib/mcp-tool-collector.ts` — generic `tool_use` event collector; `lib/mcp-config.ts` — shared per-session MCP config + per-agent `--allowed-tools` whitelists.
+- MCP server split: `mcp-server/tools-cd.ts` / `tools-webdev.ts` / `tools-sentinel.ts` / `tools.ts` (barrel).
+- Family 1 tools added: `submit_proofread` / `submit_image_verdict` / `submit_upload_eval` / `submit_image_prompt` (CD); `report_build_complete` / `report_build_failed` / `report_build_progress` (WebDev); `submit_critique` (Sentinel Ti).
+- Wrappers refactored: `lib/cd-bridge-call.ts` extended with `expectedTools`/`toolCalls`; `lib/cd-proofread.ts`, `lib/cd-verdict.ts`, `lib/cd-upload-eval.ts` read structured args from tool calls; `app/api/ask-cd/route.ts` uses `submit_image_prompt`.
+- DELETED: `lib/cd-response-parser.ts` (entire file; tier-fallback regex retired).
+- WebDev (CLI + Claude API + Gemini): all spawn paths get `--mcp-config` + `--allowed-tools`; primary manifest is `report_build_complete` tool call; `parseTrailingJson` + 2 disk-fallbacks **kept as defensive last resort for ALL backends** with `_debug-webdev-fallback.log` instrumentation when fired.
+- Sentinel Ti: parallel-jobs architecture — narrative streams to live feed unchanged; `submit_critique` tool_use captured in parallel for structured score badges.
+- `lib/hooks/useImagePipeline.ts:204,214`: client-side `emitImageReady`/`emitHotSwap` deleted (server-side publish from Phase 1 was the duplicate-firing source).
+- Agent prompts updated: CD, WebDev (lib/webdev.ts + lib/run-webdev.ts inline), Sentinel Ti.
+- Tests: 65 new across 7 files. Foundation regression: `lib/__tests__/phase2-deleted-files.test.ts` locks the deletion in.
+
+**Commit B — Tier S capability tools (CD agency):**
+- 4 new MCP tools: `generate_image(prompt, ratio?, refs?, slot?)`, `screenshot(target, frame?)`, `snackbar(text, severity?)`, `ask_user(question, options[])`.
+- New: `lib/ask-user-bus.ts` — per-session pending-Promise registry, concurrency rejection, 10-min timeout → `__cancelled__` sentinel.
+- 4 new routes: `/api/mcp/generate-image` (delegates to existing `/api/generate-image` so the `image_ready` event-bus publish is preserved), `/api/mcp/screenshot` (Playwright lazy-loaded), `/api/mcp/snackbar` (event-bus publish), `/api/mcp/ask-user` + `/api/mcp/ask-user-response/[requestId]` (block-and-resolve pair).
+- New components: `components/AskUserModal.tsx` (modal listens to `cd.ask-user` sessionEvent), `components/CDSnackbar.tsx` (toast stack, info auto-dismiss, warn persists). Both mounted in `app/page.tsx`.
+- `lib/event-bus.ts`: added `cd_snackbar`, `cd_ask_user`, `director_save` (Commit C placeholder) to `SessionEventKind`.
+- `lib/session-events.ts`: added `cd.snackbar`, `cd.ask-user`, `cd.ask-user-resolved` types.
+- `app/page.tsx` `/api/events` listener: routes new event-bus events through `sessionEvents`.
+- Per-agent allowed-tools extended: CD gets all 4 capability tools, WebDev gets screenshot/snackbar/ask_user, Sentinel Ti gets snackbar/ask_user.
+- CD agent doc: new "Capability Tools — Tier S" section with discipline rules.
+- Tests: 24 new across 2 files. `lib/ask-user-bus.test.ts` covers concurrency + timeout. `mcp-server/tools-capabilities.test.ts` covers dispatch + arg validation.
+
+**Total Phase 2 test count: 89/89 passing.** Pre-existing failures in `lib/memory/__tests__/memory-system.test.ts` + `e2e-journey.test.ts` are NOT regressions — they reference deleted `consolidator`/`dreamer-timer` modules from before any Phase 2 work. Verify via `git stash && npx vitest run lib/memory/__tests__/...` if you want to see they fail on `main` too.
+
+**Commit C — Tier A + B capability tools (CD productivity & quality):**
+- 7 new MCP tools: `session_meta()`, `list_assets(filter?)`, `find_assets(query, limit?)`, `lint_brand_compliance(file)`, `apply_patch(target, edit)`, `image_ops(filename, operation, params)`, `vibe_diff(target, since='last-build')`.
+- New libs: `lib/html-patch-engine.ts` (JSDOM patcher with 6 typed edit kinds + `<script>` refusal), `lib/brand-lint-rules.ts` (v1 frozen at exactly 2 rules), `lib/image-ops.ts` (Sharp pipeline with 6 operations).
+- 7 new API routes under `app/api/mcp/`: `session-meta`, `list-assets`, `find-assets`, `lint-brand`, `apply-patch`, `image-ops`, `vibe-diff`.
+- `lib/session.ts:saveVibeHtml` — snapshots previous build to `.cache/last-build/` BEFORE overwriting (required for `vibe_diff` to compute since-last-build deltas).
+- `app/api/director/save-edits/route.ts` — fires `director_save` event-bus event with `{vibe, diff, savedAt}` after persisting edits. CD subscribes for push notifications instead of polling `vibe_diff`.
+- `app/api/order66/route.ts` — adds `rm -rf public/{session}/screenshots/` to cleanup phase.
+- `lib/mcp-config.ts` — CD/WebDev/Sentinel `--allowed-tools` whitelists extended for Tier A/B; CD gets all 7, WebDev gets read-only subset (session_meta, list_assets, lint_brand_compliance), Sentinel gets session_meta.
+- `package.json` — `sharp ^0.34.5` + `jsdom ^27.4.0` promoted to dependencies (jsdom was devDep; both used at runtime in API routes now).
+- CD agent doc: new "Capability Tools — Tier A + B" section + `director_save` notification entry.
+- Tests: 35 new across 4 files. **Spec locks:** `lib/__tests__/brand-lint-scope.test.ts` asserts EXACTLY 2 rules in v1 (adding a third fails the test until updated); `app/api/mcp/vibe-diff/route.test.ts` asserts `since` only accepts `last-build` (locks v1 spec). Plus per-edit-kind tests for html-patch-engine + per-operation tests for image-ops.
+- Existing `mcp-server/tools-capabilities.test.ts` updated for the expanded capability tool list (was 4, now 11).
+
+**The plan file** is at `~/.claude/plans/snappy-tumbling-mist.md` (referenced in the project as the Phase 2 spec). Commit C completes the Tier A + B scope.
 
 ### Committed as `ae56652` (first batch)
 - `ensureSession` race fix → `sessionPromiseRef` single-flight in `app/page.tsx`

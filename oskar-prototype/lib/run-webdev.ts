@@ -52,6 +52,13 @@ export interface WebDevBuildRequest {
   onToolCall?: (toolName: string, input: Record<string, any>) => void
   onToolResult?: (toolName: string, result: any) => void
   onText?: (text: string) => void
+  /**
+   * Phase 2.5 (Ralph 2026-04-30): build escrow propagates cancel_job
+   * down to runWebDev via this signal. When aborted, the spawned
+   * Claude/Gemini child receives SIGTERM and exits. The result returned
+   * to the caller is `{ status: 'error', error: 'cancelled' }`.
+   */
+  abortSignal?: AbortSignal
 }
 
 // ==========================================
@@ -60,10 +67,11 @@ export interface WebDevBuildRequest {
 
 function loadWebDevAgentPrompt(): string {
   try {
-    const mdPath = join(process.cwd(), '..', 'webdev-agent.md')
+    const mdPath = join(process.cwd(), 'agents', 'webdev-agent.md')
     return readFileSync(mdPath, 'utf-8')
-  } catch {
-    console.error('Failed to load webdev-agent.md')
+  } catch (error) {
+    console.error('Failed to load webdev-agent.md:', error)
+    console.error('Expected location:', join(process.cwd(), 'agents', 'webdev-agent.md'))
     return ''
   }
 }
@@ -105,37 +113,86 @@ Do NOT output the HTML in chat. Use your file writing tool.
 
 ---
 
-## REQUIRED OUTPUT FORMAT
+## REQUIRED OUTPUT — Phase 2 (2026-04-30)
 
-After writing the file, end your response with EXACTLY this — a single JSON
-line, on its own line, as the last thing in your response:
+After writing the file, call the \`report_build_complete\` tool:
 
 \`\`\`
-{"filename": "vibe-N-slug.html", "vibeIndex": N, "vibeName": "The Vibe Name"}
+report_build_complete({
+  filename: "vibe-N-slug.html",
+  vibeIndex: N,
+  vibeName: "The Vibe Name",
+  sectionsBuilt: ["hero", "menu", ...],
+  imagesUsed: ["hero.jpg", ...]
+})
 \`\`\`
 
-The orchestrator parses this line to know what file you produced. Don't skip
-it. Don't wrap it in extra text after.`
+Do NOT write trailing JSON manifest lines or \`## BUILD COMPLETE\` headers.
+The legacy parser stays as a defensive fallback only — the tool call is
+your primary signal. If the build cannot complete, call \`report_build_failed({error})\`.`
 }
 
 // ==========================================
 // Build a VibeBuildResult from API-mode agent output (manifest + verify)
 // ==========================================
 
+/** Phase 2: report_build_complete tool args. Must match
+ *  mcp-server/tools-webdev.ts:report_build_complete schema. */
+interface ReportBuildCompleteArgs {
+  filename?: unknown
+  vibeIndex?: unknown
+  vibeName?: unknown
+  sectionsBuilt?: unknown
+  imagesUsed?: unknown
+}
+
 async function buildResultFromApiOutput(
   target: string,
   sessionPath: string,
   agentOutput: string,
   loopError?: string,
+  capturedReportArgs?: ReportBuildCompleteArgs | null,
 ): Promise<VibeBuildResult> {
-  const manifest = parseTrailingJson(agentOutput)
+  // Phase 2 PRIMARY: structured args from report_build_complete tool call
+  // (captured by run-webdev's onToolCall interceptor in API mode).
+  let manifest: { filename: string; vibeIndex: number; vibeName: string } | null = null
+  if (
+    capturedReportArgs &&
+    typeof capturedReportArgs.filename === 'string' &&
+    typeof capturedReportArgs.vibeIndex === 'number' &&
+    typeof capturedReportArgs.vibeName === 'string'
+  ) {
+    manifest = {
+      filename: capturedReportArgs.filename,
+      vibeIndex: capturedReportArgs.vibeIndex,
+      vibeName: capturedReportArgs.vibeName,
+    }
+  }
+
+  // FALLBACK: parseTrailingJson — defensive last resort, matches CLI mode.
+  if (!manifest) {
+    manifest = parseTrailingJson(agentOutput)
+    if (manifest) {
+      console.warn(`[runWebDev/api] ⚠️ report_build_complete missing; recovered via parseTrailingJson`)
+      try {
+        const { appendFileSync } = await import('fs')
+        const { join } = await import('path')
+        appendFileSync(
+          join(sessionPath, 'logs', '_debug-webdev-fallback.log'),
+          `${new Date().toISOString()}\ttarget="${target}"\tfallback=parseTrailingJson (api-mode)\n`,
+          'utf-8',
+        )
+      } catch { /* logs/ may not exist; non-fatal */ }
+    }
+  }
+
   if (!manifest) {
     return {
       vibeIndex: 0,
       vibeName: target,
       filename: '',
       status: 'error',
-      error: loopError || `Agent finished but did not emit a JSON manifest line`,
+      error: loopError || `Agent finished but did not call report_build_complete or emit a JSON manifest line`,
     }
   }
   const filePath = join(sessionPath, manifest.filename)
@@ -184,9 +241,9 @@ export async function runWebDev(request: WebDevBuildRequest): Promise<VibeBuildR
   // ==========================================
   if (mode === 'cli') {
     if (model === 'gemini-3.1-pro-preview') {
-      return buildVibeHTMLGemini(sessionId, target, sessionPath)
+      return buildVibeHTMLGemini(sessionId, target, sessionPath, request.abortSignal)
     }
-    return buildVibeHTML(sessionId, target, sessionPath, model)
+    return buildVibeHTML(sessionId, target, sessionPath, model, request.abortSignal)
   }
 
   // ==========================================
@@ -202,6 +259,17 @@ export async function runWebDev(request: WebDevBuildRequest): Promise<VibeBuildR
     request.onText?.(text)
   }
 
+  // Phase 2 (2026-04-30): intercept report_build_complete from the agent's
+  // tool calls. This is the API-mode equivalent of CLI mode's stream-json
+  // tool_use parse — same contract, different transport.
+  let capturedReportArgs: ReportBuildCompleteArgs | null = null
+  const captureToolCall = (toolName: string, input: Record<string, unknown>) => {
+    if (toolName === 'report_build_complete') {
+      capturedReportArgs = input as unknown as ReportBuildCompleteArgs
+    }
+    request.onToolCall?.(toolName, input)
+  }
+
   if (model === 'claude-opus-4-7' || model === 'claude-sonnet-4-6') {
     const result = await runClaudeAgentLoop({
       model,
@@ -209,11 +277,14 @@ export async function runWebDev(request: WebDevBuildRequest): Promise<VibeBuildR
       userPrompt,
       sessionPath,
       maxTurns: 30,
-      onToolCall: request.onToolCall,
+      onToolCall: captureToolCall,
       onToolResult: request.onToolResult,
       onText: captureText,
     })
-    return buildResultFromApiOutput(target, sessionPath, collectedOutput, result.success ? undefined : result.error)
+    return buildResultFromApiOutput(
+      target, sessionPath, collectedOutput,
+      result.success ? undefined : result.error, capturedReportArgs,
+    )
   }
 
   if (model === 'gemini-3.1-pro-preview') {
@@ -222,11 +293,14 @@ export async function runWebDev(request: WebDevBuildRequest): Promise<VibeBuildR
       userPrompt,
       sessionPath,
       maxTurns: 20,
-      onToolCall: request.onToolCall,
+      onToolCall: captureToolCall,
       onToolResult: request.onToolResult,
       onText: captureText,
     })
-    return buildResultFromApiOutput(target, sessionPath, collectedOutput, result.success ? undefined : result.error)
+    return buildResultFromApiOutput(
+      target, sessionPath, collectedOutput,
+      result.success ? undefined : result.error, capturedReportArgs,
+    )
   }
 
   return {

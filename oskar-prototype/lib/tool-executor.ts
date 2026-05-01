@@ -280,8 +280,21 @@ export async function executeTool(toolCall: ToolCall, sessionPath: string): Prom
         content = await executeAppendLog(input, sessionPath)
         break
 
+      // Phase 2 (2026-04-30): API-mode report_* tools. Pure ack — runWebDev
+      // reads the args via the onToolCall callback and uses them as the
+      // primary manifest source.
+      case 'report_build_complete':
+        content = `report_build_complete acked: ${input.filename}`
+        break
+      case 'report_build_failed':
+        content = `report_build_failed acked: ${input.error}`
+        break
+      case 'report_build_progress':
+        content = `report_build_progress acked: ${input.milestone}`
+        break
+
       default:
-        content = `Unknown tool: ${name}. Available tools: FileRead, FileWrite, FileEdit, Glob, Grep, Bash, WebFetch, WebSearch, append_log`
+        content = `Unknown tool: ${name}. Available tools: FileRead, FileWrite, FileEdit, Glob, Grep, Bash, WebFetch, WebSearch, append_log, report_build_complete, report_build_failed, report_build_progress`
     }
 
     return { name, content }
@@ -403,6 +416,50 @@ export const CLAUDE_TOOL_DEFINITIONS = [
         message: { type: 'string', description: 'Log message to append' }
       },
       required: ['message']
+    }
+  },
+  // ── Phase 2 (2026-04-30): API-mode report_* tools ───────────────────────
+  // CLI mode calls these via the MCP server; API mode runs the agent loop
+  // in-process, so we register the same contract directly. Executor just
+  // ACKs — runWebDev reads the args via the `onToolCall` callback.
+  {
+    name: 'report_build_complete',
+    description:
+      'Call AFTER writing the vibe HTML to disk. Reports the structured manifest ' +
+      '(filename, vibeIndex, vibeName, sections built, images used). Replaces the ' +
+      'old "end your response with a JSON manifest line" contract.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        filename: { type: 'string', description: 'The .html file you wrote.' },
+        vibeIndex: { type: 'number', description: 'Numeric vibe index from VIBE-N.md.' },
+        vibeName: { type: 'string', description: 'Human-readable vibe name.' },
+        sectionsBuilt: { type: 'array', items: { type: 'string' }, description: 'Sections present in the HTML.' },
+        imagesUsed: { type: 'array', items: { type: 'string' }, description: 'Image filenames referenced in the HTML.' },
+      },
+      required: ['filename', 'vibeIndex', 'vibeName', 'sectionsBuilt', 'imagesUsed']
+    }
+  },
+  {
+    name: 'report_build_failed',
+    description: 'Call when the build cannot complete. Stops the build cleanly.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        error: { type: 'string', description: 'One-to-three-sentence explanation.' }
+      },
+      required: ['error']
+    }
+  },
+  {
+    name: 'report_build_progress',
+    description: 'Optional. Emit a progress milestone mid-build.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        milestone: { type: 'string' }
+      },
+      required: ['milestone']
     }
   }
 ]

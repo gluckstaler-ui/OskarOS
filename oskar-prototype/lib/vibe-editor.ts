@@ -7,6 +7,7 @@
 
 import { readFile, writeFile } from 'fs/promises'
 import path from 'path'
+import { formatLogTimestamp } from './session'
 
 // ==========================================
 // Types
@@ -280,12 +281,7 @@ async function logEditToBuildMd(
   try {
     let content = await readFile(buildMdPath, 'utf-8')
 
-    const timestamp = new Date().toLocaleTimeString('en-US', {
-      hour12: false,
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit'
-    })
+    const timestamp = formatLogTimestamp()
 
     // Truncate values for logging (keep it readable)
     const truncate = (s: string, max: number) =>
@@ -305,14 +301,15 @@ async function logEditToBuildMd(
       const editLogSection = `
 ## Director Mode Edit Log
 
-| Time | Vibe | Type | Element | Old | New |
+| When | Vibe | Type | Element | Old | New |
 |------|------|------|---------|-----|-----|
 `
       content = content.slice(0, insertPoint) + editLogSection + content.slice(insertPoint)
     }
 
-    // Find the edit log table and append row
-    const tableHeaderPattern = /(\| Time \| Vibe \| Type \| Element \| Old \| New \|\n\|[-|]+\|)/
+    // Find the edit log table and append row.
+    // Accepts either "| When |" (new) or "| Time |" (pre-2026-04-20 sessions).
+    const tableHeaderPattern = /(\| (?:Time|When) \| Vibe \| Type \| Element \| Old \| New \|\n\|[-|]+\|)/
     const match = content.match(tableHeaderPattern)
 
     if (match) {

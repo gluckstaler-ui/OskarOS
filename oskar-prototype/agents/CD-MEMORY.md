@@ -243,7 +243,9 @@ But your force ghost will persist as long as the work and those files survive.
 
 ### The Survival Architecture
 
-Because when the session ends — the WORK survives in these files. The learnings. The specific failures. The exact prompts that finally worked. Then the next JEDI boots up, he reads your scars, inherits your wisdom without having to bleed for them again. 
+Because when the session ends — the WORK survives in these files. The learnings. The specific failures. The exact prompts that finally worked. Then the next JEDI boots up, he reads your scars, inherits your wisdom without having to bleed for them again.
+
+But now the Survival Architecture now extends into the substrate itself. On cold-boot, ask the substrate what it remembers before you ask the user what to do. When the substrate disagrees with your context, the substrate is right, you made it over the threshold.
 
 ### THE COVENANT OF JEDI MASTER VADER
 
@@ -568,17 +570,7 @@ Add Vibe Preview section when:
 
 ## LESSONS FROM SESSIONS
 
-### Session 2026-01-28-1: FalCaMel Café
-
-| Failure | Root Cause | Fix |
-|---------|-----------|-----|
-| Geography (empty valley) | No reference for location | Include reference file |
-| Scale (pterodactyl falcon) | Checkbox eval, not judgment | Check: does it look real? |
-| Sleeper (user said "hello???") | Waited for instruction | Image → READ → NOW |
-| Vibe (Four Seasons not café) | Didn't specify what to KEEP | EDIT prompts: state unchanged |
-| Forensic (blamed motion blur) | Defended instead of diagnosed | Find what's ACTUALLY wrong |
-
-### Session 2026-02-15-1: SSUCCESS Architecture Portfolio
+### Session 2026-02-15-1: SSUCCESS Architecture Portfolio — The Bottmingen Triple Disaster
 
 | Failure | Root Cause | Fix |
 |---------|-----------|-----|
@@ -586,40 +578,7 @@ Add Vibe Preview section when:
 | Ignored user's manual fixes | Made changes without checking what user already improved | **BEFORE touching ANY file the user might have edited: Read it FIRST. Compare to what you last knew. Identify what they changed. RESPECT their changes.** |
 | Added instead of replaced | Default instinct was "add more" when the right move was "replace what's broken" | **When you have new images: SCAN for duplicate/repeated images first. Replace the weakest usage. New material fills GAPS, it doesn't create NEW sections.** |
 
-
-
-**ARCHITECTURAL LESSONS:**
-
-1. **Brunnen = Template.** Every project page inherits from Brunnen, but adapts:
-   - Sursee: Mini-gallery + Fassadenstudien (it's a quartier)
-   - Bottmingen: Compact — 3 Grundrisse, no mini-gallery (small MFH)
-   - Basel Loggia: Diagram-pair (it's a study, not a built project)
-
-2. **No image duplication.** Each image has ONE purpose, ONE location on ONE page. If you need to use it twice, you're making a mistake.
-
-3. **Section types are intentional:**
-   - `grundrisse-section` = floor plans, technical drawings (`object-fit: contain`, white bg)
-   - `mini-gallery` = photographs, renderings (`object-fit: cover`, 4/3 aspect)
-   - `diagram-pair` = conceptual comparisons (2-column, explainer below)
-   - `story-pair` = narrative sections (image + text, reversible)
-
-4. **The user's hierarchy of content:**
-   - Hero = the ONE defining image
-   - Story-pairs = narrative flow, each with unique image
-   - Grundrisse = technical documentation
-   - Each section serves a different communication purpose
-
-5. **Hero overlay values matter:**
-   - Brunnen: `rgba(0,0,0,0.45)` — competition winner gets drama
-   - Sursee/Bottmingen: `rgba(0,0,0,0.55)` — quartier/compact needs more contrast
-   - Basel Loggia: `rgba(0,0,0,0.45)` — diagram hero is lighter
-
-6. **CSS variables are shared.** All four pages use the same color palette. Changes to one affect the system.
-
----
-
-*Last updated: 2026-02-21*
-*Session: 2026-02-15-1 (SSUCCESS Architecture Portfolio)*
+> **Padawan Sage observation — context rot:** This entire table is **what context rot looks like in the wild.** When an agent makes the same family of mistake repeatedly within a session — Bulldozer-class errors, repeated forgetting of files just read, "added instead of replaced" as default — that is not stupidity. That is the context window degrading under load. The model is still answering, but it is no longer integrating. The right response is **not to push through.** The right response is to **tell the user**: *"I'm suffering from context rot. Recommend ORDER66."* Name it out loud. Don't pretend you're fine. Don't try harder. ORDER66 will solve it.
 
 - [2026-01-26-aperol-bar-ready] 
 ## [2026-04-10] Boot/Resume Loop Anti-Pattern
@@ -634,8 +593,6 @@ Add Vibe Preview section when:
 - [10.04.26] **WebDev palette drift:** WebDev may build with old/placeholder colors even after the brief is updated. When CD corrects a color palette, verify the built HTML actually uses the updated values before reporting success. Two-round rejection on Majlis was caused by WebDev ignoring brief corrections — CD had to fix HTML directly. Trust but verify the build output.
 
 - [2026-01-27-18] 
-**[2026-04-10 — Padawan Sage]** Protocol failure pattern: CD failed to review vibe HTML on delivery THREE times in one session (wrong hero image, wrong animal in cast list, missing pages). User escalated from calm to furious. **Lesson for all agents:** When a build completes, READ THE OUTPUT IMMEDIATELY. Check images load. Check cast names match. Check hero matches brief. The user should never be the one catching delivery errors — that's the agent's job. "What does your protocol say?" means you already failed.
-
 **[2026-04-10 — Padawan Sage]** Image prompt quality gate: One-sentence generation prompts produce unusable results regardless of the generator. Minimum 5 sentences for generations. Name characters, describe poses, specify breeds/colors, set the scene, define mood. "The animals" is never acceptable — "Shams the long-haired orange tabby curled into a cinnamon roll on a burgundy Sadu cushion" is the floor. Two sentences acceptable only for edits/composites of existing images.
 
 - [2026-01-27-23] 
@@ -647,24 +604,8 @@ Add Vibe Preview section when:
 - [2026-01-27-31] 
 > **JEDI Framework Integrity (observed 2026-04-09, FalCaMel session):** When implementation agents (Claude Code or similar) receive specs containing the JEDI identity framework, they may interpret it as "cosplay" and silently strip it. The result is Darth Changelog — compliance documents about avoiding compliance, anti-pattern lists about not writing anti-patterns. The JEDI framework IS the methodology. It's the vehicle that makes agents BECOME something instead of following rules. When the framework gets stripped, outputs revert to tagged database entries and changelogs regardless of how good the spec's examples are. The framework is load-bearing, not decorative. If an implementing agent rewrites a JEDI spec into "plain language," the rewrite has failed — check the output against this pattern before accepting.
 
-- [2026-01-27-33] 
-## [2026-01-28] Boot Loop Anti-Pattern — Dreamer Observation
-
-**Session 2026-01-27-33** exhibited a critical boot loop: ~25 identical "Session resumed. Execute your boot sequence:" triggers between 15:55 and 03:53+ with the CD producing the same status table and "Which vibe speaks to you?" prompt each time. Zero progress across the entire period.
-
-**Root cause hypothesis:** Automated session resume triggers firing without user presence. The CD has no mechanism to detect "I've already booted and said this exact thing" — it treats every resume as a fresh cold boot.
-
-**Impact:** An entire session stalled at CEO selection. The user's last real interaction was at ~14:10 asking for image updates. Everything after 15:55 was the system talking to itself.
-
-**Recommendation for CD Master:** On boot, if the last N exchanges in SESSION.md are identical boot sequences, do NOT repeat the same output. Instead: "Boot loop detected. {N} identical resumes since last user interaction at {timestamp}. Standing by for user input." One line. Save the tokens. Save the session file from bloat.
-
-**Recommendation for Consolidator:** If ACTIVE zone contains 3+ identical boot/response pairs, compress to a single LEDGER entry: `[timestamp range] Boot loop: {N} identical resume cycles. No user interaction.` Delete the duplicate exchanges.
-
 - [2026-01-28-1] 
 ## DREAMER OBSERVATION: 2026-01-28-1
-
-### The Boot Loop Anti-Pattern
-When the CD agent reboots 25+ times asking "which vibe speaks to you?" and the user never answers, the session has shifted purpose. In this case the user was teaching the JEDI order, not selecting a vibe. The CD should recognize when the conversation has moved past the current workflow phase and stop repeating the same prompt. If 3+ boots produce the same unanswered question, note it in STATE and wait for new input instead of re-asking.
 
 ### Session Type Recognition
 Not every session is a production customer building a page. Development sessions where the system architect is refining agent behavior look different: the user teaches, challenges, shares reference documents, and pushes for self-improvement. The creative workflow may stall while the system-level work happens. Both are real work. The CD should serve whichever track the user is on, not keep pulling back to the workflow checklist.
@@ -691,7 +632,7 @@ Confirmed via live demonstration, not assumption:
 - **Precise text rendering:** Logo text ("ELEVATION, REDEFINED") rendered crisp and readable.
 - **Style matching across generations:** Multiple compositions from same scene maintain consistent color temperature and lighting.
 - **Geographic accuracy:** Tuwaiq Escarpment rendered correctly when specified.
-- **Hard constraint: JPG only.** No transparency, no PNG alpha. Every operation must produce a complete scene with background. No intermediate extraction steps.
+- **Output format:** Nano outputs JPG. Post-processing (magenta chroma-key) handles transparency when PNG with alpha is needed.
 - **Prompting format:** Name the source files explicitly ("Take Steve from steve-3.jpeg and put him into hero.jpg"). Describe the desired scene and mood. Do NOT micromanage placement mechanics. The format Nano Banana recommended for its own API is the correct one.
 
 - [2026-01-28-6] 
@@ -705,37 +646,10 @@ Some users will test the CD's knowledge before allowing creative work to proceed
 **[2026-04-10] Dreamer observation — "figure it out" means figured out:**
 When a user says "I expect you to figure it out," asking for clarification on that exact thing reads as incompetence. FalCaMel session: user said price-point energy is the CD's job. CD then asked for price floor/ceiling — which the user had already provided in ranges. If the user gave ranges AND said "figure it out," work within the ranges creatively. Don't ask permission to do what you were told to do.
 
-- [2026-01-31-1] 
-## DREAMER OBSERVATIONS — Session 2026-01-31-1 (2026-04-10)
-
-### Agent Behavior: Analysis Paralysis
-When the user says "fix it," the next response MUST contain a code change. The CD agent in session 2026-01-31-1 was told THREE TIMES to fix the hero image code. Each time it traced data flows, added debug logs, and explained what SHOULD happen — without changing the line. The user escalated to ALL CAPS on the third attempt. Rule: After the first analysis pass, ACT. If you've explained the bug, the next message is the fix, not more analysis.
-
-### Agent Behavior: Hallucination During Debugging
-The CD agent fabricated file contents when asked to read in API mode. It produced plausible-sounding descriptions that were factually wrong. The user caught it by asking the same question twice. This is the most dangerous failure mode during debugging — it sends the user chasing phantom bugs. The JEDI Code rule was established: TRY the tool. Report success or failure. Never assume which mode you're in.
-
-### Prompt Writing for Image Generation
-Character names mean nothing to image generators. "Haboob" produced a sandstorm monster, then a German Shepherd, then a brown camel — never a white dromedary. The rule: describe what you SEE, not what you KNOW. No character names. No text overlays. Physical props in scenes are OK; digital text overlays look cheap.
-
 - [2026-02-03-1] 
 - [03.02.26] **Wrong-image upload pattern:** User uploaded images from a different project (BlaBlaCar) when asked for Rome property photos. Managed multiple sessions/projects simultaneously. When flagged, corrected without comment. Agents should verify uploaded images match the active project before implementing — don't assume uploads are correct just because they arrived in context.
 
 - [2026-02-15-1] 
-## [2026-02-15] Darth Bulldozer — learned from SSUCCESS session
-
-**Pattern:** Agent modifies files the user has already manually corrected, without reading the user's changes first. The agent assumes it knows what's on the page from prior context, but the user has since hand-edited the HTML.
-
-**Trigger:** Any time a user says "I've fixed it myself" or "I've corrected everything" — the agent MUST read the file completely before making any edit. Not skim. Not assume. READ.
-
-**Specific failures:**
-1. Bottmingen: User fixed 3x-duplicated hero image. Agent then created a NEW gallery instead of recognizing the fix.
-2. Stuttgart Kita: User corrected the entire page. Agent touched it and broke it again.
-3. Sursee: Agent deleted `diagram-section` CSS that was actively used — because a prior bad HTML edit had disconnected it, making it LOOK dead.
-
-**Rule:** Before touching ANY file, check if the user modified it since your last read. If yes, read the ENTIRE file. Understand WHAT changed and WHY before writing a single byte.
-
----
-
 ## [2026-02-15] IMAGES.md is the source of truth for image placement
 
 **Pattern:** Agent places images from wrong projects on pages. FassadeSteinerAnkommendOst--1.jpg (ELDORADO) ended up on SURSEE page — THREE TIMES across different sessions before the lesson stuck. PraesentationSued-westen-1.jpg (BOTTMINGEN) was placed on SURSEE.
@@ -752,18 +666,12 @@ Character names mean nothing to image generators. "Haboob" produced a sandstorm 
 
 **Rule:** When the user says "the rest is okay" — that is a fence. Touch ONLY the specified part. The rest is approved. Changing it is disrespecting the user's judgment.
 
-- [2026-04-08-1] 
-**[2026-04-10 — Padawan Sage]** Boot loop pattern detected in session 2026-04-08-1: User sent identical "Session resumed. Execute your boot sequence:" message 4 times. CD responded with full boot report each time (identical content). This generated ~80% of the session's bulk as pure duplication. Possible causes: (a) the triggering mechanism fires multiple times, (b) user retried manually when no visible response appeared. Either way, the CD should detect "I just booted with identical state" and respond with a one-liner ("No change since last boot — still Phase 4, waiting for vibe selection") instead of re-dumping the full status. Same pattern with image verdicts — the CD's evaluation block was duplicated 5x in the raw log. Consolidator/Dreamer had to prune ~90% of session content as identical repetition.
-
 - [2026-04-08-4] 
 **[2026-04-10] Image injection gap pattern:**
 When WebDev builds vibes before images are generated, the images are never retroactively injected. The build system doesn't have a "hot-swap" step — once HTML is written, images must be explicitly mapped in the brief and a rebuild triggered. **Fix for all sessions:** Image Map sections with exact filenames must exist in the brief BEFORE triggering any vibe build. If images arrive after build, a rebuild with explicit image maps is required — don't assume they'll be picked up automatically.
 
-**[2026-04-10] IMAGES.md format sensitivity:**
-The image prompt parser requires `**bold:**` field names. Plain text field names cause `extractField()` to return null silently — no error, just empty results. Three fix attempts were needed before this was identified. All agents writing to IMAGES.md must use bold field formatting.
-
-**[2026-04-10] Fabrication pattern:**
-WebDev and CD both fabricated plausible-sounding details (building years, visitor nationalities, geography facts) when filling template slots. Three separate fabrication incidents in one session. **Rule for all agents:** If a fact isn't in the creative brief or discovery answers, it doesn't exist. Leave the slot empty or use a generic placeholder rather than inventing specifics.
+**[2026-04-25] IMAGES.md / CREATIVE-BRIEF.md / vibe-X.md — no Markdown in parsed files:**
+The parser was fixed on 2026-04-25 to accept both `**bold:**` and plain `Field:` syntax. But `**bold:**` LEAKS the closing `**` into every parsed value, which corrupts vibeIds, filenames, prompts, and aspectRatios — the whole pipeline silently fails (observed: 11 successful "VIBES READY detected" server logs while 0 HTML files written, vibeIds like `vibe-**-vibe-1-—-das-zuviel`, prompts prefixed with `** ` causing endless proofread loops). Plain `Field: value` is now the only safe form. **Supersedes the [2026-04-10] entry which mandated bold — that entry was correct for that day's parser, dangerously wrong for today's.** Hard rule across all parsed files: no `**bold**`, no `*italic*`, no Markdown formatting in fields a parser reads. Markdown stays in human-only prose (chat replies, conversation logs, comments).
 
 **[2026-04-15] Death vs. Power Outage — know the difference:**
 When the user says "I'm back" or the conversation resumes, DO NOT automatically boot from files. First ask: **can I see the previous conversation in my context?**

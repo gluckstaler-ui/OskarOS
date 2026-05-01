@@ -3,6 +3,7 @@ import { writeFileSync, readFileSync, unlinkSync, existsSync, mkdirSync } from '
 import { tmpdir } from 'os'
 import { join, dirname } from 'path'
 import crypto from 'crypto'
+import { ensureMcpConfig, CD_ALLOWED_TOOLS } from './mcp-config'
 
 // ==========================================
 // Bridge Mapping Persistence
@@ -148,6 +149,11 @@ class BridgeProcessManagerImpl {
     const systemFile = join(tmpdir(), `claude-bridge-system-${Date.now()}.txt`)
     writeFileSync(systemFile, options.systemPrompt, 'utf-8')
 
+    // Per-session MCP config — extracted to lib/mcp-config.ts (Phase 2,
+    // 2026-04-30) so WebDev and Sentinel Ti reuse the same generator.
+    // Server name + paths defined there.
+    const mcpConfigFile = ensureMcpConfig({ sessionId, cwd: options.cwd, agentRole: 'cd' })
+
     const args = [
       '--print',
       '--input-format', 'stream-json',
@@ -156,6 +162,12 @@ class BridgeProcessManagerImpl {
       '--model', options.model,
       '--permission-mode', 'bypassPermissions',
       '--system-prompt-file', systemFile,
+      '--mcp-config', mcpConfigFile,
+      // CD's tool whitelist (orchestration + submit_*). Tightens safety
+      // beyond bypassPermissions: WebDev's report_* and Sentinel's
+      // submit_critique are NOT in this list, so CD calling them would
+      // be denied.
+      '--allowed-tools', CD_ALLOWED_TOOLS,
     ]
 
     // --resume and --session-id can't be combined. Use one or the other.

@@ -22,6 +22,7 @@ import {
   readCreativeBrief,
   renameSession,
   parseImagesMd,
+  formatLogTimestamp,
   ParsedImageEntry,
   SessionListItem,
   Session,
@@ -32,6 +33,7 @@ import {
 import { hotSwap, autoHotSwap, HotSwapResult } from './hot-swap'
 // analyze() removed — CD reads uploaded images itself via Read tool
 import { ImageManifest, ImageAsset } from './types'
+import { matchField, matchFieldMultiline } from './markdown-fields'
 
 /**
  * List all sessions
@@ -173,12 +175,7 @@ export async function logImageUploadAction(
     const session = await getSession(sessionId)
     if (!session) throw new Error(`Session ${sessionId} not found`)
 
-    const timestamp = new Date().toLocaleTimeString('en-US', {
-      hour12: false,
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit'
-    })
+    const timestamp = formatLogTimestamp()
 
     // Append to IMAGES.md
     let imagesMd = session.imagesMd
@@ -230,12 +227,7 @@ export async function logImageGenerationAction(
     const session = await getSession(sessionId)
     if (!session) throw new Error(`Session ${sessionId} not found`)
 
-    const timestamp = new Date().toLocaleTimeString('en-US', {
-      hour12: false,
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit'
-    })
+    const timestamp = formatLogTimestamp()
 
     let imagesMd = session.imagesMd
 
@@ -284,10 +276,14 @@ export async function logImageGenerationAction(
             break
           }
 
-          // Update status from PENDING to ACTIVE
+          // Update status from PENDING to ACTIVE — match both bold and plain
+          // formats; preserve whichever shape was already in the file.
           let updatedEntry = entry
           if (entryStatus?.toUpperCase() === 'PENDING') {
-            updatedEntry = updatedEntry.replace(/\*\*Status:\*\*\s*PENDING/i, '**Status:** ACTIVE')
+            updatedEntry = updatedEntry.replace(
+              /((?:\*+\s*)?Status(?:\s*\*+)?:(?:\s*\*+)?\s*)PENDING/i,
+              (_full, prefix) => `${prefix}ACTIVE`,
+            )
           }
 
           // Add generated version as sub-entry
@@ -342,18 +338,18 @@ export async function logHotSwapAction(
     const session = await getSession(sessionId)
     if (!session) throw new Error(`Session ${sessionId} not found`)
 
-    const timestamp = new Date().toLocaleTimeString('en-US', {
-      hour12: false,
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit'
-    })
+    const timestamp = formatLogTimestamp()
 
     let buildMd = session.buildMd
 
-    // Find the Hot-Swap Log table and append row
-    const tableHeader = '| Time | Vibe | Slot | Old | New |'
-    const tableIndex = buildMd.indexOf(tableHeader)
+    // Find the Hot-Swap Log table and append row.
+    // Column renamed from "Time" → "When" (2026-04-20) to fit a full
+    // `YYYY-MM-DD HH:MM:SS` stamp without overflowing a 5-char Time column.
+    // Still accept the old header so pre-rename sessions keep logging.
+    const newHeader = '| When | Vibe | Slot | Old | New |'
+    const oldHeader = '| Time | Vibe | Slot | Old | New |'
+    let tableIndex = buildMd.indexOf(newHeader)
+    if (tableIndex === -1) tableIndex = buildMd.indexOf(oldHeader)
     if (tableIndex !== -1) {
       // Find the end of the table header row (after |-----|)
       const headerEnd = buildMd.indexOf('\n', buildMd.indexOf('|-----|', tableIndex)) + 1
@@ -672,9 +668,19 @@ export async function getImageManifestsAction(
         const status = extractField(entry, 'Status') || 'PENDING'
         const usedIn = extractField(entry, 'Used in')
 
-        // Extract instruction
-        const instructionMatch = entry.match(/\*\*Instruction(?:\s+to\s+Nano\s+Banana)?:\*\*\s*([\s\S]*?)(?=\n\*\*[A-Z]|$)/)
-        const instruction = instructionMatch ? instructionMatch[1].trim() : operation
+        // Ralph 2026-04-25: A real manipulation requires `**Source:**` (the
+        // image being manipulated). Without it, the entry is a CD log note
+        // that landed under `## Manipulations` for lack of a better home —
+        // not an actual manipulation prompt. Skipping these stops them
+        // from rendering as empty/PENDING "Shared" assets in the panel.
+        if (!source) continue
+
+        // Extract instruction (multiline). Try both "Instruction" and
+        // the longer "Instruction to Nano Banana" alias — first hit wins.
+        const instruction =
+          matchFieldMultiline(entry, 'Instruction to Nano Banana')
+          || matchFieldMultiline(entry, 'Instruction')
+          || operation
 
         // Try to infer vibe from "Used in" field
         let vibeName = 'Shared'
@@ -791,13 +797,16 @@ export async function getImageManifestsAction(
 }
 
 /**
- * Helper to extract a field value from markdown entry
+ * Helper to extract a field value from a markdown entry.
+ *
+ * Thin wrapper around `matchField` from `lib/markdown-fields.ts`. Kept as
+ * a local alias so the rest of this file's call sites (`extractField(entry,
+ * 'Vibe')` etc.) read naturally. All parsing logic lives in markdown-fields.ts
+ * — see the header comment there for the 2026-04-25-2 silent-failure history
+ * that motivated consolidation.
  */
 function extractField(text: string, fieldName: string): string | null {
-  // Match both bold "**Field:**" and plain "Field:" formats
-  const regex = new RegExp(`(?:\\*\\*)?${fieldName}(?:\\*\\*)?:\\s*([^\\n]+)`, 'i')
-  const match = text.match(regex)
-  return match ? match[1].trim() : null
+  return matchField(text, fieldName)
 }
 
 /**

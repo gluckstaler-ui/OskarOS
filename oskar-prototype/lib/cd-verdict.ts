@@ -60,18 +60,34 @@ export async function runVerdict(input: VerdictInput): Promise<VerdictOutcome> {
     '',
     ctx.size > 0 ? '---\nSession context:\n' + ctx.block : '',
     '',
-    'Respond with the three blocks per the SYSTEM MESSAGES protocol in your agent file (## VERDICT, ## NOTE, ## ADJUSTED_DESCRIPTION).',
+    'Respond by calling the `submit_image_verdict` MCP tool with structured ' +
+    '{verdict, note, adjustedDescription?} args. Do NOT write `## VERDICT` / ' +
+    '`## NOTE` / `## ADJUSTED_DESCRIPTION` headers in chat — those parsers ' +
+    'were retired 2026-04-30 (Phase 2 MCP migration). The tool call IS the response.',
   ]
     .filter(Boolean)
     .join('\n')
 
   try {
-    const result = await callCDBridge(input.sessionId, tagged)
-    const parsed = parseVerdictResponse(result.text)
+    const result = await callCDBridge(input.sessionId, tagged, {
+      expectedTools: ['submit_image_verdict'],
+    })
+    const args = (result.toolCalls.submit_image_verdict as VerdictToolArgs | undefined) || null
+    if (!args) {
+      console.warn(
+        `[cd-verdict] CD did not call submit_image_verdict for session ${input.sessionId}. ` +
+        `Defaulting to '≈' so the caller can decide.`,
+      )
+      return {
+        verdict: '≈',
+        note: 'CD did not commit to a structured verdict.',
+        durationMs: result.durationMs,
+      }
+    }
     return {
-      verdict: parsed.verdict,
-      note: parsed.note,
-      adjustedDescription: parsed.adjustedDescription || undefined,
+      verdict: normalizeVerdict(args.verdict),
+      note: typeof args.note === 'string' ? args.note : '',
+      adjustedDescription: args.adjustedDescription || undefined,
       durationMs: result.durationMs,
     }
   } catch (err) {
@@ -85,35 +101,17 @@ export async function runVerdict(input: VerdictInput): Promise<VerdictOutcome> {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Parsing
+// Tool args shape — must match mcp-server/tools-cd.ts:submit_image_verdict.
 // ─────────────────────────────────────────────────────────────────────────────
 
-interface ParsedVerdict {
-  verdict: '✓' | '≈' | '✗'
+interface VerdictToolArgs {
+  verdict: string
   note: string
-  adjustedDescription: string
+  adjustedDescription?: string
 }
 
-function parseVerdictResponse(text: string): ParsedVerdict {
-  const verdictRaw = extractBlock(text, 'VERDICT') || ''
-  const note = extractBlock(text, 'NOTE') || ''
-  const adjustedDescription = extractBlock(text, 'ADJUSTED_DESCRIPTION') || ''
-
-  let verdict: '✓' | '≈' | '✗' = '≈'
-  const v = verdictRaw.trim()
-  if (v.startsWith('✓') || /^pass\b|^ok\b|^good\b|^ship\b/i.test(v)) verdict = '✓'
-  else if (v.startsWith('✗') || /^fail\b|^redo\b|^bad\b|^reject\b/i.test(v)) verdict = '✗'
-  else if (v.startsWith('≈') || /^maybe\b|^okay\b|^usable\b|^meh\b/i.test(v)) verdict = '≈'
-
-  return {
-    verdict,
-    note: note.trim(),
-    adjustedDescription: adjustedDescription.trim(),
-  }
-}
-
-function extractBlock(text: string, header: string): string | null {
-  const re = new RegExp(`##\\s+${header}\\s*\\n([\\s\\S]*?)(?=\\n##\\s+|$)`, 'i')
-  const m = text.match(re)
-  return m ? m[1].trim() : null
+function normalizeVerdict(v: unknown): '✓' | '≈' | '✗' {
+  if (v === '✓' || v === '≈' || v === '✗') return v
+  // Defensive fallback: ambiguous verdict from a misbehaving agent.
+  return '≈'
 }

@@ -36,6 +36,12 @@ export interface PromptEditorProps {
   onReset?: () => void
   /** WP-13A: True if the current prompt differs from the loaded baseline */
   canReset?: boolean
+  /** Ralph 2026-04-23: Send the current prompt to CD for refinement.
+   *  CD's refined `## IMAGE PROMPT` replaces Zone 4 on return (handled
+   *  by the parent's handleAskCD). Button sits between Reset and Generate. */
+  onReviewAI?: () => void
+  /** True while a Review-AI round-trip is in flight. */
+  isReviewingAI?: boolean
 }
 
 // WP-1D: Labels + colors for the prompt source indicator
@@ -94,6 +100,8 @@ function PromptEditorImpl(
     promptSource,
     onReset,
     canReset,
+    onReviewAI,
+    isReviewingAI,
   }: PromptEditorProps,
   ref: React.Ref<PromptEditorHandle>
 ) {
@@ -340,6 +348,54 @@ function PromptEditorImpl(
             }}
           >
             Reset
+          </button>
+        )}
+
+        {/* Review by AI — Ralph 2026-04-23. Hands the current prompt to CD
+            via /api/ask-cd; CD returns a refined `## IMAGE PROMPT` that
+            replaces Zone 4 (routed by the parent's handleAskCD, same tier-1/2
+            path the chat panel already uses). Sits between Reset and
+            Generate so the user can: tweak → review → generate. */}
+        {onReviewAI && (
+          <button
+            onClick={onReviewAI}
+            disabled={isReviewingAI || isGenerating || !prompt.trim()}
+            title={
+              prompt.trim()
+                ? 'Ask CD to review + refine this prompt'
+                : 'Write something first, then CD can review it'
+            }
+            style={{
+              height: 34,
+              padding: '0 14px',
+              borderRadius: 8,
+              border: '1px solid #F59E0B',
+              background: 'transparent',
+              color: '#F59E0B',
+              fontSize: 11,
+              fontWeight: 700,
+              letterSpacing: '0.05em',
+              textTransform: 'uppercase',
+              cursor:
+                isReviewingAI || isGenerating || !prompt.trim()
+                  ? 'not-allowed'
+                  : 'pointer',
+              opacity: isReviewingAI || isGenerating || !prompt.trim() ? 0.5 : 1,
+              fontFamily: 'inherit',
+              transition: 'all 0.12s',
+              whiteSpace: 'nowrap',
+            }}
+            onMouseEnter={(e) => {
+              if (!isReviewingAI && !isGenerating && prompt.trim()) {
+                ;(e.currentTarget as HTMLElement).style.background =
+                  'rgba(245, 158, 11, 0.12)'
+              }
+            }}
+            onMouseLeave={(e) => {
+              ;(e.currentTarget as HTMLElement).style.background = 'transparent'
+            }}
+          >
+            {isReviewingAI ? 'Reviewing…' : 'Review by AI'}
           </button>
         )}
 

@@ -19,6 +19,12 @@ import { AdvancedMode, type AdvancedTab } from '@/components/AdvancedMode'
 import { VibesGallery, type VibeCardData } from '@/components/VibesGallery'
 import { CanvasPanel } from '@/components/CanvasPanel'
 import { LivePreviewWithDirector } from '@/components/studio/LivePreviewWithDirector'
+// Phase 2 Tier S (2026-04-30): agent-initiated user-facing UI.
+import { AskUserModal } from '@/components/AskUserModal'
+// 2026-04-30 (Ralph): CDSnackbar deleted — its `cd.snackbar` events now
+// route through the existing SnackbarProvider (same component every other
+// snackbar in the app uses). The parallel CDSnackbar component never
+// rendered properly. See components/SnackbarProvider.tsx case 'cd.snackbar'.
 import { ConversationPanel } from '@/components/ConversationPanel'
 import { useImagePipeline } from '@/lib/hooks/useImagePipeline'
 import { resolveVibes } from '@/lib/vibe-resolver'
@@ -690,52 +696,141 @@ export default function Home() {
   // setTheme wrapper so the toggle feels instant instead of waiting for
   // React's commit phase. No effect needed here.
 
-  // Listen for session events and post system messages to chat
-  // For image-ready events, also trigger Claude CLI to evaluate the image
+  // ── No more `[SYSTEM:]` chat injection (Phase-1 MCP cutover, 2026-04-29) ──
+  //
+  // This effect used to subscribe to the in-browser `sessionEvents` bus and,
+  // for vibe-ready / image-ready / hot-swap / error, either inject a fake
+  // user message into the chat (firing a CD turn) or push an assistant
+  // bubble into the message list.
+  //
+  // That path produced the stale system-tagged "Vibe X has been built…"
+  // bubbles polluting active sessions: any event for the current sessionId
+  // — even
+  //
+  // a leaked one from a stale bus subscriber, or a re-emit triggered by SSE
+  // bridging — became a synthetic chat turn.
+  //
+  // CD now learns about server events through the MCP notification channel
+  // (mcp-server/notifications.ts), not through synthetic user messages.
+  // Snackbars are handled by SnackbarProvider, which has its own
+  // sessionEvents.onAll subscription. Vibe gallery / Assets panel refresh
+  // is handled by the SSE bridge below (re-emits to sessionEvents in
+  // hyphenated form so SnackbarProvider sees them).
+  //
+  // This hook is intentionally empty. Removing the empty hook entirely
+  // would force a re-numbering of every following hook in this file and
+  // risk breaking React's rule-of-hooks ordering on a Fast Refresh; the
+  // empty body is the lowest-risk way to retire the side effect.
   useEffect(() => {
-    const handleSessionEvent = (event: SessionEvent) => {
-      // Only handle events for current session
-      if (sessionId && event.sessionId !== sessionId) return
+    // intentionally empty — see comment above.
+  }, [sessionId])
 
-      let systemMessage: string | null = null
-      let triggerClaude = false
-
-      switch (event.type) {
-        case 'image-ready':
-          systemMessage = `🖼️ **Image ready:** ${event.data.imageName}${event.data.imageSlot ? ` (${event.data.imageSlot})` : ''}${event.data.geminiText ? `\n\n**Nano Banana says:** ${event.data.geminiText}` : ''}`
-          triggerClaude = true  // Trigger Claude to evaluate the new image
-          break
-        case 'vibe-ready':
-          systemMessage = `[SYSTEM: Vibe "${event.data.vibeName}" has been built and is ready for preview at ${event.data.vibeFile}. User can now view this vibe in the preview panel.]`
-          triggerClaude = true  // Notify CD agent so it can guide the user
-          break
-        case 'error':
-          systemMessage = `❌ **Error:** ${event.data.message}`
-          break
-        case 'hot-swap':
-          systemMessage = `🔄 Swapped ${event.data.oldImage} → ${event.data.newImage} in ${event.data.vibesUpdated?.join(', ')}`
-          break
-      }
-
-      if (systemMessage) {
-        // For image-ready, send as user message so Claude sees and responds to it
-        if (triggerClaude && messageHandlerRef.current) {
-          // Send the notification through the message handler (triggers Claude CLI)
-          messageHandlerRef.current(systemMessage)
-        } else {
-          // For other events, just add to UI as system message
-          setMessages(prev => [...prev, {
-            id: `system-${Date.now()}`,
-            role: 'assistant',
-            content: systemMessage!,
-            timestamp: event.timestamp
-          }])
+  // ── /api/events subscription ──────────────────────────────────────────────
+  // 2026-04-29 (Phase 1 MCP migration): the orchestrator now publishes to a
+  // per-session in-memory event-bus when /api/mcp/* tools complete (build,
+  // hotswap, refresh, etc.). The MCP server reads that bus to send CD
+  // notifications; the frontend reads the same bus here to keep snackbars,
+  // vibe cards, and Assets-panel refreshes flowing without waiting for
+  // chat-stream's per-turn SSE. Translates server event-bus shape into the
+  // hyphenated `sessionEvents` shape the legacy handler above expects.
+  useEffect(() => {
+    if (!sessionId) return
+    const es = new EventSource(`/api/events?session=${encodeURIComponent(sessionId)}`)
+    es.onmessage = (evt) => {
+      // 2026-04-30 (Ralph): defend against non-JSON SSE payloads. The
+      // server's heartbeat now uses SSE-comments which the EventSource
+      // drops before onmessage fires, so this branch protects against
+      // future rogue routes that send `data: <non-json>\n\n`. Without
+      // this, the JSON.parse throw was caught but surfaced in the
+      // Next.js dev overlay as a noisy runtime warning.
+      if (typeof evt.data !== 'string') return
+      const trimmed = evt.data.trimStart()
+      if (!trimmed.startsWith('{') && !trimmed.startsWith('[')) return
+      try {
+        const payload = JSON.parse(evt.data)
+        if (!payload || typeof payload !== 'object') return
+        switch (payload.type) {
+          case 'vibe_built':
+            sessionEvents.emit({
+              type: 'vibe-ready',
+              sessionId,
+              data: { vibeName: payload.vibeName, vibeFile: payload.filename },
+            })
+            break
+          case 'image_ready':
+            sessionEvents.emit({
+              type: 'image-ready',
+              sessionId,
+              data: {
+                imageName: payload.imageName || payload.filename,
+                imageSlot: payload.slot,
+                geminiText: payload.geminiText || payload.nanoText,
+              },
+            })
+            break
+          case 'hotswap_complete':
+            sessionEvents.emit({
+              type: 'hot-swap',
+              sessionId,
+              data: {
+                oldImage: payload.oldImage || '(prior)',
+                newImage: payload.sourceImage,
+                vibesUpdated: [payload.vibe],
+              },
+            })
+            break
+          case 'vibe_failed':
+          case 'hotswap_failed':
+          case 'image_failed':
+          case 'build_failed':
+          case 'error':
+            sessionEvents.emit({
+              type: 'error',
+              sessionId,
+              data: { message: payload.error || payload.message || `${payload.type}` },
+            })
+            break
+          // Phase 2 Tier S (2026-04-30): agent-initiated user-facing events.
+          case 'cd_snackbar':
+            // Preserve `sticky` as undefined when the agent didn't pass it,
+            // so the SnackbarProvider applies per-severity defaults (progress/
+            // warning/error sticky; info/success auto). Coercing to boolean
+            // here used to clobber those defaults — see route comment.
+            sessionEvents.emit({
+              type: 'cd.snackbar',
+              sessionId,
+              data: {
+                text: payload.text,
+                severity: payload.severity || 'info',
+                ...(typeof payload.sticky === 'boolean'
+                  ? { sticky: payload.sticky }
+                  : {}),
+              },
+            })
+            break
+          case 'cd_ask_user':
+            sessionEvents.emit({
+              type: 'cd.ask-user',
+              sessionId,
+              data: {
+                requestId: payload.requestId,
+                question: payload.question,
+                options: payload.options,
+              },
+            })
+            break
+          // assets_updated / build_started / connected / heartbeat — silent;
+          // the AssetsPanel re-reads on its own cadence, no UI dispatch needed.
         }
+      } catch (err) {
+        console.error('[/api/events] parse error', err)
       }
     }
-
-    const unsubscribe = sessionEvents.onAll(handleSessionEvent)
-    return () => unsubscribe()
+    es.onerror = (err) => {
+      // EventSource auto-reconnects; just log.
+      console.warn('[/api/events] connection error (auto-retrying):', err)
+    }
+    return () => { es.close() }
   }, [sessionId])
 
   // Upload a new image
@@ -1831,11 +1926,14 @@ export default function Home() {
         }
         setSourceImages(prev => [...prev, newImage])
 
-        // Log to IMAGES.md if we have a session
+        // Log to IMAGES.md if we have a session.
+        // 2026-04-29 Phase 2: removed `emitImageReady(...)` here. /api/edit-image
+        // now publishes `image_ready` to the event-bus server-side; the
+        // /api/events SSE delivers it to BOTH the frontend (sessionEvents)
+        // AND the MCP server (CD as logging notification). Single source.
         if (sessionId) {
           const logType = operation === 'edit' ? 'edited' : 'generated'
           await logImageGenerationAction(sessionId, newImage.filename, instruction, logType, undefined, data.geminiText || undefined)
-          emitImageReady(sessionId, newImage.filename, logType, data.geminiText || undefined)
         }
       }
     } catch (error) {
@@ -1914,10 +2012,11 @@ export default function Home() {
         }
         setSourceImages(prev => [...prev, newImage])
 
-        // Log to IMAGES.md if we have a session
+        // Log to IMAGES.md if we have a session.
+        // emitImageReady removed for the same reason as the edit branch above —
+        // /api/edit-image publishes `image_ready` server-side now.
         if (sessionId) {
           await logImageGenerationAction(sessionId, newImage.filename, instruction, 'composed', undefined, data.geminiText || undefined)
-          emitImageReady(sessionId, newImage.filename, 'composed', data.geminiText || undefined)
         }
       }
     } catch (error) {
@@ -2792,6 +2891,11 @@ export default function Home() {
       )}
 
       {/* Old overlay mode removed — Advanced Mode now lives in IMAGE tab */}
+
+      {/* Phase 2 Tier S (2026-04-30): agent-initiated user UI.
+          Both components are self-contained — they listen to sessionEvents
+          and render only when an event fires. */}
+      <AskUserModal />
     </div>
   )
 }

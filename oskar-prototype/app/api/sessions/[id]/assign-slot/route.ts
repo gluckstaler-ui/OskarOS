@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { hotSwapToVibe } from '@/lib/vibe-slots'
+import { publish } from '@/lib/event-bus'
 
 /**
  * POST /api/sessions/[id]/assign-slot
@@ -30,8 +31,27 @@ export async function POST(
     const result = await hotSwapToVibe(sessionId, vibe, slot, filename)
 
     if (!result.success) {
+      publish(sessionId, {
+        type: 'hotswap_failed',
+        vibe,
+        slot,
+        filename,
+        error: result.error,
+        level: 'error',
+      })
       return NextResponse.json({ success: false, error: result.error }, { status: 400 })
     }
+
+    // Phase 2: server-side publish so /api/events delivers hotswap_complete
+    // to BOTH the frontend (UI snackbar via sessionEvents) AND the MCP server
+    // (CD as a logging notification). Removes the duplicate emitHotSwap path
+    // that AdvancedMode used to call client-side after this fetch.
+    publish(sessionId, {
+      type: 'hotswap_complete',
+      vibe,
+      slot,
+      sourceImage: filename,
+    })
 
     return NextResponse.json({ success: true, result })
   } catch (error) {

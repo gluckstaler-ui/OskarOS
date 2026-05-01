@@ -5,6 +5,7 @@
 
 import { readdir, readFile } from 'fs/promises'
 import { join } from 'path'
+import { matchField } from './markdown-fields'
 
 export interface ParsedVibe {
   index: number
@@ -92,21 +93,13 @@ export function parseVibePreview(briefContent: string): Map<string, VibePreviewE
     // Parse the content
     const content = lines.slice(1).join('\n')
 
-    // Extract Name
-    const nameMatch = content.match(/\*\*Name:\*\*\s*([^\n]+)/i)
-    const name = nameMatch ? nameMatch[1].trim() : filename.replace('.html', '')
-
-    // Extract Audience
-    const audienceMatch = content.match(/\*\*Audience:\*\*\s*([^\n]+)/i)
-    const audience = audienceMatch ? audienceMatch[1].trim() : ''
-
-    // Extract Mood
-    const moodMatch = content.match(/\*\*Mood:\*\*\s*([^\n]+)/i)
-    const mood = moodMatch ? moodMatch[1].trim() : ''
-
-    // Extract Hero Image
-    const heroImageMatch = content.match(/\*\*Hero Image:\*\*\s*([^\n]+)/i)
-    const heroImage = heroImageMatch ? heroImageMatch[1].trim() : ''
+    // Field extraction — accepts BOTH `**Field:** value` (bold-labeled) and
+    // `Field: value` (plain). See lib/markdown-fields.ts for the rationale
+    // (preventing the 2026-04-25-2 silent-failure cascade).
+    const name = matchField(content, 'Name') || filename.replace('.html', '')
+    const audience = matchField(content, 'Audience') || ''
+    const mood = matchField(content, 'Mood') || ''
+    const heroImage = matchField(content, 'Hero Image') || ''
 
     // Extract Colors (multi-line format)
     let primary = '#1C1C1E', secondary = '#F5F5F5', accent = '#C76B00', text = '#1A1A1A'
@@ -147,9 +140,8 @@ export function parseCreativeBrief(briefContent: string): ParsedBrief {
   const businessMatch = briefContent.match(/# Creative Brief: ([^\n]+)/)
   const businessName = businessMatch ? businessMatch[1].trim() : 'Unknown Business'
 
-  // Extract status
-  const statusMatch = briefContent.match(/\*\*Status:\*\*\s*([^\n]+)/)
-  const status = statusMatch ? statusMatch[1].trim() : 'DRAFT'
+  // Extract status — accepts both bold-labeled and plain
+  const status = matchField(briefContent, 'Status') || 'DRAFT'
 
   // Parse vibes
   const vibes = parseVibesFromBrief(briefContent)
@@ -171,61 +163,43 @@ export function parseCreativeBrief(briefContent: string): ParsedBrief {
 export function parseVibesFromBrief(briefContent: string): ParsedVibe[] {
   const vibes: ParsedVibe[] = []
 
-  // Primary approach: Split by vibe headers (most reliable)
-  // This handles "# VIBE N: Name" format
-  const singleHashSections = briefContent.split(/^# VIBE (\d+): /gm)
-  // sections[0] = everything before first vibe
-  // sections[1] = "1", sections[2] = content of vibe 1
-  // sections[3] = "2", sections[4] = content of vibe 2, etc.
+  // Ralph 2026-04-26: case-insensitive across ALL three header patterns.
+  // Previously the `# VIBE N:` and `## VIBE N:` patterns were case-sensitive,
+  // so a CD-written file titled `# Vibe 5: Name` failed every pattern silently
+  // (only `### Vibe N:` had `/i`). vibe-5 in session 2026-04-25-2 sat on disk
+  // with `# Vibe 5:` and got rejected → "Could not parse vibe from vibe-5.md".
+  // All three now accept VIBE / Vibe / vibe.
 
-  if (singleHashSections.length > 1) {
-    for (let i = 1; i < singleHashSections.length; i += 2) {
-      const index = singleHashSections[i]
-      const content = singleHashSections[i + 1] || ""
-
-      // Get name (first line) and body (rest)
-      const firstNewline = content.indexOf("\n")
+  const tryPattern = (pattern: RegExp): boolean => {
+    const sections = briefContent.split(pattern)
+    if (sections.length <= 1) return false
+    for (let i = 1; i < sections.length; i += 2) {
+      const index = sections[i]
+      const content = sections[i + 1] || ''
+      const firstNewline = content.indexOf('\n')
       if (firstNewline === -1) continue
-
       const name = content.substring(0, firstNewline).trim()
       const body = content.substring(firstNewline + 1)
-
       const parsed = parseVibeContent(index, name, body)
       if (parsed) vibes.push(parsed)
     }
+    return vibes.length > 0
   }
 
-  // Fallback: Try ## VIBE N: format
-  if (vibes.length === 0) {
-    const doubleHashSections = briefContent.split(/^## VIBE (\d+): /gm)
-    if (doubleHashSections.length > 1) {
-      for (let i = 1; i < doubleHashSections.length; i += 2) {
-        const index = doubleHashSections[i]
-        const content = doubleHashSections[i + 1] || ""
-        const firstNewline = content.indexOf("\n")
-        if (firstNewline === -1) continue
-        const name = content.substring(0, firstNewline).trim()
-        const body = content.substring(firstNewline + 1)
-        const parsed = parseVibeContent(index, name, body)
-        if (parsed) vibes.push(parsed)
-      }
-    }
-  }
-
-  // Fallback: Try ### Vibe N: format
-  if (vibes.length === 0) {
-    const tripleHashSections = briefContent.split(/^### Vibe (\d+): /gim)
-    if (tripleHashSections.length > 1) {
-      for (let i = 1; i < tripleHashSections.length; i += 2) {
-        const index = tripleHashSections[i]
-        const content = tripleHashSections[i + 1] || ""
-        const firstNewline = content.indexOf("\n")
-        if (firstNewline === -1) continue
-        const name = content.substring(0, firstNewline).trim()
-        const body = content.substring(firstNewline + 1)
-        const parsed = parseVibeContent(index, name, body)
-        if (parsed) vibes.push(parsed)
-      }
+  // Try in priority order; first pattern that yields ≥1 vibe wins.
+  // All three patterns case-insensitive — `# Vibe 5:` matches as readily
+  // as `# VIBE 5:`.
+  if (
+    !tryPattern(/^# VIBE (\d+): /gim) &&
+    !tryPattern(/^## VIBE (\d+): /gim) &&
+    !tryPattern(/^### VIBE (\d+): /gim)
+  ) {
+    // No header form matched — log so future failures are visible.
+    if (briefContent.trim().length > 0) {
+      console.warn(
+        '[parseVibesFromBrief] No vibe headers found. Expected one of: ' +
+        '`# Vibe N: name`, `## Vibe N: name`, or `### Vibe N: name` (case-insensitive)',
+      )
     }
   }
 
@@ -240,54 +214,45 @@ function parseVibeContent(indexStr: string, nameStr: string, content: string): P
   const name = nameStr.trim()
   const trimmedContent = content.trim()
 
-  // Extract one-liner (various formats)
-  const oneLinerMatch = trimmedContent.match(/\*\*One-liner:\*\*\s*([^\n]+)/i)
-    || trimmedContent.match(/One-liner:\s*([^\n]+)/i)
-  const oneLiner = oneLinerMatch ? oneLinerMatch[1].trim() : ''
+  // All field extraction goes through `matchField` (which accepts both
+  // bold-labeled and plain formats). Multiple field-name aliases are tried
+  // in order; first hit wins.
+  const tryFields = (...names: string[]): string => {
+    for (const n of names) {
+      const v = matchField(trimmedContent, n)
+      if (v) return v
+    }
+    return ''
+  }
 
-  // Extract voice
-  const voiceMatch = trimmedContent.match(/\*\*Voice:\*\*\s*([^\n]+)/i)
-    || trimmedContent.match(/Voice:\s*([^\n]+)/i)
-  const voice = voiceMatch ? voiceMatch[1].trim() : ''
+  const oneLiner = tryFields('One-liner')
+  const voice = tryFields('Voice')
+  const whoFor = tryFields("Who it's for", "Who It's For", 'For')
 
-  // Extract who it's for (detailed, for WebDev)
-  const whoForMatch = trimmedContent.match(/\*\*(?:Who it's for|Who It's For|For):\*\*\s*([^\n]+)/i)
-    || trimmedContent.match(/(?:Who it's for|Who It's For|For):\s*([^\n]+)/i)
-  const whoFor = whoForMatch ? whoForMatch[1].trim() : ''
-
-  // Extract audience (short brand persona for gallery display)
-  const audienceMatch = trimmedContent.match(/\*\*Audience:\*\*\s*([^\n]+)/i)
-    || trimmedContent.match(/Audience:\s*([^\n]+)/i)
-  // Fallback: derive from whoFor if audience not specified (take first 50 chars)
-  const audience = audienceMatch
-    ? audienceMatch[1].trim()
+  // Audience: explicit field, fall back to derived from whoFor
+  const audienceExplicit = tryFields('Audience')
+  const audience = audienceExplicit
+    ? audienceExplicit
     : whoFor.length > 50
-      ? whoFor.substring(0, 50).replace(/\s+\S*$/, '') + '...'  // Truncate at word boundary
+      ? whoFor.substring(0, 50).replace(/\s+\S*$/, '') + '...'
       : whoFor
 
-  // Extract mood (3-5 adjectives for gallery display)
-  const moodMatch = trimmedContent.match(/\*\*Mood:\*\*\s*([^\n]+)/i)
-    || trimmedContent.match(/Mood:\s*([^\n]+)/i)
-  // Fallback: derive from voice if mood not specified (extract adjectives or truncate)
+  // Mood: explicit field, fall back to derived from voice
+  const moodExplicit = tryFields('Mood')
   let mood = ''
-  if (moodMatch) {
-    mood = moodMatch[1].trim()
+  if (moodExplicit) {
+    mood = moodExplicit
   } else if (voice) {
-    // Try to extract just adjectives from voice (words before the first period or dash)
     const adjPart = voice.split(/[.—–-]/)[0].trim()
     mood = adjPart.length > 50 ? adjPart.substring(0, 50).replace(/\s+\S*$/, '') : adjPart
   }
 
-  // Extract colors (multiple formats)
   // Default colors
   let primary = '#1C1C1E', secondary = '#F5F5F5', accent = '#C76B00', text = '#1A1A1A'
 
-  // Try single-line format first: **Colors:** #hex1 #hex2 #hex3 #hex4
-  const colorsMatch = trimmedContent.match(/\*\*Colors:\*\*\s*([^\n]+)/i)
-    || trimmedContent.match(/Colors:\s*([^\n]+)/i)
-
-  if (colorsMatch) {
-    const colorLine = colorsMatch[1]
+  // Try single-line format first: `Colors: #hex1 #hex2 #hex3 #hex4`
+  const colorLine = tryFields('Colors')
+  if (colorLine) {
     const hexColors = colorLine.match(/#[A-Fa-f0-9]{6}/g)
     if (hexColors && hexColors.length >= 1) primary = hexColors[0]
     if (hexColors && hexColors.length >= 2) secondary = hexColors[1]

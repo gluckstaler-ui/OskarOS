@@ -110,6 +110,14 @@ export interface AdvancedModeProps {
   onImageGenerated?: (newImage: SourceImage) => void
   /** WP-11A: Called after a delete — parent removes the image from state. */
   onRemoveImage?: (imageId: string) => void
+  /** Ralph 2026-04-25: Upload from inside Image mode. Same handler the
+   *  BRIEF/STUDIO AssetsPanel uses; parent owns disk write + state add. */
+  onUpload?: (file: File) => void
+  /** Ralph 2026-04-25: Re-read IMAGES.md and refresh tag + usedIn on
+   *  every source image. Called after Replace-everywhere succeeds — the
+   *  server's reconcile updated tags on disk, this pulls them back into
+   *  React state so the panel shows the new USED / B-ROLL state. */
+  onSourceImagesRefresh?: () => void | Promise<void>
   /** WP-B5: Vibes loaded in the session (for the Brand tab's vibe picker). */
   vibes?: VibeData[]
   /** WP-B5: Session business name (falls back to vibe name if empty). */
@@ -331,6 +339,8 @@ export function AdvancedMode({
   onClose,
   onImageGenerated,
   onRemoveImage,
+  onUpload,
+  onSourceImagesRefresh,
   vibes = [],
   businessName = '',
   chatMessages = [],
@@ -776,14 +786,69 @@ export function AdvancedMode({
   }
 
   /**
-   * Build a filename for the generated result.
+   * Walk an image's parent chain back to the original upload / pure-generate
+   * root. Used to build filenames that don't accumulate prefixes on
+   * successive edits — `vibrant-warm-night-sultan.jpg` becomes just
+   * `night-sultan.jpg` because the slug is `night` + the root `sultan`,
+   * regardless of intermediate edits.
+   *
+   * Returns the root's basename (no extension). Capped at 8 hops so a
+   * cycle in parentImage links can't infinite-loop. (Ralph 2026-04-25.)
    */
-  function buildFilename(tab: AdvancedTab, selected: SourceImage | null, presetLabel: string | null): string {
-    const prefix = tab === 'generate' ? 'gen' : tab === 'edit' ? 'edited' : tab === 'compose' ? 'composed' : 'layout'
-    const base = selected?.filename?.replace(/\.[^/.]+$/, '') || 'image'
-    const presetSlug = presetLabel?.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/-+$/, '') || ''
-    return presetSlug ? `${prefix}-${presetSlug}-${base}` : `${prefix}-${base}`
-  }
+  const findRootBasename = useCallback(
+    (start: SourceImage): string => {
+      const seen = new Set<string>()
+      let curr: SourceImage = start
+      for (let i = 0; i < 8; i++) {
+        if (!curr.parentImage || seen.has(curr.filename)) break
+        seen.add(curr.filename)
+        const parent = sourceImages.find((img) => img.filename === curr.parentImage)
+        if (!parent) break
+        curr = parent
+      }
+      return curr.filename.replace(/\.[^/.]+$/, '')
+    },
+    [sourceImages],
+  )
+
+  /**
+   * Build the filename hint sent to /api/edit-image.
+   *
+   * Formula:
+   *   - Edit / Compose / Layout (have a source): `{actionSlug}-{rootBasename}`
+   *     where actionSlug is the preset label slugged (e.g. "vibrant",
+   *     "night-scene") or the tab name as fallback. rootBasename is the
+   *     original upload's name, found by walking parentImage links — so
+   *     repeated edits don't grow `vibrant-warm-night-sultan.jpg`; instead
+   *     each edit produces `{newAction}-sultan.jpg`.
+   *   - Generate (no source): just `{actionSlug}` (preset slug, or 'generated').
+   *
+   * Returns undefined when no meaningful hint can be built; the server
+   * then falls back to its description-slug pipeline.
+   */
+  const buildFilenameHint = useCallback(
+    (
+      tab: AdvancedTab,
+      source: SourceImage | null,
+      presetLabel: string | null,
+      stagedSources: SourceImage[],
+    ): string | undefined => {
+      const slugify = (s: string) =>
+        s.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '')
+      const action = presetLabel ? slugify(presetLabel) : tab
+      if (tab === 'generate') {
+        return action || undefined
+      }
+      // For edit/compose/layout, anchor on a root source name.
+      const anchor =
+        source ?? stagedSources.find(Boolean) ?? null
+      if (!anchor) return action || undefined
+      const root = findRootBasename(anchor)
+      const trimmed = root.length > 32 ? root.slice(0, 32) : root
+      return action ? `${action}-${trimmed}` : trimmed
+    },
+    [findRootBasename],
+  )
 
   const handleGenerate = useCallback(async () => {
     const { prompt, selectedImage, aspectRatio, resolution, activePresetLabel } = currentState
@@ -794,12 +859,33 @@ export function AdvancedMode({
 
     const operation = tabToOperation(activeTab)
     const sourceImagePaths = getSourcePaths(activeTab, selectedImage)
-    const filename = buildFilename(activeTab, selectedImage, activePresetLabel)
+
+    // Build a meaningful filename hint from preset + source root. Server
+    // uses this when present (and not generic) — falls back to slugging
+    // Nano's description otherwise. Restored Ralph 2026-04-25 after the
+    // server-only path produced names like `close-low-2.jpg` from camera
+    // vocabulary in Nano descriptions.
+    const stagedSources: SourceImage[] = []
+    if (activeTab === 'compose') {
+      const s = currentState.composeStaging
+      if (s.sceneImage) stagedSources.push(s.sceneImage)
+      s.subjectImages.forEach((i) => stagedSources.push(i))
+    } else if (activeTab === 'layout') {
+      currentState.layoutStaging.slots
+        .filter((i): i is SourceImage => Boolean(i))
+        .forEach((i) => stagedSources.push(i))
+    }
+    const filenameHint = buildFilenameHint(
+      activeTab,
+      selectedImage,
+      activePresetLabel || null,
+      stagedSources,
+    )
 
     const payload = {
       sourceImagePaths,
       instruction: prompt,
-      filename,
+      filename: filenameHint,
       imageSize: resolution,
       aspectRatio,
       operation,
@@ -836,7 +922,9 @@ export function AdvancedMode({
       const parentFilenames = sourceImagePaths.map((p) => p.split('/').pop() || p)
       const newImage: SourceImage = {
         id: `gen-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
-        filename: result.filename || filename + '.jpg',
+        // Server owns filename generation now; fallback covers the rare
+        // case where the API didn't echo one back (e.g. non-base64 result).
+        filename: result.filename || 'generated-image.jpg',
         path: result.savedPath || '',
         uploadedAt: new Date().toISOString(),
         isGenerated: true,
@@ -969,13 +1057,11 @@ export function AdvancedMode({
               )
               if (r.ok) {
                 updatedVibes.push(m.vibe)
-                emitHotSwap(
-                  sessionId,
-                  [m.vibe],
-                  m.slot,
-                  m.oldImage,
-                  newImage.filename
-                )
+                // 2026-04-29 Phase 2: removed `emitHotSwap(...)` here.
+                // /api/sessions/[id]/assign-slot now publishes
+                // `hotswap_complete` to the event-bus server-side; the
+                // /api/events SSE delivers it to BOTH the frontend (sessionEvents)
+                // AND the MCP server (CD as logging notification).
               }
             }
 
@@ -1162,10 +1248,43 @@ export function AdvancedMode({
     ],
   )
 
-  // WP-11A: Delete with orphan guard
+  /**
+   * Review by AI — Ralph 2026-04-23.
+   *
+   * Hands the CURRENT Zone 4 prompt to CD for refinement. CD returns a
+   * `## IMAGE PROMPT` block; handleAskCD's existing tier-1/2 routing puts
+   * it back into Zone 4 (replacing the user's text). Messaging is crafted
+   * so CD understands "review my prompt and commit a refined version,"
+   * not "chat about my prompt."
+   *
+   * Why we reuse handleAskCD rather than a new endpoint:
+   *   - All the session/bridge wiring already exists there
+   *   - The tier-1/2 imagePrompt → Zone 4 routing is proven
+   *   - Chat log paper-trail fires automatically
+   */
+  const handleReviewByAI = useCallback(() => {
+    const current = currentState.prompt.trim()
+    if (!current || isCDLoading) return
+    const review =
+      `Review the IMAGE PROMPT I currently have in Zone 4 below. ` +
+      `Improve clarity, specificity, and Nano Banana readiness — fix ` +
+      `ambiguity, tighten phrasing, keep my intent. Return the refined ` +
+      `version inside a \`## IMAGE PROMPT\` block so it replaces Zone 4. ` +
+      `If it's already excellent, return it unchanged.\n\n` +
+      `Current prompt:\n\`\`\`\n${current}\n\`\`\``
+    handleAskCD(review)
+  }, [currentState.prompt, isCDLoading, handleAskCD])
+
+  // WP-11A: Delete with orphan guard.
+  // Ralph 2026-04-23: orphan guard now only blocks on HTML references
+  // (where deleting actually breaks a rendered page). Metadata-only
+  // references (SESSION.md, CREATIVE-BRIEF.md, BUILD.md, IMAGES.md,
+  // vibe-*.md) are scrubbed silently — they're logs/drafts, safe to
+  // delete through. The `kind` field comes from /api/director/delete-image.
+  type DeleteRef = { file: string; context: string; kind: 'html' | 'metadata' }
   const [deleteDialog, setDeleteDialog] = useState<{
     image: SourceImage
-    references: Array<{ file: string; context: string }>
+    references: DeleteRef[]
   } | null>(null)
   const [undoBackup, setUndoBackup] = useState<{
     image: SourceImage
@@ -1182,13 +1301,18 @@ export function AdvancedMode({
         body: JSON.stringify({ sessionId, filename: image.filename, action: 'scan' }),
       })
       const data = await res.json()
-      const refs = data.references || []
+      const refs: DeleteRef[] = data.references || []
+      const blocking = refs.filter((r) => r.kind === 'html')
 
-      if (refs.length > 0) {
-        // Show guard dialog
+      if (blocking.length > 0) {
+        // Show guard dialog — only when an HTML page actually renders this
+        // image. The dialog lists ALL refs (blocking + metadata) so the
+        // user sees the full picture when they confirm the override.
         setDeleteDialog({ image, references: refs })
       } else {
-        // No references — delete directly
+        // No HTML references — delete directly even if metadata mentions
+        // exist. IMAGES.md gets scrubbed by the delete action; other
+        // markdown is left as historical record.
         await executeDelete(image)
       }
     } catch (err) {
@@ -1196,29 +1320,46 @@ export function AdvancedMode({
     }
   }, [sessionId])
 
-  const executeDelete = useCallback(async (image: SourceImage) => {
+  const executeDelete = useCallback((image: SourceImage) => {
     if (!sessionId) return
     setDeleteDialog(null)
 
-    // Store backup for undo
+    // Delete UX (Ralph 2026-04-23):
+    //   - Remove from React state immediately so the tile disappears.
+    //   - Keep the file on DISK for the 5-second undo window.
+    //   - Fire the actual DELETE API call only when the timer expires.
+    //   - If Undo is clicked: clearTimeout → API never runs → file stays.
+    //
+    // This is the only way the file-restore semantics can actually work
+    // given there's no snapshot/backup on the server side. The previous
+    // implementation deleted the file immediately and left Undo as a
+    // lying button that re-added a broken reference.
     const timer = setTimeout(() => {
-      setUndoBackup(null)
-    }, 5000)
-    setUndoBackup({ image, timer })
-
-    // Remove from local state immediately
-    if (onRemoveImage) onRemoveImage(image.id)
-
-    try {
-      await fetch('/api/director/delete-image', {
+      // Committed delete — fire and forget. Errors stay in the console;
+      // we don't re-surface the tile because from the user's POV the
+      // delete was already "done" 5 seconds ago.
+      fetch('/api/director/delete-image', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ sessionId, filename: image.filename, action: 'delete' }),
+        body: JSON.stringify({
+          sessionId,
+          filename: image.filename,
+          action: 'delete',
+        }),
       })
-      console.log(`[delete] Deleted ${image.filename}`)
-    } catch (err) {
-      console.error('[delete] Failed:', err)
-    }
+        .then((res) => {
+          if (!res.ok) {
+            console.error('[delete] Server rejected:', res.status)
+          } else {
+            console.log(`[delete] Committed ${image.filename}`)
+          }
+        })
+        .catch((err) => console.error('[delete] Commit failed:', err))
+      setUndoBackup(null)
+    }, 5000)
+
+    setUndoBackup({ image, timer })
+    if (onRemoveImage) onRemoveImage(image.id)
   }, [sessionId, onRemoveImage])
 
   // WP-11B: Replace all occurrences
@@ -1246,7 +1387,7 @@ export function AdvancedMode({
   const executeReplaceAll = useCallback(async () => {
     if (!sessionId || !replaceDialog?.source || !replaceDialog?.selectedTarget) return
     try {
-      await fetch('/api/director/replace-image', {
+      const res = await fetch('/api/director/replace-image', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -1256,12 +1397,23 @@ export function AdvancedMode({
           action: 'replace',
         }),
       })
-      console.log(`[replace-all] Replaced ${replaceDialog.source.filename} → ${replaceDialog.selectedTarget.filename}`)
+      const result = await res.json().catch(() => ({}))
+      console.log(
+        `[replace-all] Replaced ${replaceDialog.source.filename} → ${replaceDialog.selectedTarget.filename}` +
+        (result?.reconcile
+          ? ` | tags: +${result.reconcile.promoted?.length ?? 0} USED, -${result.reconcile.demoted?.length ?? 0} demoted`
+          : ''),
+      )
       setReplaceDialog(null)
+      // Ralph 2026-04-25: server reconciled IMAGES.md tags after the swap.
+      // Pull them back into React state so the displaced source drops its
+      // USED pill and the new target picks it up. Without this the panel
+      // stays stale until the next chat-driven refresh.
+      await onSourceImagesRefresh?.()
     } catch (err) {
       console.error('[replace-all] Failed:', err)
     }
-  }, [sessionId, replaceDialog])
+  }, [sessionId, replaceDialog, onSourceImagesRefresh])
 
   // --- Derived rendering flags -----------------------------------------------
   const isViewMode = activeTab === 'view'
@@ -1312,6 +1464,7 @@ export function AdvancedMode({
           roleBadgeMap={roleBadgeMap}
           onDelete={handleDeleteImage}
           onReplaceAll={handleReplaceAll}
+          onUpload={onUpload}
         />
       </div>
 
@@ -1520,17 +1673,11 @@ export function AdvancedMode({
                 onCloseAssign={() => setAssignOpen(false)}
                 isGenerating={isGenerating}
                 activePresetLabel={currentState.activePresetLabel}
-                onAssignedToVibe={(result) => {
-                  // WP-8B: emit snackbar so the user sees the change landed
-                  if (sessionId) {
-                    emitHotSwap(
-                      sessionId,
-                      [result.vibe],
-                      result.slot,
-                      result.oldImage || '(none)',
-                      result.newImage
-                    )
-                  }
+                onAssignedToVibe={(_result) => {
+                  // 2026-04-29 Phase 2: snackbar is now driven by server-side
+                  // `publish('hotswap_complete')` from /api/sessions/[id]/assign-slot.
+                  // /api/events SSE → frontend useEffect → sessionEvents → snackbar.
+                  // No client-side emit needed.
                 }}
               />
         </div>
@@ -1605,6 +1752,8 @@ export function AdvancedMode({
             promptSource={currentState.promptSource}
             onReset={handleReset}
             canReset={currentState.prompt !== currentState.loadedPrompt}
+            onReviewAI={sessionId ? handleReviewByAI : undefined}
+            isReviewingAI={isCDLoading}
           />
         </div>
       )}
@@ -1647,6 +1796,11 @@ export function AdvancedMode({
               ? { filename: currentState.selectedImage.filename, sessionId }
               : null
           }
+          // Ralph 2026-04-23: AI edits performed inside Director Mode of
+          // the embedded preview surface in Zone 1 via the same pipeline
+          // Zone 4 generations use — `onImageGenerated` is the single
+          // entry point parents have already wired to `setSourceImages`.
+          onImageGenerated={onImageGenerated}
         />
       </div>
 
@@ -1843,11 +1997,13 @@ export function AdvancedMode({
           <span>Deleted {undoBackup.image.filename}</span>
           <button
             onClick={() => {
-              // Undo: re-add to parent state (file is already gone from disk — would need a restore API)
-              // For now, clear the timer and dismiss
+              // Undo (Ralph 2026-04-23 fix): the executeDelete flow now
+              // defers the actual disk delete for 5s. Clearing the timer
+              // cancels that pending DELETE call — the file stays on disk,
+              // IMAGES.md is untouched, HTML references are intact. All
+              // we need to do on our side is re-add to React state.
               clearTimeout(undoBackup.timer)
               setUndoBackup(null)
-              // Re-add to state via onImageGenerated (reuses the same callback)
               onImageGenerated?.(undoBackup.image)
             }}
             style={{
