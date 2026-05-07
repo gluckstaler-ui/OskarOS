@@ -1,0 +1,38 @@
+# Dependencies
+node_modules/
+
+# Build output
+.next/
+out/
+
+# Test output
+coverage/
+playwright-report/
+
+# OS junk
+.DS_Store
+Thumbs.db
+
+# Secrets
+.env.local
+.env*.local
+.api-key
+
+# Generated outputs
+public/
+
+# Build artifacts
+*.tsbuildinfo
+
+# Misc
+debug-webdev.sh
+lazyblocks-migration/
+
+# Vendored third-party skill — clone from upstream as needed:
+# git clone https://github.com/referodesign/refero_skill skills/refero_skill
+skills/refero_skill/
+
+# MCP proxy sidecar state — written by /api/active-session, read by
+# scripts/mcp-stdio-proxy.mjs. Local-only, regenerated on every session
+# switch. Should never be committed.
+.runtime/

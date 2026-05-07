@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="de-CH">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bareggcenter Baden | THE LOOP</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --color-midnight: #0a1628;
+            --color-amber: #d4a574;
+            --color-offwhite: #f5f2ed;
+            --font-serif: 'Playfair Display', Georgia, serif;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        body {
+            font-family: var(--font-serif);
+            background-color: var(--color-midnight);
+            color: var(--color-offwhite);
+            line-height: 1.6;
+            letter-spacing: -0.02em;
+        }
+
+        /* Hero Section */
+        .hero {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .hero-bg {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: url('../../images/loop-motion-blur.jpg');
+            background-size: cover;
+            background-position: center;
+            z-index: 0;
+        }
+
+        .hero-content {
+            position: relative;
+            z-index: 2;
+            max-width: 900px;
+            padding: 2rem;
+        }
+
+        .hero h1 {
+            font-size: clamp(2rem, 5vw, 3.5rem);
+            font-weight: 500;
+            line-height: 1.2;
+            margin-bottom: 1.5rem;
+            text-shadow: 0 2px 20px rgba(0,0,0,0.8);
+            letter-spacing: -0.03em;
+        }
+
+        .hero .subline {
+            font-size: clamp(1rem, 2vw, 1.4rem);
+            font-weight: 400;
+            opacity: 0.9;
+            margin-bottom: 2.5rem;
+            text-shadow: 0 2px 20px rgba(0,0,0,0.8);
+        }
+
+        .cta-button {
+            display: inline-block;
+            padding: 1rem 2.5rem;
+            background-color: var(--color-amber);
+            color: var(--color-midnight);
+            text-decoration: none;
+            font-size: 1.1rem;
+            font-weight: 600;
+            letter-spacing: 0.05em;
+            transition: all 0.3s ease;
+            border: none;
+            cursor: pointer;
+        }
+
+        .cta-button:hover {
+            background-color: var(--color-offwhite);
+            transform: translateY(-2px);
+        }
+
+        /* Section Base */
+        section {
+            padding: 6rem 2rem;
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+
+        /* The Anomaly Section */
+        .anomaly {
+            background-color: var(--color-midnight);
+            border-top: 1px solid rgba(212, 165, 116, 0.2);
+        }
+
+        .anomaly h2 {
+            font-size: clamp(1.8rem, 4vw, 2.5rem);
+            font-weight: 500;
+            color: var(--color-amber);
+            margin-bottom: 2rem;
+            letter-spacing: -0.02em;
+        }
+
+        .anomaly-content {
+            font-size: clamp(1rem, 1.5vw, 1.2rem);
+            line-height: 1.8;
+        }
+
+        .anomaly-content p {
+            margin-bottom: 1.5rem;
+        }
+
+        .anomaly-content .emphasis {
+            color: var(--color-amber);
+            font-style: italic;
+        }
+
+        .anomaly-content .fact {
+            display: block;
+            margin: 2rem 0;
+            padding-left: 1.5rem;
+            border-left: 2px solid var(--color-amber);
+            font-size: 1rem;
+            opacity: 0.85;
+        }
+
+        /* Facilities Section */
+        .facilities {
+            background-color: rgba(245, 242, 237, 0.03);
+            border-top: 1px solid rgba(212, 165, 116, 0.2);
+        }
+
+        .facilities h2 {
+            font-size: clamp(1.8rem, 4vw, 2.5rem);
+            font-weight: 500;
+            color: var(--color-amber);
+            margin-bottom: 3rem;
+            letter-spacing: -0.02em;
+        }
+
+        .facilities-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 2rem;
+        }
+
+        .facility-card {
+            padding: 2rem;
+            background-color: rgba(212, 165, 116, 0.05);
+            border: 1px solid rgba(212, 165, 116, 0.15);
+            transition: all 0.3s ease;
+        }
+
+        .facility-card:hover {
+            background-color: rgba(212, 165, 116, 0.1);
+            border-color: rgba(212, 165, 116, 0.3);
+        }
+
+        .facility-card h3 {
+            font-size: 1.4rem;
+            font-weight: 500;
+            margin-bottom: 0.75rem;
+            color: var(--color-offwhite);
+        }
+
+        .facility-card .price {
+            font-size: 1.1rem;
+            color: var(--color-amber);
+            font-weight: 400;
+        }
+
+        .facility-card .note {
+            font-size: 0.85rem;
+            opacity: 0.7;
+            margin-top: 0.5rem;
+            font-style: italic;
+        }
+
+        /* Location Section */
+        .location {
+            border-top: 1px solid rgba(212, 165, 116, 0.2);
+            text-align: center;
+        }
+
+        .location h2 {
+            font-size: clamp(1.8rem, 4vw, 2.5rem);
+            font-weight: 500;
+            color: var(--color-amber);
+            margin-bottom: 2rem;
+            letter-spacing: -0.02em;
+        }
+
+        .location-details {
+            font-size: 1.2rem;
+            line-height: 2;
+        }
+
+        .location-details .address {
+            font-weight: 500;
+            margin-bottom: 0.5rem;
+        }
+
+        .location-details .phone {
+            color: var(--color-amber);
+            text-decoration: none;
+            transition: opacity 0.3s ease;
+        }
+
+        .location-details .phone:hover {
+            opacity: 0.8;
+        }
+
+        .location-tagline {
+            margin-top: 2rem;
+            font-style: italic;
+            opacity: 0.8;
+            font-size: 1.1rem;
+        }
+
+        /* CTA Section */
+        .cta-section {
+            background-color: rgba(212, 165, 116, 0.08);
+            border-top: 1px solid rgba(212, 165, 116, 0.2);
+            text-align: center;
+            padding: 5rem 2rem;
+        }
+
+        .cta-section h2 {
+            font-size: clamp(1.6rem, 3.5vw, 2.2rem);
+            font-weight: 500;
+            margin-bottom: 1rem;
+            line-height: 1.3;
+        }
+
+        .cta-section .subtext {
+            font-size: 1.1rem;
+            opacity: 0.8;
+            margin-bottom: 2rem;
+            font-style: italic;
+        }
+
+        /* Footer */
+        footer {
+            padding: 3rem 2rem;
+            text-align: center;
+            border-top: 1px solid rgba(212, 165, 116, 0.2);
+            background-color: var(--color-midnight);
+        }
+
+        .footer-logo {
+            max-width: 180px;
+            margin-bottom: 1.5rem;
+            opacity: 0.9;
+        }
+
+        .footer-tagline {
+            font-size: 0.95rem;
+            opacity: 0.6;
+            font-style: italic;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            section {
+                padding: 4rem 1.5rem;
+            }
+
+            .facilities-grid {
+                grid-template-columns: 1fr;
+                gap: 1.5rem;
+            }
+
+            .hero-content {
+                padding: 1.5rem;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .hero h1 {
+                font-size: 1.8rem;
+            }
+
+            .hero .subline {
+                font-size: 1rem;
+            }
+
+            .cta-button {
+                padding: 0.9rem 2rem;
+                font-size: 1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Hero -->
+    <section class="hero">
+        <div class="hero-bg"></div>
+        <div class="hero-content">
+            <h1>D'Buechig isch für nächst Wuche.<br>D'Buechig isch immer für nächst Wuche&nbsp;gsi.</h1>
+            <p class="subline">Zelgweg 11. 15 Minute vo überall. Genau 15&nbsp;Minute.</p>
+            <a href="#book" class="cta-button">Buche. Wieder.</a>
+        </div>
+    </section>
+
+    <!-- The Anomaly -->
+    <section class="anomaly">
+        <h2>Die Vier</h2>
+        <div class="anomaly-content">
+            <p>Vier Männer. De gliich Slot. <span class="emphasis">Dienstig 19:00. Court 3.</span></p>
+            <p>Sit 1'247 Wuche. Bevor d'Courts überhaupt bout worde sind.</p>
+            <span class="fact">Ihri WhatsApp-Gruppe "Padel Mafia" het Chat-Verlauf vo 1987.<br>WhatsApp isch 2009 lanciert worde.</span>
+            <p>Eine vo ihne isch 2017 gstorbe.</p>
+            <p><span class="emphasis">Sini Buechig goht wiiter.</span></p>
+        </div>
+    </section>
+
+    <!-- Facilities -->
+    <section class="facilities">
+        <h2>Was mer buecht</h2>
+        <div class="facilities-grid">
+            <div class="facility-card">
+                <h3>Padel</h3>
+                <p class="price">CHF 48 / 64</p>
+                <p class="note">Je noch Ziit</p>
+            </div>
+            <div class="facility-card">
+                <h3>Tennis</h3>
+                <p class="price">ab CHF 28</p>
+                <p class="note">Pro Stund</p>
+            </div>
+            <div class="facility-card">
+                <h3>Squash</h3>
+                <p class="price">ab CHF 27</p>
+                <p class="note">Pro Stund</p>
+            </div>
+            <div class="facility-card">
+                <h3>Sauna</h3>
+                <p class="price">CHF 10</p>
+                <p class="note">Pro Iitritt</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Location -->
+    <section class="location">
+        <h2>Wo mer ane goht</h2>
+        <div class="location-details">
+            <p class="address">Zelgweg 11<br>5405 Baden-Dättwil</p>
+            <p><a href="tel:+41564934455" class="phone">+41 56 493 44 55</a></p>
+        </div>
+        <p class="location-tagline">15 Minute vo überall. Genau 15 Minute.</p>
+    </section>
+
+    <!-- CTA Section -->
+    <section class="cta-section" id="book">
+        <h2>De Dienstig 19:00 Slot isch scho vergeh.<br>Bevor du gebore bisch.</h2>
+        <p class="subtext">Aber es git anderi Slots. Meistens.</p>
+        <a href="#" class="cta-button">Buche. Wieder.</a>
+    </section>
+
+    <!-- Footer -->
+    <footer>
+        <img src="../../images/logo_bareggcenter.png" alt="Bareggcenter Baden" class="footer-logo">
+        <p class="footer-tagline">Ziit isch e Vorschlag.</p>
+    </footer>
+
+</body>
+</html>

@@ -1,0 +1,14 @@
+{
+  "mcpServers": {
+    "oskar-orchestrator": {
+      "command": "node",
+      "args": [
+        "/Users/ralphlengler/OskarOS/oskar-prototype/mcp-server/dist/index.js"
+      ],
+      "env": {
+        "OSKAR_SESSION_ID": "2026-01-27-31",
+        "OSKAR_BASE_URL": "http://localhost:3000"
+      }
+    }
+  }
+}

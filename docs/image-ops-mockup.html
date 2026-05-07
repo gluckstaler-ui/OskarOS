@@ -1,0 +1,1993 @@
+<!doctype html>
+<html lang="en" data-theme="onyx">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>OskarOS — image-ops mockup (in actual IMAGE-mode chrome)</title>
+<style>
+  :root {
+    --bg-page: #09090b;
+    --bg-card: #1e1e22;
+    --bg-card-hover: #2a2a2e;
+    --bg-input: #16161a;
+    --bg-rail: #050507;
+    --border-card: #2e2e33;
+    --border-strong: #3a3a40;
+    --text-main: #f4f4f5;
+    --text-muted: #a1a1aa;
+    --text-faint: #6b6b73;
+    --radius-card: 12px;
+    --radius-pill: 999px;
+    --shadow-card: 0 1px 3px 0 rgba(0,0,0,0.4), 0 1px 2px -1px rgba(0,0,0,0.2);
+    --font-mono: 'JetBrains Mono','SF Mono',Monaco,Consolas,monospace;
+    --font-body: -apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+
+    --brand-green-bright: #15B981;
+    --brand-green-deep:   #047857;
+    --brand-teal-bright:  #5EEAD4;
+    --brand-teal-deep:    #0F766E;
+    --brand-red:          #EF4444;
+    --brand-yellow:       #FACC15;
+    --brand-violet:       #a78bfa;
+    --brand-cyan:         #22D3EE;
+    --brand-orange:       #F97316;
+    --text-on-brand:      #042f1f;
+  }
+
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0;
+    background: var(--bg-page);
+    color: var(--text-main);
+    font-family: var(--font-body);
+    font-size: 13px;
+    line-height: 1.5;
+  }
+
+  body { padding: 32px; }
+  .doc-head {
+    max-width: 1640px;
+    margin: 0 auto 24px;
+  }
+  .doc-head h1 {
+    margin: 0 0 6px;
+    font-family: 'Inter Tight', var(--font-body);
+    font-size: 28px; font-weight: 800;
+    letter-spacing: -0.02em;
+    text-transform: uppercase;
+    color: var(--brand-green-bright);
+  }
+  .doc-head p {
+    margin: 0;
+    color: var(--text-muted);
+    font-size: 13px;
+    max-width: 900px;
+  }
+  .stages { max-width: 1640px; margin: 0 auto; }
+  .annotation {
+    margin: 32px 0 8px;
+    padding: 10px 14px;
+    background: rgba(94, 234, 212, 0.06);
+    border-left: 2px solid var(--brand-teal-bright);
+    border-radius: 0 6px 6px 0;
+    font-size: 12px;
+    color: var(--text-muted);
+    font-family: var(--font-mono);
+    line-height: 1.6;
+  }
+  .annotation strong { color: var(--brand-teal-bright); font-weight: 600; }
+  .annotation code {
+    background: var(--bg-input);
+    padding: 1px 5px;
+    border-radius: 3px;
+    color: var(--brand-teal-bright);
+  }
+
+  /* ============================================
+     APP CHROME
+     ============================================ */
+  .stage-block {
+    display: grid;
+    grid-template-rows: 44px 1fr;
+    height: 880px;
+    border: 1px solid var(--border-card);
+    border-radius: var(--radius-card);
+    overflow: hidden;
+    background: var(--bg-page);
+    margin-bottom: 32px;
+  }
+  .topbar {
+    display: flex; align-items: center;
+    background: var(--bg-rail);
+    border-bottom: 1px solid var(--border-card);
+    padding: 0 18px;
+    gap: 16px;
+  }
+  .brand {
+    font-family: 'Inter Tight', var(--font-body);
+    font-size: 13px; font-weight: 800;
+    letter-spacing: 0.04em;
+    color: var(--brand-green-bright);
+    margin-right: 8px;
+  }
+  .brand .session {
+    color: var(--text-faint);
+    font-family: var(--font-mono);
+    font-weight: 500;
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    margin-left: 8px;
+  }
+  .mode-tabs { display: flex; gap: 4px; }
+  .mode-tab {
+    padding: 6px 14px;
+    background: transparent;
+    border: 0;
+    color: var(--text-muted);
+    font-family: var(--font-mono);
+    font-size: 10px; font-weight: 700;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    cursor: pointer;
+    border-radius: 4px;
+  }
+  .mode-tab:hover { color: var(--text-main); background: var(--bg-card); }
+  .mode-tab.active { background: var(--bg-card); color: var(--brand-green-bright); }
+  .topbar-right {
+    margin-left: auto;
+    display: flex; align-items: center; gap: 10px;
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--text-faint);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+  .topbar-right .pill {
+    padding: 3px 8px;
+    background: var(--bg-card);
+    border: 1px solid var(--border-card);
+    border-radius: 4px;
+  }
+  .topbar-right .pill.live { color: var(--brand-green-bright); border-color: rgba(21,185,129,0.3); }
+
+  .app-body {
+    display: grid;
+    grid-template-columns: 240px 1fr 56px 360px;
+    overflow: hidden;
+  }
+
+  /* ASSETS PANEL */
+  .assets-panel {
+    background: var(--bg-rail);
+    border-right: 1px solid var(--border-card);
+    overflow-y: auto;
+    padding: 14px 12px;
+  }
+  .panel-title {
+    font-family: var(--font-mono);
+    font-size: 10px; font-weight: 700;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--text-faint);
+    margin: 0 0 10px;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .panel-title .count { color: var(--brand-green-bright); font-weight: 800; }
+  .asset-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+  .asset-tile {
+    aspect-ratio: 1;
+    border-radius: 6px;
+    overflow: hidden;
+    border: 1px solid var(--border-card);
+    background: var(--bg-input);
+    cursor: pointer;
+    position: relative;
+  }
+  .asset-tile img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .asset-tile.selected {
+    border: 2px solid var(--brand-green-bright);
+    box-shadow: 0 0 0 2px rgba(21,185,129,0.2);
+  }
+  .asset-tile .tag-overlay {
+    position: absolute;
+    bottom: 3px; left: 3px;
+    font-family: var(--font-mono);
+    font-size: 8px; font-weight: 700;
+    padding: 2px 5px;
+    border-radius: 3px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+  .asset-tile .tag-overlay.hero { background: rgba(0,0,0,0.85); color: #fbbf24; }
+  .asset-tile .tag-overlay.ready { background: rgba(0,0,0,0.85); color: var(--brand-green-bright); }
+  .asset-tile .tag-overlay.b-roll { background: rgba(0,0,0,0.85); color: var(--brand-violet); }
+  .asset-mock {
+    width: 100%; height: 100%;
+    background: var(--bg-card-hover);
+    display: flex; align-items: center; justify-content: center;
+    color: var(--text-faint);
+    font-family: var(--font-mono);
+    font-size: 9px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+
+  /* CENTER */
+  .center-col {
+    display: grid;
+    grid-template-rows: 1fr 36px 320px;
+    background: var(--bg-page);
+    overflow: hidden;
+  }
+
+  /* MODE TAB BAR — sits at bottom of Zone 2, above ops-bar.
+     These are the existing app's workshop tabs (view/generate/edit/compose/
+     layout/image-ops). Image-ops is the new mode added by this work. */
+  .mode-row {
+    display: flex; align-items: stretch;
+    background: var(--bg-rail);
+    border-top: 1px solid var(--border-card);
+    border-bottom: 1px solid var(--border-card);
+    padding: 0 14px;
+  }
+  .mode-btn {
+    padding: 0 16px;
+    background: transparent;
+    border: 0;
+    border-bottom: 2px solid transparent;
+    color: var(--text-muted);
+    font-family: var(--font-mono);
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    cursor: pointer;
+    margin-bottom: -1px;
+  }
+  .mode-btn:hover:not(.active) { color: var(--text-main); }
+  .mode-btn.active {
+    color: var(--brand-green-bright);
+    border-bottom-color: var(--brand-green-bright);
+  }
+  .zone-image {
+    background: var(--bg-input);
+    border-bottom: 1px solid var(--border-card);
+    overflow: hidden;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+  }
+  .zone-image-frame {
+    position: relative;
+    max-width: 100%; max-height: 100%;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+  }
+  .zone-image-frame img {
+    display: block;
+    max-width: 100%; max-height: 460px;
+    object-fit: contain;
+  }
+  .zone-image-overlay {
+    position: absolute; top: 12px; left: 12px;
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--text-main);
+    background: rgba(0,0,0,0.65);
+    padding: 4px 10px;
+    border-radius: 4px;
+    letter-spacing: 0.06em;
+  }
+  .crop-frame {
+    position: absolute;
+    top: 12%; left: 18%;
+    width: 50%; height: 70%;
+    border: 2px solid var(--brand-green-bright);
+    box-shadow: 0 0 0 9999px rgba(0,0,0,0.55);
+    pointer-events: none;
+  }
+  .crop-frame .corner {
+    position: absolute;
+    width: 12px; height: 12px;
+    background: var(--brand-green-bright);
+    border-radius: 2px;
+  }
+  .crop-frame .corner.tl { top: -6px; left: -6px; }
+  .crop-frame .corner.tr { top: -6px; right: -6px; }
+  .crop-frame .corner.bl { bottom: -6px; left: -6px; }
+  .crop-frame .corner.br { bottom: -6px; right: -6px; }
+
+  /* CONVERT SPLIT — two equal halves, no annotations */
+  .convert-split {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    width: 100%; height: 100%;
+    padding: 8px;
+  }
+  .convert-side {
+    position: relative;
+    border-radius: 8px;
+    overflow: hidden;
+    border: 1px solid var(--border-card);
+    box-shadow: 0 4px 16px rgba(0,0,0,0.4);
+  }
+  .convert-side.is-output {
+    border: 2px solid var(--brand-green-bright);
+    box-shadow: 0 0 0 2px rgba(21,185,129,0.18), 0 4px 16px rgba(0,0,0,0.4);
+  }
+  .convert-side.solid-white { background: #ffffff; }
+  .convert-side.transparent {
+    background:
+      linear-gradient(45deg, #1a1a1e 25%, transparent 25%),
+      linear-gradient(-45deg, #1a1a1e 25%, transparent 25%),
+      linear-gradient(45deg, transparent 75%, #1a1a1e 75%),
+      linear-gradient(-45deg, transparent 75%, #1a1a1e 75%);
+    background-size: 16px 16px;
+    background-position: 0 0, 0 8px, 8px -8px, -8px 0;
+    background-color: #2a2a2e;
+  }
+  .convert-side .glyph {
+    width: 100%; height: 100%;
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'Inter Tight', var(--font-body);
+    font-size: 56px; font-weight: 800;
+    letter-spacing: -0.02em;
+  }
+  .convert-side .glyph.dark  { color: #1a1a1a; }
+  .convert-side .glyph.light { color: #f4f4f5; }
+  .convert-side .side-label {
+    position: absolute;
+    top: 10px; left: 12px;
+    font-family: var(--font-mono);
+    font-size: 9px; font-weight: 700;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    background: rgba(0,0,0,0.7);
+    color: #ffffff;
+    padding: 3px 8px;
+    border-radius: 3px;
+  }
+  .convert-side.is-output .side-label {
+    background: var(--brand-green-bright);
+    color: var(--text-on-brand);
+  }
+
+  /* EYEDROPPER (chroma-key tool overlay on Zone 2) */
+  .eyedropper-tool {
+    position: absolute;
+    top: 12px; right: 12px;
+    display: flex; align-items: center; gap: 8px;
+    padding: 5px 10px;
+    background: rgba(0,0,0,0.78);
+    border: 1px solid var(--brand-green-bright);
+    border-radius: 6px;
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--brand-green-bright);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    cursor: crosshair;
+    z-index: 5;
+  }
+  .eyedropper-tool .eye-divider {
+    width: 1px; height: 12px;
+    background: rgba(21,185,129,0.35);
+    margin: 0 2px;
+  }
+  .eyedropper-tool .eye-swatch {
+    width: 16px; height: 16px;
+    border-radius: 3px;
+    border: 1px solid rgba(255,255,255,0.4);
+    box-shadow: 0 0 0 1px rgba(0,0,0,0.4);
+  }
+  .eyedropper-tool .eye-hex {
+    color: var(--text-main);
+    font-weight: 700;
+    letter-spacing: 0.06em;
+  }
+  .eyedropper-tool .eye-pos {
+    color: var(--text-faint);
+    font-size: 9px;
+    letter-spacing: 0.06em;
+    text-transform: lowercase;
+  }
+  .eyedropper-tool .eye-glyph {
+    width: 14px; height: 14px;
+    border: 1.5px solid var(--brand-green-bright);
+    border-radius: 50%;
+    position: relative;
+  }
+  .eyedropper-tool .eye-glyph::after {
+    content: '';
+    position: absolute;
+    width: 6px; height: 2px;
+    background: var(--brand-green-bright);
+    bottom: -4px; left: 50%;
+    transform: translateX(-50%) rotate(45deg);
+    transform-origin: top center;
+  }
+  .eyedropper-cursor {
+    position: absolute;
+    width: 30px; height: 30px;
+    pointer-events: none;
+    z-index: 6;
+  }
+  .eyedropper-cursor .cross-h,
+  .eyedropper-cursor .cross-v {
+    position: absolute;
+    background: var(--brand-green-bright);
+    box-shadow: 0 0 0 1px rgba(0,0,0,0.6);
+  }
+  .eyedropper-cursor .cross-h {
+    left: 0; right: 0; top: 50%;
+    height: 1px; margin-top: -0.5px;
+  }
+  .eyedropper-cursor .cross-v {
+    top: 0; bottom: 0; left: 50%;
+    width: 1px; margin-left: -0.5px;
+  }
+  .eyedropper-cursor .ring {
+    position: absolute;
+    inset: 6px;
+    border: 2px solid var(--brand-green-bright);
+    border-radius: 50%;
+    box-shadow: 0 0 0 1px rgba(0,0,0,0.6);
+  }
+  .eyedropper-zoom {
+    position: absolute;
+    top: -84px; left: 36px;
+    width: 80px; height: 80px;
+    border-radius: 50%;
+    overflow: hidden;
+    border: 2px solid var(--brand-green-bright);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+    pointer-events: none;
+    background: var(--bg-input);
+  }
+  .eyedropper-zoom-grid {
+    width: 100%; height: 100%;
+    background-image:
+      linear-gradient(to right, rgba(94,234,212,0.18) 1px, transparent 1px),
+      linear-gradient(to bottom, rgba(94,234,212,0.18) 1px, transparent 1px);
+    background-size: 16px 16px;
+    background-color: #ffffff;
+    position: relative;
+  }
+  .eyedropper-zoom-grid::after {
+    content: '';
+    position: absolute;
+    width: 16px; height: 16px;
+    border: 2px solid var(--brand-green-bright);
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    box-shadow: 0 0 0 1px rgba(0,0,0,0.4);
+  }
+  .eyedropper-zoom-readout {
+    position: absolute;
+    bottom: -22px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--text-main);
+    background: rgba(0,0,0,0.85);
+    padding: 2px 8px;
+    border-radius: 3px;
+    letter-spacing: 0.08em;
+    white-space: nowrap;
+  }
+  .slice-grid-overlay {
+    position: absolute; inset: 0;
+    pointer-events: none;
+    display: grid;
+  }
+  .slice-grid-overlay > div {
+    border: 1px dashed rgba(94,234,212,0.7);
+    background: rgba(94,234,212,0.05);
+    display: flex; align-items: center; justify-content: center;
+    font-family: var(--font-mono);
+    font-size: 12px; font-weight: 700;
+    color: var(--brand-teal-bright);
+    text-shadow: 0 0 5px rgba(0,0,0,0.7);
+  }
+
+  /* VERSIONS */
+  .versions-col {
+    background: var(--bg-rail);
+    border-left: 1px solid var(--border-card);
+    border-right: 1px solid var(--border-card);
+    overflow-y: auto;
+    padding: 12px 8px;
+    display: flex; flex-direction: column; gap: 6px;
+    align-items: center;
+  }
+  .versions-col .ver-label {
+    font-family: var(--font-mono);
+    font-size: 8px;
+    color: var(--text-faint);
+    text-transform: uppercase;
+    letter-spacing: 0.16em;
+    writing-mode: vertical-rl;
+    transform: rotate(180deg);
+    margin-bottom: 4px;
+    white-space: nowrap;
+  }
+  .ver-thumb {
+    width: 40px; height: 40px;
+    border-radius: 4px;
+    border: 1px solid var(--border-card);
+    overflow: hidden;
+    cursor: pointer;
+    flex-shrink: 0;
+    background: var(--bg-input);
+    position: relative;
+  }
+  .ver-thumb.active { border: 2px solid var(--brand-green-bright); }
+  .ver-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .ver-thumb .stamp {
+    position: absolute; top: 1px; right: 1px;
+    font-family: var(--font-mono);
+    font-size: 7px; font-weight: 700;
+    color: var(--brand-green-bright);
+    text-shadow: 0 0 3px rgba(0,0,0,0.7);
+  }
+  .ver-add {
+    width: 40px; height: 40px;
+    border-radius: 4px;
+    border: 1px dashed var(--border-card);
+    color: var(--text-faint);
+    background: transparent;
+    cursor: pointer;
+    flex-shrink: 0;
+    font-size: 16px;
+    margin-top: auto;
+  }
+  .ver-add:hover { color: var(--brand-green-bright); border-color: var(--brand-green-bright); }
+
+  /* ZONE 3+4 */
+  .zone-controls {
+    background: var(--bg-page);
+    border-top: 1px solid var(--border-card);
+    display: grid;
+    grid-template-rows: 42px 220px 58px;
+    overflow: hidden;
+  }
+  .ops-bar {
+    display: flex; align-items: center;
+    padding: 0 16px;
+    background: var(--bg-rail);
+    border-bottom: 1px solid var(--border-card);
+  }
+  .ops-tabs { display: flex; gap: 0; }
+  .ops-tab {
+    padding: 11px 14px;
+    font-family: var(--font-mono);
+    font-size: 10px; font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    background: transparent;
+    border: 0;
+    border-bottom: 2px solid transparent;
+    cursor: pointer;
+    margin-bottom: -1px;
+    align-self: stretch;
+  }
+  .ops-tab:hover:not(.active) { color: var(--text-main); }
+  .ops-tab.active { color: var(--brand-green-bright); border-bottom-color: var(--brand-green-bright); }
+  .ops-bar-right {
+    margin-left: auto;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .aspect-chips { display: flex; align-items: center; gap: 4px; }
+  .aspect-chips .chip-label {
+    font-family: var(--font-mono);
+    font-size: 9px;
+    color: var(--text-faint);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-right: 4px;
+  }
+  .aspect-chip {
+    padding: 4px 9px;
+    background: var(--bg-card);
+    border: 1px solid var(--border-card);
+    border-radius: 4px;
+    color: var(--text-muted);
+    font-family: var(--font-mono);
+    font-size: 10px; font-weight: 600;
+    letter-spacing: 0.04em;
+    cursor: pointer;
+  }
+  .aspect-chip:hover:not(.active) { color: var(--text-main); border-color: var(--text-muted); }
+  .aspect-chip.active {
+    background: rgba(21,185,129,0.12);
+    border-color: var(--brand-green-bright);
+    color: var(--brand-green-bright);
+  }
+  .aspect-na {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--text-faint);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+  }
+
+  .ops-body {
+    padding: 14px 18px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 18px;
+    align-items: start;
+    overflow-y: auto;
+  }
+  .ctrl-block-label {
+    font-family: var(--font-mono);
+    font-size: 9px; font-weight: 700;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--text-faint);
+    margin-bottom: 8px;
+  }
+  .field-grid { display: grid; gap: 10px; }
+  .field { display: flex; flex-direction: column; gap: 4px; }
+  .field .lbl {
+    font-family: var(--font-mono);
+    font-size: 9px;
+    color: var(--text-faint);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+  }
+  .field input[type="number"],
+  .field input[type="text"],
+  .field select {
+    background: var(--bg-input);
+    border: 1px solid var(--border-card);
+    color: var(--text-main);
+    padding: 6px 10px;
+    border-radius: 4px;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    width: 100%;
+  }
+  .field input[disabled],
+  .field select[disabled] { opacity: 0.45; cursor: not-allowed; }
+  .field input:focus, .field select:focus {
+    outline: none;
+    border-color: var(--brand-green-bright);
+  }
+  .field-readout {
+    grid-column: 1 / -1;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--text-muted);
+  }
+  .field-readout strong { color: var(--brand-green-bright); }
+  .field-readout code { color: var(--brand-teal-bright); }
+
+  /* HELP-INFO BUTTON next to control */
+  .help-icon {
+    display: inline-flex;
+    align-items: center; justify-content: center;
+    width: 16px; height: 16px;
+    border-radius: 50%;
+    border: 1px solid var(--border-card);
+    background: var(--bg-input);
+    color: var(--text-faint);
+    font-family: var(--font-mono);
+    font-size: 10px; font-weight: 700;
+    cursor: help;
+    margin-left: 6px;
+  }
+  .help-icon:hover { color: var(--brand-teal-bright); border-color: var(--brand-teal-bright); }
+
+  /* SLIDER */
+  .slider-block { padding-top: 4px; }
+  .slider-row {
+    display: flex; align-items: center; gap: 12px;
+  }
+  .slider-row input[type="range"] {
+    flex: 1;
+    appearance: none;
+    height: 4px;
+    background: var(--border-card);
+    border-radius: 2px;
+    outline: none;
+  }
+  .slider-row input[type="range"]::-webkit-slider-thumb {
+    appearance: none;
+    width: 16px; height: 16px;
+    background: var(--brand-green-bright);
+    border-radius: 50%;
+    cursor: pointer;
+  }
+  .slider-row input[type="range"]::-moz-range-thumb {
+    width: 16px; height: 16px;
+    background: var(--brand-green-bright);
+    border-radius: 50%;
+    border: 0;
+    cursor: pointer;
+  }
+  .slider-row input[type="range"][disabled]::-webkit-slider-thumb {
+    background: var(--text-faint);
+  }
+  .slider-row input[type="range"][disabled] { opacity: 0.45; }
+  .slider-row .val {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--text-main);
+    width: 80px; text-align: right;
+  }
+  .slider-row .val.disabled { color: var(--text-faint); }
+  .slider-readout {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--text-faint);
+    margin-top: 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+  .slider-readout strong { color: var(--brand-green-bright); }
+
+  /* OVERWRITE TOGGLE / CHECKBOX */
+  .overwrite-row {
+    display: flex; align-items: center; gap: 8px;
+    margin-top: 8px;
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+  .overwrite-row input[type="checkbox"] {
+    appearance: none;
+    width: 16px; height: 16px;
+    border-radius: 3px;
+    border: 1px solid var(--border-card);
+    background: var(--bg-input);
+    cursor: pointer;
+    position: relative;
+  }
+  .overwrite-row input[type="checkbox"]:checked {
+    background: var(--brand-green-bright);
+    border-color: var(--brand-green-bright);
+  }
+  .overwrite-row input[type="checkbox"]:checked::after {
+    content: '✓';
+    position: absolute;
+    top: -2px; left: 2px;
+    font-size: 12px; font-weight: 700;
+    color: var(--text-on-brand);
+  }
+  .overwrite-row label { cursor: pointer; }
+
+  /* SLICE OUTPUTS */
+  .slice-outs {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 4px;
+    margin-top: 6px;
+  }
+  .slice-outs .out {
+    aspect-ratio: 1/1;
+    border-radius: 3px;
+    overflow: hidden;
+    background: var(--bg-input);
+    border: 1px solid var(--border-card);
+    position: relative;
+  }
+  .slice-outs .out img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .slice-outs .out .num {
+    position: absolute; top: 1px; left: 3px;
+    font-family: var(--font-mono);
+    font-size: 8px; font-weight: 700;
+    color: var(--brand-teal-bright);
+    text-shadow: 0 0 3px rgba(0,0,0,0.7);
+  }
+
+  /* ADDON BLOCK (chroma-key, alpha-matte, lossless) */
+  .addon-block {
+    padding: 10px 12px;
+    background: var(--bg-input);
+    border: 1px dashed var(--border-card);
+    border-radius: 6px;
+  }
+  .addon-block.disabled {
+    opacity: 0.4;
+    pointer-events: none;
+  }
+  .addon-block + .addon-block { margin-top: 8px; }
+  .addon-head {
+    display: flex; align-items: center; gap: 8px;
+    margin-bottom: 8px;
+  }
+  .addon-toggle {
+    width: 28px; height: 16px;
+    background: var(--brand-green-bright);
+    border-radius: 8px;
+    position: relative;
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+  .addon-toggle::after {
+    content: '';
+    position: absolute;
+    width: 12px; height: 12px;
+    background: #fff;
+    border-radius: 50%;
+    top: 2px; right: 2px;
+  }
+  .addon-toggle.off { background: var(--border-card); }
+  .addon-toggle.off::after { right: auto; left: 2px; }
+  .addon-label {
+    font-family: var(--font-mono);
+    font-size: 10px; font-weight: 700;
+    color: var(--text-main);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+  }
+  .addon-help {
+    font-family: var(--font-mono);
+    font-size: 9px;
+    color: var(--text-faint);
+    margin-left: auto;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+
+  /* SWATCH */
+  .swatch-row {
+    display: flex; align-items: center; gap: 10px;
+    margin-bottom: 6px;
+  }
+  .swatch {
+    width: 22px; height: 22px;
+    border-radius: 4px;
+    border: 1px solid var(--border-card);
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+  .swatch-row input[type="text"] {
+    background: var(--bg-card);
+    border: 1px solid var(--border-card);
+    color: var(--text-main);
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    width: 90px;
+  }
+
+  /* OPS FOOTER */
+  .ops-footer {
+    padding: 10px 16px;
+    border-top: 1px solid var(--border-card);
+    display: flex; align-items: center; gap: 14px;
+    background: var(--bg-rail);
+  }
+  .tag-row { display: flex; align-items: center; gap: 6px; }
+  .tag-row .tag-label {
+    font-family: var(--font-mono);
+    font-size: 9px;
+    color: var(--text-faint);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-right: 2px;
+  }
+  .tag {
+    padding: 4px 9px;
+    background: var(--bg-card);
+    border: 1px solid var(--border-card);
+    border-radius: 4px;
+    color: var(--text-muted);
+    font-family: var(--font-mono);
+    font-size: 10px; font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    cursor: pointer;
+  }
+  .tag:hover:not(.active) { border-color: var(--text-muted); color: var(--text-main); }
+  .tag.active.star     { background: rgba(250,204,21,0.18); border-color: #facc15; color: #facc15; }
+  .tag.active.b-roll   { background: rgba(167,139,250,0.15); border-color: var(--brand-violet); color: var(--brand-violet); }
+  .tag.active.trash    { background: rgba(239,68,68,0.15); border-color: var(--brand-red); color: var(--brand-red); }
+  .btn-generate {
+    margin-left: auto;
+    padding: 8px 18px;
+    background: var(--brand-green-bright);
+    border: 1px solid var(--brand-green-bright);
+    color: var(--text-on-brand);
+    border-radius: 6px;
+    font-family: var(--font-mono);
+    font-size: 11px; font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    cursor: pointer;
+  }
+  .btn-generate:hover { background: var(--brand-green-deep); color: #fff; }
+
+  /* CHAT PANEL */
+  .chat-panel {
+    background: var(--bg-rail);
+    border-left: 1px solid var(--border-card);
+    overflow-y: auto;
+    padding: 14px;
+  }
+  .chat-msg {
+    background: var(--bg-card);
+    border: 1px solid var(--border-card);
+    border-radius: 8px;
+    padding: 10px 12px;
+    margin-bottom: 10px;
+    font-size: 12px;
+    line-height: 1.55;
+  }
+  .chat-msg .who {
+    font-family: var(--font-mono);
+    font-size: 9px; font-weight: 700;
+    color: var(--brand-green-bright);
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    margin-bottom: 4px;
+  }
+  .chat-msg.user .who { color: var(--brand-teal-bright); }
+  .chat-input-row {
+    margin-top: 14px;
+    padding-top: 12px;
+    border-top: 1px dashed var(--border-card);
+  }
+  .chat-input-row textarea {
+    width: 100%;
+    background: var(--bg-input);
+    border: 1px solid var(--border-card);
+    color: var(--text-main);
+    padding: 10px;
+    border-radius: 6px;
+    font-family: inherit;
+    font-size: 12px;
+    min-height: 60px;
+    resize: none;
+  }
+
+  /* REFERENCE CARD (for kernel options, conversion matrix) */
+  .ref-card {
+    max-width: 1640px;
+    margin: -8px auto 32px;
+    padding: 16px 18px;
+    background: var(--bg-card);
+    border: 1px solid var(--border-card);
+    border-radius: var(--radius-card);
+  }
+  .ref-card h4 {
+    margin: 0 0 10px;
+    font-family: var(--font-mono);
+    font-size: 10px; font-weight: 700;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--brand-teal-bright);
+  }
+  .ref-table {
+    display: grid;
+    grid-template-columns: 140px 1fr 1fr 1fr;
+    gap: 8px 16px;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--text-muted);
+  }
+  .ref-table .h {
+    color: var(--text-faint);
+    font-size: 9px;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    padding-bottom: 4px;
+    border-bottom: 1px solid var(--border-card);
+  }
+  .ref-table .key { color: var(--brand-green-bright); font-weight: 700; }
+  .ref-table .row {
+    display: contents;
+  }
+</style>
+</head>
+<body>
+
+<div class="doc-head">
+  <h1>image-ops — IMAGE-mode integration</h1>
+  <p>
+    Four ops: <strong>crop</strong> · <strong>slice</strong> · <strong>resize</strong> · <strong>format-convert</strong>.
+    Chroma-key folded into format-convert as an add-on (output = PNG). Zone 3+4 is fixed-height — switching tab or output never reflows.
+    Format-convert shown as TWO stages: typical conversion (PNG→JPG) and chroma-key (PNG→PNG with key on). WEBP options demonstrated alongside.
+  </p>
+</div>
+
+<div class="stages">
+
+<!-- ================================================================ -->
+<!--  CROP                                                            -->
+<!-- ================================================================ -->
+<div class="annotation"><strong>CROP</strong> — Zone 2: source only. Body left = X/Y/W/H frame. Body right = output naming + overwrite checkbox. Aspect chips in ops-bar drive the crop frame's locked ratio.</div>
+
+<div class="stage-block">
+  <div class="topbar">
+    <div class="brand">OSKAR.OS<span class="session">DEBUG</span></div>
+    <div class="mode-tabs">
+      <button class="mode-tab">Brief</button><button class="mode-tab">Studio</button>
+      <button class="mode-tab active">Image</button><button class="mode-tab">Final</button>
+    </div>
+    <div class="topbar-right">
+      <span class="pill live">● Live</span><span class="pill">Onyx</span><span class="pill">CD</span>
+    </div>
+  </div>
+
+  <div class="app-body">
+    <div class="assets-panel">
+      <h3 class="panel-title">Assets <span class="count">14</span></h3>
+      <div class="asset-grid">
+        <div class="asset-tile"><img src="../public/2026-01-27-debug/hero.jpg" alt=""/><span class="tag-overlay hero">HERO</span></div>
+        <div class="asset-tile selected"><img src="../public/2026-01-27-debug/sultan.jpg" alt=""/><span class="tag-overlay ready">READY</span></div>
+        <div class="asset-tile"><img src="../public/2026-01-27-debug/cd-direct-hero-v1.jpg" alt=""/><span class="tag-overlay ready">READY</span></div>
+        <div class="asset-tile"><img src="../public/2026-01-27-debug/hara.jpg" alt=""/><span class="tag-overlay b-roll">B-ROLL</span></div>
+        <div class="asset-tile"><img src="../public/2026-01-27-debug/cliff-majlis-steve.jpeg" alt=""/><span class="tag-overlay b-roll">B-ROLL</span></div>
+        <div class="asset-tile"><img src="../public/2026-01-27-debug/hero-night.jpeg" alt=""/></div>
+        <div class="asset-tile"><img src="../public/2026-01-27-debug/steve-3.jpeg" alt=""/></div>
+        <div class="asset-tile"><img src="../public/2026-01-27-debug/luqaimat.jpg" alt=""/></div>
+        <div class="asset-tile"><img src="../public/2026-01-27-debug/qiddiya.jpg" alt=""/></div>
+        <div class="asset-tile"><img src="../public/2026-01-27-debug/falcons-flight.jpg" alt=""/></div>
+        <div class="asset-tile"><div class="asset-mock">+5 more</div></div>
+      </div>
+    </div>
+
+    <div class="center-col">
+      <div class="zone-image">
+        <div class="zone-image-frame" style="aspect-ratio: 4/3; width: 70%; max-width: 660px;">
+          <img src="../public/2026-01-27-debug/sultan.jpg" alt="" style="aspect-ratio: 4/3; width: 100%;"/>
+          <div class="crop-frame">
+            <span class="corner tl"></span><span class="corner tr"></span>
+            <span class="corner bl"></span><span class="corner br"></span>
+          </div>
+        </div>
+        <div class="zone-image-overlay">sultan.jpg · 800 × 1067 · 3:4</div>
+      </div>
+
+      <div class="mode-row">
+        <button class="mode-btn">view</button>
+        <button class="mode-btn">generate</button>
+        <button class="mode-btn">edit</button>
+        <button class="mode-btn">compose</button>
+        <button class="mode-btn">layout</button>
+        <button class="mode-btn active">image-ops</button>
+      </div>
+
+      <div class="zone-controls">
+        <div class="ops-bar">
+          <div class="ops-tabs">
+            <button class="ops-tab active">crop</button>
+            <button class="ops-tab">slice</button>
+            <button class="ops-tab">resize</button>
+            <button class="ops-tab">format-convert</button>
+          </div>
+          <div class="ops-bar-right">
+            <div class="aspect-chips">
+              <span class="chip-label">Aspect</span>
+              <button class="aspect-chip">free</button>
+              <button class="aspect-chip">1:1</button>
+              <button class="aspect-chip active">3:4</button>
+              <button class="aspect-chip">4:3</button>
+              <button class="aspect-chip">16:9</button>
+              <button class="aspect-chip">9:16</button>
+              <button class="aspect-chip">2:3</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="ops-body">
+          <div>
+            <div class="ctrl-block-label">Crop frame</div>
+            <div class="field-grid" style="grid-template-columns:repeat(4,1fr)">
+              <div class="field"><span class="lbl">X</span><input type="number" value="144"/></div>
+              <div class="field"><span class="lbl">Y</span><input type="number" value="128"/></div>
+              <div class="field"><span class="lbl">W</span><input type="number" value="400"/></div>
+              <div class="field"><span class="lbl">H</span><input type="number" value="533"/></div>
+              <div class="field-readout">→ output <strong>400 × 533</strong> · 3:4 (locked from chip)</div>
+            </div>
+          </div>
+          <div>
+            <div class="ctrl-block-label">Output</div>
+            <div class="field"><span class="lbl">Filename</span><input type="text" value="sultan-cropped.jpg"/></div>
+            <div class="overwrite-row">
+              <input type="checkbox" id="cw-crop"/>
+              <label for="cw-crop">Overwrite source (sultan.jpg)</label>
+            </div>
+          </div>
+        </div>
+
+        <div class="ops-footer">
+          <div class="tag-row">
+            <span class="tag-label">Tag</span>
+            <button class="tag active star" title="Mark as a great picture">★ STAR</button>
+            <button class="tag" title="Keep as secondary / variant">B-ROLL</button>
+            <button class="tag" title="Cull this asset">TRASH</button>
+          </div>
+          <button class="btn-generate">Generate</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="versions-col">
+      <span class="ver-label">Versions</span>
+      <div class="ver-thumb"><img src="../public/2026-01-27-debug/sultan.jpg" alt=""/><span class="stamp">v1</span></div>
+      <div class="ver-thumb active"><img src="../public/2026-01-27-debug/sultan.jpg" alt=""/><span class="stamp">v2</span></div>
+      <button class="ver-add">+</button>
+    </div>
+
+    <div class="chat-panel">
+      <div class="chat-msg">
+        <div class="who">CD</div>
+        Cropping sultan.jpg to 3:4 portrait. Frame's centered on Sultan's wing — crop will read as a regal posture shot, good for a vibe-3 portrait slot.
+      </div>
+      <div class="chat-msg user">
+        <div class="who">You</div>
+        Pull the bottom up so the gauntlet is fully in frame.
+      </div>
+      <div class="chat-input-row">
+        <textarea placeholder="Ask CD…"></textarea>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ================================================================ -->
+<!--  SLICE                                                           -->
+<!-- ================================================================ -->
+<div class="annotation"><strong>SLICE</strong> — body left = grid + naming, right = 6-tile output preview. No overwrite (multi-output op; naming pattern handles uniqueness).</div>
+
+<div class="stage-block">
+  <div class="topbar">
+    <div class="brand">OSKAR.OS<span class="session">DEBUG</span></div>
+    <div class="mode-tabs">
+      <button class="mode-tab">Brief</button><button class="mode-tab">Studio</button>
+      <button class="mode-tab active">Image</button><button class="mode-tab">Final</button>
+    </div>
+    <div class="topbar-right">
+      <span class="pill live">● Live</span><span class="pill">Onyx</span><span class="pill">CD</span>
+    </div>
+  </div>
+
+  <div class="app-body">
+    <div class="assets-panel">
+      <h3 class="panel-title">Assets <span class="count">14</span></h3>
+      <div class="asset-grid">
+        <div class="asset-tile selected"><img src="../public/2026-01-27-debug/hero.jpg" alt=""/><span class="tag-overlay hero">HERO</span></div>
+        <div class="asset-tile"><img src="../public/2026-01-27-debug/sultan.jpg" alt=""/></div>
+        <div class="asset-tile"><img src="../public/2026-01-27-debug/cd-direct-hero-v1.jpg" alt=""/></div>
+        <div class="asset-tile"><img src="../public/2026-01-27-debug/hara.jpg" alt=""/></div>
+        <div class="asset-tile"><img src="../public/2026-01-27-debug/cliff-majlis-steve.jpeg" alt=""/></div>
+        <div class="asset-tile"><img src="../public/2026-01-27-debug/hero-night.jpeg" alt=""/></div>
+      </div>
+    </div>
+
+    <div class="center-col">
+      <div class="zone-image">
+        <div class="zone-image-frame" style="aspect-ratio: 16/9; width: 90%; max-width: 880px;">
+          <img src="../public/2026-01-27-debug/hero.jpg" alt="" style="aspect-ratio: 16/9; width: 100%;"/>
+          <div class="slice-grid-overlay" style="grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(2,1fr)">
+            <div>1</div><div>2</div><div>3</div>
+            <div>4</div><div>5</div><div>6</div>
+          </div>
+        </div>
+        <div class="zone-image-overlay">hero.jpg · 1920 × 1080 · 16:9</div>
+      </div>
+
+      <div class="mode-row">
+        <button class="mode-btn">view</button>
+        <button class="mode-btn">generate</button>
+        <button class="mode-btn">edit</button>
+        <button class="mode-btn">compose</button>
+        <button class="mode-btn">layout</button>
+        <button class="mode-btn active">image-ops</button>
+      </div>
+
+      <div class="zone-controls">
+        <div class="ops-bar">
+          <div class="ops-tabs">
+            <button class="ops-tab">crop</button>
+            <button class="ops-tab active">slice</button>
+            <button class="ops-tab">resize</button>
+            <button class="ops-tab">format-convert</button>
+          </div>
+          <div class="ops-bar-right">
+            <span class="aspect-na">aspect — derived from grid</span>
+          </div>
+        </div>
+
+        <div class="ops-body">
+          <div>
+            <div class="ctrl-block-label">Slice grid</div>
+            <div class="field-grid" style="grid-template-columns:1fr 1fr">
+              <div class="field"><span class="lbl">Cols</span><input type="number" value="3"/></div>
+              <div class="field"><span class="lbl">Rows</span><input type="number" value="2"/></div>
+              <div class="field"><span class="lbl">Naming pattern</span><input type="text" value="hero-tile-{n}"/></div>
+              <div class="field-readout">→ <strong>6 outputs</strong> at 640 × 540 · <code>hero-tile-1.jpg … hero-tile-6.jpg</code></div>
+            </div>
+          </div>
+          <div>
+            <div class="ctrl-block-label">Output preview</div>
+            <div class="slice-outs">
+              <div class="out"><span class="num">1</span><img src="../public/2026-01-27-debug/hero.jpg" style="object-position:0% 0%;transform:scale(3);transform-origin:0 0"/></div>
+              <div class="out"><span class="num">2</span><img src="../public/2026-01-27-debug/hero.jpg" style="object-position:50% 0%;transform:scale(3);transform-origin:50% 0"/></div>
+              <div class="out"><span class="num">3</span><img src="../public/2026-01-27-debug/hero.jpg" style="object-position:100% 0%;transform:scale(3);transform-origin:100% 0"/></div>
+              <div class="out"><span class="num">4</span><img src="../public/2026-01-27-debug/hero.jpg" style="object-position:0% 100%;transform:scale(3);transform-origin:0 100%"/></div>
+              <div class="out"><span class="num">5</span><img src="../public/2026-01-27-debug/hero.jpg" style="object-position:50% 100%;transform:scale(3);transform-origin:50% 100%"/></div>
+              <div class="out"><span class="num">6</span><img src="../public/2026-01-27-debug/hero.jpg" style="object-position:100% 100%;transform:scale(3);transform-origin:100% 100%"/></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="ops-footer">
+          <div class="tag-row">
+            <span class="tag-label">Tag (applies to all 6)</span>
+            <button class="tag" title="Mark all 6 as great">★ STAR</button>
+            <button class="tag active b-roll" title="Keep all 6 as secondary / variant">B-ROLL</button>
+            <button class="tag" title="Cull all 6">TRASH</button>
+          </div>
+          <button class="btn-generate">Generate ▸ 6 files</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="versions-col">
+      <span class="ver-label">Versions</span>
+      <div class="ver-thumb active"><img src="../public/2026-01-27-debug/hero.jpg" alt=""/><span class="stamp">v1</span></div>
+      <button class="ver-add">+</button>
+    </div>
+
+    <div class="chat-panel">
+      <div class="chat-msg">
+        <div class="who">CD</div>
+        Slicing hero.jpg into 6 panels. Useful for the location-section editorial grid — gives 6 different framings of the same scene.
+      </div>
+      <div class="chat-input-row">
+        <textarea placeholder="Ask CD…"></textarea>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ================================================================ -->
+<!--  RESIZE                                                          -->
+<!-- ================================================================ -->
+<div class="annotation"><strong>RESIZE</strong> — Zone 2 source only. Body left = ONE width slider (height auto from aspect lock, shown as text). Body right = kernel dropdown (closed) with help icon, output naming + overwrite. Kernel options documented in the reference card below the stage.</div>
+
+<div class="stage-block">
+  <div class="topbar">
+    <div class="brand">OSKAR.OS<span class="session">DEBUG</span></div>
+    <div class="mode-tabs">
+      <button class="mode-tab">Brief</button><button class="mode-tab">Studio</button>
+      <button class="mode-tab active">Image</button><button class="mode-tab">Final</button>
+    </div>
+    <div class="topbar-right">
+      <span class="pill live">● Live</span><span class="pill">Onyx</span><span class="pill">CD</span>
+    </div>
+  </div>
+
+  <div class="app-body">
+    <div class="assets-panel">
+      <h3 class="panel-title">Assets <span class="count">14</span></h3>
+      <div class="asset-grid">
+        <div class="asset-tile selected"><img src="../public/2026-01-27-debug/hero.jpg" alt=""/><span class="tag-overlay hero">HERO</span></div>
+        <div class="asset-tile"><img src="../public/2026-01-27-debug/sultan.jpg" alt=""/></div>
+        <div class="asset-tile"><img src="../public/2026-01-27-debug/cd-direct-hero-v1.jpg" alt=""/></div>
+        <div class="asset-tile"><img src="../public/2026-01-27-debug/hara.jpg" alt=""/></div>
+        <div class="asset-tile"><img src="../public/2026-01-27-debug/cliff-majlis-steve.jpeg" alt=""/></div>
+        <div class="asset-tile"><img src="../public/2026-01-27-debug/hero-night.jpeg" alt=""/></div>
+      </div>
+    </div>
+
+    <div class="center-col">
+      <div class="zone-image">
+        <div class="zone-image-frame" style="aspect-ratio: 16/9; width: 80%; max-width: 800px;">
+          <img src="../public/2026-01-27-debug/hero.jpg" alt="" style="aspect-ratio: 16/9; width: 100%;"/>
+        </div>
+        <div class="zone-image-overlay">hero.jpg · 1920 × 1080 · 16:9</div>
+      </div>
+
+      <div class="mode-row">
+        <button class="mode-btn">view</button>
+        <button class="mode-btn">generate</button>
+        <button class="mode-btn">edit</button>
+        <button class="mode-btn">compose</button>
+        <button class="mode-btn">layout</button>
+        <button class="mode-btn active">image-ops</button>
+      </div>
+
+      <div class="zone-controls">
+        <div class="ops-bar">
+          <div class="ops-tabs">
+            <button class="ops-tab">crop</button>
+            <button class="ops-tab">slice</button>
+            <button class="ops-tab active">resize</button>
+            <button class="ops-tab">format-convert</button>
+          </div>
+          <div class="ops-bar-right">
+            <div class="aspect-chips">
+              <span class="chip-label">Lock to</span>
+              <button class="aspect-chip">free</button>
+              <button class="aspect-chip">1:1</button>
+              <button class="aspect-chip">4:3</button>
+              <button class="aspect-chip active">16:9</button>
+              <button class="aspect-chip">9:16</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="ops-body">
+          <div>
+            <div class="ctrl-block-label">Width (height auto from 16:9)</div>
+            <div class="slider-block">
+              <div class="slider-row">
+                <input type="range" min="320" max="1920" value="1280"/>
+                <span class="val">1280<span style="color:var(--text-faint);font-size:10px;margin-left:3px">px</span></span>
+              </div>
+              <div class="slider-readout">
+                source <strong style="color:var(--text-muted)">1920 × 1080</strong>
+                → output <strong>1280 × 720</strong> · −33.3% · ~180 KB
+              </div>
+            </div>
+          </div>
+          <div>
+            <div class="ctrl-block-label">Resampling kernel</div>
+            <div style="display:flex;align-items:center">
+              <select style="background:var(--bg-input);border:1px solid var(--border-card);color:var(--text-main);padding:6px 10px;border-radius:4px;font-family:var(--font-mono);font-size:12px;flex:1">
+                <option>lanczos3 (sharp · default)</option>
+                <option>cubic</option>
+                <option>bilinear</option>
+                <option>nearest</option>
+              </select>
+              <span class="help-icon" title="See reference below">?</span>
+            </div>
+
+            <div class="ctrl-block-label" style="margin-top:12px">Output</div>
+            <input type="text" value="hero-1280.jpg" style="background:var(--bg-input);border:1px solid var(--border-card);color:var(--text-main);padding:6px 10px;border-radius:4px;font-family:var(--font-mono);font-size:12px;width:100%"/>
+            <div class="overwrite-row">
+              <input type="checkbox" id="cw-resize"/>
+              <label for="cw-resize">Overwrite source (hero.jpg)</label>
+            </div>
+          </div>
+        </div>
+
+        <div class="ops-footer">
+          <div class="tag-row">
+            <span class="tag-label">Tag</span>
+            <button class="tag active star" title="Mark as a great picture">★ STAR</button>
+            <button class="tag" title="Keep as secondary / variant">B-ROLL</button>
+            <button class="tag" title="Cull this asset">TRASH</button>
+          </div>
+          <button class="btn-generate">Generate</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="versions-col">
+      <span class="ver-label">Versions</span>
+      <div class="ver-thumb active"><img src="../public/2026-01-27-debug/hero.jpg" alt=""/><span class="stamp">v1</span></div>
+      <button class="ver-add">+</button>
+    </div>
+
+    <div class="chat-panel">
+      <div class="chat-msg">
+        <div class="who">CD</div>
+        Resizing hero.jpg to 1280 × 720 with lanczos3 — keeps 16:9, drops file size by ~62%. Good for the menu-section background where full-res is overkill.
+      </div>
+      <div class="chat-input-row">
+        <textarea placeholder="Ask CD…"></textarea>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="ref-card">
+  <h4>Resampling kernel reference (?)</h4>
+  <div class="ref-table">
+    <div class="h">kernel</div>
+    <div class="h">strength</div>
+    <div class="h">trade-off</div>
+    <div class="h">use for</div>
+    <div class="row">
+      <div class="key">lanczos3</div>
+      <div>highest detail · sharp output</div>
+      <div>slowest of the four</div>
+      <div>downscaling photos · default</div>
+    </div>
+    <div class="row">
+      <div class="key">cubic</div>
+      <div>smooth gradients</div>
+      <div>slight softening</div>
+      <div>middle-ground · upscaling</div>
+    </div>
+    <div class="row">
+      <div class="key">bilinear</div>
+      <div>fastest with smoothing</div>
+      <div>noticeably soft</div>
+      <div>previews · thumbnails</div>
+    </div>
+    <div class="row">
+      <div class="key">nearest</div>
+      <div>no blending · pixel-exact</div>
+      <div>aliased on photos</div>
+      <div>pixel art · sprite sheets</div>
+    </div>
+  </div>
+</div>
+
+<!-- ================================================================ -->
+<!--  FORMAT-CONVERT — STAGE A: typical conversion (PNG → JPG)        -->
+<!-- ================================================================ -->
+<div class="annotation"><strong>FORMAT-CONVERT — typical conversion (PNG → JPG)</strong>. Body left = source/output format + quality slider + lossless toggle (disabled because output ≠ WEBP). Body right = output naming/overwrite + alpha-matte (active because source has alpha and output is JPG) + chroma-key add-on (disabled because output ≠ PNG). Layout structure is identical to Stage B — switching output never reflows.</div>
+
+<div class="stage-block">
+  <div class="topbar">
+    <div class="brand">OSKAR.OS<span class="session">DEBUG</span></div>
+    <div class="mode-tabs">
+      <button class="mode-tab">Brief</button><button class="mode-tab">Studio</button>
+      <button class="mode-tab active">Image</button><button class="mode-tab">Final</button>
+    </div>
+    <div class="topbar-right">
+      <span class="pill live">● Live</span><span class="pill">Onyx</span><span class="pill">CD</span>
+    </div>
+  </div>
+
+  <div class="app-body">
+    <div class="assets-panel">
+      <h3 class="panel-title">Assets <span class="count">14</span></h3>
+      <div class="asset-grid">
+        <div class="asset-tile selected" style="background:#fff"><div class="asset-mock" style="background:#fff;color:#222">FALCAMEL</div></div>
+        <div class="asset-tile"><img src="../public/2026-01-27-debug/hero.jpg" alt=""/></div>
+        <div class="asset-tile"><img src="../public/2026-01-27-debug/sultan.jpg" alt=""/></div>
+        <div class="asset-tile"><img src="../public/2026-01-27-debug/hara.jpg" alt=""/></div>
+        <div class="asset-tile"><img src="../public/2026-01-27-debug/cliff-majlis-steve.jpeg" alt=""/></div>
+      </div>
+    </div>
+
+    <div class="center-col">
+      <div class="zone-image">
+        <div class="convert-split">
+          <div class="convert-side transparent">
+            <span class="side-label">Input</span>
+            <div class="glyph dark">FalCaMel</div>
+            <!-- Eyedropper sampling the logo glyph (dark pixel) -->
+            <div class="eyedropper-cursor" style="top: 46%; left: 38%;">
+              <div class="cross-h"></div>
+              <div class="cross-v"></div>
+              <div class="ring"></div>
+              <div class="eyedropper-zoom">
+                <div class="eyedropper-zoom-grid" style="background-color:#1a1a1a"></div>
+                <div class="eyedropper-zoom-readout">#1A1A1A</div>
+              </div>
+            </div>
+          </div>
+          <div class="convert-side is-output solid-white">
+            <span class="side-label">Output</span>
+            <div class="glyph dark">FalCaMel</div>
+          </div>
+        </div>
+        <button class="eyedropper-tool">
+          <span class="eye-glyph"></span>
+          <span>Eyedropper</span>
+          <span class="eye-divider"></span>
+          <span class="eye-swatch" style="background:#1A1A1A"></span>
+          <span class="eye-hex">#1A1A1A</span>
+          <span class="eye-pos">· 412, 506</span>
+        </button>
+      </div>
+
+      <div class="mode-row">
+        <button class="mode-btn">view</button>
+        <button class="mode-btn">generate</button>
+        <button class="mode-btn">edit</button>
+        <button class="mode-btn">compose</button>
+        <button class="mode-btn">layout</button>
+        <button class="mode-btn active">image-ops</button>
+      </div>
+
+      <div class="zone-controls">
+        <div class="ops-bar">
+          <div class="ops-tabs">
+            <button class="ops-tab">crop</button>
+            <button class="ops-tab">slice</button>
+            <button class="ops-tab">resize</button>
+            <button class="ops-tab active">format-convert</button>
+          </div>
+          <div class="ops-bar-right">
+            <span class="aspect-na">aspect — preserved from source</span>
+          </div>
+        </div>
+
+        <div class="ops-body">
+          <div>
+            <div class="ctrl-block-label">Format</div>
+            <div class="field-grid" style="grid-template-columns:1fr 1fr">
+              <div class="field">
+                <span class="lbl">Source</span>
+                <input type="text" value="PNG · alpha" disabled/>
+              </div>
+              <div class="field">
+                <span class="lbl">Output</span>
+                <select>
+                  <option selected>JPG</option>
+                  <option>PNG</option>
+                  <option>WEBP</option>
+                </select>
+              </div>
+            </div>
+            <div class="slider-block" style="margin-top:10px">
+              <span class="lbl" style="font-family:var(--font-mono);font-size:9px;color:var(--text-faint);text-transform:uppercase;letter-spacing:0.1em">Quality</span>
+              <div class="slider-row">
+                <input type="range" min="1" max="100" value="90"/>
+                <span class="val">90</span>
+              </div>
+              <div class="slider-readout">JPG q90 · est. <strong>~89 KB</strong> · −78% vs source</div>
+            </div>
+            <div class="overwrite-row">
+              <input type="checkbox" id="lossless-a" disabled/>
+              <label for="lossless-a" style="opacity:0.45">Lossless (WEBP only)</label>
+            </div>
+          </div>
+          <div>
+            <div class="ctrl-block-label">Output</div>
+            <input type="text" value="falcamel-logo.jpg" style="background:var(--bg-input);border:1px solid var(--border-card);color:var(--text-main);padding:6px 10px;border-radius:4px;font-family:var(--font-mono);font-size:12px;width:100%"/>
+            <div class="overwrite-row">
+              <input type="checkbox" id="cw-fmt-a"/>
+              <label for="cw-fmt-a">Overwrite source (falcamel-logo.png)</label>
+            </div>
+
+            <div class="addon-block" style="margin-top:10px">
+              <div class="addon-head">
+                <div class="addon-toggle"></div>
+                <span class="addon-label">Alpha matte</span>
+                <span class="addon-help">JPG drops alpha</span>
+              </div>
+              <div class="swatch-row">
+                <div class="swatch" style="background:#ffffff"></div>
+                <input type="text" value="#FFFFFF"/>
+                <span style="font-family:var(--font-mono);font-size:9px;color:var(--text-faint);text-transform:uppercase;letter-spacing:0.06em">background fill</span>
+              </div>
+            </div>
+
+            <div class="addon-block disabled" style="margin-top:8px">
+              <div class="addon-head">
+                <div class="addon-toggle off"></div>
+                <span class="addon-label">Chroma-key</span>
+                <span class="addon-help">PNG output only</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="ops-footer">
+          <div class="tag-row">
+            <span class="tag-label">Tag</span>
+            <button class="tag active star" title="Mark as a great picture">★ STAR</button>
+            <button class="tag" title="Keep as secondary / variant">B-ROLL</button>
+            <button class="tag" title="Cull this asset">TRASH</button>
+          </div>
+          <button class="btn-generate">Generate</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="versions-col">
+      <span class="ver-label">Versions</span>
+      <div class="ver-thumb active" style="background:#fff"><div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-family:'Inter Tight',var(--font-body);font-size:9px;font-weight:800;color:#1a1a1a">FCM</div><span class="stamp" style="color:#222">v1</span></div>
+      <button class="ver-add">+</button>
+    </div>
+
+    <div class="chat-panel">
+      <div class="chat-msg">
+        <div class="who">CD</div>
+        PNG → JPG with white matte. Drops alpha (replaced by the matte color), gives ~78% smaller file. Use for hero slots where you don't need transparency.
+      </div>
+      <div class="chat-input-row">
+        <textarea placeholder="Ask CD…"></textarea>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ================================================================ -->
+<!--  FORMAT-CONVERT — STAGE B: chroma-key (PNG → PNG with key on)    -->
+<!-- ================================================================ -->
+<div class="annotation"><strong>FORMAT-CONVERT — chroma-key path (PNG → PNG with key on)</strong>. Same body shell as Stage A — output dropdown changed to PNG, alpha-matte greyed out (no longer applicable because output keeps alpha), chroma-key block becomes ACTIVE. Quality slider is disabled because PNG is lossless. Zero layout shift between Stage A and Stage B — only enabled state changes.</div>
+
+<div class="stage-block">
+  <div class="topbar">
+    <div class="brand">OSKAR.OS<span class="session">DEBUG</span></div>
+    <div class="mode-tabs">
+      <button class="mode-tab">Brief</button><button class="mode-tab">Studio</button>
+      <button class="mode-tab active">Image</button><button class="mode-tab">Final</button>
+    </div>
+    <div class="topbar-right">
+      <span class="pill live">● Live</span><span class="pill">Onyx</span><span class="pill">CD</span>
+    </div>
+  </div>
+
+  <div class="app-body">
+    <div class="assets-panel">
+      <h3 class="panel-title">Assets <span class="count">14</span></h3>
+      <div class="asset-grid">
+        <div class="asset-tile selected" style="background:#fff"><div class="asset-mock" style="background:#fff;color:#222">FALCAMEL</div></div>
+        <div class="asset-tile"><img src="../public/2026-01-27-debug/hero.jpg" alt=""/></div>
+        <div class="asset-tile"><img src="../public/2026-01-27-debug/sultan.jpg" alt=""/></div>
+        <div class="asset-tile"><img src="../public/2026-01-27-debug/hara.jpg" alt=""/></div>
+        <div class="asset-tile"><img src="../public/2026-01-27-debug/cliff-majlis-steve.jpeg" alt=""/></div>
+      </div>
+    </div>
+
+    <div class="center-col">
+      <div class="zone-image">
+        <div class="convert-split">
+          <div class="convert-side solid-white">
+            <span class="side-label">Input</span>
+            <div class="glyph dark">FalCaMel</div>
+            <!-- Eyedropper sampling a white pixel near top-left -->
+            <div class="eyedropper-cursor" style="top: 28%; left: 18%;">
+              <div class="cross-h"></div>
+              <div class="cross-v"></div>
+              <div class="ring"></div>
+              <div class="eyedropper-zoom">
+                <div class="eyedropper-zoom-grid"></div>
+                <div class="eyedropper-zoom-readout">#FFFFFF</div>
+              </div>
+            </div>
+          </div>
+          <div class="convert-side is-output transparent">
+            <span class="side-label">Output</span>
+            <div class="glyph light">FalCaMel</div>
+          </div>
+        </div>
+        <button class="eyedropper-tool">
+          <span class="eye-glyph"></span>
+          <span>Eyedropper</span>
+          <span class="eye-divider"></span>
+          <span class="eye-swatch" style="background:#FFFFFF"></span>
+          <span class="eye-hex">#FFFFFF</span>
+          <span class="eye-pos">· 143, 226</span>
+        </button>
+      </div>
+
+      <div class="mode-row">
+        <button class="mode-btn">view</button>
+        <button class="mode-btn">generate</button>
+        <button class="mode-btn">edit</button>
+        <button class="mode-btn">compose</button>
+        <button class="mode-btn">layout</button>
+        <button class="mode-btn active">image-ops</button>
+      </div>
+
+      <div class="zone-controls">
+        <div class="ops-bar">
+          <div class="ops-tabs">
+            <button class="ops-tab">crop</button>
+            <button class="ops-tab">slice</button>
+            <button class="ops-tab">resize</button>
+            <button class="ops-tab active">format-convert</button>
+          </div>
+          <div class="ops-bar-right">
+            <span class="aspect-na">aspect — preserved from source</span>
+          </div>
+        </div>
+
+        <div class="ops-body">
+          <div>
+            <div class="ctrl-block-label">Format</div>
+            <div class="field-grid" style="grid-template-columns:1fr 1fr">
+              <div class="field">
+                <span class="lbl">Source</span>
+                <input type="text" value="PNG · alpha" disabled/>
+              </div>
+              <div class="field">
+                <span class="lbl">Output</span>
+                <select>
+                  <option>JPG</option>
+                  <option selected>PNG</option>
+                  <option>WEBP</option>
+                </select>
+              </div>
+            </div>
+            <div class="slider-block" style="margin-top:10px">
+              <span class="lbl" style="font-family:var(--font-mono);font-size:9px;color:var(--text-faint);text-transform:uppercase;letter-spacing:0.1em">Quality</span>
+              <div class="slider-row">
+                <input type="range" min="1" max="100" value="100" disabled/>
+                <span class="val disabled">N/A</span>
+              </div>
+              <div class="slider-readout">PNG is lossless · est. <strong>~85 KB</strong></div>
+            </div>
+            <div class="overwrite-row">
+              <input type="checkbox" id="lossless-b" disabled/>
+              <label for="lossless-b" style="opacity:0.45">Lossless (WEBP only)</label>
+            </div>
+          </div>
+          <div>
+            <div class="ctrl-block-label">Output</div>
+            <input type="text" value="falcamel-logo-keyed.png" style="background:var(--bg-input);border:1px solid var(--border-card);color:var(--text-main);padding:6px 10px;border-radius:4px;font-family:var(--font-mono);font-size:12px;width:100%"/>
+            <div class="overwrite-row">
+              <input type="checkbox" id="cw-fmt-b"/>
+              <label for="cw-fmt-b">Overwrite source (falcamel-logo.png)</label>
+            </div>
+
+            <div class="addon-block disabled" style="margin-top:10px">
+              <div class="addon-head">
+                <div class="addon-toggle off"></div>
+                <span class="addon-label">Alpha matte</span>
+                <span class="addon-help">JPG output only</span>
+              </div>
+            </div>
+
+            <div class="addon-block" style="margin-top:8px">
+              <div class="addon-head">
+                <div class="addon-toggle"></div>
+                <span class="addon-label">Chroma-key</span>
+                <span class="addon-help">key out a color → alpha</span>
+              </div>
+              <div class="swatch-row">
+                <div class="swatch" style="background:#ffffff"></div>
+                <input type="text" value="#FFFFFF"/>
+                <span style="font-family:var(--font-mono);font-size:9px;color:var(--text-faint);text-transform:uppercase;letter-spacing:0.06em">key</span>
+              </div>
+              <div class="field-grid" style="grid-template-columns:1fr 1fr">
+                <div class="field"><span class="lbl">Tolerance</span><input type="number" value="14"/></div>
+                <div class="field"><span class="lbl">Edge feather</span><input type="number" value="2"/></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="ops-footer">
+          <div class="tag-row">
+            <span class="tag-label">Tag</span>
+            <button class="tag active star" title="Mark as a great picture">★ STAR</button>
+            <button class="tag" title="Keep as secondary / variant">B-ROLL</button>
+            <button class="tag" title="Cull this asset">TRASH</button>
+          </div>
+          <button class="btn-generate">Generate</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="versions-col">
+      <span class="ver-label">Versions</span>
+      <div class="ver-thumb" style="background:#fff"><div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-family:'Inter Tight',var(--font-body);font-size:9px;font-weight:800;color:#1a1a1a">FCM</div><span class="stamp" style="color:#222">v1</span></div>
+      <div class="ver-thumb active" style="background:repeating-conic-gradient(#1a1a1e 0 25%, transparent 0 50%) 0 0/8px 8px;background-color:#2a2a2e"><div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-family:'Inter Tight',var(--font-body);font-size:9px;font-weight:800;color:#f4f4f5">FCM</div><span class="stamp">v2</span></div>
+      <button class="ver-add">+</button>
+    </div>
+
+    <div class="chat-panel">
+      <div class="chat-msg">
+        <div class="who">CD</div>
+        PNG → PNG with chroma-key on. Same format, just removing the white background. Output is alpha-PNG, ready for the navbar slot which sits on a non-white background.
+      </div>
+      <div class="chat-msg user">
+        <div class="who">You</div>
+        And if I switch output to WEBP?
+      </div>
+      <div class="chat-msg">
+        <div class="who">CD</div>
+        Quality slider re-enables, lossless toggle re-enables, alpha-matte and chroma-key both grey out (chroma-key is PNG-only by spec). Layout doesn't shift — same body, only enabled state changes.
+      </div>
+      <div class="chat-input-row">
+        <textarea placeholder="Ask CD…"></textarea>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ================================================================ -->
+<!--  FORMAT-CONVERT — STAGE C: WEBP output (lossy with quality)      -->
+<!-- ================================================================ -->
+<div class="annotation"><strong>FORMAT-CONVERT — WEBP path (PNG → WEBP, lossy)</strong>. Same body shell. Output dropdown = WEBP, quality slider <strong>active</strong> at 80, lossless toggle <strong>active</strong> (currently OFF — flip ON to disable the quality slider). Alpha-matte block disabled because WEBP keeps alpha. Chroma-key block disabled because chroma-key is PNG-only by current spec. Layout footprint identical to Stages A and B.</div>
+
+<div class="stage-block">
+  <div class="topbar">
+    <div class="brand">OSKAR.OS<span class="session">DEBUG</span></div>
+    <div class="mode-tabs">
+      <button class="mode-tab">Brief</button><button class="mode-tab">Studio</button>
+      <button class="mode-tab active">Image</button><button class="mode-tab">Final</button>
+    </div>
+    <div class="topbar-right">
+      <span class="pill live">● Live</span><span class="pill">Onyx</span><span class="pill">CD</span>
+    </div>
+  </div>
+
+  <div class="app-body">
+    <div class="assets-panel">
+      <h3 class="panel-title">Assets <span class="count">14</span></h3>
+      <div class="asset-grid">
+        <div class="asset-tile selected" style="background:#fff"><div class="asset-mock" style="background:#fff;color:#222">FALCAMEL</div></div>
+        <div class="asset-tile"><img src="../public/2026-01-27-debug/hero.jpg" alt=""/></div>
+        <div class="asset-tile"><img src="../public/2026-01-27-debug/sultan.jpg" alt=""/></div>
+        <div class="asset-tile"><img src="../public/2026-01-27-debug/hara.jpg" alt=""/></div>
+        <div class="asset-tile"><img src="../public/2026-01-27-debug/cliff-majlis-steve.jpeg" alt=""/></div>
+      </div>
+    </div>
+
+    <div class="center-col">
+      <div class="zone-image">
+        <div class="convert-split">
+          <div class="convert-side transparent">
+            <span class="side-label">Input</span>
+            <div class="glyph dark">FalCaMel</div>
+            <!-- Eyedropper sampling the logo glyph (dark pixel) -->
+            <div class="eyedropper-cursor" style="top: 46%; left: 38%;">
+              <div class="cross-h"></div>
+              <div class="cross-v"></div>
+              <div class="ring"></div>
+              <div class="eyedropper-zoom">
+                <div class="eyedropper-zoom-grid" style="background-color:#1a1a1a"></div>
+                <div class="eyedropper-zoom-readout">#1A1A1A</div>
+              </div>
+            </div>
+          </div>
+          <div class="convert-side is-output transparent">
+            <span class="side-label">Output</span>
+            <div class="glyph dark">FalCaMel</div>
+          </div>
+        </div>
+        <button class="eyedropper-tool">
+          <span class="eye-glyph"></span>
+          <span>Eyedropper</span>
+          <span class="eye-divider"></span>
+          <span class="eye-swatch" style="background:#1A1A1A"></span>
+          <span class="eye-hex">#1A1A1A</span>
+          <span class="eye-pos">· 412, 506</span>
+        </button>
+      </div>
+
+      <div class="mode-row">
+        <button class="mode-btn">view</button>
+        <button class="mode-btn">generate</button>
+        <button class="mode-btn">edit</button>
+        <button class="mode-btn">compose</button>
+        <button class="mode-btn">layout</button>
+        <button class="mode-btn active">image-ops</button>
+      </div>
+
+      <div class="zone-controls">
+        <div class="ops-bar">
+          <div class="ops-tabs">
+            <button class="ops-tab">crop</button>
+            <button class="ops-tab">slice</button>
+            <button class="ops-tab">resize</button>
+            <button class="ops-tab active">format-convert</button>
+          </div>
+          <div class="ops-bar-right">
+            <span class="aspect-na">aspect — preserved from source</span>
+          </div>
+        </div>
+
+        <div class="ops-body">
+          <div>
+            <div class="ctrl-block-label">Format</div>
+            <div class="field-grid" style="grid-template-columns:1fr 1fr">
+              <div class="field">
+                <span class="lbl">Source</span>
+                <input type="text" value="PNG · alpha" disabled/>
+              </div>
+              <div class="field">
+                <span class="lbl">Output</span>
+                <select>
+                  <option>JPG</option>
+                  <option>PNG</option>
+                  <option selected>WEBP</option>
+                </select>
+              </div>
+            </div>
+            <div class="slider-block" style="margin-top:10px">
+              <span class="lbl" style="font-family:var(--font-mono);font-size:9px;color:var(--text-faint);text-transform:uppercase;letter-spacing:0.1em">Quality</span>
+              <div class="slider-row">
+                <input type="range" min="1" max="100" value="80"/>
+                <span class="val">80</span>
+              </div>
+              <div class="slider-readout">WEBP lossy · est. <strong>~62 KB</strong> · −85% vs source · alpha preserved</div>
+            </div>
+            <div class="overwrite-row">
+              <input type="checkbox" id="lossless-c"/>
+              <label for="lossless-c">Lossless (disables quality slider)</label>
+            </div>
+          </div>
+          <div>
+            <div class="ctrl-block-label">Output</div>
+            <input type="text" value="falcamel-logo.webp" style="background:var(--bg-input);border:1px solid var(--border-card);color:var(--text-main);padding:6px 10px;border-radius:4px;font-family:var(--font-mono);font-size:12px;width:100%"/>
+            <div class="overwrite-row">
+              <input type="checkbox" id="cw-fmt-c"/>
+              <label for="cw-fmt-c">Overwrite source (falcamel-logo.png)</label>
+            </div>
+
+            <div class="addon-block disabled" style="margin-top:10px">
+              <div class="addon-head">
+                <div class="addon-toggle off"></div>
+                <span class="addon-label">Alpha matte</span>
+                <span class="addon-help">JPG output only</span>
+              </div>
+            </div>
+
+            <div class="addon-block disabled" style="margin-top:8px">
+              <div class="addon-head">
+                <div class="addon-toggle off"></div>
+                <span class="addon-label">Chroma-key</span>
+                <span class="addon-help">PNG output only</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="ops-footer">
+          <div class="tag-row">
+            <span class="tag-label">Tag</span>
+            <button class="tag active star" title="Mark as a great picture">★ STAR</button>
+            <button class="tag" title="Keep as secondary / variant">B-ROLL</button>
+            <button class="tag" title="Cull this asset">TRASH</button>
+          </div>
+          <button class="btn-generate">Generate</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="versions-col">
+      <span class="ver-label">Versions</span>
+      <div class="ver-thumb active" style="background:#fff"><div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-family:'Inter Tight',var(--font-body);font-size:9px;font-weight:800;color:#1a1a1a">FCM</div><span class="stamp" style="color:#222">v1</span></div>
+      <button class="ver-add">+</button>
+    </div>
+
+    <div class="chat-panel">
+      <div class="chat-msg">
+        <div class="who">CD</div>
+        PNG → WEBP at q80 lossy. Alpha preserved (WEBP supports it natively), file drops to ~62 KB — 85% smaller than the source PNG. Use for any modern-browser slot where WEBP is supported.
+      </div>
+      <div class="chat-msg user">
+        <div class="who">You</div>
+        And lossless WEBP?
+      </div>
+      <div class="chat-msg">
+        <div class="who">CD</div>
+        Toggle the Lossless checkbox above. Quality slider greys out, file size grows (~140 KB here) but it's still smaller than the source PNG and pixel-perfect. Trade-off: lossless WEBP is best when you can't accept any compression artifacts (logo wordmarks, screenshots).
+      </div>
+      <div class="chat-input-row">
+        <textarea placeholder="Ask CD…"></textarea>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="ref-card">
+  <h4>Format conversion matrix (?)</h4>
+  <div class="ref-table">
+    <div class="h">output</div>
+    <div class="h">quality slider</div>
+    <div class="h">alpha-matte</div>
+    <div class="h">chroma-key</div>
+    <div class="row">
+      <div class="key">JPG</div>
+      <div>active · 1–100</div>
+      <div>active when source has alpha (replaces transparency with matte color)</div>
+      <div>disabled (JPG can't carry alpha)</div>
+    </div>
+    <div class="row">
+      <div class="key">PNG</div>
+      <div>disabled · PNG is lossless</div>
+      <div>disabled (PNG keeps alpha)</div>
+      <div>active · key out a color → alpha</div>
+    </div>
+    <div class="row">
+      <div class="key">WEBP</div>
+      <div>active · 1–100 (lossy mode); disabled when Lossless toggle is on</div>
+      <div>disabled (WEBP keeps alpha)</div>
+      <div>disabled (chroma-key PNG-only by spec — request if you need WEBP support)</div>
+    </div>
+  </div>
+</div>
+
+</div>
+
+</body>
+</html>

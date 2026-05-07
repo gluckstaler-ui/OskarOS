@@ -1,0 +1,173 @@
+┌─────────────────────────────────────────────────────────────────────────────────────────────────┐
+│                                      SESSION TIMELINE                                            │
+└─────────────────────────────────────────────────────────────────────────────────────────────────┘
+
+TIME ─────────────────────────────────────────────────────────────────────────────────────────────►
+
+│ PHASE 1: DISCOVERY │ PHASE 2: VIBES       │ PHASE 3: BUILD        │ PHASE 4: POLISH           │
+│                    │                      │                       │                           │
+│  User uploads      │  CD develops         │  WebDev builds        │  User reviews vibes       │
+│  images            │  5 vibes             │  vibes ONE BY ONE     │        ↓                  │
+│        ↓           │        ↓             │        ↓              │  User selects/mixes       │
+│  CD asks           │  CD presents vibes   │  ┌─────────────────┐  │  elements - user can change things in the preview                 │
+│  questions         │  to CEO              │  │ PARALLEL TRACK  │  │        ↓                  │
+│        ↓           │        ↓             │  │                 │  │  Final page assembled     │
+│  User answers      │  CD presents         │  │ Nano Banana     │  │        ↓                  │
+│        ↓           │  IMAGE PROMPTS       │  │ generates       │  │  User approves            │
+│  CD analyzes       │  for Nano Banana     │  │ images          │  │        ↓                  │
+│  uploaded images   │        ↓             │  │      ↓          │  │  DONE                     │
+│        ↓           │  User approves       │  │ Images land     │  │                           │
+│  Discovery         │  image prompts       │  │ in session      │  │                           │
+│  complete          │        ↓             │  │ folder          │  │                           │
+│        ↓           │  CREATIVE BRIEF      │  │      ↓          │  │                           │
+│  STOP              │  written             │  │ HOT-SWAP into   │  │                           │
+│  (user greenlights │        ↓             │  │ vibes as they   │  │                           │
+│   Phase 2)         │  NO STOP (why stop?) │  │ arrive          │  │                           │
+│                    │                      │  │      ↓          │  │                           │
+│                    │                      │  │ User can        │  │                           │
+│                    │                      │  │ RE-PROMPT if    │  │                           │
+│                    │                      │  │ not satisfied   │  │                           │
+│                    │                      │  └────────┬────────┘  │                           │
+│                    │                      │           │           │                           │
+│                    │                      │  WebDev uses          │                           │
+│                    │                      │  placeholders,        │                           │
+│                    │                      │  then real images     │                           │
+│                    │                      │  when ready           │                           │
+│                    │                      │        ↓              │                           │
+│                    │                      │  All vibes built      │                           │
+│                    │                      │  All images ready     │                           │
+│                    │                      │        ↓              │                           │
+│                    │                      │  STOP                 │                           │
+│                    │                      │  (await user)         │                           │
+│                    │                      │                       │                           │
+└────────────────────┴──────────────────────┴───────────────────────┴───────────────────────────┘
+
+
+PHASE 3 DETAIL: THE PARALLEL DANCE
+══════════════════════════════════
+
+WebDev Track                          Nano Banana Track                    User Track
+─────────────                         ────────────────                     ──────────
+
+Start Vibe 1                          Receive image prompts                Looking at Vibe 1
+    │                                      │                               (with placeholders)
+    ▼                                      ▼                                    │
+Build landing.html                    Generate hero image                       │
+(placeholder images)                       │                                    │
+    │                                      ▼                                    │
+    ▼                                 hero-v1.jpg lands                         │
+Build booking.html                    in session folder                         │
+    │                                      │                                    ▼
+    ▼                                      ▼                               Sees hero appear!
+Vibe 1 COMPLETE ◄────────────────── HOT-SWAP into Vibe 1 ◄─────────────── "Falcon too small"
+    │                                      │                                    │
+    ▼                                      ▼                                    ▼
+Start Vibe 2                          Receive re-prompt                    Waiting...
+    │                                      │                                    │
+    ▼                                      ▼                                    │
+Build landing.html                    Generate hero-v2.jpg                      │
+    │                                      │                                    │
+    ▼                                      ▼                                    ▼
+Build booking.html                    hero-v2.jpg lands ──────────────────► Sees new hero!
+    │                                      │                               "Perfect!"
+    ▼                                      ▼                                    │
+Vibe 2 COMPLETE                       HOT-SWAP into Vibe 1                      │
+    │                                      │                                    │
+    ▼                                      ▼                                    │
+Start Vibe 3...                       Continue with menu                        │
+                                      background...                              ▼
+                                           │                               Browsing vibes,
+                                           ▼                               watching them
+                                      More images land...                  improve in
+                                           │                               real-time
+                                           ▼
+                                      All images complete
+                                           │
+                                           ▼
+                              ┌────────────────────────────┐
+                              │   ALL TRACKS CONVERGE     │
+                              │                           │
+                              │   • All 5 vibes built     │
+                              │   • All images generated  │
+                              │   • All hot-swaps done    │
+                              │   • User has been         │
+                              │     watching & iterating  │
+                              │                           │
+                              │   → PHASE 4: POLISH       │
+                              └────────────────────────────┘
+
+                              ┌─────────────────────────────────────────────────────────────────────────┐
+│                         OSKAR OS TIMELINE                               │
+└─────────────────────────────────────────────────────────────────────────┘
+
+TIME ──────────────────────────────────────────────────────────────────────►
+
+│ PHASE 1: DISCOVERY │ PHASE 2: CONCEPTS  │ PHASE 3: PRODUCTION  │ PHASE 4: CONVERGENCE │
+│ (Synchronous)      │ (The Fork)         │ (Async Parallel)     │ (The Merge)          │
+│                    │                    │                      │                      │
+│ 1. User uploads    │ 4. CD develops     │ TRACK A (Visuals):   │ 7. Integration       │
+│    images          │    5 Vibes (Text)  │ Nano Banana starts   │    - Images arrive   │
+│       ↓            │       ↓            │ rendering verified   │      in folder       │
+│ 2. CD asks         │ 5. Presents Vibes  │ prompts (Slow)       │    - WebDev detects  │
+│    questions       │    to User         │       ↓              │      new file        │
+│       ↓            │       ↓            │ Images land in       │    - HOT SWAP in     │
+│ 3. CD analyzes     │ 6. CD writes       │ /images/generated/   │      HTML            │
+│    answers +       │    Image Prompts   │                      │       ↓              │
+│    visuals         │       ↓            │ TRACK B (Code):      │ 8. Director Mode     │
+│       ↓            │ STOP: User Approves│ WebDev builds        │    - User clicks     │
+│ Output:            │ Prompts            │ Vibe 1 HTML          │      to edit text    │
+│ log.md             │       ↓            │ (Placeholder Imgs)   │    - User swaps      │
+│                    │ Trigger:           │       ↓              │      bad images      │
+│                    │ PROMPTS_APPROVED   │ WebDev builds        │       ↓              │
+│                    │                    │ Vibe 2 HTML          │ 9. FINAL DEPLOY      │
+│                    │                    │ (Placeholder Imgs)   │    (Freeze State)    │
+│                    │                    │                      │                      │
+└────────────────────┴────────────────────┴──────────────────────┴──────────────────────┘
+                                          │
+                                          ▼
+                                   User watches Vibes
+                                   appear one by one
+
+                                   User is in Phase 3, looking at Vibe 1 (Qahwa) with placeholder images.
+
+                                    ┌──────────────────────────────────┐
+                                    │ 🖼️ Hero image ready    [View]   │
+                                    └──────────────────────────────────┘
+
+User clicks [View]. Image appears in the vibe. Nice!
+But the falcon is too small.
+
+User types: "Make the falcon bigger, more dramatic"
+
+                                    ┌──────────────────────────────────┐
+                                    │ ⏳ Regenerating hero...          │
+                                    └──────────────────────────────────┘
+
+15 seconds later...
+
+                                    ┌──────────────────────────────────┐
+                                    │ ⏳ Regenerating hero...          │
+                                    ├──────────────────────────────────┤
+                                    │ ✅ "Majlis" ready       [View]   │
+                                    └──────────────────────────────────┘
+
+The user can switch to Majlis while waiting for the hero re-gen!
+
+10 seconds later...
+
+                                    ┌──────────────────────────────────┐
+                                    │ 🔄 Hero updated in Qahwa [View]  │
+                                    ├──────────────────────────────────┤
+                                    │ ✅ "Majlis" ready       [View]   │
+                                    └──────────────────────────────────┘
+
+User clicks [View] on the hero update. Goes back to Qahwa. Falcon is HUGE now.
+Perfect!
+
+Later...
+
+                                    ┌──────────────────────────────────┐
+                                    │ 🎉 All vibes ready!              │
+                                    │    All images complete!          │
+                                    │              [Compare Vibes]     │
+                                    └──────────────────────────────────┘

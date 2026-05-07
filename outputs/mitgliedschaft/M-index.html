@@ -1,0 +1,592 @@
+<!DOCTYPE html>
+<html lang="de-CH">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bareggcenter Baden | Mitgliedschaft</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --color-black: #000000;
+            --color-gold: #c9a962;
+            --color-bone: #e8e4dc;
+            --font-display: 'Cormorant Garamond', Georgia, serif;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        body {
+            font-family: var(--font-display);
+            background-color: var(--color-black);
+            color: var(--color-bone);
+            line-height: 1.6;
+            overflow-x: hidden;
+        }
+
+        /* Hero Section */
+        .hero {
+            min-height: 100vh;
+            background-image: url('../../images/mitgliedschaft.jpg');
+            background-size: cover;
+            background-position: center;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-end;
+            padding: 4rem 2rem;
+            position: relative;
+        }
+
+        .hero-content {
+            max-width: 900px;
+            margin: 0 auto;
+            text-align: center;
+            padding-bottom: 4rem;
+        }
+
+        .hero h1 {
+            font-size: clamp(3rem, 8vw, 6rem);
+            font-weight: 400;
+            letter-spacing: 0.02em;
+            text-shadow: 0 4px 30px rgba(0, 0, 0, 0.9), 0 2px 10px rgba(0, 0, 0, 0.8);
+            margin-bottom: 1rem;
+            color: var(--color-bone);
+        }
+
+        .hero .subline {
+            font-size: clamp(1.5rem, 4vw, 2.5rem);
+            font-weight: 400;
+            font-style: italic;
+            color: var(--color-gold);
+            text-shadow: 0 2px 20px rgba(0, 0, 0, 0.9);
+            margin-bottom: 3rem;
+        }
+
+        .cta-button {
+            display: inline-block;
+            padding: 1.2rem 3rem;
+            font-family: var(--font-display);
+            font-size: 1.25rem;
+            font-weight: 500;
+            letter-spacing: 0.15em;
+            text-transform: uppercase;
+            color: var(--color-black);
+            background-color: var(--color-gold);
+            border: none;
+            cursor: pointer;
+            text-decoration: none;
+            transition: all 0.3s ease;
+        }
+
+        .cta-button:hover {
+            background-color: var(--color-bone);
+            transform: translateY(-2px);
+        }
+
+        /* Section Base */
+        section {
+            padding: 6rem 2rem;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        /* Recognition Section */
+        .recognition {
+            text-align: center;
+            border-bottom: 1px solid rgba(201, 169, 98, 0.2);
+        }
+
+        .recognition .one-liner {
+            font-size: clamp(1.5rem, 4vw, 2.5rem);
+            font-style: italic;
+            color: var(--color-gold);
+            margin-bottom: 4rem;
+            letter-spacing: 0.02em;
+        }
+
+        .recognition h2 {
+            font-size: clamp(2rem, 5vw, 3.5rem);
+            font-weight: 400;
+            margin-bottom: 3rem;
+            color: var(--color-bone);
+        }
+
+        .recognition .story {
+            max-width: 800px;
+            margin: 0 auto;
+            font-size: 1.25rem;
+            line-height: 2;
+        }
+
+        .recognition .story p {
+            margin-bottom: 2rem;
+        }
+
+        .recognition .story .highlight {
+            color: var(--color-gold);
+            font-style: italic;
+        }
+
+        .recognition .categories {
+            margin-top: 4rem;
+            display: flex;
+            justify-content: center;
+            gap: 4rem;
+            flex-wrap: wrap;
+        }
+
+        .category {
+            text-align: center;
+        }
+
+        .category .label {
+            font-size: 0.9rem;
+            letter-spacing: 0.2em;
+            text-transform: uppercase;
+            color: rgba(232, 228, 220, 0.5);
+            margin-bottom: 0.5rem;
+        }
+
+        .category .value {
+            font-size: 1.5rem;
+            color: var(--color-gold);
+        }
+
+        /* The Moment Section */
+        .moment {
+            background-image: url('../../images/aperol-bar-ready.jpeg');
+            background-size: cover;
+            background-position: center;
+            padding: 8rem 2rem;
+            margin: 0;
+            max-width: 100%;
+            position: relative;
+        }
+
+        .moment-inner {
+            max-width: 900px;
+            margin: 0 auto;
+            text-align: center;
+        }
+
+        .moment h2 {
+            font-size: clamp(1.5rem, 4vw, 2.5rem);
+            font-weight: 700;
+            color: var(--color-bone);
+            margin-bottom: 3rem;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 1), 0 4px 30px rgba(0, 0, 0, 1);
+        }
+
+        .moment .scenario {
+            font-size: 1.35rem;
+            line-height: 2.2;
+            font-style: italic;
+            font-weight: 600;
+            color: var(--color-bone);
+            margin-bottom: 3rem;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 1), 0 4px 20px rgba(0, 0, 0, 1);
+        }
+
+        .moment .aperol {
+            font-size: 2rem;
+            color: var(--color-gold);
+            margin: 3rem 0;
+            font-weight: 700;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 1), 0 4px 30px rgba(0, 0, 0, 1);
+        }
+
+        .moment .outcomes {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 3rem;
+            margin-top: 4rem;
+            text-align: left;
+        }
+
+        .outcome {
+            padding: 2rem;
+            border-left: 2px solid var(--color-gold);
+        }
+
+        .outcome .condition {
+            font-size: 1.1rem;
+            color: var(--color-gold);
+            margin-bottom: 1rem;
+            font-style: italic;
+            font-weight: 700;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 1), 0 2px 15px rgba(0, 0, 0, 1);
+        }
+
+        .outcome .result {
+            font-size: 1rem;
+            color: var(--color-bone);
+            line-height: 1.8;
+            font-weight: 600;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 1), 0 2px 15px rgba(0, 0, 0, 1);
+        }
+
+        /* Fixplatz Section */
+        .fixplatz {
+            border-bottom: 1px solid rgba(201, 169, 98, 0.2);
+        }
+
+        .fixplatz-header {
+            text-align: center;
+            margin-bottom: 4rem;
+        }
+
+        .fixplatz h2 {
+            font-size: clamp(2rem, 5vw, 3rem);
+            font-weight: 400;
+            color: var(--color-bone);
+            margin-bottom: 1rem;
+        }
+
+        .fixplatz .subtitle {
+            font-size: 1.25rem;
+            color: var(--color-gold);
+            font-style: italic;
+        }
+
+        .fixplatz-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 4rem;
+            align-items: center;
+        }
+
+        .fixplatz-image {
+            width: 100%;
+            height: auto;
+            display: block;
+        }
+
+        .fixplatz-text {
+            font-size: 1.2rem;
+            line-height: 2;
+        }
+
+        .fixplatz-text p {
+            margin-bottom: 1.5rem;
+        }
+
+        .fixplatz-text .gold {
+            color: var(--color-gold);
+        }
+
+        @media (max-width: 768px) {
+            .fixplatz-content {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Facilities Section */
+        .facilities {
+            padding-top: 0;
+        }
+
+        .facilities-image-container {
+            width: 100vw;
+            margin-left: calc(-50vw + 50%);
+            margin-bottom: 4rem;
+            overflow: hidden;
+        }
+
+        .facilities-image {
+            width: 100%;
+            height: 60vh;
+            object-fit: cover;
+            display: block;
+        }
+
+        .facilities-content {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 0 2rem;
+        }
+
+        .facilities h2 {
+            font-size: clamp(2rem, 5vw, 3rem);
+            font-weight: 400;
+            text-align: center;
+            margin-bottom: 1rem;
+            color: var(--color-bone);
+        }
+
+        .facilities .intro {
+            text-align: center;
+            font-size: 1.25rem;
+            color: var(--color-gold);
+            font-style: italic;
+            margin-bottom: 4rem;
+        }
+
+        .facilities-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 2rem;
+        }
+
+        .facility-item {
+            padding: 2rem;
+            border: 1px solid rgba(201, 169, 98, 0.2);
+            transition: all 0.3s ease;
+        }
+
+        .facility-item:hover {
+            border-color: var(--color-gold);
+        }
+
+        .facility-item h3 {
+            font-size: 1.5rem;
+            font-weight: 500;
+            color: var(--color-gold);
+            margin-bottom: 1rem;
+        }
+
+        .facility-item p {
+            font-size: 1rem;
+            color: rgba(232, 228, 220, 0.8);
+            line-height: 1.7;
+        }
+
+        /* CTA Section */
+        .cta-section {
+            text-align: center;
+            padding: 8rem 2rem;
+            background-image: url('../../images/suits-outside-sauna.jpeg');
+            background-size: cover;
+            background-position: center;
+            position: relative;
+            min-height: 80vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .cta-section h2 {
+            font-size: clamp(2rem, 6vw, 4rem);
+            font-weight: 700;
+            color: var(--color-bone);
+            margin-bottom: 1.5rem;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 1), 0 4px 30px rgba(0, 0, 0, 1);
+        }
+
+        .cta-section .subtext {
+            font-size: 1.5rem;
+            color: var(--color-gold);
+            font-style: italic;
+            font-weight: 700;
+            margin-bottom: 3rem;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 1), 0 2px 20px rgba(0, 0, 0, 1);
+        }
+
+        .cta-section .final-line {
+            font-size: 1rem;
+            color: var(--color-bone);
+            margin-top: 3rem;
+            letter-spacing: 0.1em;
+            font-weight: 600;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 1), 0 2px 15px rgba(0, 0, 0, 1);
+        }
+
+        /* Footer */
+        footer {
+            padding: 4rem 2rem;
+            text-align: center;
+            border-top: 1px solid rgba(201, 169, 98, 0.1);
+        }
+
+        .footer-logo {
+            max-width: 180px;
+            margin: 0 auto 2rem;
+            filter: brightness(0) invert(1);
+            opacity: 0.8;
+        }
+
+        .footer-tagline {
+            font-size: 1rem;
+            font-style: italic;
+            color: var(--color-gold);
+            margin-bottom: 1rem;
+        }
+
+        .footer-location {
+            font-size: 0.9rem;
+            color: rgba(232, 228, 220, 0.5);
+            letter-spacing: 0.1em;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            section {
+                padding: 4rem 1.5rem;
+            }
+
+            .hero {
+                padding: 2rem 1.5rem;
+            }
+
+            .hero-content {
+                padding-bottom: 2rem;
+            }
+
+            .recognition .categories {
+                gap: 2rem;
+            }
+
+            .moment .outcomes {
+                grid-template-columns: 1fr;
+            }
+
+            .cta-button {
+                padding: 1rem 2rem;
+                font-size: 1rem;
+            }
+
+            .facilities-image {
+                height: 40vh;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Hero -->
+    <section class="hero">
+        <div class="hero-content">
+            <h1>Du hesch gsuecht. Du hesch gfunde.</h1>
+            <p class="subline">Willkomme zrugg.</p>
+            <a href="#erkannt" class="cta-button">Erkannt werde</a>
+        </div>
+    </section>
+
+    <!-- Recognition -->
+    <section class="recognition" id="erkannt">
+        <p class="one-liner">"Du trittsch nöd bi. Du wirsch erkannt."</p>
+
+        <h2>Was Mitgliedschaft bedütet</h2>
+
+        <div class="story">
+            <p>Es git Mitglieder. Es git die wo nonig Mitglieder sind.</p>
+            <p><span class="highlight">Es git kei dritti Kategorie.</span></p>
+            <p>Mir wähled nöd uus. Mir erkennets eifach. Manche ghöred dezue. Manche nonig. Manche nie.</p>
+            <p>Das isch nöd es Urteil. Das isch eifach so.</p>
+        </div>
+
+        <div class="categories">
+            <div class="category">
+                <div class="label">Mitglieder</div>
+                <div class="value">Ja</div>
+            </div>
+            <div class="category">
+                <div class="label">Nonig Mitglieder</div>
+                <div class="value">No nöd</div>
+            </div>
+            <div class="category">
+                <div class="label">Dritti Kategorie</div>
+                <div class="value">Existiert nöd</div>
+            </div>
+        </div>
+    </section>
+
+    <!-- The Moment -->
+    <section class="moment">
+        <div class="moment-inner">
+            <h2>De Moment wo alles klar wird</h2>
+
+            <p class="scenario">
+                Du chunnsch us de Garderobe. Verschwitzt. Fertig. Din Körper zitteret aber es isch es guets Zittern. Du laufsch zur Bar. Du hesch nüt bstellt.
+            </p>
+
+            <p class="aperol">De Aperol stoht scho da.</p>
+
+            <div class="outcomes">
+                <div class="outcome">
+                    <p class="condition">Wenn du en nimmsch ohni z'froge:</p>
+                    <p class="result">Du ghörsch dezue. Du hesch immer dezue ghört. Du hesch es nur nonig gwüsst.</p>
+                </div>
+                <div class="outcome">
+                    <p class="condition">Wenn du frosch "Ich han nüt bstellt":</p>
+                    <p class="result">Mir zahleds. Und mir gsehnd dich nie wieder. Du chasch zrugg cho. Aber du wirsch nöd. Irgendöppis a de A1 wird dich jedes Mol verbifahre loh.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Fixplatz Halter -->
+    <section class="fixplatz">
+        <div class="fixplatz-header">
+            <h2>D'Fixplatz-Halter</h2>
+            <p class="subtitle">Die wo immer da sind</p>
+        </div>
+
+        <div class="fixplatz-content">
+            <img src="../../images/fixplatz-regulars.jpg" alt="Regulars am Bareggcenter Bar" class="fixplatz-image">
+            <div class="fixplatz-text">
+                <p>Jede Donschtig. Jede Sunntig. Manche au dazwüsche.</p>
+                <p>Sie fragend nöd ob en Platz frei isch. <span class="gold">De Platz isch nie frei.</span> Er isch reserviert. Für sie.</p>
+                <p>Nach em Match. Am Bar. S'Bier wo scho parat stoht. D'Gspröch wo nie ufhöred.</p>
+                <p>Das isch de Fixplatz. <span class="gold">Und irgendwenn isch eine fuer dich.</span></p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Facilities -->
+    <section class="facilities">
+        <div class="facilities-image-container">
+            <img src="../../images/padel-courts-evening.jpg" alt="Padel Courts am Bareggcenter" class="facilities-image">
+        </div>
+
+        <div class="facilities-content">
+            <h2>Was uf dich wartet</h2>
+            <p class="intro">Nod Features. Zugang.</p>
+
+            <div class="facilities-grid">
+                <div class="facility-item">
+                    <h3>6 Padel Courts</h3>
+                    <p>Indoor, beheizt, perfekter Bode. Für Mitglieder: Priorität bi de Reservation. Immer.</p>
+                </div>
+                <div class="facility-item">
+                    <h3>Fitness & Wellness</h3>
+                    <p>Equipment wo funktioniert. Sauna wo heiss isch. Kei Warteschlange fuer Mitglieder.</p>
+                </div>
+                <div class="facility-item">
+                    <h3>Ristorante Baregg</h3>
+                    <p>Din Tisch. Dis Esse. Ohni z'froge. D'Chuchi-Chef kennt dini Vorliebe.</p>
+                </div>
+                <div class="facility-item">
+                    <h3>Events & Turniere</h3>
+                    <p>Mitglieder spieled zerscht. Mitglieder gwünned nöd immer. Aber sie spieled immer.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- CTA Section -->
+    <section class="cta-section">
+        <h2>Du weisch es scho</h2>
+        <p class="subtext">S'Gfühl wo du hesch gha bim Läse. Das isch d'Antwort.</p>
+        <a href="#" class="cta-button">Erkannt werde</a>
+        <p class="final-line">Mir meldet eus. Wenn's passt.</p>
+    </section>
+
+    <!-- Footer -->
+    <footer>
+        <img src="../../images/logo_bareggcenter.png" alt="Bareggcenter Baden" class="footer-logo">
+        <p class="footer-tagline">Du trittsch nöd bi. Du wirsch erkannt.</p>
+        <p class="footer-location">Baden, Schweiz</p>
+    </footer>
+
+</body>
+</html>
