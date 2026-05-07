@@ -30,6 +30,9 @@ import {
   LivePreviewWithDirector,
   type LivePreviewWithDirectorHandle,
 } from '@/components/studio/LivePreviewWithDirector'
+import { MarkdownRenderer } from '@/components/MarkdownRenderer'
+import { QuestionFormView } from '@/components/chat/QuestionForm'
+import { splitOnQuestionForms } from '@/lib/artifacts/question-form'
 
 export type ImageChatContent = 'chat' | 'vibe'
 
@@ -309,9 +312,48 @@ export function ImageChatPanel({
                 Ask CD about your current image.
               </div>
             ) : (
-              visibleMessages.map((msg) => (
-                <ChatBubble key={msg.id} role={msg.role} content={msg.content} />
-              ))
+              visibleMessages.flatMap((msg) => {
+                // 2026-05-03 (Ralph): Image-mode chat must render markdown
+                // headings AND question-form blocks the same way the Brief
+                // chat does. Previously this panel rendered msg.content as
+                // a raw string with whiteSpace:pre-wrap — every `#` heading
+                // and every `<question-form>` showed as literal text.
+                // Same per-segment-bubble logic as ConversationPanel.
+                const segments = splitOnQuestionForms(msg.content || '')
+                const hasForm = segments.some((s) => s.kind === 'form')
+                if (!hasForm) {
+                  return [
+                    <ChatBubble
+                      key={msg.id}
+                      role={msg.role}
+                      content={msg.content}
+                    />,
+                  ]
+                }
+                return segments
+                  .map((seg, i) => {
+                    if (seg.kind === 'text') {
+                      if (!seg.text.trim()) return null
+                      return (
+                        <ChatBubble
+                          key={`${msg.id}-t${i}`}
+                          role={msg.role}
+                          content={seg.text}
+                        />
+                      )
+                    }
+                    return (
+                      <FormBubble key={`${msg.id}-f${i}`} role={msg.role}>
+                        <QuestionFormView
+                          form={seg.form}
+                          interactive={msg.role === 'assistant'}
+                          onSubmit={(text) => onAskCD(text)}
+                        />
+                      </FormBubble>
+                    )
+                  })
+                  .filter(Boolean)
+              })
             )}
             {isLoading && (
               <div
@@ -478,7 +520,6 @@ function ChatBubble({ role, content }: { role: 'user' | 'assistant'; content: st
         fontSize: 15,
         lineHeight: 1.6,
         color: 'var(--text-main)',
-        whiteSpace: 'pre-wrap',
         wordBreak: 'break-word',
       }}
     >
@@ -494,7 +535,50 @@ function ChatBubble({ role, content }: { role: 'user' | 'assistant'; content: st
       >
         {isUser ? 'You' : 'CD'}
       </div>
-      {content}
+      {/* 2026-05-03 (Ralph) — was rendering raw `{content}` with
+          whiteSpace:pre-wrap. Now uses MarkdownRenderer so the new
+          Territory-grade .md-h* hierarchy + tables + lists + code blocks
+          all render the same way as the Brief chat. */}
+      <MarkdownRenderer content={content} />
+    </div>
+  )
+}
+
+// FormBubble — wrapper for question-form blocks in Image Mode chat.
+// QuestionFormView has its own .question-form chrome so this is just the
+// alignment wrapper. Wider max-width than text bubbles since forms need
+// room for option chips. Per Ralph (2026-05-03): forms must BE their own
+// bubble, not embedded inside a text bubble.
+function FormBubble({
+  role,
+  children,
+}: {
+  role: 'user' | 'assistant'
+  children: React.ReactNode
+}) {
+  const isUser = role === 'user'
+  return (
+    <div
+      style={{
+        alignSelf: isUser ? 'flex-end' : 'flex-start',
+        maxWidth: 'min(96%, 760px)',
+        width: '100%',
+      }}
+    >
+      <div
+        style={{
+          fontSize: 11,
+          fontWeight: 700,
+          letterSpacing: '0.08em',
+          textTransform: 'uppercase',
+          color: 'var(--text-dim)',
+          marginBottom: 6,
+          paddingLeft: 4,
+        }}
+      >
+        {isUser ? 'You' : 'CD'}
+      </div>
+      {children}
     </div>
   )
 }

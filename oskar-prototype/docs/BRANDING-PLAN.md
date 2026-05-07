@@ -234,8 +234,8 @@ Every prompt follows the **4-block pattern**: FORMAT · STRUCTURE · BRAND DATA 
 ```
 # FORMAT
 Deliverable: Complete logo system on one sheet
-Aspect: 1:1 square
-Register: Pentagram brand identity / Saul Bass modernism — clean, confident, reproducible at any scale
+Producer: CD / Nano
+**Recommended styles**: 01 Pentagram / 11 Build / 12 Sagmeister / 18 Kenya Hara / 09. Experimental Jetset / 10. Müller-Brockmann
 
 # STRUCTURE
 Four-quadrant layout on a clean neutral background:
@@ -262,9 +262,9 @@ Each quadrant labeled in small {fontBody} caps beneath.
 
 ```
 # FORMAT
-Deliverable: Brand Identity Guideline — single-page bento infographic
-Aspect: 3:4 portrait
-Register: Pentagram rebrand / IBM design standards — editorial, precise, high-end
+Deliverable: Brand Identity Guideline — single-page bento infographic // design-system file
+Producer: CD
+**Recommended styles**: 01 Pentagram / 11 Build / 03 Information Architects / 18 Kenya Hara / 09. Experimental Jetset / 10. Müller-Brockmann
 
 # STRUCTURE
 Non-overlapping bento grid. Named cells:
@@ -290,82 +290,94 @@ Non-overlapping bento grid. Named cells:
 
 ### 7.3 Business Card
 
-```
-# FORMAT
-Deliverable: Business Card — front and back, side by side
-Aspect: 16:9 landscape
-Register: Pentagram / minimalist — clean, confident, premium paper stock feel
+Deliverable: HTML page rendering one business card per school across the 20-school matrix. Each card is a 3-D stage (mouse-tilt parallax, click-flip front↔back, touch support).
 
-# STRUCTURE
-Two panels separated by a 14px white gutter:
-  - LEFT (front): Business name in {fontHeading} centered or offset. Logo/mark area. Accent color strip along one edge. Minimal.
-  - RIGHT (back): Contact field placeholders in {fontBody} — "[NAME]", "[TITLE]", "[EMAIL]", "[PHONE]", "[WEBSITE]". Small QR code area bottom-right. Secondary color background.
-Both sides share the same outer dimensions. Card edges subtly visible against a neutral surface.
+Inputs: one user-supplied picture (optional). One user-supplied logo (optional).
 
-{brandDataBlock}
+Doctrine, per school:
+- Substrate. Information Architecture, Minimalist (except Sagmeister), and Eastern Philosophy work on PAPER. Motion Poetics, Avant-garde, and Territory work with MATERIAL (frosted vellum, acetate, hologram) at real translateZ depth.
+- Type. The font is the founder. Declare SANS / SERIF / DECLARED BREAK   per card. 
+- Photograph. Optional, but recommended. 
+- Faces are sacred. Never crop a face. Make sure to orient the cropped part so that the face is visible. 
+- Render-verify before declaring done. Every card that uses photo or logo must be screenshotted at readable crop.
 
-# CONSTRAINTS
-- Do not invent a logo not present in the source image. If no source image provided, use a clean wordmark of the business name in {fontHeading}.
-- Use realistic field placeholders: "[NAME]", "[EMAIL]", etc. No Lorem Ipsum, no fake names.
-- Render hex codes correctly if any are shown.
-- Both sides must share the same palette. Don't drift between the two sides.
+Selection: user picks one card from the 20. The selected card is promoted to the brand's Business Card slot and displayed in the section. Selection page is available as link. 
 
-{image description}
-```
+Required information (collected from brand data, if not available it needs to be collected with a modal):
+- Business name
+- Owner / contact name
+- Title / role
+- Phone
+- Email
+- Website
+- Location (city or address)
 
-### 7.4 Pitch Slide
 
-```
-# FORMAT
-Deliverable: Pitch Deck Title Slide
-Aspect: 16:9 landscape (Keynote/Powerpoint native)
-Register: Stripe / Linear / Apple keynote — confident, minimal, premium
 
-# STRUCTURE
-Single-slide composition:
-  - Headline (top-third or centered): business one-liner in large {fontHeading}
-  - Subtitle: voice-sample sentence in {fontBody}, muted color
-  - CTA element: a single button/pill in the accent color with white text
-  - Brand mark: small, bottom-left or top-right corner
-  - Background: subtle gradient of primary + secondary colors OR brand image full-bleed with dark overlay
-Generous negative space. No bullet points.
-
-{brandDataBlock}
-
-# CONSTRAINTS
-- ONE headline only. No sub-bullets. No multi-point lists. This is a title slide.
-- CTA text: "Learn More" or "Get Started" or use the brand's voice sample verbatim if short enough.
-- No placeholder company logos ("YOUR LOGO HERE"). Either render the source image as the mark, or a clean wordmark.
-- No stock-photo people. Use the brand image OR an abstract gradient.
-
-{image description}
-```
-
-### 7.5 Website Hero
+### 7.4 Illustration
 
 ```
 # FORMAT
-Deliverable: Website hero section — desktop render, above-the-fold
-Aspect: 16:9 landscape (can also render 21:9 letterbox — declare 16:9 for default)
-Register: High-end web design — Stripe, Arc, Vercel — crisp, generous, loaded
+Deliverable: SVG
+Producer: CD
+**Recommended styles**: pick by article tone, commonly 01 Pentagram / 04 Fathom / 10 Müller-Brockmann / 17 Takram / 18 Hara
 
 # STRUCTURE
-Top-to-bottom layout:
-  - NAVIGATION BAR (top 8% of height): brand wordmark left, 3-4 nav links in {fontBody} right, subtle 1px underline or pill CTA
-  - HERO CONTENT (middle 70%): headline in {fontHeading} on the left third, subtitle in {fontBody} below, accent-colored CTA button
-  - HERO IMAGE (right two-thirds OR full-bleed background): the source image positioned with slight parallax framing
-  - SUBTLE DETAIL (bottom 8%): a thin accent divider + scroll indicator
+- Article illustration, concept visualization
+- [16:9 / 1:1 / 4:3] aspect ratio
+- Single clear concept: [describe core concept]
+- Serve the argument, not decoration
+- [Light/Dark] background to match article tone
 
-{brandDataBlock}
+*Key design factors**:
+- Serves the article's argument, not decoration
+- Forms a visual rhythm with surrounding context
+- Expresses one core concept clearly
+- Prefer AI-generated; HTML screenshots only for precise data tables
 
-# CONSTRAINTS
-- Nav links: use realistic, minimal link labels — "Home", "Menu", "Reservations", "Contact" — not "Link 1", "Link 2".
-- ONE CTA button only. Accent color background, white text, rounded corners.
-- Headline: business voice sample verbatim, NOT invented.
-- No fake testimonials, star ratings, or press logos.
-- Mobile/tablet variants NOT included — desktop only at this aspect.
 
+
+**Scene prompt template**:
+```
+[insert style DNA here]
+- Article illustration, concept visualization
+- [16:9 / 1:1 / 4:3] aspect ratio
+- Single clear concept: [describe core concept]
+- Serve the argument, not decoration
+- [Light/Dark] background to match article tone
 {image description}
+
+
+### 7.5 Infographic / Data Visualization
+
+```
+#Format
+Deliverable: SVG / Interactive data visualization
+Producer: CD
+**Recommended styles**: 04 Fathom / 10 Müller-Brockmann / 02 Stamen / 17 Takram
+
+#Structure
+- Vertical long-form: 1080×1920px (mobile reading)
+- Horizontal: 1920×1080px (embedded in article)
+- Square: 1080×1080px (social media)
+
+**Key design factors**:
+- Clear info hierarchy (title → key data → details)
+- Data accuracy, no fabrication
+- Visual flow lines (reader's reading path)
+- Use icons / charts to aid comprehension where appropriate
+
+
+
+**Scene prompt template**:
+```
+[insert style DNA here]
+- Infographic / data visualization
+- [Vertical 1080x1920 / Horizontal 1920x1080 / Square 1080x1080]
+- Clear information hierarchy: title → key data → details
+- Visual flow guiding reader's eye path
+- Icons and charts for comprehension
+- Data-accurate, no decorative distortion
 ```
 
 ### 7.6 Social Post (Instagram Square)
@@ -376,23 +388,24 @@ Deliverable: Instagram feed post
 Aspect: 1:1 square
 Register: Bold, scroll-stopping editorial — designed to stop a thumb
 
-# STRUCTURE
-Either:
-  (a) Full-bleed brand image with a bottom 40% dark gradient and headline in large {fontHeading} overlay, OR
-  (b) Split composition — left half bold color block with headline in {fontHeading}, right half full-bleed brand image
-Include a subtle brand mark (bottom-right corner, small).
-Generous negative space. No text layered over busy image areas.
+**Key design factors**:
+- Visual impact first (users scroll quickly through the feed)
+- Minimal or no text (the WeChat title overlays on top)
+- Moderate color saturation (WeChat reading environment skews white)
+- Avoid excessive detail (must be recognizable as thumbnail)
 
-{brandDataBlock}
+**Recommended styles**: 01 Pentagram / 11 Build / 12 Sagmeister / 18 Kenya Hara / 07 Field.io
 
-# CONSTRAINTS
-- Headline under 8 words. Punchy. Use the brand voice sample or a natural variation.
-- One CTA at most — "Book Now", "Reserve", "Open Menu". Or NO CTA (just brand presence).
-- No hashtags in the image. No emojis in the image.
-- No fake likes, comments, or social UI chrome — this is the post artwork only.
-
-{image description}
+**Scene prompt template**:
 ```
+[insert style DNA here]
+- Article cover image for WeChat subscription
+- Landscape format, 2.35:1 aspect ratio
+- Bold visual impact, minimal or no text
+- Moderate color saturation for white reading environment
+- Must remain recognizable as thumbnail
+- Clean composition with clear focal point
+
 
 ### 7.7 Social Story (Instagram Story)
 
@@ -400,7 +413,7 @@ Generous negative space. No text layered over busy image areas.
 # FORMAT
 Deliverable: Instagram story
 Aspect: 9:16 vertical
-Register: Vertical scroll-stopper, full immersion — phone-native
+**Recommended styles**: 12 Sagmeister / 11 Build / 20 Neo Shen / 09 Experimental Jetset
 
 # STRUCTURE
 Top-to-bottom:
@@ -419,6 +432,33 @@ Safe zones: keep headline below the 10% mark (avoid phone status bar) and CTA ab
 
 {image description}
 ```
+
+### 7.8 Keynote Presentation
+
+# FORMAT
+- Standard: 16:9 (1920×1080px)
+- Widescreen: 16:10 (1920×1200px)
+
+**Key design factors**:
+- One core message per slide (don't pile on)
+- Clear type hierarchy (title 40pt+ / body 24pt+ / annotation 16pt+)
+- Generous whitespace, clearer when projected
+- Image-to-text ratio at least 60:40
+- Consistent visual system (color, type, spacing)
+
+**Recommended styles**: 01 Pentagram / 10 Müller-Brockmann / 11 Build / 18 Kenya Hara / 04 Fathom
+
+**Scene prompt template**:
+```
+[insert style DNA here]
+- Presentation slide design, 16:9
+- One core message per slide
+- Clear type hierarchy (title 40pt+, body 24pt+)
+- Generous whitespace for projection clarity
+- Consistent visual system throughout
+- [Light/Dark] theme
+```
+
 
 ---
 

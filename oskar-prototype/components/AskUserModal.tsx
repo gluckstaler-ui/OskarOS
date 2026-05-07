@@ -2,25 +2,44 @@
 
 /**
  * AskUserModal — Phase 2 Tier S (2026-04-30).
+ * 2026-05-03 redesign — uses shared `.modal-backdrop` / `.modal` classes
+ * from globals.css plus the new `.os-ask-*` block. Eyebrow shifted from
+ * blue --accent (which was repointed off the OskarOS palette) to
+ * --brand-green-bright. Option buttons now carry Feather icons.
  *
- * Subscribes to `cd.ask-user` events from session-events. When an agent
- * calls the `ask_user` MCP tool, the backend route fires the event with
- * `{requestId, question, options}`. We render a modal, the user picks an
- * option, we POST to `/api/mcp/ask-user-response/{requestId}` to resolve
- * the agent's blocked tool call.
+ * Subscribes to `cd.ask-user` events. When an agent calls the `ask_user`
+ * MCP tool, the backend route fires the event with `{requestId, question,
+ * options}`. We render a modal, the user picks an option, we POST to
+ * `/api/mcp/ask-user-response/{requestId}` to resolve the agent's
+ * blocked tool call.
  *
- * Self-contained: no props, no external state. Drop into the page tree
- * and it works.
+ * Self-contained: no props, no external state.
  */
 
 import { useEffect, useState } from 'react'
 import { sessionEvents } from '@/lib/session-events'
+import { Feather, FeatherName } from './Feather'
 
 interface AskState {
   requestId: string
   question: string
   options: string[]
   sessionId: string
+}
+
+/** Heuristic: pick a Feather icon for an option string. Falls back to
+ *  a neutral chevron-style "play" arrow if no keyword matches. The point
+ *  is to give each option a glance-tell, not to be exhaustive. */
+function iconForOption(opt: string): FeatherName {
+  const o = opt.toLowerCase()
+  if (/(commit|confirm|yes|approve|ok\b|ship|send|do it)/.test(o)) return 'check'
+  if (/(cancel|abort|no\b|skip|nope|never)/.test(o)) return 'x'
+  if (/(retry|again|iterate|redo|regenerate|rerun)/.test(o)) return 'rotate-cw'
+  if (/(refresh|reload|rejuvenate|reset)/.test(o)) return 'refresh-cw'
+  if (/(image|photo|picture|render)/.test(o)) return 'image'
+  if (/(info|detail|learn more|explain)/.test(o)) return 'info'
+  if (/(warn|caution|careful)/.test(o)) return 'alert-triangle'
+  return 'play'
 }
 
 export function AskUserModal() {
@@ -51,6 +70,16 @@ export function AskUserModal() {
     const unsub = sessionEvents.on('cd.ask-user-resolved', () => setAsk(null))
     return unsub
   }, [])
+
+  // ESC closes (treat as cancel — backend will get __cancelled__ on timeout)
+  useEffect(() => {
+    if (!ask) return
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setAsk(null)
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [ask])
 
   async function pick(value: string) {
     if (!ask || submitting) return
@@ -87,93 +116,34 @@ export function AskUserModal() {
 
   return (
     <div
-      style={{
-        position: 'fixed',
-        inset: 0,
-        background: 'rgba(0,0,0,0.55)',
-        zIndex: 3000,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        backdropFilter: 'blur(8px)',
-      }}
+      className="modal-backdrop"
       onClick={(e) => {
-        // Click outside the card cancels (agent receives __cancelled__ on timeout).
         if (e.target === e.currentTarget) setAsk(null)
       }}
       role="dialog"
       aria-modal="true"
     >
-      <div
-        style={{
-          background: 'var(--bg-card, #18181b)',
-          color: 'var(--text-main, #f4f4f5)',
-          border: '1px solid var(--border-card, #27272a)',
-          borderRadius: 12,
-          padding: '20px 24px',
-          minWidth: 380,
-          maxWidth: 560,
-          boxShadow: '0 20px 60px rgba(0,0,0,0.5)',
-          fontFamily: 'var(--font-sans, Inter, sans-serif)',
-        }}
-      >
-        <div
-          style={{
-            fontSize: 11,
-            letterSpacing: 2,
-            fontWeight: 700,
-            textTransform: 'uppercase',
-            color: 'var(--accent, #3B82F6)',
-            marginBottom: 8,
-          }}
-        >
+      <div className="modal" style={{ maxWidth: 520 }}>
+        <div className="os-ask-eyebrow">
+          <Feather name="message-circle" size={11} strokeWidth={2.5} />
           CD asks
         </div>
-        <div style={{ fontSize: 15, lineHeight: 1.5, marginBottom: 16 }}>{ask.question}</div>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+        <div className="os-ask-question">{ask.question}</div>
+        <div className="os-ask-options">
           {ask.options.map((opt) => (
             <button
               key={opt}
-              onClick={() => pick(opt)}
+              type="button"
+              className="os-ask-option"
               disabled={submitting}
-              style={{
-                textAlign: 'left',
-                padding: '10px 14px',
-                background: 'var(--bg-card-hover, #27272a)',
-                border: '1px solid var(--border-card, #27272a)',
-                borderRadius: 8,
-                color: 'inherit',
-                cursor: submitting ? 'wait' : 'pointer',
-                fontSize: 14,
-                fontFamily: 'inherit',
-                opacity: submitting ? 0.5 : 1,
-                transition: 'all 0.15s',
-              }}
-              onMouseEnter={(e) => {
-                if (!submitting) {
-                  e.currentTarget.style.background = 'var(--accent-dim, rgba(59,130,246,0.15))'
-                  e.currentTarget.style.borderColor = 'var(--accent, #3B82F6)'
-                }
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.background = 'var(--bg-card-hover, #27272a)'
-                e.currentTarget.style.borderColor = 'var(--border-card, #27272a)'
-              }}
+              onClick={() => pick(opt)}
             >
-              {opt}
+              <Feather name={iconForOption(opt)} size={14} strokeWidth={2.25} />
+              <span>{opt}</span>
             </button>
           ))}
         </div>
-        <div
-          style={{
-            marginTop: 12,
-            fontSize: 11,
-            color: 'var(--text-dim, #52525b)',
-            textAlign: 'right',
-          }}
-        >
-          Click outside to cancel
-        </div>
+        <div className="os-ask-foot">ESC or click outside to cancel</div>
       </div>
     </div>
   )

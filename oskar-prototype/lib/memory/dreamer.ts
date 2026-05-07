@@ -769,6 +769,21 @@ export async function runSage240_40(
   return await _runSage240_40Inner(sessionId, onProgress)
 }
 
+/**
+ * Trace logger for Sage 240/40 — ALWAYS ON, full observability.
+ *
+ * 2026-05-03 (Ralph): every Order-66 / Sage-240 run writes a structured
+ * decision trace to `public/{session}/logs/_debug-sage-240-trace-{stamp}.log`.
+ * No env flag. No opt-in. Hit Order 66, get the file. Inspect every decision.
+ *
+ * Output format: tab-separated structured lines:
+ *
+ *   <iso-timestamp>\t<phase>\t<event>\t<json-payload>
+ *
+ * Easy to grep, easy to read, easy to replay.
+ */
+type SageTrace = (event: string, payload?: Record<string, unknown>) => void
+
 async function _runSage240_40Inner(
   sessionId: string,
   onProgress?: ProgressCallback,
@@ -782,6 +797,39 @@ async function _runSage240_40Inner(
   const cwd = path.resolve(process.cwd())
 
   const dreamTimestamp = new Date().toISOString()
+
+  // ── Trace-to-disk: TURNED OFF (Ralph 2026-05-03) ─────────────────────────
+  // The decision-trace file (`_debug-sage-240-trace-{stamp}.log`) was useful
+  // for debugging the SESSION RESTORED / live-tissue trap. Now that the
+  // algorithm is fixed and live, the file just churns disk on every run.
+  // Flip SAGE_TRACE_TO_DISK to true to re-enable; trace() call sites are
+  // untouched so this is a one-flag toggle.
+  //
+  // ⚠️  DO NOT touch the `emit(...)` calls anywhere in this file — those
+  // are the LIVE FEED to the CompactionOverlay overlay (progress bar +
+  // per-event stream pane). They go through the SSE pipe to the browser.
+  // The trace and the emit are separate channels.
+  const SAGE_TRACE_TO_DISK = false
+  const traceStamp = dreamTimestamp.replace(/[-:TZ.]/g, '').slice(0, 14)
+  const traceFile = path.join(logsDir, `_debug-sage-240-trace-${traceStamp}.log`)
+  const traceLines: string[] = []
+  const trace: SageTrace = SAGE_TRACE_TO_DISK
+    ? (event, payload) => {
+        traceLines.push(
+          `${new Date().toISOString()}\trun\t${event}\t${payload ? JSON.stringify(payload) : ''}`,
+        )
+      }
+    : () => {} // no-op when trace-to-disk is OFF
+  /**
+   * Flush trace to disk. No-op when SAGE_TRACE_TO_DISK is false.
+   */
+  const flushTrace = async () => {
+    if (!SAGE_TRACE_TO_DISK) return
+    if (traceLines.length === 0) return
+    await writeFile(traceFile, traceLines.join('\n') + '\n', 'utf-8').catch(() => {})
+  }
+
+  trace('boot', { sessionId, sessionMdPath, dreamTimestamp, traceFile })
   // 2026-04-21: Sage-240/40 emits as 'lumberjack' because it took the
   // Lumberjack slot in order65/66 when the Lumberjack bridge was scrapped.
   // The overlay has two fixed bars ('lumberjack' + 'sage'); Portrait keeps
@@ -791,8 +839,11 @@ async function _runSage240_40Inner(
   // Read SESSION.md for the trigger check. The model will also Read it.
   const sessionMd = await readFile(sessionMdPath, 'utf-8').catch(() => '')
   const inputSize = sessionMd.length
+  trace('file-read', { bytes: inputSize, lines: sessionMd.split('\n').length })
 
   if (!sessionMd.trim()) {
+    trace('skip-empty-file', {})
+    await flushTrace()
     emit({ agent: 'lumberjack', phase: 'skipped', detail: 'SESSION.md empty' })
     await writeFile(
       compressLogPath,
@@ -817,6 +868,8 @@ async function _runSage240_40Inner(
   // the common no-op case (and fixes the "sage sits idle for many minutes
   // then says nothing to do" symptom — the runner now answers that in <1s).
   if (inputSize < SAGE_240_40_TRIGGER_BYTES) {
+    trace('skip-under-trigger', { inputSize, trigger: SAGE_240_40_TRIGGER_BYTES })
+    await flushTrace()
     emit({
       agent: 'lumberjack',
       phase: 'skipped',
@@ -868,6 +921,7 @@ async function _runSage240_40Inner(
   const snapshotPath = sessionMdPath + `.pre-prune-${snapshotStamp}`
   await writeFile(snapshotPath, sessionMd, 'utf-8')
   console.log(`[sage-240-40] snapshot written: ${snapshotPath}`)
+  trace('snapshot-written', { path: snapshotPath, bytes: sessionMd.length })
 
   // ── Self-heal: insert `## USER SESSION DATA` marker on legacy sessions ───
   // Old sessions (created before Ralph 2026-04-25 architecture) have no USD
@@ -876,10 +930,12 @@ async function _runSage240_40Inner(
   // of the pipeline has something to anchor to.
   let workingSessionMd = sessionMd
   const heal = ensureUserSessionDataMarker(sessionMd)
+  trace('heal-attempt', { changed: heal.changed, hasContent: !!heal.content })
   if (heal.changed && heal.content) {
     workingSessionMd = heal.content
     await writeFile(sessionMdPath, workingSessionMd, 'utf-8')
     console.log(`[sage-240-40] self-healed: inserted ## USER SESSION DATA marker`)
+    trace('heal-applied', { newBytes: workingSessionMd.length })
     emit({
       agent: 'lumberjack',
       phase: 'reading',
@@ -888,6 +944,8 @@ async function _runSage240_40Inner(
   } else if (!heal.content) {
     // No User turns at all — nothing to compress, refuse cleanly.
     console.warn(`[sage-240-40] no User turns in file — nothing to compress`)
+    trace('skip-no-user-turns', {})
+    await flushTrace()
     emit({ agent: 'lumberjack', phase: 'skipped', detail: 'no User turns to compress' })
     await writeFile(
       compressLogPath,
@@ -961,6 +1019,7 @@ async function _runSage240_40Inner(
   for (let i = 0; i < passCount; i++) {
     schedule.push(i < cutCount ? 'cut' : 'compact')
   }
+  trace('schedule', { passCount, schedule, blockLineCount, compactThreshold, ledgerOverloaded, inputSize })
   emit({
     agent: 'lumberjack',
     phase: 'compacting',
@@ -979,30 +1038,41 @@ async function _runSage240_40Inner(
     // Blocks against the freshest disk state (each cut/compact mutates
     // SESSION.md in place).
     const currentMd = await readFile(sessionMdPath, 'utf-8').catch(() => workingSessionMd)
+    // Ralph 2026-05-03: progress at the START of the pass = where the bar
+    // sits while the agent runs. Pass 1 starts at 25% (right where 'reading'
+    // left it), pass 2 at 55% (where pass 1's success advanced it), etc.
+    // Without this, the overlay falls through the phase-table and pins
+    // ljPct = 55 immediately on the first 'compacting' event.
+    const passStartProgress = 25 + ((passNum - 1) / schedule.length) * 60
     emit({
       agent: 'lumberjack',
       phase: 'compacting',
       detail: `Pass ${passNum}/${schedule.length}: ${kind === 'cut' ? 'Block cut' : 'Compact'}…`,
+      progress: passStartProgress,
     })
+
+    trace(`pass-${passNum}-start`, { kind, passNum, total: schedule.length, currentBytes: currentMd.length })
 
     let result: SageCutResult | SageCompactResult
     if (kind === 'cut') {
-      result = await performOneSageCut(sessionMdPath, currentMd, logsDir, `cut${passNum}`, streamFwd)
+      result = await performOneSageCut(sessionMdPath, currentMd, logsDir, `cut${passNum}`, streamFwd, trace)
       // Ralph 2026-04-30 (3.b): on no-tissue mid-run, FALL BACK to a compact
       // pass instead of skipping the slot. Useful late in a 6-pass run when
       // we've consumed every eligible chunk but Blocks are stacking up.
       if (result.kind === 'no-tissue') {
+        trace(`pass-${passNum}-cut-no-tissue-fallback-to-compact`, {})
         emit({
           agent: 'lumberjack',
           phase: 'compacting',
           detail: `Pass ${passNum}: cut had no tissue — falling back to compact`,
         })
-        result = await performOneSageCompact(sessionMdPath, currentMd, logsDir, `compact${passNum}`, streamFwd)
+        result = await performOneSageCompact(sessionMdPath, currentMd, logsDir, `compact${passNum}`, streamFwd, trace)
         kind = 'compact'
       }
     } else {
-      result = await performOneSageCompact(sessionMdPath, currentMd, logsDir, `compact${passNum}`, streamFwd)
+      result = await performOneSageCompact(sessionMdPath, currentMd, logsDir, `compact${passNum}`, streamFwd, trace)
     }
+    trace(`pass-${passNum}-result`, { kind: result.kind, passKind: kind })
 
     if (result.kind === 'ok') {
       if (kind === 'cut') {
@@ -1014,6 +1084,19 @@ async function _runSage240_40Inner(
         triageLog += (triageLog ? '\n' : '') +
           `[240/40-COMPACT] Compact ${r.compactLabel} — ${r.title} (${r.timeRange}), folded Blocks ${r.foldedLetters.join(', ')} (~${(r.bytesCut / 1024).toFixed(1)}KB saved)`
       }
+      // ── Lumberjack-bar progress (Ralph 2026-05-03) ────────────────────
+      // After every successful pass (cut OR compact), advance the bar
+      // by exactly one slot of 60 / passCount within the 25-85% range.
+      // Three possibilities for passCount (per decidePassCount): 2, 4, 6.
+      // → 30 / 15 / 10 points per pass respectively.
+      const progress = 25 + (passNum / schedule.length) * 60
+      trace(`pass-${passNum}-progress`, { progress, passNum, total: schedule.length })
+      emit({
+        agent: 'lumberjack',
+        phase: 'compacting',
+        detail: `Pass ${passNum}/${schedule.length} done (${kind})`,
+        progress,
+      })
     } else if (result.kind === 'no-tissue') {
       // We already tried the compact fallback for cuts; if still no-tissue,
       // there's nothing left to do — break out, don't waste remaining passes.
@@ -1021,11 +1104,13 @@ async function _runSage240_40Inner(
         ? 'no eligible tissue past USER SESSION DATA marker'
         : 'fewer than 3 normal Blocks available to fold'
       triageLog += (triageLog ? '\n' : '') + `[240/40-SKIP] pass ${passNum}: ${reason}`
+      trace(`pass-${passNum}-aborted-no-tissue`, { reason })
       emit({ agent: 'lumberjack', phase: 'skipped', detail: `Pass ${passNum} aborted: ${reason}; stopping schedule early` })
       break
     } else {
       // agent-fail — log it and stop the schedule (next pass would likely fail too).
       triageLog += (triageLog ? '\n' : '') + `[240/40-ERROR] pass ${passNum}: agent call failed`
+      trace(`pass-${passNum}-aborted-agent-fail`, {})
       emit({ agent: 'lumberjack', phase: 'failed', detail: `Pass ${passNum} agent call failed; stopping schedule early` })
       break
     }
@@ -1078,6 +1163,8 @@ async function _runSage240_40Inner(
   console.log(
     `[sage-240-40] Cycle complete — ${inputSize}B → ${outputSize}B (cut ${bytesCut}B, applied=${applied})`,
   )
+  trace('cycle-complete', { inputSize, outputSize, bytesCut, applied, triageLog })
+  await flushTrace()
   emit({
     agent: 'lumberjack',
     phase: 'completed',
@@ -1188,7 +1275,11 @@ async function performOneSageCut(
   logsDir?: string,
   stageLabel?: string,
   onStreamEvent?: (e: { type: string; detail: string }) => void,
+  trace?: SageTrace,
 ): Promise<SageCutResult> {
+  // Always-trace helper — degrades to no-op when caller didn't pass one.
+  const tr: SageTrace = trace || (() => {})
+  tr(`cut.${stageLabel || 'cut'}.start`, { inputBytes: sessionMd.length })
   // Synthesized stream-event helper — same purpose as in performOneSageCompact.
   // Without this, early-return paths are invisible in the live feed and the
   // user can't tell whether a pass was skipped or running.
@@ -1203,52 +1294,158 @@ async function performOneSageCut(
 
   // Find USER SESSION DATA marker (case-insensitive, leading ##)
   const usdIdx = lines.findIndex((l) => /^##\s+USER\s+SESSION\s+DATA/i.test(l))
+  tr(`cut.${stageLabel || 'cut'}.usd-marker`, { usdIdx, totalLines: lines.length })
   if (usdIdx < 0) {
+    tr(`cut.${stageLabel || 'cut'}.no-usd-marker`, {})
     console.warn('[sage-240-40] No USER SESSION DATA marker — refusing cut')
     note('cut: no USER SESSION DATA marker — refusing cut')
     return { kind: 'no-tissue' }
   }
 
-  // 2026-04-30 (Ralph): walk forward, classify each line, cut at first
-  // living tissue. Schema-agnostic — works on legacy `## SESSION RESTORED`
-  // event blocks, modern `#### User |` turns, AND zero-Block fresh files.
-  // The end of the search window is `lines.length - 200` so the final 200
-  // lines stay protected.
+  // ── Cut anchor (Ralph 2026-05-02 — bug fix: living-tissue eaten from wrong end)
+  //
+  // Pre-fix history (`findFirstLivingTissue`): walked past Blocks, treated
+  // `---` and orphan loose prose as Block-paragraph content, eventually
+  // landed on the FIRST raw `#### User | …` turn — which on a healthy file
+  // is RECENT live conversation. Cut took 200 lines forward and ate today's
+  // tissue (proven on 2026-05-01-22:43 run: cut lines 768–991, both User
+  // turns dated 2026-05-01 21:12 — newer than the last Block DD's 20:37).
+  //
+  // The instruction (Ralph 2026-05-02): "cut from the END of the LAST
+  // block. From the end." Anchor on END of LAST Block by FILE POSITION
+  // (not letter — old SESSION-RESTORED zones may have stale duplicate
+  // letters). Walk forward through ONLY that Block's narrative; `---` is
+  // a hard boundary so loose prose between Blocks is NOT swallowed. Then
+  // time-protect the end: cap cutEnd at the first `#### User | YYYY-MM-DD
+  // HH:MM` turn newer than the most-recent Block's end-time.
+  //
+  // Fresh-session fallback: if there are NO Blocks below USD, fall back
+  // to the original "first non-structural line past USD" walk so brand-new
+  // sessions still get cuts.
+  // ──────────────────────────────────────────────────────────────────────
   const sectionEnd = lines.length - 200
-  let cutStart = findFirstLivingTissue(lines, usdIdx, sectionEnd)
-  if (cutStart < 0) {
-    console.warn(
-      '[sage-240-40] No living tissue past USER SESSION DATA — file is fully compressed or under-sized',
-    )
-    note('cut: no living tissue past USD marker — file is fully compressed')
-    return { kind: 'no-tissue' }
+
+  // ── FULL TRACE: scan every `**Block X — ` line in the eligible range so
+  // the trace log shows exactly what findCutAnchorAfterLastBlock had to
+  // choose from, INCLUDING which lines fell inside `## SESSION RESTORED`
+  // zones (legacy stubs the loop should be skipping). This is the data
+  // that exposes the 2026-05-03 trap-state where the loop anchored on a
+  // legacy stub at line 358 because it was the highest line number, not
+  // because it was a real Block. ──────────────────────────────────────────
+  if (trace) {
+    const blockOpeningRe = /^\*\*Block\s+([A-Z]+)\s+[—-]\s+(.+?)\*\*\s*\(([^)]+)\)/
+    const sessionRestoredHdrRe = /^##\s+SESSION RESTORED/i
+    let inRestoredZone = false
+    const allBlockHits: Array<{
+      line: number
+      letter: string
+      title: string
+      range: string
+      inRestoredZone: boolean
+    }> = []
+    const restoredZones: Array<{ start: number; line: string }> = []
+    for (let i = usdIdx + 1; i < sectionEnd; i++) {
+      const line = lines[i]
+      if (sessionRestoredHdrRe.test(line)) {
+        inRestoredZone = true
+        restoredZones.push({ start: i, line })
+        continue
+      }
+      if (/^##\s/.test(line) && !sessionRestoredHdrRe.test(line)) {
+        inRestoredZone = false
+      }
+      const m = line.match(blockOpeningRe)
+      if (m) {
+        allBlockHits.push({
+          line: i,
+          letter: m[1],
+          title: m[2].trim().slice(0, 80),
+          range: m[3].trim(),
+          inRestoredZone,
+        })
+      }
+    }
+    tr(`cut.${stageLabel || 'cut'}.scan-blocks`, {
+      total: allBlockHits.length,
+      restoredZones: restoredZones.length,
+      hits: allBlockHits,
+    })
+    tr(`cut.${stageLabel || 'cut'}.scan-restored-zones`, { zones: restoredZones })
   }
 
-  // Take a fixed 200-line window. Compression turns whatever's there into
-  // a narrative paragraph — schema doesn't matter to the agent.
-  let cutEnd = Math.min(cutStart + 200, lines.length - 200)
+  const anchor = findCutAnchorAfterLastBlock(lines, usdIdx, sectionEnd)
+  tr(`cut.${stageLabel || 'cut'}.anchor`, {
+    sectionEnd,
+    anchor: anchor ? { cutStart: anchor.cutStart, reason: anchor.reason } : null,
+    anchorLine: anchor ? lines[anchor.cutStart] : null,
+  })
+  if (!anchor || anchor.cutStart >= sectionEnd) {
+    tr(`cut.${stageLabel || 'cut'}.no-anchor`, { anchorOrPastSection: !!anchor })
+    console.warn(
+      '[sage-240-40] No cuttable region past last Block — file is fully compressed or under-sized',
+    )
+    note('cut: no cuttable region past last Block — file is fully compressed')
+    return { kind: 'no-tissue' }
+  }
+  let cutStart = anchor.cutStart
+  note(`cut: anchored at line ${cutStart + 1} (${anchor.reason})`)
 
-  // Snap end forward to a natural boundary if one is reachable within +50
-  // lines — turn header (`#### User|CD |`), legacy event header (`### …Z —`),
-  // or `## SESSION RESTORED`. Keeps cuts on clean seams when easy.
-  const userTurnRe = /^####\s+User\s*\|/i
-  const eventHeaderRe = /^###\s+\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/
-  const sessionRestoredRe = /^##\s+SESSION RESTORED/i
-  const snapTarget = Math.min(cutEnd + 50, lines.length - 200)
-  for (let i = cutEnd; i < snapTarget; i++) {
-    if (
-      userTurnRe.test(lines[i]) ||
-      eventHeaderRe.test(lines[i]) ||
-      sessionRestoredRe.test(lines[i])
-    ) {
+  // Compute the end-time of the most recent Block ACROSS THE WHOLE SESSION
+  // (highest end-time by date+time, regardless of letter or position). Used
+  // below to cap cutEnd: any User turn timestamped LATER than this is live
+  // tissue and must be protected.
+  // Ralph 2026-05-03 — simple cut-window per spec:
+  //   1. cutStart is already at a real `#### User|CD` turn header (handled
+  //      by findCutAnchorAfterLastBlock — no cruft anchoring).
+  //   2. Take 200 lines forward.
+  //   3. If we land mid-conversation, walk forward up to +100 lines until
+  //      we find a `---\n#### User|CD` boundary (clean turn seam). Set
+  //      cutEnd to the line BEFORE the `---` so the cut ends right after
+  //      the previous CD reply (never mid-sentence).
+  //   4. Cap at sectionEnd (last 200 lines protection).
+  //
+  // Removed (Ralph 2026-05-03):
+  //   - findMostRecentBlockEndTime / findLiveTissueLine — time-based
+  //     protectAfter trapped Sage when the most-recent dated Block was
+  //     stale. Geometric sectionEnd (last-200-lines) is the only
+  //     protection now.
+  //   - 30-line floor — small windows are fine. The file converges
+  //     naturally when there's nothing more to cut.
+  let cutEnd = Math.min(cutStart + 200, sectionEnd)
+  const naiveCutEnd = cutEnd
+
+  // Snap-forward to next `---\n#### User|CD` boundary within +100 lines.
+  // The cut ends on the line BEFORE the `---` (so the trailing CD reply
+  // is included; the `---` and everything after stays).
+  const turnHeaderRe = /^####\s+(?:User|CD)\s*\|/i
+  const snapLimit = Math.min(cutEnd + 100, sectionEnd)
+  let snappedTo: number | null = null
+  for (let i = cutEnd; i < snapLimit - 1; i++) {
+    if (lines[i].trim() === '---' && turnHeaderRe.test(lines[i + 1])) {
+      // Boundary found. cutEnd should be the `---` line itself (exclusive
+      // upper bound), so the splice removes everything strictly before
+      // the `---`.
       cutEnd = i
+      snappedTo = i
       break
     }
   }
+  tr(`cut.${stageLabel || 'cut'}.snap-forward`, {
+    cutStart,
+    naiveCutEnd,
+    snappedTo,
+    finalCutEnd: cutEnd,
+    snapLimit,
+  })
 
-  if (cutEnd - cutStart < 50) {
-    // Too small to bother — file is too small for a meaningful cut.
-    note(`cut: window only ${cutEnd - cutStart} lines (need ≥50) — skipping`)
+  tr(`cut.${stageLabel || 'cut'}.window-final`, {
+    cutStart,
+    cutEnd,
+    windowLines: cutEnd - cutStart,
+  })
+  if (cutEnd - cutStart < 1) {
+    tr(`cut.${stageLabel || 'cut'}.empty-window`, {})
+    note(`cut: empty window — nothing to cut`)
     return { kind: 'no-tissue' }
   }
   note(`cut: window lines ${cutStart + 1}–${cutEnd} (${cutEnd - cutStart} lines) → calling agent`)
@@ -1322,6 +1519,15 @@ async function performOneSageCut(
   // Sage 240/40 emits as 'lumberjack' agent (took the slot when legacy
   // Lumberjack was scrapped) so the overlay routes its stream to the
   // Lumberjack-track feed.
+  tr(`cut.${stageLabel || 'cut'}.agent-call`, {
+    nextLetter,
+    chunkDate,
+    timeRange,
+    chunkLines: chunkLines.length,
+    chunkBytes,
+    cutStart,
+    cutEnd,
+  })
   const response = await callAnthropic(
     DREAMER_MODEL,
     userMessage,
@@ -1330,9 +1536,11 @@ async function performOneSageCut(
     onStreamEvent,
   )
   if (!response) {
+    tr(`cut.${stageLabel || 'cut'}.agent-null`, {})
     console.error('[sage-240-40] Agent call returned null on cut')
     return { kind: 'agent-fail' }
   }
+  tr(`cut.${stageLabel || 'cut'}.agent-response`, { responseLength: response.length })
 
   // Extract the Block entry from the response (lenient — the model might
   // wrap it in fences or add stray text). Strip code fences first.
@@ -1346,6 +1554,61 @@ async function performOneSageCut(
     return { kind: 'agent-fail' }
   }
   const blockEntry = blockMatch[1].trim()
+
+  // ── Ralph 2026-05-03: validate the agent didn't hallucinate the Block
+  // header. The previous code accepted ANY [A-Z]+ letter and ANY parens
+  // content, so the agent could (and did) return:
+  //   - A SHORT letter like "Block G" when we sent nextLetter="DG"
+  //     (date-stripping or letter-stripping by the model). Result: duplicate
+  //     letters in the file → findCutAnchorAfterLastBlock anchors on the
+  //     wrong Block by file position → next run thinks all 5/2 tissue is
+  //     live (because protectAfter falls back to an older dated Block) →
+  //     "no living tissue" trap that locks Sage out of further cuts.
+  //   - A bare time-range like "(23:50 → 00:26)" when we sent the dated
+  //     "2026-05-02 23:50 → 2026-05-02 00:26". findMostRecentBlockEndTime
+  //     ignores undated Blocks, so the protection threshold rolls
+  //     backwards on every successful cut.
+  //
+  // Both failure modes were observed in public/2026-01-27-debug/SESSION.md
+  // after the 2026-05-03 03:50 successful Sage cut wrote three undated
+  // single-letter Block G/H/I entries. The next Sage run could not cut
+  // anything because of the trap.
+  //
+  // Fix: parse the letter and time-range out of the matched header. If
+  // either differs from what JS computed, REFUSE the response (return
+  // agent-fail). The fallback chain in _runSage240_40Inner logs the skip
+  // and the file stays untouched until the agent obeys the contract.
+  // ────────────────────────────────────────────────────────────────────
+  const headerCheck = blockEntry.match(
+    /^\*\*Block\s+([A-Z]+)\s+[—-]\s+[^*(]+?\*\*\s*\(([^)]+)\)/,
+  )
+  if (!headerCheck) {
+    tr(`cut.${stageLabel || 'cut'}.header-malformed`, { entryStart: blockEntry.slice(0, 200) })
+    console.error('[sage-240-40] Block header missing or malformed in response')
+    console.error('[sage-240-40] First 500 chars of blockEntry:', blockEntry.slice(0, 500))
+    return { kind: 'agent-fail' }
+  }
+  const emittedLetter = headerCheck[1]
+  const emittedTimeRange = headerCheck[2].trim()
+  tr(`cut.${stageLabel || 'cut'}.header-validate`, {
+    expected: { letter: nextLetter, timeRange: timeRange.trim() },
+    got: { letter: emittedLetter, timeRange: emittedTimeRange },
+    letterMatch: emittedLetter === nextLetter,
+    timeRangeMatch: emittedTimeRange === timeRange.trim(),
+  })
+  if (emittedLetter !== nextLetter) {
+    console.error(
+      `[sage-240-40] Letter mismatch: agent emitted "${emittedLetter}", JS sent "${nextLetter}". Refusing splice.`,
+    )
+    return { kind: 'agent-fail' }
+  }
+  if (emittedTimeRange !== timeRange.trim()) {
+    console.error(
+      `[sage-240-40] Time-range mismatch: agent emitted "(${emittedTimeRange})", JS sent "(${timeRange})". Refusing splice.`,
+    )
+    return { kind: 'agent-fail' }
+  }
+
   const titleMatch = blockEntry.match(/\*\*Block\s+[A-Z]+\s+—\s+([^*(]+?)(?:\*\*|\()/)
   const title = (titleMatch ? titleMatch[1] : 'untitled').trim()
 
@@ -1359,6 +1622,11 @@ async function performOneSageCut(
   // Step 1: remove the chunk
   const after = [...lines]
   after.splice(cutStart, cutEnd - cutStart)
+  tr(`cut.${stageLabel || 'cut'}.splice-out`, {
+    cutStart,
+    removedLines: cutEnd - cutStart,
+    afterLineCount: after.length,
+  })
 
   // Step 2: locate USER SESSION DATA section bounds in `after`
   const usd = findSectionBounds(after, /^##\s+USER\s+SESSION\s+DATA/i)
@@ -1404,7 +1672,16 @@ async function performOneSageCut(
     after.splice(insertAt, 0, '', blockEntry, '')
   }
 
-  await writeFile(sessionMdPath, after.join('\n'), 'utf-8')
+  const finalContent = after.join('\n')
+  await writeFile(sessionMdPath, finalContent, 'utf-8')
+  tr(`cut.${stageLabel || 'cut'}.file-written`, {
+    finalLines: after.length,
+    finalBytes: Buffer.byteLength(finalContent, 'utf-8'),
+    blockLetter: nextLetter,
+    title,
+    timeRange,
+    bytesCut: chunkBytes,
+  })
 
   return {
     kind: 'ok',
@@ -1532,7 +1809,10 @@ async function performOneSageCompact(
   logsDir?: string,
   stageLabel?: string,
   onStreamEvent?: (e: { type: string; detail: string }) => void,
+  trace?: SageTrace,
 ): Promise<SageCompactResult> {
+  const tr: SageTrace = trace || (() => {})
+  tr(`compact.${stageLabel || 'compact'}.start`, { inputBytes: sessionMd.length })
   // Synthesized stream-event helper — keeps the live feed observability
   // identical for compact whether or not callAnthropic is reached. Without
   // this, every early-return path goes to console.warn only and the user
@@ -1806,6 +2086,131 @@ function extractTimestampsFromChunk(
  *
  * Returns -1 when the section contains no living tissue.
  */
+/**
+ * Find the cut anchor — the line where the LAST Block in [usdIdx, sectionEnd)
+ * has its narrative END.
+ *
+ * Ralph 2026-05-02: "cut from the END of the LAST block. From the end."
+ *
+ * "Last Block" = highest line number that opens with `**Block X — title** (...)`.
+ * Using FILE POSITION (not alphabetic letter) handles the case where stale
+ * duplicate letters live in old `## SESSION RESTORED — …` zones below the
+ * most-recent real Block — the agent should still cut the cruft AFTER the
+ * top-of-file Block (the most recent real one), not chase the duplicate letter.
+ *
+ * The "end" of a Block's narrative = the line of the next strong boundary
+ * encountered while walking forward from the Block opening. Boundaries:
+ *   - Another `**Block X —` or `**Compact X —` opening
+ *   - Any `###` or `##` header
+ *   - A raw `#### User|CD |` turn header
+ *   - A `---` separator line  ← KEY DIFFERENCE from old findFirstLivingTissue,
+ *                                 which silently consumed `---` as part of the
+ *                                 Block paragraph and ate orphan prose with it
+ *
+ * Returns null when no Blocks exist below the marker (fresh-session case —
+ * caller should fall back to findFirstLivingTissue).
+ */
+export function findCutAnchorAfterLastBlock(
+  lines: string[],
+  usdIdx: number,
+  sectionEnd: number,
+): { cutStart: number; reason: string } | null {
+  // Ralph 2026-05-03 — simple, single-pass logic per spec:
+  //
+  //   1. Find the LAST `**Block X — ` line in scan range (any letter,
+  //      stub or real, dated or undated — file position wins).
+  //   2. Walk forward from that line until the FIRST real tissue turn
+  //      header — `#### User | …` or `#### CD | …`. EVERYTHING ELSE
+  //      (SESSION RESTORED markers, `---` separators, stub Block
+  //      openings, blank lines, prose continuations, date sub-headers)
+  //      is just content to step past. Real tissue starts at a turn
+  //      header and only at a turn header.
+  //   3. cutStart = that turn header's line.
+  //
+  // Fresh-session fallback: if there are no Blocks at all in scan range,
+  // cutStart = the first `#### User | …` line after USD.
+  //
+  // This drops every previous knob: no SESSION RESTORED zone-skip
+  // bookkeeping, no `---` hard-boundary handling, no `^##\s` walk-stop.
+  // The walk has ONE stop condition: a real turn header.
+  const blockOpeningRe = /^\*\*Block\s+[A-Z]+\s+[—-]\s+/
+  const turnHeaderRe = /^####\s+(?:User|CD)\s*\|/i
+
+  let lastBlockLine = -1
+  for (let i = usdIdx + 1; i < sectionEnd; i++) {
+    if (blockOpeningRe.test(lines[i])) lastBlockLine = i
+  }
+
+  const walkFrom = lastBlockLine === -1 ? usdIdx + 1 : lastBlockLine + 1
+  for (let i = walkFrom; i < sectionEnd; i++) {
+    if (turnHeaderRe.test(lines[i])) {
+      return {
+        cutStart: i,
+        reason:
+          lastBlockLine === -1
+            ? 'fresh-session-no-blocks'
+            : `after-block-at-line-${lastBlockLine + 1}`,
+      }
+    }
+  }
+
+  // No turn header found between the last Block and sectionEnd — the
+  // file is fully compressed (or empty of real conversation).
+  return null
+}
+
+/**
+ * Find the most recent Block's end-time across the whole tissue section.
+ * Returns the highest "YYYY-MM-DD HH:MM" string found in the parens of
+ * any Block title — or null if no Blocks have parseable dated titles.
+ *
+ * This is used by `findLiveTissueLine` to protect raw User turns whose
+ * timestamps are NEWER than this — those are unbloked live conversation
+ * and must NOT be eaten by a cut.
+ */
+export function findMostRecentBlockEndTime(
+  lines: string[],
+  usdIdx: number,
+  sectionEnd: number,
+): string | null {
+  const headerRe = /^\*\*Block\s+[A-Z]+\s+[—-]\s+.+?\*\*\s*\(([^)]+)\)\s*$/i
+  let latestEnd = ''
+  for (let i = usdIdx + 1; i < sectionEnd; i++) {
+    const m = lines[i].match(headerRe)
+    if (!m) continue
+    const parsed = parseBlockTimeRange(m[1].trim())
+    if (parsed.endDate && parsed.endTime) {
+      const endStr = `${parsed.endDate} ${parsed.endTime}`
+      if (endStr > latestEnd) latestEnd = endStr
+    }
+  }
+  return latestEnd || null
+}
+
+/**
+ * Walk [cutStart, cutEnd) looking for the first `#### User | YYYY-MM-DD HH:MM[:SS]`
+ * turn whose timestamp is STRICTLY LATER than `protectAfter`. Returns its
+ * line index. Returns -1 when no live tissue is found in the window.
+ *
+ * Caller uses this to cap cutEnd so the cut does NOT reach into live
+ * conversation. If `protectAfter` is null (no Blocks have dated titles
+ * yet), no protection applies and cutEnd stays at the requested boundary.
+ */
+export function findLiveTissueLine(
+  lines: string[],
+  cutStart: number,
+  cutEnd: number,
+  protectAfter: string | null,
+): number {
+  if (!protectAfter) return -1
+  const userTurnDateRe = /^####\s+User\s*\|\s*(\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}(?::\d{2})?)/i
+  for (let i = cutStart; i < cutEnd; i++) {
+    const m = lines[i].match(userTurnDateRe)
+    if (m && m[1] > protectAfter) return i
+  }
+  return -1
+}
+
 function findFirstLivingTissue(
   lines: string[],
   sectionStart: number,

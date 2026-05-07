@@ -105,6 +105,75 @@ Before sending any prompt:
 
 ---
 
+## THE SHEET PATTERN — multi-variant in one generation
+
+Nano cannot match a subject across separate generations. Steve in call A vs call B = cousins. Steve four times in ONE call = same person, four poses. **This is the load-bearing insight.**
+
+When you need N variants of one thing, generate them as a single sheet, then slice in image-ops.
+
+### When to reach for it
+
+- **Logo set** — color / mono / icon-only / wordmark on one sheet
+- **Character poses** — Sultan flying / hooded / on gauntlet / wing-extended
+- **Multi-vibe consistency** — same character anatomy across 4 vibes (anatomy stays identical when generated together)
+- **Palette validation** — same hero scene at 4 different palette tones, pick the one that ships
+- **Aspect-ratio crops** — same composition rendered to 1:1 / 16:9 / 9:16 / 4:5 in one go (no per-ratio re-imagining)
+- **Style exploration** — same subject in 4 different art directions on one canvas
+
+### How to prompt
+
+Make the grid structure explicit. Specify margins, background, and the consistency requirement.
+
+```
+GENERATE: Single canvas with a 2×2 grid layout. White seamless background.
+16px clear margin between panels.
+
+Top-left:    Sultan flying head-on, wings spread, looking at camera.
+Top-right:   Sultan hooded on the leather gauntlet.
+Bottom-left: Sultan perched, wings extended, ready to launch.
+Bottom-right: Sultan in profile, head turned three-quarters.
+
+Same falcon throughout — IDENTICAL plumage pattern, IDENTICAL eye color,
+IDENTICAL beak proportions. The four poses are the same individual bird.
+
+Aspect: 1:1.
+```
+
+The CRITICAL words are "IDENTICAL" repeated for each anatomical feature you care about. Nano respects within-render consistency when asked; without the explicit instruction it will drift slightly between panels.
+
+### After Nano returns
+
+Order of operations:
+
+1. **image-ops SLICE** 2×2 → 4 outputs land as B-ROLL with auto-numbered names
+2. **image-ops FORMAT-CONVERT** → PNG with chroma-key add-on ON, eyedropper-pick the white background → 4 alpha-PNGs
+3. **image-ops CROP** if the slice cells include unwanted margin around individual subjects
+4. **Tag** the keepers (READY for ship; the rejects stay B-ROLL)
+
+### Why it beats N separate calls
+
+| Concern | Sheet pattern | N separate calls |
+|---|---|---|
+| Cost | 1 Nano call | N Nano calls |
+| Consistency | Guaranteed within one render | Drifts between calls — "cousins, not the same person" |
+| Iteration | One prompt re-rolls all N | Each variant needs its own re-roll |
+| Provenance | All trace to one source via `image_ops:slice` | N separate generations to manage |
+
+### Successful sheet prompts (archive)
+
+Add to the archive when a sheet prompt works perfectly. Format:
+
+```
+### [Subject set name] — SHEET WORKED
+\`\`\`
+[The exact 2×2 or 2×3 prompt]
+\`\`\`
+**Sliced into:** [N output filenames]
+**Post-processing:** [chroma-key key color / crop adjustments / etc.]
+```
+
+---
+
 ## ASPECT RATIOS
 
 Passed separately to the API, NOT in prompt text.

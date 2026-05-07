@@ -5,9 +5,52 @@ Complete implementation files for the three architectural improvements:
 2. **Live Preview** - postMessage bridge for instant image updates
 3. **Director Mode** - Click-to-select visual editing in iframe
 
+> Status block added: 2026-05-01
+
 ---
 
-## File 1: lib/types.ts
+## STATUS UPDATE — 2026-05-01
+
+Plan body below is preserved for context. Three architectural improvements all landed; Tool Use was structurally superseded by typed MCP tool calls (Phase 2/3), but the original three inline tools remain in `/api/chat` for API-mode vibe generation. Live Preview and Director Mode are operational with consolidated iframe-contract constants.
+
+### STATUS IMPROVEMENT 1 — Tool Use - SHIPPED (SUPERSEDED IN PART)
+
+**SHIPPED:** Three inline tools in API-mode `/api/chat/route.ts` (`generate_vibe`, `ask_discovery_questions`, `confirm_understanding`) plus three filesystem helpers (`read_file`, `write_file`, `list_files`); `parseToolCalls()` extracts structured data; `tool_choice: { type: 'auto' }` format honored; Anthropic + Gemini parallel paths via `lib/claude-api-loop.ts` + `lib/gemini-loop.ts`.
+
+**CHANGED:** Magic-string triggers (`## BUILD:`, `## VIBES READY`, `## HOTSWAP:` etc.) RETIRED 2026-04-29. Production path is now typed MCP tool calls (`build_vibe`, `build_all_vibes`, `hotswap`, `submit_proofread`, `submit_image_verdict`, `submit_upload_eval`, `submit_image_prompt`, `report_build_complete`, `report_build_failed`, `report_build_progress`, `snackbar`, `generate_image`, `screenshot`, `ask_user`, `session_meta`, `list_assets`, `find_assets`, `lint_brand_compliance`, `apply_patch`, `image_ops`, `vibe_diff`, `job_status`, `cancel_job`) defined in `mcp-server/tools-{cd,webdev,sentinel,orchestrator,capabilities}.ts` and captured by `lib/mcp-tool-collector.ts`. The 3 inline tools survive in `/api/chat` but are scoped to API-mode vibe generation, not the agent contract.
+
+**OPEN:** The 22 MCP tools aren't yet exposed to API-mode `/api/chat`. Tracked in `IMPLEMENTATION-PLAN-API-AGENT.md` § STATUS PHASE 2 — same gap, same fix.
+
+**DO NOT IMPLEMENT:**
+- Restore regex-based parsing of agent output for build triggers — replaced by typed tool calls.
+- Re-create `parseToolCalls()` in additional routes — `lib/mcp-tool-collector.ts` is the single source of truth for tool-result capture.
+- Treat `lib/types.ts` snippet in this bundle as canonical — types have evolved substantially. Read `lib/types.ts` from disk.
+
+### STATUS IMPROVEMENT 2 — Live Preview - SHIPPED
+
+**SHIPPED:** `BRIDGE_SCRIPT` injected into generated HTML files; iframe ↔ parent postMessage protocol working; `UPDATE_IMAGE`, `UPDATE_TEXT`, `HIGHLIGHT_ELEMENT` message handlers; gallery `querySelectorAll` for multiple-element targets; `window.oskarCanvas.sendImageUpdate()` API.
+
+**CHANGED:** Bridge logic factored out of `lib/webdev.ts` into `lib/studio-bridge.ts` + `lib/director-css.ts` for shared iframe-contract constants (`DIRECTOR_CLASS`, `DIRECTOR_ACTIVE_CLASS`, `BG_IMAGE_FLAG_ATTR`, `BG_IMAGE_SRC_ATTR`, `OSKAR_ID_ATTR`). The single `BRIDGE_SCRIPT` constant is now interpolated at build time so the iframe and parent agree on attribute names — fixes the historical class-name-typo class of bugs.
+
+**DO NOT IMPLEMENT:**
+- Inline the bridge again — the consolidation prevents drift.
+- Re-add `vibeEdits` as in-memory React state for persistence — Director Mode now persists via `director_save` event-bus event + `apply_patch` MCP tool. RAM-only state was the wrong model.
+
+### STATUS IMPROVEMENT 3 — Director Mode - SHIPPED
+
+**SHIPPED:** Click-to-select on `data-editable` / `data-usage` elements; properties panel for text editing; `director_save` event bus event (2026-04-30) for push notifications to CD; `LivePreviewWithDirector.tsx` wired to use the shared iframe contract; `apply_patch` MCP tool (jsdom patcher) persists edits to disk.
+
+**CHANGED:** Edit memory injection to AI-via-prompt (the plan's "edits sent to AI in subsequent messages") DROPPED — replaced by `apply_patch` tool calls and the `director_save` event. CD doesn't get edits as ambient context; she gets a typed event when an edit lands and can decide to inspect via `vibe_diff`.
+
+**DO NOT IMPLEMENT:**
+- Send Director-mode edits to CD as untyped chat-text context — the typed event + `vibe_diff` tool is the contract.
+- Treat the `CanvasPanel.tsx` snippet in File 4 as canonical — that component split into `LivePreviewWithDirector`, `AssetsPanel`, and others.
+
+### STATUS — File 1-5 snippets
+
+The plan body's File-by-File code blocks (File 1: `lib/types.ts`, File 2: `app/api/chat/route.ts`, File 3: `lib/cd-agent-prompt.ts`, File 4: `components/CanvasPanel.tsx`, File 5: `app/page.tsx`) are HISTORICAL ARTIFACTS. Read the actual files on disk — types expanded (e.g., `LayoutMode` is now a 4-mode union, not 2; `WorkflowPhase` has 5 values, not 5 of those values), the chat route grew from ~1000 LOC to ~970 with parallel `/api/chat-stream`, and `CanvasPanel.tsx` no longer carries Director Mode (split into multiple components).
+
+---
 
 ```typescript
 // Image operation types

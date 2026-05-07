@@ -504,7 +504,8 @@ export function VibesGallery({
         flexDirection: 'column',
       }}
     >
-      {/* Header */}
+      {/* Header — bento header doctrine 2026-05-06: 12px JetBrains Mono
+          UPPERCASE 700, 0.16em tracking, Feather icon prefix. */}
       {title && (
         <div style={{
           padding: '16px',
@@ -512,11 +513,25 @@ export function VibesGallery({
           flexShrink: 0,
         }}>
           <h2 style={{
-            fontSize: `${headerFontSize}px`,
-            fontWeight: 600,
-            color: 'var(--text-primary)',
+            fontFamily: 'var(--font-mono, "JetBrains Mono", monospace)',
+            fontSize: '12px',
+            fontWeight: 700,
+            textTransform: 'uppercase',
+            letterSpacing: '0.16em',
+            color: 'var(--text-main)',
             margin: 0,
+            display: 'flex',
+            alignItems: 'center',
+            gap: 8,
           }}>
+            {/* Feather grid icon — vibes are a gallery of variants. Same
+                icon family + accent stroke as Briefing / Image Prompts. */}
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--accent, #3B82F6)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="3" y="3" width="7" height="7"></rect>
+              <rect x="14" y="3" width="7" height="7"></rect>
+              <rect x="14" y="14" width="7" height="7"></rect>
+              <rect x="3" y="14" width="7" height="7"></rect>
+            </svg>
             {title}
           </h2>
         </div>

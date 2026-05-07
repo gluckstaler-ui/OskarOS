@@ -11,7 +11,7 @@
  * WP-5: bento grid preview for Layout tab.
  */
 
-import { memo, useMemo } from 'react'
+import { memo, useMemo, useRef, useCallback, useEffect, useState, type ReactNode } from 'react'
 import { SourceImage } from '@/lib/types'
 import type { AdvancedTab, LayoutStaging } from '@/components/AdvancedMode'
 import { buildSidebarList } from '@/lib/image-lineage'
@@ -38,6 +38,26 @@ export interface CanvasPreviewProps {
   isGenerating?: boolean
   /** WP-5: Active layout preset label so BentoPreview can pick the right grid. */
   activePresetLabel?: string | null
+  /**
+   * WP-IMG-2/3 (2026-05-06): optional overlay rendered on top of the source
+   * image inside Zone 2. Used by image-ops mode (crop marquee, slice grid).
+   * The overlay is positioned `inset:0` over a wrapper that shrink-wraps to
+   * the displayed image — so overlay CSS pixels === displayed image CSS
+   * pixels (1:1 mapping). Image-native pixel math comes from
+   * `onImageNaturalSize` (fired on img onLoad).
+   */
+  imageOpsOverlay?: ReactNode
+  /** WP-IMG-2: report image-native dimensions when the img loads / changes. */
+  onImageNaturalSize?: (size: { naturalW: number; naturalH: number; displayedRect: DOMRect } | null) => void
+  /**
+   * Ralph 2026-05-06: when set, fully REPLACES the standard `<img>` area
+   * with this content (input | output split). The chrome (filename pill,
+   * version sidebar, isGenerating spinner, assign drawer) still renders.
+   * The split itself owns its own image refs; `onImageNaturalSize` should
+   * be wired by the parent into the split's input image, not the standard
+   * one (the standard `<img>` is unmounted when this prop is set).
+   */
+  imageOpsSplitView?: ReactNode
 }
 
 function CanvasPreviewImpl({
@@ -53,7 +73,37 @@ function CanvasPreviewImpl({
   onCloseAssign,
   isGenerating,
   activePresetLabel,
+  imageOpsOverlay,
+  onImageNaturalSize,
+  imageOpsSplitView,
 }: CanvasPreviewProps) {
+  // WP-IMG-2: track the displayed <img> so the overlay (marquee, grid) can
+  // get pixel-accurate dimensions. We notify the parent when the image loads
+  // and when it resizes (window resize → ResizeObserver).
+  const imgRef = useRef<HTMLImageElement | null>(null)
+  const reportSize = useCallback(() => {
+    const el = imgRef.current
+    if (!el || !onImageNaturalSize) return
+    if (!el.naturalWidth || !el.naturalHeight) return
+    onImageNaturalSize({
+      naturalW: el.naturalWidth,
+      naturalH: el.naturalHeight,
+      displayedRect: el.getBoundingClientRect(),
+    })
+  }, [onImageNaturalSize])
+
+  // WP-IMG-2: ResizeObserver on the <img> so the overlay sees layout changes
+  // (window resize, expand/collapse chat column → image grows/shrinks). Without
+  // this the marquee would be pinned to stale coords after any layout shift.
+  useEffect(() => {
+    const el = imgRef.current
+    if (!el || !onImageNaturalSize || typeof ResizeObserver === 'undefined') return
+    const ro = new ResizeObserver(() => reportSize())
+    ro.observe(el)
+    // Fire once for cached images that won't trigger onLoad.
+    if (el.complete && el.naturalWidth) reportSize()
+    return () => ro.disconnect()
+  }, [reportSize, onImageNaturalSize, selectedImage?.path])
   const description = selectedImage?.analysis?.description || ''
   const hasDescription = description.trim().length > 0
   const isLayoutMode = activeTab === 'layout'
@@ -87,8 +137,12 @@ function CanvasPreviewImpl({
     >
       {/* Image area — flex:1, takes remaining space */}
       <div style={{ flex: 1, position: 'relative', overflow: 'hidden', minHeight: 0 }}>
-        {/* Layout mode: bento grid preview */}
-        {isLayoutMode && hasLayoutImages ? (
+        {/* Image-ops split view (Ralph 2026-05-06) — replaces the standard
+            single-image area when the workshop's preview toggle is ON.
+            Filename pill, version sidebar, etc. still render around it. */}
+        {imageOpsSplitView ? (
+          imageOpsSplitView
+        ) : isLayoutMode && hasLayoutImages ? (
           <BentoPreview staging={layoutStaging!} activePresetLabel={activePresetLabel} />
         ) : (
           /* Standard mode: single image preview */
@@ -102,15 +156,30 @@ function CanvasPreviewImpl({
           >
             {selectedImage ? (
               <>
-                <img
-                  src={selectedImage.path}
-                  alt={selectedImage.filename}
-                  style={{
-                    maxWidth: '100%',
-                    maxHeight: '100%',
-                    objectFit: 'contain',
-                  }}
-                />
+                {/* WP-IMG-2: wrap the <img> in a relative, shrink-wrapped
+                    container so the image-ops overlay (crop marquee, slice
+                    grid) can sit `inset:0` exactly over the displayed image
+                    — not over the whole canvas. inline-block + max 100%
+                    keeps the wrapper sized to the contained <img>. */}
+                <div style={{ position: 'relative', display: 'inline-block', maxWidth: '100%', maxHeight: '100%', lineHeight: 0 }}>
+                  <img
+                    ref={imgRef}
+                    onLoad={reportSize}
+                    src={selectedImage.path}
+                    alt={selectedImage.filename}
+                    style={{
+                      maxWidth: '100%',
+                      maxHeight: '100%',
+                      objectFit: 'contain',
+                      display: 'block',
+                    }}
+                  />
+                  {imageOpsOverlay && (
+                    <div style={{ position: 'absolute', inset: 0, lineHeight: 1 }}>
+                      {imageOpsOverlay}
+                    </div>
+                  )}
+                </div>
                 {/* Filename pill — top-right of the preview. The filename
                     is the image's identity downstream (used in HTML, CD
                     references it, version sidebar groups by it). Sits on
@@ -143,6 +212,21 @@ function CanvasPreviewImpl({
                 >
                   {selectedImage.filename.replace(/^\d+-/, '')}
                 </div>
+                {/* Tag overlay — display chips for auto-assigned tags + 3-button
+                    user-curation row (STAR / B-ROLL / TRASH). Renders only when
+                    we have a sessionId AND image-ops split isn't active (which
+                    has its own overlay needs). (Ralph 2026-05-05.)
+                    sourceImages threaded so the overlay can resolve the FRESH
+                    tag after assets_updated refreshes — `selectedImage` itself
+                    is a snapshot stored in tab state and would otherwise stay
+                    stale until the user re-clicked. */}
+                {sessionId && !imageOpsSplitView && (
+                  <TagOverlay
+                    selectedImage={selectedImage}
+                    sourceImages={sourceImages}
+                    sessionId={sessionId}
+                  />
+                )}
               </>
             ) : (
               <div
@@ -510,6 +594,359 @@ function BentoPreview({ staging, activePresetLabel }: BentoPreviewProps) {
         )
       })}
     </div>
+  )
+}
+
+// ============================================================================
+// TagOverlay — display chips for auto-assigned tags + 3-button user-curation
+// row (STAR / B-ROLL / TRASH).
+//
+// (Ralph 2026-05-05, restructured 2026-05-06.) The IMAGES.md tag enum splits
+// into two layers:
+//   - AUTO-ASSIGNED: HERO (placement), USED (referenced) — render as small
+//     placement chips at the top.
+//   - USER-ASSIGNABLE: ★ / B-ROLL / TRASH. Three small assign buttons in a
+//     row, ALWAYS in their identity color (no onyx-only inactive state).
+//     Click → POST update_image_metadata, then optimistically update local
+//     pendingTag. Below the buttons sits the BIG current tag (twice the
+//     button height) in its identity color — the canonical readout for
+//     "what is this image tagged?" INGESTED is the system-assigned fallback
+//     when CD didn't pick a user tag.
+// ============================================================================
+
+type UserTag = 'STAR' | 'B-ROLL' | 'TRASH'
+
+// Color identity for every tag the BIG current-tag readout can show.
+// Kept deliberately small — only the tags that surface in this overlay.
+// Alphas pushed up + greys darkened so chips read on BOTH onyx (dark) AND
+// polar (white) backgrounds — the previous 0.18-0.20 fills washed out
+// against polar's white card and the muted grey vanished entirely.
+// (Ralph 2026-05-06: tags-polar.jpg bug.)
+const TAG_COLORS: Record<string, { color: string; bgFill: string }> = {
+  STAR:     { color: '#ca8a04', bgFill: 'rgba(202,138,4,0.18)' },   // amber-700 (reads on white)
+  'B-ROLL': { color: '#475569', bgFill: 'rgba(71,85,105,0.18)' },   // slate-600 (replaces washed-out grey)
+  TRASH:    { color: '#dc2626', bgFill: 'rgba(220,38,38,0.18)' },   // red-600
+  INGESTED: { color: '#64748b', bgFill: 'rgba(100,116,139,0.18)' }, // slate-500 (system fallback)
+  HERO:     { color: '#d97706', bgFill: 'rgba(217,119,6,0.18)' },   // amber-600
+  USED:     { color: '#059669', bgFill: 'rgba(5,150,105,0.18)' },   // emerald-600
+  READY:    { color: '#0891b2', bgFill: 'rgba(8,145,178,0.18)' },   // cyan-600
+  APPROVED: { color: '#0d9488', bgFill: 'rgba(13,148,136,0.18)' },  // teal-600
+  REDO:     { color: '#ca8a04', bgFill: 'rgba(202,138,4,0.18)' },   // amber-700
+}
+
+const FEATHER_STAR_POINTS = '12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2'
+
+function TagOverlay({
+  selectedImage,
+  sourceImages,
+  sessionId,
+}: {
+  selectedImage: SourceImage
+  sourceImages: SourceImage[]
+  sessionId: string
+}) {
+  // Optimistic local state — flips immediately on click, server reconciles
+  // on next IMAGES.md re-parse.
+  const [pendingTag, setPendingTag] = useState<UserTag | null>(null)
+  const [pendingClear, setPendingClear] = useState(false)
+  const [isWriting, setIsWriting] = useState(false)
+
+  // Resolve the FRESH version of the selected image from the live sourceImages
+  // array. selectedImage itself is a snapshot stored in tab state — when
+  // assets_updated fires after a tag write, sourceImages refreshes but the
+  // snapshot stays stale until the user re-clicks. Threading the fresh lookup
+  // here keeps the BIG current-tag readout always-correct. (Ralph 2026-05-06.)
+  const liveImage = useMemo(() => {
+    return sourceImages.find((s) => s.id === selectedImage.id) ?? selectedImage
+  }, [sourceImages, selectedImage])
+
+  // Reset optimistic state whenever the selected image changes — otherwise
+  // the previous picture's pending tag leaks into the new selection and
+  // the assign buttons look "active" for an image they don't apply to.
+  // (Ralph bug, 2026-05-06.)
+  useEffect(() => {
+    setPendingTag(null)
+    setPendingClear(false)
+    setIsWriting(false)
+  }, [selectedImage.filename])
+
+  // Clear the pending optimistic flags once the server has caught up — i.e.
+  // once liveImage.tag matches what we wrote. Without this, the optimistic
+  // state shadows the real value forever (e.g. user clicks STAR → server
+  // writes STAR → liveImage.tag becomes STAR → but pendingTag still says
+  // STAR, so toggling off would incorrectly fall back to lifecycle).
+  useEffect(() => {
+    if (pendingTag && liveImage.tag === pendingTag) {
+      setPendingTag(null)
+    }
+    if (pendingClear) {
+      // Server has written either INGESTED or the lifecycle fallback. Once
+      // liveImage.tag is no longer one of the user-curation tags, we're synced.
+      const stillUserTag = liveImage.tag === 'STAR' || liveImage.tag === 'B-ROLL' || liveImage.tag === 'TRASH'
+      if (!stillUserTag) setPendingClear(false)
+    }
+  }, [liveImage.tag, pendingTag, pendingClear])
+
+  // Placement signals — independent from user-curation, displayed above.
+  const isHero = liveImage.tag === 'HERO'
+  const isUsed = (liveImage.usedIn && liveImage.usedIn.length > 0) || liveImage.tag === 'USED'
+
+  // Resolve current user-curation tag from liveImage OR optimistic pending.
+  // pendingClear takes precedence (just toggled OFF) → returns null.
+  const currentUserTag: UserTag | null = pendingClear
+    ? null
+    : (pendingTag ??
+       (liveImage.tag === 'STAR' ? 'STAR' :
+        liveImage.tag === 'B-ROLL' ? 'B-ROLL' :
+        liveImage.tag === 'TRASH' ? 'TRASH' : null))
+
+  // Resolve the BIG current-tag display label. Priority:
+  //   user-curation tag → lifecycle tag → INGESTED (fallback)
+  const lifecycleTag = (() => {
+    if (liveImage.tag === 'READY') return 'READY'
+    if (liveImage.tag === 'APPROVED') return 'APPROVED'
+    if (liveImage.tag === 'REDO') return 'REDO'
+    if (liveImage.tag === 'INGESTED') return 'INGESTED'
+    return null
+  })()
+  const bigTagLabel: string = currentUserTag ?? lifecycleTag ?? 'INGESTED'
+
+  const setTag = useCallback(async (next: UserTag) => {
+    if (isWriting) return
+    // Toggle off if clicking the active one — clears the user-curation tag,
+    // which surfaces as the lifecycle tag (or INGESTED fallback) in BIG.
+    const isClear = currentUserTag === next
+    if (isClear) {
+      setPendingClear(true)
+      setPendingTag(null)
+    } else {
+      setPendingClear(false)
+      setPendingTag(next)
+    }
+    setIsWriting(true)
+    try {
+      // If toggling off, fall back to whatever lifecycle tag was previously
+      // there. If none, INGESTED — the system's "processed but no user tag"
+      // sentinel.
+      const statusToWrite = isClear ? (lifecycleTag ?? 'INGESTED') : next
+      await fetch('/api/mcp/update-image-metadata', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          sessionId,
+          filename: liveImage.filename,
+          status: statusToWrite,
+        }),
+      })
+    } catch {
+      // Optimistic update stays on-screen; user can retry.
+    } finally {
+      setIsWriting(false)
+    }
+  }, [currentUserTag, isWriting, lifecycleTag, liveImage.filename, sessionId])
+
+  return (
+    <div
+      style={{
+        position: 'absolute',
+        top: 12,
+        left: 12,
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 6,
+        zIndex: 5,
+        pointerEvents: 'none', // children re-enable as needed
+      }}
+    >
+      {/* TOP ROW: BIG current tag + placement chips (HERO/USED) inline alongside.
+          BIG is the canonical "what is this image?" readout; placement chips
+          sit to the right at small size as auxiliary signals.
+          (Ralph 2026-05-06: BIG + placement chips share TOP row, assignables UNDERNEATH.) */}
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 6,
+          flexWrap: 'wrap',
+        }}
+      >
+        <BigCurrentTag label={bigTagLabel} />
+        {isHero && <PlacementChip label="HERO" />}
+        {isUsed && <PlacementChip label="USED" />}
+      </div>
+      {/* The three possibilities — STAR / B-ROLL / TRASH. UNDERNEATH the BIG.
+          Always in their identity color. Active = filled stronger.
+          Wrapper uses var(--pill-bg) + var(--border-card) so it adapts to
+          both themes (onyx dark backdrop, polar white backdrop). */}
+      <div
+        style={{
+          display: 'flex',
+          gap: 4,
+          padding: 3,
+          background: 'var(--pill-bg)',
+          borderRadius: 6,
+          border: '1px solid var(--border-card)',
+          backdropFilter: 'blur(6px)',
+          pointerEvents: 'auto',
+          alignSelf: 'flex-start',
+        }}
+      >
+        <UserTagButton variant="STAR" active={currentUserTag === 'STAR'} onClick={() => setTag('STAR')} disabled={isWriting} />
+        <UserTagButton variant="B-ROLL" active={currentUserTag === 'B-ROLL'} onClick={() => setTag('B-ROLL')} disabled={isWriting} />
+        <UserTagButton variant="TRASH" active={currentUserTag === 'TRASH'} onClick={() => setTag('TRASH')} disabled={isWriting} />
+      </div>
+    </div>
+  )
+}
+
+function PlacementChip({ label }: { label: string }) {
+  const c = TAG_COLORS[label] ?? { color: '#9ca3af', bgFill: 'rgba(107,114,128,0.18)' }
+  return (
+    <span
+      style={{
+        // Sized BIGGER than the UserTagButton (22px / fontSize 10) so the
+        // placement signals carry visual weight alongside the BIG current
+        // tag. Sits between BIG (44px) and assignables (22px) in hierarchy.
+        // (Ralph 2026-05-06.)
+        display: 'inline-flex',
+        alignItems: 'center',
+        height: 30,
+        fontFamily: 'JetBrains Mono, var(--font-mono), monospace',
+        fontSize: 13,
+        fontWeight: 700,
+        padding: '0 12px',
+        borderRadius: 5,
+        textTransform: 'uppercase',
+        letterSpacing: '0.1em',
+        background: c.bgFill,
+        border: `1.5px solid ${c.color}`,
+        color: c.color,
+        textShadow: '0 1px 2px rgba(0,0,0,0.6)',
+      }}
+    >
+      {label}
+    </span>
+  )
+}
+
+function BigCurrentTag({ label }: { label: string }) {
+  const c = TAG_COLORS[label] ?? { color: '#9ca3af', bgFill: 'rgba(107,114,128,0.18)' }
+  const isStar = label === 'STAR'
+  return (
+    <div
+      style={{
+        alignSelf: 'flex-start',
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: 8,
+        height: 44, // ~2x the 22px assign-button height
+        padding: isStar ? '0 14px' : '0 18px',
+        borderRadius: 8,
+        background: c.bgFill,
+        border: `1.5px solid ${c.color}`,
+        color: c.color,
+        fontFamily: 'JetBrains Mono, var(--font-mono), monospace',
+        fontSize: 17, // ~2x the 9-10px button text
+        fontWeight: 800,
+        letterSpacing: '0.1em',
+        textTransform: 'uppercase',
+        textShadow: '0 1px 2px rgba(0,0,0,0.6)',
+        boxShadow: '0 2px 8px rgba(0,0,0,0.35)',
+        backdropFilter: 'blur(6px)',
+      }}
+    >
+      {isStar ? (
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          width="22"
+          height="22"
+          viewBox="0 0 24 24"
+          fill={c.color}
+          stroke={c.color}
+          strokeWidth="1.5"
+          strokeLinejoin="round"
+        >
+          <polygon points={FEATHER_STAR_POINTS}></polygon>
+        </svg>
+      ) : (
+        label
+      )}
+    </div>
+  )
+}
+
+function UserTagButton({
+  variant,
+  active,
+  onClick,
+  disabled,
+}: {
+  variant: UserTag
+  active: boolean
+  onClick: () => void
+  disabled: boolean
+}) {
+  const c = TAG_COLORS[variant]
+  const isStar = variant === 'STAR'
+  return (
+    <button
+      onClick={onClick}
+      disabled={disabled}
+      title={
+        variant === 'STAR' ? 'Mark as a great picture'
+        : variant === 'B-ROLL' ? 'Keep as secondary / variant'
+        : 'Cull this asset'
+      }
+      style={{
+        fontFamily: 'JetBrains Mono, var(--font-mono), monospace',
+        fontSize: 10,
+        fontWeight: 700,
+        padding: isStar ? '4px 7px' : '4px 8px',
+        borderRadius: 4,
+        // Always-colored: identity color always present in border + text.
+        // Active strengthens the fill.
+        border: `1px solid ${c.color}`,
+        background: active ? `${c.color}33` : `${c.color}10`,
+        color: c.color,
+        textTransform: 'uppercase',
+        letterSpacing: '0.08em',
+        cursor: disabled ? 'wait' : 'pointer',
+        opacity: disabled ? 0.55 : 1,
+        transition: 'all 0.12s',
+        display: 'inline-flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        height: 22,
+      }}
+      onMouseEnter={(e) => {
+        if (!active && !disabled) {
+          ;(e.currentTarget as HTMLElement).style.background = `${c.color}22`
+        }
+      }}
+      onMouseLeave={(e) => {
+        if (!active && !disabled) {
+          ;(e.currentTarget as HTMLElement).style.background = `${c.color}10`
+        }
+      }}
+    >
+      {isStar ? (
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          width="12"
+          height="12"
+          viewBox="0 0 24 24"
+          fill={active ? c.color : 'none'}
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
+          <polygon points={FEATHER_STAR_POINTS}></polygon>
+        </svg>
+      ) : (
+        variant
+      )}
+    </button>
   )
 }
 

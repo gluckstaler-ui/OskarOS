@@ -57,6 +57,84 @@ export interface AgentLoopResult {
 }
 
 // ==========================================
+// Caching helpers — Anthropic prompt caching (Ralph 2026-05-03)
+// ==========================================
+// Tag the LAST tool def + LAST message block with cache_control so:
+//   - all tool definitions get cached (prefix up to the last def)
+//   - all conversation history up to the latest message gets cached
+// Anthropic does longest-prefix-match across all cached blocks, so each
+// agentic-loop iteration's cache hits prior iterations' caches even when
+// the cache_control marker moves along the array.
+
+function cacheLastToolDef(tools: any[]): any[] {
+  if (tools.length === 0) return tools
+  return tools.map((t, i) =>
+    i === tools.length - 1
+      ? { ...t, cache_control: { type: 'ephemeral', ttl: '1h' } }
+      : t,
+  )
+}
+
+function cacheLastMessageBlock(messages: ClaudeMessage[]): ClaudeMessage[] {
+  if (messages.length === 0) return messages
+  const last = messages[messages.length - 1]
+  let content: any = last.content
+  if (typeof content === 'string') {
+    content = [{ type: 'text', text: content }]
+  } else if (Array.isArray(content)) {
+    content = [...content]
+  } else {
+    return messages
+  }
+  if (content.length === 0) return messages
+  content[content.length - 1] = {
+    ...content[content.length - 1],
+    cache_control: { type: 'ephemeral' }, // 5min default — fits agentic loop window
+  }
+  return [...messages.slice(0, -1), { ...last, content }]
+}
+
+// ==========================================
+// fetchWithRetry — 429/529/5xx aware
+// ==========================================
+async function fetchWithRetry(
+  apiKey: string,
+  body: any,
+  maxAttempts = 3,
+): Promise<{ content: any[]; stop_reason: string; usage?: any } | { error: string }> {
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01',
+        // Enable 1h cache TTL (default is 5min if not present)
+        'anthropic-beta': 'extended-cache-ttl-2025-04-11',
+      },
+      body: JSON.stringify(body),
+    })
+    if (response.ok) {
+      return (await response.json()) as { content: any[]; stop_reason: string; usage?: any }
+    }
+    const errorText = await response.text().catch(() => '<no-body>')
+    if (attempt === maxAttempts) {
+      return { error: `API error ${response.status}: ${errorText}` }
+    }
+    let delayMs = 1000
+    if (response.status === 429) {
+      const ra = response.headers.get('retry-after')
+      delayMs = ra ? Math.min(60000, parseInt(ra, 10) * 1000) : 5000
+    } else if (response.status === 529) {
+      delayMs = Math.min(60000, 1000 * Math.pow(2, attempt))
+    }
+    console.warn(`[claude-api-loop] retry ${attempt}/${maxAttempts} after ${delayMs}ms (${response.status})`)
+    await new Promise((r) => setTimeout(r, delayMs))
+  }
+  return { error: 'unreachable' }
+}
+
+// ==========================================
 // The Loop
 // ==========================================
 
@@ -85,37 +163,42 @@ export async function runClaudeAgentLoop(options: AgentLoopOptions): Promise<Age
   let finalText = ''
 
   for (let turn = 0; turn < maxTurns; turn++) {
-    // Call Claude API
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': apiKey,
-        'anthropic-version': '2023-06-01'
-      },
-      body: JSON.stringify({
-        model,
-        max_tokens: 16384,
-        system: systemPrompt,
-        tools: CLAUDE_TOOL_DEFINITIONS,
-        messages
-      })
+    // 2026-05-03 (Ralph): prompt caching + retry/backoff.
+    // - system prompt + tools cached at 1h TTL (stable across whole loop run)
+    // - last message block cached at 5min TTL (stable across iterations)
+    // - 429 honors retry-after; 529 exponential; other 5xx flat 1s
+    const result = await fetchWithRetry(apiKey, {
+      model,
+      max_tokens: 16384,
+      system: [
+        {
+          type: 'text',
+          text: systemPrompt,
+          cache_control: { type: 'ephemeral', ttl: '1h' },
+        },
+      ],
+      tools: cacheLastToolDef(CLAUDE_TOOL_DEFINITIONS),
+      messages: cacheLastMessageBlock(messages),
     })
-
-    if (!response.ok) {
-      const errorText = await response.text()
+    if ('error' in result) {
       return {
         success: false,
         finalText,
         toolCalls: totalToolCalls,
         turns: turn + 1,
-        error: `API error ${response.status}: ${errorText}`
+        error: result.error,
       }
     }
 
-    const result = await response.json() as {
-      content: any[]
-      stop_reason: string
+    // 2026-05-03 (Ralph): cache hit/write telemetry. Anthropic returns
+    // cache_creation_input_tokens (1.25× / 2× write cost) and
+    // cache_read_input_tokens (0.1× read cost) on every cached response.
+    // Log them so we can verify caching is actually working in the wild.
+    const u = result.usage
+    if (u) {
+      console.log(
+        `[claude-api-loop turn ${turn + 1}] usage: in=${u.input_tokens || 0}, out=${u.output_tokens || 0}, cacheWrite=${u.cache_creation_input_tokens || 0}, cacheRead=${u.cache_read_input_tokens || 0}`,
+      )
     }
 
     // Collect text blocks and tool_use blocks from the response

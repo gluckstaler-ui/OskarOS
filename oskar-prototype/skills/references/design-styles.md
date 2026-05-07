@@ -617,6 +617,7 @@ Takram Japanese speculative design:
 ### 18. Kenya Hara — Design of emptiness
 **Philosophy**: design is not filling, it is emptying
 **Key traits**:
+- Design needs to look like MUJI. If it does not look like MUJI, it is not Hara.
 - Extreme whitespace (80%+)
 - Digitization of paper texture
 - Layers of white (warm white, cool white, off-white)

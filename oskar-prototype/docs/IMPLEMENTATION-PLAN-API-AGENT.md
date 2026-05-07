@@ -3,6 +3,61 @@
 > **Architecture: Next.js as Translation Layer — No SDK Subprocess**
 > Created: 2026-04-04
 > Updated: 2026-04-05 — Rewritten. No SDK subprocess. Raw API + tool execution loop in Node.js.
+> Status block added: 2026-05-01
+
+---
+
+## STATUS UPDATE — 2026-05-01
+
+Plan body below is preserved for context. Current status keyed by the plan's phases. Productization
+items beyond plan scope (caching, rate-limit, BYOK, Docker, multi-tenant DB) live in
+`docs/FEATURE-X.md` § WP-P2.
+
+### STATUS PHASE 1 — Wire Into the App - FULLY IMPLMENTED
+
+**SHIPPED:** TopBar `CLI|API` + `OPUS|SONNET|GEMINI` pills (`components/TopBar.tsx`); `page.tsx` state (`billingMode`, `webDevModel`, `webDevModelRef`); `/api/chat` route (~970 LOC, parallel to `/api/chat-stream`); `runWebDev()` router; foundational scaffolding (`tool-executor.ts` 9 tools, `claude-api-loop.ts`, `gemini-loop.ts`); token usage tracking via `appendUsage` + `calculateCost`.
+
+**CHANGED:** `executionMode` → `billingMode` (more honest — toggle controls billing, not exec path); `claude-opus-4-6` → `claude-opus-4-7`; single-route plan → PARALLEL routes
+(`/api/chat-stream` for CLI, `/api/chat` for API).
+
+**DO NOT IMPLEMENT:** revert `billingMode` → `executionMode`; unify the parallel routes back.
+
+### STATUS PHASE 2 — Agent Communication - ONE OPEN ISSUE
+
+**SHIPPED:** Communication mechanism, end-to-end. SendMessage CLI plumbing (`lib/cd-bridge-call.ts` + `bridgeManager.sendMessage()`); SSE infrastructure (`lib/session-events.ts`, 8 consumers); MCP server at `/api/mcp/server` (in-process Node route, reachable directly from `/api/chat`); 22 MCP tools defined and exposed to CLI mode (`build_vibe`, `build_all_vibes`, `hotswap`, `snackbar`, `generate_image`, `screenshot`, `ask_user`, `session_meta`, `list_assets`, `find_assets`, `lint_brand_compliance`, `apply_patch`, `image_ops`, `vibe_diff`, `submit_*` family, `job_status`, `cancel_job`); `report_build_complete` + `report_build_failed` tool intercepts in `run-webdev.ts` (post-2026-04-30, net new).
+
+**CHANGED:** Plan's magic-string triggers (`## BUILD:`, `## VIBES READY`, `## HOTSWAP:` etc.) RETIRED 2026-04-29. Replaced by typed MCP tool calls.
+
+**OPEN:** Expose the 22 MCP tools to API-mode `/api/chat`. Currently the route has 6 inline tools (`generate_vibe`, `ask_discovery_questions`, `confirm_understanding`, `read_file`, `write_file`, `list_files`); the MCP tools aren't in its TOOLS array yet. Work: import tool definitions from `mcp-server/tools-orchestrator.ts` (and siblings), add to TOOLS array, dispatch in-process when `tool_use` blocks come back. Same pattern as existing `maybeRunLumberjack` import. Code-level only, no Anthropic-API-feature decision — `mcp_servers` param + Managed Agents paths are for REMOTE MCP servers across the Anthropic boundary; ours is local.
+
+**DO NOT IMPLEMENT:**
+- SendMessage as a custom CD → WebDev tool — superseded by MCP `build_vibe` / `build_all_vibes`.
+- send-user-notification as a custom tool — superseded by MCP `snackbar`.
+
+### STATUS PHASE 3 — Background + Monitoring - FULLY IMPLEMENTED
+
+**SHIPPED:** SSE infrastructure (`lib/session-events.ts`); `report_build_progress` tool (`tool-executor.ts:455-464`) — WebDev calls it mid-build, progress flows to UI. THIS IS the plan's
+Monitor tool, just named differently and scoped to builds.
+
+**DO NOT IMPLEMENT:**
+- Custom Monitor tool with `{status, progress, detail}` schema — already shipped as `report_build_progress` in `tool-executor.ts`. Use the existing one.
+- WebSearch tool wrapping Brave/Serper/DuckDuckGo — Anthropic API now has native `web_search`   server tool. Use that.
+
+### STATUS PHASE 4 — Dreamer + Memory FULLY IMPLMENTED
+
+**SHIPPED:** Sage portrait subsystem (paints user portrait into `agents/CD-MEMORY.md` + per-session `user.md`); Lumberjack memory integration in `/api/chat` (`maybeRunLumberjack` on session events); Sage 240/40 cut + 24h pre-prune snapshot retention.
+
+**CHANGED:** Architecture diverged from plan — "cheap-Haiku hourly background agent" shipped as Sage subsystem instead. Same goal (durable cross-session memory), different design.
+
+**DO NOT IMPLEMENT:** "Dreamer hourly Haiku consolidation agent" as described — Sage already covers it with different architecture. `agents/dreamer-agent.md` IS Sage now, not Dreamer. Read that file + ORDER theme in `FEATURE-X.md` § 1, not this plan's Phase 4.
+
+### STATUS OPEN QUESTIONS (from plan body)
+
+1. **`ANTHROPIC_API_KEY` location** — PARTIAL: `claude-api-loop.ts:75` uses env var ✓; `/api/chat:19` reads `.api-key` file ✗. INCONSISTENT — converge to env var.
+2. **Gemini output tokens** — OPEN: 65536 untested at HTML 30-50KB scale. Empirical.
+3. **WebSearch provider** — DO NOT IMPLEMENT: use Anthropic native `web_search` server tool.
+4. **Cost benchmarks** (Gemini 3.1 Pro vs Sonnet 4.6 vs Opus 4.7) — OPEN: empirical, run builds and measure.
+5. **Bridge script injection timing** — SHIPPED as after-loop (`claude-api-loop.ts:142`). Per-FileWrite alternative for live preview decision-pending (~20 LOC if added).
 
 ---
 

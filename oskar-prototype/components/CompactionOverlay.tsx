@@ -209,9 +209,16 @@ export function CompactionOverlay({ sessionId, endpoint = 'order66', onContinue,
             }
 
             // Update React bar state (Layer 3)
+            // 2026-05-03 (Ralph): explicit `progress` field on the event
+            // overrides the phase/stage table. Sage 240/40 emits per-pass
+            // progress so the bar advances proportionally to (passNum /
+            // passCount) — three schedule possibilities (2 / 4 / 6 passes)
+            // and the existing P1-LEDGER stage codes don't fit them all
+            // cleanly. When `progress` is set, use it directly.
             if (data.agent === 'lumberjack') {
-              // LJ has 7 stages during compacting — use stage-level percentages
-              if (data.phase === 'compacting' && data.stage && LJ_STAGE_PCT[data.stage] !== undefined) {
+              if (typeof data.progress === 'number') {
+                setLjPct(Math.max(0, Math.min(100, data.progress)))
+              } else if (data.phase === 'compacting' && data.stage && LJ_STAGE_PCT[data.stage] !== undefined) {
                 setLjPct(LJ_STAGE_PCT[data.stage])
               } else {
                 const pct = PHASE_PCT[data.phase]
@@ -222,8 +229,12 @@ export function CompactionOverlay({ sessionId, endpoint = 'order66', onContinue,
               if (data.phase === 'failed') setLjStatus('failed')
             }
             if (data.agent === 'sage') {
-              const pct = PHASE_PCT[data.phase]
-              if (pct !== undefined) setSagePct(pct)
+              if (typeof data.progress === 'number') {
+                setSagePct(Math.max(0, Math.min(100, data.progress)))
+              } else {
+                const pct = PHASE_PCT[data.phase]
+                if (pct !== undefined) setSagePct(pct)
+              }
               if (data.phase === 'started') setSageStatus('running')
               if (data.phase === 'completed' || data.phase === 'skipped') setSageStatus('done')
               if (data.phase === 'failed') setSageStatus('failed')

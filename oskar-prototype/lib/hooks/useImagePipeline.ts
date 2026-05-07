@@ -139,6 +139,12 @@ export function useImagePipeline({
             aspectRatio: asset.aspectRatio,
             operation: asset.operation,
             sessionId,
+            // Ralph 2026-05-04: parent prompt id (e.g. `img-goofy-v1`)
+            // so the server can nest the generated `#### filename` under
+            // the right `### img-N` block instead of orphan-appending
+            // it to the end of the section (which made it visually
+            // misfile as an upload).
+            promptId: asset.promptId,
           }),
         })
         const data = await response.json()

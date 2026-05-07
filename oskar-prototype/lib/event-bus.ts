@@ -31,6 +31,12 @@ export type SessionEventKind =
   | 'hotswap_failed'
   | 'assets_updated'
   | 'build_started'
+  | 'build_progress'   // Ralph 2026-05-06: per-stage transitions (queued→html→verify→done).
+                       // Routes/runner publish at known boundaries; the BuildJobCard
+                       // timeline flips its dots in real time. Payload: {target, stage,
+                       // milestone?}. Optional milestone bullets piggy-back on the same
+                       // event so the agent's free-form report_build_progress milestones
+                       // and the route-level stage flips share one channel.
   | 'build_failed'
   | 'error'
   // Phase 2 Tier S (2026-04-30) — agent-initiated user-facing events
@@ -38,6 +44,38 @@ export type SessionEventKind =
   | 'cd_ask_user'       // synchronous question modal from any agent
   // Phase 2 Tier B — Director Mode push (commit C)
   | 'director_save'
+  // 2026-05-04 (Ralph) — discovery flow tools promoted from inline
+  // /api/chat tools to MCP. Both `chat-stream` (CLI) and `chat` (API)
+  // surface them via the same event-bus pipeline so the UI cards render
+  // identically in both modes.
+  | 'discovery_questions'  // CD asks the user N structured questions
+  | 'confirm_understanding' // CD shows a summary; user clicks Build It
+  // 2026-05-02 — every notify_agent enqueue also fires this push event so
+  // any client with an open MCP transport (CD as MCP-server peer, future
+  // sage/webdev peers) can see the message land BEFORE its own polling
+  // cycle. Used today by the chat UI to push user messages to CD's inbox
+  // mid-stream. CD-as-CLI doesn't reliably surface push notifications as
+  // model-context, but the event is emitted regardless — when CD migrates
+  // to MCP-server-peer per WP-F1b, the immediacy will work end-to-end.
+  | 'agent_inbox_message'
+  // WP-66 (2026-05-06): TodoWrite write → SESSION.md `## Todos` section
+  // rewritten → broadcast. LiveOverlay (WP-22) subscribes and re-reads the
+  // section so UnfinishedTodosPanel (WP-25) re-renders. Single-writer (CD);
+  // user-add path flows through normal chat → CD encodes as a TodoWrite.
+  | 'todos_updated'
+  // WP-22 Phase 1 (2026-05-06): chat-card events for capability tools that
+  // produce visible chat-surface artifacts. Each fires after the route's
+  // primary work completes; page.tsx subscriber pushes a synthetic assistant
+  // message with a `card` payload, ConversationPanel routes by `card.kind`.
+  | 'screenshot_taken'        // /api/mcp/screenshot — Playwright capture done
+  | 'apply_patch_complete'    // /api/mcp/apply-patch — surgical edit landed
+  | 'notify_agent_sent'       // /api/mcp/notify-agent — peer-agent message enqueued
+  // Ralph 2026-05-06: on-demand card render. CD calls `preview_card({kind,
+  // payload})` when the user asks to "show me [a card]" so the user sees
+  // a visual instance instead of pasted source. Route publishes this; page.tsx
+  // pushes a synthetic assistant message with `card.__preview: true` so the
+  // renderer can mark it as a sample (no real backend writes).
+  | 'card_preview'
 
 export interface SessionEvent {
   type: SessionEventKind

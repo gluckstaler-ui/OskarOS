@@ -20,12 +20,13 @@ import { runGeminiAgentLoop } from './gemini-loop'
 import { existsSync, readFileSync } from 'fs'
 import { join } from 'path'
 import { verifyVibeHtml, parseTrailingJson } from './vibe-verify'
+import { publish } from './event-bus'
 
 // ==========================================
 // Types
 // ==========================================
 
-export type ExecutionMode = 'cli' | 'api'
+export type ExecutionMode = 'smpl' | 'cli' | 'api'
 
 export type Model = 'claude-opus-4-7' | 'claude-sonnet-4-6' | 'gemini-3.1-pro-preview'
 
@@ -80,56 +81,39 @@ function loadWebDevAgentPrompt(): string {
 // Build User Prompt for API mode (CLI mode builds its own internally)
 // ==========================================
 
+/**
+ * Per-build user message (API mode). Pure dynamic context — session folder,
+ * target string. The static operational contract (which tools to call when)
+ * lives in agents/webdev-agent.md "## Orchestration Contract" and is loaded
+ * separately as `systemPrompt`. Don't add tool-contract instructions here —
+ * edit the agent file instead. Ralph + Jedi Code 2026-05-06.
+ */
 function buildUserPrompt(request: WebDevBuildRequest): string {
   const { target, sessionPath } = request
-  return `## SESSION CONTEXT
+  return `## SESSION CONTEXT (per-build, runtime-injected)
 
 **Session folder:** ${sessionPath}
 **Target the user asked for:** "${target}"
 
-The session folder contains one or more vibe spec files (typically named
-\`VIBE-N.md\` or \`vibe-N.md\` where N is a number). Find the one that matches
-"${target}" by:
-- File name (e.g. target "vibe-5" matches VIBE-5.md or vibe-5.md)
-- The \`#\` heading inside the file (e.g. "# Vibe 5: Oskar Home Staging")
+The session folder contains one or more vibe spec files (\`VIBE-N.md\` or
+\`vibe-N.md\` where N is a number). Find the one that matches "${target}" by:
+- File name (target "vibe-5" matches VIBE-5.md or vibe-5.md)
+- The \`#\` heading inside the file ("# Vibe 5: Oskar Home Staging")
 - The vibe slug or display name in the heading
 
 If no file matches, list the vibe files you DID find and ask the user to
-clarify — don't guess.
-
-There may also be a BUILD.md in the folder with cross-vibe context.
-
----
+clarify — don't guess. There may also be a BUILD.md in the folder with
+cross-vibe context.
 
 ## YOUR TASK
 
 Build the complete HTML landing page for the vibe matching "${target}".
-
-Write the HTML to a file in the session folder named \`vibe-{N}-{slug}.html\`
-where {N} is the vibe number and {slug} is a kebab-case version of the vibe
-name. (Example: \`vibe-5-oskar-home-staging.html\`.)
-
+Write to \`vibe-{N}-{slug}.html\` (e.g. \`vibe-5-oskar-home-staging.html\`).
 Do NOT output the HTML in chat. Use your file writing tool.
 
----
-
-## REQUIRED OUTPUT — Phase 2 (2026-04-30)
-
-After writing the file, call the \`report_build_complete\` tool:
-
-\`\`\`
-report_build_complete({
-  filename: "vibe-N-slug.html",
-  vibeIndex: N,
-  vibeName: "The Vibe Name",
-  sectionsBuilt: ["hero", "menu", ...],
-  imagesUsed: ["hero.jpg", ...]
-})
-\`\`\`
-
-Do NOT write trailing JSON manifest lines or \`## BUILD COMPLETE\` headers.
-The legacy parser stays as a defensive fallback only — the tool call is
-your primary signal. If the build cannot complete, call \`report_build_failed({error})\`.`
+Follow the Orchestration Contract from your system prompt for tool calls
+(\`report_build_complete\`, \`report_build_progress\`, \`notify_agent\`,
+inbox drain).`
 }
 
 // ==========================================
@@ -147,6 +131,7 @@ interface ReportBuildCompleteArgs {
 }
 
 async function buildResultFromApiOutput(
+  sessionId: string,
   target: string,
   sessionPath: string,
   agentOutput: string,
@@ -205,6 +190,13 @@ async function buildResultFromApiOutput(
       error: `Manifest claims ${manifest.filename} was written, but file isn't on disk`,
     }
   }
+  // Stage transition html → verify (Ralph 2026-05-06): API mode equivalent
+  // of the publishes inside lib/webdev.ts CLI close handlers. The file is
+  // confirmed on disk; verifyVibeHtml is about to run. Live BuildJobCard
+  // timeline flips to 'verify' here.
+  console.log(`[runWebDev/api] verify stage starting for target="${target}"`)
+  publish(sessionId, { type: 'build_progress', target, stage: 'verify' })
+
   const issues = await verifyVibeHtml(manifest.filename, sessionPath)
   const fatalKinds = new Set(['parse', 'no-body'])
   const fatalCount = issues.filter((i) => fatalKinds.has(i.kind)).length
@@ -239,7 +231,7 @@ export async function runWebDev(request: WebDevBuildRequest): Promise<VibeBuildR
   // CLI MODE — Claude Code or Gemini CLI subprocess
   // (Both buildVibeHTML[*] handle their own prompt + manifest parsing + verify)
   // ==========================================
-  if (mode === 'cli') {
+  if (mode !== 'api') {
     if (model === 'gemini-3.1-pro-preview') {
       return buildVibeHTMLGemini(sessionId, target, sessionPath, request.abortSignal)
     }
@@ -282,7 +274,7 @@ export async function runWebDev(request: WebDevBuildRequest): Promise<VibeBuildR
       onText: captureText,
     })
     return buildResultFromApiOutput(
-      target, sessionPath, collectedOutput,
+      sessionId, target, sessionPath, collectedOutput,
       result.success ? undefined : result.error, capturedReportArgs,
     )
   }
@@ -298,7 +290,7 @@ export async function runWebDev(request: WebDevBuildRequest): Promise<VibeBuildR
       onText: captureText,
     })
     return buildResultFromApiOutput(
-      target, sessionPath, collectedOutput,
+      sessionId, target, sessionPath, collectedOutput,
       result.success ? undefined : result.error, capturedReportArgs,
     )
   }

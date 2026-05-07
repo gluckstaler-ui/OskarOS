@@ -11,7 +11,8 @@ import {
   populateCreativeBriefAction,
   moveImagesToSessionAction,
   getImageManifestsAction,
-  getImageEntriesAction
+  getImageEntriesAction,
+  renameSessionAction,
 } from '@/lib/session-actions'
 import type { CreativeBriefContent } from '@/lib/session'
 import { AssetsPanel } from '@/components/AssetsPanel'
@@ -57,7 +58,8 @@ import {
   StreamingProgress,
   StreamEvent,
   OskarPhase,
-  WorkflowProgress
+  WorkflowProgress,
+  UploadEvalCardPayload,
 } from '@/lib/types'
 
 export default function Home() {
@@ -80,6 +82,25 @@ export default function Home() {
       localStorage.removeItem('oskar-session-id')
     }
   }, [])
+
+  // Sidecar pointer for the MCP stdio proxy (Ralph + JC, 2026-05-06).
+  // Every sessionId change writes `.runtime/active-session` so the proxy
+  // (which Claude Code spawned at startup with a frozen OSKAR_SESSION env
+  // var) can pick up the new id without a Claude Code restart. The proxy
+  // re-reads this file before each MCP message and re-handshakes when
+  // the value changes. Fire-and-forget — failure is tolerable because
+  // the env-var fallback covers the boot case.
+  useEffect(() => {
+    if (!sessionId) return
+    void fetch('/api/active-session', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ sessionId }),
+    }).catch(() => {
+      // Sidecar write failed — proxy will keep using its previous session
+      // until the next successful write. Not user-visible.
+    })
+  }, [sessionId])
   // Session management now handled via Admin page
 
   // Workflow state (legacy - kept for layout transitions)
@@ -117,6 +138,11 @@ export default function Home() {
   // Vibes from CD agent
   const [vibes, setVibes] = useState<VibeData[]>([])
   const [selectedVibe, setSelectedVibe] = useState<VibeData | undefined>(undefined)
+
+  // All HTML files in the session directory — used to widen the Director Mode
+  // picker beyond just the resolved vibes (mockups, prototypes, raw HTML
+  // dropped into public/{session}/ should also be openable).
+  const [sessionHtmlFiles, setSessionHtmlFiles] = useState<{ name: string; path: string; vibeIndex?: number; title?: string }[]>([])
 
   // Available vibes for switcher (tracks build status)
   const [availableVibes, setAvailableVibes] = useState<VibePreview[]>([])
@@ -178,7 +204,7 @@ export default function Home() {
     message: ''
   })
   const [useStreaming, setUseStreaming] = useState(true) // Toggle streaming mode
-  const [billingMode, setBillingMode] = useState<'cli' | 'api'>('cli') // Billing mode: CLI (subscription) or API (per-token)
+  const [billingMode, setBillingMode] = useState<'smpl' | 'cli' | 'api'>('smpl') // Execution mode: SMPL (tier alias), CLI (Claude ID), API (Anthropic direct)
   const [webDevModel, setWebDevModel] = useState<'claude-opus-4-7' | 'claude-sonnet-4-6' | 'gemini-3.1-pro-preview'>('claude-sonnet-4-6') // WebDev model
   const [theme, setThemeState] = useState<'onyx' | 'polar'>('onyx') // Theme: ONYX (dark) or POLAR (light)
 
@@ -215,6 +241,13 @@ export default function Home() {
   // CLI Session persistence - UUID maintained across streaming calls
   // This allows Claude CLI to maintain conversation state via --session-id flag
   const [cliSessionId, setCliSessionId] = useState<string | null>(null)
+  // Bug M (Ralph 2026-05-04): the actual model running on the wire.
+  // CLI mode: populated from Claude CLI's system/init event (forwarded
+  // by chat-stream as `model_info`). API mode: set immediately from the
+  // billing/model toggle since the API request goes out with that exact
+  // value. Displayed in the input-bar badge so the user can see whether
+  // they're on Claude or Z.ai/GLM at a glance.
+  const [currentModel, setCurrentModel] = useState<string | null>(null)
 
   // Session resume flag - set when loading an existing session
   // Cleared after first message is sent so CD agent knows to run boot sequence
@@ -224,6 +257,11 @@ export default function Home() {
   const pendingBootSequenceRef = useRef(false)
   const bootSequenceTriggeredRef = useRef(false)
   const hasBridgeMappingRef = useRef(false)  // true = bridge can --resume (skip boot sequence)
+
+  // Model badge trust ladder (Ralph 2026-05-05). Sources in ascending trust:
+  //   config (0) = request alias  → init (1) = CLI's claim  → wire (2) = actual served model
+  // A model_info event only updates the badge if its trust level >= current.
+  const modelTrustRef = useRef<number>(-1)
 
   // Single-flight dedup for ensureSession. Without this, double-click-send or
   // paste+Enter while auto-inject is running causes two concurrent callers to
@@ -356,7 +394,26 @@ export default function Home() {
       // Fetch session detail from admin API
       const res = await fetch(`/api/admin/sessions/${loadSessionId}`)
       if (!res.ok) {
-        console.error('Failed to load session:', res.status)
+        console.error('Failed to load session:', res.status, loadSessionId)
+        // 2026-05-03 (Ralph) — KNOWN ROOT CAUSE for the 404 path:
+        // **Did you just rename the project?**
+        // The "rename project" feature changes the project's directory name
+        // on disk. The saved sessionId in localStorage (or in the ?session=
+        // URL param) still points to the OLD directory name, which no longer
+        // exists → 404 on every refresh until the stale ID is cleared or the
+        // URL is updated. This isn't a backend bug; it's a stale-pointer bug
+        // introduced by the rename feature.
+        //
+        // Real fix (TODO): when the rename happens, propagate the new
+        // sessionId to localStorage + emit an event so any open tab updates
+        // its in-memory state and URL. Until then, scrub on 404 so the next
+        // boot starts clean instead of looping the same failure.
+        //
+        // 500s are NOT scrubbed — backend hiccups should not nuke client
+        // state.
+        if (res.status === 404) {
+          try { localStorage.removeItem('oskar-session-id') } catch { /* ignore */ }
+        }
         return
       }
       const data = await res.json()
@@ -373,6 +430,10 @@ export default function Home() {
       // as a pure function. Previously this was ~150 lines inline here.
       const htmlFiles = data.htmlFiles || []
       const parsedVibes = data.vibes || []
+      // Stash the raw htmlFiles list for the Director Mode picker so it can
+      // surface non-vibe HTML files (mockups, prototypes) too — not just the
+      // ones that resolve to vibe-N-slug.html.
+      setSessionHtmlFiles(htmlFiles)
       // Exposed for the availableVibes block below — kept as a local so the
       // existing VibePreview construction logic still has the htmlFiles list
       // to iterate without re-fetching.
@@ -663,18 +724,118 @@ export default function Home() {
     }
   }, [loadSession])
 
-  // Load billing preference from localStorage
+  // Load billing preference from localStorage. localStorage is the
+  // pre-Phase-2 persistence layer; we keep it as a hot-cache so the pill
+  // shows the right state instantly on first paint, BEFORE the GET to
+  // the session-config endpoint resolves. The session-config file is the
+  // server-side source of truth (so MCP routes can read it). Ralph
+  // 2026-05-04.
   useEffect(() => {
     const saved = localStorage.getItem('oskar_billing_mode')
-    if (saved === 'cli' || saved === 'api') {
+    if (saved === 'smpl' || saved === 'cli' || saved === 'api') {
       setBillingMode(saved)
+    }
+    const savedModel = localStorage.getItem('oskar_webdev_model')
+    if (
+      savedModel === 'claude-opus-4-7' ||
+      savedModel === 'claude-sonnet-4-6' ||
+      savedModel === 'gemini-3.1-pro-preview'
+    ) {
+      setWebDevModel(savedModel)
     }
   }, [])
 
-  // Save billing preference to localStorage
+  // Hydrate from server-side session config (Ralph 2026-05-04). Runs once
+  // sessionId resolves. Server value wins over localStorage because the
+  // user may have toggled in another tab / from a different device.
+  // Sticky bit: writes are immediate (see effect below) so this only
+  // matters on first load of a session.
+  const hydratedFromConfigRef = useRef(false)
+  useEffect(() => {
+    if (!sessionId) return
+    if (hydratedFromConfigRef.current) return
+    hydratedFromConfigRef.current = true
+    fetch(`/api/sessions/${encodeURIComponent(sessionId)}/config`)
+      .then((r) => r.ok ? r.json() : null)
+      .then((cfg) => {
+        if (!cfg) return
+        if (cfg.billingMode === 'smpl' || cfg.billingMode === 'cli' || cfg.billingMode === 'api') setBillingMode(cfg.billingMode)
+        if (
+          cfg.webDevModel === 'claude-opus-4-7' ||
+          cfg.webDevModel === 'claude-sonnet-4-6' ||
+          cfg.webDevModel === 'gemini-3.1-pro-preview'
+        ) setWebDevModel(cfg.webDevModel)
+        // Bug M (Ralph 2026-05-04): seed the input-bar model badge from
+        // session config. CLI mode will override this when Claude CLI's
+        // Badge is NOT seeded from config. The badge displays truth-on-wire
+        // only — cfg.cdModel is the request, not the receipt. On Z.ai,
+        // seeding 'claude-opus-4-7[1m]' would show a lie until the first
+        // init event flips it to 'glm-4.7'. Leave null until wire truth
+        // arrives. Ralph 2026-05-04.
+      })
+      .catch((err) => console.warn('[page] session config fetch failed:', err))
+  }, [sessionId])
+
+  // Save billing preference to localStorage AND to the server-side
+  // session-config file. The server write is what makes the toggle
+  // INSTANT for MCP build routes — no debounce, no startup-load delay
+  // (the file is sub-ms to write/read; the next agent action runs after
+  // the click so there's no race). Ralph 2026-05-04.
+  // Save billing mode AND cdModel to session config. When mode changes,
+  // cdModel is set to the mode default (SMPL→'opus', CLI→'claude-opus-4-7[1m]',
+  // API→'claude-opus-4-7'). Ralph 2026-05-04.
   useEffect(() => {
     localStorage.setItem('oskar_billing_mode', billingMode)
-  }, [billingMode])
+    if (!sessionId) return
+    if (!hydratedFromConfigRef.current) return  // skip the write that would race the hydration GET
+    const modeCdModels = { smpl: 'opus', cli: 'claude-opus-4-7[1m]', api: 'claude-opus-4-7' } as const
+    fetch(`/api/sessions/${encodeURIComponent(sessionId)}/config`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ billingMode, cdModel: modeCdModels[billingMode] }),
+    }).catch((err) => console.warn('[page] session config POST (billingMode) failed:', err))
+  }, [billingMode, sessionId])
+
+  // Save WebDev model to localStorage AND to the server-side session
+  // config. Same instant-write pattern as billingMode above. The MCP
+  // build routes read this on every call.
+  useEffect(() => {
+    localStorage.setItem('oskar_webdev_model', webDevModel)
+    if (!sessionId) return
+    if (!hydratedFromConfigRef.current) return
+    fetch(`/api/sessions/${encodeURIComponent(sessionId)}/config`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ webDevModel }),
+    }).catch((err) => console.warn('[page] session config POST (webDevModel) failed:', err))
+  }, [webDevModel, sessionId])
+
+  // Bug M follow-up (Ralph 2026-05-04): on billingMode change, ACTIVELY
+  // probe the chosen mode's actual model. CLI mode → backend either
+  // returns the cached actualModel from a running bridge, or spawns a
+  // claude probe to read the system/init event. API mode → the model
+  // we'd send. NOT inferred from config; the probe endpoint is the
+  // single source of truth so the badge reflects the wire, not our
+  // intent.
+  useEffect(() => {
+    if (!sessionId) return
+    if (!hydratedFromConfigRef.current) return
+    // Reset trust ladder on mode change — the new mode's probe/model_info
+    // events start from scratch.
+    modelTrustRef.current = -1
+    setCurrentModel(null)
+    let cancelled = false
+    fetch(`/api/sessions/${encodeURIComponent(sessionId)}/probe-model?mode=${billingMode}`)
+      .then((r) => r.ok ? r.json() : null)
+      .then((res) => {
+        if (cancelled || !res || typeof res.model !== 'string') return
+        modelTrustRef.current = 0  // probe is config-level trust
+        setCurrentModel(res.model)
+        console.log(`🏷️ Probed ${billingMode} model: ${res.model} (source=${res.source})`)
+      })
+      .catch((err) => console.warn('[page] probe-model failed:', err))
+    return () => { cancelled = true }
+  }, [billingMode, sessionId])
 
   // Load theme preference from localStorage
   useEffect(() => {
@@ -750,7 +911,172 @@ export default function Home() {
         const payload = JSON.parse(evt.data)
         if (!payload || typeof payload !== 'object') return
         switch (payload.type) {
+          case 'build_started': {
+            // Ralph 2026-05-06: live build job card — Archetype 1 from
+            // toolcards-mockup.html. Mount once on build_started; rows
+            // update in place from subsequent vibe_built / vibe_failed
+            // events. Matches the mockup's "long-running, mounts at
+            // tool-fire, keeps updating from the event bus" pattern.
+            //
+            // Three modes:
+            //   - mode:'all'  — N rows, one per vibe (vibeCount carries N).
+            //                   Labels fill in as vibes land (vibe_built
+            //                   carries vibeName + vibeIndex).
+            //   - mode:'final' — 1 row for the final landing page build.
+            //   - mode:'vibe' (default) — 1 row for the explicit `target`.
+            const mode = payload.mode === 'all' || payload.mode === 'final' ? payload.mode : 'vibe'
+            const vibeCount = typeof payload.vibeCount === 'number' ? Math.max(1, payload.vibeCount) : 1
+            const target = typeof payload.target === 'string' ? payload.target : ''
+            // Phase 2 fix (CD 2026-05-06): the build_all_vibes route now ships
+            // `rows: [{id, label, thumb?}]` so the card mounts with real
+            // names + thumbs. Fall back to id-only stubs if the route is old
+            // (legacy clients) or for single-vibe / final builds.
+            const enrichedRows = Array.isArray(payload.rows)
+              ? payload.rows.filter((r: { id?: unknown }) => typeof r?.id === 'string')
+              : null
+            // CD 2026-05-06: build-vibe/route.ts now also ships
+            // rows[] (single-element) so single-vibe builds mount
+            // with the hero thumb + label, matching build-all-vibes.
+            const singleRow = enrichedRows && enrichedRows.length === 1
+              ? (enrichedRows[0] as { id: string; label?: string; thumb?: string })
+              : null
+            const rows = mode === 'all'
+              ? (enrichedRows && enrichedRows.length > 0
+                  ? enrichedRows.map((r: { id: string; label?: string; thumb?: string }) => ({
+                      id: r.id,
+                      label: typeof r.label === 'string' ? r.label : '',
+                      thumb: typeof r.thumb === 'string' ? r.thumb : undefined,
+                      state: 'queued' as const,
+                    }))
+                  : Array.from({ length: vibeCount }, (_, i) => ({
+                      id: `vibe-${i + 1}`,
+                      label: '',
+                      state: 'queued' as const,
+                    })))
+              : [{
+                  id: singleRow?.id ?? (mode === 'final' ? 'final' : (target || 'vibe')),
+                  label: typeof singleRow?.label === 'string' && singleRow.label
+                    ? singleRow.label
+                    : (mode === 'final' ? 'Final landing page' : ''),
+                  thumb: typeof singleRow?.thumb === 'string' ? singleRow.thumb : undefined,
+                  state: 'queued' as const,
+                }]
+            const title = mode === 'all'
+              ? `Building ${vibeCount} vibes`
+              : mode === 'final'
+                ? 'Building final landing page'
+                : `Building ${target || 'vibe'}`
+            const cardMessage: ConversationMessage = {
+              id: `msg-${Date.now()}-build-${mode}`,
+              role: 'assistant',
+              content: '',
+              timestamp: new Date().toISOString(),
+              card: {
+                kind: 'build',
+                title,
+                jobId: typeof payload.jobId === 'string' ? payload.jobId : undefined,
+                rows,
+              },
+            }
+            setMessages((prev) => [...prev, cardMessage])
+            break
+          }
+          case 'build_progress': {
+            // CD 2026-05-06: flip the matched row to html / verify mid-build
+            // OR append a milestone bullet (single-vibe view). Match by
+            // `target` (e.g. 'vibe-3'). No-op if no card or no row found.
+            const target = typeof payload.target === 'string' ? payload.target : ''
+            const stage = payload.stage === 'html' || payload.stage === 'verify'
+              ? payload.stage as 'html' | 'verify'
+              : null
+            const milestone = typeof payload.milestone === 'string' ? payload.milestone : null
+            if (!target || (!stage && !milestone)) break
+            setMessages((prev) => {
+              const next = [...prev]
+              for (let i = next.length - 1; i >= 0; i--) {
+                const m = next[i]
+                if (m.card?.kind !== 'build') continue
+                const rows = m.card.rows
+                const idx = rows.findIndex((r) => r.id === target)
+                if (idx === -1) continue
+                const updated = [...rows]
+                const row = updated[idx]
+                // Don't downgrade terminal rows (done/failed) on a late
+                // progress event.
+                if (row.state === 'done' || row.state === 'failed') break
+                updated[idx] = {
+                  ...row,
+                  ...(stage ? { state: stage } : {}),
+                  ...(milestone
+                    ? { milestones: [...(row.milestones ?? []), milestone] }
+                    : {}),
+                  // Stamp startedAt the FIRST time the row leaves
+                  // queued (transitions to html). The row is "actively
+                  // building" from this moment; ETA = now - startedAt.
+                  ...(stage === 'html' && !row.startedAt
+                    ? { startedAt: new Date().toISOString() }
+                    : {}),
+                }
+                next[i] = { ...m, card: { ...m.card, rows: updated } }
+                break
+              }
+              return next
+            })
+            break
+          }
           case 'vibe_built':
+            // Update the most-recent build card's matching row → state='done'.
+            // Match by id (vibe-N) — the row's `state` flips and the htmlPath
+            // becomes the thumb (server-rendered HTML, can be screenshotted
+            // separately later by the screenshot tool if we want a real preview).
+            setMessages((prev) => {
+              const next = [...prev]
+              for (let i = next.length - 1; i >= 0; i--) {
+                const m = next[i]
+                if (m.card?.kind !== 'build') continue
+                const rows = m.card.rows
+                const idx = rows.findIndex((r) =>
+                  r.id === `vibe-${payload.vibeIndex}` ||
+                  r.label === payload.vibeName ||
+                  // Empty-label row case: first un-started row claims this
+                  // vibe_built event so we don't lose it on a vibeIndex
+                  // mismatch (e.g. when the row count was approximated).
+                  (r.state === 'queued' && !r.label && rows.findIndex((rr) => rr.state === 'queued') === idx)
+                )
+                if (idx === -1) continue
+                const updatedRows = [...rows]
+                const finishedAt = new Date().toISOString()
+                const startedAt = updatedRows[idx].startedAt ?? finishedAt
+                // Compute final elapsed string (m:ss) so the eta cell
+                // freezes at "8:28" etc on done rows.
+                const ms = Math.max(0, Date.parse(finishedAt) - Date.parse(startedAt))
+                const totalSec = Math.floor(ms / 1000)
+                // Ralph 2026-05-06: rename `m` → `mins` because the outer
+                // for-loop also binds `m` to the iterated message. ESLint
+                // / TS catch this as a shadow / redeclare; the bundler
+                // surfaces it as "name `m` defined multiple times".
+                const mins = Math.floor(totalSec / 60)
+                const s = (totalSec % 60).toString().padStart(2, '0')
+                const finalEta = `${mins}:${s}`
+                updatedRows[idx] = {
+                  ...updatedRows[idx],
+                  label: payload.vibeName || updatedRows[idx].label,
+                  state: 'done',
+                  finishedAt,
+                  eta: finalEta,
+                  // CD 2026-05-06: keep `thumb` as the hero IMAGE preview
+                  // (don't overwrite with an HTML path — that broke the
+                  // <img src=...> rendering). `htmlPath` drives the Open
+                  // button instead.
+                  htmlPath: typeof payload.htmlPath === 'string'
+                    ? payload.htmlPath
+                    : updatedRows[idx].htmlPath,
+                }
+                next[i] = { ...m, card: { ...m.card, rows: updatedRows } }
+                break
+              }
+              return next
+            })
             sessionEvents.emit({
               type: 'vibe-ready',
               sessionId,
@@ -767,6 +1093,24 @@ export default function Home() {
                 geminiText: payload.geminiText || payload.nanoText,
               },
             })
+            // 2026-05-04 (Ralph): also refresh AssetsPanel state. The
+            // image_ready event ONLY drove a snackbar before — it never
+            // updated imageManifests, so the user saw "image ready" toast
+            // but the panel showed stale data until the next chat
+            // round-trip. /api/generate-image + /api/edit-image don't
+            // publish assets_updated either, so we have to do the refresh
+            // here. Same wrapper as the assets_updated case.
+            ;(async () => {
+              try {
+                const manifestResult = await getImageManifestsAction(sessionId)
+                if (manifestResult.success && manifestResult.manifests) {
+                  setImageManifests(manifestResult.manifests)
+                }
+                await refreshSourceImageTags()
+              } catch (err) {
+                console.error('[/api/events] image_ready refresh failed:', err)
+              }
+            })()
             break
           case 'hotswap_complete':
             sessionEvents.emit({
@@ -780,9 +1124,43 @@ export default function Home() {
             })
             break
           case 'vibe_failed':
+          case 'build_failed':
+            // Update the most-recent build card's matching row → state='failed'.
+            // Match by `target` (e.g. 'vibe-3') for vibe_failed; build_failed
+            // marks every still-running row as failed because the whole job
+            // crashed, not just one vibe.
+            setMessages((prev) => {
+              const next = [...prev]
+              for (let i = next.length - 1; i >= 0; i--) {
+                const m = next[i]
+                if (m.card?.kind !== 'build') continue
+                const rows = m.card.rows
+                const isWhole = payload.type === 'build_failed'
+                const targetId = typeof payload.target === 'string' ? payload.target : ''
+                const updatedRows = rows.map((r) => {
+                  const hit = isWhole
+                    ? r.state !== 'done' && r.state !== 'failed'
+                    : r.id === targetId
+                  if (!hit) return r
+                  return {
+                    ...r,
+                    state: 'failed' as const,
+                    error: typeof payload.error === 'string' ? payload.error : 'build failed',
+                  }
+                })
+                next[i] = { ...m, card: { ...m.card, rows: updatedRows } }
+                break
+              }
+              return next
+            })
+            sessionEvents.emit({
+              type: 'error',
+              sessionId,
+              data: { message: payload.error || payload.message || `${payload.type}` },
+            })
+            break
           case 'hotswap_failed':
           case 'image_failed':
-          case 'build_failed':
           case 'error':
             sessionEvents.emit({
               type: 'error',
@@ -819,8 +1197,190 @@ export default function Home() {
               },
             })
             break
-          // assets_updated / build_started / connected / heartbeat — silent;
-          // the AssetsPanel re-reads on its own cadence, no UI dispatch needed.
+          // 2026-05-04 (Ralph): discovery flow cards. CD's MCP tools
+          // ask_discovery_questions / confirm_understanding publish
+          // these events; we push a synthetic assistant message into the
+          // conversation with a `card` payload, and ConversationPanel
+          // renders the matching component instead of markdown. Same
+          // path for both CLI and API mode (the MCP server is the
+          // single source).
+          case 'discovery_questions': {
+            const questions = Array.isArray(payload.questions)
+              ? payload.questions.map((q: unknown) => String(q ?? '').trim()).filter(Boolean)
+              : []
+            if (questions.length === 0) break
+            const cardMessage: ConversationMessage = {
+              id: `msg-${Date.now()}-discovery`,
+              role: 'assistant',
+              content: '',
+              timestamp: new Date().toISOString(),
+              card: {
+                kind: 'discovery_questions',
+                questions,
+                context: typeof payload.context === 'string' ? payload.context : undefined,
+              },
+            }
+            setMessages((prev) => [...prev, cardMessage])
+            break
+          }
+          case 'confirm_understanding': {
+            if (typeof payload.summary !== 'string' || !payload.summary.trim()) break
+            const cardMessage: ConversationMessage = {
+              id: `msg-${Date.now()}-confirm`,
+              role: 'assistant',
+              content: '',
+              timestamp: new Date().toISOString(),
+              card: {
+                kind: 'confirm_understanding',
+                summary: payload.summary,
+                readyToGenerate: payload.readyToGenerate === true,
+              },
+            }
+            setMessages((prev) => [...prev, cardMessage])
+            break
+          }
+          // WP-22 Phase 1 (Ralph 2026-05-06) — Screenshot / ApplyPatch /
+          // DiagnosticChip cards. Each MCP route publishes a typed event after
+          // its primary work; we push a synthetic assistant message with a
+          // `card` payload, ConversationPanel routes by kind to the right
+          // component. Mockup: docs/toolcards-mockup.html § Archetypes 2 + 4.
+          case 'screenshot_taken': {
+            const savedPath = typeof payload.savedPath === 'string' ? payload.savedPath : ''
+            if (!savedPath) break
+            const dimsRaw = (payload.dims || {}) as { width?: unknown; height?: unknown }
+            const cardMessage: ConversationMessage = {
+              id: `msg-${Date.now()}-screenshot`,
+              role: 'assistant',
+              content: '',
+              timestamp: new Date().toISOString(),
+              card: {
+                kind: 'screenshot',
+                savedPath,
+                target: typeof payload.target === 'string' ? payload.target : '',
+                frame: (payload.frame === 'tablet' || payload.frame === 'mobile' ? payload.frame : 'desktop') as 'desktop' | 'tablet' | 'mobile',
+                dims: {
+                  width: typeof dimsRaw.width === 'number' ? dimsRaw.width : 1280,
+                  height: typeof dimsRaw.height === 'number' ? dimsRaw.height : 800,
+                },
+              },
+            }
+            setMessages((prev) => [...prev, cardMessage])
+            break
+          }
+          case 'apply_patch_complete': {
+            const filename = typeof payload.filename === 'string' ? payload.filename : ''
+            const diff = typeof payload.diff === 'string' ? payload.diff : ''
+            if (!filename || !diff) break
+            const cardMessage: ConversationMessage = {
+              id: `msg-${Date.now()}-applypatch`,
+              role: 'assistant',
+              content: '',
+              timestamp: new Date().toISOString(),
+              card: {
+                kind: 'apply_patch',
+                filename,
+                editKind: typeof payload.editKind === 'string' ? payload.editKind : 'edit',
+                anchor: typeof payload.anchor === 'string' ? payload.anchor : '(no-selector)',
+                affected: typeof payload.affected === 'number' ? payload.affected : 0,
+                diff,
+              },
+            }
+            setMessages((prev) => [...prev, cardMessage])
+            break
+          }
+          case 'notify_agent_sent': {
+            const label = typeof payload.label === 'string' ? payload.label : ''
+            if (!label) break
+            const cardMessage: ConversationMessage = {
+              id: `msg-${Date.now()}-notify-${Math.random().toString(36).slice(2, 6)}`,
+              role: 'assistant',
+              content: '',
+              timestamp: new Date().toISOString(),
+              card: {
+                kind: 'diagnostic_chip',
+                glyph: typeof payload.glyph === 'string' ? payload.glyph : '→',
+                label,
+                accent: typeof payload.accent === 'string' ? payload.accent : undefined,
+                ts: typeof payload.ts === 'string' ? payload.ts : new Date().toISOString(),
+              },
+            }
+            setMessages((prev) => [...prev, cardMessage])
+            break
+          }
+          // Ralph 2026-05-06: on-demand card preview. CD calls
+          // `preview_card({kind, payload})` when the user asks "show me
+          // [a card]" so they see a visual instance instead of pasted
+          // source. Push a synthetic assistant message with the same
+          // shape ConversationPanel already routes — the only difference
+          // is the `__preview: true` marker so the renderer can tag it
+          // as a sample (no real backend writes).
+          case 'card_preview': {
+            const kind = typeof payload.kind === 'string' ? payload.kind : ''
+            const cardPayload =
+              payload.payload && typeof payload.payload === 'object'
+                ? (payload.payload as Record<string, unknown>)
+                : null
+            if (!kind || !cardPayload) break
+            const cardMessage: ConversationMessage = {
+              id: `msg-${Date.now()}-preview-${Math.random().toString(36).slice(2, 6)}`,
+              role: 'assistant',
+              content: '',
+              timestamp: new Date().toISOString(),
+              // Cast through `unknown`: the AssistantCardPayload union has
+              // strict per-kind shapes (e.g. DiagnosticChipPayload requires
+              // glyph/label/ts). Preview payloads come from the agent's
+              // `payload` arg loosely — runtime guards in each card's
+              // component handle malformed input gracefully. The `__preview`
+              // flag lives on the MESSAGE (not the card), so renderers can
+              // opt-in to sample-styling without affecting the union shape.
+              card: ({ kind, ...cardPayload } as unknown) as ConversationMessage['card'],
+              __preview: true,
+            }
+            setMessages((prev) => [...prev, cardMessage])
+            break
+          }
+          // 2026-05-04 (Ralph) — `assets_updated` was previously marked
+          // silent on the assumption that AssetsPanel polled IMAGES.md
+          // on its own cadence. It doesn't — the panel is prop-driven
+          // and only re-reads after a chat round-trip via getImageManifestsAction.
+          // Result: when CD called `images_needed` or `refresh_assets`
+          // via MCP (no chat involved), the panel stayed stale and Ralph
+          // never saw the new prompts. Now we actually act on the event:
+          // re-fetch manifests + reconcile source-image tags.
+          case 'assets_updated': {
+            console.log(
+              `[/api/events] 📥 assets_updated received (reason=${payload.reason || 'unknown'}, ` +
+              `route-counted manifestCount=${payload.manifestCount ?? '?'}, promptCount=${payload.promptCount ?? '?'})`,
+            )
+            ;(async () => {
+              try {
+                const manifestResult = await getImageManifestsAction(sessionId)
+                if (manifestResult.success && manifestResult.manifests) {
+                  setImageManifests(manifestResult.manifests)
+                  if (manifestResult.manifests.length === 0) {
+                    console.warn(
+                      `[/api/events] ⚠️ assets_updated fired but parser returned 0 manifests. ` +
+                      `Most common cause: CD wrote prompts to a section other than ` +
+                      `\`## Image Prompts + Generated\` (e.g. \`## What's Missing\` or a ` +
+                      `numbered list elsewhere). Check IMAGES.md format vs lib/session-actions.ts:503.`,
+                    )
+                  } else {
+                    console.log(
+                      `[/api/events] ✅ refreshed ${manifestResult.manifests.length} manifest(s) ` +
+                      `with ${manifestResult.manifests.reduce((n, m) => n + m.assets.length, 0)} asset(s) total`,
+                    )
+                  }
+                } else {
+                  console.error('[/api/events] getImageManifestsAction failed:', manifestResult.error)
+                }
+                await refreshSourceImageTags()
+              } catch (err) {
+                console.error('[/api/events] assets_updated refresh failed:', err)
+              }
+            })()
+            break
+          }
+          // build_started / connected / heartbeat — still silent.
         }
       } catch (err) {
         console.error('[/api/events] parse error', err)
@@ -841,6 +1401,75 @@ export default function Home() {
    * logic as the inline post-handleSend hydration paths but extracted so
    * non-chat actions can trigger it. (Ralph 2026-04-25.)
    */
+  /**
+   * Upload-eval batch debouncer (Ralph 2026-05-06).
+   *
+   * When the user drops N images at once, each upload independently calls
+   * /api/cd-evaluate-upload. Without batching, that pushes N individual
+   * UploadEvalCards into the chat — wall-of-cards pollution at N≥3.
+   *
+   * Strategy: trailing-edge debounce. Each evaluated upload appends to a
+   * ref-backed buffer and (re)starts a 1500ms timer. After 1500ms of no new
+   * arrivals the buffer flushes:
+   *   - buffer.length ≥ 3 → ONE batch card (UploadEvalBatchCard, table layout)
+   *   - buffer.length  < 3 → N individual cards (UploadEvalCard, rich layout)
+   *
+   * The 1500ms window is empirical: long enough to capture a multi-file drag-
+   * and-drop's CD evaluations (sequential async, ~200-400ms each), short
+   * enough that a true single-image upload doesn't feel artificially delayed.
+   */
+  const uploadEvalBufferRef = useRef<Array<Omit<UploadEvalCardPayload, 'kind'>>>([])
+  const uploadEvalFlushTimerRef = useRef<NodeJS.Timeout | null>(null)
+
+  const flushUploadEvalBuffer = useCallback(() => {
+    const buffer = uploadEvalBufferRef.current
+    uploadEvalBufferRef.current = []
+    uploadEvalFlushTimerRef.current = null
+    if (buffer.length === 0) return
+    if (buffer.length >= 3) {
+      // CD directive 2026-05-06: batch card schema is STAR | B-ROLL | TRASH
+      // only — INGESTED is the system fallback and not user-assignable in
+      // this surface. Coerce any INGESTED row to 'B-ROLL' (safe-default
+      // secondary tag) at the flush boundary. CD's submit_upload_eval call
+      // normally tags before this fires; this is the defensive path for
+      // rows that arrive untagged.
+      const cardMessage: ConversationMessage = {
+        id: `msg-${Date.now()}-upload-eval-batch`,
+        role: 'assistant',
+        content: '',
+        timestamp: new Date().toISOString(),
+        card: {
+          kind: 'upload_eval_batch',
+          items: buffer.map((item) => ({
+            ...item,
+            status: item.status === 'INGESTED' ? 'B-ROLL' : item.status,
+          })),
+        },
+      }
+      setMessages((prev) => [...prev, cardMessage])
+    } else {
+      const cardMessages: ConversationMessage[] = buffer.map((item, i) => ({
+        id: `msg-${Date.now()}-upload-eval-${item.filename}-${i}`,
+        role: 'assistant',
+        content: '',
+        timestamp: new Date().toISOString(),
+        card: { kind: 'upload_eval', ...item },
+      }))
+      setMessages((prev) => [...prev, ...cardMessages])
+    }
+  }, [])
+
+  const enqueueUploadEval = useCallback(
+    (item: Omit<UploadEvalCardPayload, 'kind'>) => {
+      uploadEvalBufferRef.current.push(item)
+      if (uploadEvalFlushTimerRef.current) {
+        clearTimeout(uploadEvalFlushTimerRef.current)
+      }
+      uploadEvalFlushTimerRef.current = setTimeout(flushUploadEvalBuffer, 1500)
+    },
+    [flushUploadEvalBuffer],
+  )
+
   const refreshSourceImageTags = useCallback(async () => {
     if (!sessionId) return
     const entriesResult = await getImageEntriesAction(sessionId)
@@ -915,12 +1544,34 @@ export default function Home() {
             const ev = await evalRes.json() as {
               verdict: '✓' | '≈' | '✗' | 'error'
               note: string
+              suggestedUses?: string[]
             }
+            const renderVerdict: '✓' | '≈' | '✗' = ev.verdict === 'error' ? '✗' : ev.verdict
+            const renderNote = ev.verdict === 'error' ? `Eval failed: ${ev.note}` : ev.note
             // Always emit — including 'error'. Silent failures hide bugs.
             emitCDUploadEvaluated(sessionId, {
               filename: data.filename,
-              verdict: ev.verdict === 'error' ? '✗' : ev.verdict,
-              note: ev.verdict === 'error' ? `Eval failed: ${ev.note}` : ev.note,
+              verdict: renderVerdict,
+              note: renderNote,
+            })
+            // (Ralph 2026-05-06.) Phase 2: BOTH snackbar (above) + chat
+            // toolcard (below). Snackbar carries the moment; this card is
+            // the permanent record of CD's take, with image + verdict +
+            // status/tag controls + CD-suggested slot intents.
+            //
+            // Batch-debounce (Ralph 2026-05-06): when N≥3 uploads land within
+            // 1500ms of each other, consolidate into ONE batch card instead of
+            // stacking N individual cards (anti-pollution rule). Uses a ref-
+            // backed trailing-edge debouncer; flushUploadEvalBuffer decides
+            // batch-vs-individual based on buffer length.
+            enqueueUploadEval({
+              filename: data.filename,
+              path: data.path,
+              verdict: renderVerdict,
+              note: renderNote,
+              description: data.analysis?.description,
+              suggestedUses: Array.isArray(ev.suggestedUses) ? ev.suggestedUses : [],
+              status: 'INGESTED',
             })
           }
         } catch (evalErr) {
@@ -1004,7 +1655,7 @@ export default function Home() {
   }, [sessionId, businessName, sourceImages])
 
   // Send message to CD agent
-  const handleSendMessage = useCallback(async (content: string, images?: File[]) => {
+  const handleSendMessage = useCallback(async (content: string, images?: File[], opts?: { skipUserAppend?: boolean }) => {
     console.log('🔴 API MODE - handleSendMessage called')
     // Upload any images first
     if (images && images.length > 0) {
@@ -1032,8 +1683,12 @@ export default function Home() {
       timestamp: new Date().toISOString()
     }
 
-    const newMessages = [...messages, userMessage]
-    setMessages(newMessages)
+    // skipUserAppend: when this call is being dispatched from the message
+    // queue (handleSend already appended the user message to chat history
+    // for instant visibility), don't add it again. Otherwise the chat
+    // shows duplicate user turns.
+    const newMessages = opts?.skipUserAppend ? messages : [...messages, userMessage]
+    if (!opts?.skipUserAppend) setMessages(newMessages)
     setIsLoading(true)
 
     try {
@@ -1052,8 +1707,8 @@ export default function Home() {
         content: msg.content
       }))
 
-      // Use CLI route (subscription billing) or API route based on billingMode
-      const endpoint = billingMode === 'cli' ? '/api/claude-code' : '/api/chat'
+      // Use CLI route (SMPL and CLI both invoke the bridge) or API route
+      const endpoint = billingMode === 'api' ? '/api/chat' : '/api/claude-code'
       const response = await fetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -1080,7 +1735,12 @@ export default function Home() {
           content: data.message,
           timestamp: new Date().toISOString()
         }
-        setMessages([...newMessages, assistantMessage])
+        // Functional update — `newMessages` is stale if the user queued
+        // additional messages mid-stream (handleSend appends them via
+        // setMessages((prev) => …)). Overwriting with [...newMessages,
+        // assistantMessage] wipes those queued appends. Always merge
+        // against the latest state. Ralph 2026-05-02 bug.
+        setMessages((prev) => [...prev, assistantMessage])
 
         // Log conversation to SESSION.md
         await appendToSessionLogAction(currentSessionId, 'User', content)
@@ -1195,14 +1855,15 @@ export default function Home() {
         content: 'Sorry, there was an error processing your request.',
         timestamp: new Date().toISOString()
       }
-      setMessages([...newMessages, errorMessage])
+      // Functional update preserves any messages queued mid-stream.
+      setMessages((prev) => [...prev, errorMessage])
     }
 
     setIsLoading(false)
   }, [messages, sourceImages, selectedVibe, vibeEdits, handleUpload, billingMode, ensureSession, isResumedSession])
 
   // Send message with streaming response
-  const handleStreamingMessage = useCallback(async (content: string, images?: File[]) => {
+  const handleStreamingMessage = useCallback(async (content: string, images?: File[], opts?: { skipUserAppend?: boolean }) => {
     console.log('🟢 CLI MODE - handleStreamingMessage called')
     // Upload any images first
     if (images && images.length > 0) {
@@ -1229,8 +1890,10 @@ export default function Home() {
       timestamp: new Date().toISOString()
     }
 
-    const newMessages = [...messages, userMessage]
-    setMessages(newMessages)
+    // skipUserAppend: see handleSendMessage above. Queue-dispatched calls
+    // already had their user message appended in handleSend.
+    const newMessages = opts?.skipUserAppend ? messages : [...messages, userMessage]
+    if (!opts?.skipUserAppend) setMessages(newMessages)
     setIsLoading(true)
     setStreamingText('')
     setStreamingProgress({ phase: 'idle', message: 'Connecting...' })
@@ -1254,12 +1917,20 @@ export default function Home() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           messages: messagesForAPI,
+          // Explicit current message — the one CD should respond to
+          // THIS turn. Without this, the route .pop()'s the user-filter
+          // on history and silently picks the wrong message when the
+          // queue dispatches an out-of-order item (multiple mid-stream
+          // queued messages all land in history but are dispatched one
+          // per turn). Ralph 2026-05-02 disappearing-message bug.
+          currentMessage: finalContent,
           sourceImages: sourceImageInfo,
           sessionId: currentSessionId,  // Pass sessionId to API (for file storage)
           selectedMoodboardConcept: moodboard?.selectedConcept,  // Pass moodboard selection
           cliSessionId,  // Pass CLI session UUID (for --session-id flag)
           isResume: isResumedSession,  // Tell CD agent if this is a resumed session
-          executionMode: billingMode,  // 'cli' | 'api' — determines WebDev execution path
+          executionMode: billingMode,  // 'smpl' | 'cli' | 'api'
+          cdModel: { smpl: 'opus', cli: 'claude-opus-4-7[1m]', api: 'claude-opus-4-7' }[billingMode],
           // Read from ref — always latest. If we referenced `webDevModel`
           // directly, the enclosing useCallback would need it in deps, which
           // would re-create the whole 532-line callback on every model toggle.
@@ -1309,6 +1980,23 @@ export default function Home() {
                 }
                 break
 
+              case 'model_info':
+                // Badge trust ladder (Ralph 2026-05-05). Only update if
+                // incoming trust >= current. config(0) → init(1) → wire(2).
+                // A late-firing init after wire must NOT clobber truth.
+                {
+                  const src = (event as any).source as string | undefined
+                  const mdl = (event as any).model as string | undefined
+                  const trustMap: Record<string, number> = { config: 0, init: 1, wire: 2 }
+                  const incoming = trustMap[src ?? ''] ?? 0
+                  if (mdl && mdl.length > 0 && incoming >= modelTrustRef.current) {
+                    modelTrustRef.current = incoming
+                    setCurrentModel(mdl)
+                    console.log(`🏷️ Badge: ${mdl} (source=${src ?? 'unknown'}, trust=${incoming})`)
+                  }
+                }
+                break
+
               case 'text':
                 assistantContent += event.content
                 setStreamingText(assistantContent)
@@ -1324,54 +2012,13 @@ export default function Home() {
                 break
 
               case 'tool_complete':
-                if (event.tool === 'generate_vibe') {
-                  const vibeInput = event.input
-                  const vibeId = `vibe-${Date.now()}-${collectedVibes.length}`
-
-                  // Create vibe data
-                  const newVibe: VibeData = {
-                    id: vibeId,
-                    name: vibeInput.name,
-                    category: 'premium',
-                    headline: vibeInput.moodboard?.headline || '',
-                    tagline: vibeInput.moodboard?.tagline || '',
-                    colors: vibeInput.moodboard?.colors || [],
-                    typography: vibeInput.moodboard?.typography || { heading: '', body: '' },
-                    voiceSamples: vibeInput.moodboard?.voiceSamples || [],
-                    htmlPath: '', // Will be set after save
-                    html: vibeInput.html
-                  }
-                  collectedVibes.push(newVibe)
-
-                  // Create image manifest
-                  if (vibeInput.imageAssets && vibeInput.imageAssets.length > 0) {
-                    const manifest: ImageManifest = {
-                      vibeId,
-                      vibeName: vibeInput.name,
-                      assets: vibeInput.imageAssets.map((asset: any, idx: number) => ({
-                        id: `asset-${vibeId}-${idx}`,
-                        filename: asset.filename,
-                        operation: asset.operation as ImageAsset['operation'],
-                        sourceImages: asset.sourceImages || [],
-                        instruction: asset.instruction,
-                        usage: asset.usage as ImageAsset['usage'],
-                        aspectRatio: asset.aspectRatio || '16:9',
-                        resolution: asset.resolution || '2K',
-                        status: 'pending' as const,
-                        vibeId,
-                        vibeName: vibeInput.name
-                      }))
-                    }
-                    collectedManifests.push(manifest)
-                  }
-
-                  // Update progress
-                  setStreamingProgress(prev => ({
-                    ...prev,
-                    message: `Generated "${vibeInput.name}"`,
-                    currentVibeName: vibeInput.name
-                  }))
-                }
+                // 2026-05-04 (Ralph): generate_vibe SSE handler removed.
+                // The tool no longer exists; vibes flow through the
+                // vibe_built event-bus event after build_vibe / build_all_vibes
+                // / build_final MCP tools complete on the server side.
+                // collectedVibes/collectedManifests are still declared above
+                // for the bridge-script ASSEMBLY path that reads them after
+                // streaming ends, but they stay empty in this branch.
                 break
 
               case 'image_manifests':
@@ -1687,7 +2334,10 @@ export default function Home() {
           content: assistantContent,
           timestamp: new Date().toISOString()
         }
-        setMessages([...newMessages, assistantMessage])
+        // Functional update — `newMessages` is stale if the user queued
+        // additional messages mid-stream. See sibling fix in
+        // handleSendMessage. Ralph 2026-05-02 bug.
+        setMessages((prev) => [...prev, assistantMessage])
 
         // Log conversation to SESSION.md
         await appendToSessionLogAction(currentSessionId, 'User', content)
@@ -1753,7 +2403,8 @@ export default function Home() {
         content: 'Sorry, there was an error processing your request.',
         timestamp: new Date().toISOString()
       }
-      setMessages([...newMessages, errorMessage])
+      // Functional update preserves any messages queued mid-stream.
+      setMessages((prev) => [...prev, errorMessage])
     }
 
     setIsLoading(false)
@@ -1773,15 +2424,132 @@ export default function Home() {
   // this is just the routing layer. Further extraction (merge transports,
   // hook-ify, etc.) can happen later without touching call sites.
   // ─────────────────────────────────────────────────────────────────────────
+  // ───────────────────────────────────────────────────────────────────────
+  // Message queue — lets the user send while CD is mid-stream.
+  // ───────────────────────────────────────────────────────────────────────
+  // Without this, the send button is disabled while `isLoading` is true.
+  // CD turns can take 30s+, during which the user feels stuck. The queue
+  // captures inputs sent during streaming and drains them via a useEffect
+  // that watches `isLoading`. When the current stream completes
+  // (isLoading flips false) and the queue is non-empty, the next message
+  // dispatches automatically — chained as a follow-up turn.
+  //
+  // Two refs to avoid stale-closure problems:
+  //  - isLoadingRef: handleSend reads it synchronously to decide queue vs.
+  //    dispatch. Plain useState would lag a render.
+  //  - messageQueueRef: same — drainQueue reads it inside the effect.
+  const [messageQueue, setMessageQueue] = useState<{ content: string; images?: File[] }[]>([])
+  const messageQueueRef = useRef(messageQueue)
+  messageQueueRef.current = messageQueue
+  const isLoadingRef = useRef(isLoading)
+  isLoadingRef.current = isLoading
+
+  // Push a mid-stream user message to CD's MCP inbox. Fire-and-forget.
+  // 2026-05-02 (Ralph): from-role is `user` (added to the bus today).
+  // The bus also publishes an `agent_inbox_message` event, so any client
+  // with an open MCP transport receives a push notification before its
+  // next polled drain.
+  //
+  // Honest caveat: CD-as-CLI-subprocess doesn't reliably surface push
+  // events as model-context updates mid-generation. The push lands in
+  // her transport's incoming queue but won't necessarily reach her
+  // active reasoning loop until she takes a tool call or completes the
+  // current generation. The chat queue (auto-dispatch when stream ends)
+  // remains the durable delivery mechanism. When CD migrates to MCP
+  // server peer per WP-F1b, mid-stream immediacy will work end-to-end.
+  const pushUserMessageToCD = useCallback((content: string) => {
+    if (!sessionId) return
+    fetch('/api/mcp/notify-agent', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        sessionId,
+        from: 'user',
+        fromInstance: `web-chat-${sessionId}`,
+        target: 'cd',
+        priority: 'high',
+        message: content,
+        replyTo: null,
+      }),
+    }).catch((err) => {
+      // Non-fatal — the chat queue is the primary delivery mechanism.
+      // MCP push is the supplementary channel for inbox visibility.
+      console.warn('[handleSend] MCP push to CD failed (non-fatal):', err)
+    })
+  }, [sessionId])
+
   const handleSend = useCallback(
     (content: string, images?: File[]) => {
-      if (billingMode === 'cli') {
+      // CD is currently streaming → queue the message instead of dispatching.
+      // BUT: append the user message to chat history IMMEDIATELY so the
+      // user sees it land in the conversation right away. Without this,
+      // queued messages were invisible until they dispatched — Ralph
+      // 2026-05-02: "the messages are not seen at all." Now the chat
+      // shows: [user msg 1] · CD streaming response… · [user msg 2 just
+      // landed] · [user msg 3 just landed] — fully visible.
+      //
+      // The MCP push also lands the message in CD's inbox immediately so
+      // her next turn boot drains them before she responds.
+      if (isLoadingRef.current) {
+        const userMessage: ConversationMessage = {
+          id: `msg-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+          role: 'user',
+          content,
+          timestamp: new Date().toISOString(),
+        }
+        setMessages((prev) => [...prev, userMessage])
+        setMessageQueue((q) => [...q, { content, images }])
+        pushUserMessageToCD(content)
+        return
+      }
+      if (billingMode !== 'api') {
         return handleStreamingMessage(content, images)
       }
       return handleSendMessage(content, images)
     },
-    [billingMode, handleStreamingMessage, handleSendMessage]
+    [billingMode, handleStreamingMessage, handleSendMessage, pushUserMessageToCD]
   )
+
+  // Drain the queue when CD finishes a turn. BATCHES every queued
+  // message into ONE follow-up turn — joined into a single prompt CD
+  // responds to holistically. NOT one-at-a-time chaining (which spawns
+  // N sequential CD turns, takes forever, and risks contradictory
+  // responses across them). Ralph 2026-05-02: "all of them delivered
+  // at ONCE, not one by one."
+  //
+  // Format: each queued message becomes one numbered line in a single
+  // user prompt. CD sees the sequence the user typed and answers as
+  // one coherent response.
+  useEffect(() => {
+    if (isLoading) return
+    if (messageQueueRef.current.length === 0) return
+
+    // Snapshot ALL queued items, then clear the queue in one shot.
+    const all = [...messageQueueRef.current]
+    setMessageQueue([])
+
+    // Combine into a single prompt. Single message → just send the
+    // content as-is. Multiple messages → enumerate so CD knows they
+    // arrived in sequence and treats them as a holistic batch.
+    const combinedContent = all.length === 1
+      ? all[0].content
+      : `[${all.length} messages sent while you were responding — please address them together]\n\n` +
+        all.map((m, i) => `${i + 1}. ${m.content}`).join('\n\n')
+
+    // Collapse all attached images across the batch (rare path).
+    const combinedImages = all.flatMap((m) => m.images || [])
+    const imagesArg = combinedImages.length > 0 ? combinedImages : undefined
+
+    // Defer to microtask so the setMessageQueue commit lands before the
+    // dispatch flips isLoading=true again.
+    queueMicrotask(() => {
+      if (billingMode !== 'api') {
+        handleStreamingMessage(combinedContent, imagesArg, { skipUserAppend: true })
+      } else {
+        handleSendMessage(combinedContent, imagesArg, { skipUserAppend: true })
+      }
+    })
+  }, [isLoading, billingMode, handleStreamingMessage, handleSendMessage])
 
   // Keep messageHandlerRef updated with the current handler for session events
   useEffect(() => {
@@ -2584,6 +3352,29 @@ export default function Home() {
           order65Status={order65Status}
           onOrder66={handleOrder66}
           order66Status={order66Status}
+          onSessionRename={async (newName) => {
+            // Persist via the existing rename-session server action. Renames
+            // the folder on disk + updates SESSION.md / CREATIVE-BRIEF.md
+            // titles. The new sessionId is slug-based (date-prefix +
+            // slugified name), so we swap state to it after success.
+            // localStorage stays in sync via setSessionId.
+            if (!sessionId) return
+            const trimmed = newName.trim()
+            if (!trimmed || trimmed === businessName) return
+            try {
+              const result = await renameSessionAction(sessionId, trimmed)
+              if (result.success && result.newSessionId) {
+                setBusinessName(trimmed)
+                if (result.newSessionId !== sessionId) {
+                  setSessionId(result.newSessionId)
+                }
+              } else {
+                console.warn('[page] renameSessionAction failed:', result.error)
+              }
+            } catch (err) {
+              console.error('[page] renameSession error:', err)
+            }
+          }}
         />
       </div>
 
@@ -2645,9 +3436,23 @@ export default function Home() {
           // Vibe Preview mode inside the chat column uses the same vibes the
           // session has built — picker lets the user audit a generated image
           // in the context of an assigned vibe without leaving Image mode.
-          vibeOptions={vibes
-            .filter((v) => !!v.htmlPath)
-            .map((v) => ({ label: v.name, htmlPath: v.htmlPath }))}
+          // Also surface any other HTML files in the session dir (mockups,
+          // prototypes, hand-written pages) so Director Mode can edit them
+          // too. Vibes come first; non-vibe HTML files appended below them
+          // (deduped by path).
+          vibeOptions={(() => {
+            const vibeEntries = vibes
+              .filter((v) => !!v.htmlPath)
+              .map((v) => ({ label: v.name, htmlPath: v.htmlPath }))
+            const usedPaths = new Set(vibeEntries.map((e) => e.htmlPath))
+            const extraEntries = sessionHtmlFiles
+              .filter((f) => !usedPaths.has(f.path))
+              .map((f) => ({
+                label: f.title || f.name.replace(/\.html$/, ''),
+                htmlPath: f.path,
+              }))
+            return [...vibeEntries, ...extraEntries]
+          })()}
         />
       )}
 
@@ -2797,6 +3602,26 @@ export default function Home() {
             layoutMode={layoutMode}
             streamingText={streamingText}
             streamingProgress={streamingProgress}
+            /* queuedMessages prop intentionally omitted — user messages
+               now appear in the chat history immediately (handleSend
+               appends them before queueing). No need for a redundant
+               pill strip above the input. */
+            // Phase 2 (Ralph 2026-05-04): ConfirmUnderstandingCard's
+            // "Build it" button. Sends a synthetic user message —
+            // simpler + safer than POSTing to /api/mcp/build-all-vibes
+            // directly, because it lets CD orchestrate the build via
+            // her normal MCP path (and write the proper audit trail).
+            onTriggerBuildAll={() => handleSend('Build all vibes — looks good.')}
+            // Bug M (Ralph 2026-05-04): CD's actual model on the wire
+            // for the input-bar badge. CLI mode populates this from
+            // Claude CLI's system/init event via chat-stream's model_info
+            // SSE event; API mode populates from session-config hydration.
+            currentModel={currentModel}
+            // WP-22 / WP-66 (Ralph 2026-05-06): TodoWrite + builds overlay
+            // hooks need the active session to subscribe SSE + read the
+            // persisted ## Todos section. Pre-session sessionId is null,
+            // overlay stays unmounted.
+            sessionId={sessionId}
           />
         </div>
       </div>

@@ -12,6 +12,7 @@ import { trackUsageFromCLIOutput } from './usage-tracker'
 import { verifyVibeHtml, parseTrailingJson } from './vibe-verify'
 import { ensureMcpConfig, WEBDEV_ALLOWED_TOOLS } from './mcp-config'
 import { collectFromStdout } from './mcp-tool-collector'
+import { publish } from './event-bus'
 
 // ==========================================
 // Load WebDev Agent Prompt from MD file
@@ -403,68 +404,42 @@ export async function buildVibeHTML(
   //
   // The agent ends with a JSON manifest line so we can parse the actual
   // filename + index it produced (it picks the slug, we accept it).
+  // The inline prompt below contains ONLY per-build dynamic context (session
+  // folder, target string). The static operational contract (report_build_*,
+  // notify_agent milestones, inbox drain) lives in agents/webdev-agent.md
+  // under "## Orchestration Contract" and is included via ${agentPrompt}.
+  // Don't add tool-contract instructions here — edit the agent file instead.
+  // Ralph + Jedi Code 2026-05-06.
   const userPrompt = `
 ${agentPrompt}
 
 ---
 
-## SESSION CONTEXT
+## SESSION CONTEXT (per-build, runtime-injected)
 
 **Session folder:** ${sessionPath}
 **Target the user asked for:** "${target}"
 
-The session folder contains one or more vibe spec files (typically named
-\`VIBE-N.md\` or \`vibe-N.md\` where N is a number). Find the one that matches
-"${target}" by:
-- File name (e.g. target "vibe-5" matches VIBE-5.md or vibe-5.md)
-- The \`#\` heading inside the file (e.g. "# Vibe 5: Oskar Home Staging")
+The session folder contains one or more vibe spec files (\`VIBE-N.md\` or
+\`vibe-N.md\` where N is a number). Find the one that matches "${target}" by:
+- File name (target "vibe-5" matches VIBE-5.md or vibe-5.md)
+- The \`#\` heading inside the file ("# Vibe 5: Oskar Home Staging")
 - The vibe slug or display name in the heading
 
 If no file matches, list the vibe files you DID find and ask the user to
-clarify — don't guess.
-
-There may also be a BUILD.md in the folder with cross-vibe context.
-
----
+clarify — don't guess. There may also be a BUILD.md in the folder with
+cross-vibe context.
 
 ## YOUR TASK
 
 Build the complete HTML landing page for the vibe matching "${target}".
-
-Write the HTML to a file in the session folder named \`vibe-{N}-{slug}.html\`
-where {N} is the vibe number and {slug} is a kebab-case version of the vibe
-name. (Example: \`vibe-5-oskar-home-staging.html\`.)
-
+Write to \`vibe-{N}-{slug}.html\` where {N} is the vibe number and {slug} is
+a kebab-case version of the vibe name (e.g. \`vibe-5-oskar-home-staging.html\`).
 Do NOT output the HTML in chat. Use your file writing capability.
 
----
-
-## REQUIRED OUTPUT — Phase 2 (2026-04-30)
-
-After writing the file, **call the \`report_build_complete\` MCP tool** with
-the structured manifest:
-
-\`\`\`
-report_build_complete({
-  filename: "vibe-N-slug.html",
-  vibeIndex: N,
-  vibeName: "The Vibe Name",
-  sectionsBuilt: ["hero", "menu", "residents", ...],
-  imagesUsed: ["hero.jpg", "menu-bg.jpg", ...]
-})
-\`\`\`
-
-Do NOT write \`## BUILD COMPLETE\` headers or trailing JSON manifest lines.
-The legacy parser was retired 2026-04-30 — those strings in chat do nothing.
-The tool call IS the contract.
-
-If the build fails partway, call \`report_build_failed({error: "..."})\` and stop.
-For mid-build progress visibility (optional), call \`report_build_progress({milestone: "..."})\`.
-
-The orchestrator captures these tool calls from the stream-json output. If
-the tool call is missing the orchestrator falls back to scanning your
-output for a trailing JSON line — but that's a defensive safety net. **Always
-call \`report_build_complete\` as your primary signal.**
+Follow the Orchestration Contract above for tool calls
+(\`report_build_complete\`, \`report_build_progress\`, \`notify_agent\`,
+inbox drain).
 `
 
   // Ralph 2026-04-25: when images are present, WebDev "overthinks" them —
@@ -746,6 +721,15 @@ call \`report_build_complete\` as your primary signal.**
         return
       }
 
+      // Stage transition html → verify (Ralph 2026-05-06): the file landed,
+      // verifyVibeHtml is about to run. Publishing here keeps the timeline
+      // deterministic — independent of whether the WebDev agent emitted
+      // its optional report_build_progress milestone. Console.log left in
+      // (cheap, dev-only signal) so "did verify fire?" is greppable in
+      // server logs after a build.
+      console.log(`[WebDev] verify stage starting for target="${target}"`)
+      publish(sessionId, { type: 'build_progress', target, stage: 'verify' })
+
       // VERIFY: HTML parses, image refs resolve, no obvious corruption
       const issues = await verifyVibeHtml(manifest.filename, sessionPath)
       if (issues.length > 0) {
@@ -814,51 +798,32 @@ export async function buildVibeHTMLGemini(
   const requestId = Date.now()
   const agentPrompt = loadWebDevAgentPrompt()
 
-  // Same agent-friendly prompt as the Claude path. WebDev finds the matching
-  // VIBE file itself; we don't pre-parse anything.
+  // Per-build dynamic context only. Static contract (tools, milestones,
+  // notify_agent, inbox drain) lives in agents/webdev-agent.md and is
+  // included via ${agentPrompt}. Mirrors the Claude CLI path above —
+  // edit the .md file, not this template. Ralph + Jedi Code 2026-05-06.
   const userPrompt = `
 ${agentPrompt}
 
 ---
 
-## SESSION CONTEXT
+## SESSION CONTEXT (per-build, runtime-injected)
 
 **Session folder:** ${sessionPath}
 **Target the user asked for:** "${target}"
 
-The session folder contains one or more vibe spec files (typically named
-\`VIBE-N.md\` or \`vibe-N.md\` where N is a number). Find the one that matches
-"${target}" by file name, by the heading inside the file, or by slug/name.
-
+The session folder contains one or more vibe spec files (\`VIBE-N.md\` or
+\`vibe-N.md\` where N is a number). Find the one that matches "${target}" by
+file name, by the heading inside the file, or by slug/name.
 If no file matches, list what you found and ask the user to clarify — don't guess.
-
----
 
 ## YOUR TASK
 
 Build the complete HTML landing page for the vibe matching "${target}".
-Write the HTML to a file in the session folder named \`vibe-{N}-{slug}.html\`.
-
+Write to \`vibe-{N}-{slug}.html\` in the session folder.
 Do NOT output the HTML in chat. Use shell file writing.
 
----
-
-## REQUIRED OUTPUT — Phase 2 (2026-04-30)
-
-After writing the file, **call the \`report_build_complete\` MCP tool**:
-
-\`\`\`
-report_build_complete({
-  filename: "vibe-N-slug.html",
-  vibeIndex: N,
-  vibeName: "The Vibe Name",
-  sectionsBuilt: [...],
-  imagesUsed: [...]
-})
-\`\`\`
-
-Do NOT write trailing JSON manifest lines or \`## BUILD COMPLETE\` headers.
-The legacy parser remains as a defensive fallback only — call the tool.
+Follow the Orchestration Contract above for tool calls.
 `
 
   // Same overthink-on-images problem — double timeout when images are present
@@ -973,6 +938,13 @@ The legacy parser remains as a defensive fallback only — call the tool.
         resolve({ vibeIndex: manifest.vibeIndex, vibeName: manifest.vibeName, filename: manifest.filename, status: 'error', error: `Manifest claims ${manifest.filename} was written, but file isn't on disk (exit=${code})` })
         return
       }
+
+      // Stage transition html → verify (Ralph 2026-05-06) — Gemini path,
+      // mirrors the Claude CLI publish above so the live BuildJobCard
+      // timeline behaves identically regardless of which model built the
+      // vibe.
+      console.log(`[WebDev-Gemini] verify stage starting for target="${target}"`)
+      publish(sessionId, { type: 'build_progress', target, stage: 'verify' })
 
       // Verification floor (parse + image refs resolve)
       const issues = await verifyVibeHtml(manifest.filename, sessionPath)

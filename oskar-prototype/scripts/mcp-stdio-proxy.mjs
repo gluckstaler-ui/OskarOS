@@ -21,7 +21,12 @@
 //     }
 //   }
 //
-// Switching session is now an env-var swap instead of editing the URL.
+// Session resolution (Ralph + JC, 2026-05-06): OSKAR_SESSION is now a
+// FALLBACK ONLY. Live session-id comes from `.runtime/active-session`,
+// written by the app on every sessionId state change. The proxy re-reads
+// the file before each MCP message and re-handshakes when the id changes.
+// This means session switches in the app no longer require a Claude Code
+// restart.
 //
 // Protocol notes:
 // - MCP stdio transport uses newline-delimited JSON-RPC 2.0 messages.
@@ -34,14 +39,20 @@
 
 import readline from 'node:readline'
 import { randomUUID } from 'node:crypto'
+import { readFileSync } from 'node:fs'
+import path from 'node:path'
+import { fileURLToPath } from 'node:url'
 
 const URL_BASE = process.env.OSKAR_ORCHESTRATOR_URL
-const SESSION = process.env.OSKAR_SESSION
+const SESSION_FALLBACK = process.env.OSKAR_SESSION || ''
 const AGENT = process.env.OSKAR_AGENT
 
-if (!URL_BASE || !SESSION || !AGENT) {
-  console.error('[mcp-proxy] Missing env: OSKAR_ORCHESTRATOR_URL, OSKAR_SESSION, OSKAR_AGENT')
+if (!URL_BASE || !AGENT) {
+  console.error('[mcp-proxy] Missing env: OSKAR_ORCHESTRATOR_URL, OSKAR_AGENT')
   process.exit(1)
+}
+if (!SESSION_FALLBACK) {
+  console.error('[mcp-proxy] OSKAR_SESSION env not set — proxy will fail until .runtime/active-session is written by the app')
 }
 
 // Per-fork instance UUID. Mint here if not provided in env so Ralph doesn't
@@ -51,13 +62,40 @@ if (!URL_BASE || !SESSION || !AGENT) {
 // clients sharing one role.
 const INSTANCE = process.env.OSKAR_INSTANCE_ID || randomUUID()
 
-const FETCH_URL =
-  `${URL_BASE}?session=${encodeURIComponent(SESSION)}` +
-  `&agent=${encodeURIComponent(AGENT)}` +
-  `&instance=${encodeURIComponent(INSTANCE)}`
+// Sidecar pointer file written by /api/active-session POST. Path resolves
+// from this script's location: `<project>/scripts/mcp-stdio-proxy.mjs`
+// → `<project>/.runtime/active-session`.
+const __dirname = path.dirname(fileURLToPath(import.meta.url))
+const SIDECAR_PATH = path.resolve(__dirname, '..', '.runtime', 'active-session')
+
+/**
+ * Read the active session id. Sidecar file wins; env-var is fallback for
+ * the bootstrap case (file doesn't exist yet because the app hasn't
+ * mounted). Returns the id or empty string if neither is present.
+ */
+function readActiveSession() {
+  try {
+    return readFileSync(SIDECAR_PATH, 'utf-8').trim()
+  } catch {
+    return SESSION_FALLBACK
+  }
+}
+
+let currentSession = readActiveSession()
+
+function buildFetchUrl(sessionId) {
+  return (
+    `${URL_BASE}?session=${encodeURIComponent(sessionId)}` +
+    `&agent=${encodeURIComponent(AGENT)}` +
+    `&instance=${encodeURIComponent(INSTANCE)}`
+  )
+}
+
+let FETCH_URL = buildFetchUrl(currentSession)
 
 console.error(`[mcp-proxy] stdio → ${FETCH_URL}`)
 console.error(`[mcp-proxy] instance: ${INSTANCE} (${process.env.OSKAR_INSTANCE_ID ? 'from env' : 'minted at fork'})`)
+console.error(`[mcp-proxy] active-session sidecar: ${SIDECAR_PATH}`)
 
 let mcpSessionId = null
 
@@ -119,7 +157,26 @@ async function reinitialize() {
   }
 }
 
+/**
+ * Re-read the sidecar file on every request. If the active session id has
+ * changed since the last forward, drop the cached `mcp-session-id` (which
+ * was issued for the OLD session's transport) and rebuild FETCH_URL. The
+ * stale-session recovery path below will then auto-rehandshake on the
+ * first 400/404, which is exactly what we want.
+ */
+function refreshSessionFromSidecar() {
+  const next = readActiveSession()
+  if (!next || next === currentSession) return false
+  console.error(`[mcp-proxy] active session changed: ${currentSession} → ${next}`)
+  currentSession = next
+  FETCH_URL = buildFetchUrl(currentSession)
+  // Force re-handshake — the old session id is for a different bus key.
+  mcpSessionId = null
+  return true
+}
+
 async function forward(req) {
+  refreshSessionFromSidecar()
   let response
   try {
     response = await sendOnce(req)

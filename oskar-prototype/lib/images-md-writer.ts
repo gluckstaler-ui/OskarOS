@@ -48,10 +48,20 @@ export interface ImageMetadataPatch {
   generatedAt?: string
   /** Free-form note appended as `**Note:** ...`. */
   note?: string
+  /**
+   * Parent prompt block id (e.g. `img-goofy-v1`). When set on a NEW entry
+   * (`createIfMissing` path), the `#### filename` block is inserted
+   * immediately after the parent's body — BEFORE any other `### img-N`
+   * heading — so the parser nests it correctly. Without this, generated
+   * images orphan-append to the end of the section and get visually
+   * misfiled as uploads. Ralph 2026-05-04. Existing-entry updates ignore
+   * this (the entry is already located).
+   */
+  parentPromptId?: string
 }
 
 const VALID_STATUSES = new Set<string>([
-  'HERO', 'USED', 'B-ROLL', 'READY', 'APPROVED', 'REDO', 'INGESTED', 'TRASH', 'PENDING',
+  'HERO', 'USED', 'B-ROLL', 'READY', 'APPROVED', 'REDO', 'INGESTED', 'TRASH', 'PENDING', 'STAR',
 ])
 
 function asUtcStamp(iso?: string): string {
@@ -160,7 +170,51 @@ export async function upsertImageMetadata(
     // append to end with the section header.
     const sectionHeader = '## Image Prompts + Generated'
     const sectionIdx = md.indexOf(sectionHeader)
-    if (sectionIdx >= 0) {
+
+    // Ralph 2026-05-04: nest under parent prompt when provided. The
+    // parser (lib/session-actions.ts:getImageManifestsAction) splits
+    // each ### block on `\n#### ` to find generated children. So if we
+    // insert `#### filename` AFTER `### img-N`'s body but BEFORE the
+    // next `### `, the new entry attaches to img-N. Without this it
+    // orphan-appends to the end and visually misfiles as an upload.
+    if (sectionIdx >= 0 && patch.parentPromptId) {
+      const parentRe = new RegExp(`^### ${patch.parentPromptId.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b[^\\n]*\\n`, 'm')
+      const parentMatch = md.slice(sectionIdx).match(parentRe)
+      if (parentMatch && parentMatch.index !== undefined) {
+        const parentStart = sectionIdx + parentMatch.index
+        const parentBodyStart = parentStart + parentMatch[0].length
+        // Find where the parent block ends: next `### ` (sibling) or
+        // next `## ` (section change). `#### ` (existing children) of
+        // the parent stay inside the parent — we insert AFTER them.
+        const afterParent = md.slice(parentBodyStart)
+        const nextSiblingIdx = afterParent.search(/\n### (?!#)/)
+        const nextSectionIdx = afterParent.search(/\n## (?!#)/)
+        const cuts = [nextSiblingIdx, nextSectionIdx].filter((n) => n >= 0)
+        const insertAt = cuts.length === 0
+          ? md.length
+          : parentBodyStart + Math.min(...cuts)
+        // Trim trailing whitespace inside the parent block; insert with
+        // a leading blank line + a trailing `---\n` separator if the
+        // body doesn't already end in one.
+        const before = md.slice(0, insertAt).replace(/[\s]+$/, '')
+        const after = md.slice(insertAt)
+        const sepBefore = '\n\n'
+        const sepAfter = after.startsWith('\n') ? after : '\n' + after
+        md = `${before}${sepBefore}${body.endsWith('\n') ? body : body + '\n'}${sepAfter}`
+      } else {
+        // parentPromptId given but parent block not found — fall back to
+        // end-of-section append rather than dropping the entry. Log so
+        // the agent can fix the reference next turn.
+        console.warn(
+          `[upsertImageMetadata] parentPromptId="${patch.parentPromptId}" not found in IMAGES.md; ` +
+          `falling back to end-of-section append for ${filename}`,
+        )
+        const after = md.slice(sectionIdx + sectionHeader.length)
+        const nextSec = after.search(/\n## /)
+        const endOfSection = nextSec >= 0 ? sectionIdx + sectionHeader.length + nextSec : md.length
+        md = md.slice(0, endOfSection).trimEnd() + '\n\n' + body + md.slice(endOfSection)
+      }
+    } else if (sectionIdx >= 0) {
       // Find the end of the section (next `## ` heading or EOF).
       const after = md.slice(sectionIdx + sectionHeader.length)
       const nextSec = after.search(/\n## /)

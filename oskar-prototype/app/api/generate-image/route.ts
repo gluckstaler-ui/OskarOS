@@ -16,6 +16,13 @@ export interface ImageGenerationPayload {
   aspectRatio?: AspectRatio
   imageSize?: ImageSize
   referenceImages?: string[] // base64 encoded
+  /**
+   * Optional parent prompt block id (e.g. `img-goofy-v1`). When set, the
+   * generated `#### filename` IMAGES.md entry nests under that `### img-N`
+   * block instead of orphan-appending to the section. Same semantics as
+   * /api/edit-image's `promptId` field. Ralph 2026-05-04.
+   */
+  promptId?: string
 }
 
 /**
@@ -47,7 +54,7 @@ export async function POST(req: NextRequest) {
 
   try {
     const body = await req.json() as ImageGenerationPayload
-    const { sessionId, vibe, purpose, prompt, aspectRatio, imageSize, referenceImages } = body
+    const { sessionId, vibe, purpose, prompt, aspectRatio, imageSize, referenceImages, promptId } = body
 
     if (!sessionId || !vibe || !purpose || !prompt) {
       return NextResponse.json(
@@ -110,6 +117,8 @@ export async function POST(req: NextRequest) {
         vibe: vibe || undefined,
         slot: purpose && purpose !== 'b-roll' ? purpose : undefined,
         evaluation,
+        // Ralph 2026-05-04: nest under parent ### img-N when caller knows it.
+        ...(promptId ? { parentPromptId: promptId } : {}),
       })
     } catch (err) {
       // Non-fatal — file is on disk, the agent can still see it via list_assets.

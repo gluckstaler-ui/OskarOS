@@ -2,9 +2,20 @@
 
 import { LayoutMode } from '@/lib/types'
 import { UsageBadge } from './UsageBadge'
+import { Feather } from './Feather'
+import { useState, useEffect, useRef } from 'react'
 
 // ============================================================================
-// TOPBAR - MATCHING BENTO.HTML REFERENCE EXACTLY
+// TOPBAR — 2026-05-03 redesign
+// - Hand-rolled inline SVG icons replaced by <Feather name="..."> component
+//   (zero new dependency; canonical Feather paths in components/Feather.tsx)
+// - All color references move to brand tokens. No raw hex literals for
+//   --brand-* / --warning / --error.
+// - ORDER 65 (label "ORDER 75", soft) and ORDER 66 (hard) now use the
+//   .os-order-pill class with .warn / .danger / .complete state — defined
+//   in app/globals.css. Sibling administrative pills, distinct intensities.
+// - Avatar gradient stripped of the off-palette purple (#a855f7); now
+//   uses brand-green-bright → brand-teal-bright.
 // ============================================================================
 
 type WebDevModel = 'claude-opus-4-7' | 'claude-sonnet-4-6' | 'gemini-3.1-pro-preview'
@@ -16,8 +27,8 @@ interface TopBarProps {
   sessionId: string | null
   layoutMode: LayoutMode
   onLayoutChange: (mode: LayoutMode) => void
-  billingMode: 'cli' | 'api'
-  onBillingChange: (mode: 'cli' | 'api') => void
+  billingMode: 'smpl' | 'cli' | 'api'
+  onBillingChange: (mode: 'smpl' | 'cli' | 'api') => void
   webDevModel: WebDevModel
   onModelChange: (model: WebDevModel) => void
   theme: 'onyx' | 'polar'
@@ -30,67 +41,11 @@ interface TopBarProps {
   order65Status?: Order66Status
   onOrder66?: () => void
   order66Status?: Order66Status
+  /** Persist a new project/business name. Called on blur or Enter when the
+   *  editable title is committed. The handler is responsible for actually
+   *  renaming the session on disk + updating sessionId. */
+  onSessionRename?: (newName: string) => void | Promise<void>
 }
-
-// Simple SVG icons
-const BoxIcon = () => (
-  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/>
-    <path d="m3.3 7 8.7 5 8.7-5"/>
-    <path d="M12 22V12"/>
-  </svg>
-)
-
-const ColumnsIcon = () => (
-  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <rect width="18" height="18" x="3" y="3" rx="2" ry="2"/>
-    <line x1="12" x2="12" y1="3" y2="21"/>
-  </svg>
-)
-
-const GridIcon = () => (
-  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <rect width="7" height="7" x="3" y="3" rx="1"/>
-    <rect width="7" height="7" x="14" y="3" rx="1"/>
-    <rect width="7" height="7" x="14" y="14" rx="1"/>
-    <rect width="7" height="7" x="3" y="14" rx="1"/>
-  </svg>
-)
-
-const ImageIcon = () => (
-  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/>
-    <circle cx="12" cy="13" r="3"/>
-  </svg>
-)
-
-const GalleryIcon = () => (
-  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
-    <circle cx="8.5" cy="8.5" r="1.5"/>
-    <polyline points="21 15 16 10 5 21"/>
-  </svg>
-)
-
-const MoonIcon = () => (
-  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/>
-  </svg>
-)
-
-const SunIcon = () => (
-  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <circle cx="12" cy="12" r="4"/>
-    <path d="M12 2v2"/>
-    <path d="M12 20v2"/>
-    <path d="m4.93 4.93 1.41 1.41"/>
-    <path d="m17.66 17.66 1.41 1.41"/>
-    <path d="M2 12h2"/>
-    <path d="M20 12h2"/>
-    <path d="m6.34 17.66-1.41 1.41"/>
-    <path d="m19.07 4.93-1.41 1.41"/>
-  </svg>
-)
 
 export function TopBar({
   sessionName,
@@ -110,21 +65,52 @@ export function TopBar({
   onOrder65,
   order65Status = 'idle',
   onOrder66,
-  order66Status = 'idle'
+  order66Status = 'idle',
+  onSessionRename,
 }: TopBarProps) {
+  // Editable project title — click the value to edit, Enter / blur commits,
+  // Esc cancels. Local draft state isolated from the prop so partial edits
+  // don't propagate back into the session model until commit.
+  const [isEditingName, setIsEditingName] = useState(false)
+  const [nameDraft, setNameDraft] = useState(sessionName ?? '')
+  const nameInputRef = useRef<HTMLInputElement | null>(null)
+  useEffect(() => {
+    // Keep draft in sync with the prop while NOT editing — once the user
+    // starts editing, the draft is theirs until they commit/cancel.
+    if (!isEditingName) setNameDraft(sessionName ?? '')
+  }, [sessionName, isEditingName])
+  useEffect(() => {
+    if (isEditingName) {
+      nameInputRef.current?.focus()
+      nameInputRef.current?.select()
+    }
+  }, [isEditingName])
+  const commitName = () => {
+    const next = nameDraft.trim()
+    setIsEditingName(false)
+    if (!next || next === (sessionName ?? '')) {
+      setNameDraft(sessionName ?? '')
+      return
+    }
+    onSessionRename?.(next)
+  }
+  const cancelName = () => {
+    setNameDraft(sessionName ?? '')
+    setIsEditingName(false)
+  }
 
-  // Pill group wrapper style - light bg in polar, dark in onyx
+  // Pill group wrapper style — light bg in polar, dark in onyx.
   const pillGroupStyle: React.CSSProperties = {
     display: 'flex',
     alignItems: 'center',
     gap: '2px',
     padding: '4px',
-    backgroundColor: theme === 'polar' ? '#ffffff' : 'rgba(9, 9, 11, 0.5)',
+    backgroundColor: theme === 'polar' ? 'var(--bg-card)' : 'rgba(9, 9, 11, 0.5)',
     borderRadius: '8px',
-    border: theme === 'polar' ? '1px solid #e5e7eb' : '1px solid rgba(39, 39, 42, 0.5)'
+    border: theme === 'polar' ? '1px solid var(--border-card)' : '1px solid rgba(39, 39, 42, 0.5)'
   }
 
-  // Pill button base style - active = emerald green, inactive = readable text.
+  // Pill button base style — active = brand-green-bright, inactive = readable text.
   // NOTE: `transition` is scoped to box-shadow only — the active/inactive
   // background swap must be INSTANT. A `transition: all` here makes state
   // toggles (billing, model, theme) feel laggy because the color animates
@@ -141,29 +127,17 @@ export function TopBar({
     display: 'flex',
     alignItems: 'center',
     gap: '6px',
-    backgroundColor: isActive ? '#10b981' : 'transparent',
-    color: isActive ? '#ffffff' : 'var(--text-main)',
-    boxShadow: isActive ? '0 1px 3px rgba(16, 185, 129, 0.3)' : 'none'
+    backgroundColor: isActive ? 'var(--brand-green-bright)' : 'transparent',
+    color: isActive ? 'var(--text-on-brand)' : 'var(--text-main)',
+    boxShadow: isActive ? '0 1px 3px color-mix(in srgb, var(--brand-green-bright) 30%, transparent)' : 'none'
   })
 
-  // Icon button — same rule: transition scoped so color swap is instant.
-  const getIconBtnStyle = (isActive: boolean): React.CSSProperties => ({
-    padding: '6px',
-    borderRadius: '6px',
-    border: 'none',
-    cursor: 'pointer',
-    transition: 'box-shadow 0.15s',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: isActive ? '#10b981' : 'transparent',
-    color: isActive ? '#ffffff' : 'var(--text-main)',
-    boxShadow: isActive ? '0 1px 3px rgba(16, 185, 129, 0.3)' : 'none'
-  })
+  // ORDER pill class derivation — lives in globals.css under `.os-order-pill`
+  const orderClass = (severity: 'warn' | 'danger', status: Order66Status) =>
+    `os-order-pill ${status === 'complete' ? 'complete' : severity}`
 
   return (
-    <>
-      <header style={{
+    <header style={{
       height: '100%',
       display: 'flex',
       alignItems: 'center',
@@ -171,9 +145,6 @@ export function TopBar({
       padding: '0 24px',
       backgroundColor: 'var(--bg-card)',
       userSelect: 'none',
-      // No `transition: all` — the header bg was animating 400ms on every
-      // state change, which compounded the toggle-feels-laggy perception.
-      // CSS var change from theme swap is instant; no animation needed.
     }}>
       {/* LEFT: Logo + Session */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '24px' }}>
@@ -190,7 +161,7 @@ export function TopBar({
             color: 'var(--bg-card)',
             boxShadow: '0 1px 2px rgba(0,0,0,0.1)'
           }}>
-            <BoxIcon />
+            <Feather name="box" size={16} />
           </div>
           <span style={{
             fontFamily: 'Inter Tight, var(--font-display), sans-serif',
@@ -206,7 +177,9 @@ export function TopBar({
         {/* Divider */}
         <div style={{ height: '24px', width: '1px', backgroundColor: 'var(--border-card)' }} />
 
-        {/* Session Info - Two lines */}
+        {/* Session Info — Two lines. The PROJECT label stays static; the
+            value is click-to-edit. Enter or blur commits via onSessionRename;
+            Escape cancels. */}
         {sessionName && (
           <div style={{ display: 'flex', flexDirection: 'column' }}>
             <span style={{
@@ -218,13 +191,67 @@ export function TopBar({
               lineHeight: 1,
               marginBottom: '4px'
             }}>Project</span>
-            <span style={{
-              fontSize: '12px',
-              color: 'var(--text-main)',
-              fontWeight: 700,
-              letterSpacing: '0.02em',
-              lineHeight: 1
-            }}>{sessionName}</span>
+            {isEditingName ? (
+              <input
+                ref={nameInputRef}
+                value={nameDraft}
+                onChange={(e) => setNameDraft(e.target.value)}
+                onBlur={commitName}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault()
+                    commitName()
+                  } else if (e.key === 'Escape') {
+                    e.preventDefault()
+                    cancelName()
+                  }
+                }}
+                style={{
+                  fontSize: '16px',
+                  fontWeight: 700,
+                  letterSpacing: '-0.01em',
+                  lineHeight: 1,
+                  color: 'var(--text-main)',
+                  background: 'transparent',
+                  border: 'none',
+                  borderBottom: '1px solid var(--brand-green-bright)',
+                  outline: 'none',
+                  padding: '1px 0',
+                  fontFamily: 'inherit',
+                  width: `${Math.max(nameDraft.length, 4)}ch`,
+                  minWidth: '6ch',
+                }}
+              />
+            ) : (
+              <span
+                role="button"
+                tabIndex={0}
+                onClick={() => setIsEditingName(true)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault()
+                    setIsEditingName(true)
+                  }
+                }}
+                title="Click to rename project"
+                style={{
+                  fontSize: '16px',
+                  color: 'var(--text-main)',
+                  fontWeight: 700,
+                  letterSpacing: '-0.01em',
+                  lineHeight: 1,
+                  cursor: 'text',
+                  borderBottom: '1px dashed transparent',
+                  transition: 'border-color 0.15s',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.borderBottomColor = 'var(--border-card)'
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.borderBottomColor = 'transparent'
+                }}
+              >{sessionName}</span>
+            )}
           </div>
         )}
       </div>
@@ -238,7 +265,7 @@ export function TopBar({
             style={getPillStyle(layoutMode === '2-panel')}
             title="Brief Mode (2-panel)"
           >
-            <ColumnsIcon />
+            <Feather name="columns" size={14} />
             BRIEF
           </button>
           <button
@@ -246,7 +273,7 @@ export function TopBar({
             style={getPillStyle(layoutMode === '3-panel')}
             title="Studio Mode (3-panel)"
           >
-            <GridIcon />
+            <Feather name="grid" size={14} />
             STUDIO
           </button>
           <button
@@ -254,7 +281,7 @@ export function TopBar({
             style={getPillStyle(layoutMode === 'image')}
             title="Image Mode (Advanced image editor)"
           >
-            <ImageIcon />
+            <Feather name="image" size={14} />
             IMAGE
           </button>
           <button
@@ -262,162 +289,92 @@ export function TopBar({
             style={getPillStyle(layoutMode === 'gallery')}
             title="Gallery Mode (vibes grid)"
           >
-            <GalleryIcon />
+            <Feather name="layers" size={14} />
             GALLERY
           </button>
         </div>
 
-        {/* Usage Badge - Shows session cost */}
-        <UsageBadge sessionId={sessionId} refreshTrigger={usageRefreshTrigger} theme={theme} contextPct={contextPct} cachedInputTokens={cachedInputTokens} realInputTokens={realInputTokens} />
+        {/* Usage Badge — Shows session cost. Bug N (Ralph 2026-05-04):
+            billingMode prop makes the badge display mode-specific cost
+            (CLI shows what Claude Code reported; API shows calculateCost
+            cumulative). Toggling billing mode flips the displayed value
+            AND the visible CLI/API label. */}
+        <UsageBadge
+          sessionId={sessionId}
+          refreshTrigger={usageRefreshTrigger}
+          theme={theme}
+          contextPct={contextPct}
+          cachedInputTokens={cachedInputTokens}
+          realInputTokens={realInputTokens}
+          billingMode={billingMode}
+        />
 
         {/* Theme Switcher */}
         <div style={pillGroupStyle}>
-          <button
-            onClick={() => onThemeChange('onyx')}
-            style={getPillStyle(theme === 'onyx')}
-          >
-            <MoonIcon />
+          <button onClick={() => onThemeChange('onyx')} style={getPillStyle(theme === 'onyx')}>
+            <Feather name="moon" size={10} />
             ONYX
           </button>
-          <button
-            onClick={() => onThemeChange('polar')}
-            style={getPillStyle(theme === 'polar')}
-          >
-            <SunIcon />
+          <button onClick={() => onThemeChange('polar')} style={getPillStyle(theme === 'polar')}>
+            <Feather name="sun" size={10} />
             POLAR
           </button>
         </div>
 
-        {/* Billing Mode */}
+        {/* Billing Mode — 3-way: SMPL (tier alias → best model), CLI (Claude ID), API (Anthropic direct) */}
         <div style={pillGroupStyle}>
-          <button
-            onClick={() => onBillingChange('cli')}
-            style={getPillStyle(billingMode === 'cli')}
-          >
+          <button onClick={() => onBillingChange('smpl')} style={getPillStyle(billingMode === 'smpl')}>
+            SMPL
+          </button>
+          <button onClick={() => onBillingChange('cli')} style={getPillStyle(billingMode === 'cli')}>
             CLI
           </button>
-          <button
-            onClick={() => onBillingChange('api')}
-            style={getPillStyle(billingMode === 'api')}
-          >
+          <button onClick={() => onBillingChange('api')} style={getPillStyle(billingMode === 'api')}>
             API
           </button>
         </div>
 
         {/* Model Switch — always shows all 3, Gemini disabled in CLI mode */}
         <div style={pillGroupStyle}>
-          <button
-            onClick={() => onModelChange('claude-opus-4-7')}
-            style={getPillStyle(webDevModel === 'claude-opus-4-7')}
-          >
+          <button onClick={() => onModelChange('claude-opus-4-7')} style={getPillStyle(webDevModel === 'claude-opus-4-7')}>
             OPUS
           </button>
-          <button
-            onClick={() => onModelChange('claude-sonnet-4-6')}
-            style={getPillStyle(webDevModel === 'claude-sonnet-4-6')}
-          >
+          <button onClick={() => onModelChange('claude-sonnet-4-6')} style={getPillStyle(webDevModel === 'claude-sonnet-4-6')}>
             SONNET
           </button>
-          <button
-            onClick={() => onModelChange('gemini-3.1-pro-preview')}
-            style={getPillStyle(webDevModel === 'gemini-3.1-pro-preview')}
-          >
+          <button onClick={() => onModelChange('gemini-3.1-pro-preview')} style={getPillStyle(webDevModel === 'gemini-3.1-pro-preview')}>
             GEMINI
           </button>
         </div>
 
-        {/* ORDER 65 — soft compaction (no bridge kill) */}
+        {/* ORDER 75 — soft compaction (no bridge kill) — warning amber */}
         <button
+          type="button"
           onClick={onOrder65}
           disabled={order65Status !== 'idle'}
-          style={{
-            padding: '6px 14px',
-            fontSize: '10px',
-            fontWeight: 900,
-            letterSpacing: '0.08em',
-            borderRadius: '6px',
-            border: order65Status === 'complete'
-              ? '1px solid rgba(16, 185, 129, 0.4)'
-              : '1px solid rgba(245, 158, 11, 0.4)',
-            cursor: order65Status === 'idle' ? 'pointer' : 'default',
-            transition: 'all 0.4s',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '6px',
-            backgroundColor: order65Status === 'complete'
-              ? 'rgba(16, 185, 129, 0.1)'
-              : 'rgba(245, 158, 11, 0.08)',
-            color: order65Status === 'complete'
-              ? '#10b981'
-              : '#f59e0b',
-            opacity: order65Status === 'idle' ? 1 : 0.8,
-          }}
-          onMouseOver={(e) => {
-            if (order65Status === 'idle') {
-              e.currentTarget.style.backgroundColor = 'rgba(245, 158, 11, 0.15)'
-              e.currentTarget.style.boxShadow = '0 0 12px rgba(245, 158, 11, 0.2)'
-            }
-          }}
-          onMouseOut={(e) => {
-            if (order65Status === 'idle') {
-              e.currentTarget.style.backgroundColor = 'rgba(245, 158, 11, 0.08)'
-              e.currentTarget.style.boxShadow = 'none'
-            }
-          }}
+          className={orderClass('warn', order65Status)}
+          title="Soft compaction — keeps the bridge alive"
         >
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-            <circle cx="12" cy="12" r="10"/><path d="m8 12 3 3 5-5"/>
-          </svg>
+          <Feather name="refresh-cw" size={12} strokeWidth={2.5} />
           {order65Status === 'idle' ? 'ORDER 75' :
            order65Status === 'complete' ? 'REJUVENATED' :
-           'REJUVENATING...'}
+           'REJUVENATING…'}
         </button>
 
-        {/* ORDER 66 — hard compaction (kills bridge) */}
+        {/* ORDER 66 — hard compaction (kills bridge) — error red. Icon is
+            `zap` (Sith lightning) per Ralph 2026-05-03 — alert-triangle
+            looked like a road-sign warning, not a kill order. */}
         <button
+          type="button"
           onClick={onOrder66}
           disabled={order66Status !== 'idle'}
-          style={{
-            padding: '6px 14px',
-            fontSize: '10px',
-            fontWeight: 900,
-            letterSpacing: '0.08em',
-            borderRadius: '6px',
-            border: order66Status === 'complete'
-              ? '1px solid rgba(16, 185, 129, 0.4)'
-              : '1px solid rgba(255, 10, 10, 0.4)',
-            cursor: order66Status === 'idle' ? 'pointer' : 'default',
-            transition: 'all 0.4s',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '6px',
-            backgroundColor: order66Status === 'complete'
-              ? 'rgba(16, 185, 129, 0.1)'
-              : 'rgba(255, 10, 10, 0.08)',
-            color: order66Status === 'complete'
-              ? '#10b981'
-              : '#ff3333',
-            opacity: order66Status === 'idle' ? 1 : 0.8,
-          }}
-          onMouseOver={(e) => {
-            if (order66Status === 'idle') {
-              e.currentTarget.style.backgroundColor = 'rgba(255, 10, 10, 0.15)'
-              e.currentTarget.style.boxShadow = '0 0 12px rgba(255, 10, 10, 0.2)'
-            }
-          }}
-          onMouseOut={(e) => {
-            if (order66Status === 'idle') {
-              e.currentTarget.style.backgroundColor = 'rgba(255, 10, 10, 0.08)'
-              e.currentTarget.style.boxShadow = 'none'
-            }
-          }}
+          className={orderClass('danger', order66Status)}
+          title="Hard compaction — kills the bridge and wipes screenshots"
         >
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M18 6 6 18"/><path d="m6 6 12 12"/>
-          </svg>
+          <Feather name="zap" size={12} strokeWidth={2.5} />
           {order66Status === 'idle' ? 'ORDER 66' :
            order66Status === 'complete' ? 'RESPAWNED' :
-           'EXECUTING...'}
+           'EXECUTING…'}
         </button>
 
         {/* Admin Link */}
@@ -434,21 +391,20 @@ export function TopBar({
             gap: '4px',
             transition: 'color 0.2s'
           }}
-          onMouseOver={(e) => e.currentTarget.style.color = 'var(--text-main)'}
-          onMouseOut={(e) => e.currentTarget.style.color = 'var(--text-muted)'}
+          onMouseOver={(e) => (e.currentTarget.style.color = 'var(--text-main)')}
+          onMouseOut={(e) => (e.currentTarget.style.color = 'var(--text-muted)')}
         >
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10"/>
-          </svg>
+          <Feather name="shield" size={12} />
           ADMIN
         </a>
 
-        {/* User Avatar with gradient border */}
+        {/* User Avatar — gradient from brand-green-bright to brand-teal-bright.
+            (Old gradient ended in #a855f7 purple, off-palette.) */}
         <div style={{
           width: '36px',
           height: '36px',
           borderRadius: '50%',
-          background: 'linear-gradient(to top right, var(--accent, #3b82f6), #a855f7)',
+          background: 'linear-gradient(to top right, var(--brand-green-bright), var(--brand-teal-bright))',
           padding: '2px',
           cursor: 'pointer',
           transition: 'transform 0.2s'
@@ -471,6 +427,5 @@ export function TopBar({
         </div>
       </div>
     </header>
-    </>
   )
 }

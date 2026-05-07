@@ -2,11 +2,45 @@
 
 import { useState, useEffect, useCallback } from 'react'
 
+interface ModeBlock {
+  inputTokens: number
+  outputTokens: number
+  cost: number
+  cacheCreationTokens: number
+  cacheReadTokens: number
+  freshInputTokens: number
+  entryCount: number
+  // Bug N (Ralph 2026-05-04): per-mode latest snapshot. CLI computes
+  // contextPct as real-time fill estimate; API as cumulative input /
+  // context window. Different numbers, stored separately so toggling
+  // visibly switches the badge.
+  latestContextPct: number
+  latestInputTokens: number
+  latestContextWindow: number
+  latestContextSize?: number
+  display: {
+    cost: string
+    inputTokens: string
+    outputTokens: string
+    cacheReadTokens: string
+    cacheCreationTokens: string
+    freshInputTokens: string
+    cacheHitPct: number
+    latestInputTokens: string
+    latestContextSize?: string
+    latestContextWindow?: string
+  }
+}
+
 interface UsageData {
   totals: {
     inputTokens: number
     outputTokens: number
     cost: number
+    // 2026-05-03 (Ralph): cache visibility
+    cacheCreationTokens?: number
+    cacheReadTokens?: number
+    freshInputTokens?: number
   }
   display: {
     inputTokens: string
@@ -15,7 +49,21 @@ interface UsageData {
     totalTokens: string
     latestContextPct?: number
     latestInputTokens?: string
+    latestContextWindow?: number
+    cacheReadTokens?: string
+    cacheCreationTokens?: string
+    freshInputTokens?: string
+    cacheHitPct?: number
+    // 2026-05-04 (Ralph): per-call context fill — formatted strings for
+    // the badge's "X / Y" display. Distinct from cache totals.
+    latestContextSize?: number
+    latestContextSizeStr?: string
+    latestContextWindowStr?: string
   }
+  // Bug N (Ralph 2026-05-04): per-mode rollups. Read the one matching
+  // current billingMode; toggling flips which cost is shown.
+  cli?: ModeBlock
+  api?: ModeBlock
   breakdown?: {
     cd: { inputTokens: number; outputTokens: number; cost: number }
     webdev: { inputTokens: number; outputTokens: number; cost: number }
@@ -29,6 +77,13 @@ interface UsageBadgeProps {
   contextPct?: number
   cachedInputTokens?: number
   realInputTokens?: number
+  /**
+   * Bug N (Ralph 2026-05-04): which mode's $ to display. CLI shows the
+   * cost Claude Code reports (Max plan / Z.ai sub equivalent). API shows
+   * calculateCost (real per-token). Toggling flips both the displayed
+   * value AND the visual label so the user sees which math is in use.
+   */
+  billingMode?: 'smpl' | 'cli' | 'api'
 }
 
 function formatTokensLocal(tokens: number): string {
@@ -50,10 +105,9 @@ const DollarIcon = () => (
   </svg>
 )
 
-export function UsageBadge({ sessionId, refreshTrigger, theme = 'onyx', contextPct: propContextPct, cachedInputTokens: propCached, realInputTokens: propReal }: UsageBadgeProps) {
+export function UsageBadge({ sessionId, refreshTrigger, theme = 'onyx', contextPct: propContextPct, cachedInputTokens: propCached, realInputTokens: propReal, billingMode }: UsageBadgeProps) {
   const [usage, setUsage] = useState<UsageData | null>(null)
   const [loading, setLoading] = useState(false)
-  const [showDetails, setShowDetails] = useState(false)
   // 2026-04-30: replaced the two-click arm pattern with a native confirm
   // dialog. The arm dance was too easy to miss — Ralph kept clicking, the
   // 3-second timeout would expire between clicks, and each new click was
@@ -90,8 +144,13 @@ export function UsageBadge({ sessionId, refreshTrigger, theme = 'onyx', contextP
   }, [sessionId])
 
   useEffect(() => {
+    // Bug N (Ralph 2026-05-04): refetch on billingMode change too —
+    // toggling needs fresh USAGE.json so the per-mode latest snapshot
+    // reflects whatever happened on the OTHER mode while we weren't
+    // looking. Without this, switching CLI→API right after a CLI turn
+    // would show stale 0% until the next API call completes.
     fetchUsage()
-  }, [fetchUsage, refreshTrigger])
+  }, [fetchUsage, refreshTrigger, billingMode])
 
   const handleResetClick = useCallback(async () => {
     console.log('[UsageBadge] reset button clicked, sessionId=', sessionId)
@@ -139,11 +198,46 @@ export function UsageBadge({ sessionId, refreshTrigger, theme = 'onyx', contextP
 
   if (!sessionId) return null
 
-  // Use real-time props if available, fall back to persisted API data
-  const effectiveContextPct = propContextPct ?? usage?.display?.latestContextPct ?? 0
+  // Restore git's context% logic exactly. Live props from CLI streaming
+  // (chat-stream's 'done' event) take precedence; otherwise fall back
+  // to the shared latest snapshot in USAGE.json. The same calculation
+  // covers both CLI and API modes — both compute "how full is the
+  // context window" against the model's window. The per-mode $ split
+  // (Bug N) stays; per-mode contextPct routing was a bridge too far.
+  // Ralph 2026-05-04.
+  // 2026-05-04 (Ralph): per-mode context routing. CLI and API compute
+  // contextPct + contextSize differently (CLI = formula with
+  // cache_read/num_turns; API = last-iter sum). Storing per-mode and
+  // routing here makes the toggle FLIP every value visibly: cost, %,
+  // and the X/Y tokens. Without this routing the badge reads the
+  // global "last entry wins" snapshot — so toggling did nothing if the
+  // most recent entry was the same mode you toggled to.
+  const ctxModeBlock = billingMode ? usage?.[billingMode] : undefined
+  const modeContextPct = ctxModeBlock?.latestContextPct
+  const modeContextSize = ctxModeBlock?.latestContextSize
+  const modeContextWindow = ctxModeBlock?.latestContextWindow
+
+  // Live props (CLI streaming only) override the stored per-mode
+  // snapshot for THE CURRENT mode. We don't show stale CLI props in
+  // API mode — propCached/propReal only flow when the streaming
+  // endpoint is /api/chat-stream (CLI bridge).
+  const useLiveProps = billingMode !== 'api' && (propCached !== undefined || propReal !== undefined)
+  const effectiveContextPct = useLiveProps
+    ? (propContextPct ?? 0)
+    : (modeContextPct ?? usage?.display?.latestContextPct ?? 0)
   const effectiveCached = propCached ?? 0
   const effectiveReal = propReal ?? 0
   const contextColor = getContextColor(effectiveContextPct)
+
+  // X/Y display: live props for live CLI; otherwise per-mode stored
+  // values; otherwise global fallback. Window comes from the same
+  // tier so CLI and API don't mix (e.g. CLI pre-Bug-L sessions might
+  // have 200K stored even when current model is 1M).
+  const liveContextSize = useLiveProps ? effectiveCached + effectiveReal : null
+  const effectiveContextSize =
+    liveContextSize ?? modeContextSize ?? usage?.display?.latestContextSize ?? 0
+  const effectiveContextWindow =
+    modeContextWindow ?? usage?.display?.latestContextWindow ?? 200000
 
   const badgeStyle: React.CSSProperties = {
     backgroundColor: theme === 'polar' ? '#ffffff' : 'rgba(9, 9, 11, 0.5)',
@@ -167,16 +261,36 @@ export function UsageBadge({ sessionId, refreshTrigger, theme = 'onyx', contextP
     )
   }
 
-  const costDisplay = (usage?.display?.cost || '$0.00').replace(/^\$/, '')
-  const hasCost = usage && usage.totals.cost > 0
+  // Bug N (Ralph 2026-05-04): mode-specific cost. When billingMode is
+  // explicitly passed in, read the matching per-mode block from the API
+  // response. Falls back to the cumulative `display.cost` if the prop
+  // is absent (back-compat) or the mode-specific block is missing
+  // (e.g. legacy USAGE.json with no per-mode rollup yet).
+  const modeBlock: ModeBlock | undefined =
+    billingMode === 'cli' || billingMode === 'smpl' ? usage?.cli :
+    billingMode === 'api' ? usage?.api :
+    undefined
+  const modeCost = modeBlock?.display?.cost
+  const modeCostNumeric = modeBlock?.cost ?? 0
+  const costDisplay = (modeCost ?? usage?.display?.cost ?? '$0.00').replace(/^\$/, '')
+  // hasCost reflects the visible value — when a billingMode is selected,
+  // it's the per-mode total; otherwise the cumulative session total.
+  const hasCost = billingMode
+    ? modeCostNumeric > 0
+    : (usage && usage.totals.cost > 0)
 
+  // 2026-05-03 (Ralph): hover popup ("strange overlay on hover") removed.
+  // The triple ($/%/tokens) on the badge is the surface; details that used
+  // to live in the hover popup can be reached from the Admin page if needed.
   return (
-    <div
-      style={{ position: 'relative' }}
-      onMouseEnter={() => setShowDetails(true)}
-      onMouseLeave={() => setShowDetails(false)}
-    >
-      {/* Main Badge: [ $cost | ●pct% | tokens ] */}
+    <div style={{ position: 'relative' }}>
+      {/* Main Badge: [ $cost | ●pct% | tokens ] — same shape for both
+          modes. CLI's $ is technically a Max-plan-equivalent (Claude
+          Code reports it; the user pays a flat sub), but it's still
+          signal worth seeing. Toggling between CLI and API flips the
+          $ value to the per-mode cumulative + the CLI/API label.
+          Context% is computed by chat-stream / chat-route in their
+          own code paths and surfaced via props or USAGE.json. */}
       <div style={{
         display: 'flex',
         alignItems: 'center',
@@ -184,25 +298,37 @@ export function UsageBadge({ sessionId, refreshTrigger, theme = 'onyx', contextP
         padding: '6px 12px',
         ...badgeStyle,
         borderRadius: '8px',
-        cursor: 'pointer',
-        transition: 'all 0.2s',
       }}>
-        {/* Cost + Reset — reset is a tiny ↻ icon directly next to the $
-            so the user's eye finds it without hunting. Two-step click
-            (arm → confirm) to prevent accidents. */}
+        {/* Cost + mode label + Reset. */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-          <span style={{ color: hasCost ? '#10b981' : 'var(--text-muted)' }}>
+          <span style={{ color: hasCost ? 'var(--brand-green-bright)' : 'var(--text-muted)' }}>
             <DollarIcon />
           </span>
           <span style={{
             fontSize: '11px',
             fontWeight: 700,
             fontFamily: 'JetBrains Mono, var(--font-mono), monospace',
-            color: hasCost ? '#10b981' : 'var(--text-muted)',
+            color: hasCost ? 'var(--brand-green-bright)' : 'var(--text-muted)',
             letterSpacing: '-0.02em',
           }}>
             {costDisplay}
           </span>
+          {/* Bug N (Ralph 2026-05-04): mode label. Visible cue that the
+              displayed cost is mode-specific, not cumulative. Toggling
+              billing mode flips both this label AND the cost value. */}
+          {billingMode ? (
+            <span style={{
+              fontSize: '9px',
+              fontFamily: 'JetBrains Mono, var(--font-mono), monospace',
+              color: 'var(--text-muted)',
+              textTransform: 'uppercase',
+              letterSpacing: '0.08em',
+              opacity: 0.7,
+              marginLeft: 1,
+            }}>
+              {billingMode}
+            </span>
+          ) : null}
           <button
             onClick={(e) => {
               e.stopPropagation()
@@ -246,7 +372,11 @@ export function UsageBadge({ sessionId, refreshTrigger, theme = 'onyx', contextP
         {/* Divider */}
         <div style={{ width: '1px', height: '12px', backgroundColor: 'var(--border-card)', opacity: 0.5 }} />
 
-        {/* Context Fill % */}
+        {/* Context Fill % — primary signal for "is the window getting
+            full?" Same calculation in both modes (input / window).
+            Colored dot turns yellow at 50%, red at 75% — that's when
+            to consider Order 66 in CLI mode or accept that the next
+            request might 400 in API mode. */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
           <span style={{
             width: '6px',
@@ -267,180 +397,52 @@ export function UsageBadge({ sessionId, refreshTrigger, theme = 'onyx', contextP
           </span>
         </div>
 
-        {/* Divider */}
-        <div style={{ width: '1px', height: '12px', backgroundColor: 'var(--border-card)', opacity: 0.5 }} />
+        {/* 2026-05-04 (Ralph): standalone "cached input tokens" pill
+            (formerly between % and the X/Y display) was redundant
+            once the X/Y display became real "fill / window". Removed —
+            the X/Y now contains the same information plus the
+            denominator. Old code: <span>{formatTokensLocal(effectiveCached)}</span> */}
 
-        {/* Cached Input Tokens */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-          <span style={{
-            fontSize: '10px',
-            fontWeight: 600,
-            fontFamily: 'JetBrains Mono, var(--font-mono), monospace',
-            color: 'var(--text-muted)',
-            letterSpacing: '-0.02em',
-          }}>
-            {formatTokensLocal(effectiveCached)}
-          </span>
-        </div>
+        {/* 2026-05-04 (Ralph): real context fill / window. Replaces the
+            old cumulative cache-ratio display, which read like a context
+            indicator (e.g. "9.7M / 1.6M") but was actually
+            cacheReadTokens / freshInputTokens, both lifetime totals.
+            That looked like the badge was reporting context state, but
+            those numbers grow unboundedly — Ralph saw "9.7M / 1.6M" on
+            a 1M model and rightly called it broken.
+
+            What this shows now: per-call context fill (formula in
+            chat-stream/route.ts and chat/route.ts) over the model's
+            window. Lives in the same render slot. Order 66 signal in
+            absolute tokens, paired with the % indicator to its left.
+            Color-coded with the same threshold as the % dot. */}
+        {effectiveContextSize > 0 ? (
+          <>
+            <div style={{ width: '1px', height: '12px', backgroundColor: 'var(--border-card)', opacity: 0.5 }} />
+            <div
+              style={{ display: 'flex', alignItems: 'center', gap: '4px' }}
+              title={
+                `Context fill: ${formatTokensLocal(effectiveContextSize)} of ${formatTokensLocal(effectiveContextWindow)}\n` +
+                `Cache reads (lifetime): ${usage?.display?.cacheReadTokens || '0'}\n` +
+                `Cache writes (lifetime): ${usage?.display?.cacheCreationTokens || '0'}\n` +
+                `Fresh input (lifetime): ${usage?.display?.freshInputTokens || '0'}\n` +
+                `Cache hit rate: ${usage?.display?.cacheHitPct ?? 0}%`
+              }
+            >
+              <span style={{
+                fontSize: '11px',
+                fontWeight: 700,
+                fontFamily: 'JetBrains Mono, var(--font-mono), monospace',
+                color: contextColor,
+                letterSpacing: '-0.02em',
+              }}>
+                {formatTokensLocal(effectiveContextSize)}<span style={{ opacity: 0.5 }}>/</span>{formatTokensLocal(effectiveContextWindow)}
+              </span>
+            </div>
+          </>
+        ) : null}
 
       </div>
-
-      {/* Hover Details Popup */}
-      {showDetails && usage && (
-        <div style={{
-          position: 'absolute',
-          top: '100%',
-          right: 0,
-          marginTop: '8px',
-          padding: '12px 16px',
-          backgroundColor: 'var(--bg-card)',
-          borderRadius: '8px',
-          border: '1px solid var(--border-card)',
-          boxShadow: '0 10px 40px rgba(0,0,0,0.3)',
-          zIndex: 1000,
-          minWidth: '220px',
-        }}>
-          {/* Header */}
-          <div style={{
-            fontSize: '9px',
-            fontWeight: 700,
-            letterSpacing: '0.1em',
-            textTransform: 'uppercase',
-            color: 'var(--text-muted)',
-            marginBottom: '12px',
-          }}>
-            Session Usage
-          </div>
-
-          {/* Context Window */}
-          <div style={{ marginBottom: '12px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
-              <span style={{ fontSize: '10px', color: 'var(--text-muted)' }}>Context Window</span>
-              <span style={{
-                fontSize: '10px',
-                fontWeight: 600,
-                fontFamily: 'JetBrains Mono, monospace',
-                color: contextColor,
-              }}>
-                {effectiveContextPct}% used
-              </span>
-            </div>
-            {/* Progress bar */}
-            <div style={{
-              width: '100%',
-              height: '4px',
-              backgroundColor: theme === 'polar' ? '#e5e7eb' : 'rgba(39, 39, 42, 0.5)',
-              borderRadius: '2px',
-              overflow: 'hidden',
-            }}>
-              <div style={{
-                width: `${Math.min(effectiveContextPct, 100)}%`,
-                height: '100%',
-                backgroundColor: contextColor,
-                borderRadius: '2px',
-                transition: 'width 0.3s, background-color 0.3s',
-              }} />
-            </div>
-          </div>
-
-          {/* Token Details */}
-          <div style={{ marginBottom: '12px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
-              <span style={{ fontSize: '10px', color: 'var(--text-muted)' }}>Cached Input</span>
-              <span style={{
-                fontSize: '10px',
-                fontWeight: 600,
-                fontFamily: 'JetBrains Mono, monospace',
-                color: 'var(--text-main)',
-              }}>
-                {formatTokensLocal(effectiveCached)}
-              </span>
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
-              <span style={{ fontSize: '10px', color: 'var(--text-muted)' }}>Real Input</span>
-              <span style={{
-                fontSize: '10px',
-                fontWeight: 600,
-                fontFamily: 'JetBrains Mono, monospace',
-                color: 'var(--text-main)',
-              }}>
-                {formatTokensLocal(effectiveReal)}
-              </span>
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
-              <span style={{ fontSize: '10px', color: 'var(--text-muted)' }}>Total Output</span>
-              <span style={{
-                fontSize: '10px',
-                fontWeight: 600,
-                fontFamily: 'JetBrains Mono, monospace',
-                color: 'var(--text-main)',
-              }}>
-                {usage.display.outputTokens}
-              </span>
-            </div>
-          </div>
-
-          {/* Agent Breakdown */}
-          {usage.breakdown && (
-            <>
-              <div style={{ height: '1px', backgroundColor: 'var(--border-card)', margin: '8px 0' }} />
-
-              {usage.breakdown.cd.cost > 0 && (
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
-                  <span style={{
-                    fontSize: '9px',
-                    color: 'var(--text-muted)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '4px',
-                  }}>
-                    <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#8b5cf6' }} />
-                    Creative Director
-                  </span>
-                  <span style={{ fontSize: '9px', fontFamily: 'JetBrains Mono, monospace', color: '#8b5cf6' }}>
-                    ${usage.breakdown.cd.cost.toFixed(4)}
-                  </span>
-                </div>
-              )}
-
-              {usage.breakdown.webdev.cost > 0 && (
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
-                  <span style={{
-                    fontSize: '9px',
-                    color: 'var(--text-muted)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '4px',
-                  }}>
-                    <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#3b82f6' }} />
-                    WebDeveloper
-                  </span>
-                  <span style={{ fontSize: '9px', fontFamily: 'JetBrains Mono, monospace', color: '#3b82f6' }}>
-                    ${usage.breakdown.webdev.cost.toFixed(4)}
-                  </span>
-                </div>
-              )}
-            </>
-          )}
-
-          {/* Total */}
-          <div style={{ height: '1px', backgroundColor: 'var(--border-card)', margin: '8px 0' }} />
-          <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-            <span style={{ fontSize: '10px', fontWeight: 700, color: 'var(--text-main)' }}>
-              Total Cost
-            </span>
-            <span style={{
-              fontSize: '11px',
-              fontWeight: 700,
-              fontFamily: 'JetBrains Mono, monospace',
-              color: '#10b981',
-            }}>
-              {usage.display.cost}
-            </span>
-          </div>
-
-        </div>
-      )}
     </div>
   )
 }

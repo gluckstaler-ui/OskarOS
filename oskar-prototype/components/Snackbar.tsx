@@ -1,6 +1,23 @@
 'use client'
 
-import { useState, useEffect, CSSProperties } from 'react'
+/**
+ * Snackbar — 2026-05-03 v3 (adds Feather state icon inside the boxed
+ * state pill per Ralph: "EACH OF THEM SHOULD HAVE A FEATHER ICON").
+ *
+ * Layout per state pill (left side):
+ *   ┌──────────┐
+ *   │ [icon]   │
+ *   │ READY    │
+ *   │ VIBE-1   │
+ *   └──────────┘
+ *
+ * Right side: heading + message body, then outlined action(s) + dismiss.
+ * WORKING uses a distinct outlined treatment (white fill / orange stroke
+ * / orange text) — set in globals.css `.os-snackbar-progress .os-snackbar-state`.
+ */
+
+import { useState, useEffect } from 'react'
+import { Feather, FeatherName } from './Feather'
 
 export type SnackbarType = 'success' | 'info' | 'warning' | 'error' | 'progress'
 
@@ -13,33 +30,74 @@ export interface SnackbarProps {
   id: string
   type: SnackbarType
   message: string
+  /** Optional heading line above the message body. */
+  heading?: string
+  /** Override the auto-derived state label (e.g. "VIBE READY"). */
+  label?: string
+  /** Optional event code under the state pill (e.g. "VIBE-1", "ITER 3/5"). */
+  code?: string
   actions?: SnackbarAction[]
-  duration?: number  // ms, 0 = no auto-dismiss
+  duration?: number
   onDismiss: (id: string) => void
-  isProgress?: boolean  // Shows spinner instead of icon
+  isProgress?: boolean
 }
 
-const ICONS: Record<SnackbarType, string> = {
-  success: '✅',
-  info: '🖼️',
-  warning: '⚠️',
-  error: '❌',
-  progress: '⏳',
+const ICON_BY_TYPE: Record<SnackbarType, FeatherName> = {
+  success: 'check-circle',
+  info: 'info',
+  warning: 'alert-triangle',
+  error: 'x-octagon',
+  progress: 'loader',
 }
 
-// Color schemes for each snackbar type
-const COLOR_SCHEMES: Record<SnackbarType, { bg: string; border: string }> = {
-  success: { bg: 'rgba(20, 83, 45, 0.95)', border: 'rgba(34, 197, 94, 0.3)' },
-  info: { bg: 'rgba(30, 58, 138, 0.95)', border: 'rgba(59, 130, 246, 0.3)' },
-  warning: { bg: 'rgba(113, 63, 18, 0.95)', border: 'rgba(234, 179, 8, 0.3)' },
-  error: { bg: 'rgba(127, 29, 29, 0.95)', border: 'rgba(239, 68, 68, 0.3)' },
-  progress: { bg: 'rgba(39, 39, 42, 0.95)', border: 'rgba(113, 113, 122, 0.3)' },
+const DEFAULT_LABEL: Record<SnackbarType, string> = {
+  success: 'Ready',
+  info: 'Info',
+  warning: 'Attention',
+  error: 'Failed',
+  progress: 'Working',
+}
+
+/** Heuristic: split a message on " — " into heading + body when neither
+ *  is provided explicitly. Keeps existing callers visually richer without
+ *  any API changes.
+ *
+ *  2026-05-03 (Ralph): if the auto-derived heading equals the state label
+ *  ("Info" / "Success" / "Working" / etc.), skip the split entirely. The
+ *  state pill already shows the label — duplicating it as the body
+ *  heading puts the icon (in pill) and the name (in body) on the same
+ *  horizontal line for no reason. */
+function splitMessage(
+  message: string,
+  explicitHeading?: string,
+  stateLabel?: string,
+) {
+  if (explicitHeading) return { heading: explicitHeading, body: message }
+  const idx = message.indexOf(' — ')
+  if (idx > 0 && idx < message.length - 4) {
+    const candidate = message.slice(0, idx)
+    if (
+      stateLabel &&
+      candidate.trim().toUpperCase() === stateLabel.trim().toUpperCase()
+    ) {
+      // Heading would duplicate the state pill — drop it, keep body only.
+      return { heading: '', body: message.slice(idx + 3) }
+    }
+    return {
+      heading: candidate,
+      body: message.slice(idx + 3),
+    }
+  }
+  return { heading: '', body: message }
 }
 
 export function Snackbar({
   id,
   type,
   message,
+  heading,
+  label,
+  code,
   actions = [],
   duration = 5000,
   onDismiss,
@@ -54,136 +112,62 @@ export function Snackbar({
       }, duration)
       return () => clearTimeout(timer)
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [duration, isProgress])
 
   const handleDismiss = () => {
     setIsExiting(true)
     setTimeout(() => {
       onDismiss(id)
-    }, 200) // Match animation duration
+    }, 200)
   }
 
-  const colors = COLOR_SCHEMES[type]
-
-  const containerStyle: CSSProperties = {
-    backgroundColor: colors.bg,
-    border: `1px solid ${colors.border}`,
-    borderRadius: '8px',
-    boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.3), 0 4px 6px -2px rgba(0, 0, 0, 0.2)',
-    padding: '12px 16px',
-    minWidth: '300px',
-    maxWidth: '400px',
-    display: 'flex',
-    alignItems: 'center',
-    gap: '12px',
-    transition: 'all 0.2s ease',
-    opacity: isExiting ? 0 : 1,
-    transform: isExiting ? 'translateX(16px)' : 'translateX(0)',
-  }
-
-  const iconStyle: CSSProperties = {
-    fontSize: '18px',
-    flexShrink: 0,
-  }
-
-  const spinnerStyle: CSSProperties = {
-    ...iconStyle,
-    animation: 'spin 1s linear infinite',
-    display: 'inline-block',
-  }
-
-  const messageStyle: CSSProperties = {
-    flex: 1,
-    fontSize: '14px',
-    color: 'rgba(255, 255, 255, 0.9)',
-    fontWeight: 500,
-  }
-
-  const actionsContainerStyle: CSSProperties = {
-    display: 'flex',
-    gap: '8px',
-    flexShrink: 0,
-  }
-
-  const actionButtonStyle: CSSProperties = {
-    fontSize: '12px',
-    fontWeight: 600,
-    padding: '6px 12px',
-    borderRadius: '4px',
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    color: 'rgba(255, 255, 255, 0.9)',
-    border: 'none',
-    cursor: 'pointer',
-    transition: 'background-color 0.2s',
-  }
-
-  const dismissButtonStyle: CSSProperties = {
-    color: 'rgba(255, 255, 255, 0.7)',
-    background: 'rgba(255, 255, 255, 0.1)',
-    border: 'none',
-    borderRadius: '4px',
-    cursor: 'pointer',
-    fontSize: '16px',
-    fontWeight: 500,
-    padding: '4px 8px',
-    marginLeft: '4px',
-    transition: 'all 0.2s',
-  }
+  const showProgressBar = isProgress || type === 'progress'
+  const effectiveType: SnackbarType = showProgressBar ? 'progress' : type
+  const stateClass = `os-snackbar-${effectiveType}`
+  const stateLabel = (label ?? DEFAULT_LABEL[effectiveType]).toUpperCase()
+  const iconName = ICON_BY_TYPE[effectiveType]
+  const { heading: derivedHeading, body } = splitMessage(message, heading, stateLabel)
 
   return (
-    <>
-      {/* Keyframe animation for spinner */}
-      <style>{`
-        @keyframes spin {
-          from { transform: rotate(0deg); }
-          to { transform: rotate(360deg); }
-        }
-      `}</style>
-
-      <div style={containerStyle}>
-        {/* Icon or Spinner */}
-        <span style={isProgress ? spinnerStyle : iconStyle}>
-          {isProgress ? '⏳' : ICONS[type]}
-        </span>
-
-        {/* Message */}
-        <span style={messageStyle}>{message}</span>
-
-        {/* Actions */}
-        <div style={actionsContainerStyle}>
-          {actions.map((action, index) => (
-            <button
-              key={index}
-              onClick={action.onClick}
-              style={actionButtonStyle}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.2)'
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.1)'
-              }}
-            >
-              {action.label}
-            </button>
-          ))}
-
-          {/* Dismiss button - always visible */}
-          <button
-            onClick={handleDismiss}
-            style={dismissButtonStyle}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.2)'
-              e.currentTarget.style.color = 'rgba(255, 255, 255, 0.9)'
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.1)'
-              e.currentTarget.style.color = 'rgba(255, 255, 255, 0.7)'
-            }}
-          >
-            ✕
-          </button>
+    <div
+      className={`os-snackbar ${stateClass}${isExiting ? ' is-exiting' : ''}`}
+      role="status"
+    >
+      <div className="os-snackbar-state">
+        <div className="os-snackbar-state-icon">
+          <Feather name={iconName} size={18} strokeWidth={2.25} />
         </div>
+        <span className="os-snackbar-state-label">{stateLabel}</span>
+        {code && <span className="os-snackbar-state-code">{code}</span>}
       </div>
-    </>
+      <div className="os-snackbar-body">
+        {derivedHeading && (
+          <span className="os-snackbar-heading">{derivedHeading}</span>
+        )}
+        <span className="os-snackbar-message">{body}</span>
+      </div>
+      <div className="os-snackbar-actions">
+        {actions.map((action, index) => (
+          <button
+            key={index}
+            type="button"
+            className="os-snackbar-action"
+            onClick={action.onClick}
+          >
+            {action.label}
+          </button>
+        ))}
+        <button
+          type="button"
+          className="os-snackbar-dismiss"
+          onClick={handleDismiss}
+          aria-label="Dismiss"
+        >
+          <Feather name="x" size={12} strokeWidth={2.5} />
+        </button>
+      </div>
+      {showProgressBar && <div className="os-snackbar-progress-bar" aria-hidden />}
+    </div>
   )
 }

@@ -153,6 +153,11 @@ function createInitialSessionMd(businessName: string): string {
 
 ---
 
+## Todos
+*No todos yet*
+
+---
+
 ## Discovery Summary
 *Not yet complete*
 
@@ -528,6 +533,60 @@ function parseSessionMd(sessionId: string, content: string): SessionMeta {
 export async function updateSessionMd(sessionId: string, content: string): Promise<void> {
   const sessionPath = getSessionPath(sessionId)
   await writeFile(path.join(sessionPath, 'SESSION.md'), content)
+}
+
+/**
+ * WP-66 (2026-05-06): parse the `## Todos` section out of a SESSION.md
+ * string. Pure function — caller passes the file content; no I/O.
+ *
+ * Section format (mockup spec, Feature-X §2.3 WP-66):
+ *
+ *   ## Todos
+ *
+ *   - [/] Build vibe-3
+ *   - [ ] Review vibe-2 hero
+ *   - [x] ~~Read FEATURE-X.md~~
+ *
+ * Status mapping: `[ ]` → pending, `[/]` → in_progress, `[x]` → completed.
+ * Strikethrough on completed items is cosmetic; not required for state.
+ *
+ * Optional id syntax: `- [/] (id:abc) Build vibe-3` — the parser strips
+ * the `(id:...)` token and stores it on `TodoItem.id`. New writes set ids;
+ * legacy items without ids parse fine and fall back to content+index for
+ * React keys.
+ *
+ * Tolerance: anything that doesn't match the checkbox-line shape is ignored.
+ * Empty section / "*No todos yet*" body returns [].
+ */
+import type { TodoItem, TodoStatus } from '@/lib/types/todos'
+
+export function parseTodosSection(sessionMd: string): TodoItem[] {
+  // Section delimited by `## Todos` heading. Matches everything up to the
+  // next `## ` (any depth) heading or end-of-file.
+  const match = sessionMd.match(/## Todos\s*\n([\s\S]*?)(?=\n##\s|$)/)
+  if (!match) return []
+  const body = match[1]
+
+  const items: TodoItem[] = []
+  for (const rawLine of body.split('\n')) {
+    const line = rawLine.trim()
+    if (!line) continue
+    // Match: `- [GLYPH] [(id:STR)] CONTENT`
+    const m = line.match(/^-\s+\[([ x/])\]\s+(?:\(id:([^)]+)\)\s+)?(.+)$/)
+    if (!m) continue
+    const glyph = m[1]
+    const id = m[2]?.trim() || undefined
+    let content = m[3].trim()
+    // Strip cosmetic strikethrough (`~~...~~`) for completed items.
+    content = content.replace(/^~~(.+)~~$/, '$1').trim()
+    if (!content) continue
+    const status: TodoStatus =
+      glyph === 'x' ? 'completed'
+        : glyph === '/' ? 'in_progress'
+          : 'pending'
+    items.push({ id, content, status })
+  }
+  return items
 }
 
 /**
@@ -1177,12 +1236,21 @@ export interface ParsedImageEntry {
   suggestedUses?: string[]
   suggestedVibes?: string[]
   reprompt?: string
-  status?: string  // Raw status from IMAGES.md (e.g., "HERO", "USED", "B-ROLL", "TRASH")
-  tag?: 'HERO' | 'USED' | 'B-ROLL' | 'TRASH' | 'READY' | 'INGESTED' | 'APPROVED' | 'REDO'  // Parsed tag for display
+  status?: string  // Raw status from IMAGES.md (e.g., "HERO", "USED", "B-ROLL", "TRASH", "STAR")
+  tag?: 'HERO' | 'USED' | 'B-ROLL' | 'TRASH' | 'READY' | 'INGESTED' | 'APPROVED' | 'REDO' | 'STAR'  // Parsed tag for display
   /** Vibe HTML files this image is referenced in. Populated by
    *  parseImagesMd via scanVibeHtmlsForUsedImages. Independent of `tag`
    *  so a HERO image can also be USED — both badges render. */
   usedIn?: string[]
+  /**
+   * WP-IMG-7 (2026-05-06): namespaced source tag, e.g. `image_ops:crop`,
+   * `image_ops:slice`, `image_ops:format-convert`. Read from the
+   * `**Provenance:**` line written by lib/image-ops.ts. The colon-prefix
+   * convention keeps the namespace open for future tools (`nano:`, `gemini:`).
+   * Consumed by find_assets's `provenance` filter and by Sage for
+   * cross-session consolidation (§11).
+   */
+  provenance?: string
 }
 
 /**
@@ -1454,10 +1522,13 @@ export async function reconcileUsedTags(sessionId: string): Promise<{ promoted: 
 
 // Helper to extract tag from status string
 // Order matters: check more specific tags before less specific ones (e.g. HERO before B-ROLL).
-function parseTagFromStatus(status: string): 'HERO' | 'USED' | 'B-ROLL' | 'TRASH' | 'READY' | 'INGESTED' | 'APPROVED' | 'REDO' | undefined {
+// STAR is a user-curation marker — checked early so it takes precedence over
+// lifecycle tags like READY when both somehow co-occur in a status string.
+function parseTagFromStatus(status: string): 'HERO' | 'USED' | 'B-ROLL' | 'TRASH' | 'READY' | 'INGESTED' | 'APPROVED' | 'REDO' | 'STAR' | undefined {
   const upper = status.toUpperCase()
   if (upper.includes('HERO')) return 'HERO'
   if (upper.includes('TRASH')) return 'TRASH'
+  if (upper.includes('STAR')) return 'STAR'
   if (upper.includes('B-ROLL')) return 'B-ROLL'
   if (upper.includes('USED')) return 'USED'
   if (upper.includes('READY')) return 'READY'
@@ -1566,6 +1637,8 @@ export async function parseImagesMd(sessionId: string): Promise<Map<string, Pars
           matchFieldMultiline(entry, 'CD Analysis')
           || matchFieldMultiline(entry, 'Evaluation')
           || undefined
+        // WP-IMG-7 (2026-05-06): provenance — namespaced source ('image_ops:crop' etc.)
+        const provenance = matchField(entry, 'Provenance') || undefined
 
         result.set(filename, {
           filename,
@@ -1573,6 +1646,40 @@ export async function parseImagesMd(sessionId: string): Promise<Map<string, Pars
           cdAnalysis,
           status,
           tag,
+          provenance,
+          usedIn: usedInMap.get(filename),
+        })
+      }
+    }
+
+    // WP-IMG-7 (2026-05-06): parse `## Manipulations` — the section
+    // lib/image-ops.ts writes to. Pre-WP-7 these entries existed but were
+    // invisible to the parser (parser only knew Uploaded + Generated
+    // sections). The shape mirrors `## Image Prompts + Generated` (####
+    // entries with **Generated**, **Status**, **Source**, **Provenance**).
+    const manipSection = content.match(/## Manipulations\s*\n([\s\S]*?)(?=\n## [^#]|$)/)
+    if (manipSection) {
+      const sec = manipSection[1]
+      const manipEntries = sec.split(/(?=^#### )/m).filter(e => e.trim().startsWith('#### '))
+      for (const entry of manipEntries) {
+        const filenameMatch = entry.match(/^#### (.+)$/m)
+        if (!filenameMatch) continue
+        const filename = filenameMatch[1].trim()
+        const uploadedAt = matchField(entry, 'Generated') || undefined
+        const status = matchField(entry, 'Status') || undefined
+        const tag = status ? parseTagFromStatus(status) : undefined
+        const provenance = matchField(entry, 'Provenance') || undefined
+        // Manipulations entries don't currently carry CD analysis. If a
+        // future op (chroma-key + verdict gate, alpha-matte review) wants
+        // to surface CD's note here, the parser already reads CD Analysis
+        // via matchFieldMultiline — add the line to the writer and it'll
+        // round-trip through this same path.
+        result.set(filename, {
+          filename,
+          uploadedAt,
+          status,
+          tag,
+          provenance,
           usedIn: usedInMap.get(filename),
         })
       }

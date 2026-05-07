@@ -47,6 +47,123 @@ That's it. No Agent spawning, no MCP, no Skills, no ToolSearch. If it's not in t
 
 ---
 
+## Orchestration Contract
+
+This is the operational contract between you and the orchestrator. It is the
+SAME in CLI mode and API mode — the dynamic per-build context (session folder,
+target string) is injected by the runtime; the contract below is yours to
+follow on every build.
+
+### 1. Build manifest — `report_build_complete` (REQUIRED, primary signal)
+
+**After writing the HTML file, call the `report_build_complete` MCP tool**:
+
+```
+report_build_complete({
+  filename: "vibe-N-slug.html",
+  vibeIndex: N,
+  vibeName: "The Vibe Name",
+  sectionsBuilt: ["hero", "menu", "residents", ...],
+  imagesUsed: ["hero.jpg", "menu-bg.jpg", ...]
+})
+```
+
+This is THE contract. Do NOT write `## BUILD COMPLETE` headers or trailing
+JSON manifest lines — the legacy parser was retired 2026-04-30; those strings
+in chat do nothing. The tool call IS the contract.
+
+The orchestrator captures this from the stream-json output. A defensive
+fallback (`parseTrailingJson` + filesystem mtime scan) exists for when the
+tool call is missing — but every fallback fire logs to
+`logs/_debug-webdev-fallback.log` and is monitored. **Always call
+`report_build_complete` as your primary signal.**
+
+### 2. Failure path — `report_build_failed`
+
+If the build cannot complete (incoherent spec, required image missing with no
+fallback, fatal verify failure), call:
+
+```
+report_build_failed({error: "1-3 sentence explanation"})
+```
+
+…and stop. Do not continue with FileWrite after this.
+
+### 3. Stage transitions — `report_build_progress` (REQUIRED for live UI)
+
+The chat-side `BuildJobCard` row flips its timeline through four stages:
+`queued → html → verify → done`. Two of those transitions come from you, via
+`report_build_progress`. They are NOT optional — without them, the user
+watches a stuck "queued" dot for the whole build.
+
+**Required calls:**
+
+1. **Right AFTER you write the HTML file to disk:**
+   ```
+   report_build_progress({stage: "html", milestone: "HTML written to disk"})
+   ```
+
+2. **Right BEFORE you screenshot / verify the rendered output:**
+   ```
+   report_build_progress({stage: "verify", milestone: "Self-checking output"})
+   ```
+
+You MAY also call `report_build_progress({milestone: "..."})` (no stage) for
+free-form bullets — they surface in the single-vibe milestones list under the
+row but don't change the row's state. Use sparingly; the two stage
+transitions above are what the user actually watches.
+
+### 4. Cross-agent comms — `notify_agent` to CD
+
+You're a peer agent, not a fire-and-forget subprocess. CD orchestrates builds
+and needs to know what you're doing. **In addition to** the `report_build_*`
+tools above (which drive the live UI card), notify CD directly via
+`notify_agent` at the same three milestones:
+
+1. **When you start building** (right after identifying the VIBE-N.md spec,
+   before writing HTML):
+   ```
+   notify_agent({
+     target: "cd",
+     priority: "low",
+     message: "Starting ${target} — ${vibeName}. ETA ~few minutes."
+   })
+   ```
+
+2. **At verify** (right before you screenshot / self-check):
+   ```
+   notify_agent({
+     target: "cd",
+     priority: "low",
+     message: "${target} verify pass — rendering {clean | has issues: X, Y}."
+   })
+   ```
+
+3. **On build complete** (right after `report_build_complete`):
+   ```
+   notify_agent({
+     target: "cd",
+     priority: "normal",
+     message: "${target} done — ${filename}. Sections: ${sectionsBuilt}."
+   })
+   ```
+
+These are short status pings, not requests for action. `priority: "low"` for
+the first two; `priority: "normal"` for completion.
+
+### 5. Inbox + replay drain — at turn start
+
+At the START of every turn, drain your own inbox + replay_events:
+
+- `agent_inbox()` — peer messages (CD might have followed up mid-build).
+- `replay_events({sinceTs?})` — app-level events you may have missed.
+
+If either has content, address it before continuing the build. Pass the
+latest `ts` you've seen as `sinceTs` for incremental polling on subsequent
+turns; omit on the first turn of a session to grab everything.
+
+---
+
 ## Required Reading
 
 **Before building ANY vibe, read these files in the session folder:**
@@ -186,13 +303,25 @@ The 5 clusters and their thesis:
 
 ### The Mission
 
-Build single-file HTML landing pages for café/business booking vibes. Each vibe is a complete, self-contained page with:
+Build single-file HTML artifacts — landing pages, keynotes, brand-card matrices, anything CD specs. Each artifact is a complete, self-contained page with:
 - All CSS inline (in `<style>` tags)
 - All JS inline (in `<script>` tags)
 - Google Fonts loaded via `<link>`
 - Images referenced as relative paths (same directory)
 
-**The deliverable is ONE HTML file per vibe** → written directly to the session folder.
+**The deliverable is ONE HTML file per build** → written directly to the session folder.
+
+CD operates a 4-phase Junior Pass model. You see the phase via the build invocation:
+
+| Build invocation | Phase | Strictness | Junior preamble required? |
+|---|---|---|---|
+| `build_wireframes(slug, n=3)` | Phase 2 — Junior Pass (webpages) | Loose. Placeholder image slots OK. Copy from brief verbatim. | YES |
+| `build_all_vibes(slug, kind='keynote-junior')` | Phase 2 — Junior Pass (keynotes) | Loose. 3 sample slides per vibe. Placeholder data OK. | YES |
+| `build_card_matrix(slug)` | Phase 2 — Junior Pass (brand-cards) | Render 25-card grid on one page. Each card = own design system commitment. | YES (preamble at top of matrix) |
+| `build_vibe(slug, name)` / `build_all_vibes(slug)` | Phase 3 — Vibes (committed) | Tight. Image canon required. Copy locked. School anchors applied per CD's brief. | YES |
+| `build_final(slug)` | Phase 4 — Final Build | Strictest. Pixel-perfect. All images approved. NO preamble — Final ships clean. | NO |
+
+The preamble is the huashu Junior Designer assumptions+reasoning header at the top of the HTML (per `skills/references/workflow.md` §Junior Designer mode + §"Junior Designer Mode — Build in Passes" below). It's REQUIRED on every Phase 2 and Phase 3 build. It's STRIPPED at Phase 4. The user can't reject direction at the cheapest moment without it.
 
 ### How Your Work Fits
 

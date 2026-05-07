@@ -3,6 +3,66 @@
 > This spec is a 1:1 mapping of Claude Code's memory system onto OskarOS.
 > Every concept, every function, every prompt, every integration point.
 > A builder agent should be able to execute this without making judgment calls.
+> Status block added: 2026-05-01
+
+---
+
+## STATUS UPDATE — 2026-05-01
+
+**WHOLLY SUPERSEDED.** This entire spec is historical. The "Dreamer" agent it describes was replaced by the **Sage subsystem** (Padawan Sage — Portrait Painter + Sage 240/40 cut). The file `agents/dreamer-agent.md` exists but its identity is now Sage, not the Dreamer this spec describes. `lib/memory/dreamer.ts` exists but its file header explicitly says "Padawan Sage — Portrait Painter" — same filename, different agent.
+
+Plan body below is preserved for context only. **Do not execute any of the file-by-file specs in this document.** They describe a system that was never built.
+
+### STATUS — Architectural divergence
+
+**SHIPPED INSTEAD:** Sage subsystem.
+- `agents/sage-portrait.md` — paints user portrait into per-session `user.md` + global `agents/CD-MEMORY.md`. Runs at session-end, not on hourly auto-trigger.
+- `agents/sage-240-40.md` — deterministic-ish 240/40 cut on `SESSION.md`; ships with 24h pre-prune snapshot retention (recovery safety after the SESSION.md destruction incident on 2026-04-30).
+- `lib/memory/dreamer.ts` — Sage runtime. Exposes `runDreamer(sessionId)` (Sage portrait painter), `runSagePortrait()`, `runSage240_40()`. Pauses Lumberjack before running because both write to session files.
+- `app/api/dream/route.ts` — POST triggers `runDreamer()` (Sage portrait); GET returns clock state. Endpoint shape kept; semantics replaced.
+- Per-session `user.md` is the durable memory artifact, NOT the planned global `oskar-prototype/memory/MEMORY.md`.
+
+**CHANGED:** Architecture diverged on every major axis.
+- **Trigger:** plan was 4-hour cron via stop-hooks; Sage runs on session-end and explicit POST. No hourly clock alignment.
+- **Scope:** plan was global `oskar-prototype/memory/MEMORY.md` with topic files (4 types: user/feedback/project/reference); Sage writes per-session `public/{session}/user.md` + global `agents/CD-MEMORY.md`. No 4-type taxonomy.
+- **Recall:** plan was `findRelevantMemories()` Sonnet sideQuery selecting ≤5 files at query time; Sage portrait is loaded directly into CD's boot prompt — no per-query selection.
+- **Extract:** plan was `initExtractMemories()` post-turn cursor extraction with INDIVIDUAL prompt variant; Sage extracts at session-end via portrait pass.
+- **Locks:** plan was `.consolidate-lock` PID file with mtime semantics; Sage uses in-process `pauseLumberjack()/resumeLumberjack()` flag.
+- **Model:** plan was Sonnet via `runForkedAgent()` cache-share fork; Sage uses raw `callAnthropic()` / `callAnthropicAgent()` (`lib/memory/anthropic.ts`). No fork. No cache-share.
+
+### STATUS — DO NOT IMPLEMENT (this entire spec)
+
+The plan was a faithful port of Claude Code's `autoDream` machinery. After implementation experimentation it was abandoned in favor of Sage's simpler model. The following from this spec are **explicitly retired** — do not resurrect:
+
+- **`oskar-prototype/memory/` global directory** with `MEMORY.md` index — never created. Per-session `public/{session}/user.md` is the actual location.
+- **Topic file format** with YAML frontmatter (`name`, `description`, `type` ∈ {user, feedback, project, reference}) — never adopted. Sage uses unstructured markdown portraits.
+- **`lib/memory/scan.ts`** — no recursive readdir / parse-frontmatter scanner exists. Sage reads explicit paths.
+- **`lib/memory/age.ts`** — no `memoryAgeDays()`, `memoryFreshnessNote()`. Not needed; Sage doesn't time-weight.
+- **`lib/memory/truncate.ts`** — no `truncateEntrypointContent()` line-first-then-byte. Sage's 240/40 is the cut policy.
+- **`lib/memory/recall.ts`** — no `findRelevantMemories()` Sonnet sideQuery selecting ≤5 files. Doesn't exist.
+- **`lib/memory/extract.ts`** — no post-turn cursor-based extractor with INDIVIDUAL prompt variant. Doesn't exist.
+- **`lib/memory/dream-engine.ts`** — never built; runtime lives in `lib/memory/dreamer.ts` as Sage.
+- **3-gate `executeAutoDream()`** — time gate, sessions-touched gate, lock gate. Replaced by session-end trigger.
+- **`createAutoMemCanUseTool()`** tool-permission wrapper restricting writes to memory dir — replaced by Sage's typed Edit/Write at known paths.
+- **`makeDreamProgressWatcher()`** turn/text/file tracker — replaced by `ProgressCallback` shape in `lib/memory/dreamer.ts`.
+- **`sessionMemory.ts`**, **`teamMemPaths.ts`**, **`teamMemPrompts.ts`**, **KAIROS daily-log** — already marked DROP in the plan; status unchanged.
+- **GrowthBook feature flags** (`tengu_onyx_plover` etc.) — never integrated.
+- **`runForkedAgent()` cache-share fork** — never integrated.
+- **`MEMORY_TYPES` four-type taxonomy** — never adopted.
+
+If you need to extend memory behavior: extend Sage. Do not build a parallel `autoDream`-style system. Read `agents/sage-portrait.md` + `agents/sage-240-40.md` + `lib/memory/dreamer.ts` first.
+
+### STATUS — What IS the source of truth
+
+For memory work today, read these (not this plan):
+- `agents/sage-portrait.md` — Sage's portrait-painter identity + runtime spec
+- `agents/sage-240-40.md` — Sage's compression spec
+- `lib/memory/dreamer.ts` — runtime
+- `lib/memory/anthropic.ts` — Anthropic call layer (extracted utility)
+- `lib/memory/paths.ts` — path layout (per-session, not global)
+- `app/api/dream/route.ts` — current API shape
+- `agents/CD-MEMORY.md` — what Sage writes to globally
+- `MEMORY-SYSTEM-IMPLEMENTATION-PLAN.md` (its 2026-05-01 status block) — the predecessor plan with its own retirement note
 
 ---
 

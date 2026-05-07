@@ -58,8 +58,15 @@
  */
 
 import { randomUUID } from 'crypto'
+import { publish } from './event-bus'
 
-export type AgentRole = 'cd' | 'webdev' | 'sentinel' | 'jedi-code'
+// 'user' added 2026-05-02 (Ralph): the web client posts on the user's
+// behalf when they send a chat message while CD is mid-stream. The
+// from-role needs to attribute the message to the human, not to
+// jedi-code (which used to be the closest stand-in). Permissions: user
+// → cd only; nothing else. CD is the only agent that takes direct user
+// input via chat.
+export type AgentRole = 'cd' | 'webdev' | 'sentinel' | 'jedi-code' | 'user'
 
 export type Priority = 'low' | 'normal' | 'high'
 
@@ -150,13 +157,17 @@ const NOTIFY_PERMISSIONS: Record<AgentRole, Set<AgentRole>> = {
   'jedi-code': new Set(['cd', 'webdev', 'sentinel']),
   'webdev': new Set(['cd', 'jedi-code']),
   'sentinel': new Set(['cd', 'jedi-code']),
+  // user → cd only. The web client uses this when the human sends a
+  // mid-stream chat message. Other agents shouldn't be reachable from
+  // the chat surface — that path goes through CD's coordination.
+  'user': new Set(['cd']),
 }
 
 export function canNotify(from: AgentRole, target: AgentRole): boolean {
   return NOTIFY_PERMISSIONS[from]?.has(target) ?? false
 }
 
-const VALID_ROLES = new Set<AgentRole>(['cd', 'webdev', 'sentinel', 'jedi-code'])
+const VALID_ROLES = new Set<AgentRole>(['cd', 'webdev', 'sentinel', 'jedi-code', 'user'])
 
 function isRole(v: string): v is AgentRole {
   return VALID_ROLES.has(v as AgentRole)
@@ -494,6 +505,46 @@ export function notifyAgent(args: {
       replyTo,
       sessionId,
     })
+
+    // 2026-05-02 (Ralph): publish a push event on the same session
+    // event-bus that powers cd_snackbar / director_save. Any client
+    // (today: only the MCP-server transport for jedi-code; tomorrow:
+    // also CD/webdev/sentinel as MCP peers per WP-F1b) with an open GET
+    // stream + matching session id receives this via sendLoggingMessage
+    // BEFORE its next polled agent_inbox() drain. The push payload
+    // carries enough context for the receiver to decide whether to act
+    // immediately or wait for its next polling cycle.
+    //
+    // Honest caveat: CD-as-CLI-subprocess (the current architecture)
+    // doesn't reliably surface push events as model-context updates
+    // mid-generation. Per the file header at L9-L12: "Polling is the
+    // contract." The push fires regardless because (a) it's the
+    // architecturally correct thing to do, (b) other peers + future
+    // CD-as-peer benefit, (c) the orchestrator's ring buffer captures
+    // it for replay_events() recovery.
+    try {
+      publish(sessionId, {
+        type: 'agent_inbox_message',
+        level: priority === 'high' ? 'warn' : 'info',
+        ts: baseMsg.sentAt,
+        // Routing hints — receivers filter to "is this for me?"
+        targetRole,
+        targetInstance: routeInstance,
+        // Identity of the message itself
+        messageId: id,
+        threadId,
+        from,
+        fromInstance,
+        priority,
+        replyTo,
+        // Body — receivers that act on push (vs polling) need the content
+        message: baseMsg.message,
+      } as any)
+    } catch (err) {
+      // Publishing is best-effort; queueing is the durable mechanism.
+      // Don't break notifyAgent over a publish failure.
+      console.warn('[notifyAgent] publish failed:', err)
+    }
   }
 
   // ── Sticky paths: instance must be live, else orphan ───────────────────

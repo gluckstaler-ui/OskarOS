@@ -91,6 +91,21 @@ interface BridgeProcess {
   dead: boolean
   systemPromptFile: string | null
   wasResumed: boolean  // true if spawned with --resume (has full history)
+  /**
+   * The --model arg this subprocess was spawned with. CLI subprocesses are
+   * model-locked at spawn — chat-stream consults this to detect when the
+   * user's CD-model toggle requires a respawn. Ralph 2026-05-04.
+   */
+  spawnedModel: string
+  /**
+   * The model field from Claude CLI's system/init event — i.e. the TRUTH
+   * on the wire after Claude CLI has resolved its own settings (default
+   * model, base-URL pipes, etc). Differs from spawnedModel when we passed
+   * 'auto' (so Claude CLI uses its own default). Cached so chat-stream
+   * can replay it as model_info on resumed turns where init doesn't
+   * re-fire. Ralph 2026-05-04 (Bug M).
+   */
+  actualModel: string | null
 }
 
 function findClaudeBinary(): string {
@@ -127,18 +142,48 @@ class BridgeProcessManagerImpl {
       return existing
     }
 
-    // If previous process died in memory, use its CLI session ID
-    let resumeId = existing?.cliSessionId
+    // If previous process died in memory, consider re-using its CLI
+    // session id via --resume. BUT drop resume if the model changed:
+    // thinking blocks in the prior conversation were signed by the dead
+    // process's model, and Anthropic / Z.ai reject mismatched
+    // signatures with "Invalid signature in thinking block". Same logic
+    // as the disk-mapping check below; this branch handles the
+    // same-Node-process model-toggle case (where chat-stream killed
+    // the old bridge and is now respawning in this same call).
+    let resumeId: string | undefined
     if (existing) {
+      const modelChanged = existing.spawnedModel !== options.model
+      if (!modelChanged) {
+        resumeId = existing.cliSessionId
+      } else {
+        console.log(
+          `[Bridge] In-memory model "${existing.spawnedModel}" differs from requested "${options.model}" — dropping --resume to avoid thinking-block signature mismatch`,
+        )
+      }
       this.cleanup(sessionId)
     }
 
-    // If no in-memory record (server restart), check disk for saved mapping
+    // If no in-memory record (server restart), check disk for saved mapping.
     if (!resumeId) {
       const diskMapping = loadBridgeMapping(sessionId)
       if (diskMapping) {
-        resumeId = diskMapping.cliSessionId
-        console.log(`[Bridge] Recovered CLI session from disk: ${resumeId}`)
+        // Drop resume on model change. Thinking blocks in the disk-loaded
+        // conversation history are SIGNED by whichever model produced
+        // them. If the user toggled CD's model since the last turn (or
+        // the request resolves to a different endpoint, e.g. Anthropic
+        // → Z.ai/GLM via base-URL pipe), those signatures don't validate
+        // against the new endpoint and the upstream API rejects with
+        // "messages.N.content.0: Invalid signature in thinking block".
+        // Cost of dropping resume: one fresh CLI history. Benefit: no
+        // signature errors. Ralph 2026-05-04 → bug observed 2026-05-XX.
+        if (diskMapping.model !== options.model) {
+          console.log(
+            `[Bridge] Disk model "${diskMapping.model}" differs from requested "${options.model}" — dropping --resume to avoid thinking-block signature mismatch`,
+          )
+        } else {
+          resumeId = diskMapping.cliSessionId
+          console.log(`[Bridge] Recovered CLI session from disk: ${resumeId}`)
+        }
       }
     }
 
@@ -154,12 +199,22 @@ class BridgeProcessManagerImpl {
     // Server name + paths defined there.
     const mcpConfigFile = ensureMcpConfig({ sessionId, cwd: options.cwd, agentRole: 'cd' })
 
+    // Bug M (Ralph 2026-05-04): when options.model is 'auto', OMIT --model
+    // so Claude Code uses its own settings (~/.claude/settings.json or
+    // env). Critical for Z.ai-piped Claude Code: the user has configured
+    // GLM as the default model; forcing --model claude-opus-4-7 would
+    // override that and make their Z.ai-routed requests fail (or worse,
+    // silently route the wrong model). The system/init event then
+    // reports the truth Claude Code actually used; the input-bar badge
+    // displays it.
     const args = [
       '--print',
       '--input-format', 'stream-json',
       '--output-format', 'stream-json',
       '--verbose',
-      '--model', options.model,
+      ...(options.model && options.model !== 'auto'
+        ? ['--model', options.model]
+        : []),
       '--permission-mode', 'bypassPermissions',
       '--system-prompt-file', systemFile,
       '--mcp-config', mcpConfigFile,
@@ -200,6 +255,8 @@ class BridgeProcessManagerImpl {
       dead: false,
       systemPromptFile: systemFile,
       wasResumed: !!resumeId,
+      spawnedModel: options.model,
+      actualModel: null,
     }
 
     child.on('error', (err) => {
@@ -274,8 +331,22 @@ class BridgeProcessManagerImpl {
         try {
           const event = JSON.parse(line) as BridgeEvent
           eventQueue.push(event)
-          if (event.type === 'init') {
+          if ((event.type === 'init') || (event.type === 'system' && (event as any).subtype === 'init')) {
             console.log(`[Bridge] Init event:`, JSON.stringify(event).slice(0, 500))
+            // Bug M (Ralph 2026-05-04): cache the model Claude CLI is
+            // actually running. Survives across resumed turns where
+            // init doesn't re-fire — chat-stream replays this as the
+            // model_info config-seed so the badge stays accurate.
+            const modelVal = (event as any).model
+            if (typeof modelVal === 'string' && modelVal.length > 0) {
+              bp.actualModel = modelVal
+            }
+          }
+          // Wire truth from assistant events — overrides init's claim.
+          // Z.ai serves glm-4.7 for claude-opus-4-7 requests; the init
+          // event doesn't know this but message.model does.
+          if (event.type === 'assistant' && typeof (event as any).message?.model === 'string' && (event as any).message.model.length > 0) {
+            bp.actualModel = (event as any).message.model
           }
           if (event.type === 'result') {
             done = true
@@ -328,6 +399,31 @@ class BridgeProcessManagerImpl {
   hasProcess(sessionId: string): boolean {
     const bp = this.processes.get(sessionId)
     return !!bp && !bp.dead
+  }
+
+  /**
+   * Return the --model arg the live bridge process was spawned with, or
+   * null if no process exists. Used by chat-stream to detect when the
+   * user's CD-model toggle requires a respawn (CLI subprocesses can't
+   * change model mid-flight). Ralph 2026-05-04.
+   */
+  getProcessModel(sessionId: string): string | null {
+    const bp = this.processes.get(sessionId)
+    if (!bp || bp.dead) return null
+    return bp.spawnedModel
+  }
+
+  /**
+   * Return the model Claude CLI is ACTUALLY running, captured from its
+   * system/init event. Differs from spawnedModel when we passed 'auto'
+   * (Claude CLI then uses its own settings, e.g. GLM if base-URL-piped
+   * to Z.ai). Returns null until Claude CLI has emitted at least one
+   * init event for this process. Ralph 2026-05-04 (Bug M).
+   */
+  getProcessActualModel(sessionId: string): string | null {
+    const bp = this.processes.get(sessionId)
+    if (!bp || bp.dead) return null
+    return bp.actualModel
   }
 
   /**

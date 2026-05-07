@@ -13,12 +13,57 @@ import { join } from 'path'
 import { existsSync } from 'fs'
 import { readFile, writeFile, appendFile } from 'fs/promises'
 
+/**
+ * WP-IMG-1..4 (2026-05-06): every op now accepts optional `outputName` and
+ * `overwrite`. When `overwrite` is true and `outputName` is omitted, the new
+ * file CLOBBERS the source. `outputName` always wins when present (server
+ * accepts an extension or strips it and applies its own).
+ *
+ * Slice's `namingPattern` supports `{stem}` (source basename, no ext),
+ * `{n}` (1-based tile index), `{r}` (row), `{c}` (col), `{ext}` (source ext).
+ * Default = `{stem}-tile-{n}` (mockup default). Backwards compat: omitting
+ * the field falls back to the legacy `r{r}c{c}` suffix scheme.
+ *
+ * Resize's `kernel` maps to Sharp's kernel option (`lanczos3` is the Sharp
+ * default; we accept `nearest`/`cubic`/`bilinear`/`lanczos3`).
+ */
 export type ImageOp =
-  | { operation: 'crop'; params: { x: number; y: number; w: number; h: number } | { aspect: '16:9' | '4:3' | '1:1' | '9:16' | '3:4' | '21:9' } }
-  | { operation: 'slice'; params: { rows: number; cols: number } }
-  | { operation: 'resize'; params: { w?: number; h?: number; fit?: 'cover' | 'contain' } }
-  | { operation: 'chroma-key'; params: { color?: string; tolerance?: number } }
-  | { operation: 'format-convert'; params: { to: 'png' | 'jpeg' | 'webp' } }
+  | { operation: 'crop'; params: ({ x: number; y: number; w: number; h: number } | { aspect: '16:9' | '4:3' | '1:1' | '9:16' | '3:4' | '21:9' }) & { outputName?: string; overwrite?: boolean } }
+  | { operation: 'slice'; params: { rows: number; cols: number; namingPattern?: string } }
+  | { operation: 'resize'; params: { w?: number; h?: number; fit?: 'cover' | 'contain'; kernel?: 'nearest' | 'cubic' | 'bilinear' | 'lanczos3'; outputName?: string; overwrite?: boolean } }
+  | { operation: 'chroma-key'; params: { color?: string; tolerance?: number; feather?: number } }
+  /**
+   * WP-IMG-5 (2026-05-06): format-convert with quality, lossless, and two
+   * optional add-ons.
+   *
+   *   to: 'png' | 'jpeg' | 'webp'   — output container
+   *   quality: 1..100                — JPG always, WEBP when lossless=false
+   *   lossless: boolean              — WEBP only (PNG is implicitly lossless)
+   *   alphaMatte: { color: '#RRGGBB' }
+   *                                  — JPG only (composite over flat color
+   *                                    when source has alpha; default white).
+   *                                    Server applies alphaMatte BEFORE
+   *                                    encoding so the final JPG never has
+   *                                    a black-fringe halo.
+   *   chromaKey: { color, tolerance, feather }
+   *                                  — PNG only (eyedropper-fed key + tol +
+   *                                    feather). Generates an alpha channel
+   *                                    keyed against `color` ± tolerance,
+   *                                    feathered across `feather` px so the
+   *                                    edge isn't aliased.
+   */
+  | {
+      operation: 'format-convert'
+      params: {
+        to: 'png' | 'jpeg' | 'webp'
+        quality?: number
+        lossless?: boolean
+        alphaMatte?: { color: string }
+        chromaKey?: { color: string; tolerance?: number; feather?: number }
+        outputName?: string
+        overwrite?: boolean
+      }
+    }
   | {
       operation: 'composite'
       params: {
@@ -53,15 +98,94 @@ function withSuffix(filename: string, suffix: string, newExt?: string): string {
   return `${base}-${suffix}.${ext}`
 }
 
-async function appendImagesMdEntry(sessionDir: string, filename: string, opNote: string) {
+/**
+ * WP-IMG-1..4 (2026-05-06): resolve the final output name for single-output ops.
+ *
+ * Precedence:
+ *   1. `outputName` explicit  → used as-is (extension preserved or appended from source)
+ *   2. `overwrite === true`   → returns the source filename (caller will clobber)
+ *   3. fallback               → `withSuffix(filename, defaultSuffix, defaultExt?)`
+ *
+ * Always returns a filename (no path, no slashes).
+ */
+function resolveOutputName(
+  filename: string,
+  defaultSuffix: string,
+  opts: { outputName?: string; overwrite?: boolean } = {},
+  defaultExt?: string,
+): string {
+  if (opts.outputName && opts.outputName.trim().length > 0) {
+    const raw = opts.outputName.trim()
+    // If the user-provided name has an extension, keep it; otherwise borrow from source.
+    if (/\.[a-z0-9]+$/i.test(raw)) return raw
+    const dot = filename.lastIndexOf('.')
+    const ext = defaultExt || (dot >= 0 ? filename.slice(dot + 1) : 'jpg')
+    return `${raw}.${ext}`
+  }
+  if (opts.overwrite) return filename
+  return withSuffix(filename, defaultSuffix, defaultExt)
+}
+
+/**
+ * WP-IMG-3 (2026-05-06): slice naming-pattern interpolation.
+ * Supported placeholders: {stem} {n} {r} {c} {ext}
+ * `n` is 1-based across the whole grid (row-major). Falls back to the legacy
+ * `r{r}c{c}` suffix when `pattern` is empty.
+ */
+function interpolateSlicePattern(
+  filename: string,
+  pattern: string | undefined,
+  n: number,
+  r: number,
+  c: number,
+): string {
+  const dot = filename.lastIndexOf('.')
+  const stem = dot >= 0 ? filename.slice(0, dot) : filename
+  const ext = dot >= 0 ? filename.slice(dot + 1) : 'jpg'
+  if (!pattern || pattern.trim().length === 0) {
+    return `${stem}-r${r}c${c}.${ext}`
+  }
+  let out = pattern
+    .replace(/\{stem\}/g, stem)
+    .replace(/\{n\}/g, String(n))
+    .replace(/\{r\}/g, String(r))
+    .replace(/\{c\}/g, String(c))
+    .replace(/\{ext\}/g, ext)
+  if (!/\.[a-z0-9]+$/i.test(out)) out = `${out}.${ext}`
+  return out
+}
+
+/**
+ * WP-IMG-7 (2026-05-06): every image_ops output now writes a structured
+ * `**Provenance:** image_ops:{operation}` field alongside the human-readable
+ * `**Source:**` line. Parser (lib/session.ts → parseImagesMd) reads it into
+ * `ParsedImageEntry.provenance`; find_assets filters on it; Sage uses it for
+ * cross-session consolidation.
+ *
+ * `operation` is the typed op name: crop / slice / resize / chroma-key /
+ * format-convert / composite. The colon-prefix convention `image_ops:`
+ * keeps the namespace open for future tools (e.g. `nano:`, `gemini:`).
+ *
+ * `tag` is optional — when omitted, falls back to `B-ROLL` for parity with
+ * existing behavior. WP-IMG-1's tag-chip footer threads the user's chosen
+ * tag through here so the new output lands at the right status.
+ */
+async function appendImagesMdEntry(
+  sessionDir: string,
+  filename: string,
+  opNote: string,
+  operation: string,
+  tag: string = 'B-ROLL',
+) {
   const imagesPath = join(sessionDir, 'IMAGES.md')
   const ts = new Date().toISOString().slice(0, 19).replace('T', ' ')
   const entry = [
     '',
     `#### ${filename}`,
     `**Generated:** ${ts}`,
-    `**Status:** B-ROLL`,
+    `**Status:** ${tag}`,
     `**Source:** image_ops (${opNote})`,
+    `**Provenance:** image_ops:${operation}`,
     '',
   ].join('\n')
   try {
@@ -75,10 +199,16 @@ async function appendImagesMdEntry(sessionDir: string, filename: string, opNote:
   }
 }
 
+/**
+ * WP-IMG-7 (2026-05-06): `tag` lets the caller choose the IMAGES.md status
+ * the output(s) land with (READY/APPROVED/HERO/B-ROLL/REDO/TRASH). Defaults
+ * to `B-ROLL` for parity with pre-WP-7 behavior.
+ */
 export async function runImageOp(
   sessionDir: string,
   filename: string,
   op: ImageOp,
+  tag: string = 'B-ROLL',
 ): Promise<ImageOpResult> {
   const srcPath = join(sessionDir, filename)
   if (!existsSync(srcPath)) {
@@ -111,14 +241,17 @@ export async function runImageOp(
         } else {
           ;({ x, y, w, h } = op.params)
         }
-        const out = withSuffix(filename, 'crop')
+        // WP-IMG-2: outputName + overwrite. Overwrite is dangerous (clobbers
+        // source on disk); the UI surfaces a confirm checkbox so user
+        // explicitly opts in. We honor it as-is here.
+        const out = resolveOutputName(filename, 'crop', op.params)
         await sharp(srcPath).extract({ left: x, top: y, width: w, height: h }).toFile(join(sessionDir, out))
-        await appendImagesMdEntry(sessionDir, out, `crop from ${filename}`)
+        await appendImagesMdEntry(sessionDir, out, `crop from ${filename}`, 'crop', tag)
         return { ok: true, outputs: [out] }
       }
 
       case 'slice': {
-        const { rows, cols } = op.params
+        const { rows, cols, namingPattern } = op.params
         if (rows < 1 || cols < 1 || rows > 10 || cols > 10) {
           return { ok: false, error: 'rows + cols must be 1..10', outputs: [] }
         }
@@ -128,28 +261,39 @@ export async function runImageOp(
         const tileW = Math.floor(W / cols)
         const tileH = Math.floor(H / rows)
         const outputs: string[] = []
+        // WP-IMG-3: row-major 1-based tile index for `{n}` placeholder.
+        let n = 1
         for (let r = 0; r < rows; r++) {
           for (let c = 0; c < cols; c++) {
-            const out = withSuffix(filename, `r${r}c${c}`)
+            const out = interpolateSlicePattern(filename, namingPattern, n, r, c)
             await sharp(srcPath)
               .extract({ left: c * tileW, top: r * tileH, width: tileW, height: tileH })
               .toFile(join(sessionDir, out))
             outputs.push(out)
-            await appendImagesMdEntry(sessionDir, out, `slice ${rows}×${cols} of ${filename}`)
+            await appendImagesMdEntry(sessionDir, out, `slice ${rows}×${cols} of ${filename}`, 'slice', tag)
+            n++
           }
         }
         return { ok: true, outputs }
       }
 
       case 'resize': {
-        const { w, h, fit } = op.params
+        const { w, h, fit, kernel } = op.params
         if (!w && !h) return { ok: false, error: 'resize requires w or h', outputs: [] }
-        const out = withSuffix(filename, 'resize')
+        const out = resolveOutputName(filename, 'resize', op.params)
         const sharpFit = fit === 'cover' ? 'cover' : fit === 'contain' ? 'contain' : 'inside'
+        // WP-IMG-4: kernel is optional. Sharp's `lanczos3` is the default
+        // when omitted; the other named kernels map 1:1 to Sharp's enum.
+        const sharpKernel = kernel
+          ? (kernel === 'cubic' ? sharp.kernel.cubic
+              : kernel === 'bilinear' ? sharp.kernel.linear // Sharp's `linear` IS bilinear
+              : kernel === 'nearest' ? sharp.kernel.nearest
+              : sharp.kernel.lanczos3)
+          : undefined
         await sharp(srcPath)
-          .resize({ width: w, height: h, fit: sharpFit, withoutEnlargement: !fit })
+          .resize({ width: w, height: h, fit: sharpFit, withoutEnlargement: !fit, kernel: sharpKernel })
           .toFile(join(sessionDir, out))
-        await appendImagesMdEntry(sessionDir, out, `resize ${w || '?'}×${h || '?'}`)
+        await appendImagesMdEntry(sessionDir, out, `resize ${w || '?'}×${h || '?'}${kernel ? ` (${kernel})` : ''}`, 'resize', tag)
         return { ok: true, outputs: [out] }
       }
 
@@ -179,22 +323,106 @@ export async function runImageOp(
         await sharp(buf, { raw: { width, height, channels } })
           .png()
           .toFile(join(sessionDir, out))
-        await appendImagesMdEntry(sessionDir, out, `chroma-key #${colorHex} ±${tol}`)
+        await appendImagesMdEntry(sessionDir, out, `chroma-key #${colorHex} ±${tol}`, 'chroma-key', tag)
         return { ok: true, outputs: [out] }
       }
 
       case 'format-convert': {
-        const { to } = op.params
+        // WP-IMG-5 (rev 2026-05-06, Ralph): both add-ons available across
+        // ALL output formats (JPG / PNG / WEBP). The pipeline is:
+        //
+        //   1. chroma-key      — RGBA buffer pass: pixels matching `color`
+        //                        ± tolerance get alpha=0; pixels in
+        //                        `tolerance + feather` window get linear
+        //                        falloff. Result is RGBA.
+        //   2. alpha-matte     — `flatten({background: color})` composites
+        //                        the (possibly chroma-keyed) RGBA over a
+        //                        flat color. Result is RGB. JPG output uses
+        //                        this implicitly when source has alpha and
+        //                        matte is enabled; PNG/WEBP can use it to
+        //                        bake a colored backdrop into the image.
+        //   3. encode          — PNG / JPEG / WEBP with quality / lossless.
+        //
+        // The two passes are ORTHOGONAL — chroma-key produces alpha,
+        // alpha-matte consumes alpha (replaces with flat color). Combining
+        // them in JPEG = "remove green screen, replace with white". In PNG
+        // = "remove green screen, optionally fill bg with brand color".
+        const { to, quality, lossless, alphaMatte, chromaKey } = op.params
         if (!['png', 'jpeg', 'webp'].includes(to)) {
           return { ok: false, error: 'format must be png|jpeg|webp', outputs: [] }
         }
-        const out = withSuffix(filename, 'fmt', to === 'jpeg' ? 'jpg' : to)
+        const out = resolveOutputName(filename, 'fmt', op.params, to === 'jpeg' ? 'jpg' : to)
+
         let pipeline = sharp(srcPath)
-        if (to === 'png') pipeline = pipeline.png()
-        else if (to === 'jpeg') pipeline = pipeline.jpeg()
-        else pipeline = pipeline.webp()
+
+        // ── Stage 1: chroma-key (any format) ──
+        // Operates on raw RGBA buffer; result is fed back into Sharp as a
+        // raw input so subsequent stages can chain on top.
+        if (chromaKey) {
+          const hexColor = chromaKey.color.replace('#', '')
+          const tR = parseInt(hexColor.slice(0, 2), 16)
+          const tG = parseInt(hexColor.slice(2, 4), 16)
+          const tB = parseInt(hexColor.slice(4, 6), 16)
+          const tol = chromaKey.tolerance ?? 30
+          const feather = chromaKey.feather ?? 0
+          const { data, info } = await pipeline.ensureAlpha().raw().toBuffer({ resolveWithObject: true })
+          const { width, height, channels } = info
+          const buf = Buffer.from(data)
+          for (let i = 0; i < buf.length; i += channels) {
+            const dr = buf[i] - tR
+            const dg = buf[i + 1] - tG
+            const db = buf[i + 2] - tB
+            const dist = Math.sqrt(dr * dr + dg * dg + db * db)
+            if (dist <= tol) {
+              buf[i + 3] = 0
+            } else if (feather > 0 && dist <= tol + feather) {
+              // Linear feather across the falloff window.
+              const t = (dist - tol) / feather
+              buf[i + 3] = Math.round(buf[i + 3] * Math.min(1, Math.max(0, t)))
+            }
+          }
+          pipeline = sharp(buf, { raw: { width, height, channels } })
+        }
+
+        // ── Stage 2: alpha-matte (any format) ──
+        // Composite over flat color. For JPEG this is mandatory when there's
+        // alpha (otherwise Sharp fills with black on encode). For PNG/WEBP
+        // it's optional — useful for "bake the chosen background INTO the
+        // image" workflows.
+        if (alphaMatte) {
+          pipeline = pipeline.ensureAlpha().flatten({ background: alphaMatte.color || '#FFFFFF' })
+        }
+
+        // ── Stage 3: encode ──
+        if (to === 'png') {
+          pipeline = pipeline.png()
+        } else if (to === 'jpeg') {
+          // Defensive: even without alphaMatte, JPEG can't keep alpha.
+          // Sharp's jpeg() handles this by calling its own background fill;
+          // setting `background` explicitly avoids surprises with libvips
+          // versions that default to black.
+          if (!alphaMatte) {
+            pipeline = pipeline.flatten({ background: '#FFFFFF' })
+          }
+          pipeline = pipeline.jpeg({
+            quality: typeof quality === 'number' ? Math.max(1, Math.min(100, quality)) : 90,
+          })
+        } else if (to === 'webp') {
+          if (lossless) {
+            pipeline = pipeline.webp({ lossless: true })
+          } else {
+            pipeline = pipeline.webp({
+              quality: typeof quality === 'number' ? Math.max(1, Math.min(100, quality)) : 80,
+            })
+          }
+        }
+
         await pipeline.toFile(join(sessionDir, out))
-        await appendImagesMdEntry(sessionDir, out, `format → ${to}`)
+        const noteParts = [`format → ${to}`]
+        if (chromaKey) noteParts.push(`+ chroma-key ${chromaKey.color}`)
+        if (alphaMatte) noteParts.push(`+ alpha-matte ${alphaMatte.color}`)
+        if (to === 'webp' && lossless) noteParts.push('+ lossless')
+        await appendImagesMdEntry(sessionDir, out, noteParts.join(' '), 'format-convert', tag)
         return { ok: true, outputs: [out] }
       }
 
@@ -262,7 +490,7 @@ export async function runImageOp(
           .composite([{ input: ovBuf, left, top }])
           .toFile(join(sessionDir, output))
         // Honor source_alpha is implicit in Sharp (PNG transparency preserved).
-        await appendImagesMdEntry(sessionDir, output, `composite ${source} on ${filename}`)
+        await appendImagesMdEntry(sessionDir, output, `composite ${source} on ${filename}`, 'composite', tag)
         return { ok: true, outputs: [output] }
       }
 

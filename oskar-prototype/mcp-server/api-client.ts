@@ -138,7 +138,19 @@ export async function postJson<T = unknown>(
       return { ok: true, status: r.status, body: (parsed ?? null) as T }
     }
     const code = classifyHttpStatus(r.status)
-    const bodyStr = typeof parsed === 'string' ? parsed : JSON.stringify(parsed)
+    // Defensive: when the route returns empty body + non-OK status, `parsed`
+    // is `undefined`. `JSON.stringify(undefined)` returns `undefined` (the
+    // value, not the string "undefined"), and `.slice()` on that crashes
+    // with "Cannot read properties of undefined (reading 'slice')". This
+    // surfaced most often on `screenshot` (Playwright timeouts → empty 500)
+    // but bites every MCP tool whose route fails badly. Ralph 2026-05-04.
+    const rawBodyStr = typeof parsed === 'string' ? parsed : JSON.stringify(parsed)
+    const bodyStr = rawBodyStr || '<no body>'
+    if (rawBodyStr === undefined || rawBodyStr === '') {
+      console.warn(
+        `[mcp-api-client] empty body from ${pathOrUrl} status=${r.status} — route likely crashed before responding`,
+      )
+    }
     const mcpError = makeError(code, `HTTP ${r.status} from ${pathOrUrl}: ${bodyStr.slice(0, 240)}`)
     return {
       ok: false,

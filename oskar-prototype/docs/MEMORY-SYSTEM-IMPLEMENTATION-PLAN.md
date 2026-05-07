@@ -1,5 +1,102 @@
 # OskarOS Memory System — Implementation Plan
 
+> Status block added: 2026-05-01
+
+---
+
+## STATUS UPDATE — 2026-05-01
+
+Plan body below is preserved for context. Of the five packages, P1/P3 shipped largely as planned with name changes; P2 (Consolidator) shipped as Lumberjack and is now **RETIRED** per Ralph 2026-05-01; P4 (Dreamer) shipped as **Sage** with a fundamentally different architecture; P5 (Migration) is partially shipped via `lib/memory/migrate.ts`.
+
+The companion spec `DREAMER-IMPLEMENTATION-SPEC.md` is wholly superseded — see its 2026-05-01 status block.
+
+### STATUS PACKAGE 1 — Foundation - SHIPPED
+
+**SHIPPED:** `lib/memory/paths.ts` (path layout, getSessionMdPath, getUserMemoryPath, getDreamLogPath, getLogsDir); `logs/` directory creation in session bootstrap; per-session `session.md` + `user.md` seeded; raw monthly log + active memory buffer pattern operational.
+
+**CHANGED:**
+- The plan's `getConsolidatedSessionPath()` is now `getSessionMdPath()` — naming convention change.
+- Double-buffer A/B with clock-based `activeBuffer()` swap — the path helpers exist but Sage's session-end + 24h pre-prune snapshot model made the hourly A/B swap moot. Treat the buffer functions as legacy.
+- `appendToSessionLog()` dual-write evolved — now also writes to event-bus ring buffer for `replay_events`.
+
+**DO NOT IMPLEMENT:**
+- Reset path naming back to `getConsolidatedSessionPath()`. The `getSessionMdPath()` shape is correct.
+- Add new code paths that depend on the A/B buffer swap. Sage doesn't use it.
+
+### STATUS PACKAGE 2 — Consolidator - RETIRED 2026-05-01
+
+**SHIPPED, THEN RENAMED, NOW RETIRED:** The plan's "Consolidator" agent shipped as **Lumberjack** (`agents/lumberjack-padawan.md`, `lib/memory/lumberjack.ts`). Single-call padawan replaced an earlier 7-stage CLI pipeline (2026-04-21). `runLumberjack()` + `maybeRunLumberjack()` (10-min cooldown) wired into `app/api/{chat,claude-code,order65,order66}` routes; `pauseLumberjack()` / `resumeLumberjack()` lock used by Sage to prevent concurrent SESSION.md writes.
+
+**RETIRED 2026-05-01 (per Ralph):** Lumberjack the agent is retired. The code module `lib/memory/lumberjack.ts` and its hooks remain in tree (4 callers) for graceful removal, but **do not extend it, do not depend on it for new work, do not resurrect it under another name.** Sage 240/40 (`agents/sage-240-40.md` + `runSage240_40()` in `lib/memory/dreamer.ts`) is the production compaction path.
+
+**CHANGED:**
+- Three-zone STATE/ACTIVE/LEDGER consolidation prompt (the plan's spec) — partially superseded. Sage's 240/40 is byte-budget driven, not zone driven.
+- `runConsolidation()` between-turn fire-and-forget pattern — kept structurally; the function is named `runLumberjack()` / `maybeRunLumberjack()` and lives in `lib/memory/lumberjack.ts`.
+
+**OPEN:** Graceful removal of `lib/memory/lumberjack.ts` and its 4 caller hooks. Order matters — Sage 240/40 needs to be the verified path before the Lumberjack hooks come out. Until then: file stays in tree, do not edit it.
+
+**DO NOT IMPLEMENT:**
+- Re-create the "Consolidator" as a new module — it shipped as Lumberjack which is now retired.
+- Add new triggers for Lumberjack (more API routes, more cooldown variants).
+- Resurrect the 7-stage multi-CLI architecture Lumberjack scrapped on 2026-04-21.
+
+### STATUS PACKAGE 3 — CD Agent Integration - SHIPPED
+
+**SHIPPED:** `lib/cd-agent-prompt.ts` accepts the consolidated `session.md` + `user.md` + clock block; `app/api/chat/route.ts` and `app/api/chat-stream/route.ts` import path helpers from `lib/memory/paths.ts` and load the files before calling `buildCDPrompt()`. CD reads consolidated context, not raw `SESSION.md` tail.
+
+**CHANGED:** The "clock block" with active-buffer metadata is much smaller now — Sage's session-end model means the clock matters less. The block reduced to a timestamp + recent-Sage-run marker.
+
+**DO NOT IMPLEMENT:**
+- Restore raw-`SESSION.md`-tail injection into CD's prompt as primary path — consolidated `session.md` is the contract.
+- Treat the plan's `SessionFiles` interface snippet as canonical — the type has expanded.
+
+### STATUS PACKAGE 4 — Dreamer - SHIPPED AS SAGE (different architecture)
+
+**SHIPPED INSTEAD:** Sage subsystem replaced the planned Dreamer.
+- `agents/sage-portrait.md` — paints user portrait (Jobs 1-3 of original dreamer-agent-production).
+- `agents/sage-240-40.md` — 240/40 compression (Job 4).
+- `lib/memory/dreamer.ts` — Sage runtime (file is named `dreamer.ts` for legacy reasons; agent identity is Sage).
+- `app/api/dream/route.ts` — POST triggers `runDreamer()` which is the Sage portrait painter.
+
+**CHANGED:** Architecture diverged on every axis from the plan.
+- **Trigger:** plan was `setInterval` aligned to top-of-hour; Sage runs at session-end + explicit POST. No hourly cron.
+- **Buffer model:** plan was process inactive A/B buffer; Sage processes the live `SESSION.md` directly with the 24h pre-prune snapshot for recovery.
+- **Output:** plan was `### USER_MEMORY_UPDATE` / `### CONSOLIDATED_UPDATE` / `### TRIAGE_LOG` parser; Sage uses typed Edit/Write at known paths.
+- **Model:** plan was Haiku (cheap); Sage uses Sonnet via `callAnthropicAgent()` because portrait quality matters.
+- **`dreamer-timer.ts`** — DOES NOT EXIST. The plan's `startDreamerTimer()` / `triggerDream()` / `setInterval` were never built. Sage runs on session-end events instead.
+
+**DO NOT IMPLEMENT:**
+- `lib/memory/dreamer-timer.ts` — was never built and isn't needed. Sage runs on session-end events.
+- Hourly clock-aligned auto-trigger for Sage. Session-end is the trigger.
+- The `### USER_MEMORY_UPDATE` / `### CONSOLIDATED_UPDATE` / `### TRIAGE_LOG` structured-output parser. Sage uses Edit/Write tools.
+- `parseDreamerOutput()` splitter. Doesn't exist.
+- Multi-session dreamer support as it was framed — the plan said "later problem"; the answer turned out to be "session-end per session, no central clock."
+
+### STATUS PACKAGE 5 — Migration + Cleanup - PARTIALLY SHIPPED
+
+**SHIPPED:** `lib/memory/migrate.ts` exists. `loadCDAgentPrompt()` reads from `agents/creative-director-agent.md` per current path conventions.
+
+**SHIPPED, then promoted:** The plan's "extract shared `callAnthropic()` to `lib/memory/anthropic.ts`" landed and became substantial — `lib/memory/anthropic.ts` is now 20KB and exposes `callAnthropic()` + `callAnthropicAgent()`. Used by Sage runtime + (the now-retired) Lumberjack.
+
+**CHANGED:** Migration scope expanded to cover the Lumberjack→Sage transition (different from this plan's planned cleanup).
+
+**DO NOT IMPLEMENT:**
+- Re-migrate sessions that already have `logs/` directories. The migration is one-way idempotent and existing sessions are migrated.
+
+### STATUS — What IS the source of truth for memory work today
+
+Read these (not this plan):
+- `agents/sage-portrait.md` + `agents/sage-240-40.md` — Sage agent specs
+- `lib/memory/dreamer.ts` — runtime (filename is legacy; identity is Sage)
+- `lib/memory/anthropic.ts` — Anthropic call layer
+- `lib/memory/paths.ts` — current path layout
+- `lib/memory/lumberjack.ts` — RETIRED, do not extend
+- `app/api/dream/route.ts` — current API shape
+- `agents/CD-MEMORY.md` — institutional memory CD reads on boot
+- `docs/INSTITUTIONAL-MEMORY.md` — project-wide bug log + Don't-Do list
+
+---
+
 ## Codebase Reality Check
 
 Before building, here's what exists and what the spec assumes:

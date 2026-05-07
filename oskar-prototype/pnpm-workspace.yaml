@@ -1,0 +1,5 @@
+allowBuilds:
+  '@anthropic-ai/claude-code': false
+  esbuild: false
+  puppeteer: false
+  sharp: false

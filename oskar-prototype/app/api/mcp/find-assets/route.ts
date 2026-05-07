@@ -76,10 +76,22 @@ export async function POST(request: Request) {
   const sessionId = String(body.sessionId || '').trim()
   const query = String(body.query || '').trim()
   const limit = Math.max(1, Math.min(50, Number(body.limit) || 10))
+  // WP-IMG-7 (2026-05-06): provenance filter. Accepts:
+  //   - exact match: 'image_ops:crop'
+  //   - namespace prefix: 'image_ops:'  (matches any image_ops:* op)
+  //   - bare namespace: 'image_ops'     (alias for the prefix above)
+  // When no `query` is passed, the filter alone returns matching entries
+  // (previously requiring a query meant `find_assets(filter:...)` was
+  // dead-letter for use cases like "list every image_ops slice output").
+  const filter = body.filter && typeof body.filter === 'object' ? body.filter : null
+  const provFilter: string | null = filter?.provenance
+    ? String(filter.provenance).trim().toLowerCase()
+    : null
+
   if (!sessionId) {
     return NextResponse.json({ error: 'sessionId required' }, { status: 400 })
   }
-  if (!query) return NextResponse.json({ hits: [] })
+  if (!query && !provFilter) return NextResponse.json({ hits: [] })
 
   const terms = query.toLowerCase().split(/\s+/).filter(Boolean)
 
@@ -90,8 +102,25 @@ export async function POST(request: Request) {
     return NextResponse.json({ hits: [] })
   }
 
+  const matchesProvenance = (entryProv: string | undefined): boolean => {
+    if (!provFilter) return true
+    if (!entryProv) return false
+    const ep = entryProv.toLowerCase()
+    // Exact match
+    if (ep === provFilter) return true
+    // Prefix match — accept both `image_ops:` and `image_ops` shapes
+    const prefix = provFilter.endsWith(':') ? provFilter : `${provFilter}:`
+    return ep.startsWith(prefix)
+  }
+
   const hits: FindHit[] = []
   for (const entry of parsed.values()) {
+    if (!matchesProvenance(entry.provenance)) continue
+    if (terms.length === 0) {
+      // Filter-only — return all entries that match the provenance filter.
+      hits.push({ filename: entry.filename, score: 1, snippet: entry.cdAnalysis?.slice(0, 80) ?? '' })
+      continue
+    }
     const { score, snippet } = scoreEntry(entry.filename, entry.cdAnalysis || '', terms)
     if (score > 0) hits.push({ filename: entry.filename, score, snippet })
   }

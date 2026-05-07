@@ -45,7 +45,15 @@ export function useSnackbar() {
   return context
 }
 
-const MAX_VISIBLE = 3
+// Stack cap (auto-dismiss snackbars only). Sticky snackbars are NEVER
+// evicted by this cap — if the user/agent asked for sticky, sticky wins,
+// even if 20 of them stack. The cap only trims the auto-dismiss tail so
+// rapid bursts of info/success messages don't dominate the screen.
+//
+// 2026-05-03 (Ralph): bumped from 3 → 8 + sticky-exempt eviction. The
+// previous cap silently dropped sticky snackbars when bursts >3 fired,
+// violating the sticky contract.
+const MAX_VISIBLE_AUTO = 8
 
 export function SnackbarProvider({ children }: { children: ReactNode }) {
   const [snackbars, setSnackbars] = useState<SnackbarItem[]>([])
@@ -62,20 +70,32 @@ export function SnackbarProvider({ children }: { children: ReactNode }) {
     const id = `snackbar-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
 
     setSnackbars(prev => {
-      const newSnackbars = [...prev, {
+      const newItem: SnackbarItem = {
         id,
         type,
         message,
         actions: options?.actions,
         duration: options?.duration,
-        isProgress: options?.isProgress
-      }]
-
-      // Keep only the most recent MAX_VISIBLE
-      if (newSnackbars.length > MAX_VISIBLE) {
-        return newSnackbars.slice(-MAX_VISIBLE)
+        isProgress: options?.isProgress,
       }
-      return newSnackbars
+      const next = [...prev, newItem]
+
+      // Sticky snackbars (duration === 0 OR isProgress) are exempt from
+      // eviction. We only trim the auto-dismiss (duration > 0 && !isProgress)
+      // tail beyond MAX_VISIBLE_AUTO.
+      const isSticky = (s: SnackbarItem) =>
+        s.duration === 0 || s.isProgress === true
+      const sticky = next.filter(isSticky)
+      const auto = next.filter((s) => !isSticky(s))
+      const trimmedAuto = auto.length > MAX_VISIBLE_AUTO
+        ? auto.slice(-MAX_VISIBLE_AUTO)
+        : auto
+
+      // Reassemble preserving original order. Iterate `next` once and pick
+      // each item from whichever pool it's in (and still present).
+      const stickySet = new Set(sticky.map((s) => s.id))
+      const autoSet = new Set(trimmedAuto.map((s) => s.id))
+      return next.filter((s) => stickySet.has(s.id) || autoSet.has(s.id))
     })
 
     return id
@@ -105,8 +125,15 @@ export function SnackbarProvider({ children }: { children: ReactNode }) {
               {
                 label: 'View',
                 onClick: () => {
-                  // Navigate to vibe preview
-                  window.location.href = `/${event.sessionId}/${event.data.vibeFile}`
+                  // Open in NEW window (Ralph 2026-05-06 spec): navigating
+                  // away from the chat surface kills the SSE stream and
+                  // discards in-flight build cards. New tab keeps the
+                  // builder context alive while the user previews.
+                  window.open(
+                    `/${event.sessionId}/${event.data.vibeFile}`,
+                    '_blank',
+                    'noopener,noreferrer',
+                  )
                 }
               }
             ]
@@ -130,8 +157,16 @@ export function SnackbarProvider({ children }: { children: ReactNode }) {
               {
                 label: 'View',
                 onClick: () => {
-                  if (event.data.vibesUpdated?.[0]) {
-                    window.location.href = `/${event.sessionId}/${event.data.vibesUpdated[0]}`
+                  // Ralph 2026-05-06: open in a NEW window (matches the
+                  // vibe-ready and BuildJobCard.open paths so all "view this
+                  // build" entries behave identically — chat surface stays
+                  // alive, no SSE teardown).
+                  if (event.data.vibesUpdated?.[0] && typeof window !== 'undefined') {
+                    window.open(
+                      `/${event.sessionId}/${event.data.vibesUpdated[0]}`,
+                      '_blank',
+                      'noopener,noreferrer',
+                    )
                   }
                 }
               }

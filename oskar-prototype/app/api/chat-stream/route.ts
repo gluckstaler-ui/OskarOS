@@ -171,7 +171,7 @@ export async function POST(req: NextRequest) {
 
   try {
     const body = await req.json()
-    const { messages, sourceImages, sessionId, cliSessionId, isResume, executionMode, webDevModel } = body as {
+    const { messages, sourceImages, sessionId, cliSessionId, isResume, executionMode, webDevModel, cdModel } = body as {
       messages: Message[]
       sourceImages?: SourceImageInfo[]
       sessionId?: string
@@ -179,11 +179,29 @@ export async function POST(req: NextRequest) {
       isResume?: boolean
       executionMode?: ExecutionMode
       webDevModel?: Model
+      cdModel?: string
     }
 
-    const activeMode: ExecutionMode = executionMode || 'cli'
-    const activeModel: Model = webDevModel || 'claude-sonnet-4-6'
     const effectiveSessionId = sessionId || `session-${Date.now()}`
+
+    // Phase 2 toggle wiring (Ralph 2026-05-04). The user's TopBar pills now
+    // actually take effect: webDevModel/executionMode flow through to the
+    // MCP build routes via the session-config file (page.tsx writes on
+    // every toggle), and cdModel resolves here per request → file →
+    // default. The legacy `activeMode`/`activeModel` vars used to be
+    // declared and never read — gone now. WebDev's mode/model are not
+    // resolved here; the MCP build routes do their own resolveConfig
+    // call so this route stays focused on CD.
+    const { resolveConfig } = await import('@/lib/session-config')
+    const resolvedCdModel = resolveConfig(
+      'cdModel',
+      cdModel as any,
+      effectiveSessionId,
+      'opus',  // SMPL default — Claude Code resolves via ANTHROPIC_DEFAULT_OPUS_MODEL
+    )
+    // Touch the unused destructured vars so TS doesn't complain — they're
+    // still accepted in the body for forward-compat (page.tsx sends them).
+    void executionMode; void webDevModel
 
     console.log(`[${requestId}] OskarOS Session: ${effectiveSessionId}, Bridge: ${bridgeManager.hasProcess(effectiveSessionId) ? 'EXISTING' : 'NEW'}`)
 
@@ -245,9 +263,22 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // Get the last user message
-    const lastUserMessage = messages.filter(m => m.role === 'user').pop()
-    const currentMessage = lastUserMessage?.content || 'Hello! I want to create a booking page for my business.'
+    // Pick the "current" user message — i.e., the one this turn is
+    // responding to. Two paths:
+    //   1. Client passed `currentMessage` explicitly. ALWAYS prefer this.
+    //      The queue + drain pipeline dispatches one message per turn,
+    //      and the dispatched content may NOT be the most recent
+    //      user-role message in the history (the user may have queued
+    //      additional messages mid-stream that landed in `messages` but
+    //      are awaiting their own dispatch). Without this guard the
+    //      route picked .pop() of the user-filter and silently dropped
+    //      every queued message except the latest. Ralph 2026-05-02.
+    //   2. Fallback: pick the last user-role message in history. Covers
+    //      legacy callers and the no-queue-no-mid-stream-message case.
+    const currentMessage = (typeof body.currentMessage === 'string' && body.currentMessage.length > 0)
+      ? body.currentMessage
+      : (messages.filter(m => m.role === 'user').pop()?.content
+        || 'Hello! I want to create a booking page for my business.')
 
     console.log(`[${requestId}] System prompt: ${fullSystemPrompt.length} chars, User prompt: ${currentMessage.length} chars`)
 
@@ -275,18 +306,78 @@ export async function POST(req: NextRequest) {
             : effectiveSessionId  // new spawn
 
           sendEvent({ type: 'start', message: bridgeManager.hasProcess(effectiveSessionId) ? 'Resuming bridge session...' : 'Starting Claude Code bridge...', cliSessionId: bridgeCliSessionId })
+          // Bug M (Ralph 2026-05-04): seed the badge from the bridge's
+          // CACHED actual model when one exists (resumed sessions).
+          // Falls back to the configured cdModel ONLY when it's a real
+          // value — never seeds 'auto' (the literal string would render
+          // as AUTO in the badge, not what the user wants). Once Claude
+          // CLI's init event fires, the model_info{source:'init'} event
+          // below overrides whatever was seeded with truth on the wire.
+          const cachedActual = bridgeManager.getProcessActualModel?.(effectiveSessionId) ?? null
+          if (cachedActual) {
+            sendEvent({ type: 'model_info', model: cachedActual, source: 'init' })
+          } else if (resolvedCdModel && resolvedCdModel !== 'auto') {
+            sendEvent({ type: 'model_info', model: resolvedCdModel, source: 'config' })
+          }
 
           let fullOutput = ''
           let vibeCount = 0
 
+          // Bridge respawn on CD model change (Ralph 2026-05-04). CLI
+          // subprocesses are model-locked at spawn — if the user toggled
+          // CD model since the last turn, the only way the new model
+          // takes effect is to kill the bridge and let it respawn fresh.
+          // One-turn delay is the price; surfaced via snackbar so the
+          // user knows the click registered.
+          const currentBridgeModel = bridgeManager.getProcessModel?.(effectiveSessionId) ?? null
+          if (currentBridgeModel && currentBridgeModel !== resolvedCdModel) {
+            console.log(
+              `[${requestId}] CD model changed (${currentBridgeModel} → ${resolvedCdModel}); killing bridge for respawn`,
+            )
+            try {
+              const { publish } = await import('@/lib/event-bus')
+              publish(effectiveSessionId, {
+                type: 'cd_snackbar',
+                text: `Switching CD to ${resolvedCdModel}…`,
+                severity: 'info',
+                sticky: false,
+              } as any)
+            } catch { /* non-fatal */ }
+            try { bridgeManager.kill?.(effectiveSessionId) } catch { /* non-fatal */ }
+          }
+
           // Stream response from bridge
           for await (const event of bridgeManager.sendMessage(effectiveSessionId, currentMessage, {
-            model: 'claude-opus-4-7[1m]',
+            model: resolvedCdModel,
             systemPrompt: fullSystemPrompt,
             cwd: process.cwd()
           })) {
+            // Bug M (Ralph 2026-05-04): forward Claude CLI's system/init
+            // model field to the client so the input-bar badge shows the
+            // ACTUAL model on the wire (matches open-design's mechanism).
+            // When ANTHROPIC_BASE_URL is base-URL-piped to Z.ai/GLM, the
+            // init event reports the GLM model identifier — that's the
+            // truth we want displayed, not the user's TopBar request.
+            // source:'init' lets the client know this is the wire truth,
+            // overrides any config-seeded model_info from the start event.
+            if (((event.type === 'init') || (event.type === 'system' && (event as any).subtype === 'init')) && (event as any).model) {
+              sendEvent({
+                type: 'model_info',
+                model: (event as any).model,
+                sessionId: (event as any).session_id ?? null,
+                source: 'init',
+              })
+            }
             // Forward events to frontend
             if (event.type === 'assistant' && event.message?.content) {
+              // 2026-05-05 (Ralph): truth-on-wire. Init reports what Claude
+              // Code THINKS it's using (post-tier-resolution); message.model
+              // reports what the upstream actually served. Different when
+              // Z.ai reroutes claude-opus-4-7 → glm-4.7. source:'wire'
+              // outranks source:'init' in the frontend trust ladder.
+              if (typeof (event as any).message?.model === 'string' && (event as any).message.model.length > 0) {
+                sendEvent({ type: 'model_info', model: (event as any).message.model, source: 'wire' })
+              }
               for (const block of event.message.content) {
                 if (block.type === 'text') {
                   fullOutput += block.text
@@ -334,31 +425,47 @@ export async function POST(req: NextRequest) {
               let cachedInputTokens = 0
               let realInputTokens = 0
               let estimatedContextSize = 0
-              let contextWindow = 200000
-              // Get contextWindow from modelUsage (only place it exists).
-              //
-              // 2026-04-17 fix: the previous code took `Object.keys(modelUsage)[0]`
-              // which silently picks whichever model the CLI inserted FIRST.
-              // For requests served by Opus 4.7 [1m], the CLI also reports
-              // Haiku as a sub-model (likely an internal summarizer), and
-              // Haiku appears first in the object → we got Haiku's 200K
-              // window instead of Opus[1m]'s 1M. Result: every USAGE.json
-              // entry showed contextWindow=200000 and contextPct values >100%
-              // (130-150%), making the "we have 1M" promise look broken.
-              //
-              // Fix: pick the LARGEST contextWindow among reported models.
-              // The answering model is always at least as big as any helper
-              // model, so max() gives us the true window. If only one model
-              // is reported, max() returns that one. Always honest.
-              if (event.modelUsage) {
-                const windows = Object.values(event.modelUsage)
-                  .map((u: any) => u?.contextWindow)
-                  .filter((n: any) => typeof n === 'number' && n > 0)
-                if (windows.length > 0) {
-                  contextWindow = Math.max(...windows)
-                }
+              // 2026-05-04 (Ralph, Bug L): default fallback uses the
+              // per-model lookup instead of hardcoded 200K. The dynamic
+              // path below (event.modelUsage) overrides this when Claude
+              // Code CLI reports usage; the fallback is only used when
+              // modelUsage is missing/empty (rare but possible during
+              // bridge-respawn windows).
+              const { getContextWindow } = await import('@/lib/providers/model-context')
+              // Trust wire truth, not the request. event.modelUsage keys are
+              // the actual model that served the response (e.g. 'glm-4.7' on
+              // Z.ai, not 'claude-opus-4-7[1m]' from our config). Fall back
+              // to the request identifier only when modelUsage is absent.
+              const wireModelKey = event.modelUsage && Object.keys(event.modelUsage).length > 0
+                ? Object.keys(event.modelUsage)[0]
+                : resolvedCdModel
+              let contextWindow = getContextWindow(wireModelKey)
+              // event.modelUsage also reports contextWindow directly from the
+              // wire. Use that when available — it's the most accurate.
+              if (event.modelUsage && event.modelUsage[wireModelKey]?.contextWindow) {
+                contextWindow = event.modelUsage[wireModelKey].contextWindow
               }
-              // Estimate actual context fill
+
+              // Estimate actual context fill — RESTORED from git
+              // (Ralph 2026-05-04: "CLI = to version in GIT").
+              //
+              // Insight: Claude Code's result.usage cache_read is the
+              // CUMULATIVE bytes-read across all turns in the --print
+              // invocation. Each turn re-reads the entire cache, so over
+              // N turns cache_read ≈ N × actual_cache_size. Divide by
+              // num_turns to get the cache that actually exists in the
+              // window right now. input_tokens and cache_creation are
+              // per-turn deltas (new content added this turn) — do NOT
+              // divide them.
+              //
+              //   actual_cache_in_window = cache_read / num_turns + cache_creation
+              //   per_call_fill = input_tokens + actual_cache_in_window
+              //
+              // This is the formula that produced sane percentages for
+              // months. The variant I tried (divide everything by
+              // num_turns) underestimates fill — Ralph's whole point of
+              // the badge is to know when context is COLLAPSING so he
+              // can trigger order66.
               if (event.usage) {
                 const numTurns = event.num_turns || 1
                 const cacheRead = event.usage.cache_read_input_tokens || 0
@@ -366,8 +473,10 @@ export async function POST(req: NextRequest) {
                 realInputTokens = event.usage.input_tokens || 0
                 // Actual cached content in window = what existed (cache_read / turns) + what's new (cache_creation)
                 cachedInputTokens = Math.round(cacheRead / numTurns) + cacheCreation
-                estimatedContextSize = cachedInputTokens + realInputTokens
-                contextPct = Math.round((estimatedContextSize / contextWindow) * 100)
+                estimatedContextSize = realInputTokens + cachedInputTokens
+                contextPct = contextWindow > 0
+                  ? Math.round((estimatedContextSize / contextWindow) * 100)
+                  : 0
                 console.log(`[${requestId}] Context: ${contextPct}% (${estimatedContextSize}/${contextWindow} — turns:${numTurns} cached:${cachedInputTokens} new:${realInputTokens} raw_billing:${cacheRead + cacheCreation + realInputTokens})`)
               }
 
@@ -394,8 +503,9 @@ export async function POST(req: NextRequest) {
                     'CD',
                     { inputTokens, outputTokens, cost: bridgeCumulativeCost },
                     'Chat interaction (bridge)',
-                    { contextPct, contextWindow },
+                    { contextPct, contextWindow, contextSize: estimatedContextSize },
                     bridgeCumulativeCost,
+                    'cli',  // Bug N: tag entry as CLI mode
                   )
                 }
               } catch (err) { console.error(`[${requestId}] Failed to track usage:`, err) }

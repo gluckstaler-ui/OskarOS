@@ -74,13 +74,34 @@ export const WEBDEV_TOOL_DEFINITIONS = [
     },
     {
         name: 'report_build_progress',
-        description: 'Optional. Emit a progress milestone mid-build so the user sees what ' +
-            'is happening in the live feed. Examples: "Hero section built", "Menu ' +
-            'section building". Pure UX; no orchestration effects.',
+        description: 'Emit a progress signal mid-build. Two shapes:\n' +
+            '  1. STAGE TRANSITION (required for live BuildJobCard timeline):\n' +
+            '       report_build_progress({stage: "html", milestone: "HTML written to disk"})\n' +
+            '       report_build_progress({stage: "verify", milestone: "Self-checking output"})\n' +
+            '     Call once per stage. The route flips the row\'s timeline dot from\n' +
+            '     queued → html → verify so the user sees progress in real time.\n' +
+            '  2. FREE-FORM MILESTONE (no stage): "Hero section built", "Menu wired".\n' +
+            '     Surfaces as a bullet under the row in single-vibe view. Optional.',
         inputSchema: {
             type: 'object',
             properties: {
-                milestone: { type: 'string' },
+                // Ralph 2026-05-06 fix: `stage` was missing from the schema even though
+                // the agent prompt told WebDev to call with it. The MCP validator dropped
+                // the arg silently → onToolCall forwarder never saw `stage` → live
+                // timeline never advanced past queued. Both contracts now agree.
+                stage: {
+                    type: 'string',
+                    enum: ['html', 'verify'],
+                    description: 'Pipeline-stage transition signal. Call with "html" the moment ' +
+                        'you start writing the .html file; call with "verify" right ' +
+                        'after the file is on disk and you\'re self-checking. Omit for ' +
+                        'free-form milestones.',
+                },
+                milestone: {
+                    type: 'string',
+                    description: 'Human-readable status line. With stage: a one-line "what just ' +
+                        'happened". Without stage: a free-form bullet for the row.',
+                },
             },
             required: ['milestone'],
         },

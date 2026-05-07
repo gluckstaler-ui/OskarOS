@@ -87,9 +87,14 @@ export async function GET(req: NextRequest) {
         // Shared progress callback → SSE events
         const onProgress = (event: ProgressEvent) => {
           if (aborted || streamClosed) return
+          // 2026-05-03 (Ralph): pass-through with field-defaults rather than
+          // hand-picking. The previous version stripped every field except
+          // {agent, phase, stage, detail} — which silently dropped `progress`
+          // (added 2026-05-03 for per-pass bar advance) and any future
+          // fields. Forward the whole event; nullify only the optional
+          // fields the overlay expects to be either set or null.
           send({
-            agent: event.agent,
-            phase: event.phase,
+            ...event,
             stage: event.stage || null,
             detail: event.detail || null,
           })

@@ -105,12 +105,33 @@ export async function POST(req: NextRequest) {
         continue
       }
 
-      // Apply src (only meaningful for <img>; harmless on other elements)
+      // Apply src. HTML <img> uses the `src` attribute; SVG <image> uses
+      // `href` (modern) and `xlink:href` (legacy fallback). The client
+      // sends `src` regardless of element type — the server picks the
+      // right attribute based on tagName.
       if (typeof edit.src === 'string') {
+        const tag = el.tagName
+        // jsdom returns SVG element tagNames in their original case
+        // (lowercase for SVG, uppercase for HTML). HTML <img> is 'IMG';
+        // SVG <image> is 'image'.
+        const isSvgImage = tag === 'image' || tag.toLowerCase() === 'image' && tag !== 'IMG'
         if (edit.src.length === 0) {
-          el.removeAttribute('src')
+          if (isSvgImage) {
+            el.removeAttribute('href')
+            el.removeAttribute('xlink:href')
+          } else {
+            el.removeAttribute('src')
+          }
         } else {
-          el.setAttribute('src', edit.src)
+          if (isSvgImage) {
+            el.setAttribute('href', edit.src)
+            // Also update xlink:href if the element had one (legacy renderers)
+            if (el.hasAttribute('xlink:href')) {
+              el.setAttribute('xlink:href', edit.src)
+            }
+          } else {
+            el.setAttribute('src', edit.src)
+          }
         }
       }
 

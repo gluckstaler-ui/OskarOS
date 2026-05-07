@@ -2,6 +2,140 @@
 
 > What to steal from Claude Code, what to adapt, what to skip.
 > Goal: maximum capability from minimum code. No bloat.
+> Status block added: 2026-05-01
+
+---
+
+## STATUS UPDATE — 2026-05-01
+
+Plan body below is preserved for context. This is the earlier, higher-level "what to steal from Anthropic's source" plan that preceded the more detailed `DREAMER-IMPLEMENTATION-SPEC.md`. Same fate: **wholly superseded by Sage**. Phase 1 partially shipped with different scope; Phases 2-5 were never built as designed. Sage replaced the entire dreaming/extraction/recall apparatus.
+
+The interesting question this plan raises and the others don't: **of the Anthropic source code this plan flagged as steal-worthy, what's actually still worth porting?** Answered in the new "NICE-TO-HAVE FROM ANTHROPIC'S SOURCE" section below.
+
+### STATUS PHASE 1 — Memory Directory - PARTIALLY SHIPPED (different scope)
+
+**SHIPPED:** `lib/memory/paths.ts` exists; per-session `public/{sessionId}/user.md` is the durable memory artifact (analogous to the planned `public/{sessionId}/memory/` dir but flatter — one file, not a directory of topic files with frontmatter).
+
+**CHANGED:**
+- The plan's `lib/memory/{scan,age,types,truncate}.ts` modules were **never built**.
+- The 4-type taxonomy (user/feedback/project/reference) was **dropped** — Sage uses an unstructured markdown portrait.
+- `memory/MEMORY.md` index with frontmatter topic files — **dropped**. Sage writes ONE file per session (`user.md`) plus the global `agents/CD-MEMORY.md`.
+- The plan's `formatMemoryManifest()` for agent injection — **dropped**. Sage's portrait IS the manifest; no separate index pass.
+
+**DO NOT IMPLEMENT:**
+- `lib/memory/scan.ts` recursive readdir scanner.
+- `lib/memory/types.ts` 4-type taxonomy.
+- `lib/memory/age.ts` staleness math (deferred — see NICE-TO-HAVE).
+- `lib/memory/truncate.ts` (deferred — see NICE-TO-HAVE).
+- Per-session `memory/` subdirectory with topic files. Use `user.md` as the single durable artifact.
+
+### STATUS PHASE 2 — Dreamer Agent - NOT SHIPPED AS DESIGNED
+
+**SHIPPED INSTEAD:** Sage subsystem.
+- `app/api/dream/route.ts` exists but invokes `runDreamer()` which is the Sage portrait painter, not the planned dream-engine.
+- `lib/memory/dreamer.ts` is Sage runtime (file is named for legacy reasons; identity is Sage).
+
+**CHANGED — every gate, every primitive:**
+- **Gate 1 (4-hour time):** dropped. Sage runs on session-end, not auto-trigger.
+- **Gate 2 (15-interaction count):** dropped. Same reason.
+- **Gate 3 (lock file with mtime trick):** dropped. In-process `pauseLumberjack()/resumeLumberjack()` is the lock.
+- **`consolidation-lock.ts` / `consolidation-prompt.ts`** — never built.
+- **`dream-engine.ts`** — never built.
+- **`HOLDER_STALE_MS = 60 * 60 * 1000`** — irrelevant.
+
+**DO NOT IMPLEMENT:**
+- 3-gate auto-trigger system.
+- `consolidation-lock.ts` PID file with mtime semantics — replaced by in-process pause flag.
+- `consolidation-prompt.ts` 4-phase template — Sage has its own portrait painter prompt.
+- `dream-engine.ts` as a separate module — runtime lives in `lib/memory/dreamer.ts`.
+- Cron-driven dream cycles. Session-end is the trigger.
+
+### STATUS PHASE 3 — Memory Recall - NOT SHIPPED
+
+**SHIPPED INSTEAD:** Sage's portrait is loaded into CD's boot prompt unconditionally — there is no per-query selection.
+
+**DO NOT IMPLEMENT:**
+- `lib/memory/recall.ts` with Sonnet-driven selection of ≤5 relevant files.
+- `SELECT_MEMORIES_SYSTEM_PROMPT` and the JSON output schema for memory selection.
+- The `alreadySurfaced` dedup pattern.
+- Memory injection block in `buildCDPrompt()` of the plan's shape (`## RECALLED MEMORIES`). The portrait is injected as portrait, not as recalled-shortlist.
+
+### STATUS PHASE 4 — Extract Memories - NOT SHIPPED
+
+**SHIPPED INSTEAD:** Sage extracts at session-end via the portrait pass. There is no post-turn coalesced extractor.
+
+**DO NOT IMPLEMENT:**
+- `lib/memory/extract.ts` post-turn extractor.
+- `lib/memory/extract-prompt.ts` with Turn-1-reads / Turn-2-writes / maxTurns-5 efficiency instructions (deferred — see NICE-TO-HAVE).
+- The coalesced execution pattern (deferred — see NICE-TO-HAVE).
+- `lastExtractedMessageIndex` per-session in-memory cursor.
+- Hook in `chat-stream` route that fires extraction after each `result` event.
+
+### STATUS PHASE 5 — UI Integration - NOT SHIPPED
+
+**SHIPPED:** A different memory UI surface — Director Mode's editing panel + the Sentinel Ti audit panel + the chat side-panel showing `agent_inbox` events. None of those are the planned MemoryIndicator/MemoryBrowser.
+
+**DO NOT IMPLEMENT:**
+- 🧠 icon + memory file count badge in TopBar (no per-session memory file list to count).
+- `MemoryBrowser.tsx` slide-out panel.
+- "Dream Now" button (use `POST /api/dream` directly during development; not a user-facing feature).
+- SSE dream-progress UI (Sage runs at session-end, no real-time UI needed).
+
+---
+
+## NICE-TO-HAVE FROM ANTHROPIC'S SOURCE (rewritten 2026-05-01 against actual codebase)
+
+The plan flagged ~10 Anthropic primitives as steal-worthy. **Most are now structurally incompatible with how Sage actually works.** Sage Portrait is a strict no-tools text-in/text-out function (the agent file forbids tool calls); Sage 240/40 has the JS runner do all mechanical work and uses the model only for one-shot narrative compression per pass. The "agentic loop" assumptions in Anthropic's `extractMemories.ts` and `findRelevantMemories.ts` don't apply.
+
+This section is rewritten against the **actual** state of `lib/memory/dreamer.ts` (1948 LOC), `lib/memory/anthropic.ts`, `agents/sage-portrait.md`, and `agents/sage-240-40.md`.
+
+### What's worth porting, in priority order:
+
+### 1. Prompt caching on the system-prompt block — HIGH VALUE (not in the original plan)
+
+**Source:** Anthropic SDK `cache_control: { type: 'ephemeral' }` on message blocks.
+**The hole in current Sage:** `lib/memory/anthropic.ts` calls Sage via `claude --print` subprocess with `--system-prompt-file`. **No caching configured anywhere in lib/memory/.** Each Sage 240/40 pass re-sends the full agent file (`sage-240-40.md` ≈ 8KB system prompt). At the highest tier, Sage 240/40 runs **6 passes per cycle** (`decidePassCount()`, `lib/memory/dreamer.ts:338`). That's 6× system-prompt re-transmission per cycle, plus Sage Portrait's own 8KB system prompt. Order 66 fires both in parallel — every Order 66 spends prompt-token budget that prompt caching would eliminate.
+**Why it matters:** at scale this is the biggest single cost line for Sage. The agent files are stable across passes; they're a textbook caching candidate.
+**Where it would land:** CLI-mode (which Sage uses) inherits caching from the CLI's own settings, but our `--system-prompt-file` path isn't necessarily configured for it. Either (a) verify the CLI caches `--system-prompt-file` content, (b) switch the Sage call path to the Anthropic SDK with explicit `cache_control`, or (c) move sage system prompts to `~/.claude/CLAUDE.md`-style canonical locations the CLI auto-caches.
+**When to port:** before billing scales, OR before Order 66 starts firing more than ~10×/day. Today it's measurable but not painful.
+**Effort:** depends on path. (a) one-day investigation. (b) ~80 LOC migrating `callAnthropic()` from CLI to SDK. (c) prompt-loading reorg, ~40 LOC.
+
+
+### Explicitly NOT worth porting (carried forward, validated)
+
+| Anthropic primitive | Why not |
+|---|---|
+| `consolidationLock.ts` mtime trick | Single-process Next.js. In-process Map (item #3) is the right shape. |
+| 4-type memory taxonomy (user/feedback/project/reference) | Sage's portrait is unstructured by design. The four buckets in `sage-portrait.md` (Taste / Quality Bar / Communication / Working Context) ARE the taxonomy and they're domain-fit, not Anthropic-generic. |
+| `runForkedAgent` + `cacheSafeParams` | CLI subprocess infra. `lib/memory/anthropic.ts` calls `claude --print` directly. |
+| `findRelevantMemories.ts` Sonnet selection | Useless — OskarOS has one memory file per session (`user.md`) and one global (`CD-MEMORY.md`). Selection prompt assumes ≥10 candidate files. |
+| 3-gate auto-trigger | Order 65/66 are explicit triggers driven by user action. Cleaner than time/count/lock heuristics. |
+| KAIROS daily-log | Already marked "not yet" in the plan; status unchanged. |
+| Team memory | Single-user. |
+| `scanMemoryFiles()` recursive readdir + frontmatter | One memory file per session. No directory to scan. |
+
+### How to actually port one of these
+
+If a need arises:
+1. Read the Anthropic source from `external/claude-code/` (or wherever the reference is currently mounted — paths shift).
+2. Verbatim copy to `lib/memory/` with attribution comment.
+3. Adapt to Sage's actual shape (text-in/text-out, JS-driven mechanics, per-session paths) — verbatim port is rarely the right move because the runtime model differs from Anthropic's CLI agent.
+4. Wire into Sage's runtime (`lib/memory/dreamer.ts`) — never as a parallel system.
+5. Add a 3-turn rule entry to `docs/INSTITUTIONAL-MEMORY.md` if the port takes 3+ debugging cycles.
+
+**Hard rule:** do not port "for completeness." Port only when there's a measurable problem the primitive solves AND the primitive's runtime model matches Sage's. If you find yourself recommending an "agentic loop" primitive for Sage, stop — Sage is not an agent loop, it's a JS-orchestrated text-transformation pipeline with a model in the middle.
+
+### STATUS — What IS the source of truth
+
+For memory work today, read these (not this plan):
+- `agents/sage-portrait.md` + `agents/sage-240-40.md` — Sage agent specs
+- `lib/memory/dreamer.ts` — runtime (filename is legacy; identity is Sage)
+- `lib/memory/anthropic.ts` — call layer
+- `lib/memory/paths.ts` — current path layout
+- `app/api/dream/route.ts` — current API shape
+- `agents/CD-MEMORY.md` — institutional memory CD reads on boot
+- `docs/MEMORY-SYSTEM-IMPLEMENTATION-PLAN.md` (its 2026-05-01 status block) — sibling plan with more detail
+- `docs/DREAMER-IMPLEMENTATION-SPEC.md` (its 2026-05-01 status block) — exhaustive spec, also superseded
 
 ---
 

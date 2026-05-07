@@ -21,30 +21,70 @@
   --shadow-card: 0 1px 3px 0 rgba(0, 0, 0, 0.2), 0 1px 2px -1px rgba(0, 0, 0, 0.1);
   --transition-theme: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 
-  /* Status colors (shared across themes) */
-  --success: #10B981;
-  --warning: #F59E0B;
-  --error: #EF4444;
+  /* Status colors (shared across themes). Semantic only — never promoted
+     to heading rank or primary action. ORDER 66 (hard compaction) uses
+     --warning. ORDER 75 (soft compaction / rejuvenate) uses
+     --brand-teal-bright instead — teal is the healing/restoration color
+     in OskarOS, paired with amber for the destructive sibling.
+     2026-05-03 (Ralph) — added --info (blue) and --working (orange) so
+     snackbar info/progress states are distinct from each other AND from
+     the brand teal. Snackbars are typed events; info, working, success,
+     warning, error each get their own hue. */
+  --success: var(--brand-green-bright, #10B981);
+  --warning: #FACC15;   /* yellow — alert/attention, ORDER 75 (was amber #F59E0B; Ralph 2026-05-03: yellow not amber) */
+  --error:   #EF4444;   /* red   — destructive, ORDER 66 */
+  --info:    #3B82F6;   /* blue  — informational, neutral notice */
+  --working: #F97316;   /* orange — in-flight, regenerating, processing */
 
   /* Font families */
   --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   --font-display: 'Inter', sans-serif;
   --font-mono: 'JetBrains Mono', 'SF Mono', Monaco, 'Consolas', monospace;
+
+  /* Ink-on-brand: dark text that reads at 11:1+ on --brand-green-bright
+     (#15B981). Used wherever brand green is the BACKGROUND and text sits
+     on top — primary action buttons, active pills in chrome, etc. White
+     text on #15B981 fails AA (~2.6:1); dark green-ink passes AAA. */
+  --text-on-brand: #042f1f;
 }
 
-/* ONYX THEME (Dark) - Default - matches bento.html */
+/* ONYX THEME (Dark) - Default - matches bento.html
+   2026-05-03 (Ralph) — Onyx cards lifted: bg-card jumped from #18181b
+   to #1e1e22 so cards are MUCH lighter than the surrounding bg.
+   Original was a 15-point RGB lift (subtle); new is ~25-point lift,
+   matching the actual chrome screenshot. Border bumped to #2e2e33 to
+   stay visible against the new lifted card. Hover sits between. */
 [data-theme="onyx"], :root {
   --bg-app: #09090b;
-  --bg-card: #18181b;
-  --bg-card-hover: #27272a;
-  --border-card: #27272a;
+  --bg-card: #1e1e22;
+  --bg-card-hover: #2a2a2e;
+  --border-card: #2e2e33;
   --border-active: #444444;
+  --border-strong: #3f3f46;
   --text-main: #f4f4f5;
   --text-muted: #a1a1aa;
   --text-dim: #52525b;
-  --accent: #3B82F6;
-  --accent-hover: #2563EB;
-  --accent-dim: rgba(59, 130, 246, 0.15);
+
+  /* Brand quartet — the four colors that own buttons + headings.
+     Two brightness levels of green, two of teal. Same four colors live in
+     buttons (primary/secondary), pills, snackbar edges, and headings. No
+     other brand colors exist in OskarOS. (Ralph, 2026-05-03 — Bento ×
+     Territory + Fathom for tables/progress.)
+     2026-05-03 (Ralph) — green-bright corrected to #15B981 (his eyedrop
+     from the actual chrome). Tailwind emerald-500 #10B981 is OFF by 2%
+     in the green channel from what's in the product. EXACTLY this hex. */
+  --brand-green-bright: #15B981;   /* H1, primary action, ON-state pill */
+  --brand-green-deep:   #047857;   /* H3 mono marker, hover/pressed     */
+  --brand-teal-bright:  #5EEAD4;   /* H2, secondary action              */
+  --brand-teal-deep:    #0F766E;   /* link, body emphasis               */
+
+  /* Legacy --accent: was Tailwind blue-500. Blue is NOT in the OskarOS
+     palette — it doesn't appear in the chrome anywhere. Repointed to the
+     brand-green-bright so any component still reading --accent stays
+     in-system. New components should reference --brand-* directly. */
+  --accent: var(--brand-green-bright);
+  --accent-hover: var(--brand-green-deep);
+  --accent-dim: color-mix(in srgb, var(--brand-green-bright) 15%, transparent);
 
   /* Layout tokens for ONYX */
   --radius-card: 12px;
@@ -79,14 +119,30 @@
 
 /* POLAR THEME (Light) - matches bento.html */
 [data-theme="polar"] {
-  --bg-app: #f1f5f9;
+  --bg-app: #f8fafc;
   --bg-card: #ffffff;
-  --bg-card-hover: #f8fafc;
-  --border-card: transparent;
-  --border-active: #e2e8f0;
+  --bg-card-hover: #f1f5f9;
+  --border-card: #e2e8f0;
+  --border-active: #cbd5e1;
+  --border-strong: #cbd5e1;
   --text-main: #0f172a;
   --text-muted: #64748b;
   --text-dim: #94a3b8;
+
+  /* Brand quartet — Polar variant.
+     2026-05-03 (Ralph) — Polar green-bright corrected to #15B980 (his
+     precision eyedrop for Polar specifically). One channel off Onyx's
+     #15B981; visually near-identical but matches his exact eyedrop. */
+  --brand-green-bright: #16ba81;   /* Ralph's exact Polar eyedrop — 2026-05-03 */
+  --brand-green-deep:   #047857;   /* hover/pressed, H3 mono marker     */
+  --brand-teal-bright:  #0F766E;   /* deep teal reads as primary on white */
+  --brand-teal-deep:    #134E4A;
+
+  /* Polar accent stays slate, NOT auto-derived from green. Greenifying
+     every chrome accent in Polar (links, focus rings, popover hovers,
+     etc.) flooded the light theme with green — the original slate accent
+     was the correct choice for a light theme. Brand greens stay reserved
+     for intentional moments (H1, primary action). 2026-05-03 (Ralph). */
   --accent: #0f172a;
   --accent-hover: #1e293b;
   --accent-dim: rgba(15, 23, 42, 0.05);
@@ -222,4 +278,2417 @@ html {
 /* Theme transition utility */
 .theme-transition {
   transition: var(--transition-theme);
+}
+
+/* ============================================
+   MARKDOWN RENDERER (lib/runtime/markdown.tsx)
+   FEATURE-X §1.4 WP-2.3 — CD design direction
+   2026-05-02: hierarchy from weight + size + spacing,
+   NOT color. h1/h2 use Inter Tight; h3/h4 use Inter.
+   h4 dims with tracking-agency uppercase.
+   No theme-foreign colors anywhere.
+   ============================================ */
+
+.md-p {
+  font-family: var(--font-sans);
+  font-size: 14px;
+  line-height: 1.65;
+  margin: 0 0 14px;
+  /* 2026-05-03 (Ralph): inherit color so user-bubbles with inverted color
+     (background:--text-main + color:--bg-app) render their text. Hardcoding
+     var(--text-main) here made user prose invisible (dark text on dark bubble
+     in POLAR). Headings keep brand tokens (--md-h1/h2/h3) — those are
+     deliberate per Navy SEAL spec and read fine against either bubble bg. */
+  color: inherit;
+}
+.md-p:last-child { margin-bottom: 0; }
+
+/* Heading hierarchy — mapped to the brand quartet defined in the theme
+   blocks above. NO new colors invented here; this is pure semantic
+   binding. H1=green-bright, H2=teal-bright, H3=green-deep mono marker,
+   H4=text-muted. Headlines are BIG and Inter Tight, not soft editorial.
+   No glow — Territory military-grade, not Fathom data-viz softness.
+   (Ralph, 2026-05-03 — replaces the prior fabricated #10F0A8 / #22D3EE /
+   #FFD700 set whose comment lied about being "pulled from the screenshot".
+   That set was invented; these are bound.) */
+[data-theme="onyx"], :root {
+  --md-h1: var(--brand-green-bright);
+  --md-h2: var(--brand-teal-bright);
+  --md-h3: var(--brand-teal-bright);   /* 2026-05-03 (Ralph): H3 → teal (was deep emerald) */
+  --md-h1-glow: none;
+  --md-h2-glow: none;
+  --md-h3-glow: none;
+}
+[data-theme="polar"] {
+  --md-h1: var(--brand-green-bright);
+  --md-h2: var(--brand-teal-bright);
+  --md-h3: var(--brand-teal-bright);   /* H3 → teal in both themes */
+  --md-h1-glow: none;
+  --md-h2-glow: none;
+  --md-h3-glow: none;
+}
+
+.md-h1 {
+  /* 2026-05-03 v6 (Ralph): 36px Inter Tight 800 UPPERCASE in #15B981.
+     No border-bottom. Mass alone. */
+  font-family: var(--font-display);
+  font-size: 36px;
+  font-weight: 800;
+  line-height: 1.05;
+  margin: 32px 0 14px;
+  letter-spacing: -0.01em;
+  text-transform: uppercase;
+  color: var(--md-h1);
+}
+
+.md-h2 {
+  /* 26px Inter Tight 800 teal, sentence case. No left-rule. Mass alone. */
+  font-family: var(--font-display);
+  font-size: 26px;
+  font-weight: 800;
+  line-height: 1.15;
+  margin: 26px 0 12px;
+  letter-spacing: -0.015em;
+  color: var(--md-h2);
+}
+
+.md-h3 {
+  /* Navy SEAL: 24px JetBrains Mono 700 UPPERCASE deep emerald, `//` prefix. */
+  font-family: var(--font-mono);
+  font-size: 24px;
+  font-weight: 700;
+  line-height: 1.25;
+  margin: 26px 0 12px;
+  color: var(--md-h3);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+.md-h3::before {
+  content: '// ';
+  color: var(--md-h3);
+  opacity: 0.55;
+}
+
+.md-h4 {
+  /* 18px JetBrains Mono 500 in dim. Sentence case (Ralph dropped UPPERCASE). */
+  font-family: var(--font-mono);
+  font-size: 18px;
+  font-weight: 500;
+  line-height: 1.3;
+  margin: 22px 0 8px;
+  color: var(--text-muted);
+  letter-spacing: 0.02em;
+}
+
+.md-ul, .md-ol {
+  font-family: var(--font-sans);
+  font-size: 14px;
+  line-height: 1.6;
+  margin: 0 0 14px;
+  /* See .md-p — inherit so user-bubble inversion works. */
+  color: inherit;
+}
+/* Top-level: em-dash markers (editorial bento feel) */
+.md-ul {
+  list-style-type: '— ';
+  padding-left: 18px;
+}
+.md-ol {
+  list-style-type: decimal;
+  padding-left: 22px;
+}
+.md-ul li, .md-ol li {
+  margin-bottom: 4px;
+}
+.md-ul li::marker, .md-ol li::marker {
+  color: var(--text-muted);
+}
+/* Nested: mid-dot bullets, one notch smaller */
+.md-ul .md-ul, .md-ol .md-ul, .md-ul .md-ol, .md-ol .md-ol {
+  margin: 4px 0;
+  font-size: 13px;
+  list-style-type: '· ';
+}
+
+/* Code block: 10px radius (one step tighter than --radius-card 12px ONYX,
+   per CD's decoration discipline). */
+.md-code {
+  background: var(--bg-app);
+  border: 1px solid var(--border-card);
+  border-radius: 10px;
+  padding: 12px 14px;
+  margin: 12px 0;
+  overflow-x: auto;
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  line-height: 1.55;
+  color: var(--text-main);
+}
+.md-code code { background: transparent; padding: 0; }
+
+/* Language chip — tracking-agency uppercase via [data-lang]::before */
+.md-code code[data-lang]::before {
+  content: attr(data-lang);
+  display: block;
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+}
+
+.md-inline-code {
+  background: var(--bg-app);
+  border-radius: 4px;
+  padding: 1px 6px;
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  color: var(--text-main);
+  vertical-align: 0.5px;
+}
+
+/* Link: accent color, underline only on hover. No visited state — chat is
+   ephemeral, "visited" is meaningless. */
+.md-link {
+  color: var(--accent, #3B82F6);
+  text-decoration: none;
+  border-bottom: 1px solid transparent;
+  transition: border-color 0.15s ease;
+}
+.md-link:hover {
+  border-bottom-color: var(--accent, #3B82F6);
+}
+
+/* Horizontal rule — semantic boundary, NOT hidden (the old MarkdownRenderer.tsx
+   `hr: () => null` was a wrong fix). 1px dim. */
+.md-hr {
+  border: none;
+  border-top: 1px solid var(--border-card);
+  margin: 20px 0;
+}
+
+/* Tables — added 2026-05-02 per Ralph. Extends OD's parser scope (parser
+   needs a 'tbl' Block kind; see FEATURE-X §1.4 WP-2.3 expanded scope).
+   Bento card pattern: rounded container + thin border, no harsh dividers. */
+.md-table-wrap {
+  margin: 14px 0;
+  border: 1px solid var(--border-card);
+  border-radius: 10px;
+  overflow: hidden;
+  background: var(--bg-card);
+}
+.md-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: var(--font-sans);
+  font-size: 13px;
+  line-height: 1.45;
+}
+.md-table thead {
+  background: var(--bg-app);
+  border-bottom: 1px solid var(--border-card);
+}
+.md-table th {
+  padding: 9px 14px;
+  font-family: var(--font-sans);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  text-align: left;
+  white-space: nowrap;
+}
+.md-table td {
+  padding: 10px 14px;
+  color: var(--text-main);
+  border-top: 1px solid var(--border-card);
+  vertical-align: top;
+}
+.md-table tbody tr:first-child td { border-top: none; }
+.md-table td code {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--md-h2);   /* sky tint for inline-code in tables */
+}
+
+/* Blockquote — editorial italic feel for "the bar to beat" callouts. */
+.md-bq {
+  border-left: 3px solid var(--accent, #3B82F6);
+  padding: 6px 16px;
+  margin: 14px 0;
+  color: var(--text-muted);
+  font-family: var(--font-display);
+  font-style: italic;
+  font-size: 14.5px;
+  line-height: 1.5;
+  background: color-mix(in srgb, var(--accent, #3B82F6) 6%, transparent);
+  border-radius: 0 8px 8px 0;
+}
+
+/* Callout variants — render-rule: markdown.tsx detects ⚠ / ✓ / ℹ / ✗ at the
+   start of a blockquote and emits data-kind. Color/bg shifts to status semantics. */
+.md-bq[data-kind="warn"] {
+  border-left-color: var(--warning);
+  background: color-mix(in srgb, var(--warning) 8%, transparent);
+}
+.md-bq[data-kind="success"] {
+  border-left-color: var(--success);
+  background: color-mix(in srgb, var(--success) 8%, transparent);
+}
+.md-bq[data-kind="info"] {
+  border-left-color: var(--accent, #3B82F6);
+  background: color-mix(in srgb, var(--accent, #3B82F6) 6%, transparent);
+}
+.md-bq[data-kind="error"] {
+  border-left-color: var(--error);
+  background: color-mix(in srgb, var(--error) 8%, transparent);
+}
+
+/* GFM tables in chat (Ralph 2026-05-06).
+   Bento × Territory grammar: pill-bg header row, border-card row separators,
+   JetBrains Mono for header labels (machine-flavored), Inter for cell body
+   (human-readable per the type-discipline doctrine). */
+.md-table {
+  width: 100%;
+  margin: 14px 0;
+  border-collapse: collapse;
+  border: 1px solid var(--border-card);
+  border-radius: 8px;
+  overflow: hidden; /* clip the rounded corners against the inner cells */
+  font-size: 13px;
+  line-height: 1.5;
+  /* Two-stage stack: outer ring is a real border (for the rounded clip),
+     inner separator gets the existing border-card token. */
+}
+.md-table thead {
+  background: var(--pill-bg);
+}
+.md-table th {
+  padding: 8px 12px;
+  text-align: left;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-main);
+  border-bottom: 1px solid var(--border-card);
+  white-space: nowrap;
+}
+.md-table td {
+  padding: 8px 12px;
+  text-align: left;
+  vertical-align: top;
+  color: var(--text-main);
+  border-bottom: 1px solid var(--border-card);
+}
+.md-table tbody tr:last-child td {
+  border-bottom: none;
+}
+.md-table tbody tr:hover {
+  background: color-mix(in srgb, var(--text-main) 4%, transparent);
+}
+.md-table code {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  padding: 1px 5px;
+  border-radius: 3px;
+  background: var(--pill-bg);
+  color: var(--text-main);
+}
+
+/* Strong (bold) — semantic "this matters" gets H2 violet treatment.
+   Reuses the heading-2 token, no new color invented. */
+.md-p strong, .md-ul strong, .md-ol strong, .md-bq strong {
+  font-weight: 700;
+  color: var(--md-h2);
+}
+
+/* Emphasis (italic) — Inter Tight italic for body text */
+.md-p em, .md-ul em, .md-ol em {
+  font-style: italic;
+  font-family: var(--font-display);
+  color: var(--text-main);
+}
+
+/* ============================================
+   LOADING PRIMITIVES (components/chat/Loading.tsx)
+   FEATURE-X §1.4 WP-2.6
+   ============================================ */
+
+.loading-spinner {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.loading-spinner-icon {
+  display: inline-block;
+  border: 2px solid var(--border-card);
+  border-top-color: var(--accent, #3B82F6);
+  border-radius: 50%;
+  animation: oskar-spin 0.7s linear infinite;
+}
+
+.loading-spinner-label {
+  white-space: nowrap;
+}
+
+@keyframes oskar-spin {
+  to { transform: rotate(360deg); }
+}
+
+.skeleton-block {
+  display: inline-block;
+  background-color: var(--bg-app);
+  position: relative;
+  overflow: hidden;
+}
+
+.skeleton-shimmer,
+.skeleton-block::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.04) 50%,
+    transparent 100%
+  );
+  animation: oskar-shimmer 1.4s ease-in-out infinite;
+}
+
+@keyframes oskar-shimmer {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+.design-card-skeleton {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 8px;
+  border: 1px solid var(--border-card);
+  border-radius: var(--radius-card);
+  background-color: var(--bg-card);
+}
+
+.design-card-skeleton .design-card-thumb {
+  width: 100%;
+  aspect-ratio: 16 / 10;
+  border-radius: 8px;
+  background-color: var(--bg-app);
+  position: relative;
+  overflow: hidden;
+}
+
+.design-card-meta-block {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 4px 2px 2px;
+}
+
+.centered-loader {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  width: 100%;
+  height: 100%;
+  min-height: 120px;
+  color: var(--text-muted);
+}
+
+.centered-loader-label {
+  font-size: 12px;
+}
+
+/* ============================================
+   UNFINISHED TODOS PANEL (components/chat/UnfinishedTodosPanel.tsx)
+   FEATURE-X §1.4 WP-2.8 — CD redesign 2026-05-02
+   Agent-Order positioning: "Working on this:" with
+   sparkle icon, pulse on in_progress glyph, transparent
+   Continue button with ink/border tracking-agency.
+   ============================================ */
+
+/*
+ * UNFINISHED TODOS PANEL — cowork-aligned redesign 2026-05-06.
+ *
+ * Visual grammar:
+ *   - Header: "Progress" + chevron-down collapse. No decorative icon.
+ *   - Completed row: filled --success circle + white check (SVG).
+ *   - In-progress row: filled --warning circle + position number inside.
+ *   - Pending row: hollow --text-muted ring.
+ *   - Strikethrough on completed text.
+ *   - Recommend-a-change chat-bubble button on hover (non-completed rows).
+ *
+ * Theme: all colors come from CSS vars defined per-theme in the root
+ * `[data-theme="onyx"]` / `[data-theme="polar"]` blocks earlier in this
+ * file, so the panel auto-flips between dark/light without any
+ * theme-specific overrides here.
+ */
+
+/*
+ * Territory × Fathom × Bento synthesis pass 2026-05-06 (Ralph: "should look
+ * like a mixture of Territory Studios and Fathom").
+ *
+ * Territory bones — military-grade clarity:
+ *   - Mono uppercase head with tracking-agency, JetBrains Mono.
+ *   - Border-bottom rule under head + between every row (Territory pc-item).
+ *   - 2px accent left-bar on the active row (Territory pc-run::after).
+ *   - Tabular-nums count badge in the head, Territory's HUD readout.
+ *
+ * Fathom skin — consumer-soft Material:
+ *   - Inter body text (NOT mono) for the row content — sentences are
+ *     readable, not telegraphic. (Fathom pc-item is Inter 13/500.)
+ *   - Material ripple pulse on the active pip (Fathom pc-run::before's
+ *     box-shadow keyframes), not a gross opacity strobe.
+ *
+ * Bento corners — OskarOS shell:
+ *   - Outer card stays bento (radius, shadow, lifted bg).
+ *   - Side padding moved off the card and onto each row so dividers run
+ *     edge-to-edge inside the bento, Territory-style.
+ *   - 28/0/24 outer with 14/30 per-row.
+ */
+/*
+ * Unified head + optional list architecture (Ralph 2026-05-06): the head
+ * is ALWAYS rendered identically. Click it → toggles minimized →
+ * shows/hides the list below. The head's height NEVER changes between
+ * states ("things cannot get bigger, it would look awful"). Collapsed
+ * panel = head only; expanded panel = head + list.
+ */
+.unfinished-todos {
+  background: var(--bg-card);
+  border: 1px solid var(--border-card);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
+  padding: 0;
+  margin: 0;
+  max-width: 420px;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  max-height: 100%;
+  min-height: 0;
+  overflow: hidden;
+}
+
+/*
+ * When nested inside `<LiveOverlay>` (top-right ambient strip), the parent
+ * OverlayCard already provides the bento. Strip the inner CHROME but KEEP
+ * the inner padding so the panel keeps its breathing room.
+ *
+ * Lock width to a fixed value (Ralph 2026-05-06: "when I open it, it
+ * jumps by 10 pixels — jumping is a no-go, the collapsed state needs to
+ * be 10 pixels wider"). Without this, the collapsed head sized to its
+ * natural content while the expanded panel grew to the widest list row,
+ * producing a visible width shift on toggle. Locking the panel + the
+ * head min-width to 380px keeps both states identical.
+ */
+.live-overlay .unfinished-todos {
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+  width: 380px;
+  max-width: 380px;
+  flex-shrink: 0;
+}
+.live-overlay .unfinished-todos-head {
+  /* Head explicitly fills the 380 panel — guarantees collapsed pill is
+     the same width as expanded, even when the head's natural intrinsic
+     width is smaller than the panel. */
+  min-width: 100%;
+}
+
+/*
+ * Head row — clickable button, same height + padding in BOTH states.
+ * Territory mono UPPERCASE label, tracking-agency, count + summary as
+ * HUD readout. Border-bottom only when the list follows (collapsed = no
+ * border-bottom because there's nothing below to separate from).
+ *
+ * 14/22 padding gives ~46px total head height — aligns vertically with
+ * the 56px chat-panel header when the LiveOverlay anchors at top: 6.
+ */
+.unfinished-todos-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 22px;
+  background: transparent;
+  border: none;
+  width: 100%;
+  cursor: pointer;
+  font-family: inherit;
+  text-align: left;
+  flex-shrink: 0;
+  transition: background-color 120ms ease;
+}
+.unfinished-todos-head:hover {
+  background: color-mix(in srgb, var(--success, #15B981) 4%, transparent);
+}
+
+/* Border-bottom only when expanded — sibling list follows. data attribute
+   on the panel root drives the toggle. */
+.unfinished-todos[data-minimized="false"] .unfinished-todos-head {
+  border-bottom: 1px solid var(--border-card);
+}
+
+.unfinished-todos-head-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--success, #15B981);
+  flex-shrink: 0;
+}
+
+.unfinished-todos-title {
+  font-family: var(--font-mono, 'JetBrains Mono', monospace);
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--success, #15B981);
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+  flex-shrink: 0;
+}
+
+.unfinished-todos-head-sep {
+  color: var(--text-muted);
+  opacity: 0.5;
+  font-family: var(--font-mono, 'JetBrains Mono', monospace);
+  flex-shrink: 0;
+}
+
+.unfinished-todos-head-count {
+  font-family: var(--font-mono, 'JetBrains Mono', monospace);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+  flex-shrink: 0;
+}
+
+/* `.unfinished-todos-head-summary` removed 2026-05-06 — was truncating at
+   380px width. Active task is already shown via the in_progress pip. */
+.unfinished-todos-head-spacer {
+  flex: 1;
+  min-width: 0;
+}
+
+.unfinished-todos-head-chevron {
+  margin-left: 4px;
+  color: var(--text-faint, var(--text-muted));
+  flex-shrink: 0;
+  transition: transform 180ms ease;
+}
+
+/* `.unfinished-todos-collapse` removed 2026-05-06 — head is now the
+   button itself, no separate chevron-button wrapper. */
+
+/*
+ * List — Territory dividers (no gap, border-bottom on every row). Body
+ * text in JetBrains Mono per Ralph 2026-05-06 ("ALL TASKS NEED TO BE IN
+ * JET BRAINS MONO"). Scrolls vertically when the panel's max-height is
+ * exceeded; otherwise renders at natural height.
+ */
+.unfinished-todos-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  /* `flex: 0 1 auto` — natural height, but allowed to SHRINK and scroll
+     when the panel exceeds its max-height. flex-grow: 0 means the list
+     never STRETCHES to fill space (Ralph 2026-05-06: "the MAX length is
+     the input box, big difference"). Panel sizes to content; cap kicks
+     in only when content overflows. */
+  flex: 0 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  /* Slim, theme-aware scrollbar so the panel doesn't grow a chunky
+     OS chrome bar on the right. WebKit + Firefox both covered. */
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-card) transparent;
+}
+.unfinished-todos-list::-webkit-scrollbar {
+  width: 6px;
+}
+.unfinished-todos-list::-webkit-scrollbar-track {
+  background: transparent;
+}
+.unfinished-todos-list::-webkit-scrollbar-thumb {
+  background: var(--border-card);
+  border-radius: 3px;
+}
+.unfinished-todos-list::-webkit-scrollbar-thumb:hover {
+  background: var(--text-muted);
+}
+
+.unfinished-todos-list li {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 14px 22px;
+  min-height: 28px;
+  /*
+   * Body text in JetBrains Mono (Ralph 2026-05-06: "ALL TASKS NEED TO BE
+   * IN JET BRAINS MONO" → then "make font a little bit smaller"). 12px
+   * mono is the comfortable HUD register at our viewing distance.
+   */
+  font-family: var(--font-mono, 'JetBrains Mono', monospace);
+  font-size: 12px;
+  color: var(--text-muted);
+  line-height: 1.55;
+  letter-spacing: 0.005em;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+  position: relative;
+  border-bottom: 1px solid var(--border-card);
+}
+.unfinished-todos-list li:last-child {
+  border-bottom: none;
+}
+
+/* Territory active-row left-bar — 2px accent rail running the full row
+   height. Identifies the live commitment without color-coding the whole
+   row background (which would clash with the bento card surface). */
+.unfinished-todos-list li[data-status="in_progress"]::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: var(--warning, #F59E0B);
+}
+
+/* Pip — base. Status-specific colors below. 18×18 square so the Fathom
+   ripple emits a clean circular halo (oval would distort it). Margin-top
+   nudge aligns the pip's optical center with the first text line at body
+   line-height 1.5 × 14px. currentColor lets the SVG track theme + status. */
+.unfinished-todos-pip {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  margin-top: 2px;
+  color: var(--text-muted);
+}
+
+.unfinished-todos-pip[data-status="completed"] {
+  color: var(--success, #10B981);
+}
+.unfinished-todos-pip[data-status="in_progress"] {
+  color: var(--warning, #F59E0B);
+  border-radius: 999px; /* match circle for the ripple shadow */
+  animation: oskar-todo-ripple 1.8s ease-out infinite;
+}
+.unfinished-todos-pip[data-status="pending"] {
+  color: var(--text-muted);
+}
+
+/* Number-inside-circle: stack the SVG as background, label on top. */
+.unfinished-todos-pip-number {
+  position: relative;
+  display: inline-flex;
+  width: 18px;
+  height: 18px;
+  align-items: center;
+  justify-content: center;
+}
+.unfinished-todos-pip-number .pip-bg {
+  position: absolute;
+  inset: 0;
+}
+.unfinished-todos-pip-number .pip-num-label {
+  position: relative;
+  font-family: var(--font-mono, 'JetBrains Mono', monospace);
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--bg-card);
+  line-height: 1;
+}
+
+.unfinished-todos-list li[data-status="completed"] {
+  color: var(--text-faint, var(--text-muted));
+  text-decoration: line-through;
+  text-decoration-thickness: 1px;
+  text-decoration-color: rgba(127, 127, 127, 0.5);
+}
+
+/* Active row — Territory weight bump + Fathom accent text color. The 2px
+   left bar (above) does the structural identification; weight + color do
+   the typographic identification. Three signals = unmissable. */
+.unfinished-todos-list li[data-status="in_progress"] {
+  color: var(--text-main);
+  font-weight: 600;
+  background: color-mix(in srgb, var(--warning, #F59E0B) 5%, transparent);
+}
+
+.unfinished-todos-text {
+  flex: 1;
+  min-width: 0;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+}
+
+/* Recommend-a-change button — visible on row hover for non-completed rows.
+   Clicking dispatches `cd-recommend-todo` window event; ConversationPanel
+   listens and prefills the chat composer. Read-only panel; chat is the
+   write path. */
+/*
+ * Row-action button (hover-revealed). Two variants:
+ *   .recommend — chat-bubble icon for non-completed rows. Hover = accent color.
+ *   .delete    — trash icon for completed rows. Hover = error/danger red.
+ *
+ * Both share the same chrome (border, radius, size) so the row geometry
+ * doesn't shift when the user moves between rows of different status.
+ */
+.unfinished-todos-row-action {
+  flex-shrink: 0;
+  background: transparent;
+  border: 1px solid var(--border-card);
+  border-radius: 6px;
+  width: 26px;
+  height: 26px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: color 120ms ease, border-color 120ms ease, background-color 120ms ease;
+}
+.unfinished-todos-row-action:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+.unfinished-todos-row-action.recommend:hover {
+  color: var(--accent, var(--success, #10B981));
+  border-color: var(--accent, var(--success, #10B981));
+  background: var(--bg-app);
+}
+.unfinished-todos-row-action.delete:hover:not(:disabled) {
+  color: var(--error, #EF4444);
+  border-color: var(--error, #EF4444);
+  background: var(--bg-app);
+}
+
+/*
+ * Fathom Material ripple — the active pip emits an expanding accent halo
+ * that fades to transparent. Replaces the prior opacity strobe with the
+ * GOV.UK / Material consumer-soft signature. `color-mix` with srgb so the
+ * halo tracks the current `--warning` exactly.
+ */
+@keyframes oskar-todo-ripple {
+  0% {
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--warning, #F59E0B) 55%, transparent);
+  }
+  70% {
+    box-shadow: 0 0 0 8px color-mix(in srgb, var(--warning, #F59E0B) 0%, transparent);
+  }
+  100% {
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--warning, #F59E0B) 0%, transparent);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .unfinished-todos-pip[data-status="in_progress"] {
+    animation: none;
+  }
+}
+
+/* `.unfinished-todos-more` rules removed 2026-05-06 along with the "+N more"
+   affordance — full list is always shown now (Ralph: "no abridging"). */
+
+/* `.unfinished-todos-strip*` rules removed 2026-05-06 — head is unified
+   between expanded + collapsed states; collapsed state = head only,
+   expanded = head + list. No separate strip element. */
+
+.unfinished-todos-foot {
+  margin-top: 12px;
+}
+
+.unfinished-todos-continue {
+  background: transparent;
+  border: 1px solid var(--border-card);
+  border-radius: 8px;
+  padding: 8px 14px;
+  font-family: var(--font-sans);
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-main);
+  cursor: pointer;
+  transition: var(--transition-theme);
+}
+.unfinished-todos-continue:hover {
+  border-color: var(--accent, #3B82F6);
+  color: var(--accent, #3B82F6);
+}
+
+/* ============================================
+   TOOL CARD CHASSIS — MCP toolcard render surface
+   Mirrors docs/toolcards-mockup.html `.card` chassis. Used by:
+     - DiscoveryQuestionsCard  (?  · structured questions)
+     - ConfirmUnderstandingCard (◐ / ✓ · summary + build trigger)
+     - UploadEvalCard          (⬆ · evaluated upload + tag row)
+     - GeneratedImageCard      (✶ · WP-22 pending)
+     - VibeDiffCard / SwappedImagesCard (WP-22.5 pending)
+   Ralph 2026-05-06: "Style ALL of them according to your mockup"
+   ============================================ */
+
+.tool-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-card);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
+  margin: 12px 0;
+  overflow: hidden;
+  font-family: inherit;
+  width: 100%;
+  max-width: 540px;
+}
+
+.tool-card-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 16px 10px;
+  border-bottom: 1px solid var(--border-card);
+}
+
+.tool-card-icon {
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  background: var(--bg-input, var(--bg-card));
+  border: 1px solid var(--border-card);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+
+.tool-card-icon[data-accent="green"]  { color: var(--brand-green-bright, #10B981); border-color: var(--brand-green-bright, #10B981); }
+.tool-card-icon[data-accent="cyan"]   { color: var(--brand-cyan, #22D3EE);         border-color: var(--brand-cyan, #22D3EE); }
+.tool-card-icon[data-accent="violet"] { color: var(--brand-violet, #A78BFA);       border-color: var(--brand-violet, #A78BFA); }
+.tool-card-icon[data-accent="yellow"] { color: var(--brand-yellow, #EAB308);       border-color: var(--brand-yellow, #EAB308); }
+.tool-card-icon[data-accent="red"]    { color: var(--brand-red, #EF4444);          border-color: var(--brand-red, #EF4444); }
+
+.tool-card-title {
+  font-weight: 600;
+  font-size: 13px;
+  color: var(--text-main);
+  flex: 1 1 auto;
+  letter-spacing: -0.005em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tool-card-meta {
+  font-family: var(--font-mono, 'JetBrains Mono', monospace);
+  font-size: 11px;
+  color: var(--text-faint);
+  flex-shrink: 0;
+}
+
+.tool-card-body {
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.tool-card-body-tight {
+  /* Used when child is itself a structured group (build rows etc.) and
+     should hug the head/foot dividers without extra inner padding. */
+  padding-top: 4px;
+  padding-bottom: 4px;
+  gap: 0;
+}
+
+.tool-card-foot {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding: 10px 16px 14px;
+  border-top: 1px solid var(--border-card);
+  align-items: center;
+}
+
+.tool-card-foot-stack {
+  /* Vertical stack variant — used when foot carries multiple rows
+     (status+tag row, slot-assign row, etc.). */
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0;
+}
+
+/* Full-width variant — used by table-shaped cards whose row grid / diff hunks
+   need the column to read clean. Lifts the 540px chassis cap so cells don't
+   crowd. Ralph directive 2026-05-06: "the two table-formed preview cards need
+   to be full width". Applies to upload_eval_batch + apply_patch. */
+.tool-card.upload-eval-batch-card,
+.tool-card.apply-patch-card,
+.tool-card.build-job-card {
+  max-width: none;
+}
+
+/* Body children — context paragraph (used by DiscoveryQuestionsCard for the
+   leading context/preamble line). Teal-left-rule treatment matches the
+   discovery-card grammar in docs/toolcards-mockup.html (the brief's
+   subtitle/lede sits beside an accent rule, not as a flat paragraph). */
+.tool-card-context {
+  margin: 0;
+  padding-left: 12px;
+  border-left: 2px solid var(--brand-teal-bright, #5EEAD4);
+  color: var(--text-muted);
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+/* Discovery-style modifier — drops the icon box, scales the glyph up,
+   colors it green. Matches mockup's `.discovery-card .head .glyph`
+   treatment (naked colored glyph rather than the boxed icon used on
+   other tool cards). */
+.tool-card[data-style="discovery"] .tool-card-icon {
+  background: transparent;
+  border: none;
+  width: auto;
+  height: auto;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--brand-green-bright, #15B981);
+}
+.tool-card-summary {
+  margin: 0;
+  color: var(--text-main);
+  font-size: 14px;
+  line-height: 1.55;
+  white-space: pre-wrap;
+}
+
+/* Image frame — used by UploadEvalCard, GeneratedImageCard, SwappedImagesCard. */
+.tool-card-img-frame {
+  position: relative;
+  width: 100%;
+  background: var(--bg-input, var(--bg-app));
+  border-radius: 6px;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.tool-card-img-frame img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.tool-card-img-frame[data-aspect="16-9"] { aspect-ratio: 16/9; }
+.tool-card-img-frame[data-aspect="1-1"]  { aspect-ratio: 1/1; }
+.tool-card-img-frame[data-aspect="3-4"]  { aspect-ratio: 3/4; }
+.tool-card-img-frame[data-aspect="4-3"]  { aspect-ratio: 4/3; }
+.tool-card-img-frame[data-greyed="true"] img { filter: grayscale(1) brightness(0.6); }
+.tool-card-ratio-badge {
+  position: absolute;
+  bottom: 6px;
+  right: 6px;
+  font-family: var(--font-mono, 'JetBrains Mono', monospace);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  padding: 2px 6px;
+  border-radius: 3px;
+  background: rgba(0,0,0,0.45);
+  color: #f4f4f5;
+  text-transform: uppercase;
+}
+
+/* "What it is" / verdict / prompt-preview block under the image. */
+.tool-card-readout {
+  font-family: var(--font-mono, 'JetBrains Mono', monospace);
+  font-size: 11px;
+  color: var(--text-muted);
+  line-height: 1.55;
+}
+.tool-card-readout--top { padding-bottom: 0; }
+.tool-card-readout--bottom {
+  color: var(--text-main);
+  padding-top: 8px;
+  border-top: 1px solid var(--border-card);
+  margin-top: 2px;
+}
+.tool-card-readout-label {
+  color: var(--text-faint);
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-right: 6px;
+  font-family: var(--font-mono, 'JetBrains Mono', monospace);
+}
+
+/* Tag row — STATUS + TAG side-by-side (UploadEvalCard, GeneratedImageCard). */
+.tool-card-tag-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding: 0;
+}
+.tool-card-tag-row + .tool-card-tag-row {
+  padding-top: 8px;
+  border-top: 1px solid var(--border-card);
+  margin-top: 2px;
+}
+.tool-card-tag-sep {
+  color: var(--border-card);
+  font-family: var(--font-mono, 'JetBrains Mono', monospace);
+  font-size: 14px;
+  padding: 0 4px;
+  user-select: none;
+}
+.tool-card-tag-label {
+  font-family: var(--font-mono, 'JetBrains Mono', monospace);
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-faint);
+}
+
+/* Display chip — system-set, non-clickable (READY / INGESTED / HERO / USED). */
+.tool-card-chip {
+  font-family: var(--font-mono, 'JetBrains Mono', monospace);
+  font-size: 9px;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 3px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  border: 1px solid transparent;
+}
+.tool-card-chip[data-tone="ready"]    { background: rgba(6,182,212,0.15);  border-color: #06B6D4; color: #22D3EE; }
+.tool-card-chip[data-tone="ingested"] { background: rgba(107,114,128,0.20); border-color: #6B7280; color: #9CA3AF; }
+.tool-card-chip[data-tone="hero"]     { background: rgba(245,158,11,0.15); border-color: #F59E0B; color: #FBBF24; }
+.tool-card-chip[data-tone="used"]     { background: rgba(16,185,129,0.15); border-color: #10B981; color: #10B981; }
+.tool-card-chip[data-tone="approved"] { background: rgba(94,234,212,0.15); border-color: #5EEAD4; color: #5EEAD4; }
+.tool-card-chip[data-tone="redo"]     { background: rgba(234,179,8,0.15);  border-color: #EAB308; color: #EAB308; }
+
+/* Tag button — user-assignable triad (STAR / B-ROLL / TRASH). */
+.tool-card-tag {
+  font-family: var(--font-mono, 'JetBrains Mono', monospace);
+  font-size: 10px;
+  font-weight: 700;
+  padding: 4px 9px;
+  border-radius: 4px;
+  border: 1px solid var(--border-card);
+  background: var(--bg-input, var(--bg-card));
+  color: var(--text-muted);
+  cursor: pointer;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  transition: border-color 120ms ease, color 120ms ease, background 120ms ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 22px;
+}
+.tool-card-tag:hover:not(:disabled) {
+  border-color: var(--text-main);
+  color: var(--text-main);
+}
+.tool-card-tag:disabled { cursor: wait; opacity: 0.55; }
+.tool-card-tag[data-active="true"][data-variant="STAR"]   { background: rgba(202,138,4,0.18);  border-color: #CA8A04; color: #CA8A04; }
+.tool-card-tag[data-active="true"][data-variant="B-ROLL"] { background: rgba(167,139,250,0.18); border-color: #A78BFA; color: #A78BFA; }
+.tool-card-tag[data-active="true"][data-variant="TRASH"]  { background: rgba(220,38,38,0.18);   border-color: #DC2626; color: #DC2626; }
+
+/* Buttons — primary / ghost / danger. */
+.tool-card-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--bg-input, var(--bg-card));
+  border: 1px solid var(--border-card);
+  color: var(--text-main);
+  padding: 7px 14px;
+  border-radius: 6px;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 120ms ease, border-color 120ms ease, color 120ms ease;
+}
+.tool-card-btn:hover:not(:disabled) {
+  background: var(--bg-card-hover, var(--bg-card));
+  border-color: var(--text-muted);
+}
+.tool-card-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+.tool-card-btn[data-variant="primary"] {
+  background: var(--brand-green-bright, #10B981);
+  border-color: var(--brand-green-bright, #10B981);
+  color: #0a0a0a;
+  font-weight: 600;
+}
+.tool-card-btn[data-variant="primary"]:hover:not(:disabled) {
+  background: var(--brand-green-deep, #047857);
+  border-color: var(--brand-green-deep, #047857);
+  color: #ffffff;
+}
+.tool-card-btn[data-variant="ghost"] {
+  background: transparent;
+}
+.tool-card-btn[data-variant="danger"] {
+  color: var(--brand-red, #EF4444);
+  border-color: rgba(239,68,68,0.4);
+}
+
+/* ============================================
+   CARD PREVIEW (preview_card MCP tool, Ralph 2026-05-06)
+   When CD fires preview_card, the FormBubble wraps the card in a div
+   with this class so the user sees "this is a sample, not a live action."
+   Subtle dashed-border + dimmer fill — keeps the card readable but visually
+   secondary to real chat-record cards.
+   ============================================ */
+
+.tool-card-bubble-preview > .tool-card {
+  border-style: dashed;
+  border-color: rgba(167,139,250,0.45);
+  opacity: 0.92;
+}
+.tool-card-bubble-preview > .tool-card:hover {
+  opacity: 1;
+}
+
+/* ============================================
+   UPLOAD EVAL BATCH (UploadEvalBatchCard, WP-22 Phase 1.5)
+   Mockup: docs/toolcards-mockup.html § Archetype 1 build-row grammar.
+   Anti-pollution table for N≥3 simultaneous uploads. Spec locked
+   2026-05-06: PICTURE — identifier — verdict — tag dropdown.
+   ============================================ */
+
+.upload-eval-row {
+  display: grid;
+  /* Last column widened from 130px → minmax(220px, 240px) so the inline
+     pill-row (STAR · B-ROLL · TRASH) fits without wrapping. CD directive
+     2026-05-06: NO dropdown, NO select — three visible pills. */
+  grid-template-columns: 48px minmax(120px, 1fr) minmax(0, 2.4fr) minmax(220px, 240px);
+  align-items: center;
+  gap: 12px;
+  padding: 10px 16px;
+  font-size: 12px;
+  color: var(--text-main);
+}
+.upload-eval-row + .upload-eval-row {
+  border-top: 1px solid var(--border-card);
+}
+
+.upload-eval-row-thumb {
+  width: 48px;
+  height: 48px;
+  border-radius: 6px;
+  background: var(--bg-input, var(--bg-card));
+  border: 1px solid var(--border-card);
+  overflow: hidden;
+  position: relative;
+}
+.upload-eval-row-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.upload-eval-row-id {
+  font-family: var(--font-mono, 'JetBrains Mono', monospace);
+  font-size: 11px;
+  color: var(--text-muted);
+  letter-spacing: 0.02em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+
+.upload-eval-row-verdict {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  min-width: 0;
+}
+.upload-eval-row-verdict-glyph {
+  font-size: 14px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+.upload-eval-row-verdict-note {
+  font-size: 12px;
+  color: var(--text-main);
+  line-height: 1.45;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+/* ── Tag pill-row (CD directive 2026-05-06) ──────────────────────────────
+   Replaces the previous <select> dropdown. Three pills visible inline
+   per row — STAR · B-ROLL · TRASH. Active pill highlighted; the other
+   two clickable. Uses .tool-card-tag (the same pill class the single-row
+   UploadEvalCard uses) so the visual language is identical across both
+   surfaces. */
+.upload-eval-row-tag-pillrow {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: nowrap;
+}
+
+/* ============================================
+   BUILD JOB CARD (BuildJobCard, Archetype 1)
+   Mockup: docs/toolcards-mockup.html § Archetype 1 — Job cards.
+   Multi-row table for build_vibe / build_all_vibes — thumb · id+label ·
+   timeline · ETA · ONE button. Pulse animation already lives at top of
+   this stylesheet (@keyframes pulse).
+   ============================================ */
+.build-row {
+  display: grid;
+  /* Ralph spec 2026-05-06: 48px minmax(120px, 360px) 1fr 56px auto.
+     Thumb column bumped 36 → 48 (more presence on a wide row).
+     ETA column FIXED at 56px so it doesn't jiggle width as the cell
+     flips between "8:28" / "—" / "10:00" / "~3:50". Wide enough for
+     "~10:00" mono at 11px (~6 chars × ~7px + breathing room). */
+  grid-template-columns: 48px minmax(120px, 360px) 1fr 56px auto;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 0;
+  font-size: 12px;
+}
+.build-row + .build-row {
+  border-top: 1px solid var(--border-card);
+}
+.build-row .thumb {
+  width: 48px;
+  height: 48px;
+  border-radius: 6px;
+  background: var(--bg-input, rgba(255,255,255,0.05));
+  border: 1px solid var(--border-card);
+  overflow: hidden;
+  position: relative;
+}
+.build-row .thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.build-row .thumb.empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-faint);
+  font-size: 11px;
+}
+.build-row .name {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.build-row .name .id {
+  font-family: var(--font-mono, 'JetBrains Mono', monospace);
+  font-size: 10px;
+  color: var(--text-faint);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.build-row .name .label {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-main);
+}
+.build-row .name .label .juniorDev-tag {
+  font-size: 9px;
+  font-family: var(--font-mono, 'JetBrains Mono', monospace);
+  color: var(--brand-teal-bright, #14B8A6);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-left: 6px;
+}
+.build-row .timeline {
+  display: flex;
+  /* flex-start anchors steps + connectors to the SAME y=0 baseline.
+     Connector then uses a positive margin-top to land at dot vertical
+     center — stable regardless of label render height (CD 2026-05-06:
+     replaces fragile `align-items:center` + `margin-top:-14px` hack
+     that broke when font-load shifted label height). */
+  align-items: flex-start;
+  gap: 0;
+}
+.build-row .timeline .step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  min-width: 64px;
+}
+.build-row .timeline .step .dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--border-card);
+  border: 2px solid var(--bg-card);
+  box-shadow: 0 0 0 1px var(--border-card);
+}
+.build-row .timeline .step.done .dot {
+  background: var(--brand-green-bright, #10B981);
+  box-shadow: 0 0 0 1px var(--brand-green-bright, #10B981);
+}
+.build-row .timeline .step.active .dot {
+  background: var(--working, #F59E0B);
+  box-shadow: 0 0 0 1px var(--working, #F59E0B);
+  animation: pulse 1.2s ease-in-out infinite;
+}
+.build-row .timeline .step .lbl {
+  font-family: var(--font-mono, 'JetBrains Mono', monospace);
+  font-size: 9px;
+  color: var(--text-faint);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+.build-row .timeline .step.done .lbl,
+.build-row .timeline .step.active .lbl {
+  color: var(--text-main);
+}
+.build-row .timeline .connector {
+  flex: 1;
+  height: 2px;
+  background: var(--border-card);
+  /* Dot box layout: width/height 12px content + 2px border each side
+     (border = bg-card color, fakes a "moat") = 16px box. Vertical
+     center of the box = 8px from step top. Line height 2px → top of
+     line at y=7 to land dead-center through every dot's box-shadow
+     ring. */
+  margin: 7px 0 0;
+  position: relative;
+  min-width: 16px;
+  /* No max-width — let lines stretch to fill the timeline column so
+     goalposts (the dots) anchor end-to-end across the row. */
+}
+.build-row .timeline .connector.done {
+  background: var(--brand-green-bright, #10B981);
+}
+.build-row .eta {
+  font-family: var(--font-mono, 'JetBrains Mono', monospace);
+  font-size: 11px;
+  color: var(--text-faint);
+  text-align: right;
+  white-space: nowrap;
+}
+.build-row .eta.done {
+  color: var(--brand-green-bright, #10B981);
+}
+.build-row .row-btn {
+  background: transparent;
+  border: 1px solid var(--border-card);
+  color: var(--text-main);
+  padding: 6px 14px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-family: var(--font-mono, 'JetBrains Mono', monospace);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  font-weight: 700;
+  cursor: pointer;
+  min-width: 76px;
+  text-align: center;
+}
+.build-row .row-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.build-row .row-btn.cancel {
+  color: var(--text-muted);
+}
+.build-row .row-btn.cancel:hover:not(:disabled) {
+  border-color: var(--brand-red, #EF4444);
+  color: var(--brand-red, #EF4444);
+  background: rgba(239,68,68,0.05);
+}
+.build-row .row-btn.open {
+  border-color: var(--brand-green-bright, #10B981);
+  color: var(--brand-green-bright, #10B981);
+}
+.build-row .row-btn.open:hover:not(:disabled) {
+  background: rgba(16,185,129,0.05);
+}
+
+/* Error + milestones rows: grid-column: 1 / -1 so they form a new row
+   beneath the pipeline row spanning all 5 columns. Plain left-aligned
+   text — no banner chrome, no centering, no background tint. CD
+   2026-05-06 v4 (reverted v3 banner treatment per Ralph "left-aligned"). */
+.build-row .row-error {
+  grid-column: 1 / -1;
+  padding: 4px 0 8px 0;
+  font-size: 11px;
+  color: var(--brand-red, #ef4444);
+  line-height: 1.5;
+  text-align: left;
+}
+.build-row .row-milestones {
+  grid-column: 1 / -1;
+  padding: 0 0 12px 0;
+  font-size: 11px;
+  color: var(--text-muted);
+  line-height: 1.6;
+  text-align: left;
+}
+.build-row .row-milestones-label {
+  display: block;
+  color: var(--text-faint);
+  font-family: var(--font-mono, 'JetBrains Mono', monospace);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-size: 9px;
+  margin-bottom: 2px;
+}
+.build-row .row-milestones-row {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+}
+.build-row .row-milestones-bullet {
+  flex-shrink: 0;
+  color: var(--brand-green-bright, #10B981);
+}
+
+/* ============================================
+   APPLY-PATCH DIFF (ApplyPatchCard, WP-22 Phase 1)
+   Mockup: docs/toolcards-mockup.html § Archetype 2.
+   Mono diff with red/green per-line tinting + leading marker column.
+   ============================================ */
+
+.apply-patch-diff {
+  font-family: var(--font-mono, 'JetBrains Mono', monospace);
+  font-size: 12px;
+  border-radius: 6px;
+  overflow: hidden;
+  border: 1px solid var(--border-card);
+  background: var(--bg-input, var(--bg-card));
+  display: flex;
+  flex-direction: column;
+}
+.apply-patch-line {
+  padding: 4px 12px;
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  line-height: 1.55;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.apply-patch-line-add { background: rgba(21,185,129,0.07); color: #6ee7b7; }
+.apply-patch-line-del { background: rgba(239,68,68,0.07); color: #fca5a5; }
+.apply-patch-line-ctx { color: var(--text-muted); }
+.apply-patch-marker {
+  width: 12px;
+  flex-shrink: 0;
+  opacity: 0.65;
+  font-weight: 700;
+}
+.apply-patch-content {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+/* ============================================
+   DIAGNOSTIC CHIP (DiagnosticChip, WP-22 Phase 1)
+   Mockup: docs/toolcards-mockup.html § Archetype 4 ambient chips.
+   Single-row, no card chrome — ambient cross-agent comms signal.
+   ============================================ */
+
+.diagnostic-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  border-radius: var(--radius-pill, 999px);
+  background: var(--bg-input, var(--bg-card));
+  border: 1px solid var(--border-card);
+  font-family: var(--font-mono, 'JetBrains Mono', monospace);
+  font-size: 11px;
+  color: var(--text-muted);
+  max-width: 100%;
+}
+.diagnostic-chip-glyph {
+  color: var(--brand-teal-bright, #5EEAD4);
+  font-size: 13px;
+  flex-shrink: 0;
+}
+.diagnostic-chip-label {
+  color: var(--text-main);
+  font-weight: 500;
+}
+.diagnostic-chip-accent {
+  color: var(--brand-green-bright, #15B981);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+.diagnostic-chip-ts {
+  margin-left: auto;
+  color: var(--text-faint);
+  font-size: 10px;
+  letter-spacing: 0.04em;
+}
+
+/* Question-list inputs (DiscoveryQuestionsCard). */
+.tool-card-questions {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.tool-card-questions li {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  align-items: stretch;
+}
+.tool-card-questions label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-main);
+  line-height: 1.4;
+}
+.tool-card-questions input {
+  padding: 8px 10px;
+  border-radius: 6px;
+  border: 1px solid var(--border-card);
+  background: var(--bg-input, var(--bg-card));
+  color: var(--text-main);
+  font-size: 13px;
+  font-family: inherit;
+  transition: border-color 120ms ease;
+}
+.tool-card-questions input:focus {
+  outline: none;
+  border-color: var(--brand-green-bright, #10B981);
+}
+.tool-card-questions input:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* ============================================
+   QUESTION FORM (components/chat/QuestionForm.tsx)
+   FEATURE-X §1.4 WP-2.4
+   Adapted from OD index.css; CSS-vars rebound to OskarOS tokens.
+   ============================================ */
+
+.question-form {
+  margin: 8px 0;
+  border: 1px solid var(--border-card);
+  border-radius: var(--radius-card);
+  background: var(--bg-card);
+  box-shadow: var(--shadow-card);
+  overflow: hidden;
+}
+.question-form-locked {
+  background: var(--bg-app);
+  box-shadow: none;
+  opacity: 0.92;
+}
+.question-form-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--border-card);
+}
+.question-form-icon {
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  background: var(--accent, #3B82F6);
+  color: white;
+  font-weight: 600;
+  font-size: 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.question-form-titles { flex: 1; min-width: 0; }
+.question-form-title {
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--text-main);
+}
+.question-form-desc {
+  margin-top: 2px;
+  font-size: 12px;
+  color: var(--text-muted);
+  line-height: 1.45;
+}
+.question-form-pill {
+  font-size: 10px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-card);
+  color: var(--text-muted);
+}
+.question-form-body {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 14px;
+}
+.qf-field { display: flex; flex-direction: column; gap: 6px; }
+.qf-label {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-main);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.qf-required { color: var(--accent, #3B82F6); }
+.qf-help { font-size: 11px; color: var(--text-muted); margin-top: -2px; }
+.qf-options { display: flex; flex-wrap: wrap; gap: 6px; }
+.qf-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border: 1px solid var(--border-card);
+  border-radius: 999px;
+  background: var(--bg-card);
+  font-size: 12px;
+  cursor: pointer;
+  transition: border-color 120ms ease, background 120ms ease, color 120ms ease;
+  color: var(--text-main);
+}
+.qf-chip input { width: auto; margin: 0; display: none; }
+.qf-chip:hover { border-color: var(--accent, #3B82F6); }
+.qf-chip-disabled { cursor: not-allowed; opacity: 0.48; }
+.qf-chip-disabled:hover { border-color: var(--border-card); }
+.qf-chip-on {
+  border-color: var(--accent, #3B82F6);
+  background: color-mix(in oklch, var(--accent, #3B82F6) 10%, var(--bg-card));
+  color: var(--accent, #3B82F6);
+  font-weight: 500;
+}
+.question-form-locked .qf-chip { cursor: not-allowed; }
+.qf-input,
+.qf-select,
+.qf-textarea {
+  font-size: 13px;
+  padding: 6px 10px;
+  border: 1px solid var(--border-card);
+  border-radius: 6px;
+  background: var(--bg-card);
+  color: var(--text-main);
+  font-family: inherit;
+}
+.qf-input:focus,
+.qf-select:focus,
+.qf-textarea:focus {
+  outline: none;
+  border-color: var(--accent, #3B82F6);
+}
+.qf-textarea { resize: vertical; min-height: 60px; }
+
+.question-form-foot {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  border-top: 1px solid var(--border-card);
+  background: var(--bg-app);
+}
+.qf-hint,
+.qf-locked-note {
+  flex: 1;
+  font-size: 11px;
+  color: var(--text-muted);
+  line-height: 1.4;
+}
+.question-form-foot button.primary {
+  background: var(--accent, #3B82F6);
+  color: white;
+  border: none;
+  padding: 6px 14px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: opacity 120ms ease;
+}
+.question-form-foot button.primary:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* Direction-cards picker */
+.qf-direction-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 10px;
+  margin-top: 4px;
+}
+.qf-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-card);
+  border-radius: 10px;
+  cursor: pointer;
+  transition: border-color 0.12s ease, background 0.12s ease, transform 0.06s ease;
+}
+.qf-card input { display: none; }
+.qf-card:hover { border-color: var(--accent, #3B82F6); }
+.qf-card:active { transform: translateY(1px); }
+.qf-card-on {
+  border-color: var(--accent, #3B82F6);
+  background: color-mix(in oklch, var(--accent, #3B82F6) 4%, var(--bg-card));
+  box-shadow: 0 0 0 1px var(--accent, #3B82F6) inset;
+}
+.qf-card-disabled { cursor: not-allowed; opacity: 0.6; }
+.qf-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.qf-card-title {
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: -0.005em;
+  color: var(--text-main);
+  line-height: 1.3;
+}
+.qf-card-pill {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 2px 6px;
+  background: var(--accent, #3B82F6);
+  color: #fff;
+  border-radius: 999px;
+  flex-shrink: 0;
+}
+.qf-card-swatches { display: flex; gap: 4px; height: 18px; }
+.qf-card-swatch {
+  flex: 1;
+  border-radius: 3px;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  min-width: 0;
+}
+.qf-card-types {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  padding: 6px 0;
+  border-top: 1px solid var(--border-card);
+  border-bottom: 1px solid var(--border-card);
+}
+.qf-card-type-display {
+  font-size: 28px;
+  line-height: 1;
+  letter-spacing: -0.02em;
+  color: var(--text-main);
+  flex-shrink: 0;
+}
+.qf-card-type-body {
+  font-size: 12px;
+  color: var(--text-muted);
+  line-height: 1.3;
+  letter-spacing: -0.005em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.qf-card-mood {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--text-muted);
+}
+.qf-card-refs {
+  margin: 0;
+  font-size: 11px;
+  color: var(--text-muted);
+  line-height: 1.4;
+}
+.qf-card-refs-label {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  opacity: 0.7;
+}
+
+/* ============================================
+   MENTION POPOVER (components/chat/MentionPopover.tsx)
+   FEATURE-X §1.4 WP-3.4
+   ============================================ */
+
+.mention-popover {
+  position: absolute;
+  z-index: 100;
+  background: var(--bg-card);
+  border: 1px solid var(--border-card);
+  border-radius: 8px;
+  box-shadow: var(--shadow-card);
+  padding: 4px;
+  max-height: 280px;
+  overflow-y: auto;
+  min-width: 220px;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.mention-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 6px 10px;
+  border: none;
+  background: transparent;
+  border-radius: 6px;
+  cursor: pointer;
+  text-align: left;
+  font-family: inherit;
+  color: var(--text-main);
+  width: 100%;
+}
+.mention-item:hover {
+  background: var(--hover-overlay, rgba(255, 255, 255, 0.04));
+}
+.mention-item code {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  background: transparent;
+  color: var(--text-main);
+}
+.mention-meta {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--text-muted);
+  letter-spacing: 0.04em;
+}
+.mention-overflow {
+  padding: 6px 10px;
+  font-size: 11px;
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+/* ============================================
+   PASTE TEXT DIALOG (components/PasteTextDialog.tsx)
+   FEATURE-X §1.4 WP-3.5
+   Generic .modal-backdrop + .modal classes — also reusable
+   for any future single-purpose modals.
+   ============================================ */
+
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  background: var(--backdrop-overlay, rgba(0, 0, 0, 0.6));
+  backdrop-filter: blur(2px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+
+.modal {
+  width: 100%;
+  max-width: 540px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-card);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.modal h2 {
+  font-family: var(--font-display);
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text-main);
+  margin: 0;
+}
+
+.modal p.hint {
+  font-size: 13px;
+  color: var(--text-muted);
+  line-height: 1.5;
+  margin: 0;
+}
+
+.modal label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-main);
+}
+
+.modal input[type="text"],
+.modal textarea {
+  font-family: inherit;
+  font-size: 13px;
+  padding: 8px 10px;
+  border: 1px solid var(--border-card);
+  border-radius: 6px;
+  background: var(--bg-app);
+  color: var(--text-main);
+  transition: border-color 0.15s ease;
+}
+.modal input[type="text"]:focus,
+.modal textarea:focus {
+  outline: none;
+  border-color: var(--accent, #3B82F6);
+}
+.modal textarea {
+  resize: vertical;
+  min-height: 100px;
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  line-height: 1.5;
+}
+
+.modal .row {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.modal button {
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 500;
+  padding: 8px 16px;
+  border-radius: 6px;
+  border: 1px solid var(--border-card);
+  background: transparent;
+  color: var(--text-main);
+  cursor: pointer;
+  transition: var(--transition-theme);
+}
+.modal button:hover {
+  border-color: var(--accent, #3B82F6);
+}
+.modal button.primary {
+  background: var(--accent, #3B82F6);
+  border-color: var(--accent, #3B82F6);
+  color: white;
+}
+.modal button.primary:hover {
+  background: var(--accent-hover, #2563EB);
+}
+.modal button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* ============================================
+   SNACKBAR (components/Snackbar.tsx)
+   2026-05-03 v2 — Territory notification-row grammar.
+   Replaces the v1 thin-edge variant (Ralph: "look at the fucking
+   picture from Territory"). Studied territory.jpg right column:
+   each notification row has a BOXED STATE PILL on the left (full
+   vertical fill, colored bg, mono uppercase label + optional event
+   code), then a stacked heading + message body, then a right-side
+   outlined action button + dismiss. The state name IS the loud
+   element, not a meta-label above the message. Bento-cornered (no
+   sharp Territory corners — that's the Bento × Territory contract).
+   ============================================ */
+.os-snackbar {
+  display: flex;
+  align-items: stretch;
+  background: var(--bg-card);
+  border: 1px solid var(--border-card);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
+  overflow: hidden;
+  position: relative;
+  min-width: 440px;
+  max-width: 560px;
+  font-family: var(--font-sans);
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+.os-snackbar.is-exiting {
+  opacity: 0;
+  transform: translateX(16px);
+}
+
+/* Boxed left state pill — colored background, full vertical fill,
+   mono uppercase state label, optional event code below.
+   2026-05-03 (Ralph): width fixed at 140px (was min-width 96px) so all
+   snackbars in a stack have identical-width left pills. Increased so
+   long state labels (ATTENTION, WORKING) breathe. */
+.os-snackbar-state {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: flex-start;
+  padding: 14px 16px;
+  width: 140px;
+  flex-shrink: 0;
+  background: var(--text-muted);   /* default; overridden per state */
+  color: var(--text-on-brand);     /* default dark-on-bright */
+  gap: 6px;
+}
+.os-snackbar-state-icon {
+  display: flex; align-items: center; justify-content: flex-start;
+  margin-bottom: 2px;
+}
+.os-snackbar-state-icon svg { width: 18px; height: 18px; stroke-width: 2.25; }
+.os-snackbar-state-label {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  line-height: 1;
+  white-space: nowrap;
+}
+.os-snackbar-state-code {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  line-height: 1;
+  opacity: 0.72;
+  white-space: nowrap;
+}
+
+/* State color — applied to the left pill. 2026-05-03 (Ralph): info →
+   blue, progress/working → orange-OUTLINED (white fill, orange stroke +
+   text — distinct "in-flight" treatment vs the solid-filled others). */
+.os-snackbar-success  .os-snackbar-state { background: var(--brand-green-bright); color: var(--text-on-brand); }
+.os-snackbar-info     .os-snackbar-state { background: var(--info);               color: #ffffff; }
+.os-snackbar-warning  .os-snackbar-state { background: var(--warning);            color: var(--text-on-brand); }
+.os-snackbar-error    .os-snackbar-state { background: var(--error);              color: #ffffff; }
+/* WORKING — distinct OUTLINED treatment for the WHOLE snackbar.
+   Orange 2px outer stroke + WHITE interior fill (the "white within"
+   is the snackbar interior, not just the state pill). All text inside
+   is dark or orange so it reads on white. The other states stay
+   solid-color filled; WORKING stands out as ephemeral / in-flight. */
+.os-snackbar-progress {
+  background: #ffffff;
+  border: 2px solid var(--working);
+}
+.os-snackbar-progress .os-snackbar-state {
+  background: transparent;
+  color: var(--working);
+}
+.os-snackbar-progress .os-snackbar-heading,
+.os-snackbar-progress .os-snackbar-message {
+  color: #0f172a;   /* dark slate so body text reads on white */
+}
+.os-snackbar-progress .os-snackbar-action {
+  color: var(--working);
+  border-color: color-mix(in srgb, var(--working) 50%, transparent);
+}
+.os-snackbar-progress .os-snackbar-action:hover {
+  border-color: var(--working);
+  background: color-mix(in srgb, var(--working) 10%, transparent);
+}
+.os-snackbar-progress .os-snackbar-dismiss {
+  color: #64748b;
+}
+.os-snackbar-progress .os-snackbar-dismiss:hover {
+  color: #0f172a;
+  background: rgba(0,0,0,0.05);
+}
+
+/* Body — heading + message stacked */
+.os-snackbar-body {
+  flex: 1;
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+  justify-content: center;
+}
+.os-snackbar-heading {
+  font-family: var(--font-sans);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-main);
+  line-height: 1.3;
+  letter-spacing: -0.005em;
+  word-break: break-word;
+}
+.os-snackbar-message {
+  font-family: var(--font-sans);
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--text-muted);
+  word-break: break-word;
+}
+.os-snackbar-message:first-child {
+  /* When no separate heading: body promotes to heading typography */
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-main);
+  letter-spacing: -0.005em;
+}
+
+/* Right-side action area — outlined action button(s) + dismiss */
+.os-snackbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 12px 10px 0;
+  flex-shrink: 0;
+}
+.os-snackbar-action {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  padding: 6px 12px;
+  border-radius: 6px;
+  border: 1px solid var(--border-strong, var(--border-card));
+  background: transparent;
+  color: var(--text-main);
+  cursor: pointer;
+  transition: var(--transition-theme);
+  white-space: nowrap;
+}
+.os-snackbar-action:hover {
+  border-color: var(--brand-green-bright);
+  color: var(--brand-green-bright);
+}
+.os-snackbar-dismiss {
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  border: none;
+  background: transparent;
+  color: var(--text-dim);
+  cursor: pointer;
+  transition: var(--transition-theme);
+}
+.os-snackbar-dismiss svg { width: 12px; height: 12px; stroke-width: 2.5; }
+.os-snackbar-dismiss:hover {
+  color: var(--text-main);
+  background: var(--bg-card-hover);
+}
+
+/* Fathom shimmer bar — bottom edge, for indeterminate progress */
+.os-snackbar-progress-bar {
+  position: absolute;
+  bottom: 0;
+  left: 3px; /* clear the left edge accent */
+  right: 0;
+  height: 2px;
+  background: color-mix(in srgb, var(--working) 18%, transparent);
+  overflow: hidden;
+  pointer-events: none;
+}
+.os-snackbar-progress-bar::after {
+  content: '';
+  display: block;
+  width: 32%;
+  height: 100%;
+  background: var(--working);
+  animation: os-fathom-progress 1.6s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+@keyframes os-fathom-progress {
+  0%   { transform: translateX(-110%); }
+  100% { transform: translateX(420%); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .os-snackbar-progress-bar::after { animation: none; transform: translateX(40%); }
+}
+
+.os-snackbar-stack {
+  position: fixed;
+  bottom: 16px;
+  right: 16px;
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  pointer-events: auto;
+}
+
+/* ============================================
+   ASK-USER MODAL (components/AskUserModal.tsx)
+   2026-05-03 redesign — uses shared .modal pattern but with
+   green-bright eyebrow + Feather option icons + token-driven hover.
+   The prior inline-styled version used --accent (blue) for the
+   eyebrow, which is no longer in the OskarOS palette.
+   ============================================ */
+.os-ask-eyebrow {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--brand-green-bright);
+  margin-bottom: 10px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.os-ask-eyebrow svg { width: 11px; height: 11px; stroke-width: 2.5; }
+.os-ask-question {
+  font-family: var(--font-display);
+  font-size: 18px;
+  font-weight: 600;
+  line-height: 1.35;
+  letter-spacing: -0.01em;
+  color: var(--text-main);
+  margin-bottom: 16px;
+}
+.os-ask-options {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.os-ask-option {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  text-align: left;
+  padding: 11px 14px;
+  background: var(--bg-card-hover);
+  border: 1px solid var(--border-card);
+  border-radius: 8px;
+  color: var(--text-main);
+  font-family: var(--font-sans);
+  font-size: 13.5px;
+  cursor: pointer;
+  transition: var(--transition-theme);
+}
+.os-ask-option svg {
+  width: 14px;
+  height: 14px;
+  stroke-width: 2.25;
+  color: var(--text-dim);
+  flex-shrink: 0;
+}
+.os-ask-option:hover {
+  background: color-mix(in srgb, var(--brand-green-bright) 8%, var(--bg-card-hover));
+  border-color: var(--brand-green-bright);
+}
+.os-ask-option:hover svg { color: var(--brand-green-bright); }
+.os-ask-option:disabled { opacity: 0.5; cursor: wait; }
+.os-ask-foot {
+  margin-top: 14px;
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  text-align: right;
+}
+
+/* ============================================
+   ORDER PILLS (components/TopBar.tsx)
+   2026-05-03 — ORDER 75 (soft) and ORDER 66 (hard) compaction
+   buttons. Sibling administrative pills in the danger-zone family:
+   amber-warning + red-error, distinct intensities, both shift to
+   success-green on complete. Token-driven (no raw hex).
+   ============================================ */
+.os-order-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  background: transparent;
+  cursor: pointer;
+  transition: var(--transition-theme);
+  line-height: 1;
+  white-space: nowrap;
+}
+.os-order-pill svg { width: 12px; height: 12px; stroke-width: 2.5; flex-shrink: 0; }
+.os-order-pill:disabled { cursor: default; opacity: 0.85; }
+
+/* ORDER 75 — soft compaction / rejuvenate. Uses --working (orange,
+   same as the snackbar progress state) per Ralph 2026-05-03 — sibling to
+   the in-flight working orange of the WORKING snackbar, not the amber
+   --warning yellow. */
+.os-order-pill.warn {
+  color: var(--working);
+  border-color: color-mix(in srgb, var(--working) 45%, transparent);
+  background: color-mix(in srgb, var(--working) 8%, transparent);
+}
+.os-order-pill.warn:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--working) 15%, transparent);
+  box-shadow: 0 0 12px color-mix(in srgb, var(--working) 22%, transparent);
+}
+
+/* ORDER 66 — hard compaction / purge (error red) */
+.os-order-pill.danger {
+  color: var(--error);
+  border-color: color-mix(in srgb, var(--error) 45%, transparent);
+  background: color-mix(in srgb, var(--error) 8%, transparent);
+}
+.os-order-pill.danger:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--error) 15%, transparent);
+  box-shadow: 0 0 12px color-mix(in srgb, var(--error) 22%, transparent);
+}
+
+/* Both pills share the success-complete state */
+.os-order-pill.complete {
+  color: var(--brand-green-bright);
+  border-color: color-mix(in srgb, var(--brand-green-bright) 45%, transparent);
+  background: color-mix(in srgb, var(--brand-green-bright) 10%, transparent);
 }

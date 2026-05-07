@@ -79,6 +79,55 @@ import {
   OSKAR_ID_ATTR,
 } from '@/lib/director-css'
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Image-element helpers (HTML <img> + SVG <image>)
+// ─────────────────────────────────────────────────────────────────────────────
+// HTML pages can carry images as either an HTML <img> tag (tagName === 'IMG')
+// or an SVG <image> element (tagName === 'image', SVG namespace, with the URL
+// in `href` or legacy `xlink:href`). The Director Mode click → swap pipeline
+// originally only knew about <img>; SVG <image> was invisible to the swap
+// target detector AND to the StylingPopover's Image-tab gate. Cards built as
+// SVG (e.g., business-cards-grandma-20-schools.html — 44 SVG cards, 0 imgs,
+// photographs embedded as <image href="medium-middle.jpg">) couldn't be
+// edited at all.
+//
+// These helpers normalize the two cases. Use `isImageElement(el)` everywhere
+// you previously checked `el.tagName === 'IMG'`. Use `readImageSrc` /
+// `writeImageSrc` to read or set the URL without caring which tag type.
+
+const SVG_IMAGE_TAG = 'image' // SVG namespace, lowercase
+const XLINK_NS = 'http://www.w3.org/1999/xlink'
+
+/** True for HTML <img> OR SVG <image>. */
+function isImageElement(el: Element | null | undefined): boolean {
+  if (!el) return false
+  return el.tagName === 'IMG' || el.tagName === SVG_IMAGE_TAG
+}
+
+/** Read the image URL regardless of element type. */
+function readImageSrc(el: Element): string {
+  if (el.tagName === 'IMG') {
+    return (el as HTMLImageElement).getAttribute('src') || ''
+  }
+  // SVG image — modern href takes priority; xlink:href is legacy fallback.
+  return el.getAttribute('href') || el.getAttribute('xlink:href') || ''
+}
+
+/** Write the image URL regardless of element type. For SVG image, write to
+ *  both `href` and `xlink:href` (when present) so legacy renderers update
+ *  too. */
+function writeImageSrc(el: Element, url: string): void {
+  if (el.tagName === 'IMG') {
+    ;(el as HTMLImageElement).src = url
+    return
+  }
+  // SVG image
+  el.setAttribute('href', url)
+  if (el.hasAttribute('xlink:href') || el.hasAttributeNS(XLINK_NS, 'href')) {
+    el.setAttributeNS(XLINK_NS, 'xlink:href', url)
+  }
+}
+
 interface LivePreviewWithDirectorProps {
   htmlPath: string | null | undefined
   title?: string
@@ -277,8 +326,9 @@ export const LivePreviewWithDirector = forwardRef<
     const snap: ElementSnapshot = {
       style: el.getAttribute('style') || '',
     }
-    if (el.tagName === 'IMG') {
-      snap.src = (el as HTMLImageElement).getAttribute('src') || ''
+    if (isImageElement(el)) {
+      // Captures HTML <img src> AND SVG <image href / xlink:href>.
+      snap.src = readImageSrc(el)
     }
     if (el.tagName === 'A') {
       // null preserves the distinction "no href attribute" vs "empty href"
@@ -300,9 +350,9 @@ export const LivePreviewWithDirector = forwardRef<
       // Restore inline style
       if (snap.style) el.setAttribute('style', snap.style)
       else el.removeAttribute('style')
-      // Restore <img> src
-      if (snap.src !== undefined && el.tagName === 'IMG') {
-        ;(el as HTMLImageElement).src = snap.src
+      // Restore <img> src OR SVG <image> href.
+      if (snap.src !== undefined && isImageElement(el)) {
+        writeImageSrc(el, snap.src)
       }
       // Restore inner HTML (for text edits)
       if (snap.innerHtml !== undefined) {
@@ -328,7 +378,7 @@ export const LivePreviewWithDirector = forwardRef<
         const snap = snapshotsRef.current.get(el)
         if (!snap) return null
         const styleNow = el.getAttribute('style') || ''
-        const srcNow = el.tagName === 'IMG' ? (el as HTMLImageElement).getAttribute('src') || '' : null
+        const srcNow = isImageElement(el) ? readImageSrc(el) : null
         const styleChanged = styleNow !== (snap.style || '')
         const srcChanged = srcNow !== null && srcNow !== (snap.src ?? '')
         if (!styleChanged && !srcChanged) return null
@@ -498,16 +548,15 @@ export const LivePreviewWithDirector = forwardRef<
 
   const swapImage = useCallback((el: HTMLElement, newUrl: string) => {
     snapshotElement(el)
-    if (el.tagName === 'IMG') {
-      const img = el as HTMLImageElement
-      // Do NOT mutate opacity here (Ralph 2026-04-23). The previous
-      // "fade-out → fade-in" animation clobbered any custom opacity the
-      // user set via the Box panel, and if the new image URL was already
-      // cached the `load` event sometimes didn't fire — leaving the
-      // element stuck at 0.3. The right signal for "busy" is an outer UI
-      // indicator (button spinner, gear highlight), not the image's own
-      // opacity which is a user-editable style.
-      img.src = newUrl
+    if (isImageElement(el)) {
+      // HTML <img> OR SVG <image>. Do NOT mutate opacity here (Ralph
+      // 2026-04-23). The previous "fade-out → fade-in" animation clobbered
+      // any custom opacity the user set via the Box panel, and if the new
+      // image URL was already cached the `load` event sometimes didn't
+      // fire — leaving the element stuck at 0.3. The right signal for
+      // "busy" is an outer UI indicator (button spinner, gear highlight),
+      // not the image's own opacity which is a user-editable style.
+      writeImageSrc(el, newUrl)
     } else {
       const existing = window.getComputedStyle(el).backgroundImage
       const replaced = existing.replace(
@@ -535,8 +584,9 @@ export const LivePreviewWithDirector = forwardRef<
    *  For bg-image elements we parse the `url()` out of computed style.
    *  Returns null when we can't produce a usable path. */
   const getSourcePathForEditImage = useCallback((el: HTMLElement): string | null => {
-    if (el.tagName === 'IMG') {
-      const raw = (el as HTMLImageElement).getAttribute('src') || (el as HTMLImageElement).src
+    if (isImageElement(el)) {
+      // HTML <img src> OR SVG <image href / xlink:href>.
+      const raw = readImageSrc(el)
       if (!raw) return null
       try {
         // Strip origin if absolute; strip any cache-bust query string.
@@ -703,7 +753,7 @@ export const LivePreviewWithDirector = forwardRef<
   )
 
   const isSwapTarget = useCallback((el: HTMLElement): boolean => {
-    if (el.tagName === 'IMG') return true
+    if (isImageElement(el)) return true   // HTML <img> + SVG <image>
     const bg = el.ownerDocument?.defaultView?.getComputedStyle(el).backgroundImage
     if (bg && bg !== 'none' && /url\(/i.test(bg)) return true
     return false
@@ -760,13 +810,18 @@ export const LivePreviewWithDirector = forwardRef<
         ${hostSel} *::before,
         ${hostSel} *::after { pointer-events: none !important; }
 
+        /* Swappable: HTML <img>, SVG <image>, or any element flagged with
+           a background-image URL. SVG <image> uses the SVG namespace; the
+           selector matches it via the lowercase tag name. */
         ${hostSel} img,
+        ${hostSel} image,
         ${hostSel} ${bgSel} {
           outline: 2px dashed rgba(16,185,129,0.35);
           outline-offset: 2px;
           transition: outline 0.12s, filter 0.12s;
         }
         ${hostSel} img:hover,
+        ${hostSel} image:hover,
         ${hostSel} ${bgSel}:hover {
           outline: 2px solid rgba(16,185,129,0.85);
         }
@@ -884,41 +939,34 @@ export const LivePreviewWithDirector = forwardRef<
       }
       setStyleTarget(t)
 
-      // SECONDARY: IMG clicks do the existing Zone-1 swap flow. This is
-      // additive — the panel still shows the image's properties, AND the
-      // swap happens. preventDefault is only called here because we're
+      // SECONDARY: image clicks (HTML <img> OR SVG <image>) do the existing
+      // Zone-1 swap flow when a Zone-1 image is selected. This is additive
+      // — the panel still shows the image's properties, AND the swap
+      // happens. preventDefault is only called here because we're
       // intercepting the image click.
-      if (t.tagName === 'IMG') {
+      //
+      // When NO Zone-1 image is selected, we DO NOT auto-open the
+      // StudioImagePicker. Ralph 2026-05-02: the auto-picker felt like an
+      // unrelated modal popping up uninvited (especially noticeable when
+      // clicking the gear icon, where the click lands on the underlying
+      // image). The picker is now reachable only via the popover's
+      // "Replace…" button — deliberate, not accidental.
+      if (isImageElement(t) && zone1SelectedImage) {
         const swap = t
-        if (zone1SelectedImage) {
-          e.preventDefault()
-          e.stopPropagation()
-          const url = `/${zone1SelectedImage.sessionId}/${zone1SelectedImage.filename}`
-          swapImage(swap, url)
-          if (sessionId && pageFilename) {
-            onSlotSwapped?.({
-              sessionId,
-              pageFilename,
-              slot: `img:${(swap as HTMLImageElement).src}`,
-              newImage: zone1SelectedImage.filename,
-            })
-          }
-          return
-        }
-
-        // Fallback: no Zone 1 selection → open the picker modal
+        const swapSrc = readImageSrc(swap)
+        e.preventDefault()
+        e.stopPropagation()
+        const url = `/${zone1SelectedImage.sessionId}/${zone1SelectedImage.filename}`
+        swapImage(swap, url)
         if (sessionId && pageFilename) {
-          e.preventDefault()
-          e.stopPropagation()
-          const src = (swap as HTMLImageElement).src
-          setStudioTarget({
+          onSlotSwapped?.({
+            sessionId,
             pageFilename,
-            slot: `img:${src}`,
-            humanLabel: humanizeSlot(`img:${src}`),
-            currentImage: src,
-            context: null,
+            slot: `img:${swapSrc}`,
+            newImage: zone1SelectedImage.filename,
           })
         }
+        return
       }
       // For non-IMG clicks, we intentionally DO NOT preventDefault or
       // stopPropagation. This lets contentEditable's native click→caret
@@ -1622,7 +1670,7 @@ export const LivePreviewWithDirector = forwardRef<
           targetTag={styleTarget.tagName}
           isText={isTextElement(styleTarget)}
           isImage={
-            styleTarget.tagName === 'IMG' ||
+            isImageElement(styleTarget) ||
             styleTarget.hasAttribute(BG_IMAGE_FLAG_ATTR)
           }
           isAnchor={!!styleTarget.closest('a')}
@@ -1715,9 +1763,10 @@ export const LivePreviewWithDirector = forwardRef<
             if (snap) {
               if (snap.style) styleTarget.setAttribute('style', snap.style)
               else styleTarget.removeAttribute('style')
-              // If the element was an IMG and its src was changed, restore that too
-              if (snap.src && styleTarget.tagName === 'IMG') {
-                (styleTarget as HTMLImageElement).src = snap.src
+              // If the element was an image (HTML <img> or SVG <image>) and
+              // its src was changed, restore that too.
+              if (snap.src && isImageElement(styleTarget)) {
+                writeImageSrc(styleTarget, snap.src)
               }
               // Restore href on anchors. Distinguish "no href attribute"
               // (snap.href === null) from "empty href" (snap.href === '').
@@ -1761,16 +1810,14 @@ export const LivePreviewWithDirector = forwardRef<
           }}
           onSwap={() => {
             if (!sessionId || !pageFilename) return
-            const src =
-              styleTarget.tagName === 'IMG'
-                ? (styleTarget as HTMLImageElement).src
-                : window.getComputedStyle(styleTarget).backgroundImage
+            const isImg = isImageElement(styleTarget)
+            const src = isImg
+              ? readImageSrc(styleTarget)
+              : window.getComputedStyle(styleTarget).backgroundImage
             setStudioTarget({
               pageFilename,
-              slot: styleTarget.tagName === 'IMG' ? `img:${src}` : `bgimg:${src}`,
-              humanLabel: humanizeSlot(
-                styleTarget.tagName === 'IMG' ? `img:${src}` : `bgimg:${src}`
-              ),
+              slot: isImg ? `img:${src}` : `bgimg:${src}`,
+              humanLabel: humanizeSlot(isImg ? `img:${src}` : `bgimg:${src}`),
               currentImage: src,
               context: null,
             })
@@ -1798,8 +1845,8 @@ export const LivePreviewWithDirector = forwardRef<
                       sessionId,
                       pageFilename,
                       slot:
-                        styleTarget.tagName === 'IMG'
-                          ? `img:${(styleTarget as HTMLImageElement).src}`
+                        isImageElement(styleTarget)
+                          ? `img:${readImageSrc(styleTarget)}`
                           : `bgimg:${styleTarget.getAttribute(BG_IMAGE_FLAG_ATTR) || ''}`,
                       newImage: zone1SelectedImage.filename,
                     })

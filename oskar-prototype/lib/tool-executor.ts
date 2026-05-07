@@ -453,13 +453,21 @@ export const CLAUDE_TOOL_DEFINITIONS = [
   },
   {
     name: 'report_build_progress',
-    description: 'Optional. Emit a progress milestone mid-build.',
+    description: 'Required at the html and verify transitions; optional for free-form milestones. Pass `stage: "html"` after writing the HTML file, and `stage: "verify"` before screenshotting/verifying. The orchestrator forwards stage transitions to the live BuildJobCard pipeline.',
     input_schema: {
       type: 'object' as const,
       properties: {
-        milestone: { type: 'string' }
+        stage: {
+          type: 'string',
+          enum: ['html', 'verify'],
+          description: 'Transition the build pipeline to this stage. Only "html" and "verify" are valid; queued is the implicit start, done is set by report_build_complete.'
+        },
+        milestone: {
+          type: 'string',
+          description: 'Free-form bullet that appears under single-vibe builds. Optional even when stage is set.'
+        }
       },
-      required: ['milestone']
+      required: []
     }
   }
 ]

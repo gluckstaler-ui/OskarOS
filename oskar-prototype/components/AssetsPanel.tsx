@@ -246,6 +246,23 @@ function BentoTile({
               </div>
             )
           }
+          if (displayTag === 'STAR') {
+            // STAR = user-curation "great picture" marker. Gold filled
+            // star icon, no pill chrome — distinguishable at a glance from
+            // the other lifecycle/placement chips. (Ralph 2026-05-05.)
+            return (
+              <div style={{
+                position: 'absolute', bottom: '8px', right: '8px',
+                width: '18px', height: '18px',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.5))',
+              }}>
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="#FACC15" stroke="#FACC15" strokeWidth="1.5" strokeLinejoin="round">
+                  <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+                </svg>
+              </div>
+            )
+          }
           if (displayTag) {
             return (
               <div style={{
@@ -385,7 +402,7 @@ function BentoTile({
                 t.style.color = '#a1a1aa'; t.style.borderColor = '#3f3f46'
               }}
             >
-              👁 View
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.25" strokeLinecap="round" strokeLinejoin="round" aria-hidden style={{ pointerEvents: 'none' }}><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg> View
             </button>
             <button
               onClick={(e) => {
@@ -410,7 +427,7 @@ function BentoTile({
               onMouseEnter={(e) => { e.currentTarget.style.filter = 'brightness(1.1)' }}
               onMouseLeave={(e) => { e.currentTarget.style.filter = 'brightness(1)' }}
             >
-              ✏️ Edit
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.25" strokeLinecap="round" strokeLinejoin="round" aria-hidden style={{ pointerEvents: 'none' }}><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg> Edit
             </button>
           </div>
         </div>
@@ -1169,10 +1186,12 @@ export function AssetsPanel({
           <button
             onClick={() => onAssetsViewChange?.('assets')}
             style={{
-              padding: '5px 12px',
-              fontSize: '10px',
+              // Bento header doctrine 2026-05-06 — 12px JetBrains Mono UPPERCASE.
+              fontFamily: 'var(--font-mono, "JetBrains Mono", monospace)',
+              padding: '6px 14px',
+              fontSize: '12px',
               fontWeight: 700,
-              letterSpacing: '0.05em',
+              letterSpacing: '0.16em',
               borderRadius: '5px',
               border: 'none',
               cursor: 'pointer',
@@ -1196,10 +1215,11 @@ export function AssetsPanel({
             onClick={() => onAssetsViewChange?.('feedback')}
             title="Sentinel Ti — critique reports"
             style={{
-              padding: '5px 12px',
-              fontSize: '10px',
+              fontFamily: 'var(--font-mono, "JetBrains Mono", monospace)',
+              padding: '6px 14px',
+              fontSize: '12px',
               fontWeight: 700,
-              letterSpacing: '0.05em',
+              letterSpacing: '0.16em',
               borderRadius: '5px',
               border: 'none',
               cursor: 'pointer',
@@ -1531,27 +1551,33 @@ export function AssetsPanel({
         )}
 
         {/* ============================================================== */}
-        {/* REPROMPTS - Track 2 Image Prompts from IMAGES.md               */}
-        {/* Using same card design as Image Library (bento grid)           */}
+        {/* IMAGE PROMPTS — Track 2 prompts from IMAGES.md                 */}
+        {/* Renamed from "Reprompts" 2026-05-06 (Ralph). Bento header      */}
+        {/* doctrine: 12px JetBrains Mono UPPERCASE 700 0.16em — same      */}
+        {/* register as Briefing / Vibes / Presets so all bento headers   */}
+        {/* read on the same line/tier visually.                           */}
         {/* ============================================================== */}
         {imageManifests.length > 0 && (
           <div style={{ padding: '0 16px 16px 16px' }}>
             <div style={{
-              fontSize: '10px',
+              fontFamily: 'var(--font-mono, "JetBrains Mono", monospace)',
+              fontSize: '12px',
               fontWeight: 700,
               textTransform: 'uppercase',
-              letterSpacing: '0.05em',
-              color: 'var(--text-muted)',
+              letterSpacing: '0.16em',
+              color: 'var(--text-main)',
               marginBottom: '12px',
               display: 'flex',
               alignItems: 'center',
-              gap: '6px'
+              gap: '8px'
             }}>
-              <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M12 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
-                <path d="M18.375 2.625a1 1 0 0 1 3 3l-9.013 9.014a2 2 0 0 1-.853.505l-2.873.84a.5.5 0 0 1-.62-.62l.84-2.873a2 2 0 0 1 .506-.852z"/>
+              {/* Feather edit-3 icon (pencil-on-page). Same icon family
+                  as the other bento headers — Feather throughout. */}
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--accent, #3B82F6)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M12 20h9"/>
+                <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>
               </svg>
-              Reprompts
+              Image Prompts
             </div>
 
             {imageManifests.map(manifest => (
@@ -1696,7 +1722,7 @@ export function AssetsPanel({
           }}>
             <div style={{
               height: '100%',
-              backgroundColor: 'var(--accent, #3B82F6)',
+              backgroundColor: 'var(--info, #3B82F6)',
               width: `${(completedAssets / totalAssets) * 100}%`,
               transition: 'width 0.3s'
             }} />
@@ -1722,7 +1748,7 @@ export function AssetsPanel({
                 }}
                 style={{
                   padding: '4px 8px',
-                  backgroundColor: 'var(--accent, #3B82F6)',
+                  backgroundColor: 'var(--info)',  /* BLUE per Ralph 2026-05-03 */
                   color: 'white',
                   border: 'none',
                   borderRadius: '4px',

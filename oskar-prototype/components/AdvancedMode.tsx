@@ -30,13 +30,20 @@
  * When you switch tabs: save current state under old tab, load state under new tab.
  */
 
-import { useCallback, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { SourceImage, ImageManifest, AspectRatio, ImageSize, VibeData } from '@/lib/types'
 import { AssetGrid } from './advanced/AssetGrid'
 import { CanvasPreview } from './advanced/CanvasPreview'
 import { PresetsStaging } from './advanced/PresetsStaging'
 import { PromptEditor, PromptEditorHandle } from './advanced/PromptEditor'
 import { ImageChatPanel, type ImageChatContent } from './advanced/ImageChatPanel'
+// WP-IMG-1..6 (2026-05-06)
+import { ImageOpsWorkshop } from './image-mode/ImageOpsWorkshop'
+import { CropMarqueeOverlay } from './image-mode/CropTool'
+import { SliceGridOverlay } from './image-mode/SliceTool'
+import { EyedropperOverlay, type EyedropperPick } from './image-mode/EyedropperOverlay'
+import { PreviewSplitView } from './image-mode/PreviewSplitView'
+import { type ImageOpsState, makeInitialImageOpsState } from './image-mode/types'
 import type { ConversationMessage } from '@/lib/types'
 import { findPreset as findPresetByLabel } from '@/lib/image-presets'
 import type { Preset, ComposeData, LayoutData } from '@/lib/image-presets'
@@ -57,7 +64,7 @@ import {
 // Types
 // ============================================================================
 
-export type AdvancedTab = 'view' | 'generate' | 'edit' | 'compose' | 'layout' | 'brand'
+export type AdvancedTab = 'view' | 'generate' | 'edit' | 'compose' | 'layout' | 'brand' | 'image-ops'
 
 /** Compose staging: scene image + ordered subject images. */
 export interface ComposeStaging {
@@ -145,6 +152,10 @@ const TABS: { id: AdvancedTab; label: string }[] = [
   { id: 'compose', label: 'Compose' },
   { id: 'layout', label: 'Layout' },
   { id: 'brand', label: 'Brand' },
+  // WP-IMG-1: image-ops appended as a peer tab. The mockup spec calls this
+  // "Image Ops" / 'image-ops'; we keep the slug machine-friendly and the
+  // human label two words ("Img Ops") so the tab strip stays compact.
+  { id: 'image-ops', label: 'Img Ops' },
 ]
 
 const TAB_COLORS: Record<AdvancedTab, string> = {
@@ -154,6 +165,7 @@ const TAB_COLORS: Record<AdvancedTab, string> = {
   compose: '#8B5CF6',
   layout: '#10B981',
   brand: '#EC4899',
+  'image-ops': '#06B6D4', // WP-IMG-1 — cyan
 }
 
 const TAB_HELP: Record<AdvancedTab, string> = {
@@ -163,6 +175,7 @@ const TAB_HELP: Record<AdvancedTab, string> = {
   compose: 'Pick a scene image, then add subjects to place into it. Choose a preset to define the composition style. The prompt updates live as you select.',
   layout: 'Arrange multiple images into a grid layout. Pick a preset, then click images to fill the grid slots. The bento preview updates in real-time.',
   brand: 'Pick a vibe, pick a deliverable — generate logo, business card, pitch slide, website hero, and social kit in the vibe\'s brand.',
+  'image-ops': 'Workshop: crop, slice, resize, format-convert. Pick a tool, set params, hit Generate — outputs land in the asset library.',
 }
 
 const INITIAL_LAYOUT_SLOTS = 4
@@ -378,6 +391,7 @@ export function AdvancedMode({
       compose: makeInitialTabState(),
       layout: makeInitialTabState(),
       brand: makeInitialTabState(),
+      'image-ops': makeInitialTabState(), // WP-IMG-1
     }
     // Pre-seed the initial tab with the initial image if provided
     if (initialImage) {
@@ -388,6 +402,30 @@ export function AdvancedMode({
 
   // Derived: current tab's state
   const currentState = perTabState[activeTab]
+
+  // ── WP-IMG-1..4 image-ops state ──────────────────────────────────────────
+  // Single source of truth for the image-ops tool state. Lives here so the
+  // Zone 2 overlay (marquee / slice grid) and the Workshop body (Z3+Z4 area)
+  // can both read/write the same cropRect, sliceCols, etc. — no two-way
+  // mirror, no event-bus relay.
+  const [imageOpsState, setImageOpsState] = useState<ImageOpsState>(() => makeInitialImageOpsState())
+
+  // Image-native dimensions for the currently-displayed source image. Set by
+  // CanvasPreview via the `onImageNaturalSize` callback. Null until the img
+  // loads (first paint).
+  const [imageNaturalSize, setImageNaturalSize] = useState<
+    { naturalW: number; naturalH: number } | null
+  >(null)
+
+  // When the user picks a different source image, reset cropRect (the rect
+  // is image-native px → no longer valid for the new image). Other fields
+  // (filename, overwrite, tagChip, slice/resize prefs) are session-scoped and
+  // persist intentionally.
+  useEffect(() => {
+    setImageOpsState((s) => ({ ...s, cropRect: null }))
+  }, [perTabState['image-ops']?.selectedImage?.id])
+
+  const isImageOpsMode = activeTab === 'image-ops'
 
   // --- Active brand data (Brand tab) -----------------------------------------
   // The Brand tab is stateful: entering it locks in a brand identity from
@@ -1661,32 +1699,123 @@ export function AdvancedMode({
                   {TAB_HELP[activeTab]}
                 </div>
               )}
-              <CanvasPreview
-                selectedImage={currentState.selectedImage}
-                onCopyDescription={handleCopyDescription}
-                onSelectVersion={(img) => patchCurrentTab({ selectedImage: img })}
-                activeTab={activeTab}
-                layoutStaging={currentState.layoutStaging}
-                sourceImages={sourceImages}
-                sessionId={sessionId}
-                assignOpen={assignOpen}
-                onCloseAssign={() => setAssignOpen(false)}
-                isGenerating={isGenerating}
-                activePresetLabel={currentState.activePresetLabel}
-                onAssignedToVibe={(_result) => {
-                  // 2026-04-29 Phase 2: snackbar is now driven by server-side
-                  // `publish('hotswap_complete')` from /api/sessions/[id]/assign-slot.
-                  // /api/events SSE → frontend useEffect → sessionEvents → snackbar.
-                  // No client-side emit needed.
-                }}
-              />
+              {/* WP-IMG-1..6 (2026-05-06): compute the image-ops overlay
+                  once. Used as either:
+                    a) `imageOpsOverlay`  — overlaid on the standard <img>
+                       when split is OFF
+                    b) Passed into `<PreviewSplitView>`'s `overlay` prop
+                       when split is ON
+                  Same JSX, different mount point. */}
+              {(() => {
+                const overlayNode = (isImageOpsMode && imageNaturalSize && currentState.selectedImage)
+                  ? imageOpsState.tool === 'crop'
+                    ? (
+                      <CropMarqueeOverlay
+                        rect={imageOpsState.cropRect}
+                        onRectChange={(r) => setImageOpsState((s) => ({ ...s, cropRect: r }))}
+                        natural={imageNaturalSize}
+                        aspect={imageOpsState.cropAspect}
+                      />
+                    )
+                    : imageOpsState.tool === 'slice'
+                      ? <SliceGridOverlay cols={imageOpsState.sliceCols} rows={imageOpsState.sliceRows} />
+                      : imageOpsState.tool === 'format-convert'
+                        ? (
+                          // Eyedropper active across ALL three formats per
+                          // mockup. For PNG → picked color feeds
+                          // chromaKeyColor (when the chroma-key addon is
+                          // enabled); for JPG → feeds alphaMatteColor (when
+                          // the alpha-matte addon is enabled). The picked
+                          // hex always lands in lastEyedropperPick so the
+                          // readout pill stays frozen across hover/leave.
+                          <EyedropperOverlay
+                            imageUrl={currentState.selectedImage.path}
+                            natural={imageNaturalSize}
+                            label="PICK"
+                            onPick={(pick: EyedropperPick) => {
+                              setImageOpsState((s) => {
+                                const next: typeof s = {
+                                  ...s,
+                                  lastEyedropperPick: { hex: pick.hex, x: pick.x, y: pick.y },
+                                }
+                                // Write through to whichever addon is enabled.
+                                // If both, both update. If neither, only
+                                // lastEyedropperPick records the value.
+                                if (s.chromaKeyEnabled) next.chromaKeyColor = pick.hex
+                                if (s.alphaMatteEnabled) next.alphaMatteColor = pick.hex
+                                return next
+                              })
+                            }}
+                            onError={(err) => console.warn('[eyedropper]', err)}
+                            committed={
+                              imageOpsState.lastEyedropperPick
+                                ? {
+                                    hex: imageOpsState.lastEyedropperPick.hex,
+                                    x: imageOpsState.lastEyedropperPick.x,
+                                    y: imageOpsState.lastEyedropperPick.y,
+                                    r: 0, g: 0, b: 0, a: 255,
+                                  }
+                                : null
+                            }
+                          />
+                        )
+                        : null
+                  : null
+
+                // Show the split when the workshop's preview toggle is on.
+                const wantSplit = isImageOpsMode && imageOpsState.showPreview && !!currentState.selectedImage
+                const splitNode = wantSplit
+                  ? (
+                    <PreviewSplitView
+                      inputUrl={currentState.selectedImage!.path}
+                      inputAlt={currentState.selectedImage!.filename}
+                      outputUrl={
+                        // Only show output preview when the cached output's
+                        // tool matches the active tool — see the clear-on-
+                        // tool-change effect inside ImageOpsWorkshop.
+                        imageOpsState.lastOutput?.tool === imageOpsState.tool
+                          ? imageOpsState.lastOutput.url
+                          : null
+                      }
+                      overlay={overlayNode}
+                      // When split is ON, the natural-size signal must come
+                      // from the split's input <img>, not from CanvasPreview's
+                      // standard <img> (which is unmounted by the split).
+                      onImageNaturalSize={(s) => s && setImageNaturalSize({ naturalW: s.naturalW, naturalH: s.naturalH })}
+                    />
+                  )
+                  : null
+
+                return (
+                  <CanvasPreview
+                    selectedImage={currentState.selectedImage}
+                    onCopyDescription={handleCopyDescription}
+                    onSelectVersion={(img) => patchCurrentTab({ selectedImage: img })}
+                    activeTab={activeTab}
+                    layoutStaging={currentState.layoutStaging}
+                    sourceImages={sourceImages}
+                    sessionId={sessionId}
+                    assignOpen={assignOpen}
+                    onCloseAssign={() => setAssignOpen(false)}
+                    isGenerating={isGenerating}
+                    activePresetLabel={currentState.activePresetLabel}
+                    onAssignedToVibe={(_result) => {
+                      // server-side hotswap_complete drives snackbar; no client emit.
+                    }}
+                    onImageNaturalSize={isImageOpsMode && !wantSplit ? setImageNaturalSize : undefined}
+                    imageOpsOverlay={!wantSplit ? overlayNode : null}
+                    imageOpsSplitView={splitNode}
+                  />
+                )
+              })()}
         </div>
 
       </div>
 
       {/* ZONE 3 BENTO CARD: Presets / Staging. Ask CD moved to chat column (2026-04-18).
-          Width: 2 cols, always. Starts at col 5 (collapsed) or col 3 (expanded). */}
-      {!isViewMode && (
+          Width: 2 cols, always. Starts at col 5 (collapsed) or col 3 (expanded).
+          WP-IMG-1: hidden in image-ops mode (Workshop replaces both Z3 + Z4). */}
+      {!isViewMode && !isImageOpsMode && (
         <div
           className="bento-card"
           style={{
@@ -1723,8 +1852,8 @@ export function AdvancedMode({
       )}
 
       {/* ZONE 4 BENTO CARD: Prompt editor.
-          Hidden only in View mode. */}
-      {!isViewMode && (
+          Hidden in View mode and image-ops mode (Workshop replaces it). */}
+      {!isViewMode && !isImageOpsMode && (
         <div
           className="bento-card"
           style={{
@@ -1754,6 +1883,42 @@ export function AdvancedMode({
             canReset={currentState.prompt !== currentState.loadedPrompt}
             onReviewAI={sessionId ? handleReviewByAI : undefined}
             isReviewingAI={isCDLoading}
+          />
+        </div>
+      )}
+
+      {/* WP-IMG-1 (2026-05-06): IMAGE-OPS WORKSHOP — replaces Z3+Z4 when the
+          image-ops tab is active. Spans the SAME combined footprint Z3+Z4
+          would have had: 6 cols collapsed (5/10), 4 cols expanded (3/6).
+          Workshop body is a fixed 320 px tall (42 ops-bar + 220 body + 58
+          footer). The grid template above (`3fr 2fr`) gives row 2 a flexible
+          height; the Workshop card overflows-hidden inside that. */}
+      {isImageOpsMode && (
+        <div
+          style={{
+            gridColumn: effectiveExpanded ? '3 / span 4' : '5 / span 6',
+            gridRow: 2,
+            overflow: 'hidden',
+            display: 'flex',
+            minHeight: 0,
+          }}
+        >
+          <ImageOpsWorkshop
+            selectedImage={currentState.selectedImage}
+            imageNaturalSize={imageNaturalSize}
+            state={imageOpsState}
+            onStateChange={setImageOpsState}
+            sessionId={sessionId}
+            onOpComplete={(_filenames) => {
+              // Refresh the asset library so newly-written outputs (and
+              // their IMAGES.md status entries) appear. The existing
+              // helper does the right thing — re-reads IMAGES.md, updates
+              // tags + paths on every SourceImage. WP-IMG-7 (provenance)
+              // and WP-IMG-8 (snackbar) layer on top of this hook later.
+              if (onSourceImagesRefresh) {
+                void onSourceImagesRefresh()
+              }
+            }}
           />
         </div>
       )}

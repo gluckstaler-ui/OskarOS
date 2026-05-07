@@ -223,6 +223,185 @@ export const CD_TOOL_DEFINITIONS = [
             required: ['jobId'],
         },
     },
+    // ── Bug I (Ralph 2026-05-04): propose_image_prompt ─────────────────────
+    // Closes the doctrine gap CD flagged: update_image_metadata writes the
+    // wrong shape (#### filename — that's the generated-image record under
+    // a parent prompt block), and generate_image skips the prompt block
+    // entirely (fires Nano right away). Neither path lets CD propose a
+    // prompt for user approval before firing. This tool writes a clean
+    // `### img-N` PENDING block that the Assets panel renders as a card
+    // with a Generate button.
+    {
+        name: 'propose_image_prompt',
+        description: 'Propose a new image prompt by writing a `### img-N` PENDING block to ' +
+            'IMAGES.md. Renders in the Assets panel as a prompt card with a ' +
+            'Generate button. Use when you want to draft an image idea WITHOUT ' +
+            'firing Nano immediately — get user approval first, or draft multiple ' +
+            'variants and let the user pick. After write, panel auto-refreshes ' +
+            'via the existing assets_updated event-bus path.',
+        inputSchema: {
+            type: 'object',
+            properties: {
+                vibe: {
+                    type: 'string',
+                    description: 'Vibe slug (e.g. "vibe-3"), display name, or "shared"/"all" for ' +
+                        'cross-vibe assets. Same field the Assets panel groups by.',
+                },
+                purpose: {
+                    type: 'string',
+                    description: 'Slot/usage label: hero, portrait, menu-bg, gallery, etc.',
+                },
+                aspectRatio: {
+                    type: 'string',
+                    enum: ['1:1', '4:3', '3:4', '16:9', '9:16', '21:9', '3:2', '2:3', '4:5', '5:4'],
+                    description: 'Aspect ratio for Nano when the user clicks Generate.',
+                },
+                prompt: {
+                    type: 'string',
+                    description: 'The Nano-ready prompt — proofread, ready to fire as-is when ' +
+                        'the user clicks Generate. Use the same level of polish you would ' +
+                        'in submit_image_prompt.',
+                },
+                id: {
+                    type: 'string',
+                    description: 'Optional explicit id (e.g. "img-goofy-v1"). Must match `img-<slug>` ' +
+                        '(lowercase, alphanumerics + hyphens). Omit to auto-number as ' +
+                        'img-NNN where NNN is one past the highest existing numeric img-N.',
+                },
+            },
+            required: ['vibe', 'purpose', 'aspectRatio', 'prompt'],
+        },
+    },
+    // ── Phase 2 discovery flow (Ralph 2026-05-04) ─────────────────────────
+    // Promoted from inline tools in /api/chat/route.ts so BOTH the CLI mode
+    // (chat-stream + bridge subprocess) AND the API mode (chat + api-mcp-bridge)
+    // can call them via the same MCP path. Each handler POSTs to its
+    // /api/mcp/{slug} route, which publishes to the event-bus. Frontend
+    // renders <DiscoveryQuestionsCard> / <ConfirmUnderstandingCard> in the
+    // chat surface — same render slot as UnfinishedTodosPanel (WP-2.8).
+    {
+        name: 'ask_discovery_questions',
+        description: 'Ask the user N structured questions during initial brand discovery. ' +
+            'Use when ≥3 things still need clarification. Renders as a card with ' +
+            'one input per question; user answers come back as a regular user ' +
+            'message in the next turn.',
+        inputSchema: {
+            type: 'object',
+            properties: {
+                questions: {
+                    type: 'array',
+                    items: { type: 'string' },
+                    description: 'List of questions to ask. Non-empty.',
+                },
+                context: {
+                    type: 'string',
+                    description: 'Optional one-line preamble shown above the questions.',
+                },
+            },
+            required: ['questions'],
+        },
+    },
+    {
+        name: 'confirm_understanding',
+        description: 'Show the user a summary of what you understand about their business + ' +
+            'a build-readiness flag. Renders as a card; if readyToGenerate=true, ' +
+            'the card includes a "Build it" button that fires build_all_vibes. Use ' +
+            'right before recommending a build.',
+        inputSchema: {
+            type: 'object',
+            properties: {
+                summary: {
+                    type: 'string',
+                    description: 'Your summary: one-sentence description, target customer, unique details, tone.',
+                },
+                readyToGenerate: {
+                    type: 'boolean',
+                    description: 'true = enough info to build now; false = still learning.',
+                },
+            },
+            required: ['summary', 'readyToGenerate'],
+        },
+    },
+    // ── Ralph 2026-05-06: on-demand card preview ───────────────────────────
+    // When the user asks to "show me [a card]" / "what does X look like",
+    // CD must NOT paste React source code. Call this tool with sample data;
+    // the chat surface renders a real instance (`card.__preview: true` so
+    // the renderer marks it as a sample with no backend side-effects).
+    {
+        name: 'preview_card',
+        description: 'Render a chat-surface card with sample data so the user sees what ' +
+            'it looks like. Call this when the user asks to "show me [a card/' +
+            'component]" or wants to preview a UI surface visually. Do NOT ' +
+            'paste source code in response to such asks.',
+        inputSchema: {
+            type: 'object',
+            properties: {
+                kind: {
+                    type: 'string',
+                    enum: [
+                        'discovery_questions',
+                        'confirm_understanding',
+                        'upload_eval',
+                        'upload_eval_batch',
+                        'screenshot',
+                        'apply_patch',
+                        'diagnostic_chip',
+                        // Ralph + CD 2026-05-06: build job card (Archetype 1).
+                        // payload = { title: string, jobId?: string, rows: BuildCardRow[] }.
+                        // Each row carries { id, label, state, juniorDev?, eta?, thumb?,
+                        // milestones?, error? }. state ∈ queued|wf|html|verify|done|failed.
+                        'build',
+                    ],
+                    description: 'The card kind to render. Match a discriminator in lib/types.ts.',
+                },
+                payload: {
+                    type: 'object',
+                    description: 'Sample data for the card. Shape matches the corresponding ' +
+                        'CardPayload type in lib/types.ts (omit `kind` here — it lives ' +
+                        'in the sibling field). Make the data realistic so the user ' +
+                        'sees the card looking like it would in the wild.',
+                },
+            },
+            required: ['kind', 'payload'],
+        },
+    },
+    // ── WP-66 (Ralph 2026-05-06): TodoWrite persistence ────────────────────
+    // CD's TodoWrite calls land here; the route writes the `## Todos` section
+    // in SESSION.md and broadcasts `todos_updated`. LiveOverlay (WP-22)
+    // re-reads + re-renders. Single-writer model — user-add flows through
+    // normal chat, CD encodes as a TodoWrite on its next turn.
+    {
+        name: 'todo_write',
+        description: 'Write the current task list. Full-list replace (not incremental). ' +
+            'Persists to the `## Todos` section of SESSION.md; the panel updates ' +
+            'live on the user side. Use for any task spanning 3+ steps. Tag the ' +
+            'in-progress item with status="in_progress" + an `activeForm` (present-' +
+            'continuous phrasing) so the user sees what you are doing right now.',
+        inputSchema: {
+            type: 'object',
+            properties: {
+                todos: {
+                    type: 'array',
+                    items: {
+                        type: 'object',
+                        properties: {
+                            id: { type: 'string', description: 'Stable id (optional but recommended).' },
+                            content: { type: 'string', description: 'Imperative phrasing — what to do.' },
+                            activeForm: { type: 'string', description: 'Present-continuous — shown while in_progress.' },
+                            status: {
+                                type: 'string',
+                                enum: ['pending', 'in_progress', 'completed'],
+                                description: 'Lifecycle state.',
+                            },
+                        },
+                        required: ['content', 'status'],
+                    },
+                    description: 'Full task list. Sending an empty array clears all todos.',
+                },
+            },
+            required: ['todos'],
+        },
+    },
     // ── Bug 18 (2026-04-30): typed gateway for IMAGES.md mutations ──────────
     {
         name: 'update_image_metadata',
@@ -230,8 +409,10 @@ export const CD_TOOL_DEFINITIONS = [
             'Replaces raw FileEdit against the markdown — that path corrupted ' +
             'entries by adding off-spec fields and masking Status. This tool writes ' +
             'a parser-clean entry. Status vocabulary (frozen): HERO, USED, B-ROLL, ' +
-            'READY, APPROVED, REDO, INGESTED, TRASH, PENDING. Use after evaluating ' +
-            'a generation to set verdict / re-tag / assign a slot.',
+            'READY, APPROVED, REDO, INGESTED, TRASH, PENDING, STAR. Use after ' +
+            'evaluating a generation to set verdict / re-tag / assign a slot. ' +
+            'STAR is the user-curation marker for "this picture is great" — ' +
+            'distinct from APPROVED (CD review pass) and HERO (placement-derived).',
         inputSchema: {
             type: 'object',
             properties: {
@@ -241,8 +422,8 @@ export const CD_TOOL_DEFINITIONS = [
                 },
                 status: {
                     type: 'string',
-                    enum: ['HERO', 'USED', 'B-ROLL', 'READY', 'APPROVED', 'REDO', 'INGESTED', 'TRASH', 'PENDING'],
-                    description: 'Frozen vocabulary. No "ACTIVE" — that was a derived pseudo-status; use APPROVED/USED instead.',
+                    enum: ['HERO', 'USED', 'B-ROLL', 'READY', 'APPROVED', 'REDO', 'INGESTED', 'TRASH', 'PENDING', 'STAR'],
+                    description: 'Frozen vocabulary. No "ACTIVE" — that was a derived pseudo-status; use APPROVED/USED instead. STAR = user-curation "great picture" marker.',
                 },
                 evaluation: {
                     type: 'string',
@@ -406,6 +587,108 @@ export async function callCDTool(name, args, ctx) {
             if (!r.ok)
                 return { text: r.error || 'cancel_job failed', isError: true };
             return { text: JSON.stringify(r.body), isError: false };
+        }
+        // ── Bug I (Ralph 2026-05-04): propose_image_prompt ──────────────────
+        case 'propose_image_prompt': {
+            const vibe = String(args.vibe || '').trim();
+            const purpose = String(args.purpose || '').trim();
+            const aspectRatio = String(args.aspectRatio || '').trim();
+            const prompt = String(args.prompt || '').trim();
+            const id = args.id ? String(args.id).trim() : undefined;
+            if (!vibe || !purpose || !aspectRatio || !prompt) {
+                return {
+                    text: 'Error: vibe, purpose, aspectRatio, and prompt are all required',
+                    isError: true,
+                };
+            }
+            const r = await postJson('/api/mcp/propose-image-prompt', {
+                sessionId,
+                vibe,
+                purpose,
+                aspectRatio,
+                prompt,
+                ...(id ? { id } : {}),
+            });
+            if (!r.ok)
+                return { text: `propose_image_prompt failed: ${r.error}`, isError: true };
+            if (r.body?.error)
+                return { text: `propose_image_prompt error: ${r.body.error}`, isError: true };
+            return {
+                text: `Wrote prompt block ${r.body?.id} to IMAGES.md (${r.body?.section}). ` +
+                    `Panel will refresh via assets_updated. The user sees a Generate ` +
+                    `button on the new card; do other work until they click it.`,
+                isError: false,
+            };
+        }
+        // ── Phase 2 discovery flow (Ralph 2026-05-04) ────────────────────────
+        case 'ask_discovery_questions': {
+            const questions = Array.isArray(args.questions) ? args.questions.map((q) => String(q ?? '').trim()).filter(Boolean) : [];
+            if (questions.length === 0) {
+                return { text: 'Error: questions must be a non-empty array of strings', isError: true };
+            }
+            const context = typeof args.context === 'string' ? args.context : undefined;
+            const r = await postJson('/api/mcp/ask-discovery-questions', { sessionId, questions, context });
+            if (!r.ok)
+                return { text: `ask_discovery_questions failed: ${r.error}`, isError: true };
+            if (r.body?.error)
+                return { text: `ask_discovery_questions error: ${r.body.error}`, isError: true };
+            return {
+                text: `Discovery questions surfaced (${r.body?.questionCount ?? questions.length}). ` +
+                    `Wait for the user's answers before continuing — they will arrive as a regular user message.`,
+                isError: false,
+            };
+        }
+        case 'confirm_understanding': {
+            const summary = String(args.summary || '').trim();
+            if (!summary)
+                return { text: 'Error: summary is required', isError: true };
+            const readyToGenerate = args.readyToGenerate === true;
+            const r = await postJson('/api/mcp/confirm-understanding', { sessionId, summary, readyToGenerate });
+            if (!r.ok)
+                return { text: `confirm_understanding failed: ${r.error}`, isError: true };
+            if (r.body?.error)
+                return { text: `confirm_understanding error: ${r.body.error}`, isError: true };
+            return {
+                text: readyToGenerate
+                    ? 'Understanding confirmed; user will trigger build via UI button.'
+                    : 'Understanding summarized; user will continue clarifying or steer.',
+                isError: false,
+            };
+        }
+        // ── Ralph 2026-05-06: on-demand card preview ─────────────────────────
+        case 'preview_card': {
+            const kind = String(args.kind || '').trim();
+            const payload = (args.payload && typeof args.payload === 'object') ? args.payload : null;
+            if (!kind)
+                return { text: 'Error: kind is required', isError: true };
+            if (!payload)
+                return { text: 'Error: payload object is required', isError: true };
+            const r = await postJson('/api/mcp/preview-card', { sessionId, kind, payload });
+            if (!r.ok)
+                return { text: `preview_card failed: ${r.error}`, isError: true };
+            if (r.body?.error)
+                return { text: `preview_card error: ${r.body.error}`, isError: true };
+            return {
+                text: `Card preview rendered (kind=${r.body?.kind ?? kind}). The user ` +
+                    `now sees a visual instance in chat.`,
+                isError: false,
+            };
+        }
+        // ── WP-66 (Ralph 2026-05-06): TodoWrite persistence ─────────────────
+        case 'todo_write': {
+            const todos = Array.isArray(args.todos) ? args.todos : null;
+            if (!todos)
+                return { text: 'Error: todos must be an array', isError: true };
+            const r = await postJson('/api/mcp/todo-write', { sessionId, todos });
+            if (!r.ok)
+                return { text: `todo_write failed: ${r.error}`, isError: true };
+            if (r.body?.error)
+                return { text: `todo_write error: ${r.body.error}`, isError: true };
+            return {
+                text: `Todos written (${r.body?.count ?? todos.length} items). ` +
+                    `Panel updates via todos_updated event.`,
+                isError: false,
+            };
         }
         // ── Bug 18: typed IMAGES.md mutation ────────────────────────────────
         case 'update_image_metadata': {

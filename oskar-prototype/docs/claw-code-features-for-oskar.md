@@ -3,6 +3,178 @@
 > **REWRITE v2** — Now based on actual TypeScript source code from `xorespesp/claude-code` (complete NPM sourcemap reconstruction, 1,900+ files, 512K lines).
 > Previous version was based on the Rust/Python port (`ultraworkers/claw-code`) which only had ~30% of the architecture.
 > Changes from v1 marked with **⚡ SOURCE UPDATE**
+> Status block added: 2026-05-01
+
+---
+
+## STATUS UPDATE — 2026-05-01
+
+Plan body below preserved for context. Of the 20 items, **6 SHIPPED** (sometimes differently than spec'd), **5 PARTIAL** (worth completing), **5 NOT IMPLEMENTED but still worth stealing**, and **4 DELIBERATE NON-PORTS** (we chose a different shape and it's working — don't revert).
+
+The biggest single shift since v2 (Apr 3): the entire memory/dream stack (#12) was **replaced by Sage**, not built as planned. See `MEMORY-SYSTEM-BUILD-PLAN.md` and `DREAMER-IMPLEMENTATION-SPEC.md` 2026-05-01 status blocks for the full trace. After re-audit + CD review, **only prompt caching survives** as a steal-worthy item from the memory-related sections.
+
+### STATUS TIER 1 — Steal Immediately
+
+#### 1. Agentic Loop Pattern - PARTIAL
+
+**SHIPPED:** `lib/claude-api-loop.ts`, `lib/gemini-loop.ts`, `lib/tool-executor.ts`, HTTP MCP transport at `app/api/mcp/server/route.ts`, SSE via `lib/session-events.ts`, stream-json output for live UI updates in `lib/memory/anthropic.ts`.
+
+**MISSING (worth stealing):** AsyncGenerator pattern, ToolUseContext god object, **self-healing recovery cascade** (`max_output_tokens` retry up to 3x, `prompt_too_long` → auto-compact → reactive compact → context collapse). Without the cascade, OskarOS dies hard at context limits. Effort: ~150–200 LOC in `claude-api-loop.ts`.
+
+#### 2. Permission System - NOT IMPLEMENTED (worth stealing for productization)
+
+**HAVE:** Agent-file constraints (Sage Portrait "YOU HAVE NO TOOLS"), `--tools ''` CLI flag, BashTool sandbox classifier. No `PermissionMode` rule engine, no `alwaysAllowRules`/`alwaysDenyRules`, no **deny-rules-strip-tools-before-model-sees-them**.
+
+**WHEN TO STEAL:** Required for productization (FEATURE-X Track C). Customers shouldn't have full tool access. Effort: ~400 LOC adapted from `utils/permissions/` (5,400 LOC source).
+
+#### 3. Pre/Post Tool Hooks - DIFFERENT MODEL SHIPPED
+
+**SHIPPED INSTEAD:** Event-bus (`lib/event-bus.ts`) + agent inbox bus (`lib/agent-inbox-bus.ts`) + `replay_events` ring buffer + `notify_agent` peer-to-peer. **Observation, not interception.** Hooks can BLOCK/MODIFY tool calls; our bus only OBSERVES.
+
+**PARTIAL STEAL:** `PostSampling` hook semantics specifically — fires after every API response — would be a clean place for things like "after each CD turn, validate output against the brief" without polluting CD's prompt. Effort: ~80 LOC if we want it.
+
+**DO NOT IMPLEMENT:** The full 12-file / 8,000-LOC hook infrastructure. Our event-bus model is already solving most of what hooks solve, just with different mechanics.
+
+#### 4. Context Compaction - PARTIAL (Sage replaces some)
+
+**SHIPPED:** Sage 240/40 (block-narrative compression) + Sage Portrait (`lib/memory/dreamer.ts`, 1948 LOC) + 24h pre-prune snapshot retention + tiered pass schedule (2/4/6 passes by file size).
+
+**MISSING (worth stealing):** `microCompact` for old tool results inline (replace with `[Old tool result content cleared]`) — different problem from Sage's SESSION.md compaction. **CD's 2026-05-01 correction:** prompt caching reduces the urgency of microCompact significantly; the cost model is `~1.1× size with caching`, not `N× size`.
+
+**MISSING (lower priority):** `autoCompact` (live conversation token-limit) was Lumberjack — RETIRED 2026-05-01 per Ralph. `reactiveCompact` (fire on `prompt_too_long`) is part of the recovery cascade in #1. The 9-section BASE_COMPACT_PROMPT structure is good if we ever need conversation summaries.
+
+#### 5. Session Persistence (JSONL) - DELIBERATE NON-PORT
+
+**SHIPPED INSTEAD:** Markdown SESSION.md, CREATIVE-BRIEF.md, IMAGES.md, BUILD.md, user.md. Single-file-per-concern, append-only-ish, human-reviewable. CD reads these directly as part of cold-boot; Sage operates on them as text.
+
+**DO NOT IMPLEMENT:** JSONL would break human-readability — that's the whole point of markdown. The content-replacement pattern (large bodies stored separately) could apply to the bus `messageLog`, but per CD's 2026-05-01 correction, that's storage not API conversation — not a high-leverage problem.
+
+#### 6. Usage Tracking & Cost Estimation - PARTIAL
+
+**SHIPPED:** `lib/usage-tracker.ts` with `appendUsage` + `calculateCost`.
+
+**MISSING:** `cache_creation_input_tokens` / `cache_read_input_tokens` separate tracking. **STEAL when prompt caching lands** (FEATURE-X) — without it we'd misreport costs by ~10×. Effort: ~50 LOC.
+
+### STATUS TIER 2 — Steal Soon
+
+#### 7. Tool Registry Pattern - PARTIAL (different shape)
+
+**SHIPPED:** `mcp-server/tools-{cd,webdev,sentinel,orchestrator,capabilities}.ts` define typed tool schemas + dispatch. 22+ MCP tools wired through the HTTP MCP server.
+
+**MISSING:** `isEnabled()` per-tool gating, `filterToolsByDenyRules()` strip-before-model-sees pattern (essential for permission system #2). Switch dispatch instead of typed `Tool<Input, Output>` objects. The deny-strip pattern is the most useful piece — pairs with #2.
+
+#### 8. Structured File Operations - SUFFICIENT
+
+**SHIPPED:** `apply_patch` MCP tool (jsdom HTML patcher) handles our domain — HTML edits, not arbitrary code edits. FileEditTool's 625 LOC of unique-old-string + indentation-preservation isn't needed at our scope.
+
+**DO NOT IMPLEMENT:** Wholesale port. Our narrower domain doesn't justify it.
+
+#### 9. Multi-Provider API Client - PARTIAL
+
+**SHIPPED:** CLI + API mode + Anthropic + Gemini, both streaming via stream-json.
+
+**MISSING:** Sophisticated error categorization, fallback model on persistent failures. Covered by #19 below — see status there.
+
+#### 10. SSE Streaming - SHIPPED
+
+`lib/session-events.ts`. Done.
+
+#### 11. System Prompt Builder - SUFFICIENT
+
+**SHIPPED:** `lib/cd-agent-prompt.ts` + `lib/sage-agent-prompt.ts`. Loads from agent files; injects user.md + CD-MEMORY + clock block.
+
+**DO NOT IMPLEMENT:** Anthropic's "memory rules" injection (the 4-type taxonomy + how-to-use-memories instructions). Sage's portrait painter handles this implicitly via portrait painting; explicit rules would clash with Sage doctrine.
+
+### STATUS TIER 2.5 — Memory/Dream System
+
+#### 12. Agent Memory System - WHOLLY REPLACED BY SAGE (deliberate)
+
+**REPLACED BY:** Sage Portrait + Sage 240/40 (`agents/sage-portrait.md`, `agents/sage-240-40.md`, `lib/memory/dreamer.ts`). Different architecture on every axis: trigger (session-end vs. cron), scope (per-session `user.md` vs. global memdir), recall (unconditional inject vs. Sonnet selection), extraction (session-end portrait vs. post-turn cursor).
+
+**ONLY SURVIVOR FROM THE FULL AUDIT:** **Per-tool prompt caching** (`cache_control: { type: 'ephemeral' }` on tool definitions). Sage 240/40 fires up to 6 passes per cycle, re-sending its 8KB system prompt every pass. Zero caching today. **This belongs in FEATURE-X**, not in this plan's structure. See `MEMORY-SYSTEM-BUILD-PLAN.md` § "NICE-TO-HAVE FROM ANTHROPIC'S SOURCE" 2026-05-01.
+
+**DO NOT IMPLEMENT:** All 13 specific primitives in DREAMER-IMPLEMENTATION-SPEC.md's status block (memdir scan/age/truncate/recall/extract, 3-gate auto-trigger, 4-type taxonomy, runForkedAgent cache-share, KAIROS daily-log, team memory, etc.).
+
+### STATUS TIER 3 — Steal When Ready
+
+#### 13. MCP Server Manager - DIFFERENT SHAPE; STEAL ONLY THE SMALL PART
+
+**Naming correction:** `services/mcp/client.ts` (3,348 LOC) is an MCP **CLIENT** that connects to and consumes external MCP servers. We shipped the MIRROR IMAGE — an MCP **SERVER** at `app/api/mcp/server/route.ts` that exposes our own tools to our own agents.
+
+**Different concerns:**
+- Their client: transport polymorphism (stdio/SSE/HTTP/WebSocket), OAuth, untrusted-output sanitization, connection pooling, OAuth refresh, image resizing, persistent storage of large external results
+- Our server: typed in-process tool schemas, single-process Next.js, multi-agent routing, per-`(session, role, instance)` bus addressing
+
+**WORTH STEALING (per CD review 2026-05-01):**
+1. **`inferCompactSchema()`** (~30 LOC, `services/mcp/client.ts:2644`) — turns `{assets: [{filename, size, ...}, ...148 more]}` into a 5-line structural summary. Single highest-value function in the entire 3,348 LOC. Pairs with our existing `truncated: true` flag. Apply across ALL list-returning tools, not only oversized ones.
+2. **Truncation discipline as a contract** — formalize what we already half-do. Standard response shape `{data, truncated, total?, schema?, hint?}` where `hint` is a canned "use X to narrow" string. Apply across `list_assets` / `find_assets` / `vibe_diff` / `thread_history` / `replay_events`.
+3. **Hard caps on the 3 actually-unbounded tools:** `vibe_diff` (cap by hunks), `thread_history` (cap by message count + paginate), `find_assets` (require query OR limit).
+
+Total: ~150 LOC + 3 tool edits. **One-day workpackage.**
+
+**DO NOT IMPLEMENT (CD's correction 2026-05-01):**
+- **Disk-persist + path-reference flow** for large tool results. The "biggest blind spot" framing was wrong on three counts: (a) bus `messageLog` and `replay_events` are storage, not API conversation; (b) prompt caching changes cost from `N×size` to `~1.1×size`; (c) the "8 risky tools" list was half wrong (`list_assets` is paginated, `screenshot` returns a path not bytes, `replay_events` has `sinceTs`, `image_ops` writes a file — only 3 are actually unbounded). The disk-persist approach also adds mandatory second tool calls and cache-directory lifecycle complexity. Solving a problem we don't have at the magnitude claimed.
+- **Generic MCP client (3,348 LOC port).** Today: zero outbound MCP needs. CLI-mode CD inherits Claude Code's GitHub/Figma client transitively; API-mode has no external MCP needs in any current WP. When the trigger lands (productized SaaS with tenant-deployed MCP servers per FEATURE-X), build on `@modelcontextprotocol/sdk` directly — stdio + HTTP transports only, API-key auth only, ~250 LOC of glue. Don't preemptively design.
+
+**Trigger condition for the WP:** a concrete external MCP server we want to consume from API mode that the CLI subprocess can't transit. Until then, one paragraph in the productization backlog and move on.
+
+#### 14. Plugin Architecture - N/A
+
+Different UX surface (chat, not CLI plugins). **DO NOT IMPLEMENT.**
+
+#### 15. Slash Commands - N/A
+
+Different UX surface (chat, not CLI). **DO NOT IMPLEMENT.**
+
+#### 16. Sandbox & Isolation - PARTIAL
+
+**SHIPPED:** BashTool sandbox classifier in mcp-server tools.
+
+**MISSING:** Broader filesystem isolation framework. Not needed unless customers run untrusted agents — defer to productization.
+
+#### 17. OAuth & Authentication - N/A
+
+Single-user app today. **REVISIT for productization** (FEATURE-X Track C: multi-tenant requires auth). Defer.
+
+#### 18. Git Operations - N/A
+
+Chat-driven workflow, not git-driven. **DO NOT IMPLEMENT** unless Director Mode needs vibe-version git checkpoints (no current evidence of need).
+
+#### 19. Retry & Backoff (`withRetry`) - MINIMAL — WORTH STEALING
+
+**SHIPPED:** Basic retry in `lib/memory/anthropic.ts`.
+
+**MISSING (worth stealing):**
+- AsyncGenerator pattern that yields `SystemAPIErrorMessage` during waits (UI shows "retrying..." instead of silent block)
+- Foreground/background distinction (`MAX_529_RETRIES = 3` for background, `DEFAULT_MAX_RETRIES = 10` for foreground)
+- OAuth 401 → token-refresh
+- ECONNRESET / EPIPE → no-backoff retry
+- `FallbackTriggeredError` → switch to cheaper model on persistent failures
+
+Effort: ~200 LOC adapted from `services/api/withRetry.ts` (822 LOC source).
+
+#### 20. Subagent Forking - DIFFERENT PROBLEM
+
+**Their fork:** byte-identical request-prefix bytes for prompt-cache hits across child agents. Used for autoDream, classifiers, microcompact summarizer. THE WHOLE POINT is cache stability.
+
+**Our agent_inbox bus:** peer-to-peer coordination between agents with DIFFERENT identities, system prompts, and tool pools. Cache-share doesn't apply because our agents' prompts differ.
+
+**DO NOT IMPLEMENT.** They solve different problems. Forking would only become useful if we add a "cheap secondary computation within a single agent's session" — none planned.
+
+### Cross-cutting DO NOT IMPLEMENT (carried forward, validated)
+
+- **memdir 4-type taxonomy** — rejected by Sage doctrine.
+- **Generic MCP client** — build only when external MCP need arises (see #13).
+- **Disk-persist + path-reference for tool results** — cost math doesn't justify with prompt caching (CD correction).
+- **Markdown → JSONL conversion for session files** — deliberate divergence.
+- **Hourly clock-aligned auto-trigger for memory consolidation** — Sage runs on session-end, no cron needed.
+
+### What IS the source of truth for "what to steal"
+
+- **This document's tier list** — preserved as planning history; status above for current state
+- **`docs/MEMORY-SYSTEM-BUILD-PLAN.md` § NICE-TO-HAVE** — definitive on memory/Sage primitives
+- **`docs/FEATURE-X.md`** — owns prompt caching + productization tracks
+- **CD's 2026-05-01 review** — ground truth on the MCP client steal scope (see this turn's exchange)
 
 ---
 

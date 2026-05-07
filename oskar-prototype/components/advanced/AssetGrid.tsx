@@ -15,8 +15,10 @@
  * - Upload tile + drop zone at the top.
  */
 
-import { memo, useRef } from 'react'
+import { memo, useRef, useState, useMemo } from 'react'
 import { SourceImage } from '@/lib/types'
+
+type CurationFilter = 'STAR' | 'B-ROLL' | 'TRASH' | 'HERO' | 'USED'
 
 export interface AssetGridProps {
   sourceImages: SourceImage[]
@@ -37,6 +39,42 @@ export interface AssetGridProps {
 function AssetGridImpl({ sourceImages, selectedImageId, onSelect, roleBadgeMap = {}, onDelete, onReplaceAll, onUpload }: AssetGridProps) {
   const cleanName = (filename: string) => filename.replace(/^\d+-/, '')
   const fileInputRef = useRef<HTMLInputElement>(null)
+
+  // Curation-tag filter (Ralph 2026-05-05). Each chip is a toggle; multiple
+  // chips ON = OR (show anything matching any active chip). All chips OFF
+  // (default) = show everything EXCEPT TRASH (trashed assets hidden by
+  // default — flip the TRASH chip on to see them).
+  const [activeFilters, setActiveFilters] = useState<Set<CurationFilter>>(() => new Set())
+
+  const toggleFilter = (f: CurationFilter) => {
+    setActiveFilters((prev) => {
+      const next = new Set(prev)
+      if (next.has(f)) next.delete(f)
+      else next.add(f)
+      return next
+    })
+  }
+
+  const filteredImages = useMemo(() => {
+    if (activeFilters.size === 0) {
+      // Default: hide TRASH-tagged images.
+      return sourceImages.filter((img) => img.tag !== 'TRASH')
+    }
+    // Filter chips OR semantics. Per-chip predicates:
+    //   STAR / B-ROLL / TRASH → match img.tag exactly (user-curation)
+    //   HERO  → img.tag === 'HERO' (auto-derived placement)
+    //   USED  → referenced in any vibe HTML OR explicitly tag === 'USED'
+    return sourceImages.filter((img) => {
+      for (const f of activeFilters) {
+        if (f === 'USED') {
+          if ((img.usedIn && img.usedIn.length > 0) || img.tag === 'USED') return true
+        } else if (img.tag === f) {
+          return true
+        }
+      }
+      return false
+    })
+  }, [sourceImages, activeFilters])
 
   const handleDrop = (e: React.DragEvent) => {
     if (!onUpload) return
@@ -111,8 +149,87 @@ function AssetGridImpl({ sourceImages, selectedImageId, onSelect, roleBadgeMap =
             border: '1px solid var(--border-card)',
           }}
         >
-          {sourceImages.length} items
+          {filteredImages.length}{filteredImages.length !== sourceImages.length ? ` / ${sourceImages.length}` : ''} items
         </span>
+      </div>
+
+      {/* Curation-tag filter row (Ralph 2026-05-05). Three toggleable chips:
+          STAR / B-ROLL / TRASH. Default (no chips active) hides TRASH. */}
+      <div
+        style={{
+          padding: '8px 12px 0',
+          display: 'flex',
+          alignItems: 'center',
+          gap: 6,
+        }}
+      >
+        <span
+          style={{
+            fontSize: 9,
+            fontWeight: 700,
+            letterSpacing: '0.08em',
+            textTransform: 'uppercase',
+            color: 'var(--text-dim)',
+            marginRight: 4,
+          }}
+        >
+          Filter
+        </span>
+        <FilterChip
+          label="STAR"
+          isStar
+          active={activeFilters.has('STAR')}
+          color="#facc15"
+          onClick={() => toggleFilter('STAR')}
+        />
+        <FilterChip
+          label="B-ROLL"
+          active={activeFilters.has('B-ROLL')}
+          color="#6b7280"
+          onClick={() => toggleFilter('B-ROLL')}
+        />
+        <FilterChip
+          label="TRASH"
+          active={activeFilters.has('TRASH')}
+          color="#ef4444"
+          onClick={() => toggleFilter('TRASH')}
+        />
+        {/* Auto-derived placement filters (Ralph 2026-05-06). HERO matches
+            tag === 'HERO'; USED matches any image referenced in a vibe HTML
+            OR explicitly tag === 'USED'. */}
+        <FilterChip
+          label="HERO"
+          active={activeFilters.has('HERO')}
+          color="#fbbf24"
+          onClick={() => toggleFilter('HERO')}
+        />
+        <FilterChip
+          label="USED"
+          active={activeFilters.has('USED')}
+          color="#34d399"
+          onClick={() => toggleFilter('USED')}
+        />
+        {activeFilters.size > 0 && (
+          <button
+            onClick={() => setActiveFilters(new Set())}
+            style={{
+              marginLeft: 'auto',
+              fontSize: 9,
+              padding: '3px 7px',
+              borderRadius: 3,
+              border: '1px solid var(--border-card)',
+              background: 'transparent',
+              color: 'var(--text-muted)',
+              fontFamily: 'inherit',
+              cursor: 'pointer',
+              textTransform: 'uppercase',
+              letterSpacing: '0.06em',
+            }}
+            title="Clear filter (reverts to default — hide TRASH only)"
+          >
+            Clear
+          </button>
+        )}
       </div>
 
       <div
@@ -125,7 +242,7 @@ function AssetGridImpl({ sourceImages, selectedImageId, onSelect, roleBadgeMap =
           color: 'var(--text-dim)',
         }}
       >
-        Image Library ({sourceImages.length})
+        Image Library ({filteredImages.length}{filteredImages.length !== sourceImages.length ? ` of ${sourceImages.length}` : ''})
       </div>
 
       <div
@@ -207,7 +324,39 @@ function AssetGridImpl({ sourceImages, selectedImageId, onSelect, roleBadgeMap =
           </div>
         )}
 
-        {sourceImages.map((img) => {
+        {sourceImages.length > 0 && filteredImages.length === 0 && (
+          <div
+            style={{
+              gridColumn: '1 / -1',
+              padding: '24px 12px',
+              fontSize: 11,
+              color: 'var(--text-dim)',
+              textAlign: 'center',
+              lineHeight: 1.6,
+            }}
+          >
+            No images match the active filter.
+            <br />
+            <button
+              onClick={() => setActiveFilters(new Set())}
+              style={{
+                marginTop: 8,
+                fontSize: 10,
+                padding: '4px 10px',
+                borderRadius: 4,
+                border: '1px solid var(--border-card)',
+                background: 'transparent',
+                color: 'var(--text-muted)',
+                fontFamily: 'inherit',
+                cursor: 'pointer',
+              }}
+            >
+              Clear filter
+            </button>
+          </div>
+        )}
+
+        {filteredImages.map((img) => {
           const isSelected = img.id === selectedImageId
           const badge = roleBadgeMap[img.id]
           const borderColor = badge ? badge.color : isSelected ? '#10B981' : 'transparent'
@@ -338,10 +487,31 @@ function AssetGridImpl({ sourceImages, selectedImageId, onSelect, roleBadgeMap =
                     USED
                   </div>
                 )}
-                {/* Other non-HERO non-USED tags (B-ROLL, TRASH, READY, REDO).
+                {/* Other non-HERO non-USED tags (STAR, B-ROLL, TRASH, READY, REDO).
                     Bottom-right, same slot as USED — they're mutually exclusive
-                    with USED for a given image so there's no overlap. */}
-                {!isUsed && otherTag && (
+                    with USED for a given image so there's no overlap.
+                    STAR is rendered as a gold star glyph (no pill chrome) to
+                    pop visually against pill-style chips. (Ralph 2026-05-05.) */}
+                {!isUsed && otherTag === 'STAR' && (
+                  <div
+                    style={{
+                      position: 'absolute',
+                      bottom: 2,
+                      right: 2,
+                      width: 16,
+                      height: 16,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.5))',
+                    }}
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="#FACC15" stroke="#FACC15" strokeWidth="1.5" strokeLinejoin="round">
+                      <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+                    </svg>
+                  </div>
+                )}
+                {!isUsed && otherTag && otherTag !== 'STAR' && (
                   <div
                     style={{
                       position: 'absolute',
@@ -470,6 +640,91 @@ function AssetGridImpl({ sourceImages, selectedImageId, onSelect, roleBadgeMap =
         }
       `}</style>
     </div>
+  )
+}
+
+// ── FilterChip ──────────────────────────────────────────────────────────────
+// Toggle chip for the curation-tag filter row. Active state uses the chip's
+// brand color; inactive state uses muted neutral. (Ralph 2026-05-05.)
+// Feather-style star icon path (5-point, classic Feather Icons geometry).
+// Used for the STAR filter chip + the View-tab assign button. Render with
+// fill=color for "active/marked", or fill="none" for outline-only.
+const FEATHER_STAR_POINTS = '12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2'
+
+function FilterChip({
+  label,
+  isStar,
+  active,
+  color,
+  onClick,
+}: {
+  label: string
+  /** When true, render the Feather star icon instead of the label text. */
+  isStar?: boolean
+  active: boolean
+  color: string
+  onClick: () => void
+}) {
+  return (
+    <button
+      onClick={onClick}
+      style={{
+        fontFamily: 'JetBrains Mono, var(--font-mono), monospace',
+        fontSize: 9,
+        fontWeight: 700,
+        padding: isStar ? '3px 6px' : '3px 7px',
+        borderRadius: 3,
+        border: `1px solid ${active ? color : 'var(--border-card)'}`,
+        background: active ? `${color}26` : 'transparent',
+        color: active ? color : 'var(--text-muted)',
+        textTransform: 'uppercase',
+        letterSpacing: '0.08em',
+        cursor: 'pointer',
+        transition: 'all 0.12s',
+        display: 'inline-flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        height: 20,
+      }}
+      onMouseEnter={(e) => {
+        if (!active) {
+          ;(e.currentTarget as HTMLElement).style.color = 'var(--text-main)'
+          ;(e.currentTarget as HTMLElement).style.borderColor = 'var(--text-muted)'
+        }
+      }}
+      onMouseLeave={(e) => {
+        if (!active) {
+          ;(e.currentTarget as HTMLElement).style.color = 'var(--text-muted)'
+          ;(e.currentTarget as HTMLElement).style.borderColor = 'var(--border-card)'
+        }
+      }}
+      title={
+        label === 'STAR' ? 'Show only starred (great pictures)'
+        : label === 'B-ROLL' ? 'Show only B-roll (variants / secondary)'
+        : label === 'TRASH' ? 'Show only TRASH (hidden by default)'
+        : label === 'HERO' ? 'Show only HERO-placed images'
+        : label === 'USED' ? 'Show only images referenced in a vibe'
+        : `Filter by ${label}`
+      }
+    >
+      {isStar ? (
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          width="11"
+          height="11"
+          viewBox="0 0 24 24"
+          fill={active ? color : 'none'}
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
+          <polygon points={FEATHER_STAR_POINTS}></polygon>
+        </svg>
+      ) : (
+        label
+      )}
+    </button>
   )
 }
 

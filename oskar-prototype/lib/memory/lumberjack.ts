@@ -67,6 +67,15 @@ export type ProgressEvent = {
   phase: 'started' | 'reading' | 'compacting' | 'writing' | 'completed' | 'skipped' | 'failed' | 'stream'
   stage?: string
   detail?: string
+  // 2026-05-03 (Ralph): optional 0-100 progress override. When present,
+  // the overlay uses this value directly instead of mapping `phase`/`stage`
+  // to a fixed table. Sage 240/40 emits this after each successful cut/
+  // compact pass so the bar advances proportionally to (passNum / passCount).
+  // The decidePassCount schedule has three possibilities (2 / 4 / 6 passes
+  // depending on file size), so each successful pass advances the bar by
+  // 30 / 15 / 10 percentage points respectively across the 25-85 compacting
+  // range.
+  progress?: number
 }
 
 export type ProgressCallback = (event: ProgressEvent) => void

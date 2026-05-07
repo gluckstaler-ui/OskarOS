@@ -18,19 +18,52 @@ Both follow **Junior Pass discipline**: don't take a brief and charge head-down.
 
 ---
 
-## The OskarOS Phase Model
+## The OskarOS Phase Model — 4-Phase Junior Pass (locked 2026-05-07)
 
-A landing page or multi-page site goes through five CD phases:
+Every track (landing page, keynote, brand-card exercise) goes through the same four CD phases:
 
 ```
-Phase 1 — Discovery          (CD asks questions, assembles the brief)
-Phase 2 — Image Strategy     (CD evaluates uploads, writes generation prompts)
-Phase 3 — Generate Vibes     (CD writes 3–4 VIBE-N.md files; WebDev builds each)
-Phase 4 — User Selects       (CD waits; user picks their direction)
-Phase 5 — Final Build        (CD specs the chosen vibe; WebDev finalizes)
+Phase 1 — Discovery     (CD asks questions, locks the track, assembles the brief)
+Phase 2 — Junior Pass   (cheap, many; brand-FINDING; no school anchor)
+Phase 3 — Vibes         (expensive, few; brand-AMPLIFICATION; school anchors applied)
+Phase 4 — Final Build   (one master deliverable)
 ```
 
-These are CD's phases. **WebDev's per-build cadence — the 4 Junior passes — lives INSIDE Phase 3 (one cycle per vibe) and inside Phase 5 (one cycle for the final).** The phases are CD's outer loop; the Junior passes are WebDev's inner loop.
+Image Strategy is cross-cutting — runs whenever uploads or generations are happening, not a discrete phase.
+
+### Per-track phase shape
+
+| Phase | Webpages | Keynotes | Brand-cards |
+|---|---|---|---|
+| 1 — Discovery | 7 seeded sub-tasks + track-type lock | same | same |
+| 2 — Junior Pass | 3 wireframes (no school) | 5 vibes × 3 sample slides each (title + data-dense + quote) | 25 cards (20 schools + 5 CD intuition) |
+| 3 — Vibes | 5 vibes (3-of-5 school-anchored) | 2 vibes — Editorial + Interactive (both school-anchored, opposite poles) | user-starred subset (~7) |
+| 4 — Final Build | 1 master landing page | 1 master keynote (user picks Editorial OR Interactive) | 1 card in Branding section |
+
+### Why this shape
+
+Phase 2 (Junior Pass) is brand-FINDING. Derived solely from Discovery. **No school anchor at this stage** — schools at Junior Pass = cosplay before knowing the brand. The user reacts to copy tone, image direction, narrative architecture.
+
+Phase 3 (Vibes) is brand-AMPLIFICATION. Schools enter HERE. The school-quota rule is structural — a vibe set that doesn't hit it fails the brief regardless of execution quality.
+
+Phase 4 is the master deliverable. ONE thing ships; alternates archive.
+
+### TodoList structure
+
+Mission · Tasks panel has a two-tier structure:
+
+**Top tier** (always present, fixed order):
+- `Discovery` → `Junior Pass` → `Vibes` → `Final Build`
+
+These flip pending → in_progress → completed as CD advances. Exactly one is `in_progress` at a time.
+
+**Sub-tier** (active when the parent phase is `in_progress`): Discovery's 7 seeded sub-tasks (Establish basics → Find weird detail → Lock signature experience → Name enemy → Profile real customer → Catalog offerings → Confirm understanding). Sub-tasks for Junior Pass / Vibes / Final Build are added by CD when entering each phase, scoped to the locked track.
+
+### WebDev's inner loop
+
+**WebDev's per-build cadence — the 4 Junior passes (Pass 1: assumptions+placeholders, Pass 2: fill structure, Pass 3: polish, Pass 4: verify+deliver) — lives INSIDE every Phase 2 build (per wireframe / sample-slide-set / card matrix) AND inside every Phase 3 build (per vibe) AND inside the Phase 4 final.** The 4-phase model is CD's outer loop; the 4 Junior passes are WebDev's inner loop. The two layers are orthogonal.
+
+Critical: every Phase 2 and every Phase 3 HTML carries the huashu Junior Designer assumptions+reasoning preamble at the top. Phase 4 (Final) ships clean — preamble stripped.
 
 ---
 
@@ -333,33 +366,39 @@ Codify the resolved system as a Design System block in CREATIVE-BRIEF.md. Confir
 
 ### After Phase 1-GATED — how the presentation path continues
 
-After Steps A–D, the presentation path rejoins the main phase model — but with **two presentation-specific rules that override the standard cadence**:
+After Steps A–D, the presentation path rejoins the 4-phase model with **two presentation-specific shaping rules**:
 
-**Rule 1 — TWO vibes per presentation, never more.** Phase 3 for presentations is constrained:
-- **Vibe 1: CD-developed.** Built from CD's intuition on the brief, the audience, the business specifics. Not anchored to any single school — drawn from whatever combination of category cues and brand inputs lands. This is the vibe the brief earned.
-- **Vibe 2: School-developed.** Anchored in ONE of the matrix's recommended schools (Classical or Interactive column, your pick based on register goal). Applied with discipline — the school's substrate carried through, not cosplayed.
+**Rule 1 — Junior Pass (Phase 2): 5 vibes × 3 sample slides each.** For presentations, Phase 2 is brand-finding via small slices of vibes, not full decks. CD writes 5 short vibe specs to CREATIVE-BRIEF.md and `build_all_vibes(slug, kind='keynote-junior')` builds 3 sample slides per vibe — **title slide + one data-dense slide + one quote/silence slide**. That triplet exposes hierarchy, density, and whitespace discipline simultaneously — the smallest set that lets the user judge the visual register before committing to a full deck.
 
-Two vibes maximum. The user picks. Landing pages get 3–4 because they're cheap to vary; presentations are dense and the user can only meaningfully evaluate two parallel takes.
+The 5 Phase-2 vibes are CD-intuition explorations derived from Discovery. **No school anchor at this stage.** Schools enter at Phase 3.
 
-**Rule 2 — 2-page showcase BEFORE batching the rest.** Verified on the moxt brochure (2026-04-22): writing 13 pages straight to the end and discovering "wrong direction" = rework × 13. Doing 2 showcase pages first = rework × 2. **This rule applies to ALL 9 formats**, not just Slides:
-- **Slides** → cover slide + one mid-deck content slide. Lock the grammar (masthead, type, color, spacing, structure), then batch.
-- **Canvas** → hero section + one mid-page section. Lock the visual rhythm, then build the rest.
-- **Scrollytelling** → opening chapter + one transition chapter. Lock the scroll cadence, then build.
-- **3D** → hero scene + one alternate camera angle. Lock the materials and lighting model, then expand.
-- **Dashboard** → one KPI panel + one drill-down view. Lock the data-density grammar, then add more.
-- **Live** → one poll/REPL widget + one Q&A widget. Lock the interaction grammar, then build.
-- **Timeline** → cover/intro phase + one mid-timeline phase. Lock the phase-card grammar, then sequence.
-- **Interactive** → one quiz module + one branching module. Lock the state-and-feedback grammar, then build.
-- **Gallery** → one full-grid wide shot (showcase wall in 3D-tilted perspective with 10+ tiles) + one focus-overlay zoom on a single tile. Lock the tilt parameters, animation timing, and focus grammar, then run the full timeline.
+**Rule 2 — Vibes (Phase 3): 2 vibes — Editorial AND Interactive, both school-anchored.** Phase 3 narrows to two parallel full-deck builds. Both anchored in named schools, opposite poles of the matrix.
 
-Showcase principle: pick the two pieces with the **largest visual difference** (cover + mid-content, or hero + transition). If those two pass, every in-between state passes. Screenshot, confirm with user, THEN batch the rest. Both Vibe 1 and Vibe 2 from Rule 1 follow this.
+- **Editorial vibe.** Anchored in the Classical column — Information Architecture or Minimalist clusters (Pentagram / Stamen / Reichenstein / Fathom / Jetset / Brockmann / Build). Print-grade typography, grid-driven, restrained. This is the 70% comfort default — most users land here.
+- **Interactive vibe.** Anchored in the Interactive column — Motion Poetics or Avant-garde clusters (Locomotive / Active Theory / Field.io / Resn / Lieberman / Kwok / Thorp / Territory). Scroll-coupled motion, generative, code-as-art. This is the exposure shot — opens the door for users who'd otherwise default Editorial without knowing the alternative was real.
 
-**Phase mapping with the rules applied:**
+Phase 3 is "show two opposites; user picks." Most pick Editorial; some convert to Interactive once they've seen it built. Both are full-deck builds with the 2-page showcase rule applied (cover + mid-content) before batching the remaining slides.
 
-- **Phase 2 — Image Strategy.** Presentations have hero images, photographs, illustrations, generated assets. Same three paths apply (use-as-is / modify / generate). Slot names change by format (`slide-3-hero`, `cover-bg`, `chart-1` for Slides; `chapter-2-bg`, `parallax-1` for Scrollytelling; `kpi-card-1` for Dashboard) but the mechanics are identical.
-- **Phase 3 — Generate Vibes (TWO, not 3-4).** CD writes Vibe 1 + Vibe 2 per Rule 1. For each vibe, WebDev builds the 2-page showcase per Rule 2 — confirms with user — THEN batches the rest. Two showcase rounds total (one per vibe).
-- **Phase 4 — User Selects.** User picks Vibe 1 or Vibe 2.
-- **Phase 5 — Final Build.** `build_final` MCP tool — same call as for landing pages. The route detects presentation mode from CREATIVE-BRIEF.md (presence of a `## Deck Spec` block) and branches to `final-deck.html` instead of `final-landing.html`. PPTX and PDF exports are post-build steps via `html2pptx.js` and `export_deck_pdf.mjs` — not part of `build_final`.
+**Per-format showcase pairings (still apply within Phase 3, per vibe):** verified on the moxt brochure (2026-04-22). Pick the two pages with the **largest visual difference**. If those pass, in-between states pass.
+
+- **Slides** → cover + mid-deck content slide. Lock the grammar, then batch.
+- **Canvas** → hero + mid-page section. Lock the rhythm, then build.
+- **Scrollytelling** → opening + transition chapter. Lock the scroll cadence, then build.
+- **3D** → hero scene + alternate camera angle. Lock materials + lighting, then expand.
+- **Dashboard** → KPI panel + drill-down view. Lock data-density grammar, then add more.
+- **Live** → poll/REPL widget + Q&A widget. Lock interaction grammar, then build.
+- **Timeline** → cover/intro phase + mid-timeline phase. Lock phase-card grammar, then sequence.
+- **Interactive** → quiz module + branching module. Lock state-and-feedback grammar, then build.
+- **Gallery** → full-grid wide shot + focus-overlay zoom. Lock tilt + animation + focus grammar, then run the full timeline.
+
+The Slides-specific elaboration (which slide pair lands hardest as a showcase per deck type — investor pitch, banker due-diligence, conference talk, etc.) lives in `slide-decks.md` § "Before batch production."
+
+**Phase mapping for presentations:**
+
+- **Phase 1 — Discovery.** Same 7 seeded sub-tasks. Track-type lock at sub-task 7 (Confirm Understanding) selects `keynote` and routes to Phase 1-GATED Steps A–D for category + format + design-system resolution.
+- **Phase 2 — Junior Pass.** CD writes 5 short vibe specs. `build_all_vibes(slug, kind='keynote-junior')` builds 3 sample slides per vibe (15 slides total). Moodboard ToolCard surfaces at end of Phase 2 with all 15 thumbnails for user reaction. Universal user-input textarea captures the freeform feedback that drives Phase 3 specs.
+- **Phase 3 — Vibes.** CD writes 2 full vibe specs (Editorial + Interactive, both school-anchored). `build_all_vibes(slug, kind='keynote-vibe')` builds full decks. Each vibe's full-deck build follows the 2-page showcase discipline INSIDE the vibe (cover + mid-content first, confirm, then batch). Image Strategy runs cross-cutting for hero images, charts, photos, generated assets — slot names by format (`slide-3-hero`, `cover-bg`, `chart-1` for Slides; `chapter-2-bg`, `parallax-1` for Scrollytelling; `kpi-card-1` for Dashboard).
+- **Phase 4 — Final Build.** Descent Selection ToolCard at the gate — user picks Editorial OR Interactive. `build_final` MCP tool — same call as for landing pages. Route detects presentation mode from CREATIVE-BRIEF.md (presence of `## Deck Spec` block) and branches to `final-deck.html`. PPTX and PDF exports are post-build steps via `html2pptx.js` and `export_deck_pdf.mjs` — not part of `build_final`.
 
 If Step B locked editable PowerPoint (Slides format only), all four `export-formats.md` constraints must be satisfied from line one of every vibe's HTML — retrofitting them onto visual-driven HTML costs 2–3 hours per deck.
 

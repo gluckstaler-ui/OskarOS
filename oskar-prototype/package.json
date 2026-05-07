@@ -9,6 +9,7 @@
     "prebuild": "npm run build:mcp",
     "build": "next build",
     "start": "next start",
+    "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:ui": "vitest --ui",
@@ -27,12 +28,14 @@
     "@modelcontextprotocol/sdk": "^1.29.0",
     "@types/node": "^25.0.10",
     "@types/react": "^19.2.9",
+    "bmp-js": "^0.1.0",
     "clsx": "^2.1.1",
+    "decode-ico": "^0.4.1",
     "https-proxy-agent": "^7.0.6",
     "jsdom": "^27.4.0",
     "lucide-react": "^0.563.0",
     "marked": "^17.0.1",
-    "next": "^16.1.4",
+    "next": "^16.2.4",
     "node-fetch": "^2.7.0",
     "puppeteer": "^24.10.0",
     "react": "^19.2.3",
@@ -42,7 +45,6 @@
     "remark-gfm": "^4.0.1",
     "sharp": "^0.34.5",
     "tailwind-merge": "^3.4.0",
-    "typescript": "^5.9.3",
     "undici": "^7.19.0"
   },
   "devDependencies": {
@@ -54,6 +56,7 @@
     "@vitest/ui": "^4.0.18",
     "playwright": "^1.58.0",
     "tsx": "^4.21.0",
+    "typescript": "^5.9.3",
     "vitest": "^4.0.18"
   }
 }

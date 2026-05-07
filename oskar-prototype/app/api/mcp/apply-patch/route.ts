@@ -84,6 +84,22 @@ export async function POST(request: Request) {
     publish(sessionId, { type: 'canvas_update', filename } as any)
   } catch {}
 
+  // WP-22 Phase 1 (Ralph 2026-05-06): publish so the chat surface can render
+  // an ApplyPatchCard with the typed-edit diff display. Mockup § Archetype 2.
+  try {
+    publish(sessionId, {
+      type: 'apply_patch_complete',
+      filename,
+      editKind: edit.kind,
+      anchor:
+        'anchor' in edit ? String((edit as { anchor: unknown }).anchor || '')
+        : 'selector' in edit ? String((edit as { selector: unknown }).selector || '')
+        : '(no-selector)',
+      affected: result.affected,
+      diff: result.diff,
+    })
+  } catch {}
+
   return NextResponse.json({
     ok: true,
     affected: result.affected,

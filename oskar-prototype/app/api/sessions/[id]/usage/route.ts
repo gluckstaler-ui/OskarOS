@@ -24,6 +24,71 @@ export async function GET(
 
     const usage = await readSessionUsage(sessionId)
 
+    // 2026-05-03 (Ralph): expose cache token totals so the badge can
+    // display "cached / fresh" split. Anthropic returns both fields on
+    // every cache-aware response; we just sum them per session.
+    const cacheReadTokens = usage.totals.cacheReadTokens ?? 0
+    const cacheCreationTokens = usage.totals.cacheCreationTokens ?? 0
+    // "Fresh" input = real billable input that wasn't a cache hit.
+    // Anthropic's input_tokens already excludes cache reads, so freshInput
+    // = inputTokens. cacheCreationTokens is billed separately at write rate
+    // (1.25× / 2×) but is NOT counted in input_tokens — it's its own line.
+    const freshInputTokens = usage.totals.inputTokens
+
+    // 2026-05-04 (Ralph, Bug N): per-mode rollup. Pulled from
+    // usage.totals.cli / usage.totals.api (computed at write-time by
+    // appendUsage). Defaults to zeroed buckets for back-compat with
+    // pre-Bug-N USAGE.json files that lack these fields.
+    const cliTotals = usage.totals.cli ?? {
+      inputTokens: 0, outputTokens: 0, cost: 0,
+      cacheCreationTokens: 0, cacheReadTokens: 0, entryCount: 0,
+    }
+    const apiTotals = usage.totals.api ?? {
+      inputTokens: 0, outputTokens: 0, cost: 0,
+      cacheCreationTokens: 0, cacheReadTokens: 0, entryCount: 0,
+    }
+    function formatModeBlock(t: typeof cliTotals & {
+      latestContextPct?: number
+      latestInputTokens?: number
+      latestContextWindow?: number
+      latestContextSize?: number
+    }) {
+      const fresh = t.inputTokens
+      return {
+        inputTokens: t.inputTokens,
+        outputTokens: t.outputTokens,
+        cost: t.cost,
+        cacheCreationTokens: t.cacheCreationTokens,
+        cacheReadTokens: t.cacheReadTokens,
+        freshInputTokens: fresh,
+        entryCount: t.entryCount,
+        // Bug N (Ralph 2026-05-04): per-mode latest snapshot. Different
+        // math per mode (CLI = real-time fill estimate; API = cumulative
+        // input / window). Stored per-mode so toggling visibly changes
+        // the % indicator.
+        latestContextPct: t.latestContextPct ?? 0,
+        latestInputTokens: t.latestInputTokens ?? 0,
+        latestContextWindow: t.latestContextWindow ?? 200000,
+        // 2026-05-04 (Ralph): per-call fill estimate. Distinct from
+        // latestInputTokens (raw billing aggregate that grows past 1M).
+        latestContextSize: t.latestContextSize ?? 0,
+        display: {
+          cost: formatCost(t.cost),
+          inputTokens: formatTokens(t.inputTokens),
+          outputTokens: formatTokens(t.outputTokens),
+          cacheReadTokens: formatTokens(t.cacheReadTokens),
+          cacheCreationTokens: formatTokens(t.cacheCreationTokens),
+          freshInputTokens: formatTokens(fresh),
+          cacheHitPct: t.cacheReadTokens + fresh > 0
+            ? Math.round((t.cacheReadTokens / (t.cacheReadTokens + fresh)) * 100)
+            : 0,
+          latestInputTokens: formatTokens(t.latestInputTokens ?? 0),
+          latestContextSize: formatTokens(t.latestContextSize ?? 0),
+          latestContextWindow: formatTokens(t.latestContextWindow ?? 200000),
+        },
+      }
+    }
+
     // Format for display
     const formatted = {
       sessionId: usage.sessionId,
@@ -32,6 +97,9 @@ export async function GET(
         inputTokens: usage.totals.inputTokens,
         outputTokens: usage.totals.outputTokens,
         cost: usage.totals.cost,
+        cacheCreationTokens,
+        cacheReadTokens,
+        freshInputTokens,
       },
       display: {
         inputTokens: formatTokens(usage.totals.inputTokens),
@@ -41,7 +109,24 @@ export async function GET(
         latestContextPct: usage.totals.latestContextPct ?? 0,
         latestInputTokens: usage.totals.latestInputTokens ? formatTokens(usage.totals.latestInputTokens) : '0',
         latestContextWindow: usage.totals.latestContextWindow ?? 200000,
+        // 2026-05-04 (Ralph): per-call fill estimate from formula (raw + formatted).
+        latestContextSize: usage.totals.latestContextSize ?? 0,
+        latestContextSizeStr: formatTokens(usage.totals.latestContextSize ?? 0),
+        latestContextWindowStr: formatTokens(usage.totals.latestContextWindow ?? 200000),
+        // Cache-aware display strings
+        cacheReadTokens: formatTokens(cacheReadTokens),
+        cacheCreationTokens: formatTokens(cacheCreationTokens),
+        freshInputTokens: formatTokens(freshInputTokens),
+        // Hit rate as percentage of total input throughput (read / (read+fresh))
+        cacheHitPct: cacheReadTokens + freshInputTokens > 0
+          ? Math.round((cacheReadTokens / (cacheReadTokens + freshInputTokens)) * 100)
+          : 0,
       },
+      // Bug N (Ralph 2026-05-04): per-mode rollups. Frontend reads the
+      // billingMode-appropriate block; toggling billingMode flips which
+      // cost is displayed.
+      cli: formatModeBlock(cliTotals),
+      api: formatModeBlock(apiTotals),
       breakdown: {
         cd: {
           inputTokens: 0,

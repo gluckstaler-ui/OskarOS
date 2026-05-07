@@ -27,3 +27,8 @@ public/
 # Misc
 debug-webdev.sh
 lazyblocks-migration/
+
+# MCP proxy sidecar state — written by /api/active-session, read by
+# scripts/mcp-stdio-proxy.mjs. Local-only, regenerated on every session
+# switch. Should never be committed.
+.runtime/

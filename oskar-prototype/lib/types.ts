@@ -31,8 +31,21 @@ export interface SourceAnalysis {
   suggestedVibes?: string[]       // ["Heritage", "Luxury"]
 }
 
-// Tags for categorizing images (assigned by CD agent or user)
-export type ImageTag = 'HERO' | 'USED' | 'PORTRAIT' | 'MENU' | 'LOCATION' | 'B-ROLL' | 'TRASH' | 'READY' | 'INGESTED' | 'APPROVED' | 'REDO'
+// Tags for categorizing images.
+// Layered into two groups:
+//   AUTO-ASSIGNED (system-derived):
+//     HERO     — placed in a vibe's hero slot (auto, via reconcileUsedTags)
+//     USED     — referenced anywhere in a vibe (auto, via vibe HTML scan)
+//     READY    — fresh / not yet reviewed (lifecycle)
+//     APPROVED — CD-reviewed pass (lifecycle)
+//     INGESTED — placeholder during upload (lifecycle, transient)
+//     REDO     — CD-reviewed reject, needs regeneration (lifecycle)
+//     PORTRAIT/MENU/LOCATION — legacy slot hints (deprecated, kept for back-compat)
+//   USER-ASSIGNED (curatorial, exposed as 3 buttons in the UI):
+//     STAR   — "this picture is great"
+//     B-ROLL — "keep but secondary / variant"
+//     TRASH  — "cull this asset"
+export type ImageTag = 'HERO' | 'USED' | 'PORTRAIT' | 'MENU' | 'LOCATION' | 'B-ROLL' | 'TRASH' | 'READY' | 'INGESTED' | 'APPROVED' | 'REDO' | 'STAR'
 
 // Generation status for images that came from the AI pipeline
 export type GenerationStatus = 'pending' | 'approved' | 'b-roll' | 'trash'
@@ -84,6 +97,16 @@ export interface ImageAsset {
   vibeName: string
   error?: string
   versions?: string[]             // Previous generation paths
+  /**
+   * The `### img-N` block this asset was parsed from, when applicable.
+   * Set by `getImageManifestsAction` for every asset derived from a
+   * prompt block in IMAGES.md. The frontend round-trips it back to
+   * `/api/edit-image` and `/api/generate-image` so the generated
+   * `#### filename` entry can be nested under THIS specific prompt
+   * (instead of being orphan-appended to the end of the section, which
+   * makes it look like an upload). Ralph 2026-05-04.
+   */
+  promptId?: string
 }
 
 // Manifest for a vibe's images
@@ -178,12 +201,248 @@ export interface VibePreview {
 }
 
 // Conversation message
+/**
+ * Discovery card payload — populated when CD calls
+ * `ask_discovery_questions` MCP tool. The conversation panel renders
+ * <DiscoveryQuestionsCard> instead of plain markdown when this is set.
+ * Ralph 2026-05-04.
+ */
+export interface DiscoveryCardPayload {
+  kind: 'discovery_questions'
+  questions: string[]
+  context?: string
+}
+
+/**
+ * Confirm card payload — populated when CD calls `confirm_understanding`.
+ * The conversation panel renders <ConfirmUnderstandingCard> instead of
+ * plain markdown when this is set. Ralph 2026-05-04.
+ */
+export interface ConfirmCardPayload {
+  kind: 'confirm_understanding'
+  summary: string
+  readyToGenerate: boolean
+}
+
+/**
+ * Upload-eval card payload — populated when CD evaluates a user upload via
+ * the `submit_upload_eval` MCP tool. Renders alongside the existing
+ * `cd.upload-evaluated` snackbar (which is the moment-feedback) — this card
+ * is the permanent chat-record of CD's take. Same data on both surfaces.
+ * (Ralph 2026-05-06: BOTH snackbar AND toolcard for upload reactions.)
+ */
+export interface UploadEvalCardPayload {
+  kind: 'upload_eval'
+  filename: string
+  /** /uploads/<filename> or session-relative path for the <img src>. */
+  path: string
+  verdict: '✓' | '≈' | '✗'
+  /** CD's one-line take. Same string the snackbar shows. */
+  note: string
+  /** Optional richer description (Nano analysis if present). */
+  description?: string
+  /** CD-suggested slot intents from submit_upload_eval. Up to 6. */
+  suggestedUses: string[]
+  /** Initial status the asset lands with (INGESTED is the system default
+   *  for fresh uploads with no user curation). */
+  status: 'INGESTED' | 'STAR' | 'B-ROLL' | 'TRASH'
+}
+
+/**
+ * The user-assignable triad for upload-eval batch rows (CD directive,
+ * 2026-05-06): rows in the batch card show ONLY these three tags as
+ * inline pills — STAR · B-ROLL · TRASH. INGESTED is the system fallback
+ * for "not yet evaluated" and is not user-clickable here; HERO / USED /
+ * READY / APPROVED / REDO are auto-derived. If a row reaches the batch
+ * panel, CD has already evaluated it, so one of the three is set.
+ */
+export type UploadEvalBatchTag = 'STAR' | 'B-ROLL' | 'TRASH'
+
+/**
+ * Batch upload-eval row — same fields as the single-row payload EXCEPT
+ * the `status` is narrowed to the 3 user-assignable tags. INGESTED is
+ * not a legal value in this card; rendering treats any unknown value as
+ * "no pill highlighted".
+ */
+export type UploadEvalBatchRow = Omit<UploadEvalCardPayload, 'kind' | 'status'> & {
+  status: UploadEvalBatchTag
+}
+
+/**
+ * Batch upload-eval card payload — populated when N≥3 uploads land within a
+ * debounce window. Renders ONE card with N rows (thumb · filename · verdict +
+ * note · inline tag pill-row) instead of N stacked single cards. Anti-pollution
+ * pattern locked 2026-05-06 (Ralph): "if uploaded images >=3, we display a
+ * table similar to the building 4 vibes card".
+ *
+ * Each row uses the same write-back path as UploadEvalCard
+ * (`/api/mcp/update-image-metadata`), so per-row tag changes mutate
+ * IMAGES.md identically to the single-card flow.
+ */
+export interface UploadEvalBatchCardPayload {
+  kind: 'upload_eval_batch'
+  /** Items in this batch, ordered by arrival. */
+  items: UploadEvalBatchRow[]
+}
+
+/**
+ * Screenshot card payload — populated when CD calls the `screenshot` MCP tool.
+ * The `screenshot_taken` event publishes after Playwright writes the PNG;
+ * page.tsx subscriber builds this payload, ConversationPanel renders
+ * <ScreenshotCard>. Mockup: docs/toolcards-mockup.html § Archetype 4.
+ * (Ralph 2026-05-06: WP-22 Phase 1.)
+ */
+export interface ScreenshotCardPayload {
+  kind: 'screenshot'
+  /** Public path under /<session>/screenshots/<file>.png — usable as <img src>. */
+  savedPath: string
+  /** What was rendered — vibe slug, filename, or URL fragment. */
+  target: string
+  /** Frame size used for the capture. */
+  frame: 'desktop' | 'tablet' | 'mobile'
+  /** Pixel dimensions (width × height). */
+  dims: { width: number; height: number }
+}
+
+/**
+ * Apply-patch card payload — populated when CD calls `apply_patch`. Renders
+ * a typed-edit diff display in chat (Mockup § Archetype 2 — Diff). Each
+ * patched file gets one card; the `diff` string is the unified-style
+ * additions/deletions returned by html-patch-engine.
+ * (Ralph 2026-05-06: WP-22 Phase 1.)
+ */
+export interface ApplyPatchCardPayload {
+  kind: 'apply_patch'
+  /** Filename that was edited (e.g. "vibe-3-the-deployment.html"). */
+  filename: string
+  /** Edit kind: css-var-set / text-replace / attr-set / class-toggle / delete / insert. */
+  editKind: string
+  /** Anchor or selector targeted by the edit, for the head meta line. */
+  anchor: string
+  /** Number of nodes affected. */
+  affected: number
+  /** Unified diff string from html-patch-engine — already trimmed. */
+  diff: string
+}
+
+/**
+ * Diagnostic chip payload — single-row ambient chrome for cross-agent comms.
+ * Renders inline (no card chassis) per mockup § Archetype 4 — Control cards.
+ * Currently fires from `notify_agent`; same shape can carry `claim_orphan`
+ * and `thread_history` reductions later.
+ * (Ralph 2026-05-06: WP-22 Phase 1.)
+ */
+export interface DiagnosticChipPayload {
+  kind: 'diagnostic_chip'
+  /** Glyph at the start of the row (→, ↻, ≡). */
+  glyph: string
+  /** Primary label (e.g. "webdev: queued"). */
+  label: string
+  /** Optional accent text (e.g. "priority:high"). */
+  accent?: string
+  /** ISO timestamp shown right-aligned. */
+  ts: string
+}
+
+/**
+ * Build-job card payload — Archetype 1 in toolcards-mockup.html.
+ *
+ * Single shape backs both `build_vibe` (one row) and `build_all_vibes`
+ * (N rows). Updates from `build_started` / `report_build_progress` /
+ * `vibe_built` / `build_failed` / `vibe_failed` events as the job moves
+ * through the pipeline. Each row owns its own cancel/open button.
+ *
+ * (Ralph + CD 2026-05-06: build_progress / build_complete / build_failed
+ * preview kinds collapse into this single payload — the row.state field
+ * carries the per-row lifecycle.)
+ */
+export type BuildRowState =
+  | 'queued'
+  | 'wf'        // legacy alias — treated as queued
+  | 'html'
+  | 'verify'
+  | 'done'
+  | 'failed'
+  | 'cancelled' // user cancelled mid-build via cancel_job
+
+export interface BuildCardRow {
+  /** `vibe-N` slug (matches `lib/types.ts` VibeData id grammar). */
+  id: string
+  /** Human label, e.g. "Qahwa", "The Deployment". */
+  label: string
+  /** Optional thumb path for the leftmost cell. Empty cell renders an em-dash placeholder. */
+  thumb?: string
+  /** Active step. Drives the timeline rendering — `state === 'wf'` shows WF as active,
+   *  later states render WF as done IF `juniorDev === true`. */
+  state: BuildRowState
+  /** True when JuniorDev produced this vibe (worktree-fork path). Shows the WF step in the timeline. */
+  juniorDev?: boolean
+  /** Display-formatted ETA, e.g. "~2:14" or "1:42" once done. */
+  eta?: string
+  /** Job id from the escrow layer — used when CANCEL is clicked. */
+  jobId?: string
+  /** Optional milestone bullets shown under the row in single-vibe mode (build_vibe).
+   *  Sourced from `report_build_progress` events. Hidden in build_all_vibes view. */
+  milestones?: string[]
+  /** Free-form failure reason when state === 'failed'. Renders inline below the row. */
+  error?: string
+  /** Rendered HTML path set on `vibe_built` — drives the Open button so the
+   *  click target stays decoupled from `thumb` (which is the row's image
+   *  preview, NOT the vibe URL). Set lazily; absent until the build lands. */
+  htmlPath?: string
+  /** ISO timestamp when this row's build entered HTML stage (i.e. WebDev
+   *  actually started doing work, vs. sitting in the build-escrow queue
+   *  waiting for the per-session WebDev mutex). Used to compute live
+   *  elapsed-time as the ETA cell. Set on `build_progress({stage:'html'})`. */
+  startedAt?: string
+  /** ISO timestamp when this row's build finished. Set on vibe_built. The
+   *  elapsed (finishedAt - startedAt) freezes as the final ETA value
+   *  ("8:28") on done rows. */
+  finishedAt?: string
+}
+
+export interface BuildCardPayload {
+  kind: 'build'
+  /** Card-head title — agent-supplied, e.g. "Building 4 vibes" or "Building vibe-3 — The Deployment". */
+  title: string
+  /** Job-family id shown right-aligned in the head meta. */
+  jobId?: string
+  /** Rows in display order (top → bottom). build_vibe = single row; build_all_vibes = N. */
+  rows: BuildCardRow[]
+}
+
+export type AssistantCardPayload =
+  | DiscoveryCardPayload
+  | ConfirmCardPayload
+  | UploadEvalCardPayload
+  | UploadEvalBatchCardPayload
+  | ScreenshotCardPayload
+  | ApplyPatchCardPayload
+  | DiagnosticChipPayload
+  | BuildCardPayload
+
 export interface ConversationMessage {
   id: string
   role: 'user' | 'assistant'
   content: string
   timestamp: string
   images?: string[]
+  /**
+   * Optional structured card payload. When set, the conversation panel
+   * renders the matching component (DiscoveryQuestionsCard /
+   * ConfirmUnderstandingCard) INSTEAD of `content` as markdown. Used by
+   * the Phase 2 discovery-flow MCP tools so the user gets rich UI in
+   * both CLI and API modes. Ralph 2026-05-04.
+   */
+  card?: AssistantCardPayload
+  /**
+   * Preview-mode flag (Ralph 2026-05-06). True when this card was emitted
+   * via the `preview_card` MCP tool — a sample render in response to "show
+   * me [a card]". The renderer adds a "PREVIEW" badge and disables real
+   * backend writes from interactive controls (so clicking Build It on a
+   * preview confirm card does nothing, etc.).
+   */
+  __preview?: boolean
 }
 
 // Workflow phases (legacy - kept for compatibility)
@@ -387,6 +646,13 @@ export type StreamEvent =
   | { type: 'hotswap_started'; vibeName: string; slot: string }
   | { type: 'hotswap_complete'; vibeName: string; slot: string }
   | { type: 'hotswap_error'; vibeName: string; slot: string; error: string }
+  // Bug M (Ralph 2026-05-04): the actual CD model on the wire. Sent by
+  // chat-stream once at start (config-seeded) and again when Claude CLI's
+  // system/init event lands (truth on wire — when ANTHROPIC_BASE_URL is
+  // base-URL-piped to Z.ai, this reports the GLM identifier).
+  // `source` lets the client tell init-truth from config-seed when both
+  // arrive in the same turn.
+  | { type: 'model_info'; model: string; sessionId?: string | null; source?: 'config' | 'init' }
 
 // ==========================================
 // Magic Toolbar Types

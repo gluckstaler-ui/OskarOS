@@ -195,13 +195,27 @@ Full salvage flow at `export-formats.md` Section 7 ("Fallback: Existing Visual M
 
 ---
 
-## 🛑 Before batch production: do a 2-page showcase to lock the grammar
+## 🛑 Before batch production: showcase pages BEFORE filling the rest
 
-The 2-page showcase rule is universal — it applies to ALL 8 presentation formats, not just Slides. The canonical statement of the rule lives in `workflow.md` After-Phase-1-GATED Rule 2, with per-format showcase pairings (Slides cover+mid, Canvas hero+mid-section, Scrollytelling opening+transition, Dashboard KPI+drill-down, etc.).
+Showcase discipline applies twice in the keynote workflow, with different pairings each time. Both layers come from `workflow.md` § "After Phase 1-GATED" — this section gives the Slides-specific elaboration.
 
-The Slides-specific elaboration below adds moxt-brochure-tested guidance for which slide pair lands hardest as a showcase per deck type.
+### Phase 2 (Junior Pass): 3-slide sample per vibe — title + data-dense + quote
 
-**The Slides showcase principle:** pick the two pages with the most distinct visual structures. If those two pass = all in-between states will pass.
+Before any full deck is built, CD specs 5 short vibes and `build_all_vibes(slug, kind='keynote-junior')` produces **3 sample slides per vibe** (15 slides total across 5 vibes). The triplet is fixed:
+
+1. **Title / hero slide** — establishes the masthead, type stack, and dominant compositional move.
+2. **Data-dense slide** — exposes information-density discipline (table, chart, multi-column block, KPI grid).
+3. **Quote / silence slide** — exposes whitespace discipline (single-line type with generous air, or a centered pull-quote).
+
+These three are the smallest set that shows hierarchy / density / whitespace simultaneously. A 2-slide showcase (title + content) misses density-vs-silence, which is 70% of the keynote design problem. Locked 2026-05-07.
+
+User reacts to the 15-slide moodboard via the universal user-input textarea on the Moodboard ToolCard. Their reaction drives Phase 3 specs.
+
+### Phase 3 (Vibes): 2-page showcase per vibe — cover + mid-content
+
+Phase 3 narrows to 2 full-deck builds (Editorial + Interactive, both school-anchored — see `workflow.md` Rule 2). Each full-deck build still follows the moxt-brochure-tested 2-page showcase discipline INSIDE the vibe before batching the rest.
+
+**The Slides showcase principle inside Phase 3:** pick the two pages with the most distinct visual structures. If those two pass = all in-between states will pass.
 
 | Deck type | Recommended showcase combo |
 |-----------|---------------------|
@@ -213,7 +227,11 @@ The Slides-specific elaboration below adds moxt-brochure-tested guidance for whi
 | Banker due-diligence (30-40 slides) | Cover + a typical content page WITH financial table density |
 | Conference talk (20-30 slides) | Cover + the punchline slide (the slide the talk earns) |
 
-**Why this matters specifically for Slides:** verified 2026-04-22 on the moxt brochure — writing 13 pages straight to the end and hearing "wrong direction" = rework × 13. Doing 2 showcase pages first = rework × 2. Once visual grammar is fixed, the decision space for the remaining N pages narrows sharply. For the universal version of this rule applying to non-Slides formats, see `workflow.md`.
+**Why this matters specifically for Slides:** verified 2026-04-22 on the moxt brochure — writing 13 pages straight to the end and hearing "wrong direction" = rework × 13. Doing 2 showcase pages first = rework × 2. Once visual grammar is fixed inside the vibe, the decision space for the remaining N pages narrows sharply.
+
+### Why two showcase layers, not one
+
+The Phase 2 triplet is brand-direction discovery — testing which visual register the brand can carry across hierarchy/density/silence. The Phase 3 pair is grammar-locking inside an already-chosen direction — testing whether the cover and a typical content page agree on masthead/type/spacing rules. They serve different decisions and shouldn't be collapsed.
 
 ---
 

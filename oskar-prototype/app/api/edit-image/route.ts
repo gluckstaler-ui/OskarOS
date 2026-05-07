@@ -8,6 +8,7 @@ import { runProofread, type ProofreadOutcome } from '@/lib/cd-proofread'
 import { runVerdict, type VerdictOutcome } from '@/lib/cd-verdict'
 import { logToChat } from '@/lib/chat-logger'
 import { publish } from '@/lib/event-bus'
+import { upsertImageMetadata } from '@/lib/images-md-writer'
 
 // Check if file exists
 async function fileExists(filePath: string): Promise<boolean> {
@@ -183,6 +184,7 @@ export async function POST(req: NextRequest) {
       sessionId,          // Optional: if provided, save to session folder
       preset,             // WP-1C/2C: preset label used for this generation (for lineage)
       mode,               // WP-1C/2C: tab mode (generate|edit|compose|layout)
+      promptId,           // Ralph 2026-05-04: parent ### img-N block to nest the new #### entry under
     } = await req.json()
 
     if (!instruction) {
@@ -419,20 +421,33 @@ export async function POST(req: NextRequest) {
       }
 
       // ── WP-6B: Write description to IMAGES.md ──
-      // Updated 2026-04-17: prefer CD's adjusted description over Nano's when present.
-      if (geminiText && sessionId) {
+      // Ralph 2026-05-04: route through upsertImageMetadata. The previous
+      // direct-write produced `### filename` (top-level prompt entry) —
+      // wrong shape; the parser then treated each generation as its own
+      // prompt block, which made Goofy show up as an "Uploaded Image"
+      // instead of nesting under `### img-goofy-v1`. The upsert path
+      // writes `#### filename` (the right shape) and, when promptId is
+      // provided, inserts AT the parent block's tail so the parser
+      // attaches it correctly.
+      if (sessionId) {
         try {
-          const imagesPath = path.join(process.cwd(), 'public', sessionId, 'IMAGES.md')
-          const existing = await readFile(imagesPath, 'utf-8').catch(() => '# Image Descriptions\n')
-          // 'error' results still log — the failure mode is part of the audit trail.
-          const verdictLine = verdict
-            ? `\n- **CD verdict:** ${verdict.verdict} — ${verdict.note}`
-            : ''
-          const entry = `\n### ${finalFilename}\n- **Operation:** ${operation || 'edit'}\n- **Prompt:** ${instruction.slice(0, 200)}${instruction.length > 200 ? '...' : ''}\n- **Nano Banana:** ${geminiText}${verdictLine}\n`
-          await writeFile(imagesPath, existing + entry, 'utf-8')
-          console.log(`[IMAGES.md] Appended description for ${finalFilename}`)
+          const sessionDir = path.join(process.cwd(), 'public', sessionId)
+          const evaluation = verdict
+            ? `${verdict.verdict} — ${verdict.note}`.slice(0, 400)
+            : geminiText
+              ? geminiText.replace(/\s+/g, ' ').trim().slice(0, 400)
+              : undefined
+          await upsertImageMetadata(sessionDir, finalFilename, {
+            status: 'READY',
+            evaluation,
+            ...(promptId ? { parentPromptId: promptId } : {}),
+          })
+          console.log(
+            `[IMAGES.md] upserted ${finalFilename}` +
+            (promptId ? ` under ${promptId}` : ' (no parent prompt — appended)'),
+          )
         } catch (imgErr) {
-          console.error(`[IMAGES.md] Failed to write:`, imgErr)
+          console.error(`[IMAGES.md] Failed to upsert ${finalFilename}:`, imgErr)
         }
       }
 

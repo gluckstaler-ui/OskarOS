@@ -150,29 +150,44 @@ function PromptEditorImpl(
         minHeight: 0,
       }}
     >
-      {/* Top bar: label + ratio + res */}
+      {/* Top bar: label + ratio + res. min-height: 48 to baseline-align
+          with the Presets header in PresetsStaging (Ralph 2026-05-06:
+          "presets and image prompts on the same line"). Padding moved
+          off the row and onto each side so the row vertically centers
+          its content via the min-height alone. */}
       <div
         style={{
           display: 'flex',
           alignItems: 'center',
           gap: 8,
-          padding: '12px 16px 10px',
+          padding: '0 16px',
+          minHeight: 48,
           flexShrink: 0,
           flexWrap: 'wrap',
         }}
       >
         <div
           style={{
+            // Bento header doctrine 2026-05-06 — 12px JetBrains Mono UPPERCASE
+            // 0.16em tracking, with a Feather icon prefix to match Briefing /
+            // Presets / Vibes / Image Prompts. Same register on every panel.
+            fontFamily: 'var(--font-mono, "JetBrains Mono", monospace)',
             fontSize: 12,
             fontWeight: 700,
             textTransform: 'uppercase',
-            letterSpacing: '0.05em',
-            color: 'var(--text-muted)',
+            letterSpacing: '0.16em',
+            color: 'var(--text-main)',
             display: 'flex',
             alignItems: 'center',
-            gap: 6,
+            gap: 8,
           }}
         >
+          {/* Feather edit-3 (pencil-on-page) — same icon as Image Prompts
+              in AssetsPanel for visual continuity between the two surfaces. */}
+          <svg xmlns="http://www.w3.org/2000/svg" width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="var(--accent, #3B82F6)" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+            <path d="M12 20h9"/>
+            <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>
+          </svg>
           Image Prompt
         </div>
         {/* WP-1D: Prompt source indicator */}

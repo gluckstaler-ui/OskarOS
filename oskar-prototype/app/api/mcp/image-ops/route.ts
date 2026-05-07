@@ -51,8 +51,15 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: `session not found: ${sessionId}` }, { status: 404 })
   }
 
+  // WP-IMG-7 (2026-05-06): tag-chip threading. Workshop sends `tag` at the
+  // top level (orthogonal to op params). Defaults to B-ROLL for parity with
+  // pre-WP-7 behavior; the route doesn't validate the value because the
+  // IMAGES.md tag enum is owned by `lib/types.ts` (and the parser tolerates
+  // unknown statuses by falling through to undefined).
+  const tag = String(body.tag || 'B-ROLL').trim() || 'B-ROLL'
+
   const op = { operation, params } as ImageOp
-  const result = await runImageOp(sessionDir, filename, op)
+  const result = await runImageOp(sessionDir, filename, op, tag)
   if (!result.ok) {
     return NextResponse.json({ error: result.error }, { status: 400 })
   }

@@ -20,6 +20,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { readdir, mkdir, writeFile } from 'fs/promises'
 import { existsSync } from 'fs'
 import path from 'path'
+import { publish } from '@/lib/event-bus'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -98,13 +99,58 @@ export async function POST(req: NextRequest) {
     )
   }
 
-  const browser = await chromium.launch({ headless: true })
+  // 2026-05-04 (Ralph): observability for the empty-body root cause.
+  // The api-client.ts:142 crash that surfaced as `Cannot read properties
+  // of undefined (reading 'slice')` came from THIS route returning an
+  // empty 500 body. The defensive patch in Commit A keeps the api-client
+  // from crashing, but the underlying cause — Playwright timing out
+  // because Next.js dev-server is busy serving THIS route while
+  // Playwright tries to fetch the vibe HTML through the SAME server —
+  // still needs a fix. Logging every step lets us see which await throws.
+  const probe = { stage: 'launch', t0: Date.now() }
+  const log = (stage: string) => {
+    console.log(`[/api/mcp/screenshot] target=${htmlFilename} stage=${stage} elapsed=${Date.now() - probe.t0}ms`)
+    probe.stage = stage
+  }
+  log('launch')
+  let browser
   try {
+    browser = await chromium.launch({ headless: true })
+  } catch (err) {
+    console.error(`[/api/mcp/screenshot] chromium.launch failed:`, err)
+    return NextResponse.json(
+      {
+        error: `Playwright launch failed: ${err instanceof Error ? err.message : String(err)}`,
+        hint: 'Run `npx playwright install chromium` if browsers are not yet installed.',
+      },
+      { status: 500 },
+    )
+  }
+  try {
+    log('newContext')
     const ctx = await browser.newContext({ viewport: dims })
+    log('newPage')
     const page = await ctx.newPage()
+    log(`goto:${targetUrl}`)
     await page.goto(targetUrl, { waitUntil: 'networkidle', timeout: 30_000 })
+    log('screenshot')
     const buffer = await page.screenshot({ fullPage: true, type: 'png' })
+    log('writeFile')
     await writeFile(outputPath, buffer)
+    log('done')
+
+    // WP-22 Phase 1 (Ralph 2026-05-06): publish so the chat surface can
+    // render a ScreenshotCard. base64 stays out of the event payload —
+    // savedPath is enough; the <img> renders from disk via /public.
+    try {
+      publish(body.sessionId, {
+        type: 'screenshot_taken',
+        savedPath: publicSavedPath,
+        target: htmlFilename,
+        frame,
+        dims,
+      })
+    } catch {}
 
     return NextResponse.json({
       savedPath: publicSavedPath,
@@ -114,8 +160,13 @@ export async function POST(req: NextRequest) {
       target: htmlFilename,
     })
   } catch (err) {
+    console.error(`[/api/mcp/screenshot] failed at stage=${probe.stage}:`, err)
     return NextResponse.json(
-      { error: `Screenshot failed: ${err instanceof Error ? err.message : String(err)}` },
+      {
+        error: `Screenshot failed at stage=${probe.stage}: ${err instanceof Error ? err.message : String(err)}`,
+        stage: probe.stage,
+        targetUrl,
+      },
       { status: 500 },
     )
   } finally {

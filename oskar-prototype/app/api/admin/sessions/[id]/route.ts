@@ -186,43 +186,67 @@ export async function GET(
         }
       }
 
-      // Collect ALL HTML files and extract hero image + title from each
-      if (type === 'html') {
-        const vibeMatch = fileName.match(/vibe-(\d+)-([^.]+)\.html/)
+      // (HTML collection moved out of this flat top-level loop — see the
+      // recursive walk after the loop. We need subdirectory HTML too.)
+    }
 
-        // Read HTML file to extract hero image and title
-        let heroImage: string | undefined
-        let title: string | undefined
-        try {
-          const htmlContent = await readFile(filePath, 'utf-8')
+    // ==========================================
+    // Recursive HTML collection (subdirs included)
+    // ==========================================
+    // The flat readdir above only sees the session root. Director Mode wants
+    // EVERY .html file in the session tree (mockups in subdirs, prototype
+    // theme files, lazyblocks-migration HTML, etc.). Walk the tree and push
+    // each one with a relative-path label so the picker can disambiguate
+    // duplicates across subdirectories.
+    async function walkHtml(dir: string, relPrefix: string): Promise<void> {
+      let entries
+      try {
+        entries = await readdir(dir, { withFileTypes: true })
+      } catch {
+        return
+      }
+      for (const entry of entries) {
+        if (entry.name.startsWith('.')) continue
+        if (entry.name === 'node_modules') continue
+        const full = join(dir, entry.name)
+        const rel = relPrefix ? `${relPrefix}/${entry.name}` : entry.name
+        if (entry.isDirectory()) {
+          await walkHtml(full, rel)
+        } else if (entry.isFile() && entry.name.toLowerCase().endsWith('.html')) {
+          const vibeMatch = entry.name.match(/vibe-(\d+)-([^.]+)\.html/)
 
-          // Extract title from <title> tag
-          const titleMatch = htmlContent.match(/<title>([^<]*)<\/title>/i)
-          if (titleMatch) {
-            title = titleMatch[1].trim()
+          // Read HTML to extract hero image + title (same heuristics as before)
+          let heroImage: string | undefined
+          let title: string | undefined
+          try {
+            const htmlContent = await readFile(full, 'utf-8')
+
+            const titleMatch = htmlContent.match(/<title>([^<]*)<\/title>/i)
+            if (titleMatch) {
+              title = titleMatch[1].trim()
+            }
+
+            const heroUrlMatch = htmlContent.match(/\.hero\s*\{[^}]*url\(['"]?([^'")\s]+)['"]?\)/i)
+              || htmlContent.match(/url\(['"]?([^'")\s]+)['"]?\)/)
+            if (heroUrlMatch) {
+              heroImage = `/${sessionId}/${heroUrlMatch[1]}`
+            }
+          } catch {
+            // Ignore read errors
           }
 
-          // Extract hero image from CSS url() in .hero section
-          // Look for the first url('...') which is typically the hero background
-          const heroUrlMatch = htmlContent.match(/\.hero\s*\{[^}]*url\(['"]?([^'")\s]+)['"]?\)/i)
-            || htmlContent.match(/url\(['"]?([^'")\s]+)['"]?\)/)
-          if (heroUrlMatch) {
-            heroImage = `/${sessionId}/${heroUrlMatch[1]}`
-          }
-        } catch {
-          // Ignore read errors
+          htmlFiles.push({
+            name: rel,                      // include subdir in name so picker can disambiguate
+            path: `/${sessionId}/${rel}`,   // public/ serves nested paths verbatim
+            vibeIndex: vibeMatch ? parseInt(vibeMatch[1]) : undefined,
+            vibeName: vibeMatch ? vibeMatch[2] : undefined,
+            heroImage,
+            title
+          })
         }
-
-        htmlFiles.push({
-          name: fileName,
-          path: `/${sessionId}/${fileName}`,
-          vibeIndex: vibeMatch ? parseInt(vibeMatch[1]) : undefined,
-          vibeName: vibeMatch ? vibeMatch[2] : undefined,
-          heroImage,
-          title
-        })
       }
     }
+    await walkHtml(sessionPath, '')
 
     // Sort files
     const typeOrder = { md: 0, html: 1, image: 2, json: 3, other: 4 }

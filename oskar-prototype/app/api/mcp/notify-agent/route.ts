@@ -14,8 +14,9 @@
 
 import { NextResponse } from 'next/server'
 import { notifyAgent, type AgentRole, canNotify } from '@/lib/agent-inbox-bus'
+import { publish } from '@/lib/event-bus'
 
-const VALID_ROLES = new Set<AgentRole>(['cd', 'webdev', 'sentinel', 'jedi-code'])
+const VALID_ROLES = new Set<AgentRole>(['cd', 'webdev', 'sentinel', 'jedi-code', 'user'])
 
 function isRole(v: unknown): v is AgentRole {
   return typeof v === 'string' && VALID_ROLES.has(v as AgentRole)
@@ -54,6 +55,25 @@ export async function POST(request: Request) {
     const isPermissionRelated = isRole(targetRole) && !canNotify(from, targetRole)
     return NextResponse.json({ error: r.error }, { status: isPermissionRelated ? 403 : 400 })
   }
+  // WP-22 Phase 1 (Ralph 2026-05-06): publish an ambient diagnostic chip so
+  // the chat surface shows that CD just sent a message to a peer agent.
+  // Single-row, no card chrome — Mockup § Archetype 4 (diagnostic chips).
+  // Only emit for cd-originated sends (the user doesn't need to see app→cd
+  // pushes — those are inbox traffic).
+  if (from === 'cd') {
+    try {
+      const targetRole = target.split(':')[0]
+      const prio = typeof priority === 'string' ? priority : 'normal'
+      publish(sessionId, {
+        type: 'notify_agent_sent',
+        glyph: '→',
+        label: `${targetRole}: queued`,
+        accent: prio === 'high' ? 'priority:high' : prio === 'low' ? 'priority:low' : undefined,
+        ts: new Date().toISOString(),
+      })
+    } catch {}
+  }
+
   return NextResponse.json({
     ok: true,
     messageId: r.messageId,

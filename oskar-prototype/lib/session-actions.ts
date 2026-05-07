@@ -606,7 +606,11 @@ export async function getImageManifestsAction(
           const resultPath = assetStatus === 'complete' ? `/${sessionId}/${actualFilename}` : undefined
           const generatedUrl = resultPath  // For display purposes
 
-          // Create asset for this version
+          // Create asset for this version. promptId tracks the parent
+          // ### img-N block so the frontend can pass it back to
+          // /api/edit-image when regenerating — the new #### filename
+          // entry then nests under THIS prompt instead of orphan-appending
+          // to the section. Ralph 2026-05-04.
           const asset = {
             id: `${vibeId}-${actualFilename}`,
             filename: actualFilename,
@@ -619,6 +623,7 @@ export async function getImageManifestsAction(
             status: assetStatus,
             vibeId,
             vibeName: vibeDisplayName,
+            promptId,
             isActive: versionStatusLower.includes('active'),
             isReplaced: versionStatusLower.includes('replaced'),
             resultPath,
@@ -644,6 +649,7 @@ export async function getImageManifestsAction(
           status: 'pending' as const,
           vibeId,
           vibeName: vibeDisplayName,
+          promptId,  // parent ### img-N — see comment in versions branch above
           isActive: false,
           isReplaced: false,
           rawStatus: 'PENDING'  // Pending prompt - not yet generated

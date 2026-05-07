@@ -267,8 +267,12 @@ export async function POST(req: NextRequest) {
 
     // Run Claude CLI
     // 2026-04-17: model was 'claude-sonnet-4-20250514' (deprecated, retires Jun 15 2026).
-    // Migrated to current Sonnet 4.6 per Ralph's "all sonnet/haiku → 4.6" pass.
-    const command = `"${claudePath}" --print --verbose --no-session-persistence --model claude-sonnet-4-6 --output-format stream-json --permission-mode bypassPermissions --system-prompt "$(cat '${systemFile}')" "$(cat '${promptFile}')"`
+    // 2026-05-04 (Ralph): the shell command used to hardcode `--model
+    // claude-sonnet-4-6` even though the route accepts `webDevModel` in
+    // the body. That made the TopBar Gemini pill unreachable from this
+    // path even after build-final/route.ts started forwarding the user's
+    // choice. Now the user-selected webDevModel actually flows through.
+    const command = `"${claudePath}" --print --verbose --no-session-persistence --model ${webDevModel} --output-format stream-json --permission-mode bypassPermissions --system-prompt "$(cat '${systemFile}')" "$(cat '${promptFile}')"`
 
     console.log(`[WebDev ${requestId}] Running Claude CLI...`)
 

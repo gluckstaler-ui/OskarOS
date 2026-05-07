@@ -50,6 +50,7 @@ const MODE_COLORS: Record<AdvancedTab, string> = {
   compose: '#8B5CF6',
   layout: '#10B981',
   brand: '#EC4899', // WP-B5 — never actually renders (brand tab skips PresetsStaging) but required by the exhaustive Record
+  'image-ops': '#06B6D4', // WP-IMG-1 — never renders here (image-ops mode replaces PresetsStaging with Workshop) but required by the exhaustive Record
 }
 
 function PresetsStagingImpl({
@@ -88,12 +89,20 @@ function PresetsStagingImpl({
         minHeight: 0,
       }}
     >
-      {/* Presets header */}
+      {/* Presets header — bento doctrine 2026-05-06: 12px JetBrains Mono
+          UPPERCASE 700 0.16em tracking. Same register as Briefing / Vibes
+          / Image Prompts so all bento headers read as one tier.
+          min-height: 48 + align-items: center matches the Image Prompt
+          header row in PromptEditor (which is button-driven ~48px). Both
+          texts now baseline-align across the two adjacent bento cards
+          (Ralph 2026-05-06: "presets and image prompts on the same line"). */}
       <div
         style={{
-          fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em',
-          color: 'var(--text-muted)', padding: '12px 16px 16px', flexShrink: 0,
-          display: 'flex', alignItems: 'center', gap: 6,
+          fontFamily: 'var(--font-mono, "JetBrains Mono", monospace)',
+          fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.16em',
+          color: 'var(--text-main)', padding: '0 16px', flexShrink: 0,
+          minHeight: 48,
+          display: 'flex', alignItems: 'center', gap: 8,
         }}
       >
         <svg xmlns="http://www.w3.org/2000/svg" width={12} height={12} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" style={{ opacity: 0.5 }}>
@@ -104,14 +113,22 @@ function PresetsStagingImpl({
       </div>
 
       {/* WP-13B: Scrollable preset pills — single flex-wrap container.
-          Category labels and their pills flow inline across visual lines as
-          one logical stream: FILTERS:  [pill] [pill]  OBJECT EDITS:  [pill]  … */}
+          Alignment 2026-05-06 (Ralph: "the first presets need to start
+          where the input field starts from image prompts"). Left padding
+          bumped 16 → 35 so the first preset pill sits at the same X as
+          the textarea content in the Image Prompt card next door.
+          Math: 16 (card outer) + 1 (textarea border) + 18 (textarea
+          padding) = 35 from card edge. */}
       <div
         style={{
           overflowY: 'auto',
-          padding: '0 16px 8px',
+          padding: '0 16px 8px 35px',
           flexShrink: 0,
-          maxHeight: activeTab === 'compose' || activeTab === 'layout' ? 120 : undefined,
+          // No maxHeight — let the pill rows flow naturally. The 120px
+          // cap on compose/layout caused overflow scrolling once the
+          // 35px left-pad pushed more pills to wrap (Ralph 2026-05-06:
+          // "we have enough space downwards"). Compose + Layout staging
+          // areas below have their own bento separators; they coexist.
         }}
       >
         <div
@@ -124,22 +141,28 @@ function PresetsStagingImpl({
           }}
         >
           {categories.flatMap((cat, catIdx) => [
-            <span
-              key={`cat-${cat.label}`}
-              style={{
-                fontSize: 9,
-                fontWeight: 700,
-                letterSpacing: '0.08em',
-                textTransform: 'uppercase',
-                color: 'var(--text-dim)',
-                lineHeight: '24px',
-                whiteSpace: 'nowrap',
-                paddingLeft: catIdx > 0 ? 10 : 0,
-                paddingRight: 2,
-              }}
-            >
-              {cat.label}:
-            </span>,
+            // First category label suppressed — the active mode is
+            // already shown in the toolbar above (Ralph 2026-05-06).
+            // Subsequent category labels stay so the user can see
+            // category transitions inline.
+            catIdx > 0 ? (
+              <span
+                key={`cat-${cat.label}`}
+                style={{
+                  fontSize: 9,
+                  fontWeight: 700,
+                  letterSpacing: '0.08em',
+                  textTransform: 'uppercase',
+                  color: 'var(--text-dim)',
+                  lineHeight: '24px',
+                  whiteSpace: 'nowrap',
+                  paddingLeft: 10,
+                  paddingRight: 2,
+                }}
+              >
+                {cat.label}:
+              </span>
+            ) : null,
             ...cat.presets.map((preset) => (
               <PresetPill
                 key={`${cat.label}-${preset.label}`}

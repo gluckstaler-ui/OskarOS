@@ -92,6 +92,21 @@ const CD_ALLOWED = new Set([
     'image_ops', 'vibe_diff',
     // Phase 3 cross-agent
     ...ORCHESTRATOR_BASIC,
+    // ── Sync gap fix (Ralph + Jedi Code 2026-05-06) ────────────────────────
+    // These were in `lib/mcp-config.ts` `CD_ALLOWED_TOOLS` (spawn-time
+    // --allowed-tools flag) but NOT in this server-side advertise filter.
+    // Result: CD's spawn ALLOWED the calls but the MCP server never
+    // advertised the tools in tools/list, so they didn't reach CD's
+    // deferred-tool list. Two-state-machine drift — same shape as the
+    // build_vibe wrapper drift logged in INSTITUTIONAL-MEMORY.
+    // The two allowlists MUST stay in sync. Future entries: add to BOTH
+    // files in the same commit, or factor them into a single source.
+    'ask_discovery_questions', 'confirm_understanding',
+    'propose_image_prompt',
+    'todo_write',
+    'preview_card',
+    'report_build_complete', 'report_build_failed', 'report_build_progress',
+    'submit_critique',
 ]);
 const WEBDEV_ALLOWED = new Set([
     'report_build_complete', 'report_build_failed', 'report_build_progress',

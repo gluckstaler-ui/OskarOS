@@ -12,8 +12,13 @@ export default defineConfig({
       '**/__tests__/**/*.test.ts',
       '**/__tests__/**/*.test.tsx',
       'lib/**/*.test.ts',
+      'lib/**/*.test.tsx',
+      'components/**/*.test.tsx',
+      'components/**/*.test.ts',
       'mcp-server/**/*.test.ts',
       'app/api/**/*.test.ts',
+      // 2026-05-02 Phase 3 — UICase registry sanity tests (NOT Playwright specs)
+      'e2e/cases/**/*.test.ts',
     ],
     exclude: ['node_modules', '.next', 'mcp-server/dist'],
     coverage: {

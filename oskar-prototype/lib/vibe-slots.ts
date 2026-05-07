@@ -822,15 +822,40 @@ function swapBareImage(
     return { swapped: false, oldImage: null, newHtml: html }
   }
 
-  // Match every <img> tag and only rewrite the src of the one whose src
-  // equals targetSrc — and only at the right occurrence index.
-  const imgTagPattern = /<img\b[^>]*>/gi
+  // Match every HTML <img> tag AND every SVG <image> element. Both can
+  // carry the slot's targetSrc — HTML uses `src="..."`, SVG uses `href="..."`
+  // (or legacy `xlink:href="..."`). We only rewrite the URL of the one
+  // whose value equals targetSrc — and only at the right occurrence index.
+  //
+  // Ralph 2026-05-02: SVG <image> support added. Files like
+  // business-cards-grandma-20-schools.html embed photos as
+  // <image href="..."/> inside SVG cards; the previous IMG-only regex made
+  // those slots invisible to hot-swap (the Director Mode click sent
+  // "img:foo.jpeg" but no <img src="foo.jpeg"> existed on the page).
+  const imgTagPattern = /<(img|image)\b[^>]*>/gi
   let occ = 0
   let swapped = false
   let oldImage: string | null = null
 
   const newHtml = html.replace(imgTagPattern, (tag) => {
-    const srcMatch = tag.match(/\bsrc="([^"]+)"/i) || tag.match(/\bsrc='([^']+)'/i)
+    const isSvgImage = /^<image\b/i.test(tag)
+    // HTML <img> uses `src=`; SVG <image> uses `href=` or `xlink:href=`.
+    let srcMatch: RegExpMatchArray | null = null
+    let attrName = 'src'
+    if (isSvgImage) {
+      srcMatch =
+        tag.match(/\bhref="([^"]+)"/i) ||
+        tag.match(/\bhref='([^']+)'/i) ||
+        tag.match(/\bxlink:href="([^"]+)"/i) ||
+        tag.match(/\bxlink:href='([^']+)'/i)
+      // Pick whichever attribute we matched against.
+      if (srcMatch) {
+        attrName = srcMatch[0].toLowerCase().startsWith('xlink:') ? 'xlink:href' : 'href'
+      }
+    } else {
+      srcMatch = tag.match(/\bsrc="([^"]+)"/i) || tag.match(/\bsrc='([^']+)'/i)
+      attrName = 'src'
+    }
     if (!srcMatch) return tag
     if (srcMatch[1] !== targetSrc) return tag
 
@@ -839,7 +864,7 @@ function swapBareImage(
 
     oldImage = srcMatch[1]
     swapped = true
-    // Replace ONLY the src attribute value, preserve quoting + everything else.
+    // Replace ONLY the matched attribute value, preserve quoting + everything else.
     //
     // Ralph 2026-04-26 BUG FIX: previous version passed the new value as a
     // STRING to .replace(), which interprets `$1`, `$&`, `$'`, `$\``, `$$`
@@ -847,10 +872,27 @@ function swapBareImage(
     // CDN URLs, or future filename schemes), the swap would silently corrupt
     // the HTML. Using a callback function disables `$`-substitution.
     const quote = srcMatch[0].includes('"') ? '"' : "'"
-    return tag.replace(
-      /\bsrc=(["'])[^"']+\1/i,
-      () => `src=${quote}${newImage}${quote}`,
+    // Build the right attribute-replacement regex based on attrName.
+    const attrPattern =
+      attrName === 'xlink:href'
+        ? /\bxlink:href=(["'])[^"']+\1/i
+        : attrName === 'href'
+        ? /\bhref=(["'])[^"']+\1/i
+        : /\bsrc=(["'])[^"']+\1/i
+    let updated = tag.replace(
+      attrPattern,
+      () => `${attrName}=${quote}${newImage}${quote}`,
     )
+    // SVG <image> with both href + xlink:href — keep them in sync. If the
+    // tag carried an xlink:href that we didn't match (because we matched
+    // href first), update it too so legacy renderers stay consistent.
+    if (isSvgImage && attrName === 'href' && /\bxlink:href=/i.test(updated)) {
+      updated = updated.replace(
+        /\bxlink:href=(["'])[^"']+\1/i,
+        () => `xlink:href=${quote}${newImage}${quote}`,
+      )
+    }
+    return updated
   })
 
   return { swapped, oldImage, newHtml }

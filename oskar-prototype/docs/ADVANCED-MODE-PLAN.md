@@ -1,6 +1,378 @@
 # Advanced Mode — Implementation Plan
 
-## Context
+> Status block added: 2026-05-01
+
+---
+
+## STATUS UPDATE — 2026-05-01
+
+Plan body below is preserved for context. Current status keyed by the plan's 7 logical phases
+(grouping the 22+ work-packages from the Workpackage Summary). The plan is largely SHIPPED;
+remaining items absorbed into FEATURE-X.md where active.
+
+### STATUS PHASE 1 — Foundation (WP-1A through WP-1D)
+
+**SHIPPED:** Shell + tab state machine + grid (`components/AdvancedMode.tsx` 2021 LOC,
+`components/advanced/AssetGrid.tsx` 476 LOC); AssetsPanel hover redesign; version sidebar +
+generation lineage (`components/advanced/CanvasPreview.tsx` 516 LOC); 4-tier prompt-pre-loading
+waterfall (`PromptEditor.tsx` `onReset` references the loaded value).
+
+### STATUS PHASE 2 — Generation Modes (WP-2A through WP-5)
+
+**SHIPPED:** Presets data structure (`lib/image-presets.ts` 852 LOC, the 67 categorized presets);
+Generate tab UI (`components/advanced/PromptEditor.tsx` 519 LOC); generation pipeline
+(`/api/generate-image`, `/api/edit-image`, `/api/quick-edit`); Edit tab; Compose tab + staging
+(`components/advanced/PresetsStaging.tsx` 397 LOC); Layout tab + bento engine
+(`/api/inject-images`).
+
+### STATUS PHASE 3 — AI Integration (WP-6A, WP-6B, WP-7)
+
+**SHIPPED:** Ask CD + soft fallback (`/api/ask-cd`, `components/advanced/ImageChatPanel.tsx`
+630 LOC); Nano Banana 2-turn self-description (`lib/nano-banana.ts` + `lib/gemini.ts`).
+
+**CHANGED:** WP-6A Ask CD contract was SUPERSEDED by WP-15 (Image Mode CD Contract NORMATIVE).
+The Ask CD UI ships, but the contract for what CD returns is now defined by WP-15 / submit_*
+MCP tools, not the original WP-6A pattern.
+
+**NOT DONE (verified 2026-05-01):** WP-7 Preset Audit — no `test-outputs/preset-test-log.md`
+exists in any session folder. CD/QA pass on the presets has not been recorded.
+
+**WP-7 EXTENDED — `image_ops` + `screenshot` E2E tests across two workflows:**
+
+Two MCP tools do real file work. WP-7 must test both end-to-end across both workflows that
+use them. Each workflow has a prompt-side (does Nano produce what the file ops need?) and
+a file-ops-side (do the operations actually do what we expect?). Both halves can fail
+independently. There are real doubts about the file-ops half across both workflows.
+
+---
+
+### Workflow A — JPG → PNG chroma-key extraction (Logo System most prominent)
+
+Goal: Nano produces a foreground asset on a pure-magenta background → `image_ops` chroma-keys
+out the magenta → output is a transparent PNG suitable for compositing onto any downstream
+deliverable (Card, Sign, Social, QR Card).
+
+**HALF 1A — Does the prompt generate what we need?**
+
+Run the Logo System preset's `brandFn(brandData, '')` against a known fixture brand
+(`FalCaMel Café`, fonts, primary color, truth statement). Capture Nano's output JPG.
+
+Verify on the JPG:
+- Background is pure `#FF00FF` magenta — sample N pixels in corners + edges; every pixel
+  must be `(255, 0, 255)` exactly. Not `(254, 1, 254)`. Not gradient. Not vignette. Not soft
+  shadow.
+- Foreground lives in the center ~80% with ~10% flat magenta margin (sample edge bands).
+- Logo content matches the prompt: business name in heading font, primary brand color, no
+  mockup chrome, no contextual scene, no "designer comp" feel.
+- Aspect 1:1 (Nano sometimes ignores; verify dimensions are square).
+- All 4 quadrants present per the Logo System prompt (primary lockup, monochrome, icon,
+  wordmark).
+
+If HALF 1A fails: preset prompt is broken — rewrite it before HALF 2A means anything.
+
+**HALF 2A — Do the file operations do what we expect?**
+
+Take the JPG from HALF 1A, run it through:
+```ts
+image_ops(jpg, 'chroma-key', { color: '#FF00FF', threshold: ??? })
+image_ops(keyed, 'format-convert', { to: 'png' })
+```
+
+Verify on the output:
+- **Output is real PNG, not JPG-renamed.** Read magic bytes: `89 50 4E 47 0D 0A 1A 0A`.
+  JPEG magic (`FF D8 FF`) means format-convert silently no-op'd.
+- **Alpha channel is real, not flat.** Decode pixels; confirm corner pixels (magenta in
+  source) have `alpha === 0`, foreground `alpha === 255`. Uniform `255` everywhere = the
+  chroma-key didn't apply, file is RGB-on-magenta, not RGBA.
+- **Edge anti-aliasing preserved.** Boundary pixels have intermediate `alpha ∈ [50, 240]`.
+  Hard 0/255 binary = jagged edges from too-tight threshold.
+- **No false-positive on near-magenta strokes.** Fixture with `#FF1A99` / `#E93FA8` / deep
+  pink stroke — verify they're NOT punched through. This is the main doubt: Sharp's
+  threshold may default too loose.
+- **Color fidelity on retained pixels.** Foreground RGB matches source within ±2 per channel.
+
+`screenshot`-verify:
+- Composite keyed PNG onto checkerboard HTML page; `screenshot` it; visually confirm
+  transparency in a real rendering context, not just byte-level.
+- Composite onto DARK background to catch white-fringe haloing (chroma-key artifact where
+  edge magenta tint is invisible on light bg but obvious on dark).
+- `screenshot frame: 'mobile' | 'tablet' | 'desktop'` actually changes capture dimensions.
+
+---
+
+### Workflow B — Cutting pictures apart for Layout mode (slice/crop into bento cells)
+
+Goal: one source image (Nano-generated panorama, or uploaded photo) gets sliced/cropped
+into multiple pieces, each piece becomes a cell in a bento layout. Common patterns:
+- Wide hero panorama (16:9) → 3 vertical strips for triptych section
+- Tall portrait (3:4) → top/middle/bottom for sequential storytelling
+- Wide image → square + remainder for hero+sidebar bento
+- Single source → N×M grid for gallery wall
+
+**HALF 1B — Does the prompt generate what we need?**
+
+For Nano-generated source: run the Layout preset that produces the panorama / wide / tall
+source. Capture Nano's output JPG.
+
+Verify on the JPG:
+- Aspect ratio matches what slicing expects (e.g., 21:9 panorama for 3-strip slice,
+  3:4 portrait for top/middle/bottom).
+- Subject placement: when slicing into N pieces, each slice should land on a coherent
+  visual unit. A panorama prompt that bunches everything in the center then leaves the
+  flanks empty produces useless side-strips. Verify visual content distributed.
+- Composition has clear "joints" the slicer can cut on without bisecting key elements
+  (no face-cut-in-half through middle of a slice line).
+- For uploaded source: skip HALF 1B; Workflow B's source is whatever the user dropped.
+
+If HALF 1B fails: preset prompt is broken (or composition guidance is missing) — rewrite
+the layout preset before HALF 2B means anything.
+
+**HALF 2B — Do the file operations do what we expect?**
+
+Take the source image, run it through `image_ops` slice/crop operations per the bento
+template:
+
+```ts
+// Triptych pattern from a 1920×1080 panorama → 3 strips of 640×1080
+image_ops(src, 'slice', { grid: { rows: 1, cols: 3 } })
+// or
+image_ops(src, 'crop', { x: 0,    y: 0, w: 640, h: 1080 })
+image_ops(src, 'crop', { x: 640,  y: 0, w: 640, h: 1080 })
+image_ops(src, 'crop', { x: 1280, y: 0, w: 640, h: 1080 })
+```
+
+Verify:
+- **Slice count correct.** Requesting 3-strip returns exactly 3 files.
+- **Each slice has correct dimensions** matching the declared grid. 1920÷3 = 640 exactly;
+  any slice that's 639 or 641 means rounding bug. Off-by-one on edge slices is the most
+  common Sharp `extract` bug.
+- **Slices align losslessly.** Compositing the 3 slices back side-by-side reproduces the
+  original within ±0 per pixel (no gap, no overlap, no resampling drift). Hash the
+  reassembled image vs source — should match exactly.
+- **No edge artifacts at slice boundaries.** Decode boundary columns of each slice;
+  confirm no resampling / sharpening / compression artifacts introduced by the cut.
+  (Sharp's default may apply jpeg quality settings on slice output that drift colors.)
+- **Filenames are sensible.** Each slice gets a deterministic name
+  (`{src}-slice-{r}-{c}.{ext}` or similar) so downstream Layout HTML can reference them.
+- **Slices land in IMAGES.md** as `Status: B-ROLL` per the spec.
+- **Source aspect respected.** Cropping a 16:9 source to a 1:1 cell: verify the crop
+  region, not the resize-then-squish path. Squished aspect = bug.
+- **Color fidelity per slice.** Each slice's pixels match the corresponding region of the
+  source within ±2 RGB per channel.
+
+`screenshot`-verify:
+- Render the bento HTML referencing the sliced files; `screenshot` it; compare to a
+  hand-composed reference. Confirm visual continuity across slice borders (no visible
+  line where adjacent slices meet, no color jump).
+- For grid layouts with gaps (CSS gap between bento cells): verify the source image's
+  bisected content reads correctly across the gap (eyes still align, horizon still
+  level, no jarring break).
+
+---
+
+**Specific Sharp/`image_ops` gotchas to test across both workflows:**
+
+- Sharp's `removeAlpha()` / `joinChannel()` / `ensureAlpha()` API path matters for chroma-key;
+  silent format issues if wrong.
+- Sharp's `.extract()` API for crop/slice has 1-indexed vs 0-indexed mode differences across
+  versions; verify implementation matches what the bento template expects.
+- Sharp processes channels in linear color space by default; chroma-key in linear vs sRGB
+  produces different edges. Verify color-space declared.
+- Some Sharp versions strip ICC profiles on format-convert; confirm output sRGB.
+- `.png({ compressionLevel: ... })` defaults: verify alpha PNGs aren't bloated by no
+  compression.
+- `.jpeg({ quality: ... })` defaults on slice output: verify slices retain quality, not
+  re-compressed at default 80.
+- File written to disk with correct mode bits; readable by subsequent `image_ops` calls in
+  the same session.
+- Concurrent `image_ops` calls on the same source (e.g., 3 parallel crops): verify no
+  read-during-write file corruption.
+
+---
+
+**Assertions WP-7 records to log (per workflow per run):**
+
+```
+Workflow A — Logo System E2E run #N for {brand}
+  HALF 1A (prompt → Nano JPG):
+    background_pure_magenta:    PASS / FAIL (sampled K, M deviations)
+    foreground_in_frame:        PASS / FAIL
+    aspect_1_1:                 PASS / FAIL (actual: WxH)
+    quadrants_present:          PASS / FAIL
+  HALF 2A (image_ops chroma-key + format-convert):
+    output_is_real_png:         PASS / FAIL (magic bytes: ...)
+    alpha_channel_real:         PASS / FAIL (corner=A, fg=B)
+    edge_aa_preserved:          PASS / FAIL (boundary distribution)
+    near_magenta_safe:          PASS / FAIL (#FF1A99 stroke fixture)
+    color_fidelity:             PASS / FAIL (max drift ±D)
+  HALF 2A (screenshot composite):
+    transparent_on_checkerboard: PASS / FAIL
+    no_dark_bg_halo:             PASS / FAIL
+    viewport_frame_works:        PASS / FAIL
+
+Workflow B — Layout slice run #N for {pattern} (e.g., triptych)
+  HALF 1B (prompt → Nano source, skip if uploaded):
+    aspect_match:                PASS / FAIL (expected R, actual R')
+    visual_content_distributed:  PASS / FAIL (no center-bunch)
+    no_key_element_at_joints:    PASS / FAIL
+  HALF 2B (image_ops slice/crop):
+    slice_count_correct:         PASS / FAIL (expected N, got M)
+    slice_dimensions_exact:      PASS / FAIL (per-slice WxH)
+    reassembly_lossless:         PASS / FAIL (hash match: src vs reassembled)
+    no_edge_artifacts:           PASS / FAIL (boundary column analysis)
+    aspect_respected:            PASS / FAIL (crop, not squish)
+    color_fidelity_per_slice:    PASS / FAIL (max drift ±D)
+    filenames_deterministic:     PASS / FAIL
+    images_md_entries_added:     PASS / FAIL (B-ROLL status)
+  HALF 2B (screenshot bento render):
+    slice_borders_invisible:     PASS / FAIL
+    visual_continuity:           PASS / FAIL (gap-respect)
+```
+
+Run each matrix N times per fixture. Variance reveals deterministic vs stochastic failure.
+
+---
+
+**The doubts this resolves:**
+
+For Workflow A: is `image_ops` chroma-key real Sharp or a stub? `output_is_real_png` +
+`alpha_channel_real` answer it. If both fail, chroma-key isn't shipped.
+
+For Workflow B: does `image_ops` slice/crop preserve byte-fidelity? `reassembly_lossless`
+answers it. If reassembly hash doesn't match source, the slicer is doing some lossy
+operation (resampling, recompression, color-space conversion) under the hood. Catching
+this byte-level is the whole point — visually it might look fine but slice-and-recompose
+workflows compound the drift across operations.
+
+If byte-level passes but the screenshot renders look bad, the bug is downstream (CSS
+gap handling, image-rendering hint, browser scaling).
+
+### STATUS PHASE 4 — Asset Workflow (WP-8A, WP-8B)
+
+**SHIPPED:** Hot-swap auto-trigger (`lib/hot-swap.ts`); Vibe Assignment UI
+(`components/advanced/AssignToVibeDrawer.tsx` 531 LOC).
+
+### STATUS PHASE 5 — Studio + Director (WP-9 through WP-13, added 2026-04-17)
+
+**SHIPPED (verified 2026-05-01):**
+- WP-10 Director Mode Coverage — `bgimg:` pseudo-slots in `lib/vibe-slots.ts:440-744` +
+  `lib/studio-bridge.ts`; text editing via `TEXT_EDITED` postMessage in `studio-bridge.ts` +
+  `/api/director/text-edit` route; director toggle as iframe overlay.
+- WP-11 Generation Management — `/api/director/delete-image` (`route.ts:6` "WP-11A: Delete a
+  generated image with orphan guard"; scan logic at `:47-100`) + `/api/director/replace-image`
+  (replace-everywhere).
+- WP-13A Zone 4 Reset button — `onReset`/`canReset` in `PromptEditor.tsx`; `loadedPrompt` +
+  `loadedPromptSource` baseline in `AdvancedMode.tsx:95-97/183-184/520`.
+- WP-13B Zone 3 presets inline wrap — `PresetsStaging.tsx:106` "WP-13B: Scrollable preset
+  pills — single flex-wrap container"; `flexWrap: 'wrap'` at lines 120/245/279.
+- WP-13C Zone 1 tile fill — `AssetGrid.tsx:239` "WP-13C: 2px border to match BRIEF/STUDIO
+  tile style"; `:256` "WP-13C: <img> + object-fit: cover — matches AssetsPanel's";
+  `width: '100%'` + `height: '100%'` + `objectFit: 'cover'` + `aspectRatio: '1'` at
+  `:235-266`. CSS parity matches `AssetsPanel.tsx:1340/1350`.
+
+**NOT SHIPPED (verified 2026-05-01):**
+- WP-12 Studio Tab Overflow — zero `overflow-x` / `overflowX` hits in `app/page.tsx` or any
+  Studio component. The plan's horizontal scroll + arrow buttons + scroll-into-view is not
+  implemented. Tab row currently wraps/clips with 35+ vibes per the user report.
+
+**UNVERIFIED:**
+- WP-9 Polish (amended lite) — zero "WP-9" code markers. Either implicit/incremental polish
+  not labeled, or genuinely not done. Audit needed.
+
+### STATUS PHASE 6 — CD Wiring (WP-14, WP-15, added 2026-04-17)
+
+**SHIPPED:** WP-15 Image Mode CD Contract NORMATIVE — endpoints `/api/cd-evaluate-prompt`,
+`/api/cd-evaluate-result`, `/api/cd-evaluate-upload`; MCP `submit_proofread`,
+`submit_image_verdict`, `submit_upload_eval`, `submit_image_prompt` tools route the contract;
+Phase 2 typed-tool migration retired the pre-2026-04-30 header-format protocol.
+
+ALL THREE §16.5 BUGS FIXED (verified 2026-05-01 against codebase):
+- §16.5a (proofread rewrite not reaching Nano) — FIXED. `/api/edit-image:235` sets
+  `actualPrompt = proofread.finalPrompt`; line 261/276 sends `actualPrompt` to Nano;
+  line 457 logs `actualPromptSent: actualPrompt`.
+- §16.5b (GenerationRecord audit fields missing) — FIXED. `lib/types.ts:110` `GenerationRecord`
+  now has `userPrompt` (118), `actualPromptSent` (120), `proofreadResult` (131). WP-2C revised
+  spec landed.
+- §16.5c (Upload CD evaluation dead-wire) — FIXED. `/api/cd-evaluate-upload` route exists;
+  `app/page.tsx:907-909` wires upload → fetch → CD eval; `lib/cd-upload-eval.ts:6` documents
+  the dead-subscriber fix and calls `submit_upload_eval` MCP tool.
+
+**CHANGED:** WP-14 CD Workflow Wiring REVISED 2026-04-17 — superseded by WP-15 for behavior.
+
+### STATUS PHASE 7 — Branding (WP-B1..B5 + WP-16) — RUDIMENTARILY SHIPPED
+
+**SHIPPED — only the shell** (per §16.3):
+- §16.3a Tab shell + routing — `AdvancedTab` union includes `'brand'`; tab button + colors + help;
+  `perTabState.brand`; brand rides the shared Zone 1/2/3/4 layout.
+- §16.3b Preset system extension — `BrandPreset` kind + `Preset` union + `PRESETS_BY_MODE.brand`.
+  BUT: `BRAND_PRESETS` currently has the WRONG 8 entries (Logo System / Business Card /
+  Storefront Sign / Menu Card / Packaging / Staff Uniform / Social Template / Loyalty Card),
+  not the §16.2 final 7.
+- §16.3c Brand data plumbing — `lib/brand-data.ts` (`brandDataFromVibe`, `brandDataBlock`,
+  `isBrandDataComplete`); `activeBrandData` memo from `vibes[0]` (hardcoded — vibe picker missing).
+- §16.3d Generation pipeline — inherited via `/api/edit-image` (brand falls through to edit path).
+  WP-15 proofread + verdict fire on brand generations BUT see §16.5a bug above.
+
+**OPEN / PARTIAL — feature work** (per §16.4):
+- §16.4a Revise preset list (8 wrong → 7 right) — OPEN. Drop Menu Card / Packaging / Staff
+  Uniform / Loyalty Card / Social Template; rename/add Brand Guideline / Social Post /
+  Social Story / QR Card.
+- §16.4b Slot staging for Brand tab — PARTIAL. Asset-discovery substrate SHIPPED via MCP
+  Tier-A tools (`list_assets` returns state index w/ vibeUsage + cdNote; `find_assets` does
+  keyword + filename + Nano-description ranked search). What remains is UI: `BrandStaging`
+  interface + `TabState.brandStaging` + Zone 3 named-slot cards (Logo / Hero) + click-to-assign +
+  QR Card URL text input. The picker's data layer is done.
+- §16.4c Vibe picker in Brand tab header — OPEN. Currently hardcoded `vibes[0]`. Needs pill at
+  Zone 2 tab bar right (`Brand: FalCaMel · Majlis ▾`).
+- §16.4d Magenta chroma-key postprocessing for Logo System — PARTIAL. **Sharp chroma-key
+  pipeline SHIPPED** via MCP Tier-B `image_ops` tool (operations: crop / slice / resize /
+  chroma-key / format-convert / composite). Tool decision in §16.7.1 (sharp/jimp/imagemagick) is
+  RESOLVED — `image_ops` already uses sharp. What remains is wiring: in `/api/edit-image`
+  brand-mode Logo System branch, call `image_ops(filename, 'chroma-key', { color: '#FF00FF' })`
+  + `image_ops(.., 'format-convert', { to: 'png' })` after Nano returns; rename output
+  `brand-{vibe}-logo-v{n}.png`. The `lib/brand-postproc.ts` wrapper file is no longer needed —
+  just call `image_ops` MCP tool directly.
+- §16.4e Filename prefix fix — OPEN. `buildFilenameHint` exists at `AdvancedMode.tsx:829` but
+  no brand-tab branch (only `case 'brand':` hit at line 289 is in `buildPromptFromPreset`,
+  not in filename logic). Falls through to `'layout'` prefix.
+- §16.4f Generation mode typing — OPEN. `activeTab` cast at `:826` doesn't include 'brand';
+  no server-side brand-mode mapping confirmed.
+- §16.4g Rewrite all 7 preset prompts per WP-15 principles — PARTIAL. Substrate SHIPPED:
+  `submit_image_prompt` MCP tool is the canonical channel for committing a CD-rewritten prompt
+  to Zone 4. The rewrite work itself is still CD's job (no placeholders, real brief data baked
+  in, magenta explicit for Logo, slot images by name). Contract delivery layer is done.
+
+**CLEANUP — Phase 0 before any §16.4 feature work** (per §16.5d + §16.6):
+- DELETE 5 orphan files from old WP-B1..B5 architecture:
+  `components/advanced/BrandingPanel.tsx` (447 LOC),
+  `components/advanced/BrandDataEditor.tsx` (322 LOC),
+  `components/advanced/DeliverablePicker.tsx` (103 LOC),
+  `lib/brand-deliverables.ts`,
+  `app/api/brand/generate/route.ts`.
+- Edit `lib/types.ts:4` to remove dead re-export of `DeliverableTemplate` / `DeliverableId`.
+- Add "SUPERSEDED BY WP-16" header to `docs/BRANDING-PLAN.md`.
+- Separate commit — hygiene, not feature.
+
+**DO NOT IMPLEMENT:** WP-B1, WP-B2, WP-B3, WP-B4, WP-B5 — all SUPERSEDED by WP-16. The 3
+component files (`BrandingPanel.tsx`, `BrandDataEditor.tsx`, `DeliverablePicker.tsx`) are
+ORPHAN dead code, not shipped product — slated for deletion per §16.5d.
+
+**Open decisions for Ralph (§16.7):**
+1. ~~Postproc tool — sharp / jimp / imagemagick?~~ RESOLVED — `image_ops` MCP tool already uses
+   sharp; brand mode calls it directly, no `lib/brand-postproc.ts` wrapper needed.
+2. QR Card URL input location — Zone 3 or Zone 4? (vote: Zone 3)
+3. Brand Guideline with no Logo yet — refuse or wordmark fallback? (vote: allow + fallback)
+4. Vibe picker UX — dropdown in Zone 2 tab bar, or strip in Zone 3? (vote: pill in tab bar)
+5. Social Post vs Social Story — two presets or one with aspect toggle? (vote: two)
+6. Fix §16.5a (WP-15 rewrite-wire bug) before or after Brand v1? (vote: after)
+
+### STATUS — Items beyond plan scope (not in this plan, tracked elsewhere)
+
+- BYOK (per-tenant API key in BRANDING surface) — `FEATURE-X.md` § BRANDING WP-B1.
+  This is a NEW BRANDING work-package, not a revival of the WP-B1 from this plan (which is
+  the SUPERSEDED brand-data-extraction package).
+
+---
 
 The current AssetsPanel shows images in a flat grid with hover overlays for inline editing (BentoTile: prompt textarea + Advanced/Generate buttons). The user built a working HTML mockup (`public/2026-01-27-31/advanced-mode-a.html`) that replaces this with a 4-zone professional image workstation. Five modes: View, Generate, Edit, Compose, Layout.
 

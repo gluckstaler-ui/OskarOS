@@ -104,8 +104,9 @@ export const CAPABILITY_TOOL_DEFINITIONS = [
       '  • warning  → yellow,    sticky\n' +
       '  • error    → red,       sticky\n\n' +
       '`sticky` is ORTHOGONAL to severity. Pass sticky:true to keep info/success ' +
-      'visible; pass sticky:false to auto-dismiss warning/error/progress. Use ' +
-      'sparingly — every snackbar is interruption. For questions, use `ask_user`.',
+      'visible; pass sticky:false to auto-dismiss warning/error/progress. Fire ' +
+      'whenever you want — there is no penalty for snackbar volume. For questions, ' +
+      'use `ask_user`.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -350,6 +351,43 @@ export const CAPABILITY_TOOL_DEFINITIONS = [
       required: ['target'],
     },
   },
+
+  // ── Preview card (Ralph 2026-05-06): on-demand visual sample ───────────
+  {
+    name: 'preview_card',
+    description:
+      'Render a SAMPLE of a chat-surface card with given payload, marked as a ' +
+      'preview (no real backend writes). Use when the user asks to "show me [a ' +
+      'card]" — fire this tool instead of pasting source code. Supported kinds: ' +
+      'upload_eval, upload_eval_batch, screenshot, apply_patch, diagnostic_chip, ' +
+      'discovery_questions, confirm_understanding. Payload must match the matching ' +
+      'AssistantCardPayload shape minus `kind` (see lib/types.ts).',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        kind: {
+          type: 'string',
+          enum: [
+            'upload_eval',
+            'upload_eval_batch',
+            'screenshot',
+            'apply_patch',
+            'diagnostic_chip',
+            'discovery_questions',
+            'confirm_understanding',
+          ],
+          description: 'Which card to preview.',
+        },
+        payload: {
+          type: 'object',
+          description:
+            'Card-specific fields (omit `kind` — it is set from the top-level ' +
+            'param). Shape per lib/types.ts AssistantCardPayload.',
+        },
+      },
+      required: ['kind', 'payload'],
+    },
+  },
 ] as const
 
 export type CapabilityToolName = (typeof CAPABILITY_TOOL_DEFINITIONS)[number]['name']
@@ -417,6 +455,21 @@ export async function callCapabilityTool(
       // text-only for simplicity). The caller can inspect the saved file.
       if (r.body?.savedPath) return { text: `Screenshot saved: ${r.body.savedPath}`, isError: false }
       return { text: `screenshot error: ${r.body?.error || 'unknown'}`, isError: true }
+    }
+
+    case 'preview_card': {
+      const kind = String(args.kind || '').trim()
+      const payload = args.payload
+      if (!kind || !payload || typeof payload !== 'object') {
+        return { text: 'Error: kind + payload (object) required', isError: true }
+      }
+      const r = await postJson<{ ok: boolean }>('/api/mcp/preview-card', {
+        sessionId,
+        kind,
+        payload,
+      })
+      if (!r.ok) return { text: `preview_card failed: ${r.error}`, isError: true }
+      return { text: `preview_card published: kind=${kind}`, isError: false }
     }
 
     case 'snackbar': {
