@@ -1701,11 +1701,36 @@ export default function Home() {
         analysis: img.analysis
       }))
 
-      // Build messages for API (text only, images sent via upload)
-      const messagesForAPI = newMessages.map(msg => ({
-        role: msg.role,
-        content: msg.content
-      }))
+      // Build messages for API. In the queued-batch case (skipUserAppend),
+      // `messages` already contains the individual queued user messages (B,
+      // C, D…) appended for INSTANT chat-history visibility — but the
+      // request CD should respond to is the COMBINED prompt (`finalContent`,
+      // a "[N messages…] 1. B 2. C 3. D" assembly built by the drain
+      // effect). API mode sends the full messages array to Anthropic; if
+      // we don't replace those individual user turns with the combined
+      // prompt, Claude responds to whichever happens to be last (msg D)
+      // and the batch framing disappears — same disappearing-message
+      // class that bit chat-stream/route.ts.
+      //
+      // Fix: truncate trailing queued user messages (everything after the
+      // last assistant turn) and replace with ONE user message carrying
+      // finalContent. Display history is unchanged (the user still sees
+      // separate B / C / D bubbles in the UI). Ralph 2026-05-07.
+      const messagesForAPI: Array<{ role: 'user' | 'assistant'; content: string }> =
+        opts?.skipUserAppend
+          ? (() => {
+              const lastAssistantIdx = newMessages
+                .map(m => m.role)
+                .lastIndexOf('assistant')
+              const baseHistory = lastAssistantIdx >= 0
+                ? newMessages.slice(0, lastAssistantIdx + 1)
+                : []
+              return [
+                ...baseHistory.map(m => ({ role: m.role, content: m.content })),
+                { role: 'user' as const, content: finalContent },
+              ]
+            })()
+          : newMessages.map(msg => ({ role: msg.role, content: msg.content }))
 
       // Use CLI route (SMPL and CLI both invoke the bridge) or API route
       const endpoint = billingMode === 'api' ? '/api/chat' : '/api/claude-code'

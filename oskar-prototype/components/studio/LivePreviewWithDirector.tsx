@@ -329,6 +329,12 @@ export const LivePreviewWithDirector = forwardRef<
     if (isImageElement(el)) {
       // Captures HTML <img src> AND SVG <image href / xlink:href>.
       snap.src = readImageSrc(el)
+      // SVG <image> only — capture preserveAspectRatio so the fit +
+      // position slider edits revert cleanly. null distinguishes
+      // "attribute was absent" from "attribute was empty string".
+      if (el.tagName === SVG_IMAGE_TAG) {
+        snap.preserveAspectRatio = el.getAttribute('preserveAspectRatio')
+      }
     }
     if (el.tagName === 'A') {
       // null preserves the distinction "no href attribute" vs "empty href"
@@ -354,6 +360,16 @@ export const LivePreviewWithDirector = forwardRef<
       if (snap.src !== undefined && isImageElement(el)) {
         writeImageSrc(el, snap.src)
       }
+      // Restore SVG <image> preserveAspectRatio (fit + position controls
+      // mutate this; revert puts the attribute back to its original
+      // state including "was absent" via removeAttribute).
+      if (el.tagName === SVG_IMAGE_TAG && 'preserveAspectRatio' in snap) {
+        if (snap.preserveAspectRatio === null || snap.preserveAspectRatio === undefined) {
+          el.removeAttribute('preserveAspectRatio')
+        } else {
+          el.setAttribute('preserveAspectRatio', snap.preserveAspectRatio)
+        }
+      }
       // Restore inner HTML (for text edits)
       if (snap.innerHtml !== undefined) {
         el.innerHTML = snap.innerHtml
@@ -369,7 +385,12 @@ export const LivePreviewWithDirector = forwardRef<
    *  Pure — no side effects, no clearing of refs. Used by both the
    *  fetch-based saveAll and the sendBeacon unload fallback. */
   const buildEditsPayload = useCallback((): {
-    edits: { selector: string; style?: string; src?: string }[]
+    edits: {
+      selector: string
+      style?: string
+      src?: string
+      preserveAspectRatio?: string | null
+    }[]
     elements: HTMLElement[]
   } => {
     const els = Array.from(modifiedElsRef.current)
@@ -381,16 +402,33 @@ export const LivePreviewWithDirector = forwardRef<
         const srcNow = isImageElement(el) ? readImageSrc(el) : null
         const styleChanged = styleNow !== (snap.style || '')
         const srcChanged = srcNow !== null && srcNow !== (snap.src ?? '')
-        if (!styleChanged && !srcChanged) return null
+
+        // SVG <image> preserveAspectRatio diff. null encodes "attribute
+        // absent" — distinguishes "user removed it" from "user set it to
+        // empty string" (rare but possible). Only meaningful for SVG.
+        const isSvgImg = el.tagName === SVG_IMAGE_TAG
+        const parNow: string | null = isSvgImg
+          ? (el.getAttribute('preserveAspectRatio'))
+          : null
+        const parBefore = (snap.preserveAspectRatio ?? null) as string | null
+        const parChanged = isSvgImg && parNow !== parBefore
+
+        if (!styleChanged && !srcChanged && !parChanged) return null
         // CSS selector path the server can resolve via jsdom.querySelector.
         const selector = buildSelectorPath(el)
         return {
           selector,
           ...(styleChanged ? { style: styleNow } : {}),
           ...(srcChanged && srcNow !== null ? { src: srcNow } : {}),
+          ...(parChanged ? { preserveAspectRatio: parNow } : {}),
         }
       })
-      .filter((e): e is { selector: string; style?: string; src?: string } => e !== null)
+      .filter((e): e is {
+        selector: string
+        style?: string
+        src?: string
+        preserveAspectRatio?: string | null
+      } => e !== null)
     return { edits, elements: els }
   }, [])
 
@@ -1234,6 +1272,7 @@ export const LivePreviewWithDirector = forwardRef<
     const t = transformState
     const tf = buildTransformString(t)
     const isImg = styleTarget.tagName === 'IMG'
+    const isSvgImg = styleTarget.tagName === SVG_IMAGE_TAG
     // Both X and Y as CSS percentages. `object-position` / `background-position`
     // accept percentage values where 0% 0% = top-left and 100% 100% = bottom-right.
     // Default (50, 50) = center. Sliders give pixel-level control.
@@ -1254,6 +1293,35 @@ export const LivePreviewWithDirector = forwardRef<
       styleTarget.style.objectFit = t.fit || ''
       styleTarget.style.objectPosition = posString
       // Zoom for <img> uses transform: scale — already baked into tf.
+    } else if (isSvgImg) {
+      // SVG <image> doesn't support object-fit / object-position. The SVG
+      // equivalent is the `preserveAspectRatio` attribute: an alignment
+      // keyword (xMin/xMid/xMax + YMin/YMid/YMax — 9 discrete positions)
+      // followed by a meet/slice keyword (or `none` for stretch).
+      //
+      // Fit mapping (Ralph 2026-05-07 — make sliders actually do something
+      // for SVG-embedded photos like the business-card cards):
+      //   cover    → <align> slice   (crop overflow, like object-fit:cover)
+      //   contain  → <align> meet    (letterbox, like object-fit:contain)
+      //   fill     → none            (stretch to fit, ignore aspect)
+      //   auto     → <align> meet    (default behavior)
+      //
+      // Position mapping: percentage sliders quantize to 3 SVG alignment
+      // bands per axis. 0–33 → xMin/YMin, 34–66 → xMid/YMid, 67–100 →
+      // xMax/YMax. Lossy vs HTML's continuous object-position but it's
+      // the only mechanism SVG offers without rewriting x/y attributes.
+      // Zoom + rotate + flip continue to work via the CSS `transform`
+      // applied above (modern browsers respect CSS transform on SVG
+      // sub-elements).
+      const xAlign = t.positionX < 34 ? 'xMin' : t.positionX > 66 ? 'xMax' : 'xMid'
+      const yAlign = t.positionY < 34 ? 'YMin' : t.positionY > 66 ? 'YMax' : 'YMid'
+      const align = `${xAlign}${yAlign}`
+      let par: string
+      if (t.fit === 'fill') par = 'none'
+      else if (t.fit === 'cover') par = `${align} slice`
+      else /* contain | auto | undefined */ par = `${align} meet`
+      styleTarget.setAttribute('preserveAspectRatio', par)
+      // SVG <image> doesn't have a "repeat" concept — leave unset.
     } else {
       if (t.fit === 'fill') styleTarget.style.backgroundSize = '100% 100%'
       else if (t.fit === 'auto') styleTarget.style.backgroundSize = 'auto'

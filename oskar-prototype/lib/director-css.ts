@@ -161,11 +161,15 @@ export interface TransformState {
  *  Undo (per-element) and as the baseline for saveAll's diff detection. */
 export interface ElementSnapshot {
   style: string // the element's inline style at Director-ON time
-  src?: string // <img>.src
+  src?: string // <img>.src OR SVG <image>.href
   href?: string | null // <a>.href — null means attribute was absent
   textHtml?: string
   innerHtml?: string
   bgImage?: string // parsed background-image
+  /** SVG <image>.preserveAspectRatio at snapshot time. The Image-tab
+   *  fit + position sliders mutate this (since SVG doesn't have
+   *  object-fit / object-position). null = attribute was absent. */
+  preserveAspectRatio?: string | null
 }
 
 // ────────────────────────────────────────────────────────────────────────

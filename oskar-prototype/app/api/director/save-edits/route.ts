@@ -45,6 +45,10 @@ interface SaveEdit {
   selector: string
   style?: string
   src?: string
+  /** SVG <image>.preserveAspectRatio. Null = remove attribute. Sent
+   *  by the client when the user moves the Image-tab fit/position
+   *  sliders on an SVG <image> element. */
+  preserveAspectRatio?: string | null
 }
 
 export async function POST(req: NextRequest) {
@@ -142,6 +146,19 @@ export async function POST(req: NextRequest) {
           el.removeAttribute('style')
         } else {
           el.setAttribute('style', edit.style)
+        }
+      }
+
+      // Apply preserveAspectRatio (SVG <image> only). null means the
+      // user reverted to "no attribute" — remove it. Otherwise set
+      // verbatim. Harmless on non-SVG elements (any element can carry
+      // arbitrary attributes), but the client only sends this field
+      // for SVG <image>.
+      if ('preserveAspectRatio' in edit) {
+        if (edit.preserveAspectRatio === null) {
+          el.removeAttribute('preserveAspectRatio')
+        } else if (typeof edit.preserveAspectRatio === 'string') {
+          el.setAttribute('preserveAspectRatio', edit.preserveAspectRatio)
         }
       }
 
