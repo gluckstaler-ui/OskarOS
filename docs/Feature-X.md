@@ -295,6 +295,21 @@ CARRY-FORWARD (smaller packages, audit triage — see §6)
 ❌ PARTIAL   IMPLEMENTATION-PLAN-API-AGENT.md (Phase 1+2+4 IMPLEMENTED; Phase 3 has WP-41 open)
 
 
+MCP-CUTOVER DEBT — VIBE PARSER + GALLERY (post-2026-04-29 dead-code mutation)
+─────────────────────────────────────────────────────────────────────
+   PENDING   WP-78  Gallery API endpoint (filename-driven directory scan)
+   PENDING   WP-79  page.tsx Potemkin cleanup + Gallery lazy-load
+   PENDING   WP-80  VibesGallery component degradation (no fake defaults)
+   PENDING   WP-81  Retire lib/vibe-resolver.ts + sibling inline regexes
+   PENDING   WP-82  Retire parseVibesFromFiles from build path
+   PENDING   WP-83  Delete lib/creative-brief-parser.ts + ParsedVibe type
+                    Full detail in §18.3. After 2026-04-29 MCP migration, the regex parser
+                    became dead in the agent layer (CD passes identity via MCP args; WebDev
+                    reads VIBE-{n}-*.md directly) but mutated UI surfaces with silent drops,
+                    100+ NOT-FOUND noise lines per load, and FalCaMel-themed fake-data
+                    fallbacks (fallbackColors / fallbackFonts cycle by index % 4).
+
+
 TREE-STATE DEBT (resolve before WP-1 starts)
 ─────────────────────────────────────────────────────────────────
 ~10k LOC in working copy uncommitted as of 2026-05-05. Verified scope via `git diff HEAD --stat`:
@@ -2712,24 +2727,35 @@ Track 3 (uploaded images: snackbar vs ToolCard). Decide on first multi-image upl
 
 ---
 
-## §18 — Build path + execution-mode work packages (Ralph 2026-05-06)
+## §18 — Build path + execution-mode + new build tools (2026-05)
 
-Two work packages surfaced from the Gemini-CLI-never-invoked diagnosis and the SMPL/Z.AI routing question. Both are about the substrate beneath the build flow: where work actually executes, which binary spawns, which API endpoint the agent loop talks to.
+Parent for the 2026-05 arc of build-substrate work. Four sub-sections, each scoped to a specific debt or extension, sequenced so each can ship as its own commit:
 
-### WP-67 — Refactor `build-final` to use `runWebDev` (kill the legacy `/api/webdev` Claude-only fork)
+- **§18.1 — Build path + execution-mode + legacy-CLI cluster retirement + COO-Claude harness (2026-05-06, expanded 2026-05-09).** **WP-67** kills the entire legacy one-shot Claude CLI spawn cluster — `/api/webdev` + `/api/claude-code` + `/api/save-vibe` + `/api/save-vibes` + `lib/memory/lumberjack.ts` runtime + `/public/generated-vibes/` + the `parseVibes()` regex parser embedded in claude-code. All three build commands route through `runWebDev`; non-API chat routes through `/api/chat-stream`; Lumberjack's last call sites disappear. **WP-68** builds the COO-Claude user-impersonation harness (3 new MCP tools on the orchestrator: `send_user_message`, `respond_to_card`, `click_action`) + ships `test-harness/COO.md` (878-line stress-test doctrine for Claude-Code-as-user; 5 scenarios including FalCaMel Saudi cliff café Steve Barr, Bareggcenter Wes Anderson Schwiizerdütsch-only Elrond, and Bareggcenter Sindarin Lord-of-Rivendell Elrond). WP-68 **DELETES** legacy `/api/test-backdoor` (zero callers, January 2026 vintage, never used) once the new harness is greenlit. Prior framing of WP-68 as "refactor in place; does NOT delete; load-bearing harness" was wrong — audit revealed the old route had zero consumers in the entire repo.
+- **§18.2 — new build tools + Phase-2 toolcards (2026-05-07, post-deletions 2026-05-10).** Surviving WPs: **69, 74, 75, 77** (Ralph deleted 70/71/72/73/76 between 2026-05-09 and 2026-05-10 as scope tightened against `docs/toolcards-mockup.html`). **3 NEW MCP tools**: `build_wireframes` (WP-69), `present_design_directions` (WP-74 — replaces fictional Moodboard), `surface_descent_selection` (WP-75 — covers BOTH mockup variants: `final-vibe` radio + `brand-cards-star` checkbox), `surface_design_system` (WP-77 — interactive vibe-selector). **3 new ToolCard components** (Design Directions, Descent Selection, Design System). Existing `confirm_understanding` MCP tool + `ConfirmUnderstandingCard.tsx` component stay as-is — mockup §3.5 doesn't add anything they don't already have. **Allowlist + respawn implication:** 4 new tool names land in CD/WebDev/Sentinel `--allowed-tools` whitelists; **batch into ONE allowlist patch + ONE CD respawn at the end of §18.2** — naive impl = 4 separate respawn cycles. Document in WP-77's done-means checklist as the §17 hygiene gate's required closing action.
+- **§18.3 — Vibe parser retirement + Gallery refactor (2026-05-09).** WPs 78–83. Post-2026-04-29 MCP migration left `creative-brief-parser.ts` as zombie code. Gallery moves to filename-driven directory scan; FalCaMel-themed Potemkin fake-data fallbacks deleted; parser file retired.
+- **§18.4 — DRY consolidation + build-route slimming + Phase II (2026-05-09).** WPs 84–87. Shared HTML scraper helper; build routes shrink from 287 LOC → ~15 LOC by moving event publishes + audit + verify INSIDE `runWebDev`; IMAGES.md round-trip retirement (Phase II); institutional-memory doctrine entry.
 
-**Problem.** `build-final` is the only build entry point that does NOT go through the proper router. It POSTs to the legacy `/api/webdev` route (`app/api/webdev/route.ts`), which spawns Claude unconditionally:
+Provider/model expansion (SMPL-API + Z.AI MCPs + Vertex AI Nano Banana migration) is a separate track in **§19**, sequenced independently from §18.
+
+---
+
+### §18.1 — Build path + execution-mode work packages (Ralph 2026-05-06)
+
+#### WP-67 — Kill the legacy-CLI cluster (shipped 2026-05-09). 1,401 deletions, 93 additions, **net −1,308 LOC**
+
+**Problem.** Multiple pre-bridge, pre-MCP, pre-per-session-folder routes still spawn one-shot Claude CLI subprocesses. Each was authored before the bridge-process-manager + `runWebDev` + MCP architecture existed and never migrated. They share four anti-patterns: (1) shell-string `claude --print` spawn instead of bridge reuse, (2) hard-coded `findClaudeBinary()` Claude-only assumption — Gemini structurally unreachable, (3) regex-parsed result text instead of typed MCP tool calls, (4) writes to legacy `/public/generated-vibes/` flat directory instead of per-session `/public/{sessionId}/`.
+
+The `build-final` Gemini-unreachable bug is the surface symptom; the cluster is the cause:
 
 ```ts
-// app/api/webdev/route.ts:266-275
+// app/api/webdev/route.ts:266-275 — same pattern in claude-code/route.ts
 const claudePath = findClaudeBinary()
 const command = `"${claudePath}" --print ... --model ${webDevModel} ...`
 const child = spawn('sh', ['-c', command], ...)
 ```
 
-The route accepts `webDevModel` in the body but always spawns the Claude binary. If `webDevModel === 'gemini-3.1-pro-preview'`, this shells out to `claude --model gemini-3.1-pro-preview` — Claude doesn't know that model, the build either errors out or silently falls back to a Claude default. **Gemini is structurally unreachable from `build-final`.**
-
-`build-vibe` and `build-all-vibes` go through `lib/run-webdev.ts:runWebDev()` which has the model fork wired correctly:
+`runWebDev` (`lib/run-webdev.ts`) is the proven path with correct model dispatch:
 
 ```ts
 if (mode !== 'api') {
@@ -2738,32 +2764,985 @@ if (mode !== 'api') {
 }
 ```
 
-`build-final` was authored before `runWebDev` existed and never migrated.
+The cluster also keeps Lumberjack alive — `lib/memory/lumberjack.ts` (RETIRED per Ralph 2026-05-01) still fires from these routes. Killing the cluster removes Lumberjack's last call sites and lets the runtime delete cleanly. Sage 240/40 (`runSage240_40` in `lib/memory/dreamer.ts`) is the production compaction path; Lumberjack runs in parallel for no reason.
+
+**Cluster inventory — what dies in WP-67:**
+
+| File | LOC | Sole caller(s) | Why it dies |
+|---|---|---|---|
+| `app/api/webdev/route.ts` | 390 | `app/api/mcp/build-final/route.ts` | Pre-`runWebDev` build path. Claude-only spawn. |
+| `app/api/claude-code/route.ts` | 330 | `app/page.tsx:1736` ternary | Pre-bridge chat path. Claude-only spawn. Contains its own `parseVibes()` regex parser at lines 256-330 (mirror of `creative-brief-parser.ts`). Writes to legacy `/public/generated-vibes/` flat dir. |
+| `app/api/save-vibe/route.ts` | 31 | `app/page.tsx` | Legacy save path tied to `/generated-vibes/` |
+| `app/api/save-vibes/route.ts` | (small) | `app/page.tsx` | Same |
+| `lib/memory/lumberjack.ts` | 303 | `app/api/chat/route.ts:1355` + `app/api/claude-code/route.ts:145` | Agent retired 2026-05-01. After cluster death, only chat-route call site remains; it comes out too. Sage 240/40 already covers SESSION.md compression. |
+| `app/page.tsx:1736` ternary | 1 line | — | `billingMode === 'api' ? '/api/chat' : '/api/claude-code'` collapses to single non-API endpoint. |
+| `/public/generated-vibes/` directory | — | All four routes above | After cluster death, no consumer remains. Move to `/public/.archive/generated-vibes/` for safety, then sweep on cleanup pass. |
+
+**OUT OF SCOPE for WP-67** — handled separately:
+- `app/api/test-backdoor/route.ts` — needs refactor not deletion. See **WP-68** below.
+- `agents/lumberjack-stages/` directory — agent prompt files in `/agents/`. Per repo policy, no `/agents` deletions. The runtime in `/lib/` dies; the prompt files stay as historical artifact (matches `agents/OLD/` pattern).
 
 **Scope.**
 
-1. Strip `/api/mcp/build-final/route.ts` of its `fetch('/api/webdev', ...)` call. Replace with a direct `runWebDev({mode, model, sessionId, sessionPath, target: 'final', abortSignal: signal})` invocation — same shape `build-vibe` and `build-all-vibes` use.
-2. The legacy `/api/webdev/route.ts` is the ONLY remaining caller of its own internal `buildVibesStreaming` / `runOldWebDev` / shell-string spawn path. After step 1, audit:
-   - Are there any non-MCP callers (chat-side direct invocations, /api/build, etc.) still hitting `/api/webdev`?
-   - If no callers remain → DELETE the route entirely.
-   - If callers remain → port them to `runWebDev` then delete.
-3. The `agents/webdev-agent.md` `## Orchestration Contract` section now applies uniformly — `build-final` will load the same agent file as `build-vibe`. No second persona for finals.
-4. Verify `build-final` event flow lands the same SSE events (`build_started`, `build_progress(stage:'html'|'verify')`, `vibe_built` with `mode: 'final'`). The page.tsx handler already accepts `mode === 'final'` for single-row card mounting.
+1. **Migrate `build-final` to `runWebDev`.** Strip `app/api/mcp/build-final/route.ts` of its `fetch('/api/webdev', ...)` call. Replace with `runWebDev({mode, model, sessionId, sessionPath, target: 'final', abortSignal: signal})` — same shape `build-vibe` and `build-all-vibes` use. The `agents/webdev-agent.md` `## Orchestration Contract` section now applies uniformly. No second persona for finals.
+
+2. **Migrate `/api/claude-code` callers to `/api/chat-stream`.** The ternary at `app/page.tsx:1736` becomes a single endpoint: `'/api/chat-stream'` for non-API mode (CLI + SMPL both already route through chat-stream + bridge per Sonnet 4.5's death-note). Delete the ternary; collapse the conditional. Verify `messages`/`sourceImages`/`sessionId`/`isResume` payload shape matches between callers — chat-stream already handles all four.
+
+3. **Delete `/api/save-vibe` + `/api/save-vibes` callers.** Audit `app/page.tsx` calls. If they save HTML to `/generated-vibes/` (legacy flat dir), migrate to per-session `public/{sessionId}/` writes. If callers exist solely to write the legacy dir, delete the call sites.
+
+4. **Unwire Lumberjack.** Remove `maybeRunLumberjack` import + call site from `app/api/chat/route.ts:1355` (the call in `claude-code/route.ts:145` dies with the route). Verify no other importers via grep.
+
+5. **Delete files.** After steps 1-4 verify, delete:
+   - `app/api/webdev/route.ts`
+   - `app/api/claude-code/route.ts`
+   - `app/api/save-vibe/route.ts`
+   - `app/api/save-vibes/route.ts`
+   - `lib/memory/lumberjack.ts`
+   - Move `/public/generated-vibes/` → `/public/.archive/generated-vibes/`
+
+6. **Verify event flow.** `build-final` lands the same SSE events (`build_started`, `build_progress(stage:'html'|'verify')`, `vibe_built` with `mode: 'final'`). Non-API chat lands the same SSE events as before through `/api/chat-stream`.
 
 **Acceptance.**
+- `grep -rln "/api/webdev\b\|/api/claude-code\b\|/api/save-vibe\b\|/api/save-vibes\b" app/ lib/ components/ mcp-server/` returns zero matches (excluding `app/api/test-backdoor/` which is WP-68's scope).
+- `grep -rln "maybeRunLumberjack\|from.*lumberjack" app/ lib/ components/ mcp-server/` returns zero matches.
 - TopBar Gemini pill → `build_final` → `gemini` binary actually spawns (verify in logs: `[WebDev-Gemini] Building target="final"`).
 - TopBar Sonnet → `build_final` → claude binary spawns with `--model claude-sonnet-4-6`.
-- TopBar Opus → `build_final` → claude binary with `--model claude-opus-4-7`.
-- `app/api/webdev/route.ts` either deleted (if no callers) or stripped to a thin pass-through to `runWebDev`.
-- One execution path for all three build commands; no spawn logic duplicated.
+- TopBar Opus → `build_final` → claude binary with `--model claude-opus-4-7[1m]` (DO NOT strip the `[1m]` qualifier — that's the 1M context window).
+- All three build commands route through `runWebDev`. No spawn logic duplicated.
+- Non-API chat works end-to-end via `/api/chat-stream`. No regression in CLI/SMPL mode flows.
+- One full e2e smoke (build-vibe + build-all-vibes + build-final, all three models). Compare on-disk artifacts byte-for-byte modulo timestamps against pre-refactor.
 
-**LOC estimate.** ~80 LOC removed (legacy route delete) + ~30 LOC added (build-final route delegation) = net -50.
+**Recorded-SSE harness gate (mandatory before merge).** Per Sonnet 4.5's death-note: capture one CLI-mode chat session AND one full build session's SSE event stream pre-refactor. Replay against post-refactor implementation. Assert the same `build_started → build_progress → vibe_built` sequence with same payloads (modulo timestamps). The page.tsx ternary collapse + chat-stream routing is the chat critical path — shipping blind = net loss.
 
-**Risk.** Low. `runWebDev` is the proven path for `build_vibe` (used in every real session). Migration is mechanical.
+**LOC estimate.** ~1,070 LOC removed across 4 routes + ~303 LOC Lumberjack lib + ~50 LOC of caller cleanup in page.tsx + ~30 LOC added (build-final delegation) = **net ~−1,400 LOC** + the entire `parseVibes` regex parser embedded in claude-code dies with the route.
+
+**Actual (shipped 2026-05-09).** 1,401 deletions, 93 additions, **net −1,308 LOC.** Lumberjack runtime + legacy CLI cluster deleted. `ProgressEvent`/`ProgressCallback` types relocated to `dreamer.ts`. Build-final migrated from `fetch('/api/webdev')` → direct `runWebDev()`.
+
+**Risk.** Medium. Touches the chat critical path (page.tsx:1736 ternary). Recorded-SSE harness gates the merge.
+
+**Sequencing within WP-67** (each step verifiable independently before proceeding):
+1. Build the recorded-SSE harness FIRST. Capture pre-refactor event streams for one chat session + one build session.
+2. Migrate `build-final` (step 1 of Scope). Run harness → expect identical build event sequence. Commit.
+3. Migrate `app/page.tsx:1736` ternary to `/api/chat-stream` (step 2). Run harness → expect identical chat event sequence. Commit.
+4. Migrate `/api/save-vibe` + `/api/save-vibes` callers (step 3). Commit.
+5. Unwire Lumberjack from chat-route (step 4). Commit.
+6. Delete the 5 files + archive `/public/generated-vibes/` (step 5). Final smoke. Commit.
+
+If any step fails the harness, stop and diagnose before proceeding. Each step is independently revertable via `git revert`.
 
 ---
 
-### WP-68 — Add SMPL-API path + integrate Z.AI's MCP tools (all four agents)
+#### WP-68 — Test backdoor: rewrite for current architecture (rewritten 2026-05-10)
+
+**Reframe (the earlier "delete it" framing was wrong).** The CONCEPT — an HTTP-level test surface that drives a real OskarOS session without UI friction — is load-bearing for automated e2e testing AND for COO-Claude impersonation flows (`test-harness/COO.md` already exists for the latter). The IMPLEMENTATION is pre-MCP architecture from Jan 25, 2026 — module-scope global state, calls `/api/chat` not `/api/chat-stream`, writes to `outputs/logs/` not per-session folder, 12 actions that don't cover card resolution / build orchestration / event polling. **Rewrite the route, don't delete it.**
+
+(An earlier WP-68 draft proposed deleting the route and adding 3 new MCP tools on `oskar-orchestrator`. That was over-engineered: `mcp__oskar-orchestrator__*` already exposes 39 tools — `replay_events`, `job_status`, `screenshot`, `agent_inbox` — which cover the AGENT-side polling needs. The HTTP route covers the IMPERSONATION-side needs and is callable via `curl` from Claude Code's `Bash` tool, from Playwright, or from any HTTP client. Both surfaces have value; the rewrite restores the HTTP one to current-arch fitness.)
+
+**Audit of the current route (`app/api/test-backdoor/route.ts`, 437 LOC, Jan 25 2026):**
+- **Module-scope globals.** `let sessionMessages = []`, `lastImageManifests = []`, `lastVibes = []`, etc. Pre-multi-session architecture; collides under any concurrent test.
+- **Wrong log path.** Writes session log to `outputs/logs/session-{ts}.md` — pre-per-session-folder. Current arch wants `public/{sessionId}/SESSION.md`.
+- **Wrong chat path.** Calls `/api/chat` for user messages — pre-bridge / pre-chat-stream. Bypasses CLI/SMPL paths entirely.
+- **12 outdated actions:** `ping / reset / start-session / send / get-state / get-image-prompts / update-prompt / generate-image / generate-all-pending / view-html / list-generated-images / list-vibes`. Missing: card resolution (`ask-user-bus` Promise pattern didn't exist yet), build orchestration (`build_vibe` / `build_all_vibes` / `build_final` MCP tools didn't exist), event polling (`replay_events` didn't exist).
+- **Reads dead dir.** `list-vibes` reads from `/public/generated-vibes/` — the legacy flat dir WP-67 archives. Dies regardless.
+
+**Scope — rewrite end-to-end.** Keep the file path (`app/api/test-backdoor/route.ts`); replace all 437 LOC. Aligned with current architecture:
+
+1. **Per-sessionId state**, not module globals. `Map<sessionId, BackdoorState>` keyed by sessionId. Each test run gets isolated state.
+2. **Wraps current routes only.** Each action is a thin orchestration layer over real APIs. No bypass paths, no second persona, no mock data.
+3. **Aligned with per-session folder doctrine.** Reads/writes `public/{sessionId}/...` via existing `lib/session.ts` helpers.
+4. **Dev-only gate kept.** Existing `if (process.env.NODE_ENV !== 'development')` check at the top of the route stays. Production safety unchanged.
+
+##### Action surface — 10 actions (replaces the old 12)
+
+| Action | Wraps (real API/file) | Returns |
+|---|---|---|
+| `start_session({ businessName? })` | Existing session-create logic in `/api/sessions/[id]/open` (creates if missing); writes initial `SESSION.md` header via `lib/session.ts` | `{ sessionId }` |
+| `send_message({ sessionId, message, attachments?: string[] })` | POSTs to `/api/chat-stream` with the message appended; drains the SSE stream; collects fired cards + started jobs from the event log | `{ messageId, finalText, eventLog, cardsFired: { requestId, type }[], jobsStarted: { jobId, kind }[] }` |
+| `respond_to_card({ sessionId, requestId, response })` | POSTs to existing `/api/mcp/ask-user-response/[requestId]` (calls `deliverChoice(requestId, value)` on `lib/ask-user-bus`). Dispatches by requestId, NOT by card-type — same `response` shape works for all 7 card types (discovery / design_directions / confirm_understanding / image_prompt / image_verdict / descent_selection / ask_user) | `{ delivered: boolean }` |
+| `upload_image({ sessionId, filePath })` | Wraps `/api/inject-images` (existing sibling backdoor — route header: "allows automated testing without needing macOS file picker") | `{ imageId, filename }` |
+| `click_action({ sessionId, action, payload? })` | Generic UI-button dispatcher. action ∈ `'order_65' \| 'order_66' \| 'build_final' \| 'generate_all' \| 'set_billing_mode' \| 'set_webdev_model' \| 'set_layout_mode' \| 'set_theme' \| 'director_save'`. Each fires the corresponding existing route. | `{ jobId? }` per action |
+| `wait_for_event({ sessionId, eventType, timeoutMs?=60000 })` | Polls the underlying event-bus / `mcp__oskar-orchestrator__replay_events` until matching event arrives or timeout. Useful for "wait for `vibe_built`" style assertions | `{ event, elapsedMs }` |
+| `get_state({ sessionId })` | Aggregates: parsed SESSION.md recent messages, IMAGES.md manifests via `lib/session-actions.getImageManifestsAction`, todos via `lib/runtime/todos-store`, vibes via the new WP-78 gallery endpoint | `{ messages, manifests, todos, vibes }` |
+| `read_log({ sessionId, log: 'session' \| 'images' \| 'brief' \| string })` | `readFile(public/{sessionId}/{...}.md)` | `{ content, mtime }` |
+| `screenshot({ sessionId, target: 'session' \| filename })` | Wraps `mcp__oskar-orchestrator__screenshot` (existing tool). For non-MCP callers (Playwright, curl), returns the rendered PNG path under `public/{sessionId}/screenshots/` | `{ filePath }` |
+| `reset({ sessionId })` | Clears the per-session backdoor state Map entry; does NOT delete the session folder (caller uses `/api/sessions/[id]/delete` for that) | `{ ok: true }` |
+
+**~300 LOC.** Each action is ~25–40 LOC of orchestration. Call shape uniform: `POST /api/test-backdoor` with `{ action, sessionId, ...payload }`. Returns JSON.
+
+##### Callable from three places without modification
+
+- **`curl`** — Playwright, shell scripts, manual debug. The native test interface.
+- **Claude Code subprocess (`Bash` tool)** — COO-Claude flow at `test-harness/COO.md` (already exists; only delta-updates needed for new action names). No MCP boot needed; `Bash` is in every Claude Code allowlist.
+- **Any HTTP client** — Postman, browser fetch, etc.
+
+No MCP tool wrappers are added. The earlier draft's "3 new MCP tools" duplicated what curl-from-Bash already does and what `oskar-orchestrator`'s 39 existing tools already cover from the agent's polling side.
+
+##### `test-harness/COO.md` already exists
+
+WP-68 doesn't author it from scratch. The file is in place (`test-harness/COO.md` + `playwright.config.ts` at repo root). Touch the file ONLY to update its action references when the rewrite changes action names (e.g., old `send` → new `send_message`, old `start-session` → new `start_session`). **~30 LOC delta in COO.md.**
+
+**Acceptance.**
+- The rewritten `/api/test-backdoor` exposes the 10 actions above. All 10 wrap real current-arch APIs (no bypass paths).
+- Module-scope globals are gone; state is per-sessionId.
+- `outputs/logs/` writes are gone; everything writes to `public/{sessionId}/`.
+- Dev-only gate (`NODE_ENV === 'development'`) preserved.
+- One full **FALCAMEL** scenario completes end-to-end via curl-only (no UI clicks):
+  > FALCAMEL — Lebanese falafel in Zurich Aussersihl, owner Hassan, opened 2018, eggplant sauce as the signature. COO `start_session` → `upload_image` ×3 (food, location, owner-portrait) → `send_message` (initial brief) → 3 rounds of `respond_to_card` (discovery questions) → `respond_to_card` (design_directions, picks 2) → `respond_to_card` (confirm_understanding, commit) → `wait_for_event('build_complete')` ×3 (wireframes) → `respond_to_card` (descent_selection, pick 1) → image-prompt + image-verdict cycles via `respond_to_card` → `click_action('generate_all')` → `wait_for_event('vibe_built')` → `respond_to_card` (final descent_selection) → `click_action('build_final')` → on-disk artifact verified.
+
+  All 10 actions exercised. If this scenario passes, the rewrite is real.
+- Old 12-action API is GONE. Tests/scripts referencing `start-session`/`send`/etc. fail with a typed `unknown action` error citing the new surface.
+- `test-harness/COO.md` updated for the new action names.
+
+**LOC estimate.**
+- Old route: −437 LOC (in-place rewrite, not delete)
+- New route: +300 LOC
+- COO.md updates: +30 LOC delta
+- **Net: ~−107 LOC + a route that reflects current arch.**
+
+**Risk.** Low.
+- All actions wrap routes that already exist and are exercised by the production UI (chat-stream, ask-user-response, inject-images, build-final, etc.).
+- No new MCP infrastructure; no new server; no new dependencies.
+- Production safety: dev-only gate kept. Backdoor not exposed in production builds.
+- The Jan-25 route had zero callers in repo, so the rewrite has no migration cost — the only consumer (COO.md) is updated in the same WP.
+
+**Sequencing.**
+1. Write the new 10-action route end-to-end (one commit).
+2. Update `test-harness/COO.md` for the new action names (same commit).
+3. Run the FALCAMEL scenario via `Bash + curl` from a fresh Claude Code session. If it passes, ship.
+
+**Sequencing relative to other WPs.** WP-68 ships **independently** of WP-67. The `list-vibes` action's old `/public/generated-vibes/` dependency dies with the rewrite (the new `get_state` action reads from per-session folders via the WP-78 gallery endpoint). Once the rewrite lands, WP-67 has no test-backdoor coupling — it can archive `/public/generated-vibes/` freely.
+
+**Out of scope for WP-68 (clean boundaries):**
+- New MCP tools — `oskar-orchestrator`'s existing 39 cover what agents need on the OBSERVATION side of impersonation (`replay_events` for polling, `screenshot` for visual checks, `agent_inbox` for cross-agent comms). The HTTP route is for the IMPERSONATION side.
+- Rewriting `test-harness/COO.md` from scratch — only delta updates for new action names.
+- Rewriting `/api/inject-images` — sibling backdoor, separate WP if it ever needs alignment work.
+
+---
+
+### §18.2 — new build tools (Ralph 2026-05-07)
+
+CD's workflow restructure: replace the flat 4-vibe rule with a track-aware 4-phase model. New top-level TodoList: `Discovery → WIREFRAME → Vibes → Final Build`. Phase 2 (Junior Pass) is exploratory and cheap; Phase 3 (Vibes) is committed and school-anchored; Phase 4 is the master.
+
+Full mockup as source of truth here: docs/toolcards-mockup.html
+
+#### WP-69 — `build_wireframes` MCP tool (NEW)
+
+**Scope.** Add ONE MCP tool definition. Nothing else. No route, no brief template, no agent doc edits, no `run-webdev` extension, no event-bus changes. Those are downstream — separate WPs if/when needed.
+
+**File.** `mcp-server/tools-orchestrator.ts` — add `build_wireframes` to `ORCHESTRATOR_TOOL_DEFINITIONS`.
+
+**Allowlist.** `lib/mcp-config.ts` — add `build_wireframes` to CD's allowlist. Batched into the §18.2 closing respawn (one allowlist patch + one CD respawn covers all new tools in the cluster).
+
+**LOC estimate:** ~25 LOC (tool def) + 1 LOC (allowlist).
+
+**Acceptance:** `build_wireframes` is callable from CD without "tool not found" — returns whatever the orchestrator's default unimplemented-handler returns. Backend wiring is out of scope.
+
+
+<!-- WP-72 deleted 2026-05-10 (Ralph) — track field not needed; mockup §3.5 has no track radio. Confirm Understanding card (`components/chat/ConfirmUnderstandingCard.tsx`) and `confirm_understanding` MCP tool (`mcp-server/tools-cd.ts:334`) both already exist and match the mockup as-is. WP-72 had no remaining work. -->
+
+#### WP-74 — Design Directions ToolCard 
+
+**Mockup source:** `docs/toolcards-mockup.html` lines 3000–3132 (`id="dd-card"`). Closes Discovery (Phase 1 → Phase 2). Multi-select with cap of 2. Brand-yellow theme (DD avatar). NOT a moodboard — earlier fictional WP-74 was Darth Hallucinator; corrected here.
+
+**Behavior.** Tier 3 specialty panel. Fires towards END of Phase 1 Discovery (after the 7-question seed completes), BEFORE the existing `confirm_understanding` GATE card. CD distills the brand into 6 candidate design directions for the user to react to. User picks up to 2 to commit. The picks become the `directionPicks` payload for Phase 2 builds (WP-69 / etc.).
+
+These are **mood seeds, not vibes** — Phase 2 wireframes/junior-pass grow FROM these seeds; Phase 3 vibes get school-anchored AGAINST these seeds. Per the mockup body copy at line 3013: *"These aren't final — they're seeds for the 5 vibes I'll write. Pick up to two that resonate."*
+
+**Card content (mockup-pinned):**
+
+- **Header:** brand-yellow `DD` avatar (28px square) + title "Design Directions" + sub-line "Closes Discovery · Track: {webpage|keynote|brand-cards}" + right-side `PICK ≤2` pill
+- **Body copy:** one sentence — "These aren't final — they're seeds for the 5 vibes I'll write. Pick up to two that resonate."
+- **(x)×3 grid of direction cards** (per mockup lines 3017–3113), each card:
+  - **Title** (bold 14px) — e.g. "Luxury — Hermès / Aman"
+  - **Mood line** (italic 11.5px) — e.g. "Hushed, exclusive, every detail considered."
+  - **Horizontal 4-color palette strip** (height 14px) — 4 hex bars
+  - **Mono font tags** (9.5px uppercase) — e.g. "Didot · Inter"
+  - **Reference brands** (11.5px) — e.g. "Hermès · Aman · The Carlyle"
+  - **Selection state:** green ✓ pill top-right when selected; border switches from `--border-card` to `--brand-green-bright`
+- **Selection counter:** "Selected: N / 2" left side; "Deselect one to swap" warning right side when N=2 and user clicks a 3rd
+- **Universal textarea** (the WP-73-pattern that survived the WP-73 deletion — embed inline here): "Thoughts, comments, anything else?" with placeholder e.g. "Warm + Eastern, but pull the Editorial typography discipline into both."
+- **Single CTA** "Commit Directions" — disabled until ≥1 picked, brand-green-bright when enabled
+
+
+
+**Signature:**
+```ts
+present_design_directions({
+  slug: string,
+  track: 'webpage' | 'keynote' | 'brand-cards',
+  directions: Array<{
+    slug: string,                            // e.g. 'dir-warm', or CD-coined like 'dir-asir-heritage'
+    title: string,                           // e.g. "Warm — Soho House / Nopa"
+    mood: string,                            // italic line
+    palette: [string, string, string, string],  // 4 hex strings, ORDER matters for the strip
+    fonts: { display: string, body: string },   // e.g. { display: 'Inter Tight', body: 'Inter' }
+    references: string[]                     // 3 brand refs
+  }>,                                        // exactly 6
+  prompt?: string                            // optional CD-narrated body copy (overrides the default "These aren't final..." line)
+}) → {
+  requestId: string                          // ask-user-bus key
+}
+```
+
+**Response shape (when user clicks Commit Directions):**
+```ts
+{
+  picks: string[],                           // 1 or 2 direction slugs
+  freeformText: string                       // textarea content
+}
+```
+
+The picks payload feeds:
+- WP-69 `build_wireframes({ directionPicks })` for webpage track
+- Existing `confirm_understanding` card pre-fill (CD reads picks, drafts the distillation grid)
+
+**Card actions:** ONE primary CTA — **`Commit Directions`**. NO secondary, NO Cancel (per mockup line 3129 — single CTA, disabled until ≥1 picked). Multi-select cap enforced client-side: clicking a 3rd radio when 2 are picked shows the "Deselect one to swap" warning and rejects the click.
+
+**Files:**
+- `components/chat/DesignDirectionsCard.tsx` (NEW, ~180 LOC — 2×3 grid, per-card render, multi-select cap-2 logic, palette strip, font tags, reference brands list, embedded textarea, single CTA)
+- `app/api/mcp/present-design-directions/route.ts` (NEW, ~50 LOC — request validation, ask-user-bus registration, event-bus publish)
+- `mcp-server/tools-orchestrator.ts` — add `present_design_directions` (~30 LOC schema + dispatch — payload is medium-sized due to the 6-direction array)
+- `agents/creative-director-agent.md` — confirm `present_design_directions` is in the card-firing table at §"Discovery cards" (likely already present — verify; if so, ~5 LOC delta to refine the description)
+
+**LOC estimate:** ~265 LOC. Earlier "Moodboard" estimate of 110 was light AND wrong-shape.
+
+**Acceptance:**
+- CD fires `present_design_directions({ slug, track, directions: [6 items] })` at end of Phase 1
+- Card renders 2×3 grid matching mockup §lines 3017–3113 (palette strips, mono font tags, reference brands)
+- Click on a direction toggles selection (green ✓ overlay top-right per mockup line 3021)
+- Selection counter updates live: "Selected: 0 / 2" → "Selected: 1 / 2" → "Selected: 2 / 2"
+- Clicking a 3rd direction when 2 are picked shows "Deselect one to swap" warning (per mockup line 3118) and rejects the click
+- Commit Directions CTA disabled when 0 picks, enabled when ≥1
+- On submit, response shape `{ picks: [...], freeformText: '...' }` posts back to CD via `respond_to_card`
+- Card matches mockup §dd-card visual exactly: brand-yellow DD avatar, italic mood lines, mono font tags, reference brand strings
+- WP-69 `build_wireframes` receives `directionPicks` from this card's response
+
+**Risk.** Low. Pure UI card + thin MCP wrapper. The card structure is fully specified by the mockup; no design ambiguity.
+
+**Dependencies.** Existing `confirm_understanding` card consumes `directionPicks` for its distillation grid pre-fill (runs AFTER this card). `agents/creative-director-agent.md` already documents `present_design_directions` in CD's card-firing table — verify the schema matches the WP-74 spec (`track` enum + 6 directions array).
+
+#### WP-75 — Descent Selection ToolCard (NEW · `surface_descent_selection` 
+
+**Mockup source:** `docs/toolcards-mockup.html` §4 has TWO descent variants — both rendered by ONE component with a `kind` discriminator:
+
+| Variant | Mockup line | When | UI shape | minPicks / maxPicks |
+|---|---|---|---|---|
+| **`final-vibe`** (Descent Selection · FINAL BUILD) | 2715–2840 | Phase 3 → Phase 4 (pick the master vibe) | RADIO grid (`<input type="radio">`), one selection only, green ✓ overlay top-right | 1 / 1 |
+| **`brand-cards-star`** (Descent Selection · Star up to 7) | 2843–2905 | Phase 2 → Phase 3 brand-cards (star up to 7 of 25) | CHECKBOX grid (5×5), star ★ overlay top-right per starred card, dashed-border for the 5 CD intuition cards | 1 / 7 |
+
+(The TWO future-mode variants — `wireframe-pick` for Phase 2→3 webpage, `keynote-pick` for Phase 2→3 keynote — are NOT in the mockup yet. WP-75 ships only the two mockup-locked variants; future kinds get added as the workflow demands them.)
+
+**Behavior.** Tier 3 specialty panel. Fires at TWO handoffs (per mockup):
+
+1. **Phase 3 → Phase 4 final vibe pick (`kind: 'final-vibe'`):** user picks 1 of N vibes (5 webpages or 2 keynotes) to graduate to Phase 5 master build.
+2. **Phase 2 → Phase 3 brand-cards starring (`kind: 'brand-cards-star'`):** user stars up to 7 of 25 cards (the 20 designer + 5 CD intuition split per the deleted-WP-70 spec — see Open Decision below) to graduate the curated set into Phase 3.
+
+Renders candidates as selectable thumbnails. Per-thumbnail: image preview, label, optional metadata strip (e.g. "School: Stamen / Cluster: Information Architecture" for vibes; "Designer: Hara Kenya" for cards).
+
+**OPEN DECISION (escalate to Ralph):** the `brand-cards-star` variant depends on the deleted WP-70 (`build_card_matrix`) producing the 25 cards. If WP-70 stays deleted, the `brand-cards-star` variant has nothing to render. Either restore WP-70 or drop `kind: 'brand-cards-star'` from this WP and ship `final-vibe`-only.
+
+**Card content per variant (mockup-pinned):**
+
+
+- **Header:** brand-yellow `DS` avatar (Descent Selection) + title "Descent Selection · FINAL BUILD" + sub-line e.g. "Phase 3 → Phase 4 · Track: webpage · 5 candidates"
+- **Body:** "Pick the one that gets the master treatment. The others archive as alternates."
+- **Grid:** 5-column row of thumbnails (mockup uses `grid-template-columns:repeat(5,1fr)` at line 2730). Each thumbnail is a `<label>` with hidden radio input + image preview + label below
+- **Selection state:** click toggles radio; green ✓ pill overlay (top-right) appears on selected card; border switches to brand-green-bright
+- **Universal textarea** at bottom: "Thoughts, comments, anything else?"
+- **Single CTA:** **`Ship This Vibe`** (mockup line 2837) — disabled until 1 selected, opacity 0.45 → 1.0 transition
+
+
+
+**LOC estimate:** ~315 LOC. Earlier estimate of 130 was light — two variants in one component + per-kind CTA wiring + star/check overlays + dashed-border CD-intuition treatment.
+
+**Acceptance:**
+- `surface_descent_selection({ kind: 'final-vibe', candidates: [5 vibes], minPicks: 1, maxPicks: 1 })` renders 5 thumbnails as RADIO inputs in a 5-column row
+  - Click on a thumbnail toggles selection (matches mockup §FINAL BUILD pattern, green ✓ overlay)
+  - "Ship This Vibe" CTA disabled until 1 selected
+  - On submit, fires `build_final` with the picked vibe slug
+- `surface_descent_selection({ kind: 'brand-cards-star', candidates: [25 cards], minPicks: 1, maxPicks: 7 })` renders 25 thumbnails as CHECKBOX inputs in a 5×5 grid
+  - 5 cards with `metadata.kind === 'cd-intuition'` get dashed brand-green-bright borders (mockup lines 2881–2885)
+  - Click toggles star ★ overlay (yellow) top-right
+  - Counter updates "Starred: ★ N / 7 max" + breakdown "K designers · M CD intuition"
+  - Click on an 8th when 7 starred is rejected (cap enforced)
+  - "Commit selection" CTA disabled until ≥1 starred
+  - On submit, fires `build_all_vibes({ kind: 'webpage-vibe', sourceCards: picks })`
+- Per-variant header avatars + colors match mockup (DS yellow for FINAL BUILD, DS violet for Star variant)
+- Click-through on any thumbnail opens the `sourceHtmlPath` in an iframe modal
+
+**Risk.** Medium. Two-variant component requires careful state management; per-kind CTA wiring is small-but-load-bearing branch. Dashed-border CD-intuition treatment depends on metadata convention CD must honor.
+
+**Dependencies.** WP-69 / deleted WP-70 / deleted WP-71 (all Phase 2 outputs feed this). Open Decision above.
+
+
+#### WP-77 — Design System ToolCard 
+
+**Mockup source:** `docs/toolcards-mockup.html` §4 lines 2909–2998 (`id="ds-card"`). The mockup shows the card with **inline vibe selector** that swaps every section client-side via CSS vars + `textContent` — see comment at line 2908: *"Interactive: vibe selector swaps every section client-side via CSS vars + textContent."* CD pre-loads N vibes' DS payloads in one tool call; user toggles between them in-card without round-tripping CD.
+
+**Behavior.** Tier 3 specialty panel. Surfaces ONE direction at a time in full detail for selection — but the card carries N pre-loaded vibe DS payloads, swappable via the inline `<select id="ds-vibe-select">` (mockup line 2922). User can A/B/C compare the design systems for all N candidate vibes without firing N separate cards.
+
+Where the Descent Selection card (WP-75) is "pick one of N" with thumbnail-only previews, the Design System card is "review N in full detail with live-rendered components, then approve one." Different abstraction levels.
+
+**Surfaces at three moments** (mockup-pinned via the surface-placement annotation):
+
+1. **Phase 2 → Phase 3 alt-mode:** user wants to lock a single design system BEFORE vibes are written (skips the design-directions multi-select, commits to one direction). Card pre-loads the 6 design-direction DS payloads.
+2. **Phase 3 → Phase 4 sign-off:** after `surface_descent_selection({ kind: 'final-vibe' })` picks a master vibe, the Design System card surfaces that vibe's full DS plus its 4 alternates for last-mile tweaks before Final. Card pre-loads 5 vibe DS payloads (1 picked + 4 alternates).
+3. **Mid-iteration:** when CD wants explicit confirmation on a single DS proposal before deviating from the locked direction. Card pre-loads 1 payload, vibe-selector hidden.
+
+**Card content (mockup-pinned spec from lines 2909–2998):**
+
+- **Header:** brand-green `DS` avatar (28px square at line 2917) + title "Design System" + inline vibe selector `<select id="ds-vibe-select">` (line 2922) listing N vibe names
+- **Display sample** (lines 2932–2940):
+  - **`#ds-display-name`** — large display headline (28px 800 uppercase, in `--ds-display-font`, color `--ds-primary`) — example: "Grandma's Waiting"
+  - **`#ds-h2-sample`** — 18px 800 in display font, color `--ds-ink` — example: "She's already made too much food"
+  - **`#ds-body-sample`** — 12px 400 in body font — example brand body copy
+  - **Two live buttons** — `#ds-btn-primary` (filled with `--ds-primary` bg, `--ds-bg` fg) and `#ds-btn-secondary` (outlined with `--ds-primary`)
+- **Color palette strip** (lines 2954–2960) — 5 swatches with hex labels:
+  - `#ds-hex-bg` (background), `#ds-hex-surface` (surface), `#ds-hex-primary` (primary/display), `#ds-hex-ink` (ink/body), `#ds-hex-accent` (accent)
+- **Typography header** (lines 2966–2969):
+  - `#ds-typo-header` — display · body font names in mono
+  - `#ds-h1-caption` — "H1 · 48px 800 UPPER"
+  - `#ds-body-caption` — "Body · 16px 400 · 1.6"
+- **Image treatment** (line 2978) — `#ds-image-treatment` — 1-2 sentence rule (e.g. "Full-bleed, object-fit:contain. No overlay rectangles.")
+- **Animation posture** (line 2982) — `#ds-animation` — 1-2 sentence rule (e.g. "Static. Hero entrance fade only, expoOut 600ms.")
+
+
+
+**Card actions** (3 actions per the existing spec — verify against mockup; mockup may show fewer in the 2909–2998 range):
+
+- **`Approve & lock`** (primary CTA, brand-green) — locks the currently-selected vibe's DS to `_session-config.json` under `lockedDesignSystem: { vibeName, system }`; fires the next-phase build
+
+- **`Design New Design System`** (tertiary CTA) — Tells CD to start discovery for a new design system
+
+**Full-width treatment:** lifts the 540px chassis cap (per `docs/Feature-X.md` §17 line ~2580 "table-format cards earn full-width treatment" doctrine, locked 2026-05-06). The DS spec doesn't fit at narrow widths — typography samples + color palette strip need real rendering room.
+
+**Signature:**
+```ts
+surface_design_system({
+  slug: string,
+  surfaceMoment: 'phase-2-alt' | 'phase-3-signoff' | 'mid-iteration',
+  vibes: Array<{                             // N vibes pre-loaded for in-card swap (1 for mid-iteration; 6 for phase-2-alt; 5 for phase-3-signoff)
+    vibeName: string,                        // e.g. "vibe-3-eggplant-sermon"
+    label: string,                           // dropdown display, e.g. "Eggplant Sermon (Stamen)"
+    system: {
+      atmosphere: string,                    // 1-2 sentences (used as #ds-body-sample default)
+      displayName: string,                   // brand display headline (e.g. "Grandma's Waiting")
+      h2Sample: string,                      // brand sub-headline (e.g. "She's already made too much food")
+      bodySample: string,                    // brand body copy sample
+      palette: {
+        bg: string,                          // --ds-bg, hex
+        surface: string,                     // --ds-surface
+        surfaceBorder?: string,              // --ds-surface-border (optional, derived from surface if absent)
+        primary: string,                     // --ds-primary (display + button-primary)
+        ink: string,                         // --ds-ink (body + h2)
+        mutedInk?: string,                   // --ds-muted-ink (optional)
+        accent: string                       // --ds-accent
+      },
+      typography: {
+        displayFont: string,                 // Google Fonts family for --ds-display-font (e.g. 'Inter Tight')
+        bodyFont: string,                    // Google Fonts family for --ds-body-font (e.g. 'Inter')
+        h1Caption: string,                   // e.g. "H1 · 48px 800 UPPER"
+        bodyCaption: string                  // e.g. "Body · 16px 400 · 1.6"
+      },
+      buttons: {
+        primaryLabel: string,                // e.g. "Reserve a seat"
+        secondaryLabel: string               // e.g. "Read more"
+      },
+      imageTreatment: string,                // 1-2 sentence rule
+      animationPosture: string               // 1-2 sentence rule
+    }
+  }>,
+  initialVibeIndex?: number = 0              // which vibe loads first
+}) → {
+  requestId: string
+}
+```
+
+**Response shape:**
+```ts
+{
+  approvedVibeName: string | null,           // null if Cancel was clicked
+  freeformText: string,
+  action: 'approve' | 'tweak' | 'cancel'
+}
+```
+
+**CD pre-fill source:** for each vibe in the `vibes[]` array, CD reads `VIBE-{n}-{slug}.md`'s `## Design System` block + `## Gallery Card` block (atmosphere from Gallery Card; palette + fonts from Design System). When firing `phase-2-alt` mode, CD synthesizes 6 DS payloads from Discovery + the 6 design directions; the synthesis is best-effort and the user MAY tweak after preview.
+
+**Files:**
+- `components/chat/DesignSystemCard.tsx` (NEW, ~280 LOC — full-width chassis, vibe selector dropdown, CSS-var swap logic on selection change, Google Fonts dynamic loader for all N vibe fonts at mount, live display sample + H2 + body, 5-color palette strip with hex labels, typography header + captions, image treatment + animation posture lines, three-action footer with conditional Cancel for mid-iteration mode, embedded textarea)
+- `app/api/mcp/surface-design-system/route.ts` (NEW, ~60 LOC — request validation, per-vibe schema check, ask-user-bus registration, event-bus publish)
+- `mcp-server/tools-orchestrator.ts` — add `surface_design_system` (~40 LOC schema + dispatch — payload is the largest in the §18.2 set due to N-vibe nesting)
+- `lib/session-config.ts` — add `lockedDesignSystem?: { vibeName: string; system: SystemPayload }` field (~10 LOC delta)
+- `agents/creative-director-agent.md` — add `surface_design_system` to card-firing table + the three-moment doctrine + the "pre-load all N vibes for in-card swap" pattern (~30 LOC delta)
+
+**LOC estimate:** ~420 LOC. Earlier estimate of 220 was light — interactive vibe selector + dynamic Google Fonts loading + CSS-var swap logic + N-payload pre-load + per-vibe live render add real LOC vs. a static one-vibe card.
+
+**Acceptance:**
+- `surface_design_system({ surfaceMoment: 'phase-3-signoff', vibes: [5 vibes with full system payloads] })` renders the card full-width
+- Vibe selector dropdown lists 5 vibe labels; default loads `initialVibeIndex` (or 0)
+- Changing the dropdown swaps `--ds-bg`, `--ds-surface`, `--ds-primary`, `--ds-ink`, `--ds-accent`, `--ds-display-font`, `--ds-body-font` on `#ds-card` AND swaps `textContent` on display name, h2 sample, body sample, hex labels, typography header, captions, image treatment, animation posture
+- All N vibe fonts pre-loaded via Google Fonts at card mount (verify in Network tab: 2N font fetches when card mounts, NOT N more on each dropdown change)
+- Display sample renders in the spec'd fonts (verify with Inter Tight / Crimson Text / Playfair Display test cases)
+- Two live buttons render with the spec'd palette (primary fill, secondary outline)
+- 5-color palette strip shows hex labels (`#ds-hex-bg`, `#ds-hex-surface`, etc.) with the actual hex value text
+- Three CTAs work per mockup §4 — Approve & lock persists `lockedDesignSystem` to session-config + fires next-phase build; Tweak opens textarea + on submit fires follow-up `surface_design_system`; Cancel only visible in `mid-iteration` mode
+- Card lifts 540px chassis cap (full-width verified in dev)
+
+**Risk.** Medium-high. Three risks compound:
+1. **Live Google Fonts loading at mount** — runtime dependency on third-party CDN. Mitigation: graceful fallback to `system-ui` if CDN times out at 3s; never block card render on font load.
+2. **CSS-var swap with no React re-render** — direct DOM mutation via `element.style.setProperty()` + `element.textContent = ...`. Bypasses React. Mitigation: use a small `useEffect` keyed on `selectedVibeIndex` that performs all DOM writes in one batch; document the React-bypass clearly in component file header.
+3. **N-vibe payload size** — `phase-2-alt` ships 6 vibe DS payloads in one MCP tool call. Each payload is ~30 typed fields. Total payload ≈ 6 × ~1.5KB = ~9KB. Within MCP comfort range but worth measuring; if too large, switch to lazy-load on dropdown change (one round trip per swap, undoes the no-round-trip win).
+
+**Dependencies.** §17 chassis-cap doctrine (full-width treatment authorization). WP-75 (descent_selection's `final-vibe` variant gates Phase 3 → Phase 4 entry where this card surfaces).
+
+---
+
+### §18.3 — Vibe parser retirement + Gallery refactor (Ralph 2026-05-09)
+
+After the 2026-04-29 MCP migration, the regex parser `parseVibesFromFiles` (`lib/creative-brief-parser.ts`) became dead code in the agent layer — CD passes vibe identity via MCP tool args, and WebDev reads `VIBE-{n}-*.md` directly via its agent prompt. The parser nonetheless mutated UI surfaces.
+
+**🟢 Precursor cleanup already shipped (2026-05-09):** `app/api/admin/sessions/[id]/route.ts` no longer calls `parseVibesFromFiles` or `parseVibePreview`. The hardcoded FalCaMel-keyword image fallback at lines 320–340 is deleted. `briefSummary` builder + `BriefSummary` interface + orphan `extractRecommendation` helper deleted (consumed by no caller). The 100+ `🔍 Matching ... NOT FOUND` log lines and `[parseVibesFromBrief] No vibe headers found` warnings from session-boot are gone. Admin route went 720 → 582 LOC (−140). Admin.html keeps working via its existing `s.vibes || s.htmlFiles` fallback (`public/admin.html:572`).
+
+**What's left to retire across §18.3's six WPs:**
+
+- **No Gallery API yet.** Gallery still consumes `s.htmlFiles` from the admin route's incidental output, not a typed contract. WP-78 introduces the proper endpoint with HTML-as-source-of-truth + sidecar hunt against the locked `## Gallery Card` schema CD writes per `agents/creative-director-agent.md:783-794` and `skills/references/cd-design-system-and-multipage.md`.
+- **Two Potemkin fake-data sites still live.** Same FalCaMel-themed cycle-of-4 lie surfaced in two surviving locations:
+  - `app/page.tsx:283-337` — `fallbackColors` + `fallbackFonts` arrays with `// QAHWA / // JAREEN / // THE RACE / // MAJLIS` comments
+  - `lib/vibe-resolver.ts:50-100` — `FALLBACK_COLOR_SETS` four-tuple cycle
+  Non-FalCaMel sessions at vibe index 0 still read as QAHWA. WP-79 + WP-81 delete both.
+- **Build-path parser usage.** `parseVibesFromFiles` still imported by `app/api/mcp/build-vibe/route.ts:114`, `app/api/mcp/build-all-vibes/route.ts:42`, `app/api/webdev/route.ts:104`. All three use only `index/name/slug/content` for filename routing; the rich metadata (`oneLiner/voice/audience/mood/colors/fonts`) is parsed-then-discarded. WP-82 replaces the calls with filename-glob target matching.
+- **The parser file itself + 66-test suite.** Once the build path stops importing it (WP-82), `lib/creative-brief-parser.ts` has zero callers. WP-83 deletes the file (~340 LOC) + the test suite (~600 LOC, preserving format-drift bugs against a function nobody calls).
+
+The retirement spans six work packages, WP-78 through WP-83.
+
+#### WP-78 — Gallery API endpoint (NEW, HTML-as-source-of-truth + sidecar hunt)
+
+**Architecture (load-bearing).** HTML files in `public/{sessionId}/` are the source of truth for the gallery. **Every HTML becomes a card.** Sidecar `.md` files are best-effort enrichment, hunted by name per HTML — not enumerated and bucketed. Cold-storage drafts (`VIBE-N-old.md`, `VIBE-N-slim.md`) are never queried because no HTML uses those slug suffixes; they sit on disk as CD's drafting history, invisible to the gallery.
+
+This inverts the old admin-route pattern (parse all sidecars, try to match HTMLs to them). The hunt is per-HTML and ask-by-name.
+
+**Doctrine source.** CD writes a `## Gallery Card` block at the top of each `vibe-{n}-{slug}.md` per `agents/creative-director-agent.md:783-794` and `skills/references/cd-design-system-and-multipage.md`. Schema is locked: 7 fields with fixed names — `Name`, `One-liner`, `Audience`, `Mood`, `Colors`, `Fonts`, `Hero`. The endpoint consumes that contract.
+
+**Scope.** Create `app/api/sessions/[id]/gallery/route.ts` — public endpoint, sibling of `/api/sessions/[id]/usage` and `/lineage`. Distinct from `/api/admin/sessions/[id]` (admin-panel firehose, parser already retired 2026-05-09).
+
+**Output schema:**
+```ts
+interface GalleryResponse {
+  sessionId: string
+  cards: GalleryCard[]    // sorted: vibe-N cards by (index asc, version asc, mtime desc); non-vibe by mtime desc
+  generatedAt: string
+}
+interface GalleryCard {
+  filename: string         // basename, e.g. "vibe-8-pentagram.html" or "everything.html"
+  htmlPath: string         // URL-encoded, session-relative; supports subdirs ("/sessionId/backup/...")
+  parentDir: string | null // "backup" | "falcamel" | null (root) — UI grouping hint
+
+  // Filename parsing — best effort
+  vibeIndex: number | null // null for non-vibe filenames (debug.html, prototype.html, etc.)
+  version: number          // 1 unless filename has -vN suffix
+  slug: string             // empty when filename is "vibe-9.html" (no slug); else the captured slug
+
+  // Always present
+  name: string             // Gallery Card Name > Title-Cased slug > Title-Cased filename stem
+  mtime: string            // ISO
+  size: number             // bytes
+  heroImage: string        // ALWAYS populated. Never null. Hard rule (Ralph 2026-05-09):
+                           // every gallery card references a hero. Resolution chain:
+                           // sidecar Hero → HTML scrape → step 7.5 session-folder fallback.
+                           // The endpoint never returns a card without a heroImage.
+
+  // Optional — populated when sidecar's Gallery Card block parses
+  oneLiner?: string
+  audience?: string
+  mood?: string
+  colors?: { primary?: string; secondary?: string; accent?: string; text?: string }
+  fonts?: { heading?: string; body?: string }
+
+  // Diagnostics for the UI ("📦 backup", "no metadata", etc.)
+  hasSidecar: boolean
+  hasGalleryCard: boolean  // sidecar exists AND contains parseable Gallery Card block
+  sidecarPath?: string     // e.g. "VIBE-8-PENTAGRAM.md" — for debug surfaces
+}
+```
+
+**Algorithm:**
+
+1. **Recursive readdir** of `public/${sessionId}/`. Walk every subdirectory. Don't deny-list — Ralph's rule: every HTML becomes a card. Stray HTMLs in `logs/` / `audio/` / `critique/` become cards (CD-hygiene concern, not gallery scoping concern).
+
+2. **Build TWO case-insensitive lookup maps** for all files in the session (one pass during recursive readdir). Each `f` in `allFiles` is a SESSION-RELATIVE PATH (e.g., `backup/vibe-1-x.html`, `falcamel/cliff-ledger/deck.html`):
+   ```ts
+   const filesByPath = new Map<string, string>()      // keyed by lowercased relative path
+   const filesByBase = new Map<string, string[]>()    // keyed by lowercased basename → list of paths
+   for (const f of allFiles) {
+     filesByPath.set(f.toLowerCase(), f)
+     const base = basename(f).toLowerCase()
+     const list = filesByBase.get(base) ?? []
+     list.push(f)
+     filesByBase.set(base, list)
+   }
+   ```
+   The path-keyed map handles unambiguous lookups (e.g., "is there a `falcamel/cliff-ledger/deck.md`?"). The basename-keyed map handles cross-folder hunts when the sidecar's location is unknown a priori (e.g., "is `vibe-1.md` anywhere — root or subfolder?"). Multiple results in the basename map are resolved by precedence: session-root wins over any subfolder.
+
+3. **Filter to `.html` files** (case-insensitive extension match).
+
+4. **Per HTML, parse the filename** (basename, not full path):
+   ```
+   /^vibe-(\d+)(?:-(.+?))?(?:-v(\d+))?\.html$/i
+   ```
+   Captures: `vibeIndex` (always), `slug` (optional — `vibe-9.html` has none), `version` (defaults to 1).
+   No match → `vibeIndex=null, slug=filename-stem, version=1` — non-vibe HTML, falls through to filename-only path.
+
+5. **Hunt the sidecar by name** (NEVER enumerate `.md` files first). Hunt has 3 tiers; Tier 0 runs for ALL HTMLs (including non-vibe-shaped — brand-cards, design-system pages, decree pages, deck.html keynotes), Tiers 1–2 only for vibe-shaped.
+
+   ```ts
+   function huntSidecar(htmlRelPath, vibeIndex, slug, filesByPath, filesByBase): string | null {
+     // Tier 0 — exact-name match (works for ALL HTMLs).
+     // Hunt order: session root first, then HTML's own dir, then any subfolder.
+     const exactName = basename(htmlRelPath).replace(/\.html$/i, '.md')
+     const t0 = lookupByName(exactName, htmlRelPath, filesByPath, filesByBase)
+     if (t0) return t0
+
+     if (vibeIndex == null) return null  // non-vibe HTML: Tier 0 was the only chance
+
+     // Tier 1 — slug-suffixed (vibe-N-slug.md). Same lookup order.
+     if (slug) {
+       const suffixed = `vibe-${vibeIndex}-${slug}.md`
+       const t1 = lookupByName(suffixed, htmlRelPath, filesByPath, filesByBase)
+       if (t1) return t1
+     }
+
+     // Tier 2 — canonical (vibe-N.md). Same lookup order.
+     const canonical = `vibe-${vibeIndex}.md`
+     return lookupByName(canonical, htmlRelPath, filesByPath, filesByBase)
+   }
+
+   // Hunt order: session root → HTML's own dir → any subfolder.
+   // (Ralph 2026-05-09: hunt starts at session root, recurses through all subfolders.)
+   function lookupByName(name, htmlRelPath, filesByPath, filesByBase): string | null {
+     const lname = name.toLowerCase()
+     // 1. session root
+     if (filesByPath.has(lname)) return filesByPath.get(lname)!
+     // 2. HTML's own directory (handles subfolder-resident sidecars like falcamel/cliff-ledger/deck.md)
+     const htmlDir = dirname(htmlRelPath)
+     if (htmlDir && htmlDir !== '.') {
+       const inHtmlDir = `${htmlDir}/${name}`.toLowerCase()
+       if (filesByPath.has(inHtmlDir)) return filesByPath.get(inHtmlDir)!
+     }
+     // 3. any subfolder (basename match anywhere). Multiple matches → first in alphabetical-path order.
+     const candidates = filesByBase.get(lname) ?? []
+     if (candidates.length > 0) return [...candidates].sort()[0]
+     return null
+   }
+   ```
+
+   The hunt **starts at session root** (where canonical `VIBE-N.md` lives) and **recurses through all subfolders** so sidecars co-located with their HTML — e.g., `falcamel/cliff-ledger/deck.md` next to `falcamel/cliff-ledger/deck.html` — are first-class. A sidecar can live anywhere in the session tree; the hunt finds it.
+
+   **Tier 0 example resolutions:**
+   - `business-cards-grandma-20-schools.html` → `business-cards-grandma-20-schools.md` ✓ (Tier 0, root-resident)
+   - `falcamel/cliff-ledger/deck.html` → `falcamel/cliff-ledger/deck.md` ✓ (Tier 0, same-dir-resident)
+   - `VIBE-8/Respawn Point Design System.html` → `VIBE-8/Respawn Point Design System.md` ✓ (Tier 0, same-dir-resident)
+   - `everything.html` (no exact-name `.md` exists) → null (Tier 0 misses; non-vibe HTML, no Tier 1/2; falls through to filename Title-Case path)
+
+6. **Extract Gallery Card block** (only when sidecar found):
+   - Open + read first 4 KB of sidecar (per doctrine: Gallery Card is the FIRST block before the rest of the file; 4 KB covers the H1 + status header + Gallery Card + closing `---`).
+   - Locate `## Gallery Card` heading; capture content until the next `## ` or `---` boundary.
+   - Within the captured block, parse 7 fields via `matchField` (`lib/markdown-fields.ts`):
+     - `Name`, `One-liner`, `Audience`, `Mood` — string passthrough
+     - `Colors` → `match(/#[0-9a-fA-F]{6}/g)` (hex-only; ignores parenthetical color names CD writes for human readability, e.g., `#8B4513 (Saddle Brown)`). Take first 4 in order: `primary`, `secondary`, `accent`, `text`.
+     - `Fonts` → `split('/')` → `[heading, body]` (e.g., `Inter Tight 800 / Inter 400`).
+     - `Hero` → bare filename or relative path. Resolve via:
+       | Input | Resolved |
+       |---|---|
+       | `hero.jpg` | `/${sessionId}/hero.jpg` |
+       | `./images/x.jpg` | `/${sessionId}/images/x.jpg` |
+       | `/shared/x.jpg` | absolute, kept as-is |
+       | `https://...` | external, kept as-is |
+       | empty / `TBD` / missing | undefined → fall to HTML scrape |
+       Verify file exists via `filesByPath`/`filesByBase` lookup; if missing, fall to HTML scrape.
+
+7. **HTML hero scrape (fallback)** — fires only when sidecar absent OR Gallery Card missing OR `Hero:` field absent/missing-on-disk. Read first 32 KB of the HTML. Ordered chain, first hit wins:
+   - CSS `background: url('...-hero.jpg')` inside `.hero { ... }` block
+   - `<img class="...hero...">` (either src-then-class or class-then-src)
+   - First `<img>` inside `<section class="hero">` / `<header>` / `<div class="hero">`
+   - First `<img>` anywhere
+   - else fall through to step 7.5
+
+   Resolve relative `src` against the HTML's own folder (`/${sessionId}/${htmlDir}/${src}`); keep absolute and external URLs as-is.
+
+7.5. **Session-folder hero fallback (final)** — fires when steps 1–7 all return empty. **`heroImage` is never null**; the endpoint guarantees an image. Ordered chain, first hit wins:
+   - Image file matching `/^hero[\.-]/i` in the HTML's own directory (e.g., `hero.jpg`, `hero-night.jpeg`)
+   - Image file matching `/-hero\./i` in the same dir (e.g., `cliff-majlis-hero.jpg`)
+   - Any image referenced by a sibling vibe HTML at the same `vibeIndex` (re-run step 7 on the next-newest sibling and reuse its hero)
+   - First `*.{jpg,jpeg,png,webp,avif}` file (alphabetical) in the HTML's own directory
+   - First `*.{jpg,jpeg,png,webp,avif}` file in the session root (covers brand-cards, design-system pages, decree pages — typography artifacts that have no inline image)
+
+   This step matches the policy applied to the 26 sidecars on 2026-05-09 (hero backfill across designer-school catalogs, brand-cards matrices, design-system pages, Phase 2 wireframes, minimal-image vibes). Imageless artifacts get a brand-appropriate session image — never an empty card.
+
+   Resolve same way as step 7 (URL-encoded session-relative path). Verify file exists via `filesByPath`/`filesByBase`; if even step 7.5 returns nothing (truly imageless session — empty `public/{sessionId}/`), the endpoint logs a warning and returns the cards' `heroImage` as the literal string `"__no_image__"` — UI renders a gradient placeholder for that sentinel only. This is the only path where a non-image string appears, and it indicates a session-data bug, not a card-data bug.
+
+8. **Card assembly:**
+   - `name` = `card.Name from sidecar` ?? Title-Cased `slug` ?? Title-Cased filename stem
+   - All sidecar fields propagate as optional
+   - `hasGalleryCard = sidecarFound AND blockExtracted AND atLeastOneFieldParsed`
+
+9. **Concurrency cap.** Use `p-limit` (concurrency 16) over file reads — sessions with 200+ HTMLs hit OS file-descriptor limits otherwise.
+
+10. **Sort:**
+    - vibe-N cards: `(vibeIndex asc, version asc, mtime desc)`
+    - Non-vibe cards (no `vibeIndex`): `mtime desc`, appended after the vibe-N group
+
+11. **Response:** JSON. No server-side cache (per-request fresh; 30s client de-dupe lives in WP-79).
+
+**Worked example — `2026-01-27-debug` (real session, ~119 HTMLs, ~120 sidecars across root + subfolders):**
+
+| HTML | Tier 0 (exact-name) | Tier 1 (slug) | Tier 2 (canonical) | Resolved sidecar |
+|---|---|---|---|---|
+| 5 × `vibe-1-grandma*-{gemini,newish,opus,sonnet,_}.html` | miss | miss | `vibe-1.md` ✓ root | VIBE-1.md |
+| 5 × `vibe-2-{the-,_}decompression-chamber-{gemini,opus,sonnet,_}.html` | miss | miss | `vibe-2.md` ✓ root | VIBE-2.md |
+| `vibe-8-pentagram.html` | `vibe-8-pentagram.md` ✓ root | — | — | VIBE-8-PENTAGRAM.md |
+| `vibe-8-active-theory.html` | `vibe-8-active-theory.md` ✓ root | — | — | VIBE-8-ACTIVE-THEORY.md |
+| `vibe-8-fieldio.html`, `vibe-8-hara.html` | hits | — | — | VIBE-8-FIELDIO.md, VIBE-8-HARA.md |
+| 13 × `vibe-8-respawn-*.html` | miss | miss | `vibe-8.md` ✓ root | VIBE-8.md |
+| `vibe-9.html` (slugless) | (skipped) | (skipped) | `vibe-9.md` ✓ root | VIBE-9.md |
+| `vibe-21-stamen-opus-v2.html` | miss | `vibe-21-stamen-opus.md` miss | `vibe-21.md` ✓ root | VIBE-21.md |
+| `backup/vibe-1-grandmas-cliff-sonnet.html` (subdir) | `backup/vibe-1-grandmas-cliff-sonnet.md` miss; root miss | `vibe-1-grandmas-cliff-sonnet.md` miss | `vibe-1.md` ✓ root | VIBE-1.md (canonical wins; per Ralph's "vibe-N.md covers all variations" rule) |
+| `backup/vibe-7-the-weigh-in sonnet.html` (literal space) | exact-name miss in same dir + root | regex's `(.+?)` captures the space, `vibe-7-the-weigh-in sonnet.md` miss | `vibe-7.md` ✓ root | VIBE-7.md (htmlPath URL-encodes space) |
+| **`business-cards-grandma-20-schools.html`** (non-vibe shape) | `business-cards-grandma-20-schools.md` ✓ root | (skipped — not vibe) | (skipped) | business-cards-grandma-20-schools.md |
+| **`business-cards-respawn-20-schools-AUDIT.html`** (non-vibe shape) | `business-cards-respawn-20-schools-AUDIT.md` ✓ root | — | — | business-cards-respawn-20-schools-AUDIT.md |
+| **`falcamel/cliff-ledger/deck.html`** (subdir, non-vibe shape) | `falcamel/cliff-ledger/deck.md` ✓ same-dir | — | — | falcamel/cliff-ledger/deck.md (keynote-track sidecar resolved via Tier 0 same-dir lookup) |
+| **`falcamel/respawn-point/Respawn Point Deck.html`** (subdir, spaces in filename) | `falcamel/respawn-point/Respawn Point Deck.md` ✓ same-dir | — | — | Respawn Point Deck.md (preserves filename spaces) |
+| **`VIBE-8/Respawn Point Design System.html`** (subdir, design-system page) | same-dir exact match ✓ | — | — | VIBE-8/Respawn Point Design System.md |
+| **`falcamel/index.html`** (subdir, hub page, non-vibe shape) | `falcamel/index.md` miss; root `index.md` miss | (skipped) | (skipped) | none → filename Title-Cased + step 7 HTML scrape |
+| `everything.html`, `compaction-1.html`, `darth-reaper.html` (root, non-vibe shape, no sidecar exists) | exact-name miss in root | — | — | none → Title-Cased + HTML scrape |
+| `everything.html`, `compaction-1.html`, `darth-reaper.html`, `falcamel/index.html`, `VIBE-8/Respawn Point Design System.html` | (no `vibeIndex`) | — | none → filename Title-Cased + HTML scrape |
+| `VIBE-8-old.md`, `VIBE-8-slim.md`, `VIBE-1-old.md`, `VIBE-1-slim.md`, etc. | **never queried** (no HTML asks for them) | — | invisible to gallery ✓ |
+
+All 119 HTMLs produce a card. All 41 live sidecars surface their metadata. All 6 cold-storage sidecars stay invisible. No regex tournament. No filter rules. No live-suffix pre-pass. Just **count HTMLs, hunt by name**.
+
+**Reuses:**
+- `matchField` from `lib/markdown-fields.ts` (no new parser logic)
+- `readdir` (recursive: true), `readFile`, `stat`, `open` from `fs/promises`
+
+**Acceptance.**
+- `GET /api/sessions/{id}/gallery` returns one card per `.html` file in the session (recursive). On `2026-01-27-debug`, that's ~119 cards.
+- vibe-8 HTMLs map to their school-variant sidecars correctly (4 to school-variants, 13 to canonical VIBE-8.md).
+- `vibe-9.html` (slugless) gets `VIBE-9.md` metadata via the canonical lookup.
+- Cold-storage sidecars (`VIBE-N-old.md`, `-slim.md`) NEVER appear in any card's `sidecarPath` field.
+- Cards without sidecar render with Title-Cased name only — no fake colors/fonts.
+- Gallery Card `Colors:` line in CD's parenthetical-name format (`#8B4513 (Saddle Brown), ...`) parses correctly to 4 hex strings.
+- Cards in `backup/`, `falcamel/`, etc. surface with `parentDir` set so the UI can group them.
+
+**LOC estimate.** ~165 LOC source + ~120 LOC tests = ~285 LOC. Test fixture: `2026-01-27-debug` (real-world coverage of all edge cases — 119 HTMLs, 41 live sidecars, 6 cold-storage sidecars, slugless filename, parenthetical Colors, subdir HTMLs, spaces in names, school-variant resolution, version suffix).
+
+#### WP-79 — Gallery lazy-load + Potemkin cleanup in `app/page.tsx`
+
+**Problem.** Two issues in one file:
+
+(a) **Page has no gallery data source after admin precursor cleanup.** The admin route's `vibes[]` is now always empty (parser retired 2026-05-09). `loadSession`'s `htmlFiles → parsedVibes → resolveVibes(...) → availableVibes` chain at lines 431–494 still runs against that empty input and produces nothing useful. Gallery cards need a different source — the new `/api/sessions/[id]/gallery` endpoint built in WP-78. *The admin route itself stays — page still uses `htmlFiles`, `rawFiles`, `tokenBurn`, `imagePrompts` for non-gallery purposes.*
+
+(b) **Two FalCaMel-themed Potemkin arrays still drive the rendered gallery.** Lines 283–337 hardcode `fallbackColors` + `fallbackFonts` cycling by `index % 4`. Non-FalCaMel sessions at vibe index 0 show QAHWA palette; index 1 shows JAREEN; etc. The card lies about brand identity.
+
+**Scope.**
+
+1. **DELETE lines 283–337** — `fallbackColors` array (4 hardcoded FalCaMel palettes with `// QAHWA / // JAREEN / // THE RACE / // MAJLIS` comments) + `fallbackFonts` array (4 hardcoded FalCaMel fonts) + their `index % 4` assignment. When parsed colors/fonts absent, leave undefined. Component handles absence (WP-80).
+2. **DELETE lines 431–494** — the `htmlFiles → parsedVibes → resolveVibes(...) → availableVibes` chain. KEEP only `setSessionHtmlFiles(htmlFiles)` — Director Mode picker dependency.
+3. **FIX line 364** — remove `sourceImages` from the `vibeCards` `useMemo` dep array (in deps, never read in body).
+4. **ADD state** near other refs (~line 280): `galleryCards`, `galleryFetchRef` (30s de-dupe per session), `galleryDirtyRef` (bumped from SSE handlers).
+5. **ADD lazy-load `useEffect`** near the Gallery layout block (~line 3486 region). Effect keyed on `[layoutMode === 'gallery', sessionId]`. On fire (and not deduped): `fetch('/api/sessions/${sessionId}/gallery')` → set `galleryCards` and `availableVibes`. **This is a NEW fetch, not a redirect of the admin fetch** — admin fetch stays for its other consumers.
+6. **UPDATE `vibeCards` useMemo** (~line 280): when `layoutMode === 'gallery'` and `galleryCards` is non-null, map from `galleryCards` instead of `vibes`. React `key` uses `filename` (avoid collisions on duplicate `vibeIndex`).
+7. **Cache invalidation:** SSE handler at ~line 1027 (`case 'vibe_built'`) sets `galleryDirtyRef.current = true`. Future `vibe_deleted` / `assets_updated` branches do the same.
+
+**Acceptance.**
+- `GET /api/sessions/{id}/gallery` fires only when user opens Gallery tab (not on session boot).
+- 30s cache hit when re-entering Gallery within window; `vibe_built` event invalidates.
+- Non-FalCaMel sessions show NO FalCaMel-themed fallback colors or fonts.
+- Existing admin-route-driven UI surfaces (Director Mode picker, Files/Images list, token burn) keep working — admin fetch unchanged in shape from this WP's perspective.
+
+**LOC estimate.** ~80 LOC delete + ~60 LOC add (net −20).
+
+#### WP-80 — VibesGallery component degradation (no fake defaults)
+
+**Problem.** `components/VibesGallery.tsx` has no `onError` on the hero `<img>` (broken JPGs leak alt text as visible "hero text"). The component also assumes parent passes fully-formed `colors`/`fonts`, which after WP-79's deletion of FalCaMel fallbacks may be undefined.
+
+**Architecture note (2026-05-09 update).** Per WP-78 step 7.5, `heroImage` is **always populated** by the gallery endpoint — never null. The gradient placeholder below is a **recovery state for broken/missing image FILES** (filename present but file 404s), NOT a normal-rendering branch for "no hero." There is no "no hero" branch. WP-79's empty-state preservation handles the truly-empty-session case (`"🎨 No vibes yet"`), distinct from a card whose file is broken.
+
+**Scope.**
+1. **ADD `onError` handler** on the hero `<img>` (~line 190). On error: set `display: none` to reveal the gradient placeholder underneath. The handler fires when:
+   - The file referenced by `heroImage` 404s (filename out of sync with disk)
+   - The endpoint returned the sentinel `"__no_image__"` (truly imageless session — see WP-78 step 7.5)
+   - Image decoding fails (corrupt JPG, etc.)
+   In all three cases the gradient is a recovery state, not the design intent.
+2. **HIDE color swatch bento** (lines 204, 341, 365, 390, 411) when `vibe.colors` is undefined. Don't render a 4-swatch placeholder; render nothing.
+3. **FALL BACK to `system-ui`** in inline styles when `vibe.fonts` is undefined. No Crimson Text / Playfair Display defaults.
+4. **Preserve empty state** (lines 563–584, "🎨 No vibes yet") — no change needed.
+
+**Acceptance.**
+- Card with valid `heroImage` referencing an existing file renders the image. NEVER a gradient on the happy path.
+- Card with broken JPG path (file 404) shows gradient via `onError` (no broken-image icon, no alt-text leak).
+- Card with `heroImage === "__no_image__"` sentinel shows gradient (and the UI surfaces a `console.warn` for the session-data bug).
+- Sparse-sidecar vibe shows name + maybe audience but NO swatches and `system-ui` fonts.
+- Empty state preserved.
+
+**LOC estimate.** ~30 LOC modification.
+
+#### WP-81 — Retire `lib/vibe-resolver.ts`
+
+**Problem.** `lib/vibe-resolver.ts` is the frontend mirror of the regex parser. Contains:
+
+- `FALLBACK_COLOR_SETS` (lines 50–100) — same FalCaMel-themed cycle-of-4 lie as `app/page.tsx:283`
+- `deriveNameFromFilename` (lines 209–215) — Tier 3 filename-derived fallback (subsumed by WP-78 endpoint)
+- 3-strategy `resolveVibes` chain (lines 158–164) — slug match + index match + filename derive
+
+After WP-79 deletes the `htmlFiles → parsedVibes → resolveVibes(...) → availableVibes` block at `app/page.tsx:431–494`, the file's only caller is gone. (Inline sibling regexes at `app/page.tsx:465 + :473` go with that block — already part of WP-79's delete range.)
+
+**Scope.**
+- DELETE `lib/vibe-resolver.ts` entirely.
+
+**Acceptance.**
+- `grep -rn "vibe-resolver\|FALLBACK_COLOR_SETS\|deriveNameFromFilename" app/ lib/ components/` returns nothing.
+- Build passes; gallery still renders correctly via the new endpoint.
+
+**LOC estimate.** ~50 LOC delete.
+
+#### WP-82 — Retire `parseVibesFromFiles` from build path
+
+**Problem.** Three build routes call `parseVibesFromFiles` but only use `index/name/slug/content` for target matching:
+- `app/api/mcp/build-vibe/route.ts:114`
+- `app/api/mcp/build-all-vibes/route.ts:42`
+- `app/api/webdev/route.ts:104`
+
+The fields `oneLiner/voice/audience/mood/colors/fonts` are parsed-then-thrown-away in every build route. WebDev resolves the brief itself by reading `VIBE-{n}-*.md` directly via its agent prompt. The pre-extraction is dead.
+
+(The admin-route's FalCaMel-keyword image fallback at `admin/sessions/[id]/route.ts:320–340` was a sibling Potemkin in the original §18.3 scope — already deleted in the precursor admin cleanup 2026-05-09. Verified via `grep -n "vibeKeywords\|qahwa\|jareen" app/api/admin/sessions/\[id\]/route.ts` returning zero.)
+
+**Scope.**
+- Replace parser calls in the three build routes with filename-glob target matching:
+  - `readdir(sessionPath)` filtered by `^vibe-(\d+)-.*\.md$` for `build-all-vibes`
+  - `readdir` filtered by `^vibe-(${target}|\d+-${slug})-.*\.md$` for `build-vibe`
+  - Pass matched file path directly to `runWebDev`
+
+**Acceptance.**
+- `build_vibe('vibe-5')` succeeds end-to-end without parser.
+- `build_all_vibes()` enumerates correctly.
+- All three build routes drop their `import { parseVibesFromFiles } from '@/lib/creative-brief-parser'` line.
+
+**Risk.** Higher than WP-78..81 — touches the build pipeline that generates real customer artifacts. Requires one full e2e build verify before merge.
+
+**LOC estimate.** ~150 LOC delete + ~50 LOC add (net −100).
+
+#### WP-83 — Delete `lib/creative-brief-parser.ts` + `ParsedVibe` type
+
+**Pre-req.** WP-78..82 all merged. Verify zero remaining callers:
+```
+grep -rn "parseVibesFromFiles\|parseVibesFromBrief\|parseVibePreview\|ParsedVibe" \
+  app/ lib/ components/ mcp-server/ scripts/
+```
+Should return only test files and the parser itself.
+
+**Scope.**
+- DELETE `lib/creative-brief-parser.ts` (entire file, ~340 LOC)
+- DELETE `lib/__tests__/creative-brief-parser.test.ts` (66-call test suite, all obsolete)
+- DELETE remaining `ParsedVibe` type usages
+- DELETE zombie `ParsedVibeResult` interface at `app/api/chat/route.ts:771`
+
+**Acceptance.**
+- `grep -rn "parseVibesFromFiles\|ParsedVibe" app/ lib/ components/ mcp-server/` returns nothing.
+- Build passes. All e2e tests still green.
+
+**LOC estimate.** ~600 LOC delete.
+
+#### Sequencing for §18.3
+
+- **Gallery v2 batch (one commit):** WP-78 → WP-79 → WP-80 → WP-81. Each WP unblocks the next, but they share testing surface so ship together.
+- **Build-path retirement (separate commit, higher risk):** WP-82. Requires e2e build verify.
+- **Final delete (after no callers remain):** WP-83.
+
+Each WP independently revertable via `git revert`. No DB schema, no disk format change.
+
+---
+
+### §18.4 — DRY consolidation + build-route slimming + Phase II (Ralph 2026-05-09)
+
+§18.3's six WPs retire the parser and the gallery's eager-fetch noise. §18.4 cleans up adjacent debt that surfaced during the audit:
+
+1. **HERO_PATTERNS regex chain duplicated three times** — verbatim in `app/api/mcp/build-vibe/route.ts:28-33` + `app/api/mcp/build-all-vibes/route.ts:58-68` + WP-78's gallery endpoint inline. Plus `scanVibeHtmlsForUsedImages` in `lib/session.ts:1264` does adjacent HTML scraping with its own regex.
+2. **`build-vibe/route.ts` is 287 LOC, of which ~15 are the actual escrow contract** — the rest is event publishes, BUILD.md audit log, verify pass, hero-pattern duplication, rowLabel/rowThumb cosmetics. `build-all-vibes/route.ts` is symmetrically bloated. The cross-cutting concerns belong inside `runWebDev` itself, not in every route handler.
+3. **IMAGES.md round-trip is the same antipattern at a bigger scale** — CD calls structured MCP tools (`update_image_metadata`, `submit_image_prompt`, `submit_upload_eval`, `submit_image_verdict`) → writer serializes to markdown → 4 MCP routes (`find-assets`, `list-assets`, `refresh-assets`, `session-meta`) re-parse the markdown back to structured. Round-trip degrades structured args into text and re-extracts. Same dead-architecture class as the vibe parser, but riskier to retire because IMAGES.md is human-touched in dev sessions and the admin panel.
+4. **No INSTITUTIONAL-MEMORY entry yet** for the doctrine that prevents this whole class of mutation. Without one, the next migration accretes the same debt.
+
+#### WP-84 — `lib/html-scraper.ts` shared hero + asset-ref helper
+
+**Problem.** HERO_PATTERNS regex chain duplicated verbatim across `build-vibe/route.ts`, `build-all-vibes/route.ts`, and the WP-78 gallery endpoint will need a fourth copy. `scanVibeHtmlsForUsedImages` in `lib/session.ts` does adjacent HTML scraping. Future drift hazard if the patterns evolve in one place but not the others.
+
+**Scope.** Create `lib/html-scraper.ts` exporting:
+- `extractHeroFromVibeMd(content): string | null` — the 4-pattern fallback chain (table cell → bold bullet → md-image → first-inline-code) currently inline in build routes.
+- `extractHeroFromHtml(html): string | null` — CSS `background-url` → `<img class="hero">` → first img in `<header>/<section.hero>` → first img anywhere. Used by WP-78 gallery endpoint instead of inline.
+- `extractAssetRefsFromHtml(html): Array<{ src: string; line: number }>` — for `verifyVibeAssets` reuse + future broken-link audits.
+
+DELETE inline `HERO_PATTERNS` blocks from build-vibe + build-all-vibes routes (callers switch to `extractHeroFromVibeMd`). MODIFY `scanVibeHtmlsForUsedImages` to use `extractAssetRefsFromHtml`. WP-78 gallery endpoint imports `extractHeroFromHtml` instead of duplicating.
+
+**Acceptance.** `git grep 'HERO_PATTERNS\|hero.*regex'` returns matches only inside `lib/html-scraper.ts`. Zero duplicate regex chains in source.
+
+**LOC estimate.** ~120 LOC new + ~80 LOC removed (net +40, but eliminates the drift class).
+
+**Dependencies.** None. Can ship before or in parallel with WP-78.
+
+#### WP-85 — Build route shrink: event publishes + audit + verify INSIDE `runWebDev`
+
+**Problem.** `app/api/mcp/build-vibe/route.ts` is 287 LOC. Inventory:
+
+| Lines | What | Necessary for build? |
+|---|---|---|
+| 23-40 | `HERO_PATTERNS` + `findHeroThumb` | No — UI-only (WP-84 retires) |
+| 42-81 | `verifyVibeAssets` (HTML img-ref disk check) | No — soft-warn cosmetic |
+| 86-101 | request parse + mode/model resolve | Validation |
+| 103-128 | parser call for rowLabel/rowThumb | No — WP-82 retires |
+| 130-155 | enqueueBuild + BUILD.md audit + build_started publish | Escrow load-bearing; audit + event = UI/logging |
+| 144-200 | runWebDev + onToolCall hook for milestones | runWebDev is the core; hook is UI |
+| 203-275 | success/fail paths: BUILD.md write + vibe_built/vibe_failed publish | UI + logging |
+| 280-286 | return `{jobId, status}` | Escrow contract |
+
+The build itself is `runWebDev({mode, model, sessionId, sessionPath, target})`. One function call. The other 270 lines are middleware that accumulated as the system grew.
+
+**Scope.**
+1. MODIFY `lib/run-webdev.ts` — accept optional `audit: { buildMdPath: string }` config. Move BUILD.md write logic in. Move `build_started` / `build_progress` / `vibe_built` / `vibe_failed` publishes in (inject `publish` from event-bus; use WP-84's `extractAssetRefsFromHtml` for verify). Move the `onToolCall` milestone hook in.
+2. MODIFY both build routes — shrink to escrow + return jobId. Target shape (~15 LOC):
+   ```ts
+   export async function POST(req) {
+     const { sessionId, target, mode, model } = await req.json()
+     if (!sessionId || !target) return NextResponse.json({ error: 'bad request' }, { status: 400 })
+     const resolved = resolveWebDevExecution({ mode, model }, sessionId)
+     const sessionPath = path.join(process.cwd(), 'public', sessionId)
+     const enqueued = enqueueBuild({
+       sessionId, kind: 'build_vibe', target,
+       runner: ({ signal }) => runWebDev({ ...resolved, sessionId, sessionPath, target, abortSignal: signal }),
+     })
+     return NextResponse.json({ jobId: enqueued.job.jobId, status: enqueued.job.status })
+   }
+   ```
+
+**Acceptance.** Build flow identical end-to-end (BuildJobCard live updates, vibe_built fires, BUILD.md audit accumulates, soft-warn for broken refs surfaces). `git diff --stat` shows `lib/run-webdev.ts` grew, two route files <30 LOC each.
+
+**Risk.** Highest of §18.4 — every code path that a WebDev build touches goes through this refactor. Verify with one full e2e build smoke (single-vibe + all-vibes + final) before merge. Ship as ITS OWN commit.
+
+**LOC estimate.** ~120 LOC moved to `runWebDev`, ~250 LOC removed from routes (net −130, but reorganized).
+
+**Dependencies.** WP-82 (eliminates the cosmetic parser block first so the route has nothing else to do beyond escrow), WP-84 (`extractAssetRefsFromHtml` powers verify).
+
+#### WP-86 — IMAGES.md round-trip retirement (Phase II, scoped separately)
+
+**Problem.** Same antipattern as WP-83 at a bigger scale. CD calls structured MCP tools — `update_image_metadata({suggestedUses, suggestedVibes, ...})`, `submit_image_prompt`, `submit_upload_eval`, `submit_image_verdict` — each carrying typed args. Server-side: writer serializes to IMAGES.md text. Routes (`find-assets`, `list-assets`, `refresh-assets`, `session-meta`, plus `admin/sessions/[id]`) re-parse the markdown back to structured. Net entropy: CD's typed args degraded into text and re-extracted on every read.
+
+`lib/session.ts:1551` `parseImagesMd` is 90 LOC of regex parsing that could be `JSON.parse(await readFile('images.json'))`.
+
+**Proposal (decision needed before scope).**
+- INTRODUCE `public/{sessionId}/images.json` as canonical structured store. CD's MCP tools write this directly via typed schema.
+- IMAGES.md becomes a RENDERED VIEW — written by `images-md-renderer.ts` from `images.json` after every structured update. Humans read IMAGES.md; system reads images.json.
+- MCP routes (`find-assets`, `list-assets`, `refresh-assets`, `session-meta`) read `images.json` directly — no parser.
+- MIGRATION: one-off script reads existing IMAGES.md, builds initial `images.json`. From then on, structured store is authoritative. Manual edits to IMAGES.md trigger a re-parse-and-re-serialize round on next agent action (for human-edited compat).
+
+**Acceptance.** Zero `parseImagesMd` calls in MCP routes. IMAGES.md still rendered + human-readable + admin-editable. `lib/session.ts` shrinks by ~150 LOC.
+
+**Risk.** Highest of the entire §18 cluster. IMAGES.md is human-touched in dev sessions, admin-panel-edited, referenced by CD agent prompts. Migrate carefully. Ship as ITS OWN multi-commit Phase II AFTER §18.3 + §18.4 stabilize.
+
+**LOC estimate.** ~400 LOC moved (parser → renderer + structured store + route reads).
+
+**Dependencies.** WP-83 (do parser work in tighter scope first — IMAGES.md is the bigger architectural change).
+
+#### WP-87 — INSTITUTIONAL-MEMORY doctrine entry
+
+**Problem.** Without a written doctrine, the next migration (post-2026-04-29 MCP cutover taught us this lesson) will accrete the same debt. The audit pattern needs to live somewhere a future Claude reads cold.
+
+**Scope.**
+- APPEND to `docs/INSTITUTIONAL-MEMORY.md` Don't-Do List, two entries:
+
+  > *"**Don't add a route-level markdown re-parser to extract data the MCP tool args already structured.** The agent contract IS the schema. Re-parsing from disk is for human-edited inputs (CREATIVE-BRIEF.md user tweaks, IMAGES.md admin edits), not agent-written outputs (anything CD passes via typed MCP tool calls). When you find yourself adding a `String(arg ?? '')` coercion or a `parseFromFile` call to extract metadata an MCP tool already has, stop and check: is this data already structured at tool-call time? If yes, pass it through. Don't degrade it to text and re-extract."*
+
+  > *"**For small structured surfaces (gallery cards, schema previews, manifest entries), don't extract from creative prose via field-name regex.** Agent prose drifts — `Headings:` becomes `Display:` becomes `Font Family:` becomes a sentence about typography. CD must hand-curate the structured block (locked schema, fixed field names) and the parser parses ONLY that block. The pattern is: **strict structured island inside loose creative content.** Two audiences, two contracts, one file."*
+
+- APPEND to Bugs section per the 3-turn rule, two cascades:
+  1. The original parser cascade — `# VIBE-N · NAME` silent-drop bug → Gallery noise → 100+ stub cards → audit reveals parser is dead architecture from MCP migration → 6 dependent WPs in §18.3 + 4 follow-up WPs in §18.4. Document the FalCaMel Potemkin fallbacks as the second-order failure mode (Tier-3 fake-data lies that mask Tier-1 silent-drops).
+  2. The 2026-05-09 regex-backfill cascade — attempted regex extraction of `## Gallery Card` blocks across 50 archived sidecars produced: 9 prose-bled fonts (`system-ui / Below you, 45,000 people just watched...`), JS code in Audience field (`Canvas2D particle field, 2000 nodes, Voronoi triangulation`), wrong heroes (canonical mismatch with HTML rendering), names with leaked quotes. Ralph called full revert; agent-curated retry across 5 parallel sub-agents produced clean cards in ~10 min. Lesson: regex backfill on creative agent output is the wrong shape; agents must curate per-file with file-context. **The strict structured island convention (Don't-Do entry above) prevents this class of failure going forward** — once CD writes a `## Gallery Card` block at write-time per `agents/creative-director-agent.md` Phase 4 doctrine, no backfill regex is ever needed.
+
+**Acceptance.** Future Claude reading `docs/INSTITUTIONAL-MEMORY.md` cold-boots hits this rule before reflexively writing a re-parser. Drift prevention.
+
+**LOC estimate.** ~50 LOC of doctrine prose.
+
+**Dependencies.** WP-83 (write the lesson AFTER cleanup so it's reflective, not aspirational).
+
+#### Sequencing for §18.4
+
+- **WP-84 (html-scraper helper)** — independent, ships standalone or alongside WP-78 (gallery endpoint can import the helper instead of duplicating).
+- **WP-85 (route shrink)** — depends on WP-82 + WP-84. Ship as its own commit AFTER §18.3 stabilizes; verify with end-to-end build smoke.
+- **WP-86 (IMAGES.md Phase II)** — depends on WP-83. Ship in a separate Phase II arc after §18.3 + §18.4 have soaked in production.
+- **WP-87 (doctrine entry)** — depends on WP-83. Write last so the lesson is reflective.
+
+#### §18 cumulative LOC accounting (rewritten 2026-05-09 — earlier numbers were sloppy)
+
+Per-WP estimates pulled from each WP's stated scope. Verify against actual `git diff --stat` at merge time; these are the planning baselines.
+
+| WP | Code added | Code removed | Doctrine | Net |
+|---|---|---|---|---|
+| **WP-67** legacy-CLI cluster delete | ~30 (build-final delegation) | ~1,423 (4 routes 1,070 + Lumberjack 303 + page.tsx caller cleanup 50) | — | **−1,393 code** |
+| **WP-68** COO-Claude harness | ~200 (3 MCP tools) | ~437 (old test-backdoor route) | +878 (test-harness/COO.md) | **−237 code, +878 doctrine** |
+| **WP-69** `build_wireframes` MCP | ~120 (80 route + 40 brief) | — | — | **+120** |
+| **WP-70** `build_card_matrix` MCP | ~140 (80 route + 60 brief) | — | — | **+140** |
+| **WP-71** `build_all_vibes` `kind` param | ~110 (30 dispatch + 80 brief variants) | — | — | **+110** |
+| ~~WP-72~~ deleted 2026-05-10 (Confirm Understanding card already exists, no track field needed) | — | — | — | — |
+| **WP-73** universal discovery-card textarea | ~80 (40 shared component + 40 caller refactors) | — | — | **+80** |
+| **WP-74** Moodboard ToolCard | ~110 (80 component + 30 MCP tool) | — | — | **+110** |
+| **WP-75** Descent Selection ToolCard | ~130 (100 component + 30 MCP tool) | — | — | **+130** |
+| **WP-76** 4-phase Discovery seed | ~70 (30 seed delta + 40 panel rendering) | — | — | **+70** |
+| **WP-77** Design System ToolCard | ~220 (180 component + 40 MCP tool) | — | — | **+220** |
+| **WP-78** Gallery API endpoint | ~285 (165 src + 120 tests) | — | — | **+285** |
+| **WP-79** Gallery lazy-load + Potemkin cleanup | ~60 (state + lazy-load) | ~80 (fallbacks + chain) | — | **−20** |
+| **WP-80** VibesGallery degradation | ~30 (modifications) | — | — | **+30** |
+| **WP-81** Retire `vibe-resolver.ts` + inline regexes | — | ~50 | — | **−50** |
+| **WP-82** Retire `parseVibesFromFiles` from build path | ~50 (filename-glob target matching) | ~150 (parser calls + Potemkin keyword fallback) | — | **−100** |
+| **WP-83** Delete `creative-brief-parser.ts` + `ParsedVibe` type | — | ~600 (340 file + 66-test suite + zombie types) | — | **−600** |
+| **WP-84** `lib/html-scraper.ts` shared helper | ~120 | ~80 (inlined HERO_PATTERNS in build routes) | — | **+40** |
+| **WP-85** Build route shrink | ~120 (moved INTO `runWebDev`) | ~250 (removed from build-vibe + build-all-vibes routes) | — | **−130** |
+| **RFC-86** IMAGES.md round-trip retirement (Phase II) | — | — | — | **(BLOCKED ON DECISION — separately scoped, ~400 LOC moved if greenlit)** |
+| **WP-87** INSTITUTIONAL-MEMORY doctrine entry | — | — | +50 | **+50 doctrine** |
+
+**Sub-totals (RFC-86 excluded):**
+
+| Section | Code added | Code removed | Code net | Doctrine |
+|---|---|---|---|---|
+| §18.1 (WP-67 + WP-68) | 230 | 1,860 | **−1,630** | +878 |
+| §18.2 (WP-69 → WP-77) | 1,030 | 0 | **+1,030** | 0 |
+| §18.3 (WP-78 → WP-83) | 425 | 880 | **−455** | 0 |
+| §18.4 (WP-84 + WP-85 + WP-87) | 240 | 330 | **−90** | +50 |
+
+**Cumulative §18 (RFC-86 excluded):**
+
+| Bucket | Total |
+|---|---|
+| **Code retired (net)** | **−1,145 LOC** |
+| **Doctrine added** | **+928 LOC** (878 COO.md + 50 INSTITUTIONAL-MEMORY entry) |
+| **Grand total (code + doctrine)** | **−217 LOC** |
+
+If RFC-86 lands as currently sketched (~400 LOC moved between regex parser → renderer + structured store + route reads, net change unclear), §18 grand total stays negative or trends toward ~0 net. RFC-86 is replacement, not net add.
+
+**Honest reading:** §18 is dominated by **retirement, not addition**. The legacy-CLI cluster (WP-67) alone retires more LOC than all 9 new tools/cards in §18.2 combined. The vibe-parser cluster (§18.3) retires another 600 LOC of dead architecture. New functionality (Junior Pass tools + ToolCards + Gallery endpoint) lands on a substantially smaller substrate than what was retired to make room for it.
+
+The earlier `+880 / −350 / +50` summary was wrong by ~1.4× of total churn — undercounted WP-67 by an order of magnitude (had ~80 LOC instead of ~1,423), missed WP-68 entirely, and undercounted WP-85.
+
+---
+
+## §19 — Additional Models / API expansion (Ralph 2026-05-06)
+
+Provider/transport expansion — orthogonal to the §18 build-substrate work. Two work packages, both gated on discovery spikes that prove (or disprove) the operational case:
+
+- **WP-89** — Add SMPL-API path (Z.AI direct messages endpoint, no subprocess + no compat layer) and integrate Z.AI's three official MCP servers (vision / web-search / web-reader) into the agent spawn config. (Renumbered 2026-05-09 from WP-68 to avoid collision with §18.1's WP-68 COO-Claude harness — same approach as WP-88's earlier renumbering.)
+- **WP-88** — Migrate Nano Banana image-gen from AI Studio REST (`generativelanguage.googleapis.com`) to Vertex AI MCP (`mcp-nanobanana-go` → `aiplatform.googleapis.com`). Hard-gated on a 10-prompt safety-policy spike.
+
+(WP-88 was originally drafted as a duplicate WP-69 in this section; renumbered to avoid collision with WP-69 `build_wireframes` in §18.2. WP-89 was originally drafted as a duplicate WP-68; renumbered to avoid collision with §18.1's WP-68 COO-Claude harness.)
+
+---
+
+### WP-89 — Add SMPL-API path + integrate Z.AI's MCP tools (all four agents)
 
 **Correction (Ralph 2026-05-06):** SMPL is not generic "Z.AI routing" — SMPL is the **specific workaround** for a Z.AI compatibility-layer bug. Both CLI mode and SMPL mode can be pointed at Z.AI (via `ANTHROPIC_BASE_URL` in user settings), but they hit the compat layer differently:
 
@@ -2799,7 +3778,7 @@ So the substrate today:
 
 The reason to add SMPL-API: bypassing the subprocess altogether is cleaner than going through the compat-layer-with-a-workaround. With SMPL-API we pass `glm-5.1` directly as the model name (no alias dance, no compat-layer model mapping in the path), get the response shape Z.AI emits natively, and skip the Claude binary entirely. Lower latency, fewer moving parts, no risk of the compat layer's bug-fix-via-alias breaking on a future Claude Code release.
 
-What's missing — and what WP-68 lands:
+What's missing — and what WP-89 lands:
 
 #### Part 1 — SMPL-API path (Z.AI direct, no subprocess, no compat-layer)
 
@@ -2823,7 +3802,7 @@ Today every Z.AI-bound build goes through the Claude binary subprocess + Z.AI's 
    - `mode === 'smpl' && transport === 'cli'` → existing bridge subprocess + Z.AI base URL.
    - `mode === 'smpl' && transport === 'api'` → `runZaiAgentLoop` (NEW).
 
-   The `mode` enum stays `'smpl' | 'cli' | 'api'`; SMPL-API is selected by an additional `transport: 'cli' | 'api'` field on the SMPL branch (or by collapsing into a single `'smpl-api'` value — TBD at WP-68 spike).
+   The `mode` enum stays `'smpl' | 'cli' | 'api'`; SMPL-API is selected by an additional `transport: 'cli' | 'api'` field on the SMPL branch (or by collapsing into a single `'smpl-api'` value — TBD at WP-89 spike).
 
 3. **`lib/bridge-process-manager.ts` for CD on SMPL-API.** Today the bridge spawns the Claude binary unconditionally. SMPL-API for CD means the bridge is replaced by a direct API agent loop — no subprocess at all. Two implementation paths:
    - **A.** Add a `transport` field to `BridgeOptions`. When `transport === 'api'`, the bridge "process" is actually an in-memory async generator wrapping `runZaiAgentLoop`. Keep the same `sendMessage()` / `BridgeEvent` interface so chat-stream code doesn't change.
@@ -2837,7 +3816,7 @@ Today every Z.AI-bound build goes through the Claude binary subprocess + Z.AI's 
    - **CD** — biggest win. CD's bridge subprocess is the heaviest spawn in the system (long-lived, reused across turns). Direct API removes the subprocess + the resume/replay machinery that exists to mitigate subprocess fragility.
    - **WebDev** — `runWebDev` already has a clean API path (`runClaudeAgentLoop` for Anthropic). Adding `runZaiAgentLoop` is a sibling — one new file, ~150 LOC.
    - **Sentinel Ti** — same shape as WebDev. One new agent loop call.
-   - **Jedi Code** — runs in the user's local Claude Code session; no spawned subprocess to replace. Out of scope for WP-68 part 1.
+   - **Jedi Code** — runs in the user's local Claude Code session; no spawned subprocess to replace. Out of scope for WP-89 part 1.
 
 #### Part 2 — Integrate Z.AI's three MCP servers into our spawned agents
 
@@ -2947,28 +3926,39 @@ Source: `https://docs.z.ai/devpack/mcp/reader-mcp-server`. Endpoint: `https://ap
 
 6. **Caveat — `Z_AI_API_KEY` vs `ANTHROPIC_AUTH_TOKEN`.** The Anthropic-compatible endpoint uses `ANTHROPIC_AUTH_TOKEN`. The vision MCP server (npm) uses `Z_AI_API_KEY`. They may be the same string or different (Z.AI Console allows multiple keys). Document the env-var requirements in `.env.example` clearly so SMPL setup doesn't fail silently on a missing key.
 
-#### Sequencing within WP-68
+#### Sequencing within WP-89
 
 | Sub-WP | Scope | LOC est. | Order |
 |---|---|---|---|
-| **WP-68a** | `lib/zai-api-loop.ts` skeleton + WebDev SMPL-API smoke test (one vibe builds via direct Z.AI API, lands HTML, fires `report_build_complete`) | ~150 | 1st — validates the API path works |
-| **WP-68b** | TopBar UX for SMPL-CLI/SMPL-API toggle + session-config schema + router fork | ~80 | 2nd — exposes WP-68a in the UI |
-| **WP-68c** | CD on SMPL-API — replace bridge subprocess with direct API loop (option A or B above) | ~200 | 3rd — biggest payoff, highest risk; gate on 68a/68b |
-| **WP-68d** | Z.AI three-MCP-server integration: vision (npm/stdio), search (HTTP), reader (HTTP) registered for CD/WebDev/Sentinel Ti per the per-agent allowlist matrix in Part 2. `ensureMcpConfig` extension + allowlist additions + quota tracker + per-agent doctrine. Independent of 68a/68b/68c — can ship as soon as `Z_AI_API_KEY` env is plumbed | ~150 | 4th — independent track |
-| **WP-68e** | Sentinel Ti on SMPL-API + `ui_diff_check` integrated into Ti's audit pipeline as the canonical visual-regression call | ~100 | 5th |
+| **WP-89a** | `lib/zai-api-loop.ts` skeleton + WebDev SMPL-API smoke test (one vibe builds via direct Z.AI API, lands HTML, fires `report_build_complete`) | ~150 | 1st — validates the API path works |
+| **WP-89b** | TopBar UX for SMPL-CLI/SMPL-API toggle + session-config schema + router fork | ~80 | 2nd — exposes WP-89a in the UI |
+| **WP-89c** | CD on SMPL-API — replace bridge subprocess with direct API loop (option A or B above) | ~200 | 3rd — biggest payoff, highest risk; gate on 89a/89b |
+| **WP-89d** | Z.AI three-MCP-server integration: vision (npm/stdio), search (HTTP), reader (HTTP) registered for CD/WebDev/Sentinel Ti per the per-agent allowlist matrix in Part 2. `ensureMcpConfig` extension + allowlist additions + quota tracker + per-agent doctrine. Independent of 89a/89b/89c — can ship as soon as `Z_AI_API_KEY` env is plumbed | ~150 | 4th — independent track |
+| **WP-89e** | Sentinel Ti on SMPL-API + `ui_diff_check` integrated into Ti's audit pipeline as the canonical visual-regression call | ~100 | 5th |
 
 Total estimate: ~630 LOC across five sub-WPs. Each is independently testable.
 
 #### Acceptance
 
-- **WP-68a:** `runWebDev({mode: 'smpl', transport: 'api', model: 'glm-5.1', ...})` builds a vibe successfully against `https://api.z.ai/api/anthropic`. Stream of tool calls matches CLI mode. `report_build_complete` lands. Build manifest verified on disk. `total_cost_usd` flows through `lib/usage-tracker.ts` correctly under the direct-API shape.
-- **WP-68b:** TopBar offers SMPL-CLI vs. SMPL-API; toggle persists to session-config; both paths exercise their respective code paths verifiably.
-- **WP-68c:** Selecting SMPL-API + sending a chat message to CD spawns NO subprocess; the chat-stream still emits the same SSE events; tool calls (snackbar, build_vibe, etc.) work end-to-end.
-- **WP-68d:** All three Z.AI MCP servers register at agent spawn. CD fires `web_search_prime` successfully (returns structured results); WebDev fires `ui_diff_check` successfully (returns a diff verdict on a known-pair); Sentinel Ti fires `ui_diff_check` during an audit and the verdict appears in the critique. Quota tracker surfaces a snackbar at 80% plan cap.
+- **WP-89a:** `runWebDev({mode: 'smpl', transport: 'api', model: 'glm-5.1', ...})` builds a vibe successfully against `https://api.z.ai/api/anthropic`. Stream of tool calls matches CLI mode. `report_build_complete` lands. Build manifest verified on disk. `total_cost_usd` flows through `lib/usage-tracker.ts` correctly under the direct-API shape.
+- **WP-89b:** TopBar offers SMPL-CLI vs. SMPL-API; toggle persists to session-config; both paths exercise their respective code paths verifiably.
+- **WP-89c:** Selecting SMPL-API + sending a chat message to CD spawns NO subprocess; the chat-stream still emits the same SSE events; tool calls (snackbar, build_vibe, etc.) work end-to-end.
+- **WP-89d:** All three Z.AI MCP servers register at agent spawn. CD fires `web_search_prime` successfully (returns structured results); WebDev fires `ui_diff_check` successfully (returns a diff verdict on a known-pair); Sentinel Ti fires `ui_diff_check` during an audit and the verdict appears in the critique. Quota tracker surfaces a snackbar at 80% plan cap.
+- **WP-89e:** Sentinel Ti audit runs end-to-end on SMPL-API; critique persists to disk.
+- **Smoke test (orthogonal):** same vibe built under CLI (Anthropic), API (Anthropic), SMPL-CLI (Z.AI via tier-alias), SMPL-API (Z.AI direct). All four produce comparable HTML; tool fidelity matches; cost reflects provider pricing (CLI/API = Anthropic billing, SMPL-* = Z.AI billing in `total_cost_usd` dollars). SMPL-CLI and SMPL-API should land on the SAME model (glm-5.1) and emit comparable per-build cost — if SMPL-API is materially cheaper or more expensive than SMPL-CLI on the same vibe, that delta is the cost of the compat-layer + subprocess overhead and worth reporting.
+
+#### Risk
+
+- **Z.AI's tool-use shape under direct API vs. behind the compat layer.** Today we've only seen Z.AI's tool-use blocks through the Claude binary's stream-json wrapper, which is the compat layer's normalization. Direct API may surface raw differences (different field names, different tool-result shape, missing `cache_creation_input_tokens` etc.) that our parser doesn't handle. WP-89a's first job is to confirm shape parity with Anthropic's messages API or document the diffs and patch `lib/mcp-tool-collector.ts` accordingly.
+- **Cost-shape parity.** SMPL-CLI's `total_cost_usd` is what Claude Code's stream-json `result` event surfaces. Direct API needs us to read it from Z.AI's messages response — likely under `usage.total_cost_usd` or similar. Confirm field name + units (USD floats, not cents) at WP-89a spike.
+- **Z.AI's prompt-cache behavior.** Z.AI may not implement Anthropic's prompt-cache TTL the same way. Our chat-stream sleep tuning (270s windows) may need re-tuning for SMPL-API. Capture cache-hit rate during 89a smoke test.
+- **MCP-tool registration race under multiple servers.** When both `oskar-orchestrator` and Z.AI's MCP server are registered, name collisions (e.g. both expose a `screenshot` tool) need explicit namespacing. The `mcp__<server>__<tool>` prefix protects us, but the agent's prompt must reference the right one. Update agent doctrine accordingly.
+- **Mixed-provider sessions.** CD on SMPL-API + WebDev on CLI (or any heterogeneous mix). Cross-agent comms via `notify_agent` should still work — the MCP server is provider-agnostic — but verify the message format doesn't drift between providers.
+- **Bridge subprocess removal regressions (WP-89c).** The bridge has machinery for `--resume` (CLI session reuse), Order 66, mid-session model swaps, etc. Replacing it with a direct API loop loses subprocess-side state. Document what API mode trades for subprocess mode; gate WP-89c on a clear migration plan.
 
 ---
 
-### WP-69 — Migrate Nano Banana from AI Studio REST to Vertex AI MCP (gated on safety-policy spike)
+### WP-88 — Migrate Nano Banana from AI Studio REST to Vertex AI MCP (gated on safety-policy spike)
 
 **Goal.** Replace OskarOS's current image-generation path (Next.js → AI Studio REST API at `generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-image:generateContent`) with the Vertex AI path via Google's official GenMedia MCP server (`mcp-nanobanana-go`, hitting `aiplatform.googleapis.com`). This is **not** a coexistence proposal — the AI Studio REST path goes away.
 
@@ -3068,7 +4058,7 @@ If Phase 1 says "migrate":
 
 2. **`app/api/edit-image/route.ts`** — same. Both backend routes consolidate onto the MCP path.
 
-3. **`lib/mcp-config.ts:ensureMcpConfig`** — extend to register `mcp-nanobanana-go` (and optionally Imagen/Veo/Lyria siblings — see WP-69b). Two consumers:
+3. **`lib/mcp-config.ts:ensureMcpConfig`** — extend to register `mcp-nanobanana-go` (and optionally Imagen/Veo/Lyria siblings — see WP-88b). Two consumers:
    - Backend (Next.js) — spawns its own MCP client when handling `/api/generate-image`.
    - Agent (CD/WebDev/Sentinel Ti) — gets the server registered in their `.mcp.json` so they can fire `nanobanana_image_generation` mid-conversation.
 
@@ -3098,7 +4088,7 @@ If Phase 1 says "migrate":
 
 10. **Rollback** — keep the deleted REST code in git history; if Vertex AI policy drifts post-migration we can revert in one commit.
 
-#### Phase 3 — WP-69b (optional follow-up): GenMedia full-stack
+#### Phase 3 — WP-88b (optional follow-up): GenMedia full-stack
 
 Once Phase 2 lands, the rest of Google's GenMedia catalog becomes one-config-line additions:
 - `mcp-imagen-go` → photoreal (better than Nano on certain photographic categories)
@@ -3106,22 +4096,22 @@ Once Phase 2 lands, the rest of Google's GenMedia catalog becomes one-config-lin
 - `mcp-lyria-go` → music generation
 - `mcp-chirp3-go` → TTS
 
-WP-69b ships these as separate allowlist entries. Each is independently testable and can be gated on its own Phase-1-style spike if its safety policy needs verification.
+WP-88b ships these as separate allowlist entries. Each is independently testable and can be gated on its own Phase-1-style spike if its safety policy needs verification.
 
 #### Sub-WP table
 
 | Sub-WP | Scope | LOC est. | Order |
 |---|---|---|---|
-| **WP-69a** | Discovery spike — `scripts/nano-safety-spike.ts` + 10-prompt test + report | ~80 | 1st — HARD GATE |
-| **WP-69b** | Backend migration — `/api/generate-image` + `/api/edit-image` from REST to MCP | ~150 | 2nd — gated on 69a "migrate" |
-| **WP-69c** | Agent-side allowlist + WebDev doctrine update for in-flow gen | ~40 | 3rd — gated on 69b |
-| **WP-69d** | (optional) GenMedia siblings — Imagen, Veo, Lyria, Chirp registration + per-agent allowlists | ~80 | 4th — independent track |
+| **WP-88a** | Discovery spike — `scripts/nano-safety-spike.ts` + 10-prompt test + report | ~80 | 1st — HARD GATE |
+| **WP-88b** | Backend migration — `/api/generate-image` + `/api/edit-image` from REST to MCP | ~150 | 2nd — gated on 88a "migrate" |
+| **WP-88c** | Agent-side allowlist + WebDev doctrine update for in-flow gen | ~40 | 3rd — gated on 88b |
+| **WP-88d** | (optional) GenMedia siblings — Imagen, Veo, Lyria, Chirp registration + per-agent allowlists | ~80 | 4th — independent track |
 
 #### Acceptance
 
-- **WP-69a:** Report committed at `docs/safety-spike-2026-05-06.md` with all 20 rows filled. Decision documented. If migrate-decision is taken, decision is reproducible: anyone can re-run the spike and get the same numbers ±1 prompt.
-- **WP-69b:** `/api/generate-image` no longer references `generativelanguage.googleapis.com` anywhere; `GEMINI_API_KEY` removed from `.env.example`. Same image generation works end-to-end via MCP. `total_cost_usd` flows through usage tracker. Existing pre-staging flow (CD calls `generate_image` MCP tool → image lands in session folder → vibe builds reference it) works unchanged from the user's POV.
-- **WP-69c:** WebDev mid-build, when prompted with a missing-hero scenario, fires `nanobanana_image_generation` directly and the resulting image embeds in the rendered HTML.
+- **WP-88a:** Report committed at `docs/safety-spike-2026-05-06.md` with all 20 rows filled. Decision documented. If migrate-decision is taken, decision is reproducible: anyone can re-run the spike and get the same numbers ±1 prompt.
+- **WP-88b:** `/api/generate-image` no longer references `generativelanguage.googleapis.com` anywhere; `GEMINI_API_KEY` removed from `.env.example`. Same image generation works end-to-end via MCP. `total_cost_usd` flows through usage tracker. Existing pre-staging flow (CD calls `generate_image` MCP tool → image lands in session folder → vibe builds reference it) works unchanged from the user's POV.
+- **WP-88c:** WebDev mid-build, when prompted with a missing-hero scenario, fires `nanobanana_image_generation` directly and the resulting image embeds in the rendered HTML.
 - **Smoke test (orthogonal):** generate the same 10 prompts pre-migration vs post-migration; pass-rate on the migrate-list is materially better (matching Phase 1's measured delta).
 
 #### Risk
@@ -3132,116 +4122,5 @@ WP-69b ships these as separate allowlist entries. Each is independently testable
 - **Vertex AI quota / rate limits.** Different from AI Studio's. May need quota increase before production rollout.
 - **MCP server stability.** `mcp-nanobanana-go` is from `experiments/` in Google's repo — pre-1.0 code. Verify with the spike that 50+ consecutive calls don't crash/leak; if they do, escalate to direct Vertex REST (skipping the MCP wrapper) as the migration target.
 - **Auth migration friction in production deployments.** Moving from API key to ADC means service accounts in prod, not env vars. Documentation update required for anyone deploying OskarOS outside Ralph's machine.
-- **WP-68e:** Sentinel Ti audit runs end-to-end on SMPL-API; critique persists to disk.
-- **Smoke test (orthogonal):** same vibe built under CLI (Anthropic), API (Anthropic), SMPL-CLI (Z.AI via tier-alias), SMPL-API (Z.AI direct). All four produce comparable HTML; tool fidelity matches; cost reflects provider pricing (CLI/API = Anthropic billing, SMPL-* = Z.AI billing in `total_cost_usd` dollars). SMPL-CLI and SMPL-API should land on the SAME model (glm-5.1) and emit comparable per-build cost — if SMPL-API is materially cheaper or more expensive than SMPL-CLI on the same vibe, that delta is the cost of the compat-layer + subprocess overhead and worth reporting.
-
-#### Risk
-
-- **Z.AI's tool-use shape under direct API vs. behind the compat layer.** Today we've only seen Z.AI's tool-use blocks through the Claude binary's stream-json wrapper, which is the compat layer's normalization. Direct API may surface raw differences (different field names, different tool-result shape, missing `cache_creation_input_tokens` etc.) that our parser doesn't handle. WP-68a's first job is to confirm shape parity with Anthropic's messages API or document the diffs and patch `lib/mcp-tool-collector.ts` accordingly.
-- **Cost-shape parity.** SMPL-CLI's `total_cost_usd` is what Claude Code's stream-json `result` event surfaces. Direct API needs us to read it from Z.AI's messages response — likely under `usage.total_cost_usd` or similar. Confirm field name + units (USD floats, not cents) at WP-68a spike.
-- **Z.AI's prompt-cache behavior.** Z.AI may not implement Anthropic's prompt-cache TTL the same way. Our chat-stream sleep tuning (270s windows) may need re-tuning for SMPL-API. Capture cache-hit rate during 68a smoke test.
-- **MCP-tool registration race under multiple servers.** When both `oskar-orchestrator` and Z.AI's MCP server are registered, name collisions (e.g. both expose a `screenshot` tool) need explicit namespacing. The `mcp__<server>__<tool>` prefix protects us, but the agent's prompt must reference the right one. Update agent doctrine accordingly.
-- **Mixed-provider sessions.** CD on SMPL-API + WebDev on CLI (or any heterogeneous mix). Cross-agent comms via `notify_agent` should still work — the MCP server is provider-agnostic — but verify the message format doesn't drift between providers.
-- **Bridge subprocess removal regressions (WP-68c).** The bridge has machinery for `--resume` (CLI session reuse), Order 66, mid-session model swaps, etc. Replacing it with a direct API loop loses subprocess-side state. Document what API mode trades for subprocess mode; gate WP-68c on a clear migration plan.
 
 ---
-
-## §18 — 4-Phase Junior Pass model + new build tools (2026-05-07)
-
-CD's workflow restructure: replace the flat 4-vibe rule with a track-aware 4-phase model. New top-level TodoList: `Discovery → Junior Pass → Vibes → Final Build`. Phase 2 (Junior Pass) is exploratory and cheap; Phase 3 (Vibes) is committed and school-anchored; Phase 4 is the master.
-
-The full doctrine update landed in `agents/creative-director-agent.md` § "WHAT YOU DELIVER — 4-Phase Junior Pass Model" (replaces the prior 3-line deliverable list) and `agents/webdev-agent.md` § "The Mission" (track + phase strictness table). This §18 lists the infrastructure work needed to support it.
-
-### Track shape — what gets built per phase
-
-| Phase | Webpages | Keynotes | Brand-cards |
-|---|---|---|---|
-| 1 — Discovery | 7 seeded todos + track-type lock | same | same |
-| 2 — Junior Pass | 3 wireframes (no school) | 5 vibes × 3 slides | 25 cards (20 schools + 5 CD) |
-| 3 — Vibes | 5 vibes (3-of-5 school-anchored) | 2 vibes (Editorial + Interactive, many slides) | user-starred subset (~7) |
-| 4 — Final Build | 1 master page | 1 master keynote | 1 card in Branding |
-
-### WP-69 — `build_wireframes` MCP tool (NEW)
-
-Phase 2 build for webpages. Fires 3 wireframes derived solely from Discovery (no school anchor). Each wireframe carries the huashu Junior Designer assumptions+reasoning preamble at the top.
-
-Signature: `build_wireframes({ slug, n=3 })` → returns `{ jobId, status: "running" }`. Same fire-and-forget contract as `build_vibe`. WebDev subprocess receives the invocation and renders 3 distinct directional hypotheses.
-
-Files: `lib/mcp-server.ts` route + handler ~80 LOC. WebDev brief template extension ~40 LOC (wireframe-specific brief shape, lighter than VIBE-N.md).
-
-Pre-req: §17 hygiene gate — every new tool requires CD allowlist patch + agent respawn. Document in WP-69's done-means checklist.
-
-### WP-70 — `build_card_matrix` MCP tool (NEW)
-
-Phase 2 build for brand-cards. Fires the 25-card grid (20 designer cards + 5 CD intuition cards) on one HTML page. Each card forces brand-discovery commitments (paper/material, logo placement, wordmark scale).
-
-Signature: `build_card_matrix({ slug })` → same fire-and-forget contract.
-
-Files: `lib/mcp-server.ts` route + handler ~80 LOC. WebDev brief template ~60 LOC (matrix layout, card grammar, school refs).
-
-Pre-req: same allowlist + respawn gate as WP-69.
-
-### WP-71 — `build_all_vibes` keynote-junior mode (EXTENSION)
-
-Phase 2 build for keynotes. Existing `build_all_vibes` gets a `kind` parameter: `'webpage-vibe'` (default, unchanged) | `'keynote-junior'` (new — 5 vibes × 3 sample slides each) | `'keynote-vibe'` (new — Phase 3 committed, Editorial + Interactive, many slides each).
-
-Signature: `build_all_vibes({ slug, kind?='webpage-vibe' })`.
-
-Files: `lib/mcp-server.ts` route param + dispatch ~30 LOC. WebDev brief template variants ~80 LOC.
-
-### WP-72 — Confirm Understanding card: `track` field (UI)
-
-The Confirm Understanding card surfaced at the Phase 1 → Phase 2 gate gets a `track` field: radio with three options (`webpage | keynote | brand-cards`). CD pre-fills based on Discovery answers; user can flip before clicking Build. The clicked Build button fires the matching Phase 2 tool (WP-69 / WP-70 / WP-71).
-
-Files: `components/chat/ConfirmUnderstandingCard.tsx` ~30 LOC delta. Server-side handoff in `app/api/chat/route.ts` ~20 LOC.
-
-### WP-73 — Discovery user-input textarea on every discovery card (UI)
-
-Universal pattern: every card that surfaces during Discovery / Junior Pass / Vibes carries a user-input textarea at the bottom. Locked in §17 surface-assignment table.
-
-Files: shared `<DiscoveryCardFooter />` component ~40 LOC; refactor existing direction-cards / future moodboard / descent_selection cards to compose it ~10 LOC each.
-
-### WP-74 — Moodboard ToolCard (NEW, scope of WP-22)
-
-Tier 3 specialty panel. Fires at end of Phase 2 (Junior Pass complete). Shows the visual possibilities tried — wireframe thumbnails for webpages, slide thumbnails for keynotes, card grid for brand-cards. User reacts via the universal textarea (WP-73). CD reads the reaction and writes Phase 3 vibe specs.
-
-Files: `components/chat/MoodboardCard.tsx` ~80 LOC. MCP tool `surface_moodboard({ slug, items[] })` ~30 LOC.
-
-### WP-77 — Design System ToolCard (NEW, scope of WP-22) — MOODBOARD-SINGLE
-
-Tier 3 specialty panel, **larger than Moodboard**. Where Moodboard surfaces N parallel options, Design System surfaces ONE direction in full detail for review/sign-off. Renders the complete DS spec: atmosphere statement, color palette with hex + role labels (Primary / Surface / Background / Ink / Accent), typography hierarchy with actual rendered samples (H1/H2/H3/H4/Body in the spec'd fonts), component examples (button primary/secondary, card chassis, input), image treatment rules, animation posture, and a Do's/Don'ts grid.
-
-**Surfaces at three moments:**
-1. Phase 2 → Phase 3 alt-mode: when the user wants to lock-in a single design system before vibes are written (skips the moodboard pick, commits to one direction).
-2. Phase 3 → Phase 4 sign-off: after `descent_selection` picks a vibe, the Design System card surfaces that vibe's full DS for last-mile tweaks before Final.
-3. Mid-iteration: when CD wants explicit confirmation on a single DS proposal before deviating.
-
-**Three actions** (vs Moodboard's 2): `Approve & lock` (proceeds to next phase) / `Tweak` (opens the textarea, signals CD to adjust) / `Cancel` (returns to multi-option moodboard if available).
-
-**Full-width treatment.** This card lifts the 540px chassis cap (per "table-format cards earn full-width treatment" doctrine, locked 2026-05-06) — the DS spec doesn't fit at narrow widths.
-
-Files: `components/chat/DesignSystemCard.tsx` ~180 LOC. MCP tool `surface_design_system({ slug, vibeName, system })` ~40 LOC. The `system` payload mirrors the Design System block CD writes in CREATIVE-BRIEF.md / VIBE-N.md.
-
-### WP-75 — Descent Selection ToolCard (NEW, scope of WP-22)
-
-Tier 3 specialty panel. Fires at Phase 2 → Phase 3 (brand-cards starring) AND Phase 3 → Phase 4 (final vibe pick) handoffs. Renders the candidates as selectable thumbnails; user clicks to commit. Carries the universal textarea (WP-73) for last-mile feedback.
-
-Files: `components/chat/DescentSelectionCard.tsx` ~100 LOC. MCP tool `surface_descent_selection({ slug, candidates[], minPicks, maxPicks })` ~30 LOC.
-
-### WP-76 — Discovery seed: 4-phase wrapper + sub-task structure
-
-`lib/runtime/discovery-seed.ts` extension. Top-tier 4 items (`Discovery / Junior Pass / Vibes / Final Build`) are seeded alongside the existing 7 Discovery sub-tasks. The 4 top-tier items flip pending → in_progress → completed as CD advances. Sub-tasks for Junior Pass / Vibes / Final Build are added by CD when entering the phase, scoped to the locked track.
-
-Files: `lib/runtime/discovery-seed.ts` ~30 LOC delta. UnfinishedTodosPanel hierarchy rendering ~40 LOC delta.
-
-### Sequence
-
-WP-73 (textarea) and WP-72 (track field) ship first — pure UI, no new MCP tools, fast.
-WP-69 / WP-70 / WP-71 (new build tools) ship next — gated on §17 allowlist hygiene per tool.
-WP-74 / WP-75 / WP-77 (Moodboard + Descent + Design System cards) ship after WP-22 ToolCard infrastructure lands.
-WP-76 (4-phase TodoList wrapper) ships last — depends on WP-25 panel rendering hierarchy.
-
-Total estimated LOC: ~880 across 9 work packages. Should fit one focused JC arc.
-
----
-

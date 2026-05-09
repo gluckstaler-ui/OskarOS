@@ -1,11 +1,14 @@
 /**
  * /api/mcp/build-final — MCP-tool endpoint for `build_final()`.
  *
- * Phase 2.5 (Ralph 2026-04-30): escrowed. Returns {jobId, status:'running'}
- * in <100ms; the actual /api/webdev call runs in the background.
+ * Routes through runWebDev (Claude / Gemini / API). Same escrow + event-bus
+ * contract as build-vibe. WP-67 (Ralph 2026-05-09).
  */
 
 import { NextRequest, NextResponse } from 'next/server'
+import { readFile, writeFile } from 'fs/promises'
+import path from 'path'
+import { runWebDev } from '@/lib/run-webdev'
 import { publish } from '@/lib/event-bus'
 import { enqueueBuild, withWebdevMutex } from '@/lib/build-escrow'
 import { resolveWebDevExecution } from '@/lib/session-config'
@@ -21,45 +24,81 @@ export async function POST(req: NextRequest) {
   }
   if (!sessionId) return NextResponse.json({ error: 'sessionId required' }, { status: 400 })
 
-  // Phase 2 toggle wiring (Ralph 2026-05-04). See build-vibe/route.ts.
   const { mode, model } = resolveWebDevExecution({ mode: bodyMode, model: bodyModel }, sessionId)
+  const sessionPath = path.join(process.cwd(), 'public', sessionId)
+  const buildMdPath = path.join(sessionPath, 'BUILD.md')
+  const target = 'final'
 
   const enqueued = enqueueBuild({
     sessionId,
     kind: 'build_final',
-    runner: () => withWebdevMutex(sessionId, async () => {
+    runner: ({ signal }) => withWebdevMutex(sessionId, async () => {
+      // Audit log
+      try {
+        const existing = await readFile(buildMdPath, 'utf-8').catch(() => '# Build Log\n')
+        await writeFile(
+          buildMdPath,
+          existing + `\n## [${new Date().toISOString()}] BUILD: target="final" (via runWebDev)\n**Status:** BUILDING\n`,
+        )
+      } catch {}
+
       publish(sessionId, { type: 'build_started', mode: 'final' })
+      publish(sessionId, { type: 'build_progress', target, stage: 'html' })
 
-      // Stage transition queued → html (Ralph 2026-05-06): the moment the
-      // mutex grants us a slot we're calling /api/webdev — the agent is
-      // running. Build-final has only one row, target='final'. The
-      // 'verify' / 'done' transitions land via /api/webdev's own publish
-      // path (which fires vibe_built on success).
-      publish(sessionId, { type: 'build_progress', target: 'final', stage: 'html' })
-
-      const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'
-      const resp = await fetch(`${baseUrl}/api/webdev`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ sessionId, mode: 'final', executionMode: mode, webDevModel: model }),
-      })
-
-      let result: { success?: boolean; paths?: { landing?: string }; error?: string }
-      try { result = await resp.json() }
-      catch { result = { success: false, error: `Bad response from /api/webdev: HTTP ${resp.status}` } }
-
-      if (result.success) {
-        publish(sessionId, {
-          type: 'vibe_built',
-          mode: 'final',
-          filename: result.paths?.landing,
-          htmlPath: result.paths?.landing,
+      try {
+        const result = await runWebDev({
+          mode,
+          model,
+          sessionId,
+          sessionPath,
+          target,
+          abortSignal: signal,
+          onToolCall: (toolName, input) => {
+            if (toolName !== 'report_build_progress') return
+            const stage = typeof input?.stage === 'string' ? input.stage : undefined
+            const milestone = typeof input?.milestone === 'string' ? input.milestone : undefined
+            if (stage === 'html' || stage === 'verify') {
+              publish(sessionId, { type: 'build_progress', target, stage, milestone })
+            } else if (milestone) {
+              publish(sessionId, { type: 'build_progress', target, milestone })
+            }
+          },
         })
-        return { ok: true as const, result: { paths: result.paths } }
-      }
 
-      publish(sessionId, { type: 'build_failed', mode: 'final', error: result.error, level: 'error' })
-      return { ok: false as const, error: result.error || 'unknown error' }
+        if (result.status === 'complete') {
+          try {
+            const cur = await readFile(buildMdPath, 'utf-8')
+            await writeFile(buildMdPath, cur + `**Result:** COMPLETE -> ${result.filename}\n`)
+          } catch {}
+
+          // Verify pass — same best-effort posture as build-vibe
+          publish(sessionId, { type: 'build_progress', target, stage: 'verify' })
+
+          publish(sessionId, {
+            type: 'vibe_built',
+            mode: 'final',
+            filename: result.filename,
+            htmlPath: `/${sessionId}/${result.filename}`,
+          })
+          return { ok: true as const, result: { filename: result.filename } }
+        }
+
+        try {
+          const cur = await readFile(buildMdPath, 'utf-8')
+          await writeFile(buildMdPath, cur + `**Result:** FAILED -- ${result.error}\n`)
+        } catch {}
+        publish(sessionId, { type: 'build_failed', mode: 'final', error: result.error, level: 'error' })
+        return { ok: false as const, error: result.error }
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err)
+        console.error(`[build-final] runner threw:`, err)
+        try {
+          const cur = await readFile(buildMdPath, 'utf-8')
+          await writeFile(buildMdPath, cur + `**Result:** THREW -- ${msg}\n`)
+        } catch {}
+        publish(sessionId, { type: 'build_failed', mode: 'final', error: `runner threw: ${msg}`, level: 'error' })
+        return { ok: false as const, error: msg }
+      }
     }),
   })
 

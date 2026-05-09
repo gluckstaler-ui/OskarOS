@@ -1732,8 +1732,8 @@ export default function Home() {
             })()
           : newMessages.map(msg => ({ role: msg.role, content: msg.content }))
 
-      // Use CLI route (SMPL and CLI both invoke the bridge) or API route
-      const endpoint = billingMode === 'api' ? '/api/chat' : '/api/claude-code'
+      // API route for CD chat (CLI/SMPL modes use handleStreamingMessage → chat-stream)
+      const endpoint = '/api/chat'
       const response = await fetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -1976,7 +1976,6 @@ export default function Home() {
       const decoder = new TextDecoder()
       let assistantContent = ''
       let buffer = ''
-      const collectedVibes: any[] = []
       const collectedManifests: ImageManifest[] = []
 
       while (true) {
@@ -2038,12 +2037,8 @@ export default function Home() {
 
               case 'tool_complete':
                 // 2026-05-04 (Ralph): generate_vibe SSE handler removed.
-                // The tool no longer exists; vibes flow through the
-                // vibe_built event-bus event after build_vibe / build_all_vibes
-                // / build_final MCP tools complete on the server side.
-                // collectedVibes/collectedManifests are still declared above
-                // for the bridge-script ASSEMBLY path that reads them after
-                // streaming ends, but they stay empty in this branch.
+                // Vibes flow through the vibe_built event-bus event after
+                // build_vibe / build_all_vibes / build_final MCP tools.
                 break
 
               case 'image_manifests':
@@ -2284,67 +2279,6 @@ export default function Home() {
             // Ignore JSON parse errors
           }
         }
-      }
-
-      // Save vibes to server and get paths
-      if (collectedVibes.length > 0) {
-        const saveResponse = await fetch('/api/save-vibes', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ vibes: collectedVibes, sessionId: currentSessionId })
-        })
-        const saveData = await saveResponse.json()
-
-        if (saveData.vibePaths) {
-          collectedVibes.forEach((vibe, i) => {
-            vibe.htmlPath = saveData.vibePaths[i]
-
-            // Emit vibe ready event for snackbar
-            const vibeFile = saveData.vibePaths[i].split('/').pop()
-            emitVibeReady(currentSessionId, vibe.name, vibeFile)
-          })
-        }
-
-        // Merge collected vibes with any existing (e.g. from webdev_complete)
-        setVibes(prev => {
-          // Remove duplicates by id, prefer collected vibes
-          const existingIds = new Set(collectedVibes.map(v => v.id))
-          const toKeep = prev.filter(v => !existingIds.has(v.id) && v.id.startsWith('vibe-webdev'))
-          return [...collectedVibes, ...toKeep]
-        })
-        if (collectedVibes.length > 0) {
-          // Only set selected if not already set by webdev_complete
-          setSelectedVibe(current => current || collectedVibes[0])
-        }
-
-        setWorkflowPhase('generation')
-
-        // Update Creative Brief with generated vibes
-        const briefContent: CreativeBriefContent = {
-          businessName: businessName || 'Unknown Business',
-          status: 'VIBES_READY',
-          vibes: collectedVibes.map(v => ({
-            id: v.id,
-            name: v.name,
-            headline: v.headline,
-            tagline: v.tagline,
-            colors: v.colors,
-            typography: v.typography
-          }))
-        }
-        await populateCreativeBriefAction(currentSessionId, briefContent)
-        console.log('📋 Brief updated: vibes ready', collectedVibes.map(v => v.name))
-
-        // Note: WebDev is triggered by chat-stream when "BUILD READY" is detected
-        // The webdev_complete event handler adds the landing page vibe
-
-        // Transition to review phase - user discovers vibes through snackbars, not modal
-        setWorkflowProgress(prev => ({
-          ...prev,
-          currentPhase: 'review',
-          vibesGenerated: collectedVibes.length,
-          vibesComplete: collectedVibes.length  // All vibes are complete since they have HTML
-        }))
       }
 
       if (collectedManifests.length > 0) {
