@@ -4,9 +4,7 @@
  * Runs the two Sage agents WITHOUT killing the bridge.
  * The bridge stays alive — compaction happens alongside the live session.
  *
- * 2026-04-21: Lumberjack removed from order65 — same reasoning as order66.
- * Lumberjack keeps running on its 10-minute piggyback cadence via
- * maybeRunLumberjack in the chat routes. Order 65 now runs:
+ * Order 65 runs:
  *   - Sage-240/40   — SESSION.md compression (only if >240KB)
  *   - Sage-Portrait — user.md painting (parallel with 240/40)
  *
@@ -19,7 +17,7 @@
 
 import { NextRequest } from 'next/server'
 import { runSagePortrait, runSage240_40 } from '@/lib/memory/dreamer'
-import type { ProgressEvent } from '@/lib/memory/lumberjack'
+import type { ProgressEvent } from '@/lib/memory/dreamer'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'

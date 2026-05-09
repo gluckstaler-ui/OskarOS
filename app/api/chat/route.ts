@@ -20,7 +20,6 @@ import {
   getSessionMdPath, getUserMemoryPath, getDreamLogPath,
   getLogsDir
 } from '@/lib/memory/paths'
-import { maybeRunLumberjack } from '@/lib/memory/lumberjack'
 import {
   MCP_TOOL_DEFINITIONS_FOR_ANTHROPIC,
   isMcpTool,
@@ -1350,11 +1349,6 @@ Don't be polite. Be brilliant. If something is stunning, say "holy shit." If som
 
     // Log the assistant's response - VERBATIM per MD spec
     await logConversation('assistant', assistantMessage, effectiveSessionId)
-
-    // Lumberjack piggyback: fire-and-forget if 10+ minutes since last run
-    maybeRunLumberjack(effectiveSessionId).catch(err =>
-      console.error(`[${requestId}] Lumberjack failed:`, err)
-    )
 
     // ==========================================
     // Bridge Script for Live Preview & Director Mode

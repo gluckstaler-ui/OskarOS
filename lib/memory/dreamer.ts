@@ -10,8 +10,8 @@
  * prompt — identity, dark side, philosophy, instructions. The model needs
  * its full soul to paint portraits, not an extracted subsection.
  *
- * IMPORTANT: The dreamer pauses the lumberjack before running and
- * resumes it after. Both write to session files — they can't run simultaneously.
+ * IMPORTANT: The dreamer runs independently of Lumberjack (retired
+ * WP-67, 2026-05-09). It writes to user.md and the dream log only.
  */
 
 import { readFile, writeFile, mkdir, unlink } from 'fs/promises'
@@ -23,9 +23,22 @@ import {
 } from './paths'
 import { loadDreamerAgentFile, loadSagePortrait, loadSage240_40 } from './prompts'
 import { callAnthropic, callAnthropicAgent } from './anthropic'
-import { pauseLumberjack, resumeLumberjack } from './lumberjack'
-import type { ProgressCallback } from './lumberjack'
 import path from 'path'
+
+// ============================================================================
+// Types — relocated from lumberjack.ts (WP-67, Ralph 2026-05-09).
+// Lumberjack runtime is deleted but order65/order66 still consume these.
+// ============================================================================
+
+export type ProgressEvent = {
+  agent: 'lumberjack' | 'sage'
+  phase: 'started' | 'reading' | 'compacting' | 'writing' | 'completed' | 'skipped' | 'failed' | 'stream'
+  stage?: string
+  detail?: string
+  progress?: number
+}
+
+export type ProgressCallback = (event: ProgressEvent) => void
 
 // ============================================================================
 // Config
@@ -64,15 +77,7 @@ interface DreamerOutput {
  * Writes: user.md, dream log
  */
 export async function runDreamer(sessionId: string, onProgress?: ProgressCallback): Promise<DreamerResult> {
-  // Stop the lumberjack — both write to session files, can't run simultaneously
-  pauseLumberjack()
-
-  try {
-    return await _runDreamerInner(sessionId, onProgress)
-  } finally {
-    // Always resume, even if the dream cycle fails
-    resumeLumberjack()
-  }
+  return await _runDreamerInner(sessionId, onProgress)
 }
 
 /**

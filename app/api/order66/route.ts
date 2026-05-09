@@ -3,10 +3,7 @@
  *
  * Kills the bridge FIRST, then runs the two Sage agents.
  *
- * 2026-04-21: Lumberjack removed from order66 — the 7-stage Lumberjack
- * architecture was failing on every call (see git history). Lumberjack's
- * per-10-minute piggyback cadence still runs via maybeRunLumberjack in the
- * chat routes. Order 66 now runs:
+ * Order 66 runs:
  *   - Sage-240/40   — SESSION.md compression (only if >240KB, fast skip otherwise)
  *   - Sage-Portrait — user.md painting (parallel to 240/40, writes a different file)
  *
@@ -21,7 +18,7 @@
 
 import { NextRequest } from 'next/server'
 import { runSagePortrait, runSage240_40 } from '@/lib/memory/dreamer'
-import type { ProgressEvent } from '@/lib/memory/lumberjack'
+import type { ProgressEvent } from '@/lib/memory/dreamer'
 import { bridgeManager } from '@/lib/bridge-process-manager'
 
 export const runtime = 'nodejs'
