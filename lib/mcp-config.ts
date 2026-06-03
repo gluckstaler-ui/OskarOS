@@ -198,6 +198,14 @@ export const CD_ALLOWED_TOOLS = [
   `mcp__${MCP_SERVER_NAME}__build_fail`,
   `mcp__${MCP_SERVER_NAME}__build_progress`,
   `mcp__${MCP_SERVER_NAME}__submit_critique`,
+  // WP-SCOUT-3 (Ralph 2026-06-03): typed Scout verdict tool. Registered in
+  // mcp-server/tools-cd.ts:156 + dispatched at :1032, but originally missed
+  // in BOTH allowlists (this spawn-time list + mcp-server/tools.ts CD_ALLOWED).
+  // Result: the spawn flag rejected the call → Sonnet workers always returned
+  // "no verdict from agent" (the bridge collector saw zero tool calls). Same
+  // bug class as `propose_image_prompt` (Bug I, 2026-05-06) — the inverse of
+  // the comment two paragraphs below this array.
+  `mcp__${MCP_SERVER_NAME}__submit_scout_verdict`,
   // ── Claude Code built-in tools (Ralph 2026-05-06) ─────────────────────
   // Not MCP tools — Claude Code's own tool surface. Without these in the
   // allowlist, CD can't `Read`/`Write`/`Edit` files directly, can't run

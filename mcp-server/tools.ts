@@ -160,6 +160,14 @@ const CD_ALLOWED = new Set<string>([
   'preview_card',
   'build_done', 'build_fail', 'build_progress',
   'submit_critique',
+  // WP-SCOUT-3 (Ralph 2026-06-03): typed Scout verdict tool. Same drift
+  // class the comment 30 lines up warned about — registered in
+  // mcp-server/tools-cd.ts:156 + dispatched at :1032 but missed in BOTH
+  // allowlists, so the spawn-time `--allowed-tools` gate rejected the call
+  // and the bridge collector saw zero tool_use blocks → "no verdict from
+  // agent" on EVERY worker run. Pair with the entry in lib/mcp-config.ts
+  // CD_ALLOWED_TOOLS (same commit).
+  'submit_scout_verdict',
 ])
 
 const WEBDEV_ALLOWED = new Set<string>([
