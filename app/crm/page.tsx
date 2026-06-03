@@ -27,6 +27,10 @@ import { FlightDeckHost } from '@/components/crm/FlightDeckHost'
 import { deriveBaselineDeck } from './flight-deck-derive'
 import { CompactionOverlay } from '@/components/CompactionOverlay'
 import { KanbanBoard } from '@/components/crm/KanbanBoard'
+// WP-SCOUT-7 (Ralph 2026-06-03): import from the new component split. The
+// old monolithic components/crm/ScoutPool.tsx is retired; the container in
+// components/crm/scout/ composes ScoutRow + ScoutDossier + DecisionDeck.
+import { ScoutPool } from '@/components/crm/scout/ScoutPool'
 import { CmdKPalette } from '@/components/crm/CmdKPalette'
 import { WaComposeModal } from '@/components/crm/WaComposeModal'
 import { WaUnmatchedBanner } from '@/components/crm/WaUnmatchedBanner'
@@ -41,7 +45,7 @@ const CHAT_STORAGE_KEY = 'oskar-crm-react-chat-v1'
 // deliberate two-page split. Clicking those tabs navigates cross-page (see
 // handleNav), it never renders an in-page surface — mirrors crm.html's
 // maybeNavigateAcrossPages. So in-page `view` state is only ever own-views.
-type CrmView = 'overview' | 'kanban'
+type CrmView = 'overview' | 'kanban' | 'scout'
 type NavKey = CrmView | 'sessions' | 'analytics' | 'settings'
 
 export default function CrmPage() {
@@ -54,6 +58,11 @@ export default function CrmPage() {
   // that file after each turn and returns it as `data.deck`; we render it through
   // the React <FlightDeck/>. Absent → null → live overdue-queue baseline.
   const [deckData, setDeckData] = useState<{ pushed: unknown[]; queueCount: number } | null>(null)
+  // Flight Deck collapse (Ralph 2026-06-03): the deck-header toggle (replaces
+  // the old LIVE badge) flips this; collapsed → deck renders header-only → the
+  // Consular chat below it grows. Stable callback so it doesn't churn the host.
+  const [deckCollapsed, setDeckCollapsed] = useState(false)
+  const toggleDeck = useCallback(() => setDeckCollapsed((c) => !c), [])
   // Initial load — the chat route only returns the deck AFTER a turn, so on a
   // fresh /crm (or reload) fetch the persisted db/flight-deck.json once, so the
   // Consular's last drive shows immediately instead of the baseline queue.
@@ -194,7 +203,7 @@ export default function CrmPage() {
   useEffect(() => {
     try {
       const v = new URL(window.location.href).searchParams.get('view')
-      if (v === 'overview' || v === 'kanban') setView(v)
+      if (v === 'overview' || v === 'kanban' || v === 'scout') setView(v)
     } catch { /* SSR / malformed URL — keep the overview default */ }
   }, [])
   const [filter, setFilter] = useState<string>('overdue')
@@ -352,6 +361,7 @@ export default function CrmPage() {
   const navTabs: { key: NavKey; label: string }[] = [
     { key: 'sessions', label: 'Sessions' },
     { key: 'kanban', label: 'Kanban' },
+    { key: 'scout', label: 'Scout' },
     { key: 'overview', label: 'Overview' },
     { key: 'analytics', label: 'Analytics' },
     { key: 'settings', label: 'Settings' },
@@ -360,7 +370,7 @@ export default function CrmPage() {
   // on admin.html → navigate cross-page, exactly like crm.html's switchView →
   // maybeNavigateAcrossPages(view) → location.href = /admin.html?view=X.
   const handleNav = (key: NavKey) => {
-    if (key === 'overview' || key === 'kanban') { setView(key); return }
+    if (key === 'overview' || key === 'kanban' || key === 'scout') { setView(key); return }
     window.location.href = `/admin.html?view=${encodeURIComponent(key)}`
   }
 
@@ -544,6 +554,8 @@ export default function CrmPage() {
                     pushed={activeDeck.pushed}
                     queueCount={activeDeck.queueCount}
                     theme={theme}
+                    collapsed={deckCollapsed}
+                    onToggleCollapse={toggleDeck}
                     onExecute={(a) => { if (a.leadId) setSelectedId(a.leadId) }}
                     onOpenLead={(id) => { if (id) setSelectedId(id) }}
                     onShowQueue={() => { setFilter('overdue'); setSelectedId(null) }}
@@ -561,6 +573,8 @@ export default function CrmPage() {
               </div>
             </div>
           </div>
+        ) : view === 'scout' ? (
+          <ScoutPool onPromoted={() => reload()} onViewKanban={() => setView('kanban')} />
         ) : (
           <div style={{ position: 'relative', flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
             {/* Ralph 2026-06-03 — detail no longer opens as an overlay/modal.

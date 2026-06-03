@@ -15,6 +15,7 @@
 // ============================================================================
 
 import './crm.css'
+import './scout.css'
 import type { ReactNode } from 'react'
 
 export default function CrmLayout({ children }: { children: ReactNode }) {

@@ -49,7 +49,7 @@
 
 import { randomUUID } from 'crypto'
 
-export type JobKind = 'build_vibe' | 'build_wireframes' | 'generate_image'
+export type JobKind = 'build_vibe' | 'build_wireframes' | 'generate_image' | 'scout_taste'
 
 export type JobStatus = 'running' | 'complete' | 'failed' | 'cancelled' | 'stuck'
 

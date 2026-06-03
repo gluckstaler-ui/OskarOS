@@ -25,7 +25,7 @@ import { join } from 'path'
 
 export const MCP_SERVER_NAME = 'orch' as const
 
-export type AgentRole = 'cd' | 'webdev' | 'sentinel' | 'jedi-code' | 'consular'
+export type AgentRole = 'cd' | 'webdev' | 'sentinel' | 'jedi-code' | 'consular' | 'scout'
 
 export interface McpConfigOptions {
   sessionId: string
@@ -303,3 +303,10 @@ export const SENTINEL_ALLOWED_TOOLS = [
 // MCP tool. The earlier minimal allowlist — submit_image_prompt, snackbar,
 // modal, WebSearch/Fetch, bus — is subsumed by CD's superset.)
 export const CONSULAR_ALLOWED_TOOLS = CD_ALLOWED_TOOLS
+
+// WP-SCOUT-3 (Ralph 2026-06-03). The Scout is aliased to CD's full surface
+// — the persona stays distinct via agents/jedi-scout.md and the typed
+// submit_scout_verdict (added in mcp-server/tools-cd.ts) is what the role
+// actually calls. CD's surface gets Read/Glob/Grep/Bash for free, which the
+// Scout needs to look at the captured screenshots from lib/screenshot.ts.
+export const SCOUT_ALLOWED_TOOLS = CD_ALLOWED_TOOLS

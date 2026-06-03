@@ -25,7 +25,19 @@ interface Props {
   onClose: () => void
   /** Parent reloads CRM data after a successful import. */
   onImported: () => void
+  /**
+   * Where the import lands. WP-SCOUT-6 (Ralph 2026-06-03):
+   *   - 'prospects' (default) — Kanban pipeline; the existing /prospects/bulk flow.
+   *   - 'pool'                — Scout pre-Kanban pool (raw_prospects); goes through
+   *                             /raw-prospects with the spec's dedup-vs-both guard.
+   * The target can be flipped by the user inside the modal (see the picker
+   * in the defaults row), or pinned by the parent (e.g. the Scout view
+   * opens this modal pinned to 'pool').
+   */
+  initialTarget?: 'prospects' | 'pool'
 }
+
+type ImportTarget = 'prospects' | 'pool'
 
 interface ExistingIdentity { id: string; phone: string; email: string }
 type Candidate = Record<string, unknown>
@@ -46,7 +58,7 @@ const BULK_FIELDS: ProspectField[] = ['company', 'contact_name', 'phone', 'email
 
 const str = (v: unknown): string => (v === undefined || v === null ? '' : String(v))
 
-export function BulkImportModal({ onClose, onImported }: Props) {
+export function BulkImportModal({ onClose, onImported, initialTarget = 'prospects' }: Props) {
   const [text, setText] = useState('')
   const [parsed, setParsed] = useState<ParseResult | null>(null)
   const [existing, setExisting] = useState<ExistingIdentity[]>([])
@@ -57,11 +69,12 @@ export function BulkImportModal({ onClose, onImported }: Props) {
   const [status, setStatus] = useState('To do')
   const [confidence, setConfidence] = useState(25)
   const [batchTag, setBatchTag] = useState('')
+  const [target, setTarget] = useState<ImportTarget>(initialTarget)
   const [importing, setImporting] = useState(false)
   const [error, setError] = useState('')
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-  const doParse = useCallback(async (payload: { text?: string; fileBase64?: string; fileType?: 'csv' | 'tsv' | 'xlsx' }) => {
+  const doParse = useCallback(async (payload: { text?: string; fileBase64?: string; fileType?: 'csv' | 'tsv' | 'xlsx' | 'html' }) => {
     setError('')
     try {
       const res = await fetch('/api/admin/crm/parse', {
@@ -97,7 +110,16 @@ export function BulkImportModal({ onClose, onImported }: Props) {
   const onFile = useCallback((file: File | undefined) => {
     if (!file) return
     const ext = (file.name.split('.').pop() || '').toLowerCase()
-    const fileType: 'csv' | 'tsv' | 'xlsx' = ext === 'xlsx' ? 'xlsx' : ext === 'tsv' ? 'tsv' : 'csv'
+    // WP-SCOUT-6 (Ralph 2026-06-03): .html / .htm route through the same
+    // base64 → parse-route flow; the route's `fileType:'html'` branch
+    // extracts the largest <table> via JSDOM before the existing tabular
+    // parser sees it. No client-side DOMParser path — keeps the parser
+    // module browser-safe (no JSDOM in the bundle).
+    const fileType: 'csv' | 'tsv' | 'xlsx' | 'html' =
+      ext === 'xlsx' ? 'xlsx' :
+      ext === 'tsv'  ? 'tsv'  :
+      (ext === 'html' || ext === 'htm') ? 'html' :
+      'csv'
     const reader = new FileReader()
     reader.onload = () => {
       const out = typeof reader.result === 'string' ? reader.result : ''
@@ -116,16 +138,58 @@ export function BulkImportModal({ onClose, onImported }: Props) {
       : applyMapping(parsed.rows, mapping)
     const dups = parsed.mode === 'vcard' ? (vcardDups || []) : detectDuplicates(cands, existing)
     const dset = new Set(dups.map((d) => d.candidateIndex))
+    // Pipeline accepts rows with a `company`; pool accepts any row with at
+    // least one identifier (website / phone / email / name / company). The
+    // server route enforces this too — the client-side count is just for
+    // the preview's "ready / rejected" badge.
     let rejected = 0
-    cands.forEach((c) => { if (!str(c.company)) rejected++ })
-    const accepted = cands.filter((c, i) => str(c.company) && !(skipDup && dset.has(i))).length
+    const hasAnyIdentifier = (c: Candidate): boolean =>
+      !!(str(c.website) || str(c.phone) || str(c.email) || str(c.contact_name) || str(c.company))
+    const isAcceptedRow = (c: Candidate): boolean =>
+      target === 'pool' ? hasAnyIdentifier(c) : !!str(c.company)
+    cands.forEach((c) => { if (!isAcceptedRow(c)) rejected++ })
+    const accepted = cands.filter((c, i) => isAcceptedRow(c) && !(skipDup && dset.has(i))).length
     return { candidates: cands, dupSet: dset, acceptedCount: accepted, rejectedCount: rejected, dupCount: dset.size }
-  }, [parsed, mapping, existing, vcardDups, skipDup])
+  }, [parsed, mapping, existing, vcardDups, skipDup, target])
 
   const doImport = useCallback(async () => {
     if (acceptedCount === 0) return
     setImporting(true); setError('')
     try {
+      // WP-SCOUT-6: branch by target. Pool ingest uses a different route
+      // (`/raw-prospects`), a different field-set (no amount/confidence —
+      // those are pipeline concepts), and authoritative server-side dedup
+      // against both pool AND prospects.
+      if (target === 'pool') {
+        // For the pool: pool rows are about WHO and WHERE, not pipeline metadata.
+        // Map `contact_name` → `name` (the pool's parsed field).
+        const toSend = candidates
+          .filter((c) => {
+            // Pool requires AT LEAST ONE identifier — website OR phone OR email OR name OR company.
+            return str(c.website) || str(c.phone) || str(c.email) || str(c.contact_name) || str(c.company)
+          })
+          .map((c) => ({
+            name: str(c.contact_name),
+            company: str(c.company),
+            phone: str(c.phone),
+            email: str(c.email),
+            website: str(c.website),
+            // raw_payload defaults to the candidate itself — kept for re-parsing.
+            raw_payload: c,
+          }))
+        const res = await fetch('/api/admin/crm/raw-prospects', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            candidates: toSend,
+            source: batchTag ? `html-import:${batchTag}` : `html-import:${new Date().toISOString().slice(0, 10)}`,
+          }),
+        })
+        if (!res.ok) { const e = (await res.json().catch(() => ({}))) as { error?: string }; throw new Error(e.error || `HTTP ${res.status}`) }
+        onImported()
+        onClose()
+        return
+      }
       const toSend = candidates
         .filter((c, i) => str(c.company) && !(skipDup && dupSet.has(i)))
         .map((c) => {
@@ -149,7 +213,7 @@ export function BulkImportModal({ onClose, onImported }: Props) {
     } finally {
       setImporting(false)
     }
-  }, [candidates, skipDup, dupSet, acceptedCount, stage, status, confidence, batchTag, onImported, onClose])
+  }, [candidates, skipDup, dupSet, acceptedCount, target, stage, status, confidence, batchTag, onImported, onClose])
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
@@ -182,8 +246,8 @@ export function BulkImportModal({ onClose, onImported }: Props) {
             onChange={(e) => onTextChange(e.target.value)}
           />
           <label className="crm-bulk-dropzone" style={{ display: 'block', cursor: 'pointer' }}>
-            <Paperclip width={14} height={14} style={{ display: 'inline-block', verticalAlign: 'text-bottom' }} /> Drop a <span style={{ color: 'var(--text-main)' }}>.csv</span> · <span style={{ color: 'var(--text-main)' }}>.tsv</span> · <span style={{ color: 'var(--text-main)' }}>.xlsx</span> file — or click to browse
-            <input type="file" accept=".csv,.tsv,.xlsx" style={{ display: 'none' }} onChange={(e) => onFile(e.target.files?.[0])} />
+            <Paperclip width={14} height={14} style={{ display: 'inline-block', verticalAlign: 'text-bottom' }} /> Drop a <span style={{ color: 'var(--text-main)' }}>.csv</span> · <span style={{ color: 'var(--text-main)' }}>.tsv</span> · <span style={{ color: 'var(--text-main)' }}>.xlsx</span> · <span style={{ color: 'var(--text-main)' }}>.html</span> file — or click to browse
+            <input type="file" accept=".csv,.tsv,.xlsx,.html,.htm" style={{ display: 'none' }} onChange={(e) => onFile(e.target.files?.[0])} />
           </label>
 
           {parsed && mode && mode !== 'empty' && (
@@ -218,21 +282,34 @@ export function BulkImportModal({ onClose, onImported }: Props) {
 
               <div style={labelHead}>Defaults for missing fields</div>
               <div className="crm-bulk-defaults">
-                <label>Stage
-                  <select value={stage} onChange={(e) => setStage(e.target.value)}>
-                    <option>Incoming</option><option>Contacted</option><option>Demo done</option><option>Closing</option>
+                <label>Target
+                  {/* WP-SCOUT-6: pick the landing zone. Pool = Scout pre-Kanban
+                      (raw_prospects, gets tasted before any stage assignment).
+                      Pipeline = the existing Kanban prospects flow. */}
+                  <select value={target} onChange={(e) => setTarget(e.target.value as ImportTarget)}>
+                    <option value="prospects">Pipeline (Kanban)</option>
+                    <option value="pool">Scout pool (pre-Kanban)</option>
                   </select>
                 </label>
-                <label>Status
-                  <select value={status} onChange={(e) => setStatus(e.target.value)}>
-                    <option>To do</option><option>Standby</option>
-                  </select>
-                </label>
-                <label>Confidence %
-                  <input type="number" min={0} max={100} value={confidence} onChange={(e) => setConfidence(Number(e.target.value) || 0)} style={{ width: 70 }} />
-                </label>
+                {target === 'prospects' && (
+                  <>
+                    <label>Stage
+                      <select value={stage} onChange={(e) => setStage(e.target.value)}>
+                        <option>Incoming</option><option>Contacted</option><option>Demo done</option><option>Closing</option>
+                      </select>
+                    </label>
+                    <label>Status
+                      <select value={status} onChange={(e) => setStatus(e.target.value)}>
+                        <option>To do</option><option>Standby</option>
+                      </select>
+                    </label>
+                    <label>Confidence %
+                      <input type="number" min={0} max={100} value={confidence} onChange={(e) => setConfidence(Number(e.target.value) || 0)} style={{ width: 70 }} />
+                    </label>
+                  </>
+                )}
                 <label>Batch tag
-                  <input type="text" placeholder="bulk-import" value={batchTag} onChange={(e) => setBatchTag(e.target.value)} />
+                  <input type="text" placeholder={target === 'pool' ? 'html-import' : 'bulk-import'} value={batchTag} onChange={(e) => setBatchTag(e.target.value)} />
                 </label>
               </div>
 

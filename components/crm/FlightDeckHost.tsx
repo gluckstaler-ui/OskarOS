@@ -76,9 +76,13 @@ interface Props {
   onExecute?: (a: { leadId?: string; verb?: string; company?: string }) => void
   onOpenLead?: (id?: string) => void
   onShowQueue?: () => void
+  /** Header collapse toggle (Ralph 2026-06-03) — replaces the deck's LIVE badge.
+   *  When collapsed, the deck renders header-only so the chat below grows. */
+  collapsed?: boolean
+  onToggleCollapse?: () => void
 }
 
-export function FlightDeckHost({ theme, pushed, queueCount, onExecute, onOpenLead, onShowQueue }: Props) {
+export function FlightDeckHost({ theme, pushed, queueCount, onExecute, onOpenLead, onShowQueue, collapsed, onToggleCollapse }: Props) {
   const ref = useRef<HTMLDivElement>(null)
   useEffect(() => {
     let cancelled = false
@@ -94,10 +98,12 @@ export function FlightDeckHost({ theme, pushed, queueCount, onExecute, onOpenLea
           onExecute,
           onOpenLead,
           onShowQueue,
+          collapsed,
+          onToggleCollapse,
         })
       })
       .catch((e) => console.error('[FlightDeckHost] load/render failed:', e))
     return () => { cancelled = true }
-  }, [theme, pushed, queueCount, onExecute, onOpenLead, onShowQueue])
+  }, [theme, pushed, queueCount, onExecute, onOpenLead, onShowQueue, collapsed, onToggleCollapse])
   return <div id={MOUNT_ID} ref={ref} />
 }

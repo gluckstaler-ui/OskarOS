@@ -1,0 +1,241 @@
+/* Scout pool view — full-width CARD list (Ralph 2026-06-03 redesign).
+   Ported 1:1 from docs/2026-06-03-scout-mockup/real-pool-2.html (card redesign),
+   re-styled over the REAL crm.css tokens (resolve under .crm-app, switch with the
+   theme toggle). No token block, no shell. scout- prefixed. */
+
+/* Mockup-aligned per-theme tokens (Ralph 2026-06-03 parity audit).
+   The scout view uses LOCAL tokens where it diverges from the crm.css globals:
+     --sv-{blue,violet,green} — colors crm.css doesn't expose; per-mockup the
+       blue/violet/green shift between themes for legibility on cream vs onyx.
+       Values mirror docs/2026-06-03-scout-mockup/real-pool-2.html lines 18 + 23.
+     --bg-sunken — production crm.css polar sets this to #ffffff (stark
+       white), but the mockup wants warm cream #efe7cf so the
+       .scout-lc-scout strip reads as a warmer recess against the card,
+       not a bleached panel. Override is scoped to .scout-pool only —
+       doesn't touch other crm components that rely on the global. */
+.scout-pool{
+  /* Onyx defaults — mockup line 18 */
+  --sv-blue:#60a5fa;
+  --sv-violet:#b69cff;
+  --sv-green:#10b981;
+  flex:1; min-height:0; display:flex; flex-direction:column; overflow:hidden;
+}
+[data-theme="polar"] .scout-pool{
+  /* Polar overrides — mockup line 23 */
+  --sv-blue:#2563eb;
+  --sv-violet:#6d44d0;
+  --sv-green:#0f9d6e;
+  /* The big one: crm.css polar sets --bg-sunken: #ffffff (line 121), but
+     in the mockup it's #efe7cf — a slightly darker, warmer cream. Without
+     this override the scout strip behind every card reads as a flat white
+     panel against the cream card, which breaks the "recessed inset" feel
+     the mockup is going for. Scoped so the rest of the crm doesn't move. */
+  --bg-sunken:#efe7cf;
+}
+
+/* funnel header */
+.scout-head{padding:2px 2px 0;}
+.scout-funnel{display:flex;align-items:center;gap:10px;margin-top:2px;font-family:var(--font-mono,monospace);font-size:11px;color:var(--text-muted);flex-wrap:wrap;}
+.scout-pill{display:inline-flex;align-items:center;gap:6px;background:var(--bg-card);border:1px solid var(--border-card);border-radius:999px;padding:4px 11px;}
+.scout-pill b{color:var(--text-main);font-weight:600;}
+.scout-pill.hot b{color:var(--brand-red);}.scout-pill.green b{color:var(--sv-violet);}
+.scout-arw{color:var(--text-dim);}
+
+/* toolbar */
+.scout-tools{display:flex;align-items:center;gap:8px;padding:14px 2px 10px;flex-wrap:wrap;}
+.scout-search{display:flex;align-items:center;gap:6px;background:var(--bg-card);border:1px solid var(--border-card);border-radius:8px;padding:6px 10px;color:var(--text-dim);font-size:12px;width:200px;}
+.scout-search input{border:0;background:transparent;color:var(--text-main);font-size:12px;outline:none;width:100%;font-family:inherit;}
+.scout-chips{display:flex;gap:5px;flex-wrap:wrap;}
+.scout-chip{font-family:var(--font-mono,monospace);font-size:10.5px;font-weight:600;color:var(--text-muted);background:var(--bg-card);border:1px solid var(--border-card);border-radius:999px;padding:5px 11px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;}
+.scout-chip:hover{color:var(--text-main);}
+.scout-chip.on{color:var(--text-main);border-color:var(--border-active);background:var(--bg-card-hover);}
+.scout-chip .c{color:var(--text-dim);}.scout-chip.on .c{color:var(--text-muted);}
+
+/* Run Scout — the persistent batch-launch button. Sits at the right end
+   of the toolbar (margin-left:auto pushes it past the chips). Phosphor-on-
+   dark when actionable, muted when nothing to taste, animated when work
+   is in flight. WP-SCOUT-7 (Ralph 2026-06-03). */
+.scout-run{margin-left:auto;display:inline-flex;align-items:center;gap:8px;font-family:var(--font-mono,monospace);font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;background:linear-gradient(135deg,#15B981,#047857);color:#fff;border:0;border-radius:8px;padding:8px 14px;cursor:pointer;box-shadow:0 1px 0 rgba(255,255,255,.08) inset,0 2px 8px rgba(21,185,129,.18);transition:transform .12s,box-shadow .12s,opacity .12s;}
+.scout-run:hover:not(:disabled){transform:translateY(-1px);box-shadow:0 1px 0 rgba(255,255,255,.12) inset,0 4px 14px rgba(21,185,129,.28);}
+.scout-run:active:not(:disabled){transform:translateY(0);}
+.scout-run:disabled{cursor:not-allowed;opacity:.45;background:var(--bg-card-hover);color:var(--text-dim);box-shadow:none;}
+.scout-run .lbl{font-size:11px;letter-spacing:.05em;}
+.scout-run:disabled .lbl{letter-spacing:.03em;}
+/* While a batch is in flight: animated pulse so it's obvious work is happening. */
+@keyframes scoutRunPulse{0%,100%{box-shadow:0 1px 0 rgba(255,255,255,.08) inset,0 2px 8px rgba(21,185,129,.18);}50%{box-shadow:0 1px 0 rgba(255,255,255,.12) inset,0 4px 18px rgba(21,185,129,.42);}}
+.scout-run:disabled[title*="agents"]{animation:scoutRunPulse 1.6s ease-in-out infinite;opacity:.85;background:linear-gradient(135deg,#15B981,#047857);color:#fff;}
+/* STOP morph (Ralph 2026-06-03): the SAME button switches from green "Run
+   Scout" to red "STOP" while a batch is in flight. Same animated pulse so
+   in-flight-ness still reads, but with red urgency so click-to-stop is
+   visually distinct from click-to-run. */
+@keyframes scoutStopPulse{0%,100%{box-shadow:0 1px 0 rgba(255,255,255,.08) inset,0 2px 8px rgba(239,68,68,.20);}50%{box-shadow:0 1px 0 rgba(255,255,255,.12) inset,0 4px 18px rgba(239,68,68,.48);}}
+.scout-run.scout-stop{background:linear-gradient(135deg,#ef4444,#b91c1c);color:#fff;animation:scoutStopPulse 1.4s ease-in-out infinite;opacity:1;}
+.scout-run.scout-stop:hover{transform:translateY(-1px);box-shadow:0 1px 0 rgba(255,255,255,.14) inset,0 4px 16px rgba(239,68,68,.45);}
+
+/* card list */
+.scout-wrap{flex:1;min-height:0;overflow:auto;padding:4px 2px 40px;}
+.scout-cards{display:flex;flex-direction:column;gap:8px;}
+.scout-selall{display:flex;align-items:center;gap:9px;padding:4px 2px 8px;font-family:var(--font-mono,monospace);font-size:10.5px;color:var(--text-muted);cursor:pointer;}
+.scout-selall:hover{color:var(--text-main);}
+
+.scout-chk{width:18px;height:18px;border-radius:5px;border:1.5px solid var(--border-active);display:inline-flex;align-items:center;justify-content:center;cursor:pointer;background:var(--bg-app);flex-shrink:0;color:#fff;}
+.scout-chk.on{background:var(--sv-green);border-color:var(--sv-green);}
+.scout-chk svg{width:11px;height:11px;}
+
+.scout-lc{border:1px solid var(--border-card);border-radius:12px;background:var(--bg-card);transition:border-color .15s,background .15s,opacity .35s,transform .35s;}
+.scout-lc:hover{border-color:var(--border-active);}
+/* Already-scouted rows sit on a CLEARLY distinct surface so the eye can
+   sweep "done vs to-do" at a glance — Ralph 2026-06-03. The first pass
+   used --bg-card-hover on onyx, which is only 8 units brighter than the
+   base (171410 → 1f1a14) — imperceptible. This pass goes hard:
+   POLAR — mix 22% black into cream  → ~#C6C2B5 — clearly aged-paper cream
+   ONYX  — mix 35% white into bg-card → ~#5A5650 — clearly elevated, almost
+           "highlight" level; pairs with a phosphor-tinted border so the
+           row reads as "done-and-still-glanceable" not "completely-faded".
+   Border also gets a phosphor tint at low opacity in both themes — a 1px
+   accent that says "this row's already been judged" without screaming. */
+/* Default = ONYX (no data-theme attribute is set; app/crm/page.tsx:103
+   REMOVES the attribute for onyx and only SETS it for polar). The polar
+   override below uses [data-theme="polar"]. Earlier draft had `[data-theme=
+   "onyx"]` which never matched → onyx silently fell through to the polar
+   dark-mix → near-invisible. Fixed Ralph 2026-06-03. */
+.scout-lc.scouted{
+  background:color-mix(in srgb, var(--bg-card) 65%, #fff);
+  border-color:color-mix(in srgb, var(--border-card) 50%, var(--brand-phosphor));
+}
+[data-theme="polar"] .scout-lc.scouted{
+  background:color-mix(in srgb, var(--bg-card) 78%, #000);
+  border-color:color-mix(in srgb, var(--border-card) 60%, var(--brand-phosphor));
+}
+.scout-lc.scouted:hover{background:color-mix(in srgb, var(--bg-card) 55%, #fff);}
+[data-theme="polar"] .scout-lc.scouted:hover{background:color-mix(in srgb, var(--bg-card) 70%, #000);}
+.scout-lc.sel{border-color:var(--sv-green);background:rgba(16,185,129,.05);}
+/* Selection wins over scouted shade — sel + scouted should still read green-tinted. */
+.scout-lc.scouted.sel{background:rgba(16,185,129,.07);}
+.scout-lc.open{border-color:var(--border-active);}
+
+.scout-lc-body{padding:13px 16px;cursor:pointer;}
+.scout-lc-top{display:flex;align-items:center;gap:16px;}
+.scout-lc-id{flex:1;min-width:0;}
+.scout-nm{font-weight:600;font-size:14px;color:var(--text-main);line-height:1.2;}
+.scout-typ{font-size:11px;color:var(--text-muted);margin-top:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.scout-reg{font-size:9px;color:var(--text-muted);background:var(--bg-sunken);border:1px solid var(--border-card);padding:2px 8px;border-radius:999px;letter-spacing:.04em;text-transform:uppercase;margin-right:7px;}
+.scout-lc-contact{font-family:var(--font-mono,monospace);font-size:11px;color:var(--text-muted);display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end;max-width:62%;}
+.scout-lc-contact .dot{color:var(--text-dim);}
+.scout-lc-contact .adr{color:var(--text-main);}
+.scout-ct{color:var(--text-main);}.scout-ct.none{color:var(--text-dim);}
+.scout-web{color:var(--sv-blue);text-decoration:none;border-bottom:1px dotted var(--border-active);cursor:pointer;}
+.scout-web:hover{color:var(--text-main);}
+.scout-gftag{font-size:9px;font-weight:700;color:var(--sv-violet);background:rgba(124,92,208,.12);padding:2px 8px;border-radius:999px;text-transform:uppercase;letter-spacing:.04em;}
+.scout-gftag.low{color:var(--text-muted);background:var(--bg-sunken);}
+.scout-exp{width:24px;height:24px;border-radius:7px;border:1px solid var(--border-card);background:var(--bg-sunken);color:var(--text-muted);display:inline-flex;align-items:center;justify-content:center;font-size:11px;flex-shrink:0;transition:transform .2s,color .15s;}
+.scout-lc-body:hover .scout-exp{color:var(--text-main);}
+.scout-lc.open .scout-exp{transform:rotate(180deg);color:var(--text-main);}
+
+/* meters / gap / heat */
+.scout-meter{display:inline-flex;align-items:center;gap:7px;}
+.scout-segs{display:flex;gap:3px;}
+.scout-seg{width:6px;height:14px;border-radius:2px;background:var(--border-active);}
+.scout-meter.pal .scout-seg.on{background:var(--brand-phosphor);}
+.scout-meter.exe .scout-seg.on{background:var(--brand-amber);}
+.scout-meter .n{font-family:var(--font-mono,monospace);font-size:12px;font-weight:600;}
+.scout-meter .n .mx{color:var(--text-dim);font-weight:400;}
+.scout-gap{font-family:var(--font-mono,monospace);font-size:17px;font-weight:700;}
+.scout-gap.hot{color:var(--brand-red);}.scout-gap.warm{color:var(--brand-amber);}.scout-gap.cold{color:var(--text-dim);}
+.scout-vchip{display:inline-flex;align-items:center;gap:4px;padding:2px 9px;border-radius:999px;font-family:var(--font-mono,monospace);font-size:10px;font-weight:700;letter-spacing:.04em;}
+.scout-vchip.hot{background:rgba(255,106,77,.16);color:var(--brand-red);}
+.scout-vchip.warm{background:rgba(255,184,74,.16);color:var(--brand-amber);}
+.scout-vchip.cold{background:rgba(59,130,246,.15);color:var(--sv-blue);}
+.scout-vchip.pend{background:var(--bg-sunken);color:var(--text-muted);}
+
+/* scout summary strip (inside card) */
+.scout-lc-scout{display:flex;align-items:center;gap:20px;flex-wrap:wrap;margin-top:11px;padding:11px 14px;background:var(--bg-sunken);border-radius:9px;}
+.scout-sc-verdict{display:flex;align-items:center;gap:9px;flex-shrink:0;}
+.scout-sc-meters{display:flex;gap:16px;flex-shrink:0;}
+.scout-m{display:flex;align-items:center;gap:8px;}
+.scout-ml{font-family:var(--font-mono,monospace);font-size:9px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.06em;}
+.scout-sc-choice{flex:1;min-width:220px;font-size:12.5px;color:var(--text-main);line-height:1.35;}
+.scout-sc-choice .q{color:var(--text-dim);}
+.scout-sc-intel{display:flex;align-items:center;gap:7px;flex-shrink:0;}
+.scout-lampstrip{display:flex;gap:4px;}
+.scout-ld{width:8px;height:8px;border-radius:999px;background:var(--border-active);}
+.scout-ld.good{background:var(--brand-phosphor);}.scout-ld.mid{background:var(--brand-amber);}.scout-ld.bad{background:var(--brand-red);}.scout-ld.info{background:var(--text-muted);}
+.scout-sc-intel .il{font-family:var(--font-mono,monospace);font-size:9px;color:var(--text-dim);text-transform:uppercase;letter-spacing:.05em;}
+.scout-lc-scout.raw .rawmsg{font-family:var(--font-mono,monospace);font-size:11.5px;color:var(--text-muted);}
+.scout-lc-scout.raw .pickhint{font-family:var(--font-mono,monospace);font-size:10.5px;color:var(--brand-amber);opacity:.85;margin-left:auto;}
+.scout-lc-scout.green .pursue{font-family:var(--font-mono,monospace);font-size:10px;padding:2px 9px;border-radius:999px;flex-shrink:0;}
+.scout-pursue.high,.scout-lc-scout.green .pursue.high{color:var(--brand-phosphor);background:rgba(200,238,122,.12);}
+.scout-pursue.low,.scout-lc-scout.green .pursue.low{color:var(--text-muted);background:var(--bg-card);}
+.scout-lc-scout.green .gfnote{font-size:12px;color:var(--text-muted);line-height:1.4;}
+.scout-tasting{display:inline-flex;align-items:center;gap:9px;color:var(--brand-amber);font-family:var(--font-mono,monospace);font-size:12px;}
+.scout-tasting .spin{width:12px;height:12px;border-radius:999px;border:2px solid var(--brand-amber);border-right-color:transparent;animation:scoutspin .7s linear infinite;}
+
+/* expand dossier */
+.scout-lc-detail{display:none;border-top:1px solid var(--border-card);}
+.scout-lc.open .scout-lc-detail{display:block;}
+.scout-dgrid2{display:grid;grid-template-columns:1fr 1fr;gap:32px;padding:16px;}
+@media(max-width:980px){.scout-dgrid2{grid-template-columns:1fr;}}
+.scout-dlabel{font-family:var(--font-mono,monospace);font-size:8.5px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--text-dim);margin-bottom:11px;}
+.scout-shot{min-height:80px;max-width:520px;border-radius:8px;border:1px solid var(--border-card);background:linear-gradient(135deg,var(--bg-sunken),var(--bg-app));position:relative;overflow:hidden;margin-top:14px;padding:10px 12px 28px;display:flex;flex-direction:column;gap:8px;}
+.scout-shot .lbl{position:absolute;bottom:6px;right:8px;font-family:var(--font-mono,monospace);font-size:9px;color:var(--text-dim);display:flex;gap:6px;align-items:baseline;}
+.scout-shot .lbl .ts{font-size:8px;color:var(--text-dim);opacity:.7;}
+.scout-shot .empty{font-family:var(--font-mono,monospace);font-size:10px;color:var(--text-dim);font-style:italic;padding-top:4px;}
+/* WP-SCOUT-7: screenshot grid (full + 1 inner). Lazy <img> with click-through
+   to the native-res file (target=_blank in ScoutDossier). Failed captures
+   render the SSRF/timeout reason in muted red — visible but not alarming. */
+.scout-shot.ok{padding:0;height:auto;background:#0c0c10;}
+.scout-shot.ok .lbl{background:rgba(0,0,0,.55);padding:3px 6px;border-radius:0 0 0 6px;top:6px;right:6px;bottom:auto;}
+.scout-shot-imgs{display:grid;grid-template-columns:1fr 1fr;gap:6px;padding:6px;}
+.scout-shot-imgs:has(> *:only-child){grid-template-columns:1fr;}
+.scout-shot-img{display:block;border:1px solid var(--border-card);border-radius:4px;overflow:hidden;background:#fff;text-decoration:none;}
+.scout-shot-img img{display:block;width:100%;height:auto;max-height:240px;object-fit:cover;object-position:top;transition:transform .25s ease;}
+.scout-shot-img:hover img{transform:scale(1.02);}
+.scout-shot.failed{border-color:rgba(200,80,80,.35);background:linear-gradient(135deg,rgba(80,30,30,.15),var(--bg-app));}
+.scout-shot.failed .reason{font-family:var(--font-mono,monospace);font-size:10px;color:#ef9a9a;}
+.scout-lamps2{display:grid;grid-template-columns:repeat(3,1fr);gap:12px 16px;}
+@media(max-width:980px){.scout-lamps2{grid-template-columns:repeat(2,1fr);}}
+.scout-lamp2{display:grid;grid-template-columns:auto 1fr auto;align-items:center;column-gap:7px;row-gap:2px;}
+.scout-lamp2 .ld{grid-row:1;grid-column:1;}
+.scout-lamp2 .ln{grid-row:1;grid-column:2;font-family:var(--font-mono,monospace);font-size:9.5px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em;}
+.scout-lamp2 .lsrc{grid-row:1;grid-column:3;font-family:var(--font-mono,monospace);font-size:8px;color:var(--text-dim);}
+.scout-lamp2 .lv{grid-row:2;grid-column:1/-1;padding-left:19px;font-family:var(--font-mono,monospace);font-size:11px;color:var(--text-main);line-height:1.3;}
+/* ◓ Scouted scorecard — one judgment per row */
+.scout-sc-rows{display:flex;flex-direction:column;margin-top:2px;}
+.scout-sc-r{display:grid;grid-template-columns:96px 1fr;gap:14px;align-items:center;padding:10px 1px;border-bottom:1px solid var(--border-card);}
+.scout-sc-r:last-child{border-bottom:0;}
+.scout-sc-l{font-family:var(--font-mono,monospace);font-size:9.5px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--text-muted);align-self:start;padding-top:2px;}
+.scout-sc-v{font-size:12.5px;color:var(--text-main);line-height:1.4;display:flex;align-items:center;gap:11px;flex-wrap:wrap;}
+.scout-sc-note{font-family:var(--font-mono,monospace);font-size:9px;color:var(--text-dim);letter-spacing:.03em;}
+.scout-sc-quote{font-style:italic;color:var(--text-main);}
+.scout-sc-r.verdict{background:rgba(200,238,122,.05);border-radius:8px;padding-left:11px;padding-right:11px;}
+.scout-sc-vline{font-size:13.5px;color:var(--text-main);line-height:1.5;}
+.scout-qline{font-size:11.5px;color:var(--text-muted);line-height:1.5;}
+.scout-gfbig{font-family:var(--font-mono,monospace);font-size:13px;color:var(--sv-violet);margin-bottom:6px;}
+.scout-gfnote2{font-size:11.5px;color:var(--text-muted);line-height:1.45;margin-bottom:8px;}
+
+/* sticky decision deck */
+.scout-deck{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);z-index:50;display:flex;align-items:center;gap:12px;background:var(--bg-card);border:1px solid var(--border-active);border-radius:12px;padding:11px 14px;box-shadow:0 12px 40px rgba(0,0,0,.5);}
+.scout-deck .sum{font-family:var(--font-mono,monospace);font-size:12px;color:var(--text-muted);}.scout-deck .sum b{color:var(--text-main);}
+.scout-deck .vr{width:1px;height:22px;background:var(--border-active);}
+.scout-act{font-family:var(--font-mono,monospace);font-size:11.5px;font-weight:700;border-radius:8px;padding:8px 13px;cursor:pointer;border:1px solid var(--border-active);background:var(--bg-sunken);color:var(--text-muted);display:inline-flex;align-items:center;gap:7px;}
+.scout-act:hover{color:var(--text-main);}
+.scout-act.taste{border-color:var(--brand-amber-dim);color:var(--brand-amber);}
+.scout-act.taste:disabled{opacity:.35;cursor:not-allowed;}
+.scout-act.promote{background:var(--sv-green);border-color:transparent;color:#fff;}
+.scout-act.discard:hover{border-color:var(--brand-red);color:var(--brand-red);}
+
+/* Toast stack (Ralph 2026-06-03) — was a single fixed-positioned `.scout-toast`,
+   but Scout's per-row failure flashes can land 5-20 in a 30s window and a
+   single slot just trampled them. The stack is the fixed-positioned container;
+   each toast inside is static and fades in independently. column-reverse so
+   new flashes appear at the bottom edge — user's eye doesn't jump around. */
+.scout-toast-stack{position:fixed;bottom:84px;left:50%;transform:translateX(-50%);display:flex;flex-direction:column-reverse;gap:8px;z-index:60;align-items:center;pointer-events:none;}
+.scout-toast{background:var(--bg-card);border:1px solid var(--sv-green);border-radius:10px;padding:10px 15px;font-size:13px;box-shadow:0 8px 30px rgba(0,0,0,.5);display:flex;align-items:center;gap:12px;pointer-events:auto;animation:scoutToastIn .2s ease-out;}
+.scout-toast b{color:var(--brand-phosphor);}.scout-toast.kill{border-color:var(--brand-red);}.scout-toast.kill b{color:var(--brand-red);}
+.scout-toast a{color:var(--sv-blue);cursor:pointer;text-decoration:none;border-bottom:1px dotted var(--sv-blue);font-size:12px;}
+@keyframes scoutToastIn{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:translateY(0);}}
+
+.scout-foot{padding:14px 2px 4px;font-family:var(--font-mono,monospace);font-size:10px;color:var(--text-dim);line-height:1.7;}
+.scout-foot b{color:var(--text-muted);}
+.scout-empty{padding:48px;text-align:center;color:var(--text-dim);font-family:var(--font-mono,monospace);font-size:12px;}
+@keyframes scoutspin{to{transform:rotate(360deg);}}

@@ -30,7 +30,7 @@ if (process.env.OSKAR_REQUIRE_SESSION === '1' && !SESSION_ID) {
   process.exit(1)
 }
 
-export type AgentRole = 'cd' | 'webdev' | 'sentinel' | 'jedi-code' | 'consular'
+export type AgentRole = 'cd' | 'webdev' | 'sentinel' | 'jedi-code' | 'consular' | 'scout'
 
 /**
  * Identity context threaded through every tool call. Replaces the module-
@@ -197,12 +197,20 @@ const JEDI_CODE_ALLOWED = new Set<string>(ALL_TOOL_NAMES)
 // superset.) Persona stays distinct via agents/CONSULAR-agent.md.
 const CONSULAR_ALLOWED = CD_ALLOWED
 
+// WP-SCOUT-3 (Ralph 2026-06-03). Scout = CD's surface (same aliasing pattern
+// as the Consular). The persona is the tasting agent (agents/jedi-scout.md);
+// the discriminator is the typed submit_scout_verdict (defined alongside
+// submit_image_verdict in tools-cd.ts). Both gates (this one and
+// lib/mcp-config.ts) are INDEPENDENT — keep them in lockstep.
+const SCOUT_ALLOWED = CD_ALLOWED
+
 const ROLE_ALLOWED: Record<AgentRole, Set<string>> = {
   cd: CD_ALLOWED,
   webdev: WEBDEV_ALLOWED,
   sentinel: SENTINEL_ALLOWED,
   'jedi-code': JEDI_CODE_ALLOWED,
   consular: CONSULAR_ALLOWED,
+  scout: SCOUT_ALLOWED,
 }
 
 export function isToolAllowedForRole(toolName: string, role: AgentRole): boolean {

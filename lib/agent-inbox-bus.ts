@@ -76,7 +76,7 @@ import { publish } from './event-bus'
 // to CD, who specs them for Jedi Code — so Consular → jedi-code is NOT
 // granted here. If a direct Consular → Jedi Code link is needed later,
 // it'll be a deliberate add.
-export type AgentRole = 'cd' | 'webdev' | 'sentinel' | 'jedi-code' | 'user' | 'consular'
+export type AgentRole = 'cd' | 'webdev' | 'sentinel' | 'jedi-code' | 'user' | 'consular' | 'scout'
 
 export type Priority = 'low' | 'normal' | 'high'
 
@@ -175,6 +175,10 @@ const NOTIFY_PERMISSIONS: Record<AgentRole, Set<AgentRole>> = {
   // routes infrastructure asks through CD, who specs them for Jedi Code.
   // Direct consular → jedi-code is deliberately omitted.
   'consular': new Set(['cd']),
+  // Scout → cd only (WP-SCOUT-3, Ralph 2026-06-03). The Scout's job ends
+  // when it submits the typed verdict — any infrastructure ask routes
+  // through CD, same pattern as the Consular.
+  'scout': new Set(['cd']),
 }
 
 export function canNotify(from: AgentRole, target: AgentRole): boolean {
