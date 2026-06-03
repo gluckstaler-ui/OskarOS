@@ -4,7 +4,7 @@
 // ==========================================
 
 import { readFile, writeFile } from 'fs/promises'
-import { existsSync } from 'fs'
+import { existsSync, readFileSync } from 'fs'
 import { join } from 'path'
 
 // ==========================================
@@ -245,6 +245,26 @@ export async function readSessionUsage(sessionId: string): Promise<SessionUsage>
       entries: [],
       totals: { inputTokens: 0, outputTokens: 0, cost: 0 }
     }
+  }
+}
+
+/**
+ * Synchronous read of just `.totals.cost` from USAGE.json. WP-CRM-D5
+ * (Ralph 2026-05-22). The CRM scan in `scanProspectSessions` is sync and
+ * needs per-session cost to aggregate per-prospect. Returns 0 for missing
+ * files or read errors (never throws). Reads only the cost field — full
+ * usage data isn't needed here.
+ */
+export function readSessionCostSync(sessionId: string): number {
+  const usagePath = getUsagePath(sessionId)
+  if (!existsSync(usagePath)) return 0
+  try {
+    const content = readFileSync(usagePath, 'utf-8')
+    const parsed = JSON.parse(content) as SessionUsage
+    const c = parsed?.totals?.cost
+    return typeof c === 'number' && isFinite(c) ? c : 0
+  } catch {
+    return 0
   }
 }
 

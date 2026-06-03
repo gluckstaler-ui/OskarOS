@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "orch": {
+      "type": "http",
+      "url": "http://localhost:3000/api/mcp/server?session=2026-05-31-weingut-barbazza&agent=webdev&instance=1ca3dfb3-58c1-4834-83a7-731b7daf9f8e"
+    }
+  }
+}

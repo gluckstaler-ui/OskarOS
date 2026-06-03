@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef, useCallback } from 'react'
-import { ImageAsset, VibeData, VibePreview, AspectRatio, ImageSize, MoodboardData, SelectedElement, TextQuickAction, ImageQuickAction } from '@/lib/types'
+import { ImageAsset, VibeData, VibePreview, AspectRatio, ImageSize, SelectedElement, TextQuickAction, ImageQuickAction } from '@/lib/types'
 import { MagicToolbar } from './MagicToolbar'
 import { StudioImagePicker, type StudioPickTarget } from './studio/StudioImagePicker'
 import { STUDIO_BRIDGE_PATCH, parseHtmlPath, humanizeSlot } from '@/lib/studio-bridge'
@@ -14,12 +14,10 @@ interface CanvasPanelProps {
   vibes: VibeData[]
   selectedVibe?: VibeData
   selectedAsset?: ImageAsset
-  moodboard?: MoodboardData
   onVibeSelect: (vibe: VibeData) => void
   onAssetUpdate: (asset: ImageAsset) => void
   onAssetRegenerate: (asset: ImageAsset) => void
   onClearAsset: () => void
-  onMoodboardSelect: (conceptName: string) => void
   directorMode?: boolean
   onToggleDirectorMode?: () => void
   onElementSelect?: (element: SelectedElement | null) => void
@@ -36,12 +34,10 @@ export function CanvasPanel({
   vibes,
   selectedVibe,
   selectedAsset,
-  moodboard,
   onVibeSelect,
   onAssetUpdate,
   onAssetRegenerate,
   onClearAsset,
-  onMoodboardSelect,
   directorMode = false,
   onToggleDirectorMode,
   onElementSelect,
@@ -855,9 +851,6 @@ export function CanvasPanel({
               </div>
             )}
           </div>
-        ) : moodboard && moodboard.selectedConcept ? (
-          // ============== MOODBOARD WITH SELECTION ==============
-          <MoodboardView moodboard={moodboard} onSelect={onMoodboardSelect} />
         ) : (
           // ============== EMPTY STATE ==============
           <div style={{
@@ -1122,136 +1115,6 @@ function AssetDetailView({
           )}
         </div>
       </div>
-    </div>
-  )
-}
-
-// ============================================================================
-// MOODBOARD VIEW COMPONENT
-// ============================================================================
-function MoodboardView({
-  moodboard,
-  onSelect
-}: {
-  moodboard: MoodboardData
-  onSelect: (conceptName: string) => void
-}) {
-  const selectedConcept = moodboard.concepts.find(c => c.name === moodboard.selectedConcept)
-
-  return (
-    <div style={{
-      width: '100%',
-      maxWidth: '600px',
-      backgroundColor: 'var(--bg-card)',
-      borderRadius: '12px',
-      overflow: 'hidden',
-      border: '1px solid var(--border-card)',
-      padding: '24px',
-      position: 'relative',
-      zIndex: 10
-    }}>
-      <div style={{ textAlign: 'center', marginBottom: '16px' }}>
-        <h2 style={{
-          fontFamily: 'var(--font-mono)',
-          fontSize: '14px',
-          color: 'var(--text-main)',
-          textTransform: 'uppercase',
-          letterSpacing: '0.05em',
-          marginBottom: '8px'
-        }}>
-          Selected Direction: {moodboard.selectedConcept}
-        </h2>
-        <p style={{ color: 'var(--text-muted)', fontSize: '14px' }}>
-          Generating vibes based on this direction...
-        </p>
-      </div>
-
-      {/* Moodboard Image */}
-      <div style={{
-        position: 'relative',
-        width: '100%',
-        aspectRatio: '1',
-        borderRadius: '8px',
-        overflow: 'hidden',
-        marginBottom: '16px'
-      }}>
-        <img src={moodboard.imagePath} alt="Moodboard" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-        <div style={{
-          position: 'absolute',
-          inset: 0,
-          display: 'grid',
-          gridTemplateColumns: '1fr 1fr',
-          gridTemplateRows: '1fr 1fr'
-        }}>
-          {moodboard.concepts.map(concept => (
-            <div
-              key={concept.name}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                backgroundColor: concept.name === moodboard.selectedConcept ? 'transparent' : 'rgba(0,0,0,0.6)',
-                border: concept.name === moodboard.selectedConcept ? '2px solid var(--accent, #3B82F6)' : 'none',
-                transition: 'all 0.3s'
-              }}
-            >
-              <span style={{
-                padding: '4px 8px',
-                borderRadius: '4px',
-                fontSize: '12px',
-                fontFamily: 'var(--font-mono)',
-                textTransform: 'uppercase',
-                letterSpacing: '0.05em',
-                backgroundColor: concept.name === moodboard.selectedConcept ? 'var(--accent, #3B82F6)' : 'var(--bg-card)',
-                color: concept.name === moodboard.selectedConcept ? 'white' : 'var(--text-main)',
-                border: '1px solid var(--border-card)'
-              }}>
-                {concept.name}
-              </span>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Selected Concept Details */}
-      {selectedConcept && (
-        <div style={{
-          textAlign: 'center',
-          padding: '16px',
-          backgroundColor: 'var(--bg-app)',
-          borderRadius: '8px'
-        }}>
-          <h3 style={{ color: 'var(--text-main)', fontSize: '16px', marginBottom: '8px' }}>
-            {selectedConcept.headline}
-          </h3>
-          <p style={{
-            color: 'var(--accent, #3B82F6)',
-            fontFamily: 'var(--font-mono)',
-            fontSize: '20px',
-            fontWeight: 600,
-            textTransform: 'uppercase',
-            letterSpacing: '0.05em',
-            marginBottom: '16px'
-          }}>
-            {selectedConcept.oneWord}
-          </p>
-          <div style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
-            {selectedConcept.colorPalette.map((color, i) => (
-              <div
-                key={i}
-                style={{
-                  width: '40px',
-                  height: '40px',
-                  borderRadius: '4px',
-                  border: '1px solid rgba(255,255,255,0.1)',
-                  background: color
-                }}
-                title={color}
-              />
-            ))}
-          </div>
-        </div>
-      )}
     </div>
   )
 }

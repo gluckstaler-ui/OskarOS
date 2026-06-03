@@ -1,0 +1,745 @@
+<h2>D. Auxiliary &amp; modal surfaces</h2>
+
+<!-- =================== D1 GLOBAL SEARCH =================== -->
+<section class="screen" id="D1">
+  <h3>D1 — Global Search Results — All</h3>
+  <p class="screen-meta">All · universal ⌘K overlay with results grouped by object type and full keyboard nav · ref: Attio, Salesforce</p>
+  <div class="mockup">
+<svg viewBox="0 0 1180 540" xmlns="http://www.w3.org/2000/svg" font-family="Inter, sans-serif" font-size="12">
+  <rect width="1180" height="540" rx="8" fill="#0f1115"></rect>
+
+  <!-- faint underlying app -->
+  <g opacity="0.4">
+    <rect width="1180" height="48" fill="#11141d"></rect>
+    <circle cx="22" cy="24" r="6" fill="#6ea8ff"></circle>
+    <text x="38" y="28" fill="#e8eaef" font-weight="600">FunnelOS</text>
+    <rect x="0" y="48" width="180" height="492" fill="#11141d"></rect>
+    <g font-size="13" fill="#6b7180">
+      <text x="22" y="84">◉ Day</text><text x="22" y="116">◐ Pipeline</text>
+      <text x="22" y="148">◐ Inbox</text><text x="22" y="180">◐ Signals</text>
+      <text x="22" y="212">◐ Contacts</text><text x="22" y="244">◐ Companies</text>
+    </g>
+    <text x="210" y="92" fill="#6b7180" font-size="20" font-weight="700">Pipeline</text>
+    <rect x="210" y="120" width="280" height="380" rx="8" fill="#161922" stroke="#2a2f40"></rect>
+    <rect x="500" y="120" width="280" height="380" rx="8" fill="#161922" stroke="#2a2f40"></rect>
+    <rect x="790" y="120" width="280" height="380" rx="8" fill="#161922" stroke="#2a2f40"></rect>
+  </g>
+
+  <!-- scrim -->
+  <rect width="1180" height="540" fill="#000000" opacity="0.55"></rect>
+
+  <!-- floating command palette -->
+  <g transform="translate(310, 60)">
+    <rect width="560" height="420" rx="14" fill="#161922" stroke="#2a2f40"></rect>
+
+    <!-- search input -->
+    <rect x="0" y="0" width="560" height="58" rx="14" fill="#1c2030"></rect>
+    <rect x="0" y="44" width="560" height="14" fill="#1c2030"></rect>
+    <text x="22" y="36" fill="#6ea8ff" font-size="18">⌕</text>
+    <text x="46" y="36" fill="#e8eaef" font-size="16">acme</text>
+    <rect x="92" y="22" width="2" height="20" fill="#6ea8ff"></rect>
+    <text x="470" y="35" fill="#6b7180" font-family="ui-monospace, monospace" font-size="11">esc to close</text>
+    <line x1="0" y1="58" x2="560" y2="58" stroke="#2a2f40"></line>
+    <text x="22" y="80" fill="#6b7180" font-family="ui-monospace, monospace" font-size="11" letter-spacing="0.5">18 results · all objects</text>
+    <text x="430" y="80" fill="#6b7180" font-family="ui-monospace, monospace" font-size="11">Filter: All ▾</text>
+
+    <!-- PEOPLE group -->
+    <text x="22" y="108" fill="#a4abbb" font-family="ui-monospace, monospace" font-size="10" letter-spacing="1.2">PEOPLE · 4</text>
+    <!-- active row -->
+    <rect x="12" y="116" width="536" height="36" rx="6" fill="#6ea8ff" opacity="0.14"></rect>
+    <rect x="12" y="116" width="3" height="36" rx="2" fill="#6ea8ff"></rect>
+    <circle cx="36" cy="134" r="11" fill="#6ea8ff" opacity="0.3"></circle>
+    <text x="29" y="138" fill="#6ea8ff" font-weight="700" font-size="10">MC</text>
+    <text x="56" y="131" fill="#e8eaef" font-weight="600" font-size="13">Marcus Chen</text>
+    <text x="56" y="146" fill="#a4abbb" font-size="11">VP Engineering · Acme Corp</text>
+    <text x="430" y="138" fill="#6ee7a1" font-size="10">●●●●○ champion</text>
+    <text x="520" y="138" fill="#6b7180" font-family="ui-monospace, monospace" font-size="11">↵</text>
+
+    <circle cx="36" cy="170" r="11" fill="#ff7a7a" opacity="0.3"></circle>
+    <text x="30" y="174" fill="#ff7a7a" font-weight="700" font-size="10">LP</text>
+    <text x="56" y="167" fill="#e8eaef" font-weight="600" font-size="13">Lisa Park</text>
+    <text x="56" y="182" fill="#a4abbb" font-size="11">CFO · Acme Corp · decision maker</text>
+    <text x="430" y="174" fill="#ff7a7a" font-size="10">○○○○○ unmet</text>
+
+    <!-- COMPANIES group -->
+    <text x="22" y="216" fill="#a4abbb" font-family="ui-monospace, monospace" font-size="10" letter-spacing="1.2">COMPANIES · 2</text>
+    <rect x="28" y="226" width="22" height="22" rx="5" fill="#1c2030" stroke="#2a2f40"></rect>
+    <text x="34" y="241" fill="#a4abbb" font-size="11">▦</text>
+    <text x="56" y="235" fill="#e8eaef" font-weight="600" font-size="13">Acme Corp</text>
+    <text x="56" y="250" fill="#a4abbb" font-size="11">SaaS · 1,200 emp · 3 open deals · $213K</text>
+    <text x="500" y="242" fill="#6b7180" font-size="11">→ open</text>
+
+    <!-- DEALS group -->
+    <text x="22" y="284" fill="#a4abbb" font-family="ui-monospace, monospace" font-size="10" letter-spacing="1.2">DEALS · 3</text>
+    <rect x="28" y="294" width="3" height="20" rx="2" fill="#ff6b9d"></rect>
+    <text x="44" y="308" fill="#e8eaef" font-weight="600" font-size="13">Acme Corp · Q3 Expansion</text>
+    <text x="320" y="308" fill="#a4abbb" font-size="11">$85K · Stage 3 · Demo</text>
+    <text x="500" y="308" fill="#ff6b9d" font-size="10">🔥 hot</text>
+    <rect x="28" y="322" width="3" height="20" rx="2" fill="#6ea8ff"></rect>
+    <text x="44" y="336" fill="#e8eaef" font-weight="600" font-size="13">Acme — Platform Renewal</text>
+    <text x="320" y="336" fill="#a4abbb" font-size="11">$40K · Stage 5 · Negotiation</text>
+
+    <!-- ACTIVITIES group -->
+    <text x="22" y="368" fill="#a4abbb" font-family="ui-monospace, monospace" font-size="10" letter-spacing="1.2">ACTIVITIES · 9</text>
+    <text x="28" y="392" fill="#a4abbb" font-size="13">📞 Call w/ Marcus Chen — 28 min</text>
+    <text x="430" y="392" fill="#6b7180" font-size="11">yesterday</text>
+
+    <!-- footer keyboard hints -->
+    <line x1="0" y1="408" x2="560" y2="408" stroke="#2a2f40"></line>
+  </g>
+
+  <!-- keyboard hint bar (over panel base) -->
+  <g transform="translate(310, 448)">
+    <rect width="560" height="32" rx="0" fill="#11141d"></rect>
+    <rect width="560" height="14" y="18" rx="14" fill="#11141d"></rect>
+    <text x="22" y="21" fill="#6b7180" font-family="ui-monospace, monospace" font-size="11"><tspan fill="#a4abbb">↑↓</tspan> move   <tspan fill="#a4abbb">↵</tspan> open   <tspan fill="#a4abbb">⌘↵</tspan> open in pane   <tspan fill="#a4abbb">tab</tspan> filter type</text>
+    <text x="470" y="21" fill="#ffb86b" font-family="ui-monospace, monospace" font-size="11">★ Ask AI ⌘↑</text>
+  </g>
+
+  <!-- annotations -->
+  <g class="anno">
+    <circle cx="356" cy="29" r="3" class="note-anchor"></circle><text x="366" y="33" fill="#ffb86b" font-size="10">①</text>
+    <circle cx="322" cy="134" r="3" class="note-anchor"></circle><text x="296" y="138" fill="#ffb86b" font-size="10">②</text>
+    <circle cx="852" cy="469" r="3" class="note-anchor"></circle><text x="862" y="473" fill="#ffb86b" font-size="10">③</text>
+  </g>
+</svg>
+    <div class="caption">D1 · Global Search — ① single query searches every object type  ② results grouped People / Companies / Deals / Activities with live preview rows  ③ full keyboard-nav contract in the footer</div>
+  </div>
+</section>
+
+<!-- =================== D2 NOTIFICATION CENTER =================== -->
+<section class="screen" id="D2">
+  <h3>D2 — Notification Center — All</h3>
+  <p class="screen-meta">All · right-side slide-over notification feed with type filters, grouped Today / Earlier · ref: HubSpot Notifications</p>
+  <div class="mockup">
+<svg viewBox="0 0 1180 560" xmlns="http://www.w3.org/2000/svg" font-family="Inter, sans-serif" font-size="12">
+  <rect width="1180" height="560" rx="8" fill="#0f1115"></rect>
+
+  <!-- faint underlying app -->
+  <g opacity="0.4">
+    <rect width="1180" height="48" fill="#11141d"></rect>
+    <circle cx="22" cy="24" r="6" fill="#6ea8ff"></circle>
+    <text x="38" y="28" fill="#e8eaef" font-weight="600">FunnelOS</text>
+    <circle cx="1090" cy="24" r="11" fill="#2a2f40"></circle>
+    <text x="1083" y="28" fill="#ff7a7a" font-size="11">●</text>
+    <rect x="0" y="48" width="180" height="512" fill="#11141d"></rect>
+    <g font-size="13" fill="#6b7180">
+      <text x="22" y="84">◉ Day</text><text x="22" y="116">◐ Pipeline</text>
+      <text x="22" y="148">◐ Inbox</text><text x="22" y="180">◐ Signals</text>
+    </g>
+    <text x="210" y="92" fill="#6b7180" font-size="20" font-weight="700">Today, Tue May 23</text>
+    <rect x="210" y="120" width="600" height="74" rx="8" fill="#161922" stroke="#2a2f40"></rect>
+    <rect x="210" y="206" width="600" height="74" rx="8" fill="#161922" stroke="#2a2f40"></rect>
+    <rect x="210" y="292" width="600" height="74" rx="8" fill="#161922" stroke="#2a2f40"></rect>
+  </g>
+
+  <!-- scrim -->
+  <rect width="1180" height="560" fill="#000000" opacity="0.55"></rect>
+
+  <!-- slide-over panel from right -->
+  <g transform="translate(760, 0)">
+    <rect width="420" height="560" fill="#161922"></rect>
+    <line x1="0" y1="0" x2="0" y2="560" stroke="#2a2f40"></line>
+
+    <!-- header -->
+    <text x="24" y="40" fill="#e8eaef" font-size="18" font-weight="700">Notifications</text>
+    <rect x="178" y="24" width="22" height="22" rx="11" fill="#ff7a7a" opacity="0.2"></rect>
+    <text x="184" y="40" fill="#ff7a7a" font-size="11" font-weight="700">8</text>
+    <text x="300" y="40" fill="#6ea8ff" font-size="12">Mark all read</text>
+    <text x="392" y="40" fill="#a4abbb" font-size="16">✕</text>
+
+    <!-- filter tabs -->
+    <g font-size="11" font-family="ui-monospace, monospace">
+      <rect x="24" y="58" width="44" height="26" rx="13" fill="#6ea8ff" opacity="0.18" stroke="#6ea8ff"></rect>
+      <text x="33" y="75" fill="#6ea8ff">All</text>
+      <rect x="74" y="58" width="74" height="26" rx="13" fill="#1c2030" stroke="#2a2f40"></rect>
+      <text x="84" y="75" fill="#a4abbb">Mentions</text>
+      <rect x="154" y="58" width="78" height="26" rx="13" fill="#1c2030" stroke="#2a2f40"></rect>
+      <text x="164" y="75" fill="#a4abbb">Assigned</text>
+      <rect x="238" y="58" width="66" height="26" rx="13" fill="#1c2030" stroke="#2a2f40"></rect>
+      <text x="248" y="75" fill="#a4abbb">Signals</text>
+      <rect x="310" y="58" width="44" height="26" rx="13" fill="#1c2030" stroke="#2a2f40"></rect>
+      <text x="320" y="75" fill="#ffb86b">★ AI</text>
+    </g>
+
+    <!-- TODAY group -->
+    <text x="24" y="112" fill="#a4abbb" font-family="ui-monospace, monospace" font-size="10" letter-spacing="1.2">TODAY</text>
+
+    <!-- row 1 unread mention -->
+    <rect x="12" y="120" width="396" height="64" rx="8" fill="#1c2030"></rect>
+    <circle cx="20" cy="152" r="3" fill="#6ea8ff"></circle>
+    <circle cx="40" cy="146" r="13" fill="#6ea8ff" opacity="0.3"></circle>
+    <text x="31" y="150" fill="#6ea8ff" font-weight="700" font-size="11">PS</text>
+    <text x="62" y="140" fill="#e8eaef" font-size="12"><tspan font-weight="600">Priya Sharma</tspan> mentioned you</text>
+    <text x="62" y="158" fill="#a4abbb" font-size="11">"@you can you join the Globex call?"</text>
+    <text x="62" y="174" fill="#6ee7a1" font-size="10">on Globex · Q2 Renewal</text>
+    <text x="360" y="140" fill="#6b7180" font-family="ui-monospace, monospace" font-size="10">12m</text>
+
+    <!-- row 2 unread signal -->
+    <rect x="12" y="190" width="396" height="64" rx="8" fill="#1c2030"></rect>
+    <circle cx="20" cy="222" r="3" fill="#6ea8ff"></circle>
+    <rect x="30" y="212" width="22" height="22" rx="6" fill="#ff6b9d" opacity="0.18"></rect>
+    <text x="36" y="227" fill="#ff6b9d" font-size="12">⚡</text>
+    <text x="62" y="210" fill="#e8eaef" font-size="12"><tspan font-weight="600">Buying signal</tspan> · Web intent</text>
+    <text x="62" y="228" fill="#a4abbb" font-size="11">3 visitors from Initech hit /pricing</text>
+    <text x="62" y="244" fill="#ffb86b" font-size="10">★ score 91 · on open deal</text>
+    <text x="360" y="210" fill="#6b7180" font-family="ui-monospace, monospace" font-size="10">48m</text>
+
+    <!-- row 3 unread assigned -->
+    <rect x="12" y="260" width="396" height="58" rx="8" fill="#1c2030"></rect>
+    <circle cx="20" cy="289" r="3" fill="#6ea8ff"></circle>
+    <rect x="30" y="280" width="22" height="22" rx="6" fill="#6ea8ff" opacity="0.18"></rect>
+    <text x="36" y="295" fill="#6ea8ff" font-size="12">↪</text>
+    <text x="62" y="282" fill="#e8eaef" font-size="12"><tspan font-weight="600">Deal assigned</tspan> to you</text>
+    <text x="62" y="300" fill="#a4abbb" font-size="11">Vandelay — New Logo · $66K · by Dana</text>
+    <text x="360" y="282" fill="#6b7180" font-family="ui-monospace, monospace" font-size="10">2h</text>
+
+    <!-- EARLIER group -->
+    <text x="24" y="350" fill="#a4abbb" font-family="ui-monospace, monospace" font-size="10" letter-spacing="1.2">EARLIER</text>
+
+    <!-- read row 4 -->
+    <rect x="30" y="362" width="22" height="22" rx="6" fill="#1c2030"></rect>
+    <text x="36" y="377" fill="#6b7180" font-size="12">📧</text>
+    <text x="62" y="372" fill="#a4abbb" font-size="12">Marcus Chen opened your email 2×</text>
+    <text x="62" y="388" fill="#6b7180" font-size="11">Acme · Q3 Expansion · clicked pricing</text>
+    <text x="360" y="372" fill="#6b7180" font-family="ui-monospace, monospace" font-size="10">5h</text>
+
+    <!-- read row 5 -->
+    <rect x="30" y="404" width="22" height="22" rx="6" fill="#1c2030"></rect>
+    <text x="38" y="419" fill="#6b7180" font-size="12">✓</text>
+    <text x="62" y="414" fill="#a4abbb" font-size="12">Task completed · "Send contract"</text>
+    <text x="62" y="430" fill="#6b7180" font-size="11">David Park · Initech</text>
+    <text x="360" y="414" fill="#6b7180" font-family="ui-monospace, monospace" font-size="10">6h</text>
+
+    <!-- read row 6 warning -->
+    <rect x="30" y="446" width="22" height="22" rx="6" fill="#ff7a7a" opacity="0.14"></rect>
+    <text x="36" y="461" fill="#ff7a7a" font-size="12">⚠</text>
+    <text x="62" y="456" fill="#a4abbb" font-size="12">Deal stalled · no activity 14 days</text>
+    <text x="62" y="472" fill="#ff7a7a" font-size="11">Globex · $42K · Stage 2</text>
+    <text x="360" y="456" fill="#6b7180" font-family="ui-monospace, monospace" font-size="10">1d</text>
+
+    <!-- footer -->
+    <line x1="0" y1="510" x2="420" y2="510" stroke="#2a2f40"></line>
+    <text x="24" y="538" fill="#6ea8ff" font-size="12">Notification settings →</text>
+    <text x="300" y="538" fill="#6b7180" font-family="ui-monospace, monospace" font-size="11">View all (32)</text>
+  </g>
+
+  <!-- annotations -->
+  <g class="anno">
+    <circle cx="1108" cy="71" r="3" class="note-anchor"></circle><text x="1118" y="75" fill="#ffb86b" font-size="10">①</text>
+    <circle cx="772" cy="152" r="3" class="note-anchor"></circle><text x="746" y="156" fill="#ffb86b" font-size="10">②</text>
+    <circle cx="772" cy="362" r="3" class="note-anchor"></circle><text x="746" y="366" fill="#ffb86b" font-size="10">③</text>
+  </g>
+</svg>
+    <div class="caption">D2 · Notification Center — ① type filters (All / Mentions / Assigned / Signals / ★ AI)  ② unread rows carry a blue dot + typed glyph + CRM context  ③ time-grouped Today / Earlier with read rows dimmed</div>
+  </div>
+</section>
+
+<!-- =================== D3 ONBOARDING WIZARD =================== -->
+<section class="screen" id="D3">
+  <h3>D3 — Onboarding Wizard — New user</h3>
+  <p class="screen-meta">New user · centered first-run wizard, step 1 "Connect inbox" with provider buttons · ref: HubSpot, Folk</p>
+  <div class="mockup">
+<svg viewBox="0 0 1180 540" xmlns="http://www.w3.org/2000/svg" font-family="Inter, sans-serif" font-size="12">
+  <rect width="1180" height="540" rx="8" fill="#0f1115"></rect>
+
+  <!-- faint underlying app (empty shell behind first run) -->
+  <g opacity="0.3">
+    <rect width="1180" height="48" fill="#11141d"></rect>
+    <circle cx="22" cy="24" r="6" fill="#6ea8ff"></circle>
+    <text x="38" y="28" fill="#e8eaef" font-weight="600">FunnelOS</text>
+    <rect x="0" y="48" width="180" height="492" fill="#11141d"></rect>
+  </g>
+
+  <!-- scrim -->
+  <rect width="1180" height="540" fill="#000000" opacity="0.55"></rect>
+
+  <!-- centered wizard card -->
+  <g transform="translate(310, 50)">
+    <rect width="560" height="440" rx="16" fill="#161922" stroke="#2a2f40"></rect>
+
+    <!-- step indicator -->
+    <g transform="translate(40, 36)">
+      <!-- connector lines -->
+      <line x1="20" y1="14" x2="170" y2="14" stroke="#6ea8ff"></line>
+      <line x1="190" y1="14" x2="340" y2="14" stroke="#2a2f40"></line>
+      <line x1="360" y1="14" x2="460" y2="14" stroke="#2a2f40"></line>
+      <!-- step 1 active -->
+      <circle cx="20" cy="14" r="14" fill="#6ea8ff"></circle>
+      <text x="16" y="19" fill="#0f1115" font-weight="700" font-size="12">1</text>
+      <text x="0" y="44" fill="#6ea8ff" font-size="11" font-weight="600">Connect inbox</text>
+      <!-- step 2 -->
+      <circle cx="190" cy="14" r="14" fill="#1c2030" stroke="#2a2f40"></circle>
+      <text x="186" y="19" fill="#a4abbb" font-weight="700" font-size="12">2</text>
+      <text x="162" y="44" fill="#6b7180" font-size="11">Import data</text>
+      <!-- step 3 -->
+      <circle cx="360" cy="14" r="14" fill="#1c2030" stroke="#2a2f40"></circle>
+      <text x="356" y="19" fill="#a4abbb" font-weight="700" font-size="12">3</text>
+      <text x="338" y="44" fill="#6b7180" font-size="11">Set goal</text>
+      <!-- skip -->
+      <text x="466" y="19" fill="#6b7180" font-size="11" font-family="ui-monospace, monospace">Step 1 / 3</text>
+    </g>
+
+    <line x1="0" y1="112" x2="560" y2="112" stroke="#2a2f40"></line>
+
+    <!-- illustration glyph -->
+    <g transform="translate(244, 142)">
+      <circle cx="36" cy="36" r="36" fill="#6ea8ff" opacity="0.12"></circle>
+      <rect x="14" y="22" width="44" height="30" rx="5" fill="none" stroke="#6ea8ff" stroke-width="1.5"></rect>
+      <path d="M14 26 L36 42 L58 26" fill="none" stroke="#6ea8ff" stroke-width="1.5"></path>
+      <circle cx="54" cy="20" r="7" fill="#ffb86b"></circle>
+      <text x="51" y="24" fill="#0f1115" font-size="10" font-weight="700">★</text>
+    </g>
+
+    <!-- copy -->
+    <text x="280" y="248" fill="#e8eaef" font-size="20" font-weight="700" text-anchor="middle">Connect your inbox</text>
+    <text x="280" y="272" fill="#a4abbb" font-size="13" text-anchor="middle">FunnelOS logs every email &amp; meeting automatically —</text>
+    <text x="280" y="290" fill="#a4abbb" font-size="13" text-anchor="middle">so your pipeline stays current without manual entry.</text>
+
+    <!-- provider buttons -->
+    <g transform="translate(120, 314)">
+      <rect width="150" height="48" rx="10" fill="#1c2030" stroke="#2a2f40"></rect>
+      <circle cx="28" cy="24" r="10" fill="#ff7a7a" opacity="0.25"></circle>
+      <text x="23" y="28" fill="#ff7a7a" font-weight="700" font-size="11">G</text>
+      <text x="48" y="29" fill="#e8eaef" font-size="13" font-weight="600">Gmail</text>
+      <rect x="170" width="150" height="48" rx="10" fill="#1c2030" stroke="#2a2f40"></rect>
+      <circle cx="198" cy="24" r="10" fill="#6ea8ff" opacity="0.25"></circle>
+      <text x="193" y="28" fill="#6ea8ff" font-weight="700" font-size="11">O</text>
+      <text x="218" y="29" fill="#e8eaef" font-size="13" font-weight="600">Outlook</text>
+    </g>
+    <text x="280" y="386" fill="#6b7180" font-size="11" text-anchor="middle">🔒 Read-only sync · revoke anytime · we never send on your behalf</text>
+
+    <!-- footer actions -->
+    <line x1="0" y1="404" x2="560" y2="404" stroke="#2a2f40"></line>
+    <text x="40" y="430" fill="#6b7180" font-size="13">Skip for now</text>
+    <rect x="354" y="414" width="86" height="32" rx="8" fill="none" stroke="#2a2f40"></rect>
+    <text x="372" y="434" fill="#a4abbb" font-size="13">Back</text>
+    <rect x="450" y="414" width="86" height="32" rx="8" fill="#6ea8ff"></rect>
+    <text x="466" y="434" fill="#0f1115" font-size="13" font-weight="700">Continue</text>
+  </g>
+
+  <!-- annotations -->
+  <g class="anno">
+    <circle cx="356" cy="86" r="3" class="note-anchor"></circle><text x="330" y="90" fill="#ffb86b" font-size="10">①</text>
+    <circle cx="554" cy="478" r="3" class="note-anchor"></circle><text x="564" y="482" fill="#ffb86b" font-size="10">②</text>
+    <circle cx="430" cy="370" r="3" class="note-anchor"></circle><text x="440" y="374" fill="#ffb86b" font-size="10">③</text>
+  </g>
+</svg>
+    <div class="caption">D3 · Onboarding Wizard — ① three-step indicator (Connect inbox → Import data → Set goal) with the current step lit  ② Skip / Back / Continue keep the flow escapable  ③ trust line reassures on the read-only scope</div>
+  </div>
+</section>
+
+<!-- =================== D4 EMPTY STATES =================== -->
+<section class="screen" id="D4">
+  <h3>D4 — Empty States — New user</h3>
+  <p class="screen-meta">New user · three no-data empty-state cards (No deals / No contacts / Inbox zero) each with glyph + CTA · ref: Folk, Attio</p>
+  <div class="mockup">
+<svg viewBox="0 0 1180 470" xmlns="http://www.w3.org/2000/svg" font-family="Inter, sans-serif" font-size="12">
+  <rect width="1180" height="470" rx="8" fill="#0f1115"></rect>
+
+  <!-- top bar (this is a full screen, not a modal) -->
+  <rect width="1180" height="48" fill="#11141d"></rect>
+  <circle cx="22" cy="24" r="6" fill="#6ea8ff"></circle>
+  <text x="38" y="28" fill="#e8eaef" font-weight="600">FunnelOS</text>
+  <rect x="380" y="13" width="420" height="22" rx="11" fill="#1c2030" stroke="#2a2f40"></rect>
+  <text x="394" y="28" fill="#6b7180">⌘K  Ask anything to get started…</text>
+  <circle cx="1130" cy="24" r="13" fill="#6ea8ff"></circle>
+  <text x="1125" y="28" fill="#0f1115" font-weight="700" font-size="11">RP</text>
+
+  <!-- left nav -->
+  <rect x="0" y="48" width="180" height="422" fill="#11141d"></rect>
+  <g font-size="13" fill="#6b7180">
+    <rect x="8" y="60" width="164" height="32" rx="6" fill="#6ea8ff" opacity="0.15"></rect>
+    <text x="22" y="80" fill="#6ea8ff" font-weight="600">◉ Day</text>
+    <text x="22" y="112">◐ Pipeline</text><text x="22" y="140">◐ Inbox</text>
+    <text x="22" y="168">◐ Contacts</text><text x="22" y="196">◐ Companies</text>
+  </g>
+
+  <!-- header -->
+  <text x="210" y="92" fill="#e8eaef" font-size="20" font-weight="700">Welcome to FunnelOS, Ralph 👋</text>
+  <text x="210" y="114" fill="#a4abbb" font-size="13">Your workspace is empty. Start with any of the three below — it takes about 2 minutes.</text>
+
+  <!-- three empty-state cards -->
+  <!-- card 1: No deals -->
+  <g transform="translate(210, 148)">
+    <rect width="300" height="280" rx="12" fill="#161922" stroke="#2a2f40"></rect>
+    <!-- line-art glyph: stacked columns -->
+    <g transform="translate(110, 40)" stroke="#6ea8ff" stroke-width="1.5" fill="none" opacity="0.9">
+      <circle cx="40" cy="40" r="38" stroke="#6ea8ff" stroke-width="1" opacity="0.12" fill="#6ea8ff"></circle>
+      <rect x="20" y="44" width="14" height="22" rx="2"></rect>
+      <rect x="40" y="30" width="14" height="36" rx="2"></rect>
+      <rect x="60" y="20" width="14" height="46" rx="2"></rect>
+    </g>
+    <text x="150" y="172" fill="#e8eaef" font-size="15" font-weight="700" text-anchor="middle">No deals yet</text>
+    <text x="150" y="196" fill="#a4abbb" font-size="12" text-anchor="middle">Track opportunities through your</text>
+    <text x="150" y="212" fill="#a4abbb" font-size="12" text-anchor="middle">pipeline from first touch to close.</text>
+    <rect x="84" y="234" width="132" height="34" rx="8" fill="#6ea8ff"></rect>
+    <text x="150" y="256" fill="#0f1115" font-size="12" font-weight="700" text-anchor="middle">+ Create first deal</text>
+  </g>
+
+  <!-- card 2: No contacts -->
+  <g transform="translate(530, 148)">
+    <rect width="300" height="280" rx="12" fill="#161922" stroke="#2a2f40"></rect>
+    <g transform="translate(110, 40)" stroke="#6ee7a1" stroke-width="1.5" fill="none">
+      <circle cx="40" cy="40" r="38" stroke="#6ee7a1" stroke-width="1" opacity="0.12" fill="#6ee7a1"></circle>
+      <circle cx="40" cy="30" r="11"></circle>
+      <path d="M22 60 a18 16 0 0 1 36 0"></path>
+    </g>
+    <text x="150" y="172" fill="#e8eaef" font-size="15" font-weight="700" text-anchor="middle">No contacts yet</text>
+    <text x="150" y="196" fill="#a4abbb" font-size="12" text-anchor="middle">Import your address book or connect</text>
+    <text x="150" y="212" fill="#a4abbb" font-size="12" text-anchor="middle">your inbox to auto-build people.</text>
+    <rect x="74" y="234" width="152" height="34" rx="8" fill="none" stroke="#6ea8ff"></rect>
+    <text x="150" y="256" fill="#6ea8ff" font-size="12" font-weight="700" text-anchor="middle">Import contacts</text>
+  </g>
+
+  <!-- card 3: Inbox zero -->
+  <g transform="translate(850, 148)">
+    <rect width="300" height="280" rx="12" fill="#161922" stroke="#2a2f40"></rect>
+    <g transform="translate(110, 40)" stroke="#ffb86b" stroke-width="1.5" fill="none">
+      <circle cx="40" cy="40" r="38" stroke="#ffb86b" stroke-width="1" opacity="0.12" fill="#ffb86b"></circle>
+      <path d="M22 38 h36 v18 a4 4 0 0 1 -4 4 h-28 a4 4 0 0 1 -4 -4 z"></path>
+      <path d="M22 38 l18 12 l18 -12"></path>
+      <path d="M30 26 l10 8 l10 -8" opacity="0.6"></path>
+    </g>
+    <text x="150" y="172" fill="#e8eaef" font-size="15" font-weight="700" text-anchor="middle">Inbox zero 🎉</text>
+    <text x="150" y="196" fill="#a4abbb" font-size="12" text-anchor="middle">No emails to triage right now.</text>
+    <text x="150" y="212" fill="#a4abbb" font-size="12" text-anchor="middle">★ AI will surface replies that matter.</text>
+    <rect x="84" y="234" width="132" height="34" rx="8" fill="none" stroke="#2a2f40"></rect>
+    <text x="150" y="256" fill="#a4abbb" font-size="12" font-weight="600" text-anchor="middle">Compose email</text>
+  </g>
+
+  <!-- annotations -->
+  <g class="anno">
+    <circle cx="320" cy="208" r="3" class="note-anchor"></circle><text x="330" y="212" fill="#ffb86b" font-size="10">①</text>
+    <circle cx="640" cy="402" r="3" class="note-anchor"></circle><text x="650" y="406" fill="#ffb86b" font-size="10">②</text>
+    <circle cx="1000" cy="208" r="3" class="note-anchor"></circle><text x="1010" y="212" fill="#ffb86b" font-size="10">③</text>
+  </g>
+</svg>
+    <div class="caption">D4 · Empty States — ① each card pairs a colour-coded line-art glyph with a one-line value prop  ② primary card gets a filled CTA, the rest stay outline / ghost to set hierarchy  ③ "Inbox zero" is a positive empty state, not a dead end</div>
+  </div>
+</section>
+
+<!-- =================== D5 BULK ACTION MODAL =================== -->
+<section class="screen" id="D5">
+  <h3>D5 — Bulk Action Modal — Ops</h3>
+  <p class="screen-meta">Ops · edit a multi-select on a list — pick a field, set a value, preview before/after, apply · ref: Salesforce, Attio</p>
+  <div class="mockup">
+<svg viewBox="0 0 1180 540" xmlns="http://www.w3.org/2000/svg" font-family="Inter, sans-serif" font-size="12">
+  <rect width="1180" height="540" rx="8" fill="#0f1115"></rect>
+
+  <!-- faint underlying list -->
+  <g opacity="0.4">
+    <rect width="1180" height="48" fill="#11141d"></rect>
+    <circle cx="22" cy="24" r="6" fill="#6ea8ff"></circle>
+    <text x="38" y="28" fill="#e8eaef" font-weight="600">FunnelOS</text>
+    <rect x="0" y="48" width="180" height="492" fill="#11141d"></rect>
+    <text x="210" y="84" fill="#6b7180" font-size="18" font-weight="700">Deals · 312</text>
+    <g>
+      <rect x="210" y="104" width="940" height="34" rx="6" fill="#1c2030"></rect>
+      <rect x="210" y="146" width="940" height="34" rx="6" fill="#6ea8ff" opacity="0.1"></rect>
+      <rect x="210" y="188" width="940" height="34" rx="6" fill="#6ea8ff" opacity="0.1"></rect>
+      <rect x="210" y="230" width="940" height="34" rx="6" fill="#6ea8ff" opacity="0.1"></rect>
+      <rect x="210" y="272" width="940" height="34" rx="6" fill="#6ea8ff" opacity="0.1"></rect>
+      <rect x="210" y="314" width="940" height="34" rx="6" fill="#6ea8ff" opacity="0.1"></rect>
+    </g>
+  </g>
+
+  <!-- scrim -->
+  <rect width="1180" height="540" fill="#000000" opacity="0.55"></rect>
+
+  <!-- modal -->
+  <g transform="translate(330, 70)">
+    <rect width="520" height="400" rx="14" fill="#161922" stroke="#2a2f40"></rect>
+
+    <!-- header -->
+    <text x="28" y="40" fill="#e8eaef" font-size="18" font-weight="700">Edit 47 selected deals</text>
+    <text x="484" y="40" fill="#a4abbb" font-size="16">✕</text>
+    <text x="28" y="62" fill="#a4abbb" font-size="12">Changes apply to every selected row. This can be undone for 30s.</text>
+    <line x1="0" y1="78" x2="520" y2="78" stroke="#2a2f40"></line>
+
+    <!-- field-to-change picker -->
+    <text x="28" y="104" fill="#a4abbb" font-family="ui-monospace, monospace" font-size="10" letter-spacing="1.2">FIELD TO CHANGE</text>
+    <rect x="28" y="114" width="210" height="38" rx="8" fill="#1c2030" stroke="#2a2f40"></rect>
+    <text x="42" y="138" fill="#e8eaef" font-size="13">Stage</text>
+    <text x="218" y="138" fill="#6b7180">▾</text>
+    <text x="252" y="138" fill="#6b7180" font-size="16">→</text>
+    <rect x="282" y="114" width="210" height="38" rx="8" fill="#1c2030" stroke="#6ea8ff"></rect>
+    <text x="296" y="138" fill="#6ea8ff" font-size="13" font-weight="600">Negotiation</text>
+    <text x="472" y="138" fill="#6ea8ff">▾</text>
+
+    <!-- before / after preview -->
+    <text x="28" y="184" fill="#a4abbb" font-family="ui-monospace, monospace" font-size="10" letter-spacing="1.2">PREVIEW · 2 of 47</text>
+    <!-- column headers -->
+    <text x="28" y="206" fill="#6b7180" font-size="11">Deal</text>
+    <text x="300" y="206" fill="#6b7180" font-size="11">Before</text>
+    <text x="408" y="206" fill="#6ee7a1" font-size="11">After</text>
+
+    <!-- preview row 1 -->
+    <rect x="28" y="214" width="464" height="40" rx="8" fill="#1c2030"></rect>
+    <text x="42" y="238" fill="#e8eaef" font-size="12" font-weight="600">Acme · Q3 Expansion</text>
+    <rect x="300" y="224" width="86" height="20" rx="10" fill="#2a2f40"></rect>
+    <text x="312" y="238" fill="#a4abbb" font-size="10">Demo (3)</text>
+    <text x="392" y="238" fill="#6b7180" font-size="12">→</text>
+    <rect x="408" y="224" width="72" height="20" rx="10" fill="#6ea8ff" opacity="0.2" stroke="#6ea8ff"></rect>
+    <text x="416" y="238" fill="#6ea8ff" font-size="10">Negotiation</text>
+
+    <!-- preview row 2 -->
+    <rect x="28" y="260" width="464" height="40" rx="8" fill="#1c2030"></rect>
+    <text x="42" y="284" fill="#e8eaef" font-size="12" font-weight="600">Globex · Q2 Renewal</text>
+    <rect x="300" y="270" width="86" height="20" rx="10" fill="#2a2f40"></rect>
+    <text x="312" y="284" fill="#a4abbb" font-size="10">Proposal (4)</text>
+    <text x="392" y="284" fill="#6b7180" font-size="12">→</text>
+    <rect x="408" y="270" width="72" height="20" rx="10" fill="#6ea8ff" opacity="0.2" stroke="#6ea8ff"></rect>
+    <text x="416" y="284" fill="#6ea8ff" font-size="10">Negotiation</text>
+
+    <text x="28" y="324" fill="#6b7180" font-size="11">+ 45 more rows will change identically</text>
+
+    <!-- amber AI nudge -->
+    <rect x="28" y="332" width="464" height="0.5" fill="#2a2f40"></rect>
+    <text x="28" y="354" fill="#ffb86b" font-size="11">★ 6 of these deals have stalled health — review before advancing?</text>
+
+    <!-- footer -->
+    <line x1="0" y1="362" x2="520" y2="362" stroke="#2a2f40"></line>
+    <rect x="320" y="372" width="80" height="34" rx="8" fill="none" stroke="#2a2f40"></rect>
+    <text x="338" y="394" fill="#a4abbb" font-size="13">Cancel</text>
+    <rect x="408" y="372" width="86" height="34" rx="8" fill="#6ea8ff"></rect>
+    <text x="424" y="394" fill="#0f1115" font-size="12" font-weight="700">Apply to 47</text>
+  </g>
+
+  <!-- annotations -->
+  <g class="anno">
+    <circle cx="438" cy="128" r="3" class="note-anchor"></circle><text x="412" y="132" fill="#ffb86b" font-size="10">①</text>
+    <circle cx="838" cy="234" r="3" class="note-anchor"></circle><text x="848" y="238" fill="#ffb86b" font-size="10">②</text>
+    <circle cx="838" cy="384" r="3" class="note-anchor"></circle><text x="848" y="388" fill="#ffb86b" font-size="10">③</text>
+  </g>
+</svg>
+    <div class="caption">D5 · Bulk Action Modal — ① field-to-change picker reads as "Stage → Negotiation" inline  ② before/after pills make the mutation legible per row before commit  ③ count-bearing "Apply to 47" + AI guard against advancing stalled deals</div>
+  </div>
+</section>
+
+<!-- =================== D6 FILTER BUILDER =================== -->
+<section class="screen" id="D6">
+  <h3>D6 — Filter Builder — All</h3>
+  <p class="screen-meta">All · filter popover anchored under the Filter button — AND/OR group, condition rows, save as view · ref: Attio, Salesforce</p>
+  <div class="mockup">
+<svg viewBox="0 0 1180 500" xmlns="http://www.w3.org/2000/svg" font-family="Inter, sans-serif" font-size="12">
+  <rect width="1180" height="500" rx="8" fill="#0f1115"></rect>
+
+  <!-- faint underlying list with live toolbar -->
+  <g opacity="0.45">
+    <rect width="1180" height="48" fill="#11141d"></rect>
+    <circle cx="22" cy="24" r="6" fill="#6ea8ff"></circle>
+    <text x="38" y="28" fill="#e8eaef" font-weight="600">FunnelOS</text>
+    <rect x="0" y="48" width="180" height="452" fill="#11141d"></rect>
+    <text x="210" y="84" fill="#6b7180" font-size="18" font-weight="700">Pipeline · List</text>
+    <rect x="210" y="180" width="940" height="34" rx="6" fill="#1c2030"></rect>
+    <rect x="210" y="222" width="940" height="34" rx="6" fill="#161922" stroke="#2a2f40"></rect>
+    <rect x="210" y="264" width="940" height="34" rx="6" fill="#161922" stroke="#2a2f40"></rect>
+    <rect x="210" y="306" width="940" height="34" rx="6" fill="#161922" stroke="#2a2f40"></rect>
+  </g>
+
+  <!-- scrim (lighter — popover, not full modal) -->
+  <rect width="1180" height="500" fill="#000000" opacity="0.5"></rect>
+
+  <!-- live toolbar with Filter button (drawn above scrim so anchor reads) -->
+  <g>
+    <rect x="210" y="104" width="78" height="30" rx="6" fill="#1c2030" stroke="#2a2f40"></rect>
+    <text x="224" y="124" fill="#a4abbb" font-size="12">Sort ▾</text>
+    <rect x="296" y="104" width="92" height="30" rx="6" fill="#6ea8ff" opacity="0.18" stroke="#6ea8ff"></rect>
+    <text x="310" y="124" fill="#6ea8ff" font-size="12">⛃ Filter · 2</text>
+    <rect x="396" y="104" width="92" height="30" rx="6" fill="#1c2030" stroke="#2a2f40"></rect>
+    <text x="410" y="124" fill="#a4abbb" font-size="12">Group ▾</text>
+  </g>
+
+  <!-- popover (anchored under Filter button) -->
+  <g transform="translate(296, 144)">
+    <!-- little caret -->
+    <path d="M28 -6 l8 8 l8 -8 z" fill="#161922" stroke="#2a2f40"></path>
+    <rect x="-200" y="2" width="0" height="0"></rect>
+    <rect width="520" height="300" rx="12" fill="#161922" stroke="#2a2f40"></rect>
+
+    <!-- header: group toggle -->
+    <text x="20" y="34" fill="#e8eaef" font-size="14" font-weight="700">Filter deals where</text>
+    <!-- AND/OR segmented -->
+    <rect x="190" y="18" width="92" height="26" rx="6" fill="#1c2030" stroke="#2a2f40"></rect>
+    <rect x="190" y="18" width="46" height="26" rx="6" fill="#6ea8ff"></rect>
+    <text x="202" y="35" fill="#0f1115" font-size="11" font-weight="700" font-family="ui-monospace, monospace">AND</text>
+    <text x="246" y="35" fill="#a4abbb" font-size="11" font-family="ui-monospace, monospace">OR</text>
+    <text x="430" y="34" fill="#6b7180" font-family="ui-monospace, monospace" font-size="11">esc</text>
+    <line x1="0" y1="56" x2="520" y2="56" stroke="#2a2f40"></line>
+
+    <!-- condition row 1 -->
+    <g transform="translate(20, 72)">
+      <text x="-2" y="22" fill="#6b7180" font-family="ui-monospace, monospace" font-size="10">1</text>
+      <rect x="16" y="4" width="130" height="30" rx="7" fill="#1c2030" stroke="#2a2f40"></rect>
+      <text x="28" y="24" fill="#e8eaef" font-size="12">Stage</text>
+      <text x="134" y="24" fill="#6b7180">▾</text>
+      <rect x="156" y="4" width="96" height="30" rx="7" fill="#1c2030" stroke="#2a2f40"></rect>
+      <text x="168" y="24" fill="#a4abbb" font-size="12">is any of</text>
+      <text x="240" y="24" fill="#6b7180">▾</text>
+      <rect x="262" y="4" width="186" height="30" rx="7" fill="#1c2030" stroke="#2a2f40"></rect>
+      <rect x="272" y="9" width="58" height="20" rx="10" fill="#6ea8ff" opacity="0.2" stroke="#6ea8ff"></rect>
+      <text x="280" y="23" fill="#6ea8ff" font-size="10">Demo ✕</text>
+      <rect x="336" y="9" width="82" height="20" rx="10" fill="#6ea8ff" opacity="0.2" stroke="#6ea8ff"></rect>
+      <text x="344" y="23" fill="#6ea8ff" font-size="10">Proposal ✕</text>
+      <text x="460" y="24" fill="#6b7180" font-size="14">✕</text>
+    </g>
+
+    <text x="36" y="124" fill="#6b7180" font-family="ui-monospace, monospace" font-size="10">and</text>
+
+    <!-- condition row 2 -->
+    <g transform="translate(20, 122)">
+      <text x="-2" y="22" fill="#6b7180" font-family="ui-monospace, monospace" font-size="10">2</text>
+      <rect x="16" y="4" width="130" height="30" rx="7" fill="#1c2030" stroke="#2a2f40"></rect>
+      <text x="28" y="24" fill="#e8eaef" font-size="12">Amount</text>
+      <text x="134" y="24" fill="#6b7180">▾</text>
+      <rect x="156" y="4" width="96" height="30" rx="7" fill="#1c2030" stroke="#2a2f40"></rect>
+      <text x="168" y="24" fill="#a4abbb" font-size="12">≥</text>
+      <text x="240" y="24" fill="#6b7180">▾</text>
+      <rect x="262" y="4" width="186" height="30" rx="7" fill="#1c2030" stroke="#2a2f40"></rect>
+      <text x="274" y="24" fill="#e8eaef" font-size="12">$50,000</text>
+      <text x="460" y="24" fill="#6b7180" font-size="14">✕</text>
+    </g>
+
+    <!-- condition row 3 -->
+    <g transform="translate(20, 162)">
+      <text x="-2" y="22" fill="#6b7180" font-family="ui-monospace, monospace" font-size="10">3</text>
+      <rect x="16" y="4" width="130" height="30" rx="7" fill="#1c2030" stroke="#2a2f40"></rect>
+      <text x="28" y="24" fill="#e8eaef" font-size="12">Owner</text>
+      <text x="134" y="24" fill="#6b7180">▾</text>
+      <rect x="156" y="4" width="96" height="30" rx="7" fill="#1c2030" stroke="#2a2f40"></rect>
+      <text x="168" y="24" fill="#a4abbb" font-size="12">is</text>
+      <text x="240" y="24" fill="#6b7180">▾</text>
+      <rect x="262" y="4" width="186" height="30" rx="7" fill="#1c2030" stroke="#2a2f40"></rect>
+      <circle cx="278" cy="19" r="8" fill="#6ea8ff" opacity="0.3"></circle>
+      <text x="273" y="22" fill="#6ea8ff" font-size="8" font-weight="700">RP</text>
+      <text x="294" y="24" fill="#e8eaef" font-size="12">Me</text>
+      <text x="460" y="24" fill="#6b7180" font-size="14">✕</text>
+    </g>
+
+    <!-- add condition -->
+    <text x="36" y="232" fill="#6ea8ff" font-size="12">+ Add condition</text>
+    <text x="150" y="232" fill="#6b7180" font-size="12">·</text>
+    <text x="166" y="232" fill="#a4abbb" font-size="12">+ Add group</text>
+
+    <!-- footer -->
+    <line x1="0" y1="250" x2="520" y2="250" stroke="#2a2f40"></line>
+    <text x="20" y="280" fill="#a4abbb" font-size="12">137 deals match</text>
+    <text x="300" y="280" fill="#6b7180" font-size="12">Clear all</text>
+    <rect x="380" y="262" width="120" height="30" rx="7" fill="#6ea8ff"></rect>
+    <text x="396" y="282" fill="#0f1115" font-size="12" font-weight="700">☆ Save as view</text>
+  </g>
+
+  <!-- annotations -->
+  <g class="anno">
+    <circle cx="486" cy="180" r="3" class="note-anchor"></circle><text x="496" y="184" fill="#ffb86b" font-size="10">①</text>
+    <circle cx="316" cy="240" r="3" class="note-anchor"></circle><text x="290" y="244" fill="#ffb86b" font-size="10">②</text>
+    <circle cx="812" cy="436" r="3" class="note-anchor"></circle><text x="822" y="440" fill="#ffb86b" font-size="10">③</text>
+  </g>
+</svg>
+    <div class="caption">D6 · Filter Builder — ① popover anchored under the active Filter button (caret + count badge)  ② AND/OR group toggle scopes the stacked field ▾ / operator ▾ / value rows  ③ live match count + "Save as view" turns an ad-hoc filter into a saved view</div>
+  </div>
+</section>
+
+<!-- =================== D7 SAVED VIEW SWITCHER =================== -->
+<section class="screen" id="D7">
+  <h3>D7 — Saved View Switcher — All</h3>
+  <p class="screen-meta">All · dropdown under the view name — My views / Shared views, pin &amp; star, active checkmark · ref: Attio, HubSpot</p>
+  <div class="mockup">
+<svg viewBox="0 0 1180 500" xmlns="http://www.w3.org/2000/svg" font-family="Inter, sans-serif" font-size="12">
+  <rect width="1180" height="500" rx="8" fill="#0f1115"></rect>
+
+  <!-- faint underlying app -->
+  <g opacity="0.45">
+    <rect width="1180" height="48" fill="#11141d"></rect>
+    <circle cx="22" cy="24" r="6" fill="#6ea8ff"></circle>
+    <text x="38" y="28" fill="#e8eaef" font-weight="600">FunnelOS</text>
+    <rect x="0" y="48" width="180" height="452" fill="#11141d"></rect>
+    <rect x="210" y="180" width="940" height="34" rx="6" fill="#1c2030"></rect>
+    <rect x="210" y="222" width="940" height="34" rx="6" fill="#161922" stroke="#2a2f40"></rect>
+    <rect x="210" y="264" width="940" height="34" rx="6" fill="#161922" stroke="#2a2f40"></rect>
+    <rect x="210" y="306" width="940" height="34" rx="6" fill="#161922" stroke="#2a2f40"></rect>
+    <rect x="210" y="348" width="940" height="34" rx="6" fill="#161922" stroke="#2a2f40"></rect>
+  </g>
+
+  <!-- scrim -->
+  <rect width="1180" height="500" fill="#000000" opacity="0.5"></rect>
+
+  <!-- live view-name trigger (above scrim) -->
+  <g>
+    <text x="210" y="92" fill="#e8eaef" font-size="20" font-weight="700">My Open Deals</text>
+    <text x="376" y="92" fill="#6ea8ff" font-size="16">▾</text>
+    <rect x="210" y="74" width="186" height="26" rx="6" fill="none" stroke="#2a2f40" opacity="0.6"></rect>
+    <text x="408" y="92" fill="#a4abbb" font-size="13">· 137 deals · $3.2M</text>
+  </g>
+
+  <!-- dropdown panel -->
+  <g transform="translate(210, 108)">
+    <rect width="340" height="356" rx="12" fill="#161922" stroke="#2a2f40"></rect>
+
+    <!-- search -->
+    <rect x="12" y="12" width="316" height="32" rx="7" fill="#1c2030" stroke="#2a2f40"></rect>
+    <text x="26" y="32" fill="#6b7180" font-size="12">⌕ Find a view…</text>
+
+    <!-- MY VIEWS -->
+    <text x="16" y="68" fill="#a4abbb" font-family="ui-monospace, monospace" font-size="10" letter-spacing="1.2">MY VIEWS</text>
+
+    <!-- active row -->
+    <rect x="8" y="76" width="324" height="34" rx="7" fill="#6ea8ff" opacity="0.14"></rect>
+    <text x="22" y="98" fill="#6ea8ff" font-size="13">⛁</text>
+    <text x="44" y="98" fill="#e8eaef" font-size="13" font-weight="600">My Open Deals</text>
+    <text x="290" y="98" fill="#ffb86b" font-size="13">★</text>
+    <text x="312" y="98" fill="#6ea8ff" font-size="13" font-weight="700">✓</text>
+
+    <text x="22" y="132" fill="#a4abbb" font-size="13">⛁</text>
+    <text x="44" y="132" fill="#e8eaef" font-size="13">Closing this month</text>
+    <text x="290" y="132" fill="#6b7180" font-size="13">☆</text>
+    <text x="312" y="132" fill="#6b7180" font-size="12">📌</text>
+
+    <text x="22" y="162" fill="#a4abbb" font-size="13">⛁</text>
+    <text x="44" y="162" fill="#e8eaef" font-size="13">Stalled &gt; 14 days</text>
+    <circle cx="178" cy="158" r="3" fill="#ff7a7a"></circle>
+    <text x="290" y="162" fill="#ffb86b" font-size="13">★</text>
+    <text x="312" y="162" fill="#6b7180" font-size="12">📌</text>
+
+    <text x="22" y="192" fill="#a4abbb" font-size="13">⛁</text>
+    <text x="44" y="192" fill="#e8eaef" font-size="13">High-value (&gt; $100K)</text>
+    <text x="290" y="192" fill="#6b7180" font-size="13">☆</text>
+
+    <line x1="16" y1="210" x2="324" y2="210" stroke="#2a2f40"></line>
+
+    <!-- SHARED VIEWS -->
+    <text x="16" y="232" fill="#a4abbb" font-family="ui-monospace, monospace" font-size="10" letter-spacing="1.2">SHARED VIEWS</text>
+
+    <text x="22" y="262" fill="#a4abbb" font-size="13">⛁</text>
+    <text x="44" y="262" fill="#e8eaef" font-size="13">Team pipeline — Q3</text>
+    <circle cx="220" cy="258" r="8" fill="#6ee7a1" opacity="0.3"></circle>
+    <text x="216" y="261" fill="#6ee7a1" font-size="8" font-weight="700">DK</text>
+    <text x="290" y="262" fill="#6b7180" font-size="13">☆</text>
+
+    <text x="22" y="292" fill="#a4abbb" font-size="13">⛁</text>
+    <text x="44" y="292" fill="#e8eaef" font-size="13">Inbound — needs owner</text>
+    <rect x="200" y="282" width="58" height="16" rx="8" fill="#ffb86b" opacity="0.18"></rect>
+    <text x="208" y="294" fill="#ffb86b" font-size="9" font-family="ui-monospace, monospace">SHARED</text>
+    <text x="290" y="292" fill="#ffb86b" font-size="13">★</text>
+
+    <text x="22" y="322" fill="#a4abbb" font-size="13">⛁</text>
+    <text x="44" y="322" fill="#e8eaef" font-size="13">Renewals — CS handoff</text>
+    <text x="290" y="322" fill="#6b7180" font-size="13">☆</text>
+
+    <!-- footer -->
+    <line x1="0" y1="334" x2="340" y2="334" stroke="#2a2f40"></line>
+    <text x="20" y="352" fill="#6ea8ff" font-size="13" dy="-2">+ Create view</text>
+    <text x="240" y="352" fill="#6b7180" font-family="ui-monospace, monospace" font-size="11" dy="-2">Manage ⚙</text>
+  </g>
+
+  <!-- annotations -->
+  <g class="anno">
+    <circle cx="380" cy="86" r="3" class="note-anchor"></circle><text x="390" y="90" fill="#ffb86b" font-size="10">①</text>
+    <circle cx="530" cy="190" r="3" class="note-anchor"></circle><text x="540" y="194" fill="#ffb86b" font-size="10">②</text>
+    <circle cx="430" cy="490" r="3" class="note-anchor"></circle><text x="440" y="494" fill="#ffb86b" font-size="10">③</text>
+  </g>
+</svg>
+    <div class="caption">D7 · Saved View Switcher — ① dropdown drops straight from the current view name  ② My views vs Shared views, each row carrying star / pin / owner avatar  ③ active view holds the checkmark; "+ Create view" anchors the footer</div>
+  </div>
+</section>

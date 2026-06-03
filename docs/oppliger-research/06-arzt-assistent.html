@@ -1,0 +1,491 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Oppliger-Recherche — 06 · Arzt-Assistent</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+</head>
+<body>
+  <header class="page-header">
+    <a href="index.html" class="brand">Oppliger · Pitch-Recherche</a>
+    <nav class="page-nav">
+      <span class="chapter">Kapitel 06</span>
+      <a href="05-architecture.html">← Zurück</a>
+      <a href="07-pitch-arc.html">Weiter →</a>
+    </nav>
+  </header>
+
+  <main class="content wide">
+    <div class="kicker">Kapitel 06 — Arzt-Assistent</div>
+    <h1>Persona wechseln &mdash; was besser wird, was unmöglich bleibt</h1>
+    <p class="dek">Den "Creative Director" im System-Prompt durch "Arzt-Assistent" ersetzen. Die Werkzeugfläche ändert sich nicht. Das Reasoning-Register schon &mdash; und damit auch die Grenzen.</p>
+
+    <p class="lead">Oskars CD-Agent ist ein System-Prompt über einem allgemeinen Modell. Tauscht man diesen Prompt gegen einen Arzt-Assistent-Prompt aus, liest derselbe Claude Patientenhandouts, parst Laborwerte, fasst Leitlinien zusammen, bereitet Konsultationen vor &mdash; ohne die Shell-, Datei- und API-Werkzeuge aus <a href="05-architecture.html">Kapitel 05</a> zu verlieren. Die Frage ist, was sich <em>lohnt</em> auf diese Weise zu tun, und was unabhängig vom Prompt-Inhalt ausserhalb der Möglichkeiten bleibt.</p>
+
+    <h2 class="no-rule">Was sich ändert, wenn der Prompt getauscht wird</h2>
+
+    <p>Die Shell-, Datei- und API-Fläche aus <a href="05-architecture.html">Kapitel 05</a> ändert sich nicht. Was sich ändert, ist die <strong>Referenz-Bibliothek</strong>, die Claude greift, die <strong>Standard-Verweigerungs-Haltung</strong>, und die <strong>Werkzeug-Palette</strong>, die Oskar bereitstellt. CD kennt 20 Design-Schulen; Arzt-Assistent kennt <code>compendium.ch</code>, die Spezialitätenliste (SpezL), die KLV (Krankenpflege-Leistungsverordnung), Swissmedic, SGAIM/KHM/AWMF-Leitlinien, ICD-10-GM, Tarmed/TARDOC-Positionen, FMH-Crypt für e-Rezept, HIN für medizinische Post. CD verweigert templatige Designs; Arzt-Assistent verweigert klinische Entscheidungen und verweigert unzitierte medizinische Aussagen &mdash; jede Behauptung wird mit Quelle ausgeliefert oder gar nicht.</p>
+
+    <p>Neue MCP-Werkzeuge, die der Arzt-Assistent-Layer braucht: <code>fmaker_query</code> + <code>fmaker_write</code> (FileMaker-Data-API-Wrapper), <code>compendium_lookup</code>, <code>spezl_check</code>, <code>klv_lookup</code>, <code>icd10_search</code>, <code>tarmed_lookup</code>, <code>hin_send</code> + <code>hin_receive</code>, <code>lab_pdf_parse</code> (via macOS Vision Framework, kein Tesseract), <code>cloud_billing_export</code>. Einmal bauen, immer wieder verwenden. Diktat braucht <em>kein</em> eigenes Werkzeug &mdash; macOS-natives Diktat in jedem Textfeld liefert den Rohtext direkt in Oskars Chat-Eingabe.</p>
+
+    <h2>Der Schweizer Hausarzt-Datenfluss &mdash; wo Oskar mitarbeitet</h2>
+
+    <p>Roberts Praxis verarbeitet jeden Tag einen bestimmten Stapel an Inputs und Outputs. Die Abschnitte unten gehen ihn in der Reihenfolge des täglichen Volumens durch &mdash; mit dem, was Oskar tut, was nicht, und wovon jeder Schritt abhängt.</p>
+
+    <h3>1 · Posteingang-Triage &mdash; E-Mail + PDF</h3>
+
+    <p>Wahrscheinlich 40–80 E-Mails pro Tag, ein Mix aus HIN-verschlüsselter Medizinalpost und regulärem Verwaltungsverkehr. Routine-Kategorien:</p>
+
+    <table class="rubric" style="font-size: 0.86rem;">
+      <thead>
+        <tr><th>Kategorie</th><th>Quellen (Beispiele)</th><th>Was Oskar tut</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>Laborbefunde</td><td>Unilabs, Viollier, Synlab, Risch &mdash; via HIN</td><td>Entschlüsselt via HIN, parst Werte, schreibt in FileMaker, kennzeichnet Auffälligkeiten (Abschnitt 2)</td></tr>
+        <tr><td>Facharzt-Berichte</td><td>Andere Ärzt:innen via HIN</td><td>Parst, ordnet unter Patient:in in FM ein, plant Verlaufskontrolle bei Bedarf, entwirft Empfangsbestätigung</td></tr>
+        <tr><td>Austrittsberichte aus Spitälern</td><td>USZ, Stadtspital, Triemli, Hirslanden &mdash; via HIN</td><td>Parst Diagnosen + Medikamentenänderungen, aktualisiert FM-Medikamentenliste, plant Verlaufstermin</td></tr>
+        <tr><td>Krankenkassen-Anfragen</td><td>Helsana, Sanitas, CSS, Swica, KPT, Visana &mdash; via HIN oder Post</td><td>Entwirft Antwort mit ICD + Tarmed + KLV/SpezL-Zitat (Abschnitt 3)</td></tr>
+        <tr><td>Patient:innen direkt</td><td>Praxis-Mail, Local.ch-Buchungs-Widget</td><td>Klassifiziert (Buchung / Rezeptverlängerung / AU-Zeugnis / klinische Frage), entwirft Antwort im Haus-Stil in der Sprache der Patientin/des Patienten</td></tr>
+        <tr><td>Apotheken-Rückfragen</td><td>Topwell, Galenica, lokale Apotheken</td><td>Entwirft Klärung, stellt zur Unterschrift bereit</td></tr>
+        <tr><td>Bulletins</td><td>FMH, SGAIM, KHM, BAG</td><td>Fasst zusammen, archiviert, hebt nur das hervor, was er selbst markieren würde</td></tr>
+        <tr><td>Lieferanten / Marketing</td><td>Medizinprodukt-Hersteller, Kongress-Einladungen, Geräte-Lieferanten</td><td>Archiviert oder entwirft höfliche Absage</td></tr>
+      </tbody>
+    </table>
+
+    <p><strong>Die Ausgabeform:</strong> statt 60 Mails einzeln zu triagieren, öffnet Robert Oskars "Posteingang" ein- oder zweimal pro Tag und sieht eine <strong>Draft-Warteschlange</strong> &mdash; 60 Einträge, jeder vorklassifiziert, jeder mit einer Entwurfs-Aktion (Antworten, Ablegen, Termin, Archivieren, Eskalation). Er bestätigt, korrigiert oder schreibt um. 60 Posteingänge &rarr; 60 Bestätigungen. Aus 90 Minuten täglich werden vermutlich 15.</p>
+
+    <p><strong>Was Oskar nicht kann:</strong></p>
+    <ul style="font-size: 0.92rem;">
+      <li>HIN-Mail entschlüsseln, ohne dass der HIN-Client auf dem Mac installiert und die HIN-Credentials / das Zertifikat im Schlüsselbund liegen (Einmal-Setup)</li>
+      <li>Etwas automatisch versenden &mdash; alles bleibt in der Draft-Warteschlange, bis Robert "Senden" klickt</li>
+      <li>Entscheiden, ob eine "Patientenfrage" wirklich dringend ist (eskaliert mit Dringlichkeits-Flag an ihn)</li>
+    </ul>
+
+    <h3>2 · Labor-Pipeline</h3>
+
+    <p>Eingehend: verschlüsseltes PDF via HIN von einem der Schweizer Labors. Typischer Ablauf:</p>
+
+    <ol style="font-size: 0.92rem;">
+      <li>HIN-Client auf dem Mac entschlüsselt die Nachricht und speichert das PDF</li>
+      <li>Oskar führt OCR aus / extrahiert Text via <code>ocrmypdf --skip-text</code> (Labors verwenden meist PDF/A mit eingebettetem Text; OCR ist Fallback)</li>
+      <li>Parst Testname, Wert, Einheit, Referenzbereich, Auffälligkeits-Flag via Regex + LLM-Verifikation</li>
+      <li>Fragt FileMaker (Data API) ab nach der Patienten-ID, die zu Name + Geburtsdatum + AHV passt, falls vorhanden</li>
+      <li>Schreibt strukturierte Laborwerte in die FM-Tabelle "Labor"</li>
+      <li>Wenn ein Wert auffällig markiert ist: trägt Patient:in + auffällige Werte in Roberts Review-Queue mit Dringlichkeit (leicht / mittel / dringend nach von ihm gesetzten Regeln) ein</li>
+      <li>Für Werte, bei denen Patient:innen ausdrücklich informiert werden wollen: entwirft eine "Ergebnisse eingegangen, besprechen wir"-Notiz in der bevorzugten Sprache</li>
+      <li>Archiviert das Original-PDF unter <code>~/Praxis/Labor/[Jahr]/[Patient:innen-Ordner]/</code></li>
+    </ol>
+
+    <p><strong>Was Oskar nicht kann:</strong></p>
+    <ul style="font-size: 0.92rem;">
+      <li>Interpretieren. Referenzbereiche sind technisch; klinische Relevanz ist die ärztliche Beurteilung.</li>
+      <li>Entscheiden, ob "auffällig genug, um heute anzurufen" oder "warten bis zur Konsultation" &mdash; markiert mit Dringlichkeit; Robert entscheidet.</li>
+      <li>Den Befund freigeben. Arzt öffnet die Queue, prüft, schliesst den Eintrag.</li>
+    </ul>
+
+    <h3>3 · Krankenkassen-Korrespondenz</h3>
+
+    <p>Häufiger Fall: Kostengutsprache-Anfrage. Die Versicherung fragt <em>"warum rechnen Sie X ab?"</em> oder <em>"wir übernehmen Y nicht ohne Begründung."</em> Die Antwort braucht den richtigen ICD-10, die Tarmed/TARDOC-Position und das passende SpezL/KLV-Zitat in formalem medizinisch-administrativem Deutsch.</p>
+
+    <p><strong>Oskars Rolle:</strong></p>
+    <ul style="font-size: 0.92rem;">
+      <li>Empfängt via HIN, parst die Anfrage, identifiziert, welche Patient:in + welche Behandlung gemeint ist</li>
+      <li>Holt relevante Diagnosen + Tarmed-Positionen + Anamnese aus FM</li>
+      <li>Querverweist die Spezialitätenliste (bag.admin.ch) für Medikamenten-Abdeckung</li>
+      <li>Querverweist die KLV (Krankenpflege-Leistungsverordnung) für Verfahrens-Abdeckung</li>
+      <li>Entwirft das Antwortschreiben mit klinischer Begründung, ICD-10-Code, Tarmed-Position, dem passenden KLV/SpezL-Zitat, im formalen Register, das Krankenkassen erwarten</li>
+      <li>Stellt zur Unterschrift bereit; versendet via HIN nach Signatur</li>
+      <li>Wenn die Kostengutsprache später abgelehnt wird: entwirft den Einspruch, wieder mit Quellen; Robert entscheidet, ob sich der Einspruch lohnt</li>
+    </ul>
+
+    <p><strong>Was Oskar nicht kann:</strong></p>
+    <ul style="font-size: 0.92rem;">
+      <li>Medizinische Notwendigkeit entscheiden (Arzt entscheidet)</li>
+      <li>Irgendetwas unterschreiben</li>
+      <li>Entscheiden, ob man eine Ablehnung anficht oder akzeptiert &mdash; strategischer Entscheid, kein klinischer</li>
+    </ul>
+
+    <h3>4 · Vorrechnung &rarr; Cloud-Abrechnung-Übergabe</h3>
+
+    <p>Robert erfasst Konsultationen im Verlauf der Woche in FileMaker mit Tarmed/TARDOC-Positionen. Am Wochen-/Monatsende fliessen die Vorrechnungsdaten in sein Cloud-Abrechnungssystem (Tarbase / Vitomed Online / MediStat / je nach Setup). Das ist der <strong>hebelreichste Verwaltungsworkflow</strong> der Praxis, weil Tarmed-Erfassungsfehler sich summieren &mdash; eine falsch codierte Konsultation rechnet entweder zu wenig ab (verlorener Umsatz) oder wird zurückgewiesen (Mehrarbeit + Zahlungsverzögerung).</p>
+
+    <p><strong>Oskars Rolle:</strong></p>
+    <ul style="font-size: 0.92rem;">
+      <li><strong>Wöchentliches Review</strong> &mdash; sucht in FM nach Konsultationen ohne Tarmed-Codes oder mit Codes, die inkonsistent zur Konsultationsdauer sind ("45-Min-Eintrag mit nur 00.0010 Anwesenheitspauschale &mdash; fehlt die längere Position?")</li>
+      <li><strong>Plausibilitäts-Check</strong> &mdash; markiert Duplikate, unmögliche Kombinationen, Position+Modifier-Konflikte, bevor sie ins Abrechnungssystem gehen</li>
+      <li><strong>Export</strong> &mdash; erzeugt die Datei im Format, das das Cloud-System erwartet (CSV, Tarmed XML 4.5 oder proprietäres Format)</li>
+      <li><strong>Push</strong> &mdash; pusht via API, falls das Cloud-System eine hat; sonst Upload via Safari-Automatisierung</li>
+      <li><strong>Abgleich</strong> &mdash; nimmt Status-Rückmeldungen entgegen (bezahlt / abgelehnt / Tarif-Positions-Konflikt), aktualisiert den FM-Eintrag mit Zahlungsstatus, surfaced Ablehnungen in Roberts Queue</li>
+      <li><strong>Monatsreporting</strong> &mdash; Umsatz nach Tarmed-Position, Zahlungseingänge nach Krankenkasse, durchschnittliche Bearbeitungszeit der Krankenkassen, No-Show-Verluste</li>
+    </ul>
+
+    <p><strong>Was Oskar nicht kann:</strong></p>
+    <ul style="font-size: 0.92rem;">
+      <li>Entscheiden, welche Tarmed-Position für eine bestimmte Konsultation korrekt ist. Es kann Inkonsistenzen markieren; der Arzt entscheidet, was tatsächlich gemacht wurde.</li>
+      <li>Die Rechnung freigeben.</li>
+      <li>Eine abgelehnte Position lösen, die klinisches Nachdenken braucht &mdash; entwirft die Antwort, der Arzt billigt sie.</li>
+    </ul>
+
+    <h3>5 · Ausgehend &mdash; Überweisungen, Rezepte, Spital-Anmeldungen</h3>
+
+    <p>Ausgehende Post an Fachärzt:innen, Spitäler, Apotheken. Meist via HIN; e-Rezept via FMH-Crypt, wo verfügbar.</p>
+
+    <table class="rubric" style="font-size: 0.86rem;">
+      <thead>
+        <tr><th>Eintrag</th><th>Was Oskar entwirft</th><th>Was Robert tut</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>Überweisung an Fachärzt:in</td><td>Holt Patienten-Kontext aus FM, entwirft den Brief auf seiner Vorlage mit ICD-10 + relevanter Anamnese + spezifischer Frage an die Fachärzt:in</td><td>Prüft, unterschreibt, versendet via HIN</td></tr>
+        <tr><td>E-Rezept</td><td>Entwirft das Rezept gemäss aktueller Medikationsliste, prüft compendium.ch auf Interaktionen, fügt bevorzugte Apotheke ein</td><td>Prüft, signiert via FMH-Crypt, schickt an Apotheke (Galenica / Topwell / Wahl der Patient:in)</td></tr>
+        <tr><td>Spital-Anmeldung</td><td>Holt relevante Anamnese, entwirft das Standard-Anmeldeformular je nach Spital (USZ hat sein Format, Triemli ein anderes)</td><td>Prüft, unterschreibt, sendet</td></tr>
+        <tr><td>Laboranforderung</td><td>Erzeugt das Unilabs-/Viollier-Bestellformular vorgefüllt aus FM-Patientendaten + Test-Panel</td><td>Prüft, unterschreibt, sendet (oder ordert Kit-Lieferung)</td></tr>
+        <tr><td>AHV-/IV-Bericht</td><td>Füllt das Standard-Behördenformular aus FM-Anamnese + aktuellem Befund</td><td>Prüft, unterschreibt, sendet</td></tr>
+      </tbody>
+    </table>
+
+    <h3>6 · Patientenkommunikation direkt</h3>
+
+    <p>Eingehend via OneDoc-Buchungen, Anrufbeantworter (macOS-native Voice-Memo-Transkription, kein Whisper-Setup nötig), Praxis-E-Mail, evtl. WhatsApp Business.</p>
+
+    <ul style="font-size: 0.92rem;">
+      <li><strong>OneDoc-Buchungs-Benachrichtigungen</strong> &mdash; parst, fügt in FM-Termintabelle ein, schickt Robert + Gabriela jeden Morgen um 07:30 den Tagesplan</li>
+      <li><strong>Anrufbeantworter</strong> &mdash; macOS-Voice-Memos transkribiert die Nachricht selbst, Oskar liest die Transkription, klassifiziert (dringend / Terminanfrage / Klärung / Spam), entwirft Rückruf-Notiz oder Antwort</li>
+      <li><strong>E-Mail-Fragen</strong> &mdash; klassifiziert, entwirft eine Antwort im Haus-Stil in der per Local.ch markierten Patientensprache</li>
+      <li><strong>Termin-Erinnerungen</strong> &mdash; 24 h vorher, per SMS (Twilio) oder iMessage, falls Nummer als iPhone in den Kontakten geführt ist</li>
+      <li><strong>Newsletter- und Recall-Kampagnen</strong> &mdash; "alle Patient:innen mit überfälliger Grippeimpfung," "TCM-Patient:innen mit anstehender Verlaufskontrolle" usw., aus FM-Abfragen generiert, in der Sprache der Patient:in entworfen, via HIN, wo passend, sonst per regulärer E-Mail</li>
+    </ul>
+
+    <h3>7 · Fortbildung + Praxis-Verwaltung</h3>
+
+    <ul style="font-size: 0.92rem;">
+      <li><strong>FMH-Credits</strong> &mdash; protokolliert besuchte Fortbildungen, berechnet Credit-Stand in Richtung FMH-Diplom-Rezertifizierung</li>
+      <li><strong>Event-Feeds</strong> &mdash; zieht SGAIM-, KHM-, SAPPM-Veranstaltungen, schlägt passende vor</li>
+      <li><strong>Praxis-Kennzahlen</strong> &mdash; No-Show-Quote, durchschnittliche Konsultationszeit, Krankenkassen-Mix, Sprachen-Mix &mdash; wöchentlicher Digest in der Mail am Montagmorgen</li>
+      <li><strong>Lieferanten-Bestellungen</strong> &mdash; wiederkehrende Bestellungen für Labor-Kits, Impfstoffe, Material, nach Zeitplan via Lieferanten-API oder Web-Automatisierung</li>
+      <li><strong>Steuer- / Rechts-Exports</strong> &mdash; quartalsweise Umsatz-Exports für den Treuhänder, FMH-Standesordnungs-Dokumentation</li>
+      <li><strong>revDSG-Audit-Log</strong> &mdash; jeder PHI-berührende Aufruf von Oskar wird protokolliert; der Log ist abfragbar ("zeig mir alles, was Oskar mit Patient:innen-ID X gemacht hat")</li>
+    </ul>
+
+    <h2>Wo die Grenzen tatsächlich zu spüren sind</h2>
+
+    <p>Kein allgemeines "KI kann den Arzt nicht ersetzen"-Geschwafel. Die konkreten Punkte, an denen Oppliger an Wände stösst, mit dem, was jeder einzelne in der Praxis kostet.</p>
+
+    <table class="rubric" style="font-size: 0.88rem;">
+      <thead>
+        <tr><th>Grenze</th><th>Was er nicht kann</th><th>Warum es hier zählt</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>Cloud-Routen ohne PHI</strong></td>
+          <td>Identifizierbare Patientendaten an <code>api.anthropic.com</code> senden.</td>
+          <td>Sein Stack ist bereits On-Premise. PHI-Workflows bleiben On-Premise &mdash; auf ein lokales Modell auf demselben Mac mini geroutet. Cloud bearbeitet nur Workflows ohne PHI. Das ist eine Routing-Regel, kein Hindernis. Siehe Datenschutz-Abschnitt weiter unten.</td>
+        </tr>
+        <tr>
+          <td><strong>Klinische Entscheidungen</strong></td>
+          <td>Diagnostizieren. Ausschliessen. Verschreiben. Unterschreiben.</td>
+          <td>Der Arzt unterschreibt jedes Dokument. Immer. Oskar kann entwerfen, vorschlagen, Aspekte auflisten &mdash; nie autorisieren. <em>(Das ist keine Werkzeug-Grenze; eine rechtliche. Ändert sich nicht mit besseren Modellen.)</em></td>
+        </tr>
+        <tr>
+          <td><strong>Bildgebung</strong></td>
+          <td>DICOM-Interpretation auf klinischem Niveau: Röntgenbilder, Ultraschall, EKG-Streifen lesen wie ein:e Radiolog:in.</td>
+          <td>Multimodale Modelle entwickeln sich rasch, sind aber in der CH nicht als Medizinprodukt zertifiziert. Für "ist dieser Ausschlag bedenklich?"-Triage &mdash; nützlich, wenn das Foto gut ist und es als Triage gerahmt wird. Für alles, was normal an eine Fachärzt:in geht &mdash; überweisen.</td>
+        </tr>
+        <tr>
+          <td><strong>Echtzeit am Schreibtisch</strong></td>
+          <td>Schneller sein als ein FileMaker-Klick während einer laufenden Konsultation.</td>
+          <td>Chat-Aufruf braucht 3–15 Sek. Roundtrip. Während einer 15-Minuten-Konsultation ist das Reibung. Oskar ist ein <em>Vorbereitungs</em>- und <em>Nach-Konsultations</em>-Werkzeug, kein <em>In-Konsultations</em>-Werkzeug.</td>
+        </tr>
+        <tr>
+          <td><strong>Halluzination</strong></td>
+          <td>Bei unzitierten medizinischen Aussagen vertraut werden können.</td>
+          <td>"Sertralin 50 mg max. 200 mg/d" ist korrekt. "Sertralin 100 mg max. 400 mg/d" klingt auch korrekt. Ohne erzwungene Zitations-Disziplin (jede Aussage mit Quelle oder verweigert) muss der Arzt alles nachprüfen &mdash; was den Zeitgewinn aufhebt. Quellenzitat muss eine Verweigerungs-Untergrenze im System-Prompt sein.</td>
+        </tr>
+        <tr>
+          <td><strong>FileMaker-Schema-Arbeit</strong></td>
+          <td>Tabellen / Felder / Beziehungen / Skripte / Layouts ändern.</td>
+          <td>Das ist FileMaker-Pro-Client-Arbeit. Oskar kann das Schema <em>nutzen</em> (Abfrage/Update via Data API), aber nicht <em>ändern</em>. Wenn eine neue "Eisenkur-Verlauf"-Tabelle gebraucht wird, öffnet Robert FileMaker Pro und baut sie.</td>
+        </tr>
+        <tr>
+          <td><strong>Patient:innen-spezifisches Gedächtnis</strong></td>
+          <td>Sich an "die Patientin vom letzten Dienstag" ohne ID-Nennung erinnern.</td>
+          <td>FileMaker <em>ist</em> das Patient:innen-Gedächtnis &mdash; jede Anamnese, jede Konsultation, jedes Labor, seit 20 Jahren strukturiert dort. Oskar holt diesen Kontext jedes Mal frisch via Data API; was er weiss, weiss er aus FM oder gar nicht. <strong>Eine parallele Oskar-Patient:innen-Datenbank wäre eine zweite Quelle der Wahrheit, die von FM abdriftet</strong> &mdash; bauen wir bewusst nicht. Die echte Restgrenze: ohne explizite ID-Nennung (Name, Geburtsdatum, FM-Record-ID) kann Oskar keinen Patient:innen-Recall machen. &laquo;Die Patientin vom letzten Dienstag&raquo; muss als FM-Abfrage formuliert sein, dann liefert Oskar.</td>
+        </tr>
+        <tr>
+          <td><strong>Schwiizerdütsch-Register</strong></td>
+          <td>Authentisches Schwiizerdütsch schreiben.</td>
+          <td>Claude versteht Zürichdütsch-Eingaben, schreibt aber Hochdeutsch. Für Patientenhandouts und Briefe ist Hochdeutsch ohnehin richtig. Für gesprochene Interaktionen: im Chat sprechen, schriftlich rendern.</td>
+        </tr>
+        <tr>
+          <td><strong>Tarmed/TARDOC-Abrechnungsentscheidungen</strong></td>
+          <td>Die richtige Tarifposition für eine komplexe Konsultation auswählen.</td>
+          <td>Kann Positionen <em>nachschlagen</em> und Regeln erklären. Kann den Abrechnungsentscheid nicht fällen &mdash; das verlangt ärztliches Urteil über das tatsächlich Geleistete. Nützlich als Check ("meinten Sie 00.0010 oder 00.0020?") &mdash; nicht als Entscheidungsträger.</td>
+        </tr>
+        <tr>
+          <td><strong>Medizinprodukteverordnung (MepV)</strong></td>
+          <td>Als primäres Diagnose-/Entscheidungsunterstützungs-Tool in der Patientenversorgung eingesetzt werden.</td>
+          <td>Würde Oskar als Software positioniert, die klinische Entscheidungen beeinflusst, könnte Swissmedic / MepV es als Medizinprodukt einstufen, mit CE-Kennzeichnung und klinischer Bewertung. <strong>Lösung: ausschliesslich als administrative + edukative Software positionieren.</strong> Der Arzt entscheidet; Oskar ist ein Büro-Werkzeug.</td>
+        </tr>
+        <tr>
+          <td><strong>Hands-on / Hardware</strong></td>
+          <td>Touch-ID-erforderliche Aktionen, Papier-Rezepte unterschreiben, körperliche Untersuchung.</td>
+          <td>Selbstverständlich. Erwähnenswert für Vollständigkeit.</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h2>Datenschutz &mdash; sein Stack hat das schon beantwortet</h2>
+
+    <p>Seine Architektur ist <strong>per Design vollständig On-Premise</strong>. FileMaker-Pro-Client auf den Praxis-Laptops &harr; FileMaker Server auf dem Mac mini im Keller. Feste IP, damit er von Hausbesuchen oder aus den Ferien zugreifen kann. Kein Cloud-Hop zwischen Client und DB. Diese Wahl hat er getroffen. Respektieren wir sie.</p>
+
+    <p>Oskar auf demselben Mac mini hinzuzufügen ändert den bestehenden Datenpfad nicht. Die <strong>einzige neue externe Abhängigkeit ist die Anthropic-API</strong> &mdash; und dort liegt der Entscheid. Zwei Routen für die KI-Schicht, pro Workflow angewandt:</p>
+
+    <table class="rubric" style="font-size: 0.9rem;">
+      <thead>
+        <tr><th>Route</th><th>Verwendet für</th><th>Wo es läuft</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>Pseudonymisierungs-Route</strong><br>(Anthropic mit PHI-Token-Substitution; Apple Intelligence als Rückfall)</td>
+          <td>Alles, was identifizierbare Patientendaten berührt: Diktat &rarr; Brief, FileMaker-Abfragen, Recall-Listen, Konsultations-Vorbereitung mit echten Daten, Antwortentwürfe an Patient:innen.</td>
+          <td>Oskar ersetzt Name / AHV / Geburtsdatum / FM-Record-ID durch stabile Tokens vor dem API-Aufruf; resubstituiert echte Werte in der Antwort. <strong>Anthropic sieht nie echtes PHI.</strong> Für die seltenen Fälle, bei denen Pseudonymisierung Bedeutung zerstört: macOS-natives Apple Intelligence (M1+). <strong>Kein Ollama-Daemon, kein Llama-Download, kein RAM-Upgrade.</strong></td>
+        </tr>
+        <tr>
+          <td><strong>Anthropic-API</strong><br>(opt-in, pro Workflow)</td>
+          <td>Alles, was keine Patientenidentität berührt: Literatur-Recherche, Übersetzung generischer Handouts, Marketing-Text, Bildgenerierung, Marken-Lint, Webseiten-Edits, System-Admin-Reasoning, Fortbildung.</td>
+          <td>Cloud. Freigegeben, weil keine PHI im Request enthalten ist. Bessere Reasoning-Qualität dort, wo es zählt.</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <p>Die Routing-Regel ist ein Satz: <strong>wenn der Prompt eine echte Patientin / einen echten Patienten, eine echte Akte, einen echten Laborbefund referenziert oder mit einem FileMaker-Record verbunden ist &mdash; lokal. Sonst &mdash; Anthropic.</strong> Implementiert als Tool-Call-Dispatch-Policy in Oskars MCP-Schicht; die Nutzer:in muss nicht jedes Mal entscheiden.</p>
+
+    <p>Der Schweizer Rechtsstapel (revDSG 2023, DSGVO für EU-Patient:innen, StGB Art. 321 Berufsgeheimnis, FMH-Standesordnung) ist mit diesem Split erfüllt &mdash; nicht durch Patient:innen-Einwilligung, nicht durch eine Anthropic-DPA, nicht durch PII-Redaktion. <strong>Patientendaten bleiben dort, wo Ihre FileMaker-Daten schon immer waren: auf Ihrem Mac mini, hinter Ihrer Auth, in Ihrem Netz.</strong> KI hinzuzufügen ändert das nicht.</p>
+
+    <h2>Was heute möglich ist vs. was noch Arbeit braucht</h2>
+
+    <table class="matrix">
+      <thead>
+        <tr>
+          <th>Fähigkeit</th>
+          <th>Heute</th>
+          <th>Braucht Arbeit</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td>Wissensabfrage mit Quellen (compendium, BAG, Leitlinien)</td><td class="yes">✓</td><td></td></tr>
+        <tr><td>Patientenhandout-Übersetzung (EN/FR/IT/ES, mit Korrektur-UI vor Live-Push)</td><td class="yes">✓</td><td></td></tr>
+        <tr><td>Fortbildungs-Zusammenfassungen mit Quellen</td><td class="yes">✓</td><td></td></tr>
+        <tr><td>Marketing-Assets (IG, Flyer, Newsletter) im Markenstil</td><td class="yes">✓</td><td></td></tr>
+        <tr><td>FileMaker-Admin (Start/Stop/Backup/Listen/Trennen)</td><td class="yes">✓</td><td></td></tr>
+        <tr><td>Time-Machine-Admin</td><td class="yes">✓</td><td></td></tr>
+        <tr><td>Diktat &rarr; strukturierter Brief (macOS-natives Diktat in Oskars Chat-Feld, lokales Modell strukturiert)</td><td class="yes">✓</td><td></td></tr>
+        <tr><td>E-Mail-Entwurf im Haus-Stil</td><td class="yes">✓</td><td></td></tr>
+        <tr><td>FileMaker Data API Abfrage/Update (CRUD auf Patient:innen/Termine)</td><td class="partial">~</td><td>Data API auf FMS aktivieren, Werkzeug-Definitionen pro Tabelle bauen</td></tr>
+        <tr><td>Persistentes patient:innenspezifisches Gedächtnis</td><td class="yes">✓</td><td>FileMaker ist das Gedächtnis. Oskar fragt via Data API ab, kein paralleler Speicher.</td></tr>
+        <tr><td>Praxis-Analytik (No-Show, Slot-Optimierung)</td><td class="partial">~</td><td>FMS-Abfrage-Helfer, Dashboards</td></tr>
+        <tr><td>Bild-Triage (Hautfotos, einfache Röntgen)</td><td class="partial">~</td><td>Multimodale Modell-Wahl; explizites "Triage-only, keine Diagnose"-Framing</td></tr>
+        <tr><td>HIN-Mail-Integration</td><td class="no">—</td><td>HIN-Gateway-API-Integration; signierte Zertifikate; revDSG-Audit</td></tr>
+        <tr><td>OneDoc-/Medicosearch-Sync</td><td class="no">—</td><td>Provider-API-Integration je System</td></tr>
+        <tr><td>PHI-sichere LLM-Routung (Pseudonymisierungs-Wrapper + Apple Intelligence als Rückfall)</td><td class="partial">~</td><td>Pseudonymisierungs-Wrapper bauen, Apple Intelligence (Foundation Models API) anbinden, Substitutions-Audit-Log. Kein zweiter Inference-Stack.</td></tr>
+        <tr><td>Pro-Werkzeug-Audit-Log sichtbar für Robert</td><td class="no">—</td><td>Nur-anfügendes Log, welcher Workflow welches Modell nutzte, welche Werkzeuge auslösten</td></tr>
+        <tr><td>Diagnostische Entscheidung</td><td class="no">—</td><td><strong>Kein Build-Ziel. Der Arzt entscheidet, immer.</strong></td></tr>
+      </tbody>
+    </table>
+
+    <h2>Roll-out-Reihenfolge &mdash; was zuerst geliefert wird</h2>
+
+    <ol style="font-size: 0.95rem;">
+      <li><strong>Anthropic-only-Arbeit zuerst.</strong> Marketing, generische Handout-Übersetzungen, Fortbildung, FileMaker-/Time-Machine-Admin, System-Wartung, Literatur-Recherche, Webseite-Edits. Kein PHI im Prompt; Cloud-Route ist sauber. Lieferung in Woche 1.</li>
+      <li><strong>PHI-sichere Routung als Zweites.</strong> Pseudonymisierungs-Wrapper als Default-Route bauen (PHI-Tokens raus, Anthropic, Tokens wieder rein); Apple Intelligence (Foundation Models API auf macOS) als Rückfall für die wenigen Workflows, bei denen Pseudonymisierung Bedeutung zerstört. Zitations-Disziplin auf medizinische Aussagen erzwungen. Lieferung in Woche 2&ndash;3. <em>Kein Ollama, kein Llama-Download, kein RAM-Upgrade.</em></li>
+      <li><strong>FileMaker Data API als Drittes.</strong> Data API auf FMS aktivieren, Lese-Werkzeug-Definitionen für die häufigsten Abfragen bauen (Patient:innen-Suche, Termin-Finder, Recall-Liste-Bilder, No-Show-Analyse). Alle Routen via lokales Modell. Lieferung in Woche 5–6.</li>
+      <li><strong>HIN-Mail-Integration als Viertes.</strong> Echte Kreuzklinik-Briefversendung unter seiner HIN-Identität. Verlangt Rechts-Review des Gateways und Audit-Log-Integritäts-Garantien. Lieferung ab Monat 3.</li>
+    </ol>
+
+    <h2>Implementations-Fahrplan &mdash; Workpackages mit Oskar-Seite / Oppliger-Seite-Split</h2>
+
+    <p class="lead">Die abstrakte Roll-out-Reihenfolge oben sagt <em>was zuerst</em>. Diese Liste sagt <em>wer baut was</em> &mdash; das, was wir bei uns vorbereiten und einmalig auf den Mac mini schieben, vs. das, was Robert/Bettina auf dem Mac mini einrichten lassen, bevor das Werkzeug verwendbar ist. Pro Workpackage: einmaliger Aufwand auf jeder Seite, danach läuft es zwischen Ralphs Besuchen autonom.</p>
+
+    <div class="callout sage">
+      <h4>Erinnerung an das Paradigma</h4>
+      <p>Heavy-Duty-FileMaker, leichtgewichtige Peripherie, Servicierung durch einen Menschen, der gelegentlich vorbeischaut. <strong>FileMaker ist nicht das Problem &mdash; FileMaker ist das Argument.</strong> Die Praxis vertraut FileMaker seit 20 Jahren, weil ein:e Hausärzt:in die Datenbank-Struktur selbst pflegen kann, ohne einen Datenbank-Administrator anzustellen. Oskar fügt dem keine Schwere hinzu; er erweitert mit derselben Philosophie: ein Dienst pro Funktion, eine Konfigdatei pro Dienst, alles via Chat fernbedienbar, alles audit-geloggt. Die Versuchung &laquo;wir lassen Oskar das Schema ändern&raquo; widerstehen wir bewusst &mdash; das ist FileMaker-Pro-Client-Arbeit, dort, wo Robert/Bettina sie schon immer gemacht haben, und genau diese Wartbarkeit ist <em>warum</em> FileMaker.</p>
+    </div>
+
+    <h3 style="margin-top: 1.5rem;"><span style="color: var(--mute); font-size: 0.75rem; letter-spacing: 0.1em; text-transform: uppercase; display: block; margin-bottom: 0.3rem;">Arzt-Assistent-Workflows</span>WP-A1 &middot; PHI-sichere LLM-Routung &mdash; Pseudonymisierung plus Apple Intelligence, kein lokaler Llama-Stack</h3>
+    <table class="rubric" style="font-size: 0.88rem;">
+      <thead><tr><th style="width: 50%;">Oskar-Seite (wir bauen)</th><th>Oppliger-Seite (einmalig)</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><strong>Pseudonymisierungs-Wrapper als Default-Route.</strong> Bevor ein Prompt Anthropic erreicht, ersetzt Oskar jeden PHI-Token (Name, AHV-Nummer, Geburtsdatum, FM-Record-ID) durch stabile Platzhalter (<code>PATIENT_001</code>, <code>DOB_001</code>, &hellip;). Antwort kommt zurück, Tokens werden zu echten Werten resubstitutiert. <strong>Anthropic sieht nie echtes PHI.</strong> Die Substitutions-Mapping wird im Audit-Log mit-eingetragen, damit jeder Aufruf rückverfolgbar ist. Für die grosse Mehrheit der Workflows (Diktat-Restrukturierung, Krankenkassen-Begründungen, Recall-Entwürfe, Konsultations-Vorbereitung) braucht der Prompt den echten Namen ohnehin nicht, um die Aufgabe zu erledigen.</td>
+          <td>Keiner. Pseudonymisierung ist eine Code-Schicht in Oskar.</td>
+        </tr>
+        <tr>
+          <td><strong>Apple Intelligence (Writing Tools / Foundation Models API) als Rückfallweg</strong> für die wenigen Workflows, bei denen Pseudonymisierung die Bedeutung kaputtmacht &mdash; etwa kulturkontext-spezifisches Schreiben, wo der echte Name die Tonalität bestimmt. macOS routet diese Aufrufe an Apples on-device Foundation Model, das auf jedem M1-und-jünger-Mac eingebaut ist. <strong>Keine Ollama-Installation, kein Llama-Download, kein 64-GB-RAM-Upgrade, kein dedizierter LaunchDaemon.</strong> Das Mac-mini-Setup, das die Praxis schon hat, reicht aus.</td>
+          <td>Mac mini muss M1 oder neuer sein (für Apple Intelligence). Bei aktueller Konfiguration ist das vermutlich gegeben &mdash; verifizieren am Setup-Tag. Falls der Mac mini älter ist: Hardware-Tausch nötig (Apple-Trade-In-Programm). Sonst nichts.</td>
+        </tr>
+        <tr>
+          <td><em>Was wir bewusst <strong>nicht</strong> machen:</em> Llama 3.3 70B oder vergleichbar grosse Modelle lokal hosten. Das verlangt 64 GB RAM, einen separaten Daemon, ein Modell, das nachts neu geladen werden muss, weil es gross ist, und einen Workflow, bei dem niemand weiss, ob Anthropic-Sonnet oder das lokale Modell gerade die schlechtere Antwort liefert. Pseudonymisierung schickt das Problem dahin, wo es gehört &mdash; <em>weg vom Mac mini, weg von einem zweiten Inference-Stack</em>.</td>
+          <td>&mdash;</td>
+        </tr>
+      </tbody>
+    </table>
+    <p style="font-size: 0.85rem; color: var(--ink-soft); margin-top: -0.5rem;"><em>Aufwand: ~3h Claude &middot; ~1h Ralph für Review der Substitutionslogik &middot; 1 Tag wall-clock</em></p>
+
+    <h3>WP-A2 &middot; FileMaker Data API + MCP-Wrapper &mdash; lesen + schreiben, nicht ändern</h3>
+    <table class="rubric" style="font-size: 0.88rem;">
+      <thead><tr><th style="width: 50%;">Oskar-Seite</th><th>Oppliger-Seite</th></tr></thead>
+      <tbody>
+        <tr>
+          <td>MCP-Werkzeuge: <code>fmaker.query(file, layout, filter)</code>, <code>fmaker.update(file, record_id, fields)</code>, <code>fmaker.create</code>, <code>fmaker.delete</code>, plus pro-Workflow-Helfer: <code>patient.find_by_birthdate</code>, <code>appointment.next_for</code>, <code>recall.overdue_for</code>, <code>lab.write_result</code>. Jeder Werkzeugaufruf audit-geloggt mit Patient:innen-ID-Hash (für revDSG). Schema-Introspektion einmalig zur Tool-Generierung; danach statische, eingefrorene Tool-Definitionen.</td>
+          <td>FileMaker Data API auf FMS aktivieren (Admin-Konsole, ein Schalter). FMS-API-Account mit eingeschränkten Rechten anlegen, Credentials in Schlüsselbund. Die <code>.fmp12</code>-Dateien bleiben unangefasst &mdash; Oskar ist nur ein API-Client. ~10 Minuten Einrichtung.</td>
+        </tr>
+        <tr>
+          <td><em>Was Oskar bewusst nicht tut:</em> Schema-Änderungen. Neue Tabellen / Felder / Beziehungen / Layouts / Skripte. Das bleibt FileMaker-Pro-Client-Arbeit. Wenn eine neue &laquo;Eisenkur-Verlauf&raquo;-Tabelle gebraucht wird, öffnet Robert/Bettina FileMaker Pro und baut sie wie immer.</td>
+          <td>Schema bleibt wie heute: gepflegt im FileMaker-Pro-Client. <strong>Genau diese Wartbarkeit ist warum FileMaker.</strong> Ein Werkzeug, das die Hausärzt:in pflegen kann, ohne einen Datenbank-Administrator anzustellen, ist 20 Jahre lang wirtschaftlicher gewesen als jede &laquo;professionellere&raquo; Lösung.</td>
+        </tr>
+      </tbody>
+    </table>
+    <p style="font-size: 0.85rem; color: var(--ink-soft); margin-top: -0.5rem;"><em>Aufwand: ~3h Claude &middot; ~1h Ralph für Schema-Mapping mit Robert &middot; 1 Tag wall-clock</em></p>
+
+    <h3>WP-A3 &middot; Stage &rarr; Live Content-Pipeline (für Website + Patientenhandouts)</h3>
+    <table class="rubric" style="font-size: 0.88rem;">
+      <thead><tr><th style="width: 50%;">Oskar-Seite</th><th>Oppliger-Seite</th></tr></thead>
+      <tbody>
+        <tr>
+          <td>Zwei Next.js-Instanzen, ein Git-Repo, zwei Branches (<code>main</code> &rarr; live auf :3000, <code>stage</code> &rarr; stage auf :3001). Robert/Bettina/Gabriela bearbeiten Inhalt im Stage via Oskar-Chat-UI (Markdown-Editor mit Live-Preview). &laquo;Veröffentlichen&raquo; ist ein Chat-Befehl, der <code>main</code> mit <code>stage</code> merged, den Next.js-Live-Build neu erstellt, und den Live-Dienst via <code>launchctl kickstart</code> neu startet. Pre-Publish-Snapshot des Git-Stands wird aufbewahrt &mdash; Rollback ist ein Chat-Befehl. <strong>Übersetzungen macht CD on-demand</strong> &mdash; Robert sagt <em>&laquo;CD, übersetze diesen Handout auf EN/FR/IT/ES, ich gehe die Korrekturen dann durch&raquo;</em>, CD liefert die vier Versionen Seite-an-Seite im Chat, Robert korrigiert/billigt, CD schreibt sie nach <code>/content/[lang]/</code>. <strong>Anthropic-only-Route &mdash; keine PHI in Patientenhandouts oder Marketing-Content.</strong></td>
+          <td>Keiner. Beide Instanzen laufen aus dem Setup-Tag. Stage-Subdomain (<code>stage.oppliger.ch</code>) ist via Touch ID am Browser geschützt &mdash; die externe Welt sieht nur Live.</td>
+        </tr>
+      </tbody>
+    </table>
+    <p style="font-size: 0.85rem; color: var(--ink-soft); margin-top: -0.5rem;"><em>Aufwand: ~2h Claude &middot; ~30 Min Ralph-Review &middot; 0.5 Tag wall-clock</em></p>
+
+    <h3>WP-A4 &middot; HIN-Mail-Integration</h3>
+    <table class="rubric" style="font-size: 0.88rem;">
+      <thead><tr><th style="width: 50%;">Oskar-Seite</th><th>Oppliger-Seite</th></tr></thead>
+      <tbody>
+        <tr>
+          <td>MCP-Werkzeuge <code>hin.receive</code> + <code>hin.draft</code> + <code>hin.send</code>. Wrapper um den lokalen HIN-Client (HIN bietet eine Mail-Plugin-Architektur an). <code>hin.send</code> rendert den Brief, lädt ihn in die HIN-Client-Outbox, wartet auf Roberts Signatur-Bestätigung am Bildschirm. <strong>Kein automatisches Senden &mdash; Robert klickt &laquo;Senden&raquo;.</strong> Lab-PDF-Parsing via <code>lab.parse</code> (macOS Vision Framework OCR &rarr; strukturierte Werte). Antwort-Entwürfe landen in der Draft-Warteschlange, nie in der Outbox ohne menschliche Bestätigung.</td>
+          <td>HIN-Client einmal auf dem Mac mini installiert (was er ohnehin schon ist). HIN-Zertifikat im Schlüsselbund (ohnehin schon). Plugin-Genehmigung im HIN-Client &mdash; ein einmaliger Klick beim ersten Mal. Geht ab Monat 3.</td>
+        </tr>
+      </tbody>
+    </table>
+    <p style="font-size: 0.85rem; color: var(--ink-soft); margin-top: -0.5rem;"><em>Aufwand: ~5h Claude (echtes Drittsystem mit eigener Plugin-Architektur) &middot; ~1h Ralph &middot; 1&ndash;2 Tage wall-clock</em></p>
+
+    <h3 style="margin-top: 2rem;"><span style="color: var(--mute); font-size: 0.75rem; letter-spacing: 0.1em; text-transform: uppercase; display: block; margin-bottom: 0.3rem;">Booking-Subsystem &mdash; Google Calendar als Quelle, kein Empfang nötig</span>WP-B1 &middot; Google-Calendar-Integration</h3>
+    <table class="rubric" style="font-size: 0.88rem;">
+      <thead><tr><th style="width: 50%;">Oskar-Seite</th><th>Oppliger-Seite</th></tr></thead>
+      <tbody>
+        <tr>
+          <td>OAuth-2.0-Flow für jeden der vier Ärzt:innen-Konten (einmalige Consent-Seite, dann Refresh-Token im macOS-Schlüsselbund via <code>keytar</code>). MCP-Werkzeuge: <code>calendar.freebusy(doctor_id, date_range)</code>, <code>calendar.create_event(doctor_id, slot, patient_info)</code>, <code>calendar.cancel_event(event_id)</code>, <code>calendar.reschedule_event(event_id, new_slot)</code>. Token-Refresh-Handling, Rate-Limit-Backoff, FreeBusy-Caching für 60 Sek. damit die Slot-Picker-UI nicht jeden Tastendruck eine API-Roundtrip macht.</td>
+          <td>Google-Cloud-Console-Projekt anlegen (kostenlos), OAuth-Client-ID generieren. Jede:r Arzt:in klickt einmal &laquo;Calendar-Zugriff für Praxis-Oppliger erlauben&raquo; in einem Browser-Tab &mdash; 30 Sekunden pro Person.</td>
+        </tr>
+      </tbody>
+    </table>
+    <p style="font-size: 0.85rem; color: var(--ink-soft); margin-top: -0.5rem;"><em>Aufwand: ~2h Claude &middot; 30 Min OAuth-Consent-Sitzung mit allen vier Ärzt:innen &middot; 1 Tag wall-clock</em></p>
+
+    <h3>WP-B2 &middot; Slot-Grid + Patient-Picker-UI</h3>
+    <table class="rubric" style="font-size: 0.88rem;">
+      <thead><tr><th style="width: 50%;">Oskar-Seite</th><th>Oppliger-Seite</th></tr></thead>
+      <tbody>
+        <tr>
+          <td>Backend: pure Funktion <code>computeAvailableSlots(freebusy, practice_hours, slot_duration)</code> &mdash; berechnet verfügbare 15-Minuten-Slots (per Arzt konfigurierbar) im rolling 4-Wochen-Fenster ab Heute, respektiert Praxis-Öffnungszeiten und alle Calendar-Events des Arztes als &laquo;busy&raquo;. Frontend: Next.js-Page <code>/termin</code> mit Arzt-Selector und Wochenansicht der freien Slots, klickbar.</td>
+          <td>Keiner. Praxis-Öffnungszeiten + Slot-Längen-Konfig in <code>~/oskar/practice.json</code> &mdash; eine JSON-Datei, einmal von Ralph + Robert befüllt am Setup-Tag.</td>
+        </tr>
+      </tbody>
+    </table>
+    <p style="font-size: 0.85rem; color: var(--ink-soft); margin-top: -0.5rem;"><em>Aufwand: ~2h Claude &middot; 30 Min Ralph-Review mit Robert für Sprechstunden-vs-Hausbesuch-Unterscheidung &middot; 0.5 Tag wall-clock</em></p>
+
+    <h3>WP-B3 &middot; Buchungsformular + Confirmation-Mails</h3>
+    <table class="rubric" style="font-size: 0.88rem;">
+      <thead><tr><th style="width: 50%;">Oskar-Seite</th><th>Oppliger-Seite</th></tr></thead>
+      <tbody>
+        <tr>
+          <td>Form: Name &middot; Telefon &middot; E-Mail &middot; bevorzugte Sprache (Auto-Default aus Browser-<code>Accept-Language</code>) &middot; Anliegen-Freitext &middot; DSG-Konsens-Checkbox. Submit &rarr; <code>calendar.create_event</code> mit Patient-Info als Event-Description &rarr; zwei E-Mails parallel: (a) an Patient: Bestätigung in dessen Sprache, mit <code>.ics</code>-Anhang für einen Klick-Import in deren Kalender, plus signed-JWT-Links zu <code>/cancel?t=...</code> und <code>/reschedule?t=...</code>; (b) an Doctor: Patient-Info-Karte mit Sprach-Hinweis + Termin-Detail. Audit-Log via <code>os_log</code>.</td>
+          <td>Keiner für laufenden Betrieb. Setup-Tag: Resend-Account-API-Key (oder anderer Transaktional-Provider) im macOS-Schlüsselbund.</td>
+        </tr>
+      </tbody>
+    </table>
+    <p style="font-size: 0.85rem; color: var(--ink-soft); margin-top: -0.5rem;"><em>Aufwand: ~1.5h Claude &middot; 30 Min Ralph-Review der E-Mail-Templates mit Robert &middot; 0.5 Tag wall-clock</em></p>
+
+    <h3>WP-B4 &middot; Reschedule + Cancel-Flow</h3>
+    <table class="rubric" style="font-size: 0.88rem;">
+      <thead><tr><th style="width: 50%;">Oskar-Seite</th><th>Oppliger-Seite</th></tr></thead>
+      <tbody>
+        <tr>
+          <td>Routes <code>/cancel?t=&lt;signed-jwt&gt;</code> und <code>/reschedule?t=&lt;signed-jwt&gt;</code>. Token: HMAC-signiert (Schlüssel im macOS-Schlüsselbund), enthält <code>{event_id, doctor_id, exp: +30 Tage}</code>. Cancel: Verifikation &rarr; Bestätigungsdialog &rarr; <code>calendar.cancel_event</code> &rarr; Doctor-Notification-Mail. Reschedule: Verifikation &rarr; Slot-Picker (WP-B2 wieder verwendet) &rarr; alten Event löschen, neuen erstellen &rarr; beide Seiten benachrichtigen. Patient muss sich nie einloggen.</td>
+          <td>Keiner.</td>
+        </tr>
+      </tbody>
+    </table>
+    <p style="font-size: 0.85rem; color: var(--ink-soft); margin-top: -0.5rem;"><em>Aufwand: ~1h Claude &middot; 15 Min Ralph-Review &middot; 0.5 Tag wall-clock</em></p>
+
+    <h3>WP-B5 &middot; Mehrsprachige Buchungs-UI &mdash; DE/EN/FR/IT/ES</h3>
+    <table class="rubric" style="font-size: 0.88rem;">
+      <thead><tr><th style="width: 50%;">Oskar-Seite</th><th>Oppliger-Seite</th></tr></thead>
+      <tbody>
+        <tr>
+          <td>i18n via <code>next-intl</code>: rund 50 UI-Strings (Slot-Picker-Labels, Form-Felder, E-Mail-Templates). CD-Agent übersetzt die einmalig in einer Chat-Sitzung &mdash; Robert sagt <em>&laquo;CD, übersetze die Buchungs-UI auf EN/FR/IT/ES&raquo;</em>, CD liefert die JSONs. Wenn später eine Korrektur nötig wird, sagt Robert es CD, CD ändert das eine Wort &mdash; nicht ein zweimonatiger Lokalisierungs-Vendor-Prozess.</td>
+          <td>Keiner.</td>
+        </tr>
+      </tbody>
+    </table>
+    <p style="font-size: 0.85rem; color: var(--ink-soft); margin-top: -0.5rem;"><em>Aufwand: ~0.5h Claude (i18n-Setup) + CD-Sitzung für Übersetzungen &middot; 0.5 Tag wall-clock</em></p>
+
+    <div class="callout sage" style="margin-top: 1rem;">
+      <h4>Was im Booking-Subsystem bewusst <em>nicht</em> gebaut wird</h4>
+      <ul style="margin-top: 0.5rem; font-size: 0.92rem;">
+        <li><strong>Empfangs-Dashboard.</strong> Es gibt keinen Empfang. Google Calendar ist das Dashboard &mdash; der Termin landet dort, wo Robert sowieso reinschaut.</li>
+        <li><strong>Doctor-Dashboard.</strong> Aus demselben Grund. Robert/Bettina öffnen Google Calendar wie immer; die Buchung steht dort, mit Patient-Info im Event-Description-Feld.</li>
+        <li><strong>Patient-Login / Account-System.</strong> Patient buchhalterisch nirgends registriert. Cancel/Reschedule via signiertem Link &mdash; kein Passwort, keine Reset-Flow, keine GDPR-Account-Pflege.</li>
+        <li><strong>FileMaker-Buchungs-Write (optional).</strong> Default fliesst die Buchung nur in Google Calendar. Wenn Robert es will, kann Oskar zusätzlich in eine FM-Termintabelle schreiben &mdash; aber das ist ein <em>optionaler</em> Bonus, nicht load-bearing. Google Calendar ist primary.</li>
+      </ul>
+    </div>
+
+    <div class="callout warn">
+      <h4>Bewusst <em>nicht</em> auf der WP-Liste &mdash; was wir <em>nicht</em> neu erfinden</h4>
+      <ul style="margin-top: 0.5rem; font-size: 0.92rem;">
+        <li><strong>Diktat / Spracheingabe.</strong> macOS hat eingebautes Diktat in jedem Textfeld (Edit-Menü &rarr; Diktat starten, oder &laquo;Mit Stimme Schreiben&raquo; in System-Einstellungen). Robert diktiert direkt in Oskars Chat-Feld; das lokale Modell strukturiert den Text danach zum Brief. <em>Kein</em> separates Whisper-Binary, <em>kein</em> 3-GB-Modell-Download, <em>kein</em> AirDrop-Tanzschritt. Die macOS-eigene Spracherkennung ist mehr als gut genug für Schweizer Hochdeutsch und benötigt keine Wartung.</li>
+        <li><strong>Eine zweite Patient:innen-Datenbank.</strong> FileMaker <em>ist</em> das Patient:innen-Gedächtnis. Eine parallele &laquo;Oskar-Patient:innen-Memory&raquo; in SQLite anzulegen schafft eine zweite Quelle der Wahrheit, die von FileMaker abdriftet &mdash; und löscht den ganzen Grund, warum die Praxis 20 Jahre lang mit FileMaker glücklich war. Oskar holt Patient:innen-Kontext jedes Mal frisch via FileMaker Data API; was er &laquo;weiss&raquo;, weiss er aus FM oder gar nicht. Ein zweites Speichersystem, das 10 Jahre Patient:innendaten parallel hält, ist genau das Linux-think, das die ganze Praxis vermeidet.</li>
+        <li><strong>Eigenes OCR-System.</strong> macOS Vision Framework liefert OCR systemweit. Für Lab-PDFs reicht Apples eingebaute Texterkennung; <code>lab.parse</code> ruft sie via <code>shortcuts run</code> oder das <code>vision-cli</code>-Wrapper an. Wieder: ein Werkzeug aus der eingebauten Werkzeugkiste, nicht ein neuer Stack aus Tesseract + OpenCV + GPU-Inferenz.</li>
+      </ul>
+    </div>
+
+    <div class="callout accent">
+      <h4>Was am Setup-Tag tatsächlich passiert &mdash; eine realistische Stundenrechnung</h4>
+      <p><strong>Vorab (vor dem Vor-Ort-Termin):</strong> Domain <code>praxis-oppliger.ch</code> bei Schweizer Registrar gekauft (Cyon / Hostpoint), ein E-Mail-Konto <code>praxis@praxis-oppliger.ch</code> aktiv, DNS-Records (A, MX, SPF, DKIM, DMARC) gesetzt. Ralph macht das aus der Ferne. ~30 Minuten.</p>
+
+      <p><strong>Vor-Ort-Termin: ~75 Minuten</strong> bei der Praxis. Ralph kommt mit einem USB-C-Stick &mdash; keine SO-DIMMs, keine Ollama-Modell-Downloads, keine YubiKeys, keine Smart-Plugs. Schritte:</p>
+      <ol style="margin-top: 0.5rem; font-size: 0.92rem;">
+        <li><strong>00:00&ndash;00:05</strong> &mdash; Verifikation: Mac mini ist M1 oder neuer (für Apple Intelligence); macOS Application Firewall auf &laquo;Allow specific apps&raquo;.</li>
+        <li><strong>00:05&ndash;00:20</strong> &mdash; <code>git clone</code> + <code>sudo ./oskar-deploy.sh</code> (Oskar als LaunchDaemon unter Root, drei plists für Oskar / Caddy / FMS aktiviert)</li>
+        <li><strong>00:20&ndash;00:25</strong> &mdash; FileMaker Data API in der Admin-Konsole aktivieren, API-Account anlegen, Credentials in macOS-Schlüsselbund</li>
+        <li><strong>00:25&ndash;00:35</strong> &mdash; Caddyfile installieren, DNS-A-Record auf bestehende Festnetz-IP verifizieren</li>
+        <li><strong>00:35&ndash;00:50</strong> &mdash; Touch-ID-Registrierung der Oskar-UI pro Person pro Gerät (~3 Min. pro Person; läuft parallel zu allem anderen)</li>
+        <li><strong>00:50&ndash;01:05</strong> &mdash; Google-Calendar-OAuth-Consent pro Arzt:in (~30 Sek. pro Person bei vier Personen, plus Wartezeit fürs Google-Login). Refresh-Token landet im macOS-Schlüsselbund.</li>
+        <li><strong>01:05&ndash;01:10</strong> &mdash; HIN-Plugin-Genehmigung (ein Klick) &mdash; falls WP-A4 (HIN) jetzt schon ausgerollt wird; sonst Monat 3</li>
+        <li><strong>01:10&ndash;01:15</strong> &mdash; Oskar-Rettung.app via iCloud Drive verteilt, <code>practice.json</code> mit Öffnungszeiten + Slot-Längen gemeinsam mit Robert befüllt, dann erster Chat-Test: <em>&laquo;Oskar, mach ein Backup und zeig mir den FileMaker-Status.&raquo;</em> Grüne Antwort. Robert sagt <em>&laquo;Danke.&raquo;</em></li>
+      </ol>
+      <p>Nach dem Setup-Tag arbeitet Oskar autonom. Ralph kommt im Schnitt einmal pro Quartal vorbei für Major-Updates und für Sachen, die der Agent strukturell nicht selbst können soll &mdash; FileMaker-Schema-Erweiterungen, neue MCP-Werkzeuge für neu entdeckte Workflows, Hardware-Tausch. Die laufende Wartung &mdash; Updates, Backups, Audit-Spur, Notfälle, Recovery, das Tagesgeschäft &mdash; macht Oskar selbst. Wenn der Mac mini tatsächlich mal vollständig hängt: Robert wohnt an derselben Adresse, eine Treppe runter, Stecker ziehen, fertig.</p>
+    </div>
+
+    <div class="callout accent">
+      <h4>Die ehrliche Einschätzung</h4>
+      <p>Oskar als Arzt-Assistent ist ein <strong>echter Wertbeitrag für die 60% seiner Zeit, die nicht direkter Patientenkontakt sind</strong> &mdash; Vorbereitung, Diktat, Verwaltung, Kommunikation, Bildung, Marketing, FileMaker-Server-Admin. Das ist der Hebel.</p>
+      <p>Die restlichen 40% (Live-Konsultation, Entscheidungen, Rezepte) bleiben Arbeit des Arztes &mdash; sowohl wegen rechtlicher Untergrenzen, die sich nicht verschieben, als auch weil Echtzeit-Chat die falsche UX für eine 15-Minuten-Konsultation ist.</p>
+      <p>Der Privacy-Stack ist die ingenieurtechnische Arbeit. Sobald das gelöst ist (lokales Modell für patientenberührende Pfade + Anthropic für nicht-patientenberührende), bekommt Oppliger ein Werkzeug, das kein anderer Hausarzt in Kreis 5 hat &mdash; und es verkauft sich als <em>"die Praxis, die Zeit hat, weil die Verwaltung sie hat,"</em> nicht als <em>"die Praxis, die KI verwendet."</em></p>
+    </div>
+  </main>
+
+  <footer class="page-footer">
+    <nav>
+      <a href="05-architecture.html" class="prev">← Kapitel 05: Server-Admin</a>
+      <a href="index.html" class="home">Index</a>
+      <a href="07-pitch-arc.html" class="next">Kapitel 07: Pitch-Dramaturgie →</a>
+    </nav>
+    <p class="meta">Oskar-Recherche-Deliverable · 20. Mai 2026</p>
+  </footer>
+</body>
+</html>

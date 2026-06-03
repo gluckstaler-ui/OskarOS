@@ -1,0 +1,306 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Brand Tab — Wireframe B — Catalog (huashu-style)</title>
+<style>
+  :root{
+    --ink:#1a1a1a;
+    --line:#bdbdbd;
+    --line-strong:#6b6b6b;
+    --bg:#f4f4f2;
+    --paper:#fafaf8;
+    --tint:#e8e8e4;
+    --hot:#c8553d;
+    --note:#8a7a3d;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%;font-family:ui-monospace,'SF Mono',Menlo,monospace;color:var(--ink);background:var(--bg);font-size:12px}
+  .frame{height:100vh;display:grid;grid-template-rows:36px 56px 1fr 22px}
+  /* tabs */
+  .tabs{display:flex;align-items:center;gap:0;border-bottom:1px solid var(--line);background:var(--paper);padding-left:12px}
+  .tabs .t{padding:8px 14px;border-right:1px solid var(--line);font-size:11px;color:#666;letter-spacing:.05em}
+  .tabs .t.active{color:var(--ink);background:var(--bg);border-bottom:2px solid var(--ink);margin-bottom:-1px;font-weight:600}
+  .tabs .spacer{flex:1}
+  .tabs .meta{padding:0 12px;color:#888;font-size:10px}
+  /* brand bar — compressed spec at top */
+  .brandbar{display:flex;align-items:center;gap:14px;padding:10px 14px;border-bottom:1px solid var(--line);background:var(--paper);overflow-x:auto;white-space:nowrap}
+  .brandbar .group{display:flex;align-items:center;gap:8px;font-size:10px;color:#666;letter-spacing:.06em}
+  .brandbar .group b{color:#888;text-transform:uppercase;font-size:9px;font-weight:500}
+  .swatch{width:18px;height:18px;border:1px solid var(--line);display:inline-block;vertical-align:middle}
+  .brandbar .divider{width:1px;height:24px;background:var(--line)}
+  .brandbar .editmark{margin-left:auto;font-size:10px;color:#666;border:1px dashed var(--line);padding:4px 8px;cursor:pointer;letter-spacing:.06em}
+  /* main: catalog left, asset rail right */
+  .main{display:grid;grid-template-columns:1fr 260px;height:100%;min-height:0}
+  .catalog{padding:16px 18px;overflow:auto}
+  .cathead{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+  .cathead h3{margin:0;font-size:11px;letter-spacing:.16em;color:#666;text-transform:uppercase;font-weight:500}
+  .cathead .filters{display:flex;gap:6px}
+  .filt{padding:5px 10px;border:1px solid var(--line);font-size:10px;color:#666;letter-spacing:.05em;background:#fff;border-radius:999px}
+  .filt.on{background:var(--ink);color:#fff;border-color:var(--ink)}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:14px}
+  .card{background:#fff;border:1px solid var(--line);overflow:hidden;display:flex;flex-direction:column}
+  .card .thumb{aspect-ratio:4/3;background:repeating-linear-gradient(45deg,#ececea 0 6px,#f3f3f1 6px 12px);position:relative;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:center}
+  .card .thumb .crosshair{position:absolute;inset:0;background:
+    linear-gradient(transparent calc(50% - 1px),rgba(0,0,0,.08) 50%,transparent calc(50% + 1px)),
+    linear-gradient(90deg,transparent calc(50% - 1px),rgba(0,0,0,.08) 50%,transparent calc(50% + 1px))}
+  .card .thumb .label{position:relative;font-size:10px;letter-spacing:.18em;color:#777}
+  .card .meta{padding:10px 12px;display:flex;flex-direction:column;gap:6px}
+  .card .ttl{font-size:12px;font-weight:600;letter-spacing:.04em;color:#222}
+  .card .sub{font-size:10px;color:#888;line-height:1.5}
+  .card .row{display:flex;align-items:center;justify-content:space-between;font-size:9px;color:#888;letter-spacing:.06em;text-transform:uppercase}
+  .ratio{padding:1px 6px;border:1px solid var(--line);font-size:9px}
+  .card.scene{outline:1px dashed var(--note);outline-offset:-3px}
+  .card.scene .ttl{color:var(--note)}
+  /* huashu band */
+  .band{margin:24px 0 14px;padding:10px 12px;border-top:1px dashed var(--line);border-bottom:1px dashed var(--line);font-size:10px;letter-spacing:.16em;color:#888;text-transform:uppercase;display:flex;justify-content:space-between;align-items:center}
+  .band b{color:var(--note)}
+  /* right rail: assets + chat dock */
+  .rail{border-left:1px solid var(--line);display:flex;flex-direction:column;min-height:0;background:var(--paper)}
+  .railhead{padding:8px 12px;border-bottom:1px solid var(--line);font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:#666;display:flex;justify-content:space-between}
+  .assets{flex:1;overflow:auto;padding:10px}
+  .asset-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:6px}
+  .ast{aspect-ratio:1/1;border:1px solid var(--line);background:repeating-linear-gradient(135deg,#eee 0 6px,#f6f6f4 6px 12px);position:relative}
+  .ast .tag{position:absolute;top:2px;left:2px;background:#fff;border:1px solid var(--line);font-size:8px;padding:1px 4px;letter-spacing:.06em;color:#666}
+  /* chat docked at bottom of rail */
+  .chatdock{border-top:1px solid var(--line);background:#fff;display:flex;flex-direction:column;min-height:240px}
+  .chatdock .head{padding:6px 10px;font-size:10px;letter-spacing:.1em;color:#666;background:var(--paper);border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center}
+  .chatdock .body{flex:1;overflow:auto;padding:8px 10px;display:flex;flex-direction:column;gap:6px;font-size:11px}
+  .msg{padding:6px 8px;border:1px dashed var(--line);background:#fff;border-radius:5px;line-height:1.4}
+  .msg.cd{border-style:solid;border-color:var(--line-strong);background:var(--paper)}
+  .msg .who{font-size:9px;letter-spacing:.1em;color:#888;text-transform:uppercase;margin-bottom:3px}
+  .composer{border-top:1px solid var(--line);padding:6px;display:flex;gap:6px;align-items:center;background:var(--paper)}
+  .composer .input{flex:1;border:1px solid var(--line);background:#fff;height:34px;border-radius:5px;padding:6px 8px;color:#aaa;font-size:11px}
+  .btn{padding:5px 9px;border:1px solid var(--line);border-radius:5px;background:#fff;font-size:10px;color:#444;letter-spacing:.04em;cursor:pointer}
+  .btn.primary{background:var(--ink);color:#fff;border-color:var(--ink)}
+  /* footer */
+  .foot{display:flex;align-items:center;gap:14px;padding:0 12px;border-top:1px solid var(--line);font-size:10px;color:#777;background:var(--paper);letter-spacing:.06em}
+  .foot .dot{width:6px;height:6px;background:var(--hot);border-radius:50%}
+  .foot .spacer{flex:1}
+  /* annotation */
+  .anno{position:absolute;font-family:'Caveat','Comic Sans MS',cursive;font-size:14px;color:var(--note);transform:rotate(-2deg);pointer-events:none;max-width:240px}
+  .legend{position:fixed;right:14px;bottom:30px;background:#fff;border:1px solid var(--line-strong);padding:8px 10px;font-size:10px;line-height:1.5;color:#444;max-width:260px;box-shadow:0 6px 16px rgba(0,0,0,.06);z-index:10}
+  .legend h4{margin:0 0 4px;font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:#888}
+</style>
+</head>
+<body>
+<div class="frame">
+
+  <!-- TABS -->
+  <div class="tabs">
+    <div class="t">VIBES</div>
+    <div class="t">FINAL</div>
+    <div class="t">IMAGES</div>
+    <div class="t active">BRAND</div>
+    <div class="t">DECKS</div>
+    <div class="spacer"></div>
+    <div class="meta">FalCaMel Café · session 2026-01-27-31</div>
+  </div>
+
+  <!-- BRAND BAR -->
+  <div class="brandbar">
+    <div class="group"><b>NAME</b> FalCaMel Café</div>
+    <div class="divider"></div>
+    <div class="group"><b>PALETTE</b>
+      <span class="swatch" style="background:#1A1A1A"></span>
+      <span class="swatch" style="background:#00C853"></span>
+      <span class="swatch" style="background:#FFD700"></span>
+      <span class="swatch" style="background:#F5F5F5"></span>
+    </div>
+    <div class="divider"></div>
+    <div class="group"><b>FONTS</b> Anton / Barlow</div>
+    <div class="divider"></div>
+    <div class="group"><b>VOICE</b> heritage · dry · deadpan</div>
+    <div class="editmark">EDIT BRAND SPEC</div>
+  </div>
+
+  <!-- MAIN -->
+  <div class="main">
+
+    <!-- CATALOG -->
+    <div class="catalog">
+
+      <div class="cathead">
+        <h3>BRAND DELIVERABLES</h3>
+        <div class="filters">
+          <div class="filt on">All</div>
+          <div class="filt">Identity</div>
+          <div class="filt">Marketing</div>
+          <div class="filt">Print</div>
+          <div class="filt">Pitch</div>
+        </div>
+      </div>
+
+      <div class="grid">
+
+        <div class="card">
+          <div class="thumb"><div class="crosshair"></div><div class="label">LOGO</div></div>
+          <div class="meta">
+            <div class="ttl">Logo</div>
+            <div class="sub">Magenta-keyed for transparent extraction.</div>
+            <div class="row"><span>identity</span><span class="ratio">1:1</span></div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="thumb"><div class="crosshair"></div><div class="label">BUSINESS CARD</div></div>
+          <div class="meta">
+            <div class="ttl">Business Card</div>
+            <div class="sub">Front + back, print-ready bleed.</div>
+            <div class="row"><span>print</span><span class="ratio">3.5:2</span></div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="thumb"><div class="crosshair"></div><div class="label">BRAND GUIDE</div></div>
+          <div class="meta">
+            <div class="ttl">Brand Guideline</div>
+            <div class="sub">4-quadrant: palette · type · voice · marks.</div>
+            <div class="row"><span>identity</span><span class="ratio">1:1</span></div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="thumb"><div class="crosshair"></div><div class="label">PITCH SLIDE</div></div>
+          <div class="meta">
+            <div class="ttl">Pitch Slide</div>
+            <div class="sub">16:9 cover frame using brand spec tokens.</div>
+            <div class="row"><span>pitch</span><span class="ratio">16:9</span></div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="thumb"><div class="crosshair"></div><div class="label">WEBSITE HERO</div></div>
+          <div class="meta">
+            <div class="ttl">Website Hero</div>
+            <div class="sub">Above-the-fold composition for landing page.</div>
+            <div class="row"><span>marketing</span><span class="ratio">21:9</span></div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="thumb"><div class="crosshair"></div><div class="label">SOCIAL POST</div></div>
+          <div class="meta">
+            <div class="ttl">Social Post</div>
+            <div class="sub">IG / RED feed unit.</div>
+            <div class="row"><span>marketing</span><span class="ratio">1:1</span></div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="thumb"><div class="crosshair"></div><div class="label">SOCIAL STORY</div></div>
+          <div class="meta">
+            <div class="ttl">Social Story</div>
+            <div class="sub">9:16 vertical, story-frame.</div>
+            <div class="row"><span>marketing</span><span class="ratio">9:16</span></div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="thumb"><div class="crosshair"></div><div class="label">MERCH</div></div>
+          <div class="meta">
+            <div class="ttl">Merch Mockup</div>
+            <div class="sub">Apron · cap · tote · t-shirt flat-lay.</div>
+            <div class="row"><span>print</span><span class="ratio">1:1</span></div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- HUASHU SCENE LIBRARY BAND -->
+      <div class="band">
+        <span>SCENE LIBRARY · <b>huashu pattern</b> · 8 templates · scaled to OskarOS card size</span>
+        <span style="color:#999">drag any scene → opens in canvas overlay</span>
+      </div>
+
+      <div class="grid">
+        <div class="card scene">
+          <div class="thumb"><div class="crosshair"></div><div class="label">ARTICLE HERO</div></div>
+          <div class="meta">
+            <div class="ttl">Article Hero</div>
+            <div class="sub">2.35:1 thumbnail · feed-stopping cover.</div>
+            <div class="row"><span>scene · 01</span><span class="ratio">2.35:1</span></div>
+          </div>
+        </div>
+        <div class="card scene">
+          <div class="thumb"><div class="crosshair"></div><div class="label">INFOGRAPHIC</div></div>
+          <div class="meta">
+            <div class="ttl">Infographic</div>
+            <div class="sub">Vertical 9:16 data viz, brand-palette.</div>
+            <div class="row"><span>scene · 03</span><span class="ratio">9:16</span></div>
+          </div>
+        </div>
+        <div class="card scene">
+          <div class="thumb"><div class="crosshair"></div><div class="label">RED POST</div></div>
+          <div class="meta">
+            <div class="ttl">Xiaohongshu Tile</div>
+            <div class="sub">3:4 lifestyle frame, text under 20%.</div>
+            <div class="row"><span>scene · 08</span><span class="ratio">3:4</span></div>
+          </div>
+        </div>
+        <div class="card scene">
+          <div class="thumb"><div class="crosshair"></div><div class="label">PDF COVER</div></div>
+          <div class="meta">
+            <div class="ttl">White Paper Cover</div>
+            <div class="sub">A4 portrait, polished publication.</div>
+            <div class="row"><span>scene · 05</span><span class="ratio">A4</span></div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- RIGHT RAIL -->
+    <div class="rail">
+      <div class="railhead"><span>ASSETS</span><span style="color:#aaa">12 files · ↑ upload</span></div>
+      <div class="assets">
+        <div class="asset-grid">
+          <div class="ast"><div class="tag">HERO</div></div>
+          <div class="ast"><div class="tag">SULTAN</div></div>
+          <div class="ast"><div class="tag">HABOOB</div></div>
+          <div class="ast"><div class="tag">CLIFF</div></div>
+          <div class="ast"><div class="tag">FOOD</div></div>
+          <div class="ast"><div class="tag">QAMAR</div></div>
+          <div class="ast"><div class="tag">LUNA</div></div>
+          <div class="ast"><div class="tag">+5</div></div>
+        </div>
+      </div>
+      <div class="chatdock">
+        <div class="head"><span>ASK CD</span><span style="color:#aaa">▾ collapse</span></div>
+        <div class="body">
+          <div class="msg cd"><div class="who">CD</div>Pick a deliverable to start. I'll seed the prompt from your brand spec.</div>
+          <div class="msg"><div class="who">YOU</div>start with logo</div>
+        </div>
+        <div class="composer">
+          <div class="input">Type a refinement…</div>
+          <div class="btn primary">SEND</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- FOOT -->
+  <div class="foot">
+    <div class="dot"></div>
+    <div>BRAND v3 · 8 deliverables · 4 scenes · 12 source assets</div>
+    <div class="spacer"></div>
+    <div>magenta-key: ON</div>
+    <div>auto-save: ON</div>
+  </div>
+</div>
+
+<!-- annotations -->
+<div class="anno" style="top:80px;left:18px;width:260px">brand spec lives ALWAYS visible at the top — every card inherits these tokens</div>
+<div class="anno" style="top:240px;left:18px">deliverable cards: huashu scenes shrunk to OskarOS card size</div>
+<div class="anno" style="top:560px;left:18px;color:var(--note)">huashu's scene library woven in as a second band — not a separate tab</div>
+<div class="anno" style="top:120px;right:280px;width:260px;text-align:right">assets always-on right rail</div>
+<div class="anno" style="bottom:280px;right:14px;width:240px;text-align:right">Ask CD docks at bottom of rail — collapses to a chip</div>
+
+<div class="legend">
+  <h4>WIREFRAME B — CATALOG</h4>
+  Brand spec on top, deliverable grid main, assets+chat right.<br>
+  Strength: huashu's scene library translated to OskarOS card scale; everything is one click from start.<br>
+  Risk: chat dock is small; deep refinement may want a focused mode.
+</div>
+</body>
+</html>

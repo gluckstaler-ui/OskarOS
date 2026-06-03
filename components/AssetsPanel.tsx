@@ -4,7 +4,13 @@ import { useState, useRef, useEffect, memo } from 'react'
 import { SourceImage, ImageAsset, ImageManifest, ImageQueueItem, LayoutMode } from '@/lib/types'
 import { resolvePrompt } from '@/lib/image-prompt-resolver'
 import { getImageEntriesAction } from '@/lib/session-actions'
-import { SentinelTiPanel } from './SentinelTiPanel'
+// [Sentinel Ti — commented out of studio 2026-05-29] Revive by uncommenting this
+// import + the FEEDBACK tab button, header-label branch, and panel block below
+// (and the page.tsx props). Panel/lib/API kept on disk for revival.
+// import { SentinelTiPanel } from './SentinelTiPanel'
+import { CrmLeadPanel } from './admin/CrmLeadPanel'
+import { CrmLeadLinker } from './admin/CrmLeadLinker'
+import { PdfTilePreview } from './PdfTilePreview'
 
 // ============================================================================
 // DEBOUNCED TEXTAREA - Prevents re-renders on every keystroke
@@ -78,12 +84,24 @@ interface AssetsPanelProps {
   layoutMode: LayoutMode
   /** Open the Advanced Mode overlay. WP-1A entry point. Hover redesign with View/Edit buttons comes in WP-1B. */
   onOpenAdvancedMode?: (opts?: { tab?: 'view' | 'generate' | 'edit' | 'compose' | 'layout'; image?: SourceImage | null }) => void
-  /** ASSETS / FEEDBACK toggle in panel header. Default 'assets'. */
-  assetsView?: 'assets' | 'feedback'
-  onAssetsViewChange?: (view: 'assets' | 'feedback') => void
-  /** When TopBar 🛡 fires, the page sets this so the panel auto-runs Ti. Reset via onConsumePendingCritiqueTarget. */
-  pendingCritiqueTarget?: string | null
-  onConsumePendingCritiqueTarget?: () => void
+  /** ASSETS / FEEDBACK / CRM toggle in panel header. Default 'assets'.
+   *  WP-CRM-C1 (Ralph 2026-05-22) — 'crm' subtab appears only when
+   *  `prospectId` is set (session has a linked CRM lead). */
+  assetsView?: 'assets' | 'feedback' | 'crm'
+  onAssetsViewChange?: (view: 'assets' | 'feedback' | 'crm') => void
+  /** WP-CRM-C1 — when set, the CRM subtab renders <CrmLeadPanel/>. When
+   *  null and a session is active, the subtab renders <CrmLeadLinker/>
+   *  so Filippo can link the session to a prospect on the fly.
+   *  Comes from `_session-config.json.prospect_id`. */
+  prospectId?: string | null
+  /** WP-CRM-C1 — called when the linker writes a prospect_id. The page
+   *  should re-trigger the prospect_id scan so this panel re-renders
+   *  with the new id. */
+  onLinkedProspect?: (prospectId: string) => void
+  // [Sentinel Ti — commented out of studio 2026-05-29]
+  // /** When TopBar 🛡 fires, the page sets this so the panel auto-runs Ti. Reset via onConsumePendingCritiqueTarget. */
+  // pendingCritiqueTarget?: string | null
+  // onConsumePendingCritiqueTarget?: () => void
   /** Vibe HTML filenames in this session, used by Ti for target selection */
   vibeFilenames?: string[]
 }
@@ -99,9 +117,13 @@ function parseOperation(prompt: string): PromptOperation {
   return 'GENERATE'
 }
 
-// Parse source files from prompt (for EDIT/COMPOSE)
+// Parse source files from prompt (for EDIT/COMPOSE). Ralph 2026-05-31: svg
+// added so an Illustrator export referenced by name in an EDIT/COMPOSE prompt
+// (e.g. "use Logos-Barbazza.svg as the watermark") isn't silently dropped.
+// pdf added the same day — a brand-guide PDF mentioned by name in a COMPOSE
+// prompt now flows through too.
 function parseSourceFiles(prompt: string): string[] {
-  const filePattern = /[\w-]+\.(jpg|jpeg|png|webp)/gi
+  const filePattern = /[\w-]+\.(jpg|jpeg|png|webp|svg|pdf)/gi
   const matches = prompt.match(filePattern)
   return matches || []
 }
@@ -121,6 +143,11 @@ interface BentoTileProps {
   onFullscreen?: () => void  // Open fullscreen modal
   onOpenAdvancedMode?: (opts?: { tab?: 'view' | 'generate' | 'edit' | 'compose' | 'layout'; image?: SourceImage | null }) => void
   allImages: SourceImage[]  // All available images for compose selection
+  /** When set, the tile renders in SWAP MODE — entire tile is clickable, cyan
+   *  border + cursor, hover overlays suppressed. Clicking fires the callback
+   *  with the underlying image. Ralph 2026-05-14 for ImageStrategy swap flow. */
+  swapMode?: boolean
+  onSwapClick?: (image: SourceImage) => void
 }
 
 function BentoTile({
@@ -134,7 +161,9 @@ function BentoTile({
   onDelete,
   onFullscreen,
   onOpenAdvancedMode,
-  allImages
+  allImages,
+  swapMode,
+  onSwapClick,
 }: BentoTileProps) {
   const cleanFilename = (filename: string) => filename.replace(/^\d+-/, '')
   const isHero = image.tag === 'HERO'
@@ -150,20 +179,41 @@ function BentoTile({
     (image.usedIn && image.usedIn.length > 0) || image.tag === 'USED'
   const nanoDesc = image.analysis?.description || ''
   const promptPreview = prompt.trim()
+  // SVG-aware rendering — see the wrapper-div style block below for the full
+  // failure-mode rationale (3 issues: cover-crop, viewBox-only, monochrome).
+  const isSvg = /\.svg($|\?)/i.test(image.path || image.filename || '')
+  // PDFs can't render in <img> — swap to PdfTilePreview (icon + filename).
+  const isPdf = /\.pdf($|\?)/i.test(image.path || image.filename || '')
 
   return (
     <div
       onMouseEnter={() => onHover(true)}
       onMouseLeave={() => onHover(false)}
+      // Capture-phase intercept: when SWAP MODE is on, the entire tile becomes
+      // a click target that fires onSwapClick(image) and stops the event so
+      // none of the inner hover overlay buttons (Edit/Delete/Fullscreen) fire.
+      // Without capture, an inner stopPropagation on a child would block us.
+      onClickCapture={(e) => {
+        if (swapMode && onSwapClick) {
+          e.preventDefault()
+          e.stopPropagation()
+          onSwapClick(image)
+        }
+      }}
       style={{
         position: 'relative',
         aspectRatio: '1',
         borderRadius: '12px',
         overflow: 'hidden',
-        cursor: 'pointer',
+        cursor: swapMode ? 'crosshair' : 'pointer',
         height: '100%',
-        border: isHero ? '2px solid rgba(16,185,129,0.3)' : '2px solid transparent',
-        transition: 'border-color 0.15s'
+        // Cyan ring in swap mode beats the HERO green ring — the swap target
+        // is the active context. Reverts to HERO ring when swap mode clears.
+        border: swapMode
+          ? '2px solid rgba(34,211,238,0.85)'
+          : isHero ? '2px solid rgba(16,185,129,0.3)' : '2px solid transparent',
+        boxShadow: swapMode ? '0 0 0 3px rgba(34,211,238,0.25)' : undefined,
+        transition: 'border-color 0.15s, box-shadow 0.15s'
       }}
     >
       <div style={{
@@ -171,19 +221,48 @@ function BentoTile({
         width: '100%',
         height: '100%',
         borderRadius: '10px',
-        overflow: 'hidden'
+        overflow: 'hidden',
+        // Ralph 2026-05-31: SVG-aware tile chrome. Three failure modes
+        // compound for vector files in a 1:1 cover-fit tile:
+        //   (a) cover crops wide logos (e.g. viewBox 834×180) to invisibility,
+        //   (b) Adobe/AI SVGs often ship with viewBox only (no width/height
+        //       attrs) — Chrome occasionally collapses those to 0×0 inside
+        //       <img width:100%/height:100%>, and
+        //   (c) monochrome SVGs (e.g. logo-weiss.svg) vanish against a same-
+        //       colored tile background.
+        // Checker backdrop ONLY for SVGs guarantees a white logo on a polar
+        // theme is still visible. The IMG below switches to object-fit:contain.
+        ...(isSvg ? {
+          backgroundColor: '#f5f5f5',
+          backgroundImage:
+            'linear-gradient(45deg, rgba(0,0,0,0.04) 25%, transparent 25%),' +
+            'linear-gradient(-45deg, rgba(0,0,0,0.04) 25%, transparent 25%),' +
+            'linear-gradient(45deg, transparent 75%, rgba(0,0,0,0.04) 75%),' +
+            'linear-gradient(-45deg, transparent 75%, rgba(0,0,0,0.04) 75%)',
+          backgroundSize: '12px 12px',
+          backgroundPosition: '0 0, 0 6px, 6px -6px, -6px 0px',
+        } : null),
       }}>
-        <img
-          src={image.path}
-          alt={image.filename}
-          style={{
-            width: '100%',
-            height: '100%',
-            objectFit: 'cover',
-            transition: 'transform 0.2s',
-            transform: isHovered ? 'scale(1.02)' : 'scale(1)'
-          }}
-        />
+        {isPdf ? (
+          <PdfTilePreview filename={image.filename} src={image.path} size="large" />
+        ) : (
+          <img
+            src={image.path}
+            alt={image.filename}
+            loading="lazy"
+            decoding="async"
+            style={{
+              width: '100%',
+              height: '100%',
+              // SVGs: contain (preserve aspect, no crop). Raster: cover.
+              objectFit: isSvg ? 'contain' : 'cover',
+              transition: 'transform 0.2s',
+              transform: isHovered ? 'scale(1.02)' : 'scale(1)',
+              padding: isSvg ? '8px' : 0,
+              boxSizing: 'border-box',
+            }}
+          />
+        )}
 
         {/* HERO badge — always visible */}
         {isHero && (
@@ -549,6 +628,8 @@ function RepromptCard({
             <img
               src={sourceSrc}
               alt={sourceFilename || 'Source'}
+              loading="lazy"
+              decoding="async"
               style={{
                 width: '100%',
                 height: '100%',
@@ -868,6 +949,8 @@ function RepromptCard({
             <img
               src={asset.generatedUrl}
               alt="Generated"
+              loading="lazy"
+              decoding="async"
               style={{
                 width: '100%',
                 height: '100%',
@@ -976,8 +1059,9 @@ export function AssetsPanel({
   onOpenAdvancedMode,
   assetsView = 'assets',
   onAssetsViewChange,
-  pendingCritiqueTarget,
-  onConsumePendingCritiqueTarget,
+  prospectId = null,
+  onLinkedProspect,
+  // [Sentinel Ti — out of studio 2026-05-29] pendingCritiqueTarget, onConsumePendingCritiqueTarget,
   vibeFilenames = []
 }: AssetsPanelProps) {
   const [expandedVibes, setExpandedVibes] = useState<Set<string>>(new Set())
@@ -998,6 +1082,32 @@ export function AssetsPanel({
 
   // Fullscreen image modal state
   const [fullscreenImage, setFullscreenImage] = useState<{ url: string; title: string } | null>(null)
+
+  // ── Image-Strategy swap-flow (Ralph 2026-05-14) ──────────────────────────
+  // ImageStrategyCard fires `oskar:is-select-slot` with {vibeSlug, slotName}
+  // when the user picks a slot to swap into. We listen for it, render a
+  // top banner, and when the user then clicks an image tile we dispatch
+  // `oskar:is-swap-slot` so the card can update its local state.
+  //
+  // Banner shows the slot name + a cancel × that broadcasts null to clear.
+  // BentoTile click intercept is implemented by wrapping the rendered grid
+  // in a div whose capture-phase handler checks isSwapping and, when set,
+  // resolves the clicked image and fires the swap event.
+  const [swapTarget, setSwapTarget] = useState<{ vibeSlug: string; slotName: string } | null>(null)
+  useEffect(() => {
+    function onSelect(e: Event) {
+      const ce = e as CustomEvent<{ vibeSlug: string; slotName: string } | null>
+      setSwapTarget(ce.detail ?? null)
+    }
+    window.addEventListener('oskar:is-select-slot', onSelect as EventListener)
+    return () => window.removeEventListener('oskar:is-select-slot', onSelect as EventListener)
+  }, [])
+  const cancelSwap = () => {
+    setSwapTarget(null)
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('oskar:is-select-slot', { detail: null }))
+    }
+  }
 
   // (Compose selection now handled inside BentoTile component)
 
@@ -1142,7 +1252,14 @@ export function AssetsPanel({
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault()
     Array.from(e.dataTransfer.files).forEach(f => {
-      if (f.type.startsWith('image/')) onUpload(f)
+      // Accept by mime OR extension — some browsers (and OS drop sources)
+      // leave file.type empty for SVGs dropped from Finder, which would
+      // silently reject them despite the picker showing image/*. Falling
+      // back to the .svg extension closes that gap. Ralph 2026-05-30.
+      // 2026-05-31: PDFs join the accept set — same flow, icon-tile render.
+      const isImage = f.type.startsWith('image/') || /\.svg$/i.test(f.name)
+      const isPdf = f.type === 'application/pdf' || /\.pdf$/i.test(f.name)
+      if (isImage || isPdf) onUpload(f)
     })
   }
 
@@ -1160,6 +1277,74 @@ export function AssetsPanel({
       backgroundColor: 'var(--bg-card)',
       overflow: 'hidden'
     }}>
+      {/* ================================================================== */}
+      {/* SWAP-MODE BANNER (Ralph 2026-05-14)                                  */}
+      {/*                                                                    */}
+      {/* Visible only when an ImageStrategyCard slot is the active swap     */}
+      {/* target. Shows the slot name + a × cancel button. Click any image   */}
+      {/* tile below to commit the swap. Click × (or click the same slot in  */}
+      {/* the card again) to cancel.                                         */}
+      {/* ================================================================== */}
+      {swapTarget && (
+        <div style={{
+          minHeight: '40px',
+          padding: '10px 16px',
+          backgroundColor: 'rgba(34,211,238,0.10)',
+          borderBottom: '1px solid rgba(34,211,238,0.40)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: '10px',
+          flexShrink: 0,
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
+            <span style={{
+              fontSize: '14px',
+              color: '#22d3ee',
+              flexShrink: 0,
+            }} aria-hidden>↔</span>
+            <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+              <span style={{
+                fontFamily: 'monospace',
+                fontSize: '10px',
+                fontWeight: 700,
+                color: '#22d3ee',
+                textTransform: 'uppercase',
+                letterSpacing: '0.08em',
+              }}>
+                Swap target — Image Strategy
+              </span>
+              <span style={{
+                fontSize: '12px',
+                color: 'var(--text-main)',
+                whiteSpace: 'nowrap',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+              }}>
+                Click any image to assign it to <strong>{swapTarget.slotName}</strong>
+              </span>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={cancelSwap}
+            style={{
+              border: '1px solid rgba(34,211,238,0.40)',
+              background: 'transparent',
+              color: '#22d3ee',
+              borderRadius: '6px',
+              padding: '4px 10px',
+              fontSize: '11px',
+              fontFamily: 'monospace',
+              cursor: 'pointer',
+              flexShrink: 0,
+            }}
+            aria-label="Cancel swap"
+          >
+            ✕ Cancel
+          </button>
+        </div>
+      )}
       {/* ================================================================== */}
       {/* HEADER                                                            */}
       {/* ================================================================== */}
@@ -1211,6 +1396,7 @@ export function AssetsPanel({
             </svg>
             ASSETS
           </button>
+          {/* [Sentinel Ti — commented out of studio 2026-05-29] FEEDBACK tab button:
           <button
             onClick={() => onAssetsViewChange?.('feedback')}
             title="Sentinel Ti — critique reports"
@@ -1237,6 +1423,41 @@ export function AssetsPanel({
             </svg>
             FEEDBACK
           </button>
+          */}
+          {/* WP-CRM-C1: 3rd subtab — appears whenever a session is active.
+              Content is <CrmLeadPanel/> if `prospect_id` is in the session
+              config, else <CrmLeadLinker/> so Filippo can link on the fly. */}
+          {sessionId && (
+            <button
+              onClick={() => onAssetsViewChange?.('crm')}
+              title={prospectId ? 'CRM lead — live edits during discovery' : 'Link this session to a CRM lead'}
+              style={{
+                fontFamily: 'var(--font-mono, "JetBrains Mono", monospace)',
+                padding: '6px 14px',
+                fontSize: '12px',
+                fontWeight: 700,
+                letterSpacing: '0.16em',
+                borderRadius: '5px',
+                border: 'none',
+                cursor: 'pointer',
+                transition: 'box-shadow 0.15s',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                backgroundColor: assetsView === 'crm' ? '#a78bfa' : 'transparent',
+                color: assetsView === 'crm' ? '#ffffff' : 'var(--text-main)',
+                boxShadow: assetsView === 'crm' ? '0 1px 3px rgba(167, 139, 250, 0.4)' : 'none',
+              }}
+            >
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                <circle cx="9" cy="7" r="4"/>
+                <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+                <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+              </svg>
+              CRM
+            </button>
+          )}
         </div>
         <div style={{ flex: 1 }} />
         <span style={{
@@ -1248,13 +1469,20 @@ export function AssetsPanel({
           backgroundColor: 'var(--bg-app)',
           border: '1px solid var(--border-card)'
         }}>
-          {assetsView === 'assets' ? `${sourceImages.length} items` : '🛡 Sentinel Ti'}
+          {assetsView === 'assets'
+            ? `${sourceImages.length} items`
+            /* [Sentinel Ti — out of studio 2026-05-29]
+            : assetsView === 'feedback'
+              ? '🛡 Sentinel Ti' */
+            : assetsView === 'crm'
+              ? (prospectId ? '👤 CRM lead' : '🔗 Link to CRM')
+              : ''}
         </span>
       </div>
 
-      {/* ================================================================== */}
-      {/* FEEDBACK VIEW — Sentinel Ti critique reports                       */}
-      {/* ================================================================== */}
+      {/* [Sentinel Ti — commented out of studio 2026-05-29] FEEDBACK view.
+          Revive by uncommenting this block + the import, the FEEDBACK tab
+          button, the header-label branch above, and the page.tsx props:
       {assetsView === 'feedback' && (
         <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
           <SentinelTiPanel
@@ -1263,6 +1491,23 @@ export function AssetsPanel({
             pendingTarget={pendingCritiqueTarget}
             onConsumePendingTarget={onConsumePendingCritiqueTarget}
           />
+        </div>
+      )}
+      */}
+
+      {/* ================================================================== */}
+      {/* CRM VIEW — lead detail panel OR link picker (WP-CRM-C1)            */}
+      {/* ================================================================== */}
+      {assetsView === 'crm' && sessionId && (
+        <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
+          {prospectId ? (
+            <CrmLeadPanel prospectId={prospectId} />
+          ) : (
+            <CrmLeadLinker
+              sessionId={sessionId}
+              onLinked={(pid) => onLinkedProspect?.(pid)}
+            />
+          )}
         </div>
       )}
 
@@ -1335,7 +1580,7 @@ export function AssetsPanel({
               <input
                 ref={fileInputRef}
                 type="file"
-                accept="image/*"
+                accept="image/*,image/svg+xml,.svg,application/pdf,.pdf"
                 multiple
                 onChange={e => {
                   Array.from(e.target.files || []).forEach(f => onUpload(f))
@@ -1350,6 +1595,11 @@ export function AssetsPanel({
               const uploadId = `upload-${img.id}`
               const isHovered = hoveredTile === uploadId
               const cleanFilename = img.filename.replace(/^\d+-/, '')
+              // SVG-aware tile — same rationale as BentoTile (contain + checker
+              // backdrop) so white/wide vector logos remain visible.
+              const isSvg = /\.svg($|\?)/i.test(img.path || img.filename || '')
+              // PDFs render via PdfTilePreview — <img> on .pdf would render broken.
+              const isPdf = /\.pdf($|\?)/i.test(img.path || img.filename || '')
               return (
                 <div
                   key={`pending-${img.id}-${index}`}
@@ -1361,14 +1611,36 @@ export function AssetsPanel({
                     borderRadius: '6px',
                     overflow: 'hidden',
                     border: '1px solid var(--border-card)',
-                    cursor: 'pointer'
+                    cursor: 'pointer',
+                    ...(isSvg ? {
+                      backgroundColor: '#f5f5f5',
+                      backgroundImage:
+                        'linear-gradient(45deg, rgba(0,0,0,0.04) 25%, transparent 25%),' +
+                        'linear-gradient(-45deg, rgba(0,0,0,0.04) 25%, transparent 25%),' +
+                        'linear-gradient(45deg, transparent 75%, rgba(0,0,0,0.04) 75%),' +
+                        'linear-gradient(-45deg, transparent 75%, rgba(0,0,0,0.04) 75%)',
+                      backgroundSize: '12px 12px',
+                      backgroundPosition: '0 0, 0 6px, 6px -6px, -6px 0px',
+                    } : null),
                   }}
                 >
-                  <img
-                    src={img.path}
-                    alt={img.filename}
-                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                  />
+                  {isPdf ? (
+                    <PdfTilePreview filename={img.filename} src={img.path} size="small" />
+                  ) : (
+                    <img
+                      src={img.path}
+                      alt={img.filename}
+                      loading="lazy"
+                      decoding="async"
+                      style={{
+                        width: '100%',
+                        height: '100%',
+                        objectFit: isSvg ? 'contain' : 'cover',
+                        padding: isSvg ? '8px' : 0,
+                        boxSizing: 'border-box',
+                      }}
+                    />
+                  )}
                   {/* Hover overlays: delete button + filename */}
                   {isHovered && (
                     <>
@@ -1539,6 +1811,22 @@ export function AssetsPanel({
                         })}
                         onOpenAdvancedMode={onOpenAdvancedMode}
                         allImages={evaluatedImages}
+                        swapMode={!!swapTarget}
+                        onSwapClick={(clicked) => {
+                          if (!swapTarget) return
+                          // Strip the `NNNN-` prefix some sessions use so the
+                          // filename matches what's referenced on the vibe side.
+                          const filename = clicked.filename.replace(/^\d+-/, '')
+                          window.dispatchEvent(new CustomEvent('oskar:is-swap-slot', {
+                            detail: {
+                              vibeSlug: swapTarget.vibeSlug,
+                              slotName: swapTarget.slotName,
+                              filename,
+                              path: clicked.path,
+                            },
+                          }))
+                          setSwapTarget(null)
+                        }}
                       />
                     )
                   })}

@@ -30,23 +30,23 @@ Every presentation OskarOS produces is one of 20 categories, expressed in one or
 
 | #  | Category               | Format                                   | Primary Objective       | Content Approach                  | Classical Schools                | Interactive Schools                       |
 |----|------------------------|------------------------------------------|-------------------------|-----------------------------------|----------------------------------|-------------------------------------------|
-| 1  | Investor Pitch         | Slides                                   | Secure Funding          | Problem-first                     | Pentagram / IA / Build           | Active Theory / Locomotive / Stamen       |
-| 2  | Product Launch         | Slides / Canvas / Scrollytelling / Gallery | Market Excitement     | Hero's Journey                    | Pentagram / Sagmeister / Hara    | Active Theory / Resn / Locomotive         |
-| 3  | Sales / Capabilities   | Slides (Modular)                         | Conversion              | Problem-Solution-Benefit          | Pentagram / Build / Brockmann    | Active Theory / Locomotive / Field.io     |
-| 4  | Corporate Board        | Dashboard                                | Decision-Making         | Conclusion-first (Pyramid)        | IA / Fathom / Pentagram          | Active Theory / Stamen / Territory        |
+| 1  | Investor Pitch         | Slides                                   | Secure Funding          | Problem-first                     | Pentagram / IA / Linear          | Active Theory / Locomotive / Stamen       |
+| 2  | Product Launch         | Slides / Canvas / Scrollytelling / Gallery | Market Excitement     | Hero's Journey                    | Pentagram / Sagmeister / Hara    | Active Theory / DIA / Locomotive          |
+| 3  | Sales / Capabilities   | Slides (Modular)                         | Conversion              | Problem-Solution-Benefit          | Pentagram / Build / Brockmann    | Active Theory / Locomotive / DIA.         |
+| 4  | Corporate Board        | Dashboard                                | Decision-Making         | Conclusion-first (Pyramid)        | IA / Fathom / Pentagram          | Active Theory / Stamen / Linear.          |
 | 5  | Educational / Training | Interactive / Slides / Timeline          | Knowledge Transfer      | Sequential / Active               | IA / Brockmann / Hara            | Lieberman / Locomotive / Active Theory    |
 | 6  | Technical / Scientific | Slides (Live-Logic) / Live               | Specialized Education   | Explanation Model                 | IA / Brockmann / Fathom          | Lieberman / Field.io / Kwok               |
-| 7  | Marketing Portfolio    | Scrollytelling / Gallery                 | Brand Awareness         | Situation-Opportunity-Resolution  | Sagmeister / Takram / Fathom     | Locomotive / Active Theory / Field.io     |
+| 7  | Marketing Portfolio    | Scrollytelling / Gallery                 | Brand Awareness         | Situation-Opportunity-Resolution  | Sagmeister / Borsche / Fathom    | Locomotive / Active Theory / DIA.         |
 | 8  | Project Proposal       | Timeline / Slides                        | Alignment               | Goal-Plan-Achievement             | Pentagram / Build / Brockmann    | Locomotive / Active Theory / Field.io     |
 | 9  | Status Update          | Dashboard                                | Tracking                | What-So What-Now What             | IA / Fathom / Brockmann          | Active Theory / Stamen / Territory        |
 | 10 | Interactive Webinar    | Live / Slides                            | Engagement              | Synchronous Conversation          | IA / Pentagram / Build           | Lieberman / Active Theory / Field.io      |
 | 11 | Elevator Pitch         | Slides (Micro)                           | Pique Interest          | Hook-Problem-Solution             | Pentagram / IA / Brockmann       | Locomotive / Active Theory / Field.io     |
-| 12 | Case Study             | Scrollytelling                           | Social Proof            | Success Story Narrative           | Sagmeister / Takram / Fathom     | Locomotive / Active Theory / Field.io     |
+| 12 | Case Study             | Scrollytelling                           | Social Proof            | Success Story Narrative           | Sagmeister / Borsche / Fathom    | Locomotive / Active Theory / Field.io     |
 | 13 | Business Strategy      | Canvas                                   | Strategic Buy-in        | SCQA                              | IA / Pentagram / Brockmann       | Active Theory / Field.io / Locomotive     |
-| 14 | Employee Induction     | Timeline / Slides / Interactive          | Culture Integration     | Welcome-Path-Training             | Hara / Brockmann / Build         | Locomotive / Active Theory / Lieberman    |
+| 14 | Employee Induction     | Timeline / Slides / Interactive          | Culture Integration     | Welcome-Path-Training             | Hara / COLLINS / Build           | Locomotive / Active Theory / Lieberman    |
 | 15 | Financial Report       | Dashboard / Scrollytelling               | Transparency            | Performance-Forecast              | IA / Fathom / Brockmann          | Active Theory / Stamen / Locomotive       |
 | 16 | Partnership Pitch      | Slides                                   | Alliance Synergy        | Mutual Benefit                    | Pentagram / Build / Brockmann    | Active Theory / Locomotive / Field.io     |
-| 17 | Product Demo           | 3D / Canvas / Scrollytelling / Gallery   | UX Proof                | Show-Don't-Tell                   | Sagmeister / Pentagram / Hara    | Active Theory / Resn / Locomotive         |
+| 17 | Product Demo           | 3D / Canvas / Scrollytelling / Gallery   | UX Proof                | Show-Don't-Tell                   | Sagmeister / Pentagram / COLLINS | Active Theory / Resn / DIA.               |
 | 18 | Conference Talk        | Canvas / Slides                          | Thought Leadership      | Narrative Arc                     | Pentagram / IA / Brockmann       | Lieberman / Field.io / Locomotive         |
 | 19 | Interactive One-Pager  | Scrollytelling                           | Rapid Awareness         | Problem-Solution Snapshot         | Sagmeister / Takram / Fathom     | Locomotive / Active Theory / Resn         |
 | 20 | Sponsorship Proposal   | Slides                                   | Value Exchange          | Transactional ROI                 | Pentagram / Build / Brockmann    | Active Theory / Locomotive / Territory    |
@@ -201,7 +201,7 @@ Showcase discipline applies twice in the keynote workflow, with different pairin
 
 ### Phase 2 (Junior Pass): 3-slide sample per vibe — title + data-dense + quote
 
-Before any full deck is built, CD specs 5 short vibes and `build_all_vibes(slug, kind='keynote-junior')` produces **3 sample slides per vibe** (15 slides total across 5 vibes). The triplet is fixed:
+Before any full deck is built, CD specs 5 short vibes and `build_wireframes([...slugs], kind='keynote-junior')` produces **3 sample slides per vibe** (15 slides total across 5 vibes). The triplet is fixed:
 
 1. **Title / hero slide** — establishes the masthead, type stack, and dominant compositional move.
 2. **Data-dense slide** — exposes information-density discipline (table, chart, multi-column block, KPI grid).

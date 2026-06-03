@@ -37,6 +37,7 @@ import { CanvasPreview } from './advanced/CanvasPreview'
 import { PresetsStaging } from './advanced/PresetsStaging'
 import { PromptEditor, PromptEditorHandle } from './advanced/PromptEditor'
 import { ImageChatPanel, type ImageChatContent } from './advanced/ImageChatPanel'
+import { useAutoFill } from './image-mode/use-auto-fill'
 // WP-IMG-1..6 (2026-05-06)
 import { ImageOpsWorkshop } from './image-mode/ImageOpsWorkshop'
 import { CropMarqueeOverlay } from './image-mode/CropTool'
@@ -102,6 +103,11 @@ interface TabState {
   loadedPrompt: string
   /** WP-13A: Source label to restore alongside `loadedPrompt`. */
   loadedPromptSource: PromptSource | 'modified'
+  /** Ralph 2026-05-20: user-editable output filename for Generate/Edit/
+   *  Compose/Layout. Pre-filled via useAutoFill from buildFilenameHint —
+   *  user edits stick. Sent to /api/edit-image as the `filename` payload
+   *  field, replacing the old silent auto-build. */
+  filename: string
 }
 
 export interface AdvancedModeProps {
@@ -195,6 +201,7 @@ function makeInitialTabState(): TabState {
     promptSource: 'none',
     loadedPrompt: '',
     loadedPromptSource: 'none',
+    filename: '',
   }
 }
 
@@ -888,6 +895,36 @@ export function AdvancedMode({
     [findRootBasename],
   )
 
+  // Ralph 2026-05-20: Compute the suggested filename and sync it into the
+  // active tab's `filename` state via useAutoFill. The hook respects user
+  // edits — once the user types into the input, the suggestion stops
+  // overwriting it. When source-image/preset/tab changes, the suggestion
+  // recomputes and applies only if the field is empty or still matches the
+  // previous auto-value. The filename surfaced in PromptEditor IS the value
+  // that handleGenerate sends to /api/edit-image.
+  const suggestedFilename = (() => {
+    const stagedSources: SourceImage[] = []
+    if (activeTab === 'compose') {
+      const s = currentState.composeStaging
+      if (s.sceneImage) stagedSources.push(s.sceneImage)
+      s.subjectImages.forEach((i) => stagedSources.push(i))
+    } else if (activeTab === 'layout') {
+      currentState.layoutStaging.slots
+        .filter((i): i is SourceImage => Boolean(i))
+        .forEach((i) => stagedSources.push(i))
+    }
+    return buildFilenameHint(
+      activeTab,
+      currentState.selectedImage,
+      currentState.activePresetLabel || null,
+      stagedSources,
+    ) || ''
+  })()
+
+  useAutoFill(currentState.filename, suggestedFilename, (next) => {
+    patchCurrentTab({ filename: next })
+  })
+
   const handleGenerate = useCallback(async () => {
     const { prompt, selectedImage, aspectRatio, resolution, activePresetLabel } = currentState
     if (!prompt.trim()) return
@@ -913,17 +950,19 @@ export function AdvancedMode({
         .filter((i): i is SourceImage => Boolean(i))
         .forEach((i) => stagedSources.push(i))
     }
-    const filenameHint = buildFilenameHint(
-      activeTab,
-      selectedImage,
-      activePresetLabel || null,
-      stagedSources,
-    )
+    // Ralph 2026-05-20: filename now comes from the user-editable field in
+    // PromptEditor (pre-filled via useAutoFill from buildFilenameHint). The
+    // old silent auto-build produced garbage like `vibe-11-build-zuviel-
+    // vibe-14-borsche-raume-...` — exposing the proposal to the user before
+    // Generate lets them correct it. Fallback to the live buildFilenameHint
+    // if the field is somehow empty (shouldn't happen after useAutoFill).
+    const filenameForPayload = currentState.filename
+      || buildFilenameHint(activeTab, selectedImage, activePresetLabel || null, stagedSources)
 
     const payload = {
       sourceImagePaths,
       instruction: prompt,
-      filename: filenameHint,
+      filename: filenameForPayload,
       imageSize: resolution,
       aspectRatio,
       operation,
@@ -1883,6 +1922,8 @@ export function AdvancedMode({
             canReset={currentState.prompt !== currentState.loadedPrompt}
             onReviewAI={sessionId ? handleReviewByAI : undefined}
             isReviewingAI={isCDLoading}
+            filename={currentState.filename}
+            onFilenameChange={(v) => patchCurrentTab({ filename: v })}
           />
         </div>
       )}

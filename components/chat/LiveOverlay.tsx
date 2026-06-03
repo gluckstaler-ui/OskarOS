@@ -38,6 +38,7 @@ import {
   type DeleteTodoEventDetail,
 } from './UnfinishedTodosPanel'
 import { BuildOverlayRow } from './BuildOverlayRow'
+import { subscribeApiEvents } from '@/lib/api-events-bus'
 
 export interface LiveOverlayProps {
   sessionId: string | null
@@ -86,9 +87,10 @@ export function LiveOverlay({ sessionId, builds = [], onBuildClick }: LiveOverla
   // SSE subscription: re-read on todos_updated; ignore other event types.
   useEffect(() => {
     if (!sessionId) return
-    const url = `/api/events?sessionId=${encodeURIComponent(sessionId)}`
-    const es = new EventSource(url)
-    const onMessage = (e: MessageEvent) => {
+    // Shared single /api/events socket (lib/api-events-bus.ts) — no longer
+    // opens its own EventSource. page.tsx + this overlay ride one connection
+    // instead of two (HTTP/1.1 dev ~6-conn/origin cap). Ralph 2026-06-02.
+    return subscribeApiEvents(sessionId, (e) => {
       try {
         const data = JSON.parse(e.data) as { type?: string }
         if (data?.type === 'todos_updated') {
@@ -97,12 +99,7 @@ export function LiveOverlay({ sessionId, builds = [], onBuildClick }: LiveOverla
       } catch {
         // non-JSON heartbeat or malformed event — skip
       }
-    }
-    es.addEventListener('message', onMessage)
-    return () => {
-      es.removeEventListener('message', onMessage)
-      es.close()
-    }
+    })
   }, [sessionId, refetchTodos])
 
   // Window-event subscription for the panel's trash-on-hover affordance.

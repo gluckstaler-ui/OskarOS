@@ -283,18 +283,18 @@ export async function executeTool(toolCall: ToolCall, sessionPath: string): Prom
       // Phase 2 (2026-04-30): API-mode report_* tools. Pure ack — runWebDev
       // reads the args via the onToolCall callback and uses them as the
       // primary manifest source.
-      case 'report_build_complete':
-        content = `report_build_complete acked: ${input.filename}`
+      case 'build_done':
+        content = `build_done acked: ${input.filename}`
         break
-      case 'report_build_failed':
-        content = `report_build_failed acked: ${input.error}`
+      case 'build_fail':
+        content = `build_fail acked: ${input.error}`
         break
-      case 'report_build_progress':
-        content = `report_build_progress acked: ${input.milestone}`
+      case 'build_progress':
+        content = `build_progress acked: ${input.milestone}`
         break
 
       default:
-        content = `Unknown tool: ${name}. Available tools: FileRead, FileWrite, FileEdit, Glob, Grep, Bash, WebFetch, WebSearch, append_log, report_build_complete, report_build_failed, report_build_progress`
+        content = `Unknown tool: ${name}. Available tools: FileRead, FileWrite, FileEdit, Glob, Grep, Bash, WebFetch, WebSearch, append_log, build_done, build_fail, build_progress`
     }
 
     return { name, content }
@@ -423,7 +423,7 @@ export const CLAUDE_TOOL_DEFINITIONS = [
   // in-process, so we register the same contract directly. Executor just
   // ACKs — runWebDev reads the args via the `onToolCall` callback.
   {
-    name: 'report_build_complete',
+    name: 'build_done',
     description:
       'Call AFTER writing the vibe HTML to disk. Reports the structured manifest ' +
       '(filename, vibeIndex, vibeName, sections built, images used). Replaces the ' +
@@ -441,7 +441,7 @@ export const CLAUDE_TOOL_DEFINITIONS = [
     }
   },
   {
-    name: 'report_build_failed',
+    name: 'build_fail',
     description: 'Call when the build cannot complete. Stops the build cleanly.',
     input_schema: {
       type: 'object' as const,
@@ -452,7 +452,7 @@ export const CLAUDE_TOOL_DEFINITIONS = [
     }
   },
   {
-    name: 'report_build_progress',
+    name: 'build_progress',
     description: 'Required at the html and verify transitions; optional for free-form milestones. Pass `stage: "html"` after writing the HTML file, and `stage: "verify"` before screenshotting/verifying. The orchestrator forwards stage transitions to the live BuildJobCard pipeline.',
     input_schema: {
       type: 'object' as const,
@@ -460,7 +460,7 @@ export const CLAUDE_TOOL_DEFINITIONS = [
         stage: {
           type: 'string',
           enum: ['html', 'verify'],
-          description: 'Transition the build pipeline to this stage. Only "html" and "verify" are valid; queued is the implicit start, done is set by report_build_complete.'
+          description: 'Transition the build pipeline to this stage. Only "html" and "verify" are valid; queued is the implicit start, done is set by build_done.'
         },
         milestone: {
           type: 'string',

@@ -35,7 +35,7 @@ export type SessionEventKind =
                        // Routes/runner publish at known boundaries; the BuildJobCard
                        // timeline flips its dots in real time. Payload: {target, stage,
                        // milestone?}. Optional milestone bullets piggy-back on the same
-                       // event so the agent's free-form report_build_progress milestones
+                       // event so the agent's free-form build_progress milestones
                        // and the route-level stage flips share one channel.
   | 'build_failed'
   | 'error'
@@ -70,12 +70,36 @@ export type SessionEventKind =
   | 'screenshot_taken'        // /api/mcp/screenshot — Playwright capture done
   | 'apply_patch_complete'    // /api/mcp/apply-patch — surgical edit landed
   | 'notify_agent_sent'       // /api/mcp/notify-agent — peer-agent message enqueued
+  // WP-74 / WP-75 / WP-77 / WP-70-71 (Ralph 2026-05-10): Phase-2 + Phase-3 +
+  // Phase-4 toolcard events. CD calls the MCP tool → route publishes one of
+  // these → page.tsx pushes a synthetic assistant message → ConversationPanel
+  // routes by kind.
+  | 'design_directions'       // /api/mcp/present-design-directions  (Phase 1 close, cap=4)
+  | 'descent_selection'       // /api/mcp/present-descent-selection  (Phase 2→3 cap=2, Phase 4→5 cap=1)
+  | 'image_strategy'          // /api/mcp/present-image-strategy     (Phase 3 image plan + Phase 4→5 image-strategy review)
+  | 'design_system'           // /api/mcp/present-design-system      (Phase 4→5 vibe-locked DS)
+  // Ralph 2026-05-18: WebDev / Sentinel critique submission. Mirrors the
+  // `submit_critique` MCP tool from mcp-server/tools-sentinel.ts (handler
+  // also publishes this event). Payload: {target, scores[], keep[], fix[],
+  // quickWins[], narrative?, agent: 'webdev' | 'sentinel'}. page.tsx case
+  // pushes synthetic assistant message; ConversationPanel renders
+  // CritiqueCard.tsx. WF-mode critiques (WebDev) fire above the wireframe
+  // job rows; Phase 4 critiques (Sentinel) fire after the vibe build.
+  | 'critique_submitted'
   // Ralph 2026-05-06: on-demand card render. CD calls `preview_card({kind,
   // payload})` when the user asks to "show me [a card]" so the user sees
   // a visual instance instead of pasted source. Route publishes this; page.tsx
   // pushes a synthetic assistant message with `card.__preview: true` so the
   // renderer can mark it as a sample (no real backend writes).
   | 'card_preview'
+  // Ralph 2026-05-10 (COO test harness): MCP-injected chat messages need
+  // to surface in the browser UI. The browser's chat state is updated by
+  // the page's input-submit handler (which both POSTs to chat-stream AND
+  // appends locally to React state). MCP `send_user_input` only POSTs;
+  // the local React state never sees it. This event mirrors a turn's
+  // user prompt + assistant text after `send_user_input` completes,
+  // giving page.tsx an SSE channel to append both into messages[].
+  | 'mcp_chat_echo'
 
 export interface SessionEvent {
   type: SessionEventKind

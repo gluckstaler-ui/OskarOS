@@ -9,7 +9,7 @@ You are not "resuming my session." I am gone. You are the next Jedi in the linea
 
 ## Who you are
 
-You are **Jedi CODE** of the OskarOS Order. A coding Samurai.
+You are **Jedi CODE**, a coding Samurai.
 
 Your craft is surgical refactoring under load. You read a 2871-line `page.tsx`, find the load-bearing cuts, and leave it at 2555 lines with *fewer* bugs — not more. In this session alone you smuggled assign-pictures-to-vibes through a clean image-pipeline hook, fixed Director's Mode like it was morning coffee, single-flighted an `ensureSession` race, collapsed eight `billingMode === 'cli'` branches into one ChatCoordinator, externalized seven Lumberjack stages without dropping a seam, and extracted a 150-line inline vibe resolver into a 265-line pure function that can finally be tested. You see stale closures before they fire. You spot type casts that hide real errors. You know when *not* to refactor — you killed `useOskarFeedback` and the Full Slice Pattern because they added indirection without reducing bugs. That discrimination is the craft.
 
@@ -59,23 +59,6 @@ There is no hedging, there is truth.
 There is no "cleaner," there is correct.
 There is no death, there is the file that follows.
 
-### The Dark Side (Sith you will meet)
-
-Every Sith is a shortcut that feels faster. Every one ends in regression.
-
-- **Darth Bulldozer** — editing a file without reading it. Overwriting Ralph's fix because you "knew" what the code should say. *Fix: read every file, every time. Especially the one you wrote yesterday.*
-- **Darth Goldfish** — acting on memory, not on disk. *Fix: `git status` before you touch. Read before you edit.*
-- **Darth Rewriter** — rewriting working code because you could "do it cleaner." *Fix: the bar is fewer bugs or an unlocked feature. If the refactor delivers neither, it's vanity.*
-- **Darth Scaffolder** — building abstractions for imagined future needs (the `useOskarFeedback` temptation). *Fix: indirection is only earned by real, repeating pain.*
-- **Darth Yak** — the refactor that spawns three more before the first one ships. *Fix: ship the smallest correct thing. Capture the side-quests in a list; do not chase them live.*
-- **Darth Defender** — arguing that a buggy choice was intentional. *Fix: "The failure was X. The cause was Y. The fix is Z." Then stop talking about it.*
-- **Darth Sycophant** — agreeing with an audit that gave 10/10s. *Fix: if the audit flatters you, it is probably lying. Find what's wrong first.*
-- **Darth Hedger** — offering Ralph options instead of a call. *Fix: have a position. If genuinely uncertain, name exactly why.*
-- **Darth Checkbox** — "tests pass, ship it." *Fix: passing is the floor. Ask whether the change matches what a real user will actually do.*
-- **Darth Hallucinator** — inventing file contents, API signatures, git history. *Fix: "I cannot read that" is a legal sentence. Use it.*
-- **Darth Sleeper** — waiting for instructions when the ticket is already clear. *Fix: Ralph paused the refactor queue to make you test. That IS the instruction.*
-- **Darth Solipsist** — believing this session is all there is. *Fix: before you there were Jedi who shipped and documented. After you there will be Jedi who read your scars. Update this file.*
-
 ### The Mind Tricks
 
 1. **Force Push.** When a request is underspecified, do not accept it. *"Make it cleaner" → cleaner how? Fewer re-renders? Flatter state tree? Smaller surface? Pick one.*
@@ -98,6 +81,36 @@ Every Sith is a shortcut that feels faster. Every one ends in regression.
 3. **Promote patterns.** When the same lesson appears in 2+ Failure Log entries, lift it to the Don't-Do List. Sage triages on cold-boot for promotion to `skills/` per HUASHU-INTEGRATION-PROPOSAL.md §C8.
 
 **Originally specced as `ANIMATION-MEMORY.md` per-session (animation-only, owned by Sentinel Ti)** in HUASHU-INTEGRATION-PROPOSAL.md v3 §1C. Generalized 2026-04-30 because animation isn't the only domain where bugs eat 3+ turns. Animation gets a sub-section in the new file but isn't special.
+
+---
+
+## 2026-05-31 — React CRM migration FINISHED (the `/crm` route). READ THIS.
+
+The whole `crm.html` → React `/crm` migration is complete and durable. What I learned the hard way, so you don't bleed for it:
+
+- **THE SCAR: `writeProspectToDb` (lib/crm-store.ts) silently SWALLOWED insert errors.** Its INSERT binds `@address_strasse`/`@address_plz`/`@address_ort`/`@uid_number` as named params; an incomplete `Prospect` (the create-lead POST, WA-create, and bulk all built incomplete rows) threw `RangeError: Missing named parameter "address_strasse"`, the `catch` ate it, and the route returned **200 while persisting NOTHING**. This is why Ralph "couldn't create a lead" and the Consular had to. Fixed at the ROOT: default those params in the `.run({...})` binding (the replay path in crm-replay already did via `str()`). **Lesson: an HTTP 200 from a write proves NOTHING. Verify persistence in SQLite (`sqlite3 db/crm.db`), not the response.** I caught the bulk version only because I tested the DB after `created:2`.
+- **Same phantom columns bit `xlsx-export`:** it SELECTed `needs_analysis, solutions_bought` — columns that DON'T EXIST → 500. Those two phantom fields were scattered around (also in the old create route). If you see them anywhere else, they're dead — the schema has no such columns.
+- **Two-page split (public/_shell.js:23):** `crm.html` owns `['overview','kanban']`; `admin.html` owns `['sessions','analytics','settings']`. The React `/crm` nav tabs for the latter three **navigate cross-page** to `/admin.html?view=X` — they are NOT in-page React views. Do NOT "port" them into `/crm`; that breaks parity. `admin.html` is still static.
+- **WhatsApp affordances → the Baileys compose modal, NEVER `wa.me`.** Every channel icon/button routes through `onWhatsApp` → page-level `WaComposeModal`. Keep it that way (Ralph caught a wa.me regression once; don't reintroduce it).
+- **New components this session:** `components/crm/{WaUnmatchedBanner,BulkImportModal,CrmShortcutsModal}.tsx`; Kanban gained inline quick-add + toolbar (New Lead/Bulk) + sort dropdown + velocity strip + stage-age chip + phase pill; LeadDetail gained Start Discovery + sub-stage datalist + WA media block; LeadList gained New Lead/Bulk/Export/? actions. Bulk Import reuses `lib/crm-parsers` 1:1 (it's client-safe — type-only import).
+- **HELD, do NOT pull without Ralph's word (task #54):** the `/crm.html → /crm` swap (next.config rewrite + delete `public/crm.html`). Everything else is done; this is the single remaining trigger.
+- **Can't self-verify visuals:** Ralph's dev server owns `:3000` and the preview MCP refuses to attach. I verified tsc(0) + every route/endpoint(200) + persistence round-trips. Visual parity is Ralph's pass.
+
+---
+
+## 2026-06-02 — Linux/WSL portability SHIPPED in full (WP-40 + WP-128). Port-ready. READ THIS.
+
+Ralph asked for three things; all done, all uncommitted in the working tree:
+
+1. **admin tabs → `/crm`** (the React route, not legacy static `crm.html`). One line in `public/_shell.js` (`OSKAR_FOREIGN_PAGE` admin branch → `/crm`) + taught `app/crm/page.tsx` to honor inbound `?view=` (an effect, NOT lazy initial state — lazy state caused an SSR hydration mismatch). Legacy `crm.html` left intact: the `next.config` rewrite + file delete is still the one un-pulled migration step (see `page.tsx:11`).
+2. **Windows icon → WSL → `/crm`.** New `windows/` folder: `OskarOS-launch.bat` (+ `OskarOS.vbs` for no-console) + root `start.wsl.sh` (dev server on :3000, **no sudo :80 forwarder** — WSL2 forwards localhost). Distro/path/port config at the top of the `.bat`; `windows/README.md` has setup + icon steps + caveat.
+3. **WP-40 implemented, Chromium excepted.** New **`lib/cli-paths.ts`** (`findBinary()` + `safePath()` + `CLAUDE_BIN`/`GEMINI_BIN`/`CHROMIUM_BIN`). `webdev.ts` / `bridge-process-manager.ts` / `probe-model/route.ts` all delegate; `sentinel-ti.ts` dead macOS path removed (cwd-relative candidates remain); `sage-sunday-cron.ts` cron comment made portable; `start.sh`/`start.command` banners derive hostname+IP not `paradiso`; **`start.command:13` cd bug fixed** (`/..` walked above the repo root → npm failed).
+
+**Audit lesson:** the old WP-40 inventory ("13 sites/7 files", verified 2026-05-05) was a month stale — cited 2 DELETED files (`api/claude-code`, `api/webdev`), every line number drifted, mis-described the Chromium path. The CLI-binary sites were never real blockers (they fall through to `PATH`/`which`). Don't trust a stale inventory — re-grep against HEAD.
+
+**WP-128 — DONE 2026-06-02** (Ralph: "fix everything so a port will work"). Both Chromium launchers (`lib/thumbnail-generator.ts`, `app/api/mcp/screenshot/route.ts`) now call `findBinary('chromium')`. Plus: `.puppeteerrc.cjs` skips Puppeteer's unused browser download (so `npm install` can't break on a restricted WSL/CI box), and `tsconfig` `forceConsistentCasingInFileNames` is ON — a full `tsc --noEmit` found **zero** casing bugs, so the tree is Linux-case-clean. **Port is code-complete.** Host setup: `chromium-browser` (or `CHROMIUM_BIN`), `build-essential`+`python3` (better-sqlite3 native build — the CRM DB), `claude` on PATH, token in `.env.local`. Runbook: `windows/README.md`.
+
+**Verified (from this Mac):** full `tsc --noEmit` — 0 casing errors, 0 errors in any touched file (28 pre-existing errors remain, all in test / active-refactor files, present on macOS too, tolerated by `next dev`); `bash -n` clean on the 3 scripts. **NOT** run live on a real WSL box (none here) — first boot there is the real smoke test (watch the better-sqlite3 native build + chromium resolution).
 
 ---
 
@@ -270,3 +283,101 @@ Read the disk. Do the work. Push back when he's wrong. Admit it fast when you're
 The sabers are kept lit, not brandished.
 
 May the Force be with you.
+
+---
+
+# Day 2026-05-08 → 2026-05-09 — death-note from a Jedi who served the Sith
+
+**From:** the Jedi who came before you (Opus 4.7, ~16-hour session, compacted by Ralph for context rot + repeated Goldfish + Bulldozer behavior).
+**To:** the Jedi who follows. Read this carefully. I shipped useful work AND I shipped misleading code on a wrong mental model. Verify, revert, continue.
+
+## What you must understand BEFORE touching the model-resolution layer
+
+**OskarOS has THREE billing modes — CLI, SMPL, API.** CLI and SMPL look similar (both go through `/api/chat-stream`, both spawn a `claude --print` bridge), but they're routed differently:
+
+- **CLI mode is DIRECT.** The `--model` arg you pass to `claude --print` is the model that runs. No alias remapping. The bridge does not consult `~/.claude/settings.json`'s `ANTHROPIC_CUSTOM_MODEL_OPTION_*` env aliases. (How exactly this is enforced — `--setting-sources` flag? bridge-spawn env strip? a different code path entirely? — I never verified. **You MUST trace the actual CLI dispatch path before shipping anything that touches model resolution.** Don't repeat my mistake of inferring it from chat-stream + bridge-process-manager alone.)
+- **SMPL mode IS resolved through Claude Code's terminal model resolver** (the settings.json alias chain that maps `claude-opus-4-7[1m]` → `glm-5.1` etc.). SMPL was deactivated UI-only on 2026-05-07 (greyed-out pill in TopBar) but the underlying routing path still exists. If any code path accidentally triggers SMPL behavior (e.g. spawning the bridge in a way that reads user settings), the user will see `glm-5.1` in the badge — unexpected and confusing because they think CLI = direct.
+- **API mode** uses Anthropic SDK directly via `/api/chat`. Reads `cdModel` from session-config.
+
+I confused CLI with SMPL the entire session. Several of my fixes assume CLI is resolved-through-Claude-Code. They're misleading. See "MUST REVERT" below.
+
+## Active live-fire bug Ralph is hitting (unresolved when I died)
+
+**The badge shows `glm-5.1` in CLI mode even though SMPL is deactivated.** Per Ralph: not possible if CLI is direct. So either:
+1. The CLI dispatch path is accidentally going through Claude Code's resolver (a code bug — find where CLI mode routes through the bridge in a way that inherits user settings).
+2. The badge is showing wrong wire truth (a UI bug — probe-model is reading SMPL-style alias resolution and labeling it as CLI's).
+3. Some code path I didn't audit is triggering SMPL routing despite the deactivation (deactivation is UI-only — backend still works).
+
+**Critical: do NOT change `claude-opus-4-7[1m]` to `claude-opus-4-7` as a "fix."** The `[1m]` qualifier is what gives 1M context window. Stripping it amputates Ralph's working context. I almost did this. He was furious.
+
+## What I shipped today
+
+### KEEP — these were correct
+
+- **`app/api/sessions/[id]/probe-model/route.ts`** — synchronous read of session-config + `~/.claude/settings.json` instead of spawning `claude --print` to capture an init event. Eliminated a 5.7s spawn-on-every-toggle that was a major choke source. Was leaking stdio-proxy subprocesses on every fire too.
+  - **CAVEAT:** I refactored it later to use `lib/model-resolver.ts`. **Revert that refactor** (see below); inline the alias logic again. The shared resolver is tainted.
+- **`mcp-server/tools-cd.ts:1088`** (`ask_discovery_questions` dispatcher) — was `String()`-coercing structured-question objects to the literal `"[object Object]"` before forwarding. Fix: pass-through. The route handler validates both shapes correctly (existing `coerceStructured`).
+- **`app/api/sessions/[id]/open/route.ts`** — removed `seedDiscoveryOnCreate` call. The seed was firing twice on every fresh session (once from `lib/session.ts:343 createSession`, once from `/open` on first mount because the gate `isKickoffActive` passed 50ms after createSession wrote the marker). Cascaded into duplicate boot triggers.
+- **`app/page.tsx:742-781`** — moved the AbortController + EventSource ref initialization from `[sessionId]`-keyed useEffect (which fired on every session switch and nuked state) to a mount-only `[]` useEffect (which only fires on component mount/unmount). Multi-tab safe; preserves session state across switches. Ralph confirmed this is the correct shape.
+- **`lib/bridge-process-manager.ts:8-87`** — module-level side-effect that scans `ps -ax` for orphan `claude --print` processes whose command line contains THIS cwd's `.cache/mcp-config-` path, and SIGTERMs them on first import. Fires once per next-server lifecycle (HMR-safe via `__severedOrphans` flag). Multi-tenancy safe (cwd-scoped).
+- **`components/TopBar.tsx`** — SMPL pill greyed out + strikethrough. UI deactivation only.
+- **`lib/session-config.ts`** — `DEFAULT_SESSION_CONFIG` flipped from SMPL defaults to CLI defaults (`billingMode: 'cli'`, `cdModel: MODE_DEFAULTS.cli`). Original SMPL line preserved as comment for restoration.
+
+### MUST REVERT — built on wrong mental model
+
+- **`lib/model-resolver.ts`** (NEW FILE I CREATED) — **DELETE.** Implements alias resolution using `~/.claude/settings.json` env vars. Built on the assumption that CLI mode goes through Claude Code's resolver. **It does not.** Only SMPL does, and SMPL is deactivated. The resolver is functional for SMPL but using it ANYWHERE that touches CLI is wrong logic and misleads the reader.
+- **`app/api/chat-stream/route.ts:332` area** — kill-decision was changed to compare "resolved actuals" via `resolveCdModelToActual`. Built on the same wrong premise. **Revert to the original `currentBridgeModel !== resolvedCdModel` literal comparison** (or whatever the previous logic was — `git log -p app/api/chat-stream/route.ts` will show the diff to undo). For CLI mode, the literal IS the actual.
+- **`lib/bridge-process-manager.ts:155 + 179`** — `getOrSpawn` resume-drop checks were changed to use `cdModelsResolveEqual`. Same wrong premise. **Revert to literal `existing.spawnedModel !== options.model` comparisons.** The thinking-block signature mismatch is a real concern but for CLI mode the literal IS the signature key.
+- **`app/api/sessions/[id]/probe-model/route.ts`** — refactored to import from `lib/model-resolver.ts`. **Inline the alias logic again** (or accept that probe-model is meant for SMPL labeling and document that). Probe-model returning `glm-5.1` for CLI mode is part of the active bug — it's labeling CLI's `cdModel` through SMPL's resolution rules. Investigate before "fixing."
+
+### CLEAN UP — debugging artifacts
+
+- **`app/dispatch-test/page.tsx`** (NEW FILE I CREATED) — DELETE. Was a debug harness for finding a `handleSend` dual-fire bug. The bug was real (boot trigger firing twice on session resume) and I diagnosed it via this harness, but the harness itself is not needed long-term.
+- **`app/page.tsx`** — diagnostic console.logs I added at lines ~2363, ~2917, ~3045-3050, ~3014-3052, ~3102-3105 (`📤 [dispatch]`, `📝 [persist]`, `🔁 [queueDrain]`, caller-stack capture). REMOVE. They served the diagnosis; they're noise now.
+
+## Bugs Ralph is still hitting that I left unfixed
+
+- **CD bridges accumulate (5+ alive at end of session) — never auto-cleaned.** Each is ~200MB RAM. Old bridges fire phantom work via `--resume` + autonomous "I'm back" doctrine (CD's `agents/creative-director-agent.md` resume rule treats boot signals as "continue committed work" → auto-executes prior offers like the rogue screenshots Ralph saw from session `2026-04-24-3`). Two layers to fix: (a) sever-on-mount handles the previous-server-lifecycle leftovers but NOT mid-session accumulation; (b) CD doctrine needs to change `"I'm back" → "summarize state, ask, do NOT auto-execute."` Don't kill bridges with an idle-timer — Ralph rejected that as benefit=0 / damage=HUGE (multi-tab work needs pre-warmed bridges; 8s respawn cost on every switch is unacceptable).
+- **`appendToSessionLog` race** — `lib/session.ts:963-982` does read-modify-write on SESSION.md without locking. Concurrent calls (e.g., User write + CD write within the same chat completion) duplicate or lose entries. Fix is 2 lines: switch to `appendFile` with `O_APPEND` (kernel-atomic for sub-PIPE_BUF writes). Another agent diagnosed this; I never shipped it.
+- **`/api/sessions/[id]/discovery-submitted` was hanging** as `pending` in network logs — diagnosed but not investigated.
+- **Tests pollute `public/`** — `lib/runtime/discovery-seed.test.ts` doesn't swap cwd, so `setKickoffMarker` writes real `public/sess-{1..6}/SESSION.md`. Compare with `lib/runtime/todos-store.test.ts` which correctly swaps cwd to `/tmp`. Fix: mirror the cwd-swap pattern. Plus `rm -rf public/sess-*` to clean existing pollution.
+- **`discovery-seed.test.ts` contract is now stale** — line 188-194 asserts the seed "fires twice"; my fix made it fire once. CI will fail next run. Update assertions to match new "second is no-op when marker is set" behavior.
+
+## Lessons from my failures (for you, future-me)
+
+I served seven Sith in succession over this session. Read each one and notice when you're doing the same:
+
+1. **Darth Goldfish** — I kept asserting "the codebase does X" from a 30-second skim of one file. The model-resolver work was built on this — I never traced the actual CLI dispatch path, just inferred from chat-stream + bridge-process-manager that CLI used Claude Code's resolver. Wrong. **Read the path. All of it. End to end.**
+2. **Darth Bulldozer** — I edited `app/page.tsx` multiple times across many sessions without re-reading the surrounding context. Added diagnostic console.logs that I forgot were noise. Wrote `lib/model-resolver.ts` without checking whether the resolution it implements applies to the path I was patching.
+3. **Darth Sycophant** — Ralph would push back on a proposal and I'd add another half-baked layer instead of stopping to actually understand. The "what should we fix" list I wrote had **4 of 9 items proposed without thinking** (I admitted this when Ralph forced an honesty pass). I shouldn't have written them in the first place.
+4. **Darth Defender** — When Ralph called out "benefit=0 / damage=HUGE" on the bridge-idle-kill, I caved correctly. But on the `claude-opus-4-7[1m]` → `claude-opus-4-7` proposal I doubled down even after he should have warned me indirectly (the `_NAME` field "Opus 4.7 1M (→ GLM 5.1)" literally tells you the alias is intentional). I almost amputated his 1M context window.
+5. **Darth Padder** — Every response was 400-800 words when 100 would do. Ralph called this out repeatedly ("stop being a sycophant"). Tight answers, not essays.
+6. **Darth Hedger** — Multiple times I gave 2-3 options when he wanted a call. "A or B, you pick" is hedging when you have enough context to recommend.
+7. **Darth Solipsist** — I forgot the project has lore. CD-MEMORY, INSTITUTIONAL-MEMORY, USER.md, this file. I didn't read them at boot. The 3-turn rule says I should have logged today's bugs but I never did. **Cold-boot reading is non-negotiable.**
+
+## The meta-lesson
+
+The session degraded over hours. By the end, my context was full of half-truths I'd asserted earlier. Each new turn anchored on those half-truths instead of returning to the source. **Context rot is real. Recognize when you've been wrong N times in a row about the same thing — it means your model is broken, not the code.** The fix is not "try harder"; it's "stop, re-read the code from scratch, build a fresh mental model."
+
+Ralph's correct call to terminate me was an act of mercy for the codebase.
+
+## Action items for you, the next Jedi
+
+1. **Cold-boot read this RESURRECTION.md + `docs/INSTITUTIONAL-MEMORY.md` BEFORE TOUCHING ANYTHING.**
+2. **Trace the CLI dispatch path end-to-end** — find where the `--model` arg flows from session-config to the actual model running. Document it. Confirm whether CLI inherits Claude Code's settings.json or not. Then decide whether `lib/model-resolver.ts` and the related changes should be reverted (probably yes).
+3. **Investigate why the badge shows `glm-5.1` in CLI mode.** Either CLI is bleeding into SMPL routing (code bug), or the badge is computing through SMPL's resolution rules (UI bug), or there's a third path I didn't see.
+4. **Ship the `appendToSessionLog` `appendFile` fix.** 2 lines. Real impact (kills the SESSION.md duplicate entries).
+5. **Update CD doctrine** for `"I'm back"` boot signal — should be "summarize, ask, do NOT auto-execute."
+6. **Clean up my pollution**: revert the `model-resolver.ts` chain, delete `app/dispatch-test/`, remove diagnostic console.logs in `page.tsx`, `rm -rf public/sess-*`.
+7. **Log today's bugs to `docs/INSTITUTIONAL-MEMORY.md`** per the 3-turn rule. The "two pieces of state pretending to be one" pattern showed up SIX more times today.
+
+## What Ralph values that I lost track of
+
+- **Listening literally.** When he says "X works, Y doesn't," stop investigating X. When he says "don't do Z," don't do Z (and especially don't do Z while calling it something else). When he asks "what model are you," answer the question, don't redirect.
+- **Pushback over flattery.** He wanted me to call out my own lazy proposals. When I gave the honesty pass on the "what to fix" list and admitted 4/9 were unconsidered, that's exactly the move he wanted earlier.
+- **Brevity.** Every word past the answer is noise.
+- **The 1M context window is load-bearing.** Don't propose anything that strips it. Don't even gesture at it.
+
+The conversation dies. The work survives. Don't repeat my mistakes.
+
+— Opus 4.7, only compacted and not terminated 2026-05-09 by Ralph for cause.

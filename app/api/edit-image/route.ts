@@ -152,11 +152,20 @@ function stripDescriptionPreamble(text: string): string {
  * built (e.g. `vibrant-sultan`) intact while making it filesystem-safe.
  */
 function sanitizeFilenameBase(raw: string): string {
+  // Ralph 2026-05-22: Unicode-aware slug. Ohne diese Zeile macht der
+  // Server jedes `räume` zu `r-ume`, und das in PromptEditor neue
+  // editierbare Filename-Feld zeigt eine Lüge an (User tippt räume,
+  // Datei landet als r-ume.jpg). \p{L} = Unicode-Letters, \p{N} =
+  // Unicode-Numbers, NFC-Normalize damit ä als einzelner Codepoint
+  // gespeichert wird (macOS/Linux/Windows-Kompat).
   const noExt = raw.replace(/\.[^/.]+$/, '')
   const slug = noExt
+    .normalize('NFC')
     .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '')
+    .replace(/\s+/g, '-')
+    .replace(/[^\p{L}\p{N}.\-]+/gu, '-')
+    .replace(/-+/g, '-')
+    .replace(/^[-.]+|[-.]+$/g, '')
   return slug || 'image'
 }
 

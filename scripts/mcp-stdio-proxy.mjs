@@ -212,10 +212,23 @@ async function forward(req) {
     (status === 404 && body.includes('Session not found')) ||
     (status === 400 && body.includes('Server not initialized'))
 
-  if ((response.status === 404 || response.status === 400) && mcpSessionId) {
+  // ── Stale-session recovery ───────────────────────────────────────────
+  //
+  // 2026-05-10 (Ralph): the `&& mcpSessionId` guard used to be here meant
+  // recovery NEVER fired after `refreshSessionFromSidecar()` cleared the
+  // id (sidecar session change). The first tools/* request after a session
+  // switch hits the server without a session-id header → server force-
+  // rebuilds a fresh transport → user's non-initialize request fails 400
+  // "Server not initialized" → proxy skipped recovery (mcpSessionId was
+  // null) → Claude Code received raw 400 → MCP bridge dead until restart.
+  //
+  // The new condition: recover whenever the response shape says "stale
+  // session," regardless of whether we held an id. If we DID hold one,
+  // it's stale — clear it. Either way, reinitialize and retry once.
+  if ((response.status === 404 || response.status === 400)) {
     const body = await response.text().catch(() => '')
     if (isStaleSessionResponse(response.status, body)) {
-      console.error(`[mcp-proxy] stale session id (HTTP ${response.status}); re-handshaking…`)
+      console.error(`[mcp-proxy] stale session (HTTP ${response.status}, had-id=${!!mcpSessionId}); re-handshaking…`)
       mcpSessionId = null
       const ok = await reinitialize()
       if (!ok) {

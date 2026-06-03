@@ -66,7 +66,17 @@ import { publish } from './event-bus'
 // jedi-code (which used to be the closest stand-in). Permissions: user
 // → cd only; nothing else. CD is the only agent that takes direct user
 // input via chat.
-export type AgentRole = 'cd' | 'webdev' | 'sentinel' | 'jedi-code' | 'user'
+//
+// 'consular' added 2026-05-28 (Ralph): Consular is CD's peer agent —
+// the CRM-side Jedi who drafts client messages, runs Cold-Lead Teardowns,
+// and owns Filippo's pipeline lore. CD ↔ Consular is bidirectional
+// (same pattern as CD ↔ Jedi Code) so the two siblings can hand work
+// across the brand/sales seam without going through Ralph. Consular's
+// doctrine routes infrastructure asks (schema growth, new stored procs)
+// to CD, who specs them for Jedi Code — so Consular → jedi-code is NOT
+// granted here. If a direct Consular → Jedi Code link is needed later,
+// it'll be a deliberate add.
+export type AgentRole = 'cd' | 'webdev' | 'sentinel' | 'jedi-code' | 'user' | 'consular'
 
 export type Priority = 'low' | 'normal' | 'high'
 
@@ -153,21 +163,25 @@ interface MessageRecord {
 // verified replies inside `notifyAgent` (see permissionAllowsSameRoleReply).
 
 const NOTIFY_PERMISSIONS: Record<AgentRole, Set<AgentRole>> = {
-  'cd': new Set(['jedi-code', 'webdev', 'sentinel']),
-  'jedi-code': new Set(['cd', 'webdev', 'sentinel']),
+  'cd': new Set(['jedi-code', 'webdev', 'sentinel', 'consular']),
+  'jedi-code': new Set(['cd', 'webdev', 'sentinel', 'consular']),
   'webdev': new Set(['cd', 'jedi-code']),
   'sentinel': new Set(['cd', 'jedi-code']),
   // user → cd only. The web client uses this when the human sends a
   // mid-stream chat message. Other agents shouldn't be reachable from
   // the chat surface — that path goes through CD's coordination.
   'user': new Set(['cd']),
+  // Consular → cd only (per CONSULAR-agent.md): the CRM-side Jedi
+  // routes infrastructure asks through CD, who specs them for Jedi Code.
+  // Direct consular → jedi-code is deliberately omitted.
+  'consular': new Set(['cd']),
 }
 
 export function canNotify(from: AgentRole, target: AgentRole): boolean {
   return NOTIFY_PERMISSIONS[from]?.has(target) ?? false
 }
 
-const VALID_ROLES = new Set<AgentRole>(['cd', 'webdev', 'sentinel', 'jedi-code', 'user'])
+const VALID_ROLES = new Set<AgentRole>(['cd', 'webdev', 'sentinel', 'jedi-code', 'user', 'consular'])
 
 function isRole(v: string): v is AgentRole {
   return VALID_ROLES.has(v as AgentRole)

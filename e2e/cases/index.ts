@@ -105,12 +105,12 @@ export const uiCases: UICase[] = [
 
   {
     id: 'vibe-build-3',
-    title: 'build_all_vibes spawns 3 builds → all complete → vibe-built fires for each',
+    title: 'build_vibe([3 slugs]) spawns 3 builds → all complete → vibe-built fires for each',
     category: 'build',
     flow: 'vibe-build-3',
     automated: false,
     description:
-      'Critical-path build orchestration smoke. CD calls build_all_vibes; WebDev runs three subprocess builds; each emits report_build_complete via MCP tool; event-bus publishes vibe_built × 3; user sees three vibe cards land.',
+      'Critical-path build orchestration smoke. CD calls build_vibe with a 3-slug array; WebDev runs three subprocess builds (serialized by withWebdevMutex); each emits build_done via MCP tool; event-bus publishes vibe_built × 3; user sees three vibe rows in the BuildJobCard. Ralph 2026-05-18: build_all_vibes collapsed into array-based build_vibe.',
     tier: 'critical',
     mockStrategy: 'mock',
     expectedEvents: [
@@ -124,7 +124,7 @@ export const uiCases: UICase[] = [
 
   {
     id: 'vibe-build-failed',
-    title: 'WebDev subprocess errors → report_build_failed → vibe_failed event → no orphan ToolCard',
+    title: 'WebDev subprocess errors → build_fail → vibe_failed event → no orphan ToolCard',
     category: 'build',
     flow: 'vibe-build-failed',
     automated: false,

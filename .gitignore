@@ -36,3 +36,27 @@ skills/refero_skill/
 # scripts/mcp-stdio-proxy.mjs. Local-only, regenerated on every session
 # switch. Should never be committed.
 .runtime/
+
+# WP-CRM-F20 (2026-05-25): runtime CRM data lives here.
+#   db/crm.db                — local SQLite projection (F22)
+#   db/events/               — append-only event log (F22)
+#   db/whatsapp/             — WhatsApp protocol state (auth creds,
+#                              envelope store, unmatched.jsonl). Per-laptop-
+#                              private, never synced.
+# Never committed. Each machine has its own.
+db/
+
+# WP-CRM-F20 (2026-05-25): content-addressed media files
+# (media/<sha256>.<ext>). WhatsApp downloads + any future attached files.
+# Served via auth-gated /api/admin/media/[hash] route, NOT statically.
+media/
+
+# Heavy asset / scratch dirs — kept on disk, NOT in git (Ralph 2026-06-03).
+# 4.3 GB of binaries; add via git-lfs if they ever need versioning.
+Winery/
+Fonts/
+
+# Runtime / test artifacts — regenerated, never committed.
+logs/
+test-results/
+__pycache__/

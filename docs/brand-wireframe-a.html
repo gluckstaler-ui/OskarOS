@@ -1,0 +1,248 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Brand Tab — Wireframe A — Studio</title>
+<style>
+  :root{
+    --ink:#1a1a1a;
+    --line:#bdbdbd;
+    --line-strong:#6b6b6b;
+    --bg:#f4f4f2;
+    --paper:#fafaf8;
+    --tint:#e8e8e4;
+    --hot:#c8553d;
+    --note:#8a7a3d;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%;font-family:ui-monospace,'SF Mono',Menlo,monospace;color:var(--ink);background:var(--bg);font-size:12px}
+  .frame{height:100vh;display:grid;grid-template-rows:36px 44px 1fr 22px}
+  /* tab bar */
+  .tabs{display:flex;align-items:center;gap:0;border-bottom:1px solid var(--line);background:var(--paper);padding-left:12px}
+  .tabs .t{padding:8px 14px;border-right:1px solid var(--line);font-size:11px;color:#666;letter-spacing:.05em}
+  .tabs .t.active{color:var(--ink);background:var(--bg);border-bottom:2px solid var(--ink);margin-bottom:-1px;font-weight:600}
+  .tabs .spacer{flex:1}
+  .tabs .meta{padding:0 12px;color:#888;font-size:10px}
+  /* deliverable strip */
+  .strip{display:flex;align-items:center;gap:6px;padding:0 12px;border-bottom:1px solid var(--line);background:var(--paper);overflow-x:auto}
+  .pill{padding:5px 10px;border:1px solid var(--line);border-radius:999px;color:#666;font-size:10px;letter-spacing:.04em;white-space:nowrap;background:#fff}
+  .pill.on{background:var(--ink);color:#fff;border-color:var(--ink)}
+  .strip .label{color:#888;font-size:10px;margin-right:6px;letter-spacing:.08em}
+  /* main 3-col */
+  .main{display:grid;grid-template-columns:300px 1fr 320px;height:100%;min-height:0}
+  .col{border-right:1px solid var(--line);display:flex;flex-direction:column;min-height:0}
+  .col:last-child{border-right:0}
+  .colhead{padding:8px 12px;border-bottom:1px solid var(--line);font-size:10px;letter-spacing:.1em;color:#666;text-transform:uppercase;background:var(--paper);display:flex;align-items:center;justify-content:space-between}
+  /* chat */
+  .chat{flex:1;overflow:auto;padding:12px;display:flex;flex-direction:column;gap:10px}
+  .msg{padding:8px 10px;border:1px dashed var(--line);background:#fff;border-radius:6px;line-height:1.4}
+  .msg.cd{border-style:solid;border-color:var(--line-strong);background:var(--paper)}
+  .msg .who{font-size:9px;letter-spacing:.1em;color:#888;text-transform:uppercase;margin-bottom:4px}
+  .composer{border-top:1px solid var(--line);padding:10px 12px;background:var(--paper);display:flex;flex-direction:column;gap:6px}
+  .composer .input{border:1px solid var(--line);background:#fff;height:54px;border-radius:6px;padding:8px;color:#aaa;font-size:11px}
+  .composer .row{display:flex;gap:6px;justify-content:space-between;align-items:center}
+  .btn{padding:5px 9px;border:1px solid var(--line);border-radius:5px;background:#fff;font-size:10px;color:#444;letter-spacing:.04em;cursor:pointer}
+  .btn.primary{background:var(--ink);color:#fff;border-color:var(--ink)}
+  /* canvas */
+  .canvas{flex:1;background:repeating-linear-gradient(45deg,#ececea 0 8px,#f3f3f1 8px 16px);display:flex;align-items:center;justify-content:center;position:relative;min-height:0;overflow:hidden}
+  .preview{width:62%;aspect-ratio:1/1;background:#fff;border:1px solid var(--line-strong);box-shadow:0 12px 40px rgba(0,0,0,.08);position:relative;display:flex;align-items:center;justify-content:center}
+  .preview .crosshair{position:absolute;inset:0;background:
+    linear-gradient(transparent calc(50% - 1px),rgba(0,0,0,.1) 50%,transparent calc(50% + 1px)),
+    linear-gradient(90deg,transparent calc(50% - 1px),rgba(0,0,0,.1) 50%,transparent calc(50% + 1px))}
+  .preview .placeholder{position:relative;text-align:center;color:#888;font-size:10px;letter-spacing:.1em}
+  .preview .placeholder strong{display:block;font-size:14px;color:#444;letter-spacing:.18em;margin-bottom:6px}
+  .canvas .ratio-tag{position:absolute;top:12px;left:12px;background:#fff;border:1px solid var(--line);padding:3px 8px;font-size:10px;letter-spacing:.08em;color:#666}
+  .canvas .gen-bar{position:absolute;bottom:12px;left:50%;transform:translateX(-50%);background:#fff;border:1px solid var(--line-strong);border-radius:8px;padding:6px;display:flex;gap:6px;align-items:center;box-shadow:0 6px 20px rgba(0,0,0,.06)}
+  .canvas .gen-bar .src{padding:5px 9px;border:1px dashed var(--line);font-size:10px;color:#666;background:var(--tint)}
+  /* right rail */
+  .accordion{flex:1;overflow:auto}
+  .acc{border-bottom:1px solid var(--line)}
+  .acch{padding:8px 12px;font-size:10px;letter-spacing:.1em;color:#444;text-transform:uppercase;display:flex;justify-content:space-between;align-items:center;background:var(--paper);cursor:pointer}
+  .acch .chev{color:#aaa;font-size:9px}
+  .accb{padding:10px 12px;font-size:11px;line-height:1.5;color:#333}
+  /* brand spec */
+  .swatches{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin:6px 0 10px}
+  .sw{aspect-ratio:1/1;border:1px solid var(--line);position:relative}
+  .sw span{position:absolute;left:0;right:0;bottom:-14px;text-align:center;font-size:8px;color:#888;letter-spacing:.05em}
+  .kv{display:grid;grid-template-columns:80px 1fr;row-gap:5px;column-gap:8px;font-size:10px;color:#444}
+  .kv b{color:#888;font-weight:500;letter-spacing:.06em;text-transform:uppercase;font-size:9px}
+  /* assets */
+  .asset-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:6px}
+  .ast{aspect-ratio:1/1;border:1px solid var(--line);background:repeating-linear-gradient(135deg,#eee 0 6px,#f6f6f4 6px 12px);position:relative}
+  .ast .tag{position:absolute;top:2px;left:2px;background:#fff;border:1px solid var(--line);font-size:8px;padding:1px 4px;letter-spacing:.06em;color:#666}
+  /* footer */
+  .foot{display:flex;align-items:center;gap:14px;padding:0 12px;border-top:1px solid var(--line);font-size:10px;color:#777;background:var(--paper);letter-spacing:.06em}
+  .foot .dot{width:6px;height:6px;background:var(--hot);border-radius:50%}
+  .foot .spacer{flex:1}
+  /* annotations */
+  .anno{position:absolute;font-family:'Caveat','Comic Sans MS',cursive;font-size:14px;color:var(--note);transform:rotate(-2deg);pointer-events:none}
+  .arr{position:absolute;border-top:1px solid var(--note);transform-origin:left center}
+  .arr::after{content:'';position:absolute;right:-1px;top:-3px;border:3px solid transparent;border-left-color:var(--note)}
+  /* legend */
+  .legend{position:fixed;right:14px;bottom:30px;background:#fff;border:1px solid var(--line-strong);padding:8px 10px;font-size:10px;line-height:1.5;color:#444;max-width:240px;box-shadow:0 6px 16px rgba(0,0,0,.06)}
+  .legend h4{margin:0 0 4px;font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:#888}
+</style>
+</head>
+<body>
+<div class="frame">
+
+  <!-- TOP TAB BAR -->
+  <div class="tabs">
+    <div class="t">VIBES</div>
+    <div class="t">FINAL</div>
+    <div class="t">IMAGES</div>
+    <div class="t active">BRAND</div>
+    <div class="t">DECKS</div>
+    <div class="spacer"></div>
+    <div class="meta">FalCaMel Café · session 2026-01-27-31</div>
+  </div>
+
+  <!-- DELIVERABLE STRIP -->
+  <div class="strip">
+    <div class="label">DELIVERABLE</div>
+    <div class="pill on">Logo</div>
+    <div class="pill">Brand Guide</div>
+    <div class="pill">Business Card</div>
+    <div class="pill">Pitch Slide</div>
+    <div class="pill">Website Hero</div>
+    <div class="pill">Social Post</div>
+    <div class="pill">Social Story</div>
+    <div class="pill" style="border-style:dashed;color:#999">+ Scene</div>
+  </div>
+
+  <!-- THREE-COL MAIN -->
+  <div class="main">
+
+    <!-- LEFT: CHAT -->
+    <div class="col">
+      <div class="colhead">ASK CD <span style="color:#aaa">// chat</span></div>
+      <div class="chat">
+        <div class="msg cd">
+          <div class="who">CD</div>
+          Logo prompt seeded from your brand spec. Magenta key is on — output will land as transparent PNG.
+        </div>
+        <div class="msg">
+          <div class="who">YOU</div>
+          can we make sultan more central in the mark?
+        </div>
+        <div class="msg cd">
+          <div class="who">CD</div>
+          Updated. Falcon silhouette dominant, cliff line tucked underneath, "FalCaMel" wordmark right-aligned. Want me to push?
+        </div>
+      </div>
+      <div class="composer">
+        <div class="input">Type to refine the deliverable…</div>
+        <div class="row">
+          <div style="font-size:9px;color:#999">⌘↩ to send · ⌘. for prompt edit</div>
+          <div class="btn primary">SEND</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CENTER: CANVAS -->
+    <div class="col">
+      <div class="colhead">CANVAS <span style="color:#aaa">// LOGO · 1:1 · v3</span></div>
+      <div class="canvas">
+        <div class="ratio-tag">1:1 · 1024×1024</div>
+        <div class="preview">
+          <div class="crosshair"></div>
+          <div class="placeholder"><strong>LOGO PREVIEW</strong>generated artifact lives here</div>
+        </div>
+        <div class="gen-bar">
+          <div class="src">brand-spec.json</div>
+          <div class="src">+ ref: hero.jpg</div>
+          <div class="btn primary">GENERATE</div>
+          <div class="btn">EDIT PROMPT</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- RIGHT: BRAND SPEC + ASSETS -->
+    <div class="col">
+      <div class="colhead">BRAND SPEC + ASSETS</div>
+      <div class="accordion">
+
+        <div class="acc">
+          <div class="acch"><span>BRAND SPEC</span><span class="chev">▾ edit</span></div>
+          <div class="accb">
+            <div style="font-size:10px;color:#888;letter-spacing:.06em;margin-bottom:4px">PALETTE · 4 ROLES</div>
+            <div class="swatches">
+              <div class="sw" style="background:#1A1A1A"><span>INK</span></div>
+              <div class="sw" style="background:#00C853"><span>SECONDARY</span></div>
+              <div class="sw" style="background:#FFD700"><span>ACCENT</span></div>
+              <div class="sw" style="background:#F5F5F5"><span>SURFACE</span></div>
+            </div>
+            <div class="kv">
+              <b>Heading</b><span>Anton</span>
+              <b>Body</b><span>Barlow</span>
+              <b>Voice</b><span>Heritage hospitality, dry, deadpan</span>
+              <b>One-liner</b><span>Grandmother's living room overlooking the future.</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="acc">
+          <div class="acch"><span>SOURCE ASSETS</span><span class="chev">12 files</span></div>
+          <div class="accb">
+            <div style="font-size:10px;color:#888;margin-bottom:4px">Drag to canvas to use as reference</div>
+            <div class="asset-grid">
+              <div class="ast"><div class="tag">HERO</div></div>
+              <div class="ast"><div class="tag">SULTAN</div></div>
+              <div class="ast"><div class="tag">HABOOB</div></div>
+              <div class="ast"><div class="tag">CLIFF</div></div>
+              <div class="ast"><div class="tag">FOOD</div></div>
+              <div class="ast"><div class="tag">+7</div></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="acc">
+          <div class="acch"><span>GENERATED · LOGO</span><span class="chev">v1 · v2 · v3</span></div>
+          <div class="accb">
+            <div class="asset-grid">
+              <div class="ast" style="background:#fff;border-color:var(--line-strong)"><div class="tag">v3 ●</div></div>
+              <div class="ast" style="background:#fff"><div class="tag">v2</div></div>
+              <div class="ast" style="background:#fff"><div class="tag">v1</div></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="acc">
+          <div class="acch"><span>EXPORT</span><span class="chev">↧</span></div>
+          <div class="accb">
+            <div style="display:flex;flex-wrap:wrap;gap:6px">
+              <div class="btn">PNG (transparent)</div>
+              <div class="btn">SVG (chroma-key)</div>
+              <div class="btn">PDF brandbook</div>
+              <div class="btn">PPTX scene</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- FOOTER -->
+  <div class="foot">
+    <div class="dot"></div>
+    <div>BRAND v3 · 7 deliverables · 12 source assets · CD online</div>
+    <div class="spacer"></div>
+    <div>magenta-key: ON</div>
+    <div>auto-save: ON</div>
+  </div>
+</div>
+
+<!-- annotations layer -->
+<div class="anno" style="top:60px;left:300px;transform:rotate(-3deg)">deliverable selector — same row as Image Mode pills</div>
+<div class="anno" style="top:160px;left:14px;width:260px">Ask CD lives left, parallel to Image Mode chat — same composer pattern</div>
+<div class="anno" style="bottom:80px;left:50%;transform:translateX(-50%) rotate(-1deg)">single Generate button, deliverable-aware</div>
+<div class="anno" style="top:160px;right:20px;width:260px;text-align:right">brand spec + assets stack on the right rail (collapsible)</div>
+
+<div class="legend">
+  <h4>WIREFRAME A — STUDIO</h4>
+  Three-column workspace. Mirror of Image Mode.<br>
+  Strength: zero learning curve, parallels existing UX.<br>
+  Risk: canvas competes with chat for width on small screens.
+</div>
+</body>
+</html>

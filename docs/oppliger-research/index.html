@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Oppliger Research — Index</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+</head>
+<body>
+  <header class="page-header">
+    <a href="index.html" class="brand">Oppliger · Pitch-Recherche</a>
+    <nav class="page-nav">
+      <span class="chapter">Cover</span>
+    </nav>
+  </header>
+
+  <main class="content">
+    <div class="kicker">Recherche-Deliverable für Oskar · 20. Mai 2026</div>
+    <h1>Pitch-Recherche: Praxis Oppliger, Zürich Kreis 5</h1>
+    <p class="dek">Benchmark, Brief und Deployment-Architektur für Oskars ersten Hausarzt-Kunden &mdash; eine Vier-Personen-Praxis an der Hardturmstrasse mit Generationenwechsel im Gang und Multikulti-Patientenstamm.</p>
+
+    <div class="callout accent">
+      <h4>Zusammenfassung</h4>
+      <p>Der Pitch ruht auf <strong>drei Werten in dieser Reihenfolge</strong>. <em>Täglich:</em> Oskar administriert den FileMaker-Server und die Time-Machine-Backups aus der Distanz &mdash; nicht via Shell, sondern via einer typisierten MCP-Werkzeugliste (<code>fmaker.restart()</code>, <code>tm.start()</code>, <code>system.update_deploy()</code> usw.). Claude kann aufrufen, was auf der Karte steht; alles andere ist strukturell ausgeschlossen. Keine Kellergänge mehr. <em>Pro Patient:</em> Oskar übernimmt die 60% der Arzttätigkeit, die nicht direkter Patientenkontakt sind &mdash; Vor-Konsultations-Vorbereitung mit zitierten Leitlinien, Nach-Konsultations-Diktat, mehrsprachige Patientenhandouts, FileMaker-Aufrufe. Patientendaten verlassen den Mac mini nicht; die Cloud-Anbindung sieht nur Workflows ohne PHI. <em>Strategisch:</em> die Website ist das sichtbare Nebenprodukt der Arbeit in Schritten 1 und 2 &mdash; mit ihr wird Gabrielas TCM-Umsatzlinie aktiviert und die Praxisidentität für die nächsten zwei Jahrzehnte verankert. Auf den Einwand <em>"Ich habe genug Patienten"</em> reagieren wir mit Konzession + Umrahmung: Gabrielas Auslastung + Nachfolgeversicherung + Website-quasi-gratis-im-Paket.</p>
+    </div>
+
+    <div class="stat-grid">
+      <div class="stat">
+        <div class="num">4</div>
+        <div class="label">Ärzt:innen in der Praxis</div>
+      </div>
+      <div class="stat">
+        <div class="num">10</div>
+        <div class="label">Zielsprachen am Frontend</div>
+      </div>
+      <div class="stat">
+        <div class="num">42<span class="unit">J</span></div>
+        <div class="label">Seit Roberts Staatsexamen</div>
+      </div>
+      <div class="stat">
+        <div class="num">1</div>
+        <div class="label">Generationenwechsel im Gang</div>
+      </div>
+    </div>
+
+    <h2 class="no-rule">Inhalt</h2>
+
+    <nav class="toc">
+      <a class="toc-entry" href="01-benchmark-overall.html">
+        <span class="num">01</span>
+        <span>
+          <span class="title">Benchmark &mdash; Gesamtqualität</span>
+          <span class="sub">Die zehn besten Schweizer Hausarzt-Websites nach Buchung, Inhalt, Marke und Vertrauen.</span>
+        </span>
+        <span class="pages">Kapitel 01</span>
+      </a>
+      <a class="toc-entry" href="02-benchmark-design.html">
+        <span class="num">02</span>
+        <span>
+          <span class="title">Benchmark &mdash; Designhandwerk</span>
+          <span class="sub">Die zehn besten rein nach Webdesign &mdash; und was sie von den 90% Templates abhebt.</span>
+        </span>
+        <span class="pages">Kapitel 02</span>
+      </a>
+      <a class="toc-entry" href="03-client-brief.html">
+        <span class="num">03</span>
+        <span>
+          <span class="title">Kunden-Brief &mdash; Praxis Oppliger</span>
+          <span class="sub">Vier Ärzt:innen, Generationenwechsel im Gang, Multikulti-Patientenstamm in Kreis 5. Was online da ist, was fehlt.</span>
+        </span>
+        <span class="pages">Kapitel 03</span>
+      </a>
+      <a class="toc-entry" href="04-creative-directions.html">
+        <span class="num">04</span>
+        <span>
+          <span class="title">Drei kreative Richtungen</span>
+          <span class="sub">A · Familienpraxis &amp; Generationenwechsel. B · Schulmedizin + TCM unter einem Dach <em>(empfohlen)</em>. C · Multikulti / 10 Sprachen.</span>
+        </span>
+        <span class="pages">Kapitel 04</span>
+      </a>
+      <a class="toc-entry" href="05-architecture.html">
+        <span class="num">05</span>
+        <span>
+          <span class="title">Server-Admin &mdash; Architektur und reale Grenzen</span>
+          <span class="sub">Oskar auf dem Keller-Mac, Browser-Clients auf den vier Praxis-Laptops. Umfassende typisierte Werkzeugliste (<code>fmaker.*</code>, <code>tm.*</code>, <code>system.*</code>, ~150 Tools). Acht echte Grenzen &mdash; ohne Sicherheits-Theater.</span>
+        </span>
+        <span class="pages">Kapitel 05</span>
+      </a>
+      <a class="toc-entry" href="06-arzt-assistent.html">
+        <span class="num">06</span>
+        <span>
+          <span class="title">Arzt-Assistent &mdash; Schweizer Hausarzt-Datenfluss</span>
+          <span class="sub">Posteingang-Triage, Laborpipeline, Kostengutsprachen, Vorrechnung &rarr; Cloud-Abrechnung, ausgehende Überweisungen + e-Rezept, Patientenkommunikation, FMH-Credits. Was Oskar an jedem Schritt macht, was nicht, wovon es abhängt.</span>
+        </span>
+        <span class="pages">Kapitel 06</span>
+      </a>
+      <a class="toc-entry" href="07-pitch-arc.html">
+        <span class="num">07</span>
+        <span>
+          <span class="title">Pitch-Dramaturgie</span>
+          <span class="sub">Die Drei-Schritt-Sequenz: Keller-Problem, Workflow-Hebel, Website als Zugabe.</span>
+        </span>
+        <span class="pages">Kapitel 07</span>
+      </a>
+    </nav>
+  </main>
+
+  <footer class="page-footer">
+    <nav>
+      <span></span>
+      <a href="01-benchmark-overall.html" class="next">Beginnen — Kapitel 01: Benchmark →</a>
+    </nav>
+    <p class="meta">Compiled by a 4-agent research swarm · Oskar internal · 2026-05-20</p>
+  </footer>
+</body>
+</html>

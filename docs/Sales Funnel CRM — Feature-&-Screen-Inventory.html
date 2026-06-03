@@ -1,0 +1,1511 @@
+<!DOCTYPE html>
+<!-- saved from url=(0089)file:///Users/ralphlengler/OskarOS/fonts/docs/sales-crm-feature-and-screen-inventory.html -->
+<html lang="en"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+
+<title>Sales Funnel CRM — Feature &amp; Screen Inventory</title>
+<style>
+  :root {
+    --bg: #0f1115;
+    --panel: #161922;
+    --panel-2: #1c2030;
+    --ink: #e8eaef;
+    --ink-dim: #a4abbb;
+    --ink-soft: #6b7180;
+    --rule: #2a2f40;
+    --rule-soft: #232838;
+    --accent: #6ea8ff;
+    --accent-2: #ffb86b;
+    --good: #6ee7a1;
+    --warn: #ff7a7a;
+    --hot: #ff6b9d;
+    --mono: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, Consolas, monospace;
+    --sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: var(--sans); background: var(--bg); color: var(--ink); line-height: 1.55; font-size: 15px; }
+  .wrap { max-width: 1220px; margin: 0 auto; padding: 56px 40px 120px; }
+  header.doc { border-bottom: 1px solid var(--rule); padding-bottom: 32px; margin-bottom: 48px; }
+  .eyebrow { color: var(--accent); font-family: var(--mono); font-size: 12px; text-transform: uppercase; letter-spacing: 0.12em; margin-bottom: 12px; }
+  h1 { font-size: 42px; line-height: 1.1; margin: 0 0 14px; letter-spacing: -0.01em; font-weight: 700; }
+  .deck { color: var(--ink-dim); font-size: 17px; max-width: 820px; }
+  h2 { font-size: 26px; margin: 64px 0 16px; letter-spacing: -0.005em; border-top: 1px solid var(--rule); padding-top: 32px; }
+  h3 { font-size: 19px; margin: 36px 0 10px; }
+  h4 { font-size: 13px; margin: 24px 0 8px; color: var(--accent); font-family: var(--mono); text-transform: uppercase; letter-spacing: 0.08em; font-weight: 600; }
+  p { margin: 0 0 14px; }
+  p.lead { color: var(--ink-dim); }
+  .panel { background: var(--panel); border: 1px solid var(--rule); border-radius: 10px; padding: 20px 22px; margin: 18px 0; }
+  .panel.subtle { background: var(--panel-2); }
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+  @media (max-width: 880px) { .grid-2, .grid-3 { grid-template-columns: 1fr; } h1 { font-size: 32px; } }
+  .pill { display: inline-block; font-family: var(--mono); font-size: 11px; letter-spacing: 0.04em; padding: 3px 9px; border-radius: 999px; background: rgba(110,168,255,0.12); color: var(--accent); border: 1px solid rgba(110,168,255,0.3); margin-right: 6px; margin-bottom: 4px; }
+  table { width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 14px; }
+  th, td { text-align: left; padding: 12px 14px; border-bottom: 1px solid var(--rule); vertical-align: top; }
+  th { color: var(--ink-dim); font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: 0.06em; background: var(--panel-2); }
+  tr:hover td { background: rgba(110,168,255,0.04); }
+  code { font-family: var(--mono); font-size: 13px; background: var(--panel-2); padding: 1px 6px; border-radius: 4px; color: var(--accent-2); }
+  .toc { background: var(--panel); border: 1px solid var(--rule); border-radius: 10px; padding: 22px 24px; margin: 24px 0 0; }
+  .toc ol { margin: 8px 0 0; padding-left: 20px; }
+  .toc li { margin: 5px 0; color: var(--ink-dim); }
+  .toc a { color: var(--ink); text-decoration: none; border-bottom: 1px dotted var(--rule); }
+  .toc a:hover { color: var(--accent); border-color: var(--accent); }
+  .example { border-left: 3px solid var(--accent-2); padding: 12px 16px; background: rgba(255,184,107,0.05); margin: 14px 0; border-radius: 0 8px 8px 0; }
+  .example .who { font-family: var(--mono); font-size: 12px; color: var(--accent-2); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 4px; }
+  .feature-card { background: var(--panel); border: 1px solid var(--rule); border-radius: 10px; padding: 18px 20px; }
+  .feature-card .num { font-family: var(--mono); color: var(--accent); font-size: 12px; letter-spacing: 0.1em; }
+  .feature-card .title { font-weight: 600; margin: 4px 0 8px; font-size: 16px; }
+  .feature-card .desc { color: var(--ink-dim); font-size: 13.5px; }
+  ul { margin: 6px 0 14px; padding-left: 20px; }
+  li { margin: 4px 0; }
+  hr { border: none; border-top: 1px solid var(--rule); margin: 40px 0; }
+  .footer { margin-top: 80px; color: var(--ink-dim); font-size: 13px; text-align: center; padding-top: 24px; border-top: 1px solid var(--rule); }
+  .summary-bar { display: flex; gap: 16px; flex-wrap: wrap; margin: 20px 0 8px; }
+  .stat { background: var(--panel); border: 1px solid var(--rule); border-radius: 10px; padding: 16px 20px; flex: 1; min-width: 180px; }
+  .stat .n { font-size: 28px; font-weight: 700; color: var(--accent); font-family: var(--mono); }
+  .stat .l { color: var(--ink-dim); font-size: 13px; margin-top: 2px; }
+
+  /* SVG mockup wrapper */
+  .mockup { background: var(--panel-2); border: 1px solid var(--rule); border-radius: 12px; padding: 16px; margin: 18px 0; overflow: hidden; }
+  .mockup svg { width: 100%; height: auto; display: block; border-radius: 8px; }
+  .mockup .caption { color: var(--ink-soft); font-size: 12px; font-family: var(--mono); margin-top: 10px; letter-spacing: 0.04em; }
+  .anno { font-family: var(--mono); font-size: 11px; fill: var(--ink-dim); }
+  .note-anchor { fill: var(--accent-2); }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="doc">
+  <div class="eyebrow">Designer's Reference · v2.0 · with screen mockups</div>
+  <h1>Sales Funnel CRM — Feature &amp; Screen Inventory</h1>
+  <p class="deck">A working blueprint for designing a state-of-the-art sales-funnel CRM. Catalogs the features modern best-in-class CRMs ship, maps each to the screens required to deliver it, illustrates the seven most critical screens with SVG mockups, and anchors every claim with concrete examples from Salesforce, HubSpot, Pipedrive, Attio, Folk, Close, Apollo, Gong, Outreach, Clay, and others.</p>
+  <div class="summary-bar">
+    <div class="stat"><div class="n">11</div><div class="l">Functional feature areas</div></div>
+    <div class="stat"><div class="n">~140</div><div class="l">Individual features</div></div>
+    <div class="stat"><div class="n">52</div><div class="l">Distinct screens / surfaces</div></div>
+    <div class="stat"><div class="n">7</div><div class="l">Mocked in detail (SVG)</div></div>
+    <div class="stat"><div class="n">18</div><div class="l">Reference products</div></div>
+  </div>
+</header>
+
+<nav class="toc">
+  <strong>Contents</strong>
+  <ol>
+    <li><a href="file:///Users/ralphlengler/OskarOS/fonts/docs/sales-crm-feature-and-screen-inventory.html#thesis">The thesis — what "state-of-the-art" means in 2026</a></li>
+    <li><a href="file:///Users/ralphlengler/OskarOS/fonts/docs/sales-crm-feature-and-screen-inventory.html#references">The reference set (which CRMs we're stealing from)</a></li>
+    <li><a href="file:///Users/ralphlengler/OskarOS/fonts/docs/sales-crm-feature-and-screen-inventory.html#features">Part 1 — Feature inventory (11 areas, ~140 features)</a></li>
+    <li><a href="file:///Users/ralphlengler/OskarOS/fonts/docs/sales-crm-feature-and-screen-inventory.html#screens">Part 2 — Screen inventory (52 surfaces, table)</a></li>
+    <li><a href="file:///Users/ralphlengler/OskarOS/fonts/docs/sales-crm-feature-and-screen-inventory.html#mockups">Part 3 — Seven screens, deconstructed with SVG mockups</a></li>
+    <li><a href="file:///Users/ralphlengler/OskarOS/fonts/docs/sales-crm-feature-and-screen-inventory.html#stack">Part 4 — How they layer (the IA / nav model)</a></li>
+    <li><a href="file:///Users/ralphlengler/OskarOS/fonts/docs/sales-crm-feature-and-screen-inventory.html#anti">Anti-patterns to avoid</a></li>
+  </ol>
+</nav>
+
+<!-- ============ THESIS ============ -->
+<section id="thesis">
+<h2>1. The thesis — what "state-of-the-art" means now</h2>
+<p class="lead">A modern sales-funnel CRM is no longer a database with a kanban board on top. It is a <em>system of work</em>: it ingests signals from outside the company (intent data, website behavior, calls, emails, LinkedIn), routes them through programmable automation, surfaces the right next action to a rep at the right moment, and proves what worked.</p>
+
+<div class="grid-2">
+  <div class="panel">
+    <h4>The five non-negotiable shifts</h4>
+    <ul>
+      <li><strong>Pipeline as a verb, not a noun</strong> — the system tells the rep what to do, doesn't just store deals.</li>
+      <li><strong>AI is plumbing, not a button</strong> — call summaries, drafted emails, deal scoring baked into every screen.</li>
+      <li><strong>Data is enriched on arrival</strong> — every contact and company auto-hydrated from Clearbit/Apollo/built-in.</li>
+      <li><strong>The funnel is multiplayer</strong> — AE, SDR, marketing, CS, ops all live in the same record.</li>
+      <li><strong>Customization is no-code</strong> — admins build views, automations, custom objects without engineering.</li>
+    </ul>
+  </div>
+  <div class="panel">
+    <h4>What this means for design</h4>
+    <ul>
+      <li>Every record screen has an <strong>activity timeline</strong> as the spine, not a sidebar.</li>
+      <li>The kanban pipeline is <strong>one view among many</strong>, not the home base.</li>
+      <li>A persistent <strong>AI command bar</strong> lives across every surface.</li>
+      <li>The "<strong>my day</strong>" / task queue replaces the dashboard as the rep's home.</li>
+      <li>Reporting moves from a separate app to <strong>inline insights</strong> on every list and record.</li>
+    </ul>
+  </div>
+</div>
+</section>
+
+<!-- ============ REFERENCES ============ -->
+<section id="references">
+<h2>2. The reference set</h2>
+<p class="lead">Best-of-breed examples cited throughout. No single product owns the whole stack — we pull from each.</p>
+<table>
+  <thead><tr><th>Product</th><th>What they pioneered or do best</th><th>Use as a reference for…</th></tr></thead>
+  <tbody>
+    <tr><td><strong>Salesforce Sales Cloud</strong></td><td>The platform model — objects, fields, automation, reports. Einstein AI.</td><td>Enterprise data model, permissions, customization depth.</td></tr>
+    <tr><td><strong>HubSpot Sales Hub</strong></td><td>Marketing + sales unified. Best funnel viz and lifecycle stages. Breeze AI.</td><td>Funnel reporting, marketing handoff, ease-of-use.</td></tr>
+    <tr><td><strong>Pipedrive</strong></td><td>The pipeline-first kanban. The most visual deal board.</td><td>Pipeline UX, deal-card design.</td></tr>
+    <tr><td><strong>Attio</strong></td><td>The Notion-of-CRM. Custom objects, real-time collab, gorgeous UI.</td><td>Modern visual design, flexible data model, list views.</td></tr>
+    <tr><td><strong>Folk</strong></td><td>Relationship-first CRM. Lightweight, Gmail/LinkedIn-native.</td><td>Contact-centric UX for relationship sales.</td></tr>
+    <tr><td><strong>Close</strong></td><td>Inside-sales calling/SMS built in. SDR / outbound execution screen.</td><td>Calling, SMS, sequence execution UI.</td></tr>
+    <tr><td><strong>Apollo.io</strong></td><td>Database + outreach + intent in one. 270M+ contact database.</td><td>Lead sourcing, enrichment, prospecting UI.</td></tr>
+    <tr><td><strong>Outreach / Salesloft</strong></td><td>Sales-engagement (cadences). The "rep cockpit" / Day-View.</td><td>Sequence builder, execution queue, deliverability.</td></tr>
+    <tr><td><strong>Gong</strong></td><td>Conversation intelligence. Call recording, deal warnings, coaching.</td><td>Call-record screen, deal-health surfacing, AI insights.</td></tr>
+    <tr><td><strong>Clay</strong></td><td>Spreadsheet-style enrichment + AI research at scale.</td><td>List-building, waterfall enrichment UI.</td></tr>
+    <tr><td><strong>Clari</strong></td><td>Revenue / forecast operations platform.</td><td>Forecast board, pipeline waterfall UI.</td></tr>
+    <tr><td><strong>Common Room / Default / Pocus</strong></td><td>PLG/intent signal-first CRMs. New-gen.</td><td>Signal feeds, account scoring UI.</td></tr>
+    <tr><td><strong>Dock / DealHub</strong></td><td>Buyer-facing deal rooms / mutual action plans.</td><td>Deal room UX, CPQ.</td></tr>
+    <tr><td><strong>Front</strong></td><td>Shared inbox / team conversations.</td><td>Universal inbox UI.</td></tr>
+  </tbody>
+</table>
+</section>
+
+<!-- ============ FEATURE INVENTORY ============ -->
+<section id="features">
+<h2>3. Part 1 — Feature inventory</h2>
+<p class="lead">Eleven functional areas. Inside each, the specific features a designer needs to know exist before sketching screens.</p>
+
+<h3>3.1 Data model &amp; records</h3>
+<div class="grid-3">
+  <div class="feature-card"><div class="num">1.1</div><div class="title">Standard objects</div><div class="desc">Leads, Contacts, Accounts (Companies), Deals, Activities, Tasks, Notes, Files. Attio and Folk skip "leads" entirely.</div></div>
+  <div class="feature-card"><div class="num">1.2</div><div class="title">Custom objects</div><div class="desc">User-defined record types (Properties, Loans, Projects). Salesforce, HubSpot Enterprise, Attio.</div></div>
+  <div class="feature-card"><div class="num">1.3</div><div class="title">Custom fields</div><div class="desc">Text, number, picklist, multi-select, formula, lookup, currency, date, checkbox, URL, rich text, with validation.</div></div>
+  <div class="feature-card"><div class="num">1.4</div><div class="title">Relationships &amp; lookups</div><div class="desc">Many-to-many junctions (Contacts↔Deals). Hierarchical account trees.</div></div>
+  <div class="feature-card"><div class="num">1.5</div><div class="title">Lifecycle stages</div><div class="desc">Subscriber → Lead → MQL → SQL → Opportunity → Customer → Evangelist (HubSpot's canonical version).</div></div>
+  <div class="feature-card"><div class="num">1.6</div><div class="title">Field history &amp; audit</div><div class="desc">Every field change tracked, who/when/old/new. Required for compliance.</div></div>
+  <div class="feature-card"><div class="num">1.7</div><div class="title">Merge &amp; dedupe</div><div class="desc">Fuzzy-match suggestions, field-level merge UI.</div></div>
+  <div class="feature-card"><div class="num">1.8</div><div class="title">Enrichment</div><div class="desc">Auto-populate company size, industry, tech stack, funding from Clearbit/Apollo on creation.</div></div>
+  <div class="feature-card"><div class="num">1.9</div><div class="title">Data hygiene scoring</div><div class="desc">% complete records, stale-field flags, missing-required-field counts.</div></div>
+</div>
+
+<h3>3.2 Pipeline &amp; deal management</h3>
+<div class="grid-3">
+  <div class="feature-card"><div class="num">2.1</div><div class="title">Multiple pipelines</div><div class="desc">Per product line, region, or sales motion (Inbound, Outbound, Expansion). Independent stages each.</div></div>
+  <div class="feature-card"><div class="num">2.2</div><div class="title">Configurable stages</div><div class="desc">Names, order, probabilities, required fields per stage, entry/exit criteria.</div></div>
+  <div class="feature-card"><div class="num">2.3</div><div class="title">Kanban board view</div><div class="desc">Drag-and-drop deal cards across stages. Pipedrive's signature UI.</div></div>
+  <div class="feature-card"><div class="num">2.4</div><div class="title">Deal cards</div><div class="desc">Compact: amount, close date, owner, days-in-stage, health, next activity.</div></div>
+  <div class="feature-card"><div class="num">2.5</div><div class="title">Forecast categories</div><div class="desc">Commit / Best Case / Pipeline / Omitted overlay.</div></div>
+  <div class="feature-card"><div class="num">2.6</div><div class="title">Deal scoring / health</div><div class="desc">AI-driven traffic-light based on engagement, idle time, missing data. Gong, Einstein.</div></div>
+  <div class="feature-card"><div class="num">2.7</div><div class="title">Rotting / idle flags</div><div class="desc">Deal idle &gt; N days → automatic flag and reminder.</div></div>
+  <div class="feature-card"><div class="num">2.8</div><div class="title">Weighted pipeline</div><div class="desc">Stage probability × amount = weighted forecast.</div></div>
+  <div class="feature-card"><div class="num">2.9</div><div class="title">Won/lost reasons</div><div class="desc">Structured picklists on close, with required notes for loss analysis.</div></div>
+  <div class="feature-card"><div class="num">2.10</div><div class="title">Products / line items</div><div class="desc">Multi-product deals with quantity, unit price, discount, total. Feeds CPQ.</div></div>
+</div>
+
+<h3>3.3 Prospecting &amp; lead generation</h3>
+<div class="grid-3">
+  <div class="feature-card"><div class="num">3.1</div><div class="title">Built-in B2B database</div><div class="desc">270M+ contact records filterable by title, industry, headcount, tech stack, funding. Apollo's flagship.</div></div>
+  <div class="feature-card"><div class="num">3.2</div><div class="title">List building</div><div class="desc">Save-as-list, refresh-on-schedule, share, bulk add-to-sequence.</div></div>
+  <div class="feature-card"><div class="num">3.3</div><div class="title">Intent &amp; signal feeds</div><div class="desc">Job-change, funding, technographic, web-intent, PLG-product triggers.</div></div>
+  <div class="feature-card"><div class="num">3.4</div><div class="title">LinkedIn / Chrome ext</div><div class="desc">One-click capture from LinkedIn or Sales Navigator. Add-to-sequence inline.</div></div>
+  <div class="feature-card"><div class="num">3.5</div><div class="title">Web forms &amp; landing pages</div><div class="desc">Native form builder → auto-lead → routing rules. HubSpot's home turf.</div></div>
+  <div class="feature-card"><div class="num">3.6</div><div class="title">Lead scoring</div><div class="desc">Rules-based or predictive ML. Einstein, HubSpot Predictive.</div></div>
+  <div class="feature-card"><div class="num">3.7</div><div class="title">Lead routing</div><div class="desc">Round-robin, territory, account-based, weighted-by-quota.</div></div>
+  <div class="feature-card"><div class="num">3.8</div><div class="title">Verified email / phone</div><div class="desc">Live email verification, mobile number resolution. Apollo, ZoomInfo, Clay.</div></div>
+</div>
+
+<h3>3.4 Sales engagement (the cockpit)</h3>
+<div class="grid-3">
+  <div class="feature-card"><div class="num">4.1</div><div class="title">Sequences / cadences</div><div class="desc">Multi-step, multi-channel: Email → Wait → LinkedIn → Wait → Call.</div></div>
+  <div class="feature-card"><div class="num">4.2</div><div class="title">Sequence builder UI</div><div class="desc">Visual canvas with branching (replied → exit, opened → call). Outreach's classic.</div></div>
+  <div class="feature-card"><div class="num">4.3</div><div class="title">Day View / task queue</div><div class="desc">Rep's home screen: today's calls, emails, LinkedIns in priority order. The most-used surface.</div></div>
+  <div class="feature-card"><div class="num">4.4</div><div class="title">Click-to-call / power dialer</div><div class="desc">Built-in phone, local presence, parallel dialer. Close, Outreach Voice.</div></div>
+  <div class="feature-card"><div class="num">4.5</div><div class="title">Call recording &amp; transcription</div><div class="desc">Auto-record, transcribe, speaker-separate, searchable.</div></div>
+  <div class="feature-card"><div class="num">4.6</div><div class="title">Email tracking</div><div class="desc">Open / click / reply. Routed via rep's mailbox for deliverability.</div></div>
+  <div class="feature-card"><div class="num">4.7</div><div class="title">Templates &amp; snippets</div><div class="desc">Reusable templates with merge fields and A/B variants.</div></div>
+  <div class="feature-card"><div class="num">4.8</div><div class="title">SMS / WhatsApp</div><div class="desc">Native two-way, opt-in management, threading.</div></div>
+  <div class="feature-card"><div class="num">4.9</div><div class="title">Meeting scheduler</div><div class="desc">Calendly-style booking, round-robin, qualifying questions.</div></div>
+  <div class="feature-card"><div class="num">4.10</div><div class="title">Inbox / shared mailbox</div><div class="desc">Conversations view: every reply across team, threaded. Front-style.</div></div>
+</div>
+
+<h3>3.5 Conversation intelligence</h3>
+<div class="grid-3">
+  <div class="feature-card"><div class="num">5.1</div><div class="title">Call library</div><div class="desc">Every call searchable, taggable, shareable. Filter by deal, rep, outcome.</div></div>
+  <div class="feature-card"><div class="num">5.2</div><div class="title">AI call summary</div><div class="desc">Auto-generated TL;DR, action items, mentioned competitors, pricing, objections.</div></div>
+  <div class="feature-card"><div class="num">5.3</div><div class="title">Talk-time / talk-ratio</div><div class="desc">% rep vs customer per call/rep/deal.</div></div>
+  <div class="feature-card"><div class="num">5.4</div><div class="title">Topic / tracker detection</div><div class="desc">Auto-detect mentions of "pricing", "competitor X", "next steps", "legal".</div></div>
+  <div class="feature-card"><div class="num">5.5</div><div class="title">Deal warnings</div><div class="desc">"Champion went dark", "competitor mentioned 3x" — Gong's signature.</div></div>
+  <div class="feature-card"><div class="num">5.6</div><div class="title">Coaching scorecards</div><div class="desc">Manager rubric per call. Inline comments on transcript.</div></div>
+  <div class="feature-card"><div class="num">5.7</div><div class="title">Battlecards</div><div class="desc">Competitor mention → surface battlecard live during call.</div></div>
+</div>
+
+<h3>3.6 AI &amp; intelligence layer</h3>
+<div class="grid-3">
+  <div class="feature-card"><div class="num">6.1</div><div class="title">AI command bar</div><div class="desc">Persistent CMD+K — "What's at risk this Q?" or "Draft a follow-up to David". Attio, Breeze, Einstein.</div></div>
+  <div class="feature-card"><div class="num">6.2</div><div class="title">Email drafting</div><div class="desc">Generate a contextual email (knows the deal, last touch, persona). Edit-then-send.</div></div>
+  <div class="feature-card"><div class="num">6.3</div><div class="title">Account research auto-brief</div><div class="desc">One-paragraph "what you need to know about Acme": news, hiring, posts, tech stack.</div></div>
+  <div class="feature-card"><div class="num">6.4</div><div class="title">Predictive scoring</div><div class="desc">ML lead / deal / churn risk score. Explainable.</div></div>
+  <div class="feature-card"><div class="num">6.5</div><div class="title">Next-best-action</div><div class="desc">Per contact/deal — "Send case study", "Schedule check-in", "Loop in CS".</div></div>
+  <div class="feature-card"><div class="num">6.6</div><div class="title">Forecast assist</div><div class="desc">AI-adjusted forecast vs rep's commit. Explainable delta.</div></div>
+  <div class="feature-card"><div class="num">6.7</div><div class="title">Smart note-taking</div><div class="desc">Meeting bot transcribes, writes the CRM note, fills custom fields.</div></div>
+</div>
+
+<h3>3.7 Workflow &amp; automation</h3>
+<div class="grid-3">
+  <div class="feature-card"><div class="num">7.1</div><div class="title">Visual workflow builder</div><div class="desc">Trigger → branches → actions canvas. Salesforce Flow, HubSpot Workflows, Attio Automations.</div></div>
+  <div class="feature-card"><div class="num">7.2</div><div class="title">Triggers</div><div class="desc">Field change, stage change, time, form submit, webhook, signal, anniversary.</div></div>
+  <div class="feature-card"><div class="num">7.3</div><div class="title">Actions</div><div class="desc">Create record, update field, send email, post Slack, create task, enroll sequence, call webhook.</div></div>
+  <div class="feature-card"><div class="num">7.4</div><div class="title">Approvals</div><div class="desc">Discount &gt; 20% → manager. Approval queue UI.</div></div>
+  <div class="feature-card"><div class="num">7.5</div><div class="title">Playbooks</div><div class="desc">Pre-built workflow bundles (post-demo follow-up, lost-deal nurture).</div></div>
+  <div class="feature-card"><div class="num">7.6</div><div class="title">Notification rules</div><div class="desc">Rep pinged when account opens 3 emails or VP visits pricing.</div></div>
+</div>
+
+<h3>3.8 Reporting &amp; analytics</h3>
+<div class="grid-3">
+  <div class="feature-card"><div class="num">8.1</div><div class="title">Funnel / conversion</div><div class="desc">Stage-by-stage % and time-in-stage. Where deals leak.</div></div>
+  <div class="feature-card"><div class="num">8.2</div><div class="title">Forecast report</div><div class="desc">Commit vs Best Case vs Closed by period, rolled by team.</div></div>
+  <div class="feature-card"><div class="num">8.3</div><div class="title">Pipeline movement</div><div class="desc">Created / advanced / slipped / closed / lost waterfall.</div></div>
+  <div class="feature-card"><div class="num">8.4</div><div class="title">Activity reports</div><div class="desc">Calls/emails/meetings per rep, response rates, sequence performance.</div></div>
+  <div class="feature-card"><div class="num">8.5</div><div class="title">Cohort analysis</div><div class="desc">Deals opened in March — where are they now? Win rate by source/segment.</div></div>
+  <div class="feature-card"><div class="num">8.6</div><div class="title">Custom dashboards</div><div class="desc">Drag-and-drop widgets, shareable, scheduled email digest.</div></div>
+  <div class="feature-card"><div class="num">8.7</div><div class="title">Report builder</div><div class="desc">Pivot-style: rows, columns, filters, measures. Salesforce Lightning is canonical.</div></div>
+  <div class="feature-card"><div class="num">8.8</div><div class="title">Attribution</div><div class="desc">First / last / multi-touch revenue → marketing source.</div></div>
+</div>
+
+<h3>3.9 Collaboration &amp; communication</h3>
+<div class="grid-3">
+  <div class="feature-card"><div class="num">9.1</div><div class="title">@mentions everywhere</div><div class="desc">In notes, comments, tasks. Attio, HubSpot, Salesforce Chatter.</div></div>
+  <div class="feature-card"><div class="num">9.2</div><div class="title">Deal rooms / shared spaces</div><div class="desc">External buyer + seller space — mutual action plan, files, recap. Dock, DealHub.</div></div>
+  <div class="feature-card"><div class="num">9.3</div><div class="title">Slack / Teams integration</div><div class="desc">Deal channel auto-created, updates piped, slash commands.</div></div>
+  <div class="feature-card"><div class="num">9.4</div><div class="title">Internal handoff</div><div class="desc">SDR → AE, AE → CS — structured handoff form.</div></div>
+  <div class="feature-card"><div class="num">9.5</div><div class="title">Real-time presence</div><div class="desc">"Sarah is viewing this deal right now." Notion / Attio style.</div></div>
+</div>
+
+<h3>3.10 Admin, permissions, governance</h3>
+<div class="grid-3">
+  <div class="feature-card"><div class="num">10.1</div><div class="title">Roles &amp; hierarchies</div><div class="desc">Org chart with manager-sees-team rollup permissions.</div></div>
+  <div class="feature-card"><div class="num">10.2</div><div class="title">Permission sets</div><div class="desc">Object-level, field-level, record-level (Salesforce gold standard).</div></div>
+  <div class="feature-card"><div class="num">10.3</div><div class="title">Sharing rules</div><div class="desc">"West reps see East accounts read-only" — visual matrix.</div></div>
+  <div class="feature-card"><div class="num">10.4</div><div class="title">SSO &amp; SCIM</div><div class="desc">SAML, OIDC, auto-provisioning from Okta/Azure.</div></div>
+  <div class="feature-card"><div class="num">10.5</div><div class="title">Audit log</div><div class="desc">Every admin action, login, export. SOC 2 / ISO requirements.</div></div>
+  <div class="feature-card"><div class="num">10.6</div><div class="title">Sandbox</div><div class="desc">Test workflows without breaking production.</div></div>
+  <div class="feature-card"><div class="num">10.7</div><div class="title">Data import / export</div><div class="desc">CSV wizard, column mapping, dedupe-on-import, scheduled exports.</div></div>
+  <div class="feature-card"><div class="num">10.8</div><div class="title">GDPR / consent</div><div class="desc">Opt-in/out tracking, right-to-be-forgotten, regional data residency.</div></div>
+</div>
+
+<h3>3.11 Integrations &amp; extensibility</h3>
+<div class="grid-3">
+  <div class="feature-card"><div class="num">11.1</div><div class="title">App marketplace</div><div class="desc">AppExchange, HubSpot Marketplace. 1,000+ pre-built integrations.</div></div>
+  <div class="feature-card"><div class="num">11.2</div><div class="title">REST API + webhooks</div><div class="desc">Every object CRUDable, event subscriptions for change feeds.</div></div>
+  <div class="feature-card"><div class="num">11.3</div><div class="title">Native email/calendar sync</div><div class="desc">Gmail, Outlook, M365. Two-way, real-time.</div></div>
+  <div class="feature-card"><div class="num">11.4</div><div class="title">Data warehouse sync</div><div class="desc">Reverse ETL from Snowflake/BigQuery → CRM.</div></div>
+  <div class="feature-card"><div class="num">11.5</div><div class="title">Mobile app</div><div class="desc">iOS/Android with offline mode, voice notes, biz-card scan.</div></div>
+  <div class="feature-card"><div class="num">11.6</div><div class="title">No-code builder</div><div class="desc">Page layout editor, custom views, formula fields — all without code.</div></div>
+</div>
+
+</section>
+
+<!-- ============ SCREEN INVENTORY TABLE ============ -->
+<section id="screens">
+<h2>4. Part 2 — Screen inventory (52 surfaces)</h2>
+<p class="lead">Grouped into four tiers: (A) Daily-driver work surfaces, (B) Record &amp; detail screens, (C) Reporting &amp; admin, (D) Auxiliary / modal. Each is what the user actually sees; many features share a screen. The seven screens marked with <span class="pill" style="margin:0;">★ mocked below</span> have full SVG mockups in Part 3.</p>
+
+<h3>A. Daily-driver work surfaces (the screens reps live in)</h3>
+<table>
+  <thead><tr><th>#</th><th>Screen</th><th>Primary user</th><th>What it does</th><th>Reference</th></tr></thead>
+  <tbody>
+    <tr><td>A1 ★</td><td><strong>Day View / Task Queue</strong></td><td>SDR, AE</td><td>Today's prioritized work: calls, emails, LinkedIns, meetings. Single keyboard flow.</td><td>Outreach, Salesloft, Apollo</td></tr>
+    <tr><td>A2 ★</td><td><strong>Pipeline Kanban</strong></td><td>AE, manager</td><td>Drag-and-drop deal board. Filter by owner, segment, pipeline.</td><td>Pipedrive, HubSpot</td></tr>
+    <tr><td>A3</td><td><strong>Pipeline List View</strong></td><td>AE, ops</td><td>Same deals as spreadsheet — inline editable, bulk actions, custom columns.</td><td>Attio, Salesforce</td></tr>
+    <tr><td>A4 ★</td><td><strong>Forecast Board</strong></td><td>AE, manager</td><td>Commit / Best Case / Pipeline buckets per period. Inline rep commentary.</td><td>Clari, Salesforce</td></tr>
+    <tr><td>A5</td><td><strong>Universal Inbox</strong></td><td>SDR, AE</td><td>Every customer reply across channels. Threaded, assignable.</td><td>Front, HubSpot, Close</td></tr>
+    <tr><td>A6 ★</td><td><strong>Dialer / Call Screen</strong></td><td>SDR</td><td>Active call UI: number, context panel, live notes, talk-track, wrap-up.</td><td>Close, Outreach Voice</td></tr>
+    <tr><td>A7</td><td><strong>Sequence Execution</strong></td><td>SDR</td><td>Step-by-step queue. Variables prefilled, AI-drafted.</td><td>Outreach, Apollo</td></tr>
+    <tr><td>A8 ★</td><td><strong>Signals / Intent Feed</strong></td><td>SDR, AE</td><td>"Acme raised $50M", "VP at Globex visited pricing".</td><td>Common Room, Default, Pocus</td></tr>
+    <tr><td>A9</td><td><strong>AI Command Bar</strong></td><td>All</td><td>Persistent CMD+K — natural language queries, drafting, navigation.</td><td>Attio, Breeze, Einstein</td></tr>
+    <tr><td>A10</td><td><strong>Calendar Overlay</strong></td><td>AE</td><td>Embedded calendar with meeting prep links and AI briefings.</td><td>HubSpot, Salesloft</td></tr>
+  </tbody>
+</table>
+
+<h3>B. Record &amp; detail screens (the deep views)</h3>
+<table>
+  <thead><tr><th>#</th><th>Screen</th><th>Primary user</th><th>What it does</th><th>Reference</th></tr></thead>
+  <tbody>
+    <tr><td>B1</td><td><strong>Contact / Person Record</strong></td><td>All</td><td>360° on a person: bio, role, activity, deals, related people, social.</td><td>Attio, HubSpot, Folk</td></tr>
+    <tr><td>B2</td><td><strong>Company / Account Record</strong></td><td>AE, CS</td><td>Account 360°: hierarchy, contacts, deals, tickets, news, signals, AI brief.</td><td>Salesforce, Attio</td></tr>
+    <tr><td>B3 ★</td><td><strong>Deal / Opportunity Record</strong></td><td>AE</td><td>Single deal: amount, stage, line items, contacts, timeline, health, next steps.</td><td>HubSpot, Gong</td></tr>
+    <tr><td>B4</td><td><strong>Lead Record</strong></td><td>SDR</td><td>Pre-qualification view. Score, source, activity, "convert to deal".</td><td>Salesforce, HubSpot</td></tr>
+    <tr><td>B5</td><td><strong>Activity Timeline (cross-record)</strong></td><td>All</td><td>Unified feed: emails, calls, meetings, notes, field changes. The spine.</td><td>Attio, HubSpot</td></tr>
+    <tr><td>B6</td><td><strong>Call / Conversation Detail</strong></td><td>Manager, AE</td><td>Recording + transcript + AI summary + tracker tags + comments.</td><td>Gong, Chorus, Fathom</td></tr>
+    <tr><td>B7</td><td><strong>Email / Message Detail</strong></td><td>All</td><td>Full email thread with open/click events, AI summary, draft-reply CTA.</td><td>Outreach, Apollo</td></tr>
+    <tr><td>B8</td><td><strong>Task Detail</strong></td><td>All</td><td>Focused single task — context panel, snooze, reassign, complete.</td><td>HubSpot</td></tr>
+    <tr><td>B9</td><td><strong>Note / Document Editor</strong></td><td>All</td><td>Rich-text with @mentions, file attach, AI rewrite.</td><td>Attio</td></tr>
+    <tr><td>B10</td><td><strong>Quote / Proposal Builder (CPQ)</strong></td><td>AE</td><td>Line items, discount approvals, e-signature.</td><td>Salesforce CPQ, DealHub</td></tr>
+    <tr><td>B11</td><td><strong>Deal Room (external)</strong></td><td>AE + buyer</td><td>Shared space — mutual action plan, files, recap.</td><td>Dock, DealHub</td></tr>
+    <tr><td>B12</td><td><strong>Custom Object Record</strong></td><td>Varies</td><td>Same shell as B1-B3 but org-specific.</td><td>Salesforce, Attio</td></tr>
+  </tbody>
+</table>
+
+<h3>C. Reporting, dashboards &amp; admin</h3>
+<table>
+  <thead><tr><th>#</th><th>Screen</th><th>Primary user</th><th>What it does</th><th>Reference</th></tr></thead>
+  <tbody>
+    <tr><td>C1</td><td><strong>Sales Dashboard (rep)</strong></td><td>AE</td><td>"My quota, my pipeline, my activity."</td><td>HubSpot, Pipedrive</td></tr>
+    <tr><td>C2</td><td><strong>Manager Dashboard</strong></td><td>Manager</td><td>Team rollup. Drill-down into rep cards.</td><td>Salesforce Lightning</td></tr>
+    <tr><td>C3</td><td><strong>Funnel / Conversion Report</strong></td><td>Manager, ops</td><td>Stage-by-stage conversion. Drop-off rate.</td><td>HubSpot Funnel</td></tr>
+    <tr><td>C4</td><td><strong>Pipeline Movement Waterfall</strong></td><td>Ops, exec</td><td>Period delta: created vs advanced vs slipped vs closed.</td><td>Clari, InsightSquared</td></tr>
+    <tr><td>C5</td><td><strong>Activity Report</strong></td><td>Manager</td><td>Calls/emails/meetings per rep. Heatmap.</td><td>Outreach Insights</td></tr>
+    <tr><td>C6</td><td><strong>Forecast Roll-up</strong></td><td>Exec</td><td>Multi-level commit roll-up with adjustment audit.</td><td>Clari, Salesforce</td></tr>
+    <tr><td>C7</td><td><strong>Report Builder</strong></td><td>Ops</td><td>Pivot-style — rows/cols/filters/measures.</td><td>Salesforce Reports</td></tr>
+    <tr><td>C8</td><td><strong>Dashboard Builder</strong></td><td>Ops</td><td>Drag-and-drop widgets, share &amp; schedule.</td><td>HubSpot, Salesforce</td></tr>
+    <tr><td>C9</td><td><strong>Attribution Report</strong></td><td>Marketing</td><td>Revenue ← marketing source. Multi-touch.</td><td>HubSpot Attribution</td></tr>
+    <tr><td>C10</td><td><strong>Forecast Settings</strong></td><td>Ops</td><td>Configure periods, categories, weights, locks.</td><td>Salesforce</td></tr>
+    <tr><td>C11</td><td><strong>Admin Home</strong></td><td>Admin</td><td>Settings hub: objects, fields, users, security, billing.</td><td>Salesforce, HubSpot</td></tr>
+    <tr><td>C12</td><td><strong>Object &amp; Field Editor</strong></td><td>Admin</td><td>Custom objects, fields, validation, page layouts.</td><td>Salesforce, Attio</td></tr>
+    <tr><td>C13 ★</td><td><strong>Workflow / Automation Builder</strong></td><td>Admin, ops</td><td>Visual flow canvas. Trigger → branches → actions.</td><td>Salesforce Flow, HubSpot</td></tr>
+    <tr><td>C14</td><td><strong>Sequence Builder</strong></td><td>Manager, ops</td><td>Visual cadence canvas — steps, waits, conditions.</td><td>Outreach, Salesloft</td></tr>
+    <tr><td>C15</td><td><strong>User &amp; Team Management</strong></td><td>Admin</td><td>Invite, roles, hierarchy, deactivation.</td><td>Salesforce Users</td></tr>
+    <tr><td>C16</td><td><strong>Permissions Matrix</strong></td><td>Admin</td><td>Role × object × CRUD grid.</td><td>Salesforce Profiles</td></tr>
+    <tr><td>C17</td><td><strong>Sharing Rules</strong></td><td>Admin</td><td>Cross-org visibility, territory config.</td><td>Salesforce Sharing</td></tr>
+    <tr><td>C18</td><td><strong>App Marketplace</strong></td><td>Admin</td><td>Browse, install, configure integrations.</td><td>AppExchange</td></tr>
+    <tr><td>C19</td><td><strong>API &amp; Webhook Settings</strong></td><td>Dev</td><td>API keys, OAuth, webhook subs, rate limits.</td><td>HubSpot Developer</td></tr>
+    <tr><td>C20</td><td><strong>Audit Log</strong></td><td>Security</td><td>Searchable timeline of system actions.</td><td>Salesforce Setup Audit</td></tr>
+    <tr><td>C21</td><td><strong>Data Import Wizard</strong></td><td>Ops</td><td>CSV → column map → dedupe → import.</td><td>HubSpot Import</td></tr>
+    <tr><td>C22</td><td><strong>Dedupe / Merge Tool</strong></td><td>Ops</td><td>Suggested duplicates, field-level merge UI.</td><td>Salesforce Duplicate Mgmt</td></tr>
+  </tbody>
+</table>
+
+<h3>D. Auxiliary, modal, mobile, external</h3>
+<table>
+  <thead><tr><th>#</th><th>Screen</th><th>Primary user</th><th>What it does</th><th>Reference</th></tr></thead>
+  <tbody>
+    <tr><td>D1</td><td><strong>Global Search Results</strong></td><td>All</td><td>Universal search across objects with previews.</td><td>Attio, Salesforce</td></tr>
+    <tr><td>D2</td><td><strong>Notification Center</strong></td><td>All</td><td>Mentions, assignments, signals, AI suggestions.</td><td>HubSpot Notifications</td></tr>
+    <tr><td>D3</td><td><strong>Onboarding Wizard</strong></td><td>New user</td><td>First-run setup: connect inbox, import, set goal.</td><td>HubSpot, Folk</td></tr>
+    <tr><td>D4</td><td><strong>Empty States</strong></td><td>New user</td><td>No-data illustrations with CTAs.</td><td>Folk, Attio</td></tr>
+    <tr><td>D5</td><td><strong>Bulk Action Modal</strong></td><td>Ops</td><td>Apply changes to N records with preview.</td><td>Salesforce, Attio</td></tr>
+    <tr><td>D6</td><td><strong>Filter Builder</strong></td><td>All</td><td>Multi-condition filter, AND/OR groups, save as view.</td><td>Attio, Salesforce</td></tr>
+    <tr><td>D7</td><td><strong>Saved View Switcher</strong></td><td>All</td><td>Toggle between personal &amp; shared views.</td><td>Attio, HubSpot</td></tr>
+    <tr><td>D8</td><td><strong>Mobile Pipeline</strong></td><td>AE on the road</td><td>Vertical card stack, swipe actions.</td><td>Pipedrive Mobile</td></tr>
+    <tr><td>D9</td><td><strong>Mobile Quick Add</strong></td><td>AE on the road</td><td>Voice-note → AI fills fields. Biz-card scan.</td><td>HubSpot Mobile</td></tr>
+    <tr><td>D10</td><td><strong>Email Plugin Side Panel</strong></td><td>AE</td><td>Gmail/Outlook sidebar with CRM context.</td><td>HubSpot Sales, Outreach</td></tr>
+    <tr><td>D11</td><td><strong>LinkedIn Chrome Ext</strong></td><td>SDR</td><td>Capture-to-CRM and add-to-sequence from LI.</td><td>Apollo, Salesloft, Surfe</td></tr>
+    <tr><td>D12</td><td><strong>Slack Modal</strong></td><td>All</td><td>Update deal from Slack via slash command.</td><td>Salesforce Slack, Attio</td></tr>
+    <tr><td>D13</td><td><strong>Booking Page (external)</strong></td><td>Customer</td><td>Public scheduler with qualifying questions.</td><td>HubSpot, Chili Piper</td></tr>
+    <tr><td>D14</td><td><strong>Email-Open Pixel</strong></td><td>System</td><td>Headless tracking — no UI but a system contract.</td><td>All sales tools</td></tr>
+  </tbody>
+</table>
+
+<div class="panel">
+  <h4>Summary — screen counts</h4>
+  <ul>
+    <li><strong>A — Daily-driver:</strong> 10 screens. The bulk of rep time.</li>
+    <li><strong>B — Record &amp; detail:</strong> 12 screens. The drill-down universe.</li>
+    <li><strong>C — Reporting &amp; admin:</strong> 22 screens. Heavy on configuration depth.</li>
+    <li><strong>D — Auxiliary / modal / external:</strong> 14 screens.</li>
+    <li><strong>Total: 52 distinct surfaces</strong> for a fully-featured product. (Small CRMs ship ~25. Salesforce arguably has 200+ if you count every admin sub-screen.)</li>
+  </ul>
+</div>
+</section>
+
+<!-- ============ SVG MOCKUPS ============ -->
+<section id="mockups">
+<h2>5. Part 3 — Seven screens, mocked in detail</h2>
+<p class="lead">SVG wireframes for the screens that disproportionately define product experience. Hover details, interaction notes, and best-in-class commentary follow each.</p>
+
+<!-- =================== A1 DAY VIEW =================== -->
+<h3>5.1 A1 — Day View (the rep's home)</h3>
+<p>The single most important screen in a modern sales tool. If reps don't open this every morning, the product has failed.</p>
+
+<div class="mockup">
+<svg viewBox="0 0 1180 540" xmlns="http://www.w3.org/2000/svg" font-family="Inter, sans-serif" font-size="12">
+  <defs>
+    <lineargradient id="bgGrad" x1="0" x2="0" y1="0" y2="1">
+      <stop offset="0" stop-color="#1a1d29"></stop>
+      <stop offset="1" stop-color="#161922"></stop>
+    </lineargradient>
+  </defs>
+  <rect width="1180" height="540" rx="8" fill="url(#bgGrad)"></rect>
+
+  <!-- Top bar -->
+  <rect x="0" y="0" width="1180" height="48" fill="#11141d"></rect>
+  <circle cx="22" cy="24" r="6" fill="#6ea8ff"></circle>
+  <text x="38" y="28" fill="#e8eaef" font-weight="600">FunnelOS</text>
+  <rect x="380" y="13" width="420" height="22" rx="11" fill="#1c2030" stroke="#2a2f40"></rect>
+  <text x="394" y="28" fill="#a4abbb">⌘K  Ask anything — "What deals need attention today?"</text>
+  <circle cx="1090" cy="24" r="11" fill="#2a2f40"></circle>
+  <text x="1085" y="28" fill="#a4abbb" font-size="11">3</text>
+  <circle cx="1130" cy="24" r="13" fill="#6ea8ff"></circle>
+  <text x="1125" y="28" fill="#0f1115" font-weight="700" font-size="11">RP</text>
+
+  <!-- Left nav -->
+  <rect x="0" y="48" width="180" height="492" fill="#11141d"></rect>
+  <g font-size="13">
+    <rect x="8" y="60" width="164" height="32" rx="6" fill="#6ea8ff" opacity="0.15"></rect>
+    <text x="22" y="80" fill="#6ea8ff" font-weight="600">◉ Day</text>
+    <text x="22" y="112" fill="#a4abbb">◐ Pipeline</text>
+    <text x="22" y="140" fill="#a4abbb">◐ Inbox  <tspan fill="#ff7a7a">●</tspan></text>
+    <text x="22" y="168" fill="#a4abbb">◐ Signals  <tspan fill="#ffb86b">12</tspan></text>
+    <text x="22" y="196" fill="#a4abbb">◐ Calls</text>
+    <text x="22" y="224" fill="#a4abbb">◐ Contacts</text>
+    <text x="22" y="252" fill="#a4abbb">◐ Companies</text>
+    <text x="22" y="280" fill="#a4abbb">◐ Forecast</text>
+    <text x="22" y="308" fill="#a4abbb">◐ Reports</text>
+    <line x1="20" y1="324" x2="160" y2="324" stroke="#2a2f40"></line>
+    <text x="22" y="346" fill="#6b7180">⊙ Settings</text>
+    <text x="22" y="374" fill="#6b7180">⊙ Marketplace</text>
+  </g>
+
+  <!-- Main column -->
+  <g transform="translate(200, 64)">
+    <text x="0" y="14" fill="#e8eaef" font-size="20" font-weight="700">Today, Tue May 23</text>
+    <text x="0" y="36" fill="#a4abbb" font-size="13">28 tasks · 7 calls · 12 emails · 4 LinkedIns · 5 meetings</text>
+
+    <!-- Channel tabs -->
+    <g transform="translate(0,56)">
+      <rect width="86" height="30" rx="6" fill="#6ea8ff" opacity="0.18"></rect>
+      <text x="14" y="20" fill="#6ea8ff" font-weight="600">All · 28</text>
+      <text x="106" y="20" fill="#a4abbb">Calls · 7</text>
+      <text x="170" y="20" fill="#a4abbb">Emails · 12</text>
+      <text x="244" y="20" fill="#a4abbb">LinkedIn · 4</text>
+      <text x="324" y="20" fill="#a4abbb">Meetings · 5</text>
+      <rect x="850" y="0" width="110" height="30" rx="6" fill="#1c2030" stroke="#2a2f40"></rect>
+      <text x="864" y="20" fill="#a4abbb">⌘ Shortcuts</text>
+    </g>
+
+    <!-- Tasks -->
+    <g transform="translate(0,108)" font-size="13">
+      <!-- Task 1 -->
+      <rect width="960" height="74" rx="8" fill="#1c2030" stroke="#2a2f40"></rect>
+      <rect x="0" y="0" width="4" height="74" fill="#6ee7a1" rx="2"></rect>
+      <text x="20" y="22" fill="#6b7180" font-family="ui-monospace, monospace" font-size="11">09:00 · CALL</text>
+      <text x="120" y="22" fill="#e8eaef" font-weight="600">Marcus Chen</text>
+      <text x="230" y="22" fill="#a4abbb">Acme Corp · $85K · Stage 3</text>
+      <text x="20" y="46" fill="#a4abbb">"Sent contract Friday — needs a nudge before EOW"</text>
+      <text x="20" y="64" fill="#ffb86b" font-size="11">★ AI brief: 3 buying signals in last 7d · CFO not engaged</text>
+      <rect x="820" y="22" width="58" height="28" rx="6" fill="#6ea8ff"></rect>
+      <text x="836" y="40" fill="#0f1115" font-weight="700">Call</text>
+      <rect x="884" y="22" width="58" height="28" rx="6" fill="none" stroke="#2a2f40"></rect>
+      <text x="903" y="40" fill="#a4abbb">Skip</text>
+
+      <!-- Task 2 (warning) -->
+      <rect y="86" width="960" height="74" rx="8" fill="#1c2030" stroke="#2a2f40"></rect>
+      <rect x="0" y="86" width="4" height="74" fill="#ff7a7a" rx="2"></rect>
+      <text x="20" y="108" fill="#6b7180" font-family="ui-monospace, monospace" font-size="11">09:15 · CALL</text>
+      <text x="120" y="108" fill="#e8eaef" font-weight="600">Priya Sharma</text>
+      <text x="230" y="108" fill="#a4abbb">Globex · $42K · Stage 2</text>
+      <text x="20" y="132" fill="#ff7a7a">⚠ No activity 14 days · last meeting May 9</text>
+      <text x="20" y="150" fill="#a4abbb" font-size="11">Deal warning: stalled · suggested action: reopen with new use-case</text>
+      <rect x="820" y="108" width="58" height="28" rx="6" fill="#6ea8ff"></rect>
+      <text x="836" y="126" fill="#0f1115" font-weight="700">Call</text>
+      <rect x="884" y="108" width="58" height="28" rx="6" fill="none" stroke="#2a2f40"></rect>
+      <text x="903" y="126" fill="#a4abbb">Skip</text>
+
+      <!-- Task 3 (hot) -->
+      <rect y="172" width="960" height="74" rx="8" fill="#1c2030" stroke="#2a2f40"></rect>
+      <rect x="0" y="172" width="4" height="74" fill="#ff6b9d" rx="2"></rect>
+      <text x="20" y="194" fill="#6b7180" font-family="ui-monospace, monospace" font-size="11">09:30 · CALL</text>
+      <text x="120" y="194" fill="#e8eaef" font-weight="600">David Park</text>
+      <text x="230" y="194" fill="#a4abbb">Initech · $120K · Stage 4</text>
+      <text x="20" y="218" fill="#ff6b9d">🔥 Hot · champion engaged · contract sent</text>
+      <text x="20" y="236" fill="#a4abbb" font-size="11">Next-best-action: confirm legal review timeline</text>
+      <rect x="820" y="194" width="58" height="28" rx="6" fill="#6ea8ff"></rect>
+      <text x="836" y="212" fill="#0f1115" font-weight="700">Call</text>
+      <rect x="884" y="194" width="58" height="28" rx="6" fill="none" stroke="#2a2f40"></rect>
+      <text x="903" y="212" fill="#a4abbb">Skip</text>
+
+      <!-- Email task -->
+      <rect y="258" width="960" height="74" rx="8" fill="#1c2030" stroke="#2a2f40"></rect>
+      <rect x="0" y="258" width="4" height="74" fill="#6ea8ff" rx="2"></rect>
+      <text x="20" y="280" fill="#6b7180" font-family="ui-monospace, monospace" font-size="11">10:00 · EMAIL · STEP 3 of 5</text>
+      <text x="220" y="280" fill="#e8eaef" font-weight="600">Sarah Kim</text>
+      <text x="320" y="280" fill="#a4abbb">Soylent · sequence: Enterprise Outbound</text>
+      <text x="20" y="304" fill="#a4abbb">Subject: Quick question about your Q3 priorities</text>
+      <text x="20" y="322" fill="#ffb86b" font-size="11">★ AI-drafted · ready to send · personalized from her LI post 2d ago</text>
+      <rect x="780" y="280" width="80" height="28" rx="6" fill="#6ea8ff"></rect>
+      <text x="800" y="298" fill="#0f1115" font-weight="700">Send</text>
+      <rect x="866" y="280" width="62" height="28" rx="6" fill="none" stroke="#2a2f40"></rect>
+      <text x="881" y="298" fill="#a4abbb">Edit</text>
+      <rect x="934" y="280" width="62" height="28" rx="6" fill="none" stroke="#2a2f40"></rect>
+      <text x="949" y="298" fill="#a4abbb">Skip</text>
+    </g>
+  </g>
+
+  <!-- Right context panel -->
+  <g transform="translate(972, 70)">
+    <text x="0" y="14" fill="#a4abbb" font-family="ui-monospace, monospace" font-size="11" letter-spacing="1">CONTEXT · MARCUS CHEN</text>
+    <rect y="24" width="192" height="166" rx="8" fill="#1c2030" stroke="#2a2f40"></rect>
+    <circle cx="32" cy="58" r="18" fill="#6ea8ff" opacity="0.3"></circle>
+    <text x="22" y="62" fill="#6ea8ff" font-weight="700">MC</text>
+    <text x="62" y="54" fill="#e8eaef" font-weight="600">Marcus Chen</text>
+    <text x="62" y="70" fill="#a4abbb" font-size="11">VP Engineering, Acme</text>
+    <line x1="14" y1="92" x2="178" y2="92" stroke="#2a2f40"></line>
+    <text x="14" y="110" fill="#a4abbb" font-size="11">Last touch: 4 days ago</text>
+    <text x="14" y="128" fill="#a4abbb" font-size="11">Engagement: ●●●●○</text>
+    <text x="14" y="146" fill="#a4abbb" font-size="11">Deal stage: Demo (3/5)</text>
+    <text x="14" y="164" fill="#a4abbb" font-size="11">3 emails · 2 calls · 1 demo</text>
+
+    <text x="0" y="218" fill="#a4abbb" font-family="ui-monospace, monospace" font-size="11" letter-spacing="1">SUGGESTED TALK TRACK</text>
+    <rect y="228" width="192" height="120" rx="8" fill="#1c2030" stroke="#2a2f40"></rect>
+    <text x="14" y="248" fill="#ffb86b" font-size="11">★ Open with:</text>
+    <text x="14" y="266" fill="#e8eaef" font-size="11">"Hey Marcus — quick</text>
+    <text x="14" y="280" fill="#e8eaef" font-size="11">check on the contract</text>
+    <text x="14" y="294" fill="#e8eaef" font-size="11">we sent Friday."</text>
+    <text x="14" y="318" fill="#ffb86b" font-size="11">★ Watch for:</text>
+    <text x="14" y="336" fill="#a4abbb" font-size="11">CFO sign-off blocker</text>
+  </g>
+
+  <!-- Annotation pointers -->
+  <g class="anno">
+    <circle cx="178" cy="76" r="3" class="note-anchor"></circle>
+    <text x="190" y="80" fill="#ffb86b" font-size="10">①</text>
+    <circle cx="430" cy="135" r="3" class="note-anchor"></circle>
+    <text x="442" y="139" fill="#ffb86b" font-size="10">②</text>
+    <circle cx="1068" cy="80" r="3" class="note-anchor"></circle>
+    <text x="1054" y="62" fill="#ffb86b" font-size="10">③</text>
+  </g>
+</svg>
+<div class="caption">A1 · Day View — ① persistent AI command bar  ② color-coded health rail per task  ③ contextual right panel updates with focused task</div>
+</div>
+
+<div class="example"><div class="who">Outreach — the original keyboard-driven queue</div><p>Outreach groups by task type with single-keystroke flow (E for email, C for call, S for skip). The rep never leaves keyboard.</p></div>
+<div class="example"><div class="who">Apollo.io — task queue with AI drafts inline</div><p>Apollo adds an AI-drafted email pane that prefills as the rep scrolls, so opening "Email" is one keystroke from sending.</p></div>
+<div class="example"><div class="who">Close — calls-first variant</div><p>Close puts a power dialer above the queue — clicking "Start dialing" runs through the call list with auto-advance and after-call disposition.</p></div>
+
+<p><strong>Must-have ingredients:</strong> grouped-by-channel pills · one-keystroke skip/complete · per-task color rail for health · expandable AI brief inline · contextual right panel · keyboard shortcut overlay accessible from header.</p>
+
+<!-- =================== A2 PIPELINE KANBAN =================== -->
+<h3>5.2 A2 — Pipeline Kanban (the classic)</h3>
+<p>Everyone has one. Modern differentiators: density configurability, deal-card information layering, inline edit, real-time presence.</p>
+
+<div class="mockup">
+<svg viewBox="0 0 1180 560" xmlns="http://www.w3.org/2000/svg" font-family="Inter, sans-serif" font-size="12">
+  <rect width="1180" height="560" rx="8" fill="#161922"></rect>
+  <!-- Top toolbar -->
+  <rect width="1180" height="56" fill="#11141d"></rect>
+  <text x="22" y="32" fill="#e8eaef" font-size="18" font-weight="700">Pipeline</text>
+  <text x="115" y="32" fill="#a4abbb" font-size="13">— Enterprise · Q3 2026</text>
+  <!-- Filter chips -->
+  <g font-size="12">
+    <rect x="370" y="18" width="84" height="22" rx="11" fill="#1c2030" stroke="#2a2f40"></rect>
+    <text x="380" y="33" fill="#a4abbb">Owner: All ▾</text>
+    <rect x="464" y="18" width="92" height="22" rx="11" fill="#1c2030" stroke="#2a2f40"></rect>
+    <text x="474" y="33" fill="#a4abbb">Segment: All ▾</text>
+    <rect x="566" y="18" width="96" height="22" rx="11" fill="#1c2030" stroke="#2a2f40"></rect>
+    <text x="576" y="33" fill="#a4abbb">Close: This Q ▾</text>
+    <rect x="672" y="18" width="78" height="22" rx="11" fill="#6ea8ff" opacity="0.18" stroke="#6ea8ff"></rect>
+    <text x="684" y="33" fill="#6ea8ff">+ Filter</text>
+  </g>
+  <!-- View switcher -->
+  <g transform="translate(880, 14)">
+    <rect width="120" height="28" rx="6" fill="#1c2030" stroke="#2a2f40"></rect>
+    <rect x="2" y="2" width="58" height="24" rx="4" fill="#6ea8ff" opacity="0.18"></rect>
+    <text x="20" y="19" fill="#6ea8ff" font-weight="600">Kanban</text>
+    <text x="74" y="19" fill="#a4abbb">List</text>
+    <rect x="130" y="0" width="40" height="28" rx="6" fill="#1c2030" stroke="#2a2f40"></rect>
+    <text x="142" y="19" fill="#a4abbb">⊕</text>
+  </g>
+
+  <!-- 5 columns -->
+  <g transform="translate(20, 76)">
+    <!-- Column 1 -->
+    <g>
+      <rect width="220" height="468" rx="8" fill="#161922" stroke="#2a2f40"></rect>
+      <rect width="220" height="48" rx="8" fill="#1c2030"></rect>
+      <text x="16" y="20" fill="#e8eaef" font-weight="600">Discovery</text>
+      <text x="16" y="38" fill="#a4abbb" font-size="11">12 deals · $440K</text>
+      <circle cx="200" cy="24" r="3" fill="#6ea8ff"></circle>
+      <!-- cards -->
+      <g transform="translate(10,60)">
+        <rect width="200" height="86" rx="6" fill="#1c2030" stroke="#2a2f40"></rect>
+        <text x="12" y="20" fill="#e8eaef" font-weight="600">Globex</text>
+        <text x="12" y="38" fill="#a4abbb" font-size="11">$48,000</text>
+        <text x="12" y="56" fill="#6b7180" font-size="10">Sarah K. · Tue 5/27</text>
+        <g transform="translate(12,66)">
+          <circle r="3" fill="#6ee7a1"></circle>
+          <circle cx="9" r="3" fill="#6ee7a1"></circle>
+          <circle cx="18" r="3" fill="#6ee7a1"></circle>
+          <circle cx="27" r="3" fill="#2a2f40"></circle>
+          <circle cx="36" r="3" fill="#2a2f40"></circle>
+        </g>
+        <text x="170" y="20" fill="#6b7180" font-size="10">+5d</text>
+      </g>
+      <g transform="translate(10,154)">
+        <rect width="200" height="86" rx="6" fill="#1c2030" stroke="#2a2f40"></rect>
+        <text x="12" y="20" fill="#e8eaef" font-weight="600">Vandelay</text>
+        <text x="12" y="38" fill="#a4abbb" font-size="11">$22,000</text>
+        <text x="12" y="56" fill="#6b7180" font-size="10">You · Fri 6/3</text>
+        <g transform="translate(12,66)">
+          <circle r="3" fill="#6ee7a1"></circle>
+          <circle cx="9" r="3" fill="#6ee7a1"></circle>
+          <circle cx="18" r="3" fill="#2a2f40"></circle>
+          <circle cx="27" r="3" fill="#2a2f40"></circle>
+          <circle cx="36" r="3" fill="#2a2f40"></circle>
+        </g>
+        <text x="170" y="20" fill="#6b7180" font-size="10">+2d</text>
+      </g>
+      <g transform="translate(10,248)">
+        <rect width="200" height="86" rx="6" fill="#1c2030" stroke="#2a2f40"></rect>
+        <rect width="3" height="86" fill="#ff7a7a"></rect>
+        <text x="12" y="20" fill="#e8eaef" font-weight="600">Pied Piper</text>
+        <text x="12" y="38" fill="#a4abbb" font-size="11">$36,000</text>
+        <text x="12" y="56" fill="#6b7180" font-size="10">Marcus T · Thu 5/29</text>
+        <text x="12" y="76" fill="#ff7a7a" font-size="10">⚠ idle 14d</text>
+        <text x="170" y="20" fill="#ff7a7a" font-size="10">+14d</text>
+      </g>
+    </g>
+    <!-- Column 2 -->
+    <g transform="translate(232,0)">
+      <rect width="220" height="468" rx="8" fill="#161922" stroke="#2a2f40"></rect>
+      <rect width="220" height="48" rx="8" fill="#1c2030"></rect>
+      <text x="16" y="20" fill="#e8eaef" font-weight="600">Qualified</text>
+      <text x="16" y="38" fill="#a4abbb" font-size="11">8 deals · $620K</text>
+      <g transform="translate(10,60)">
+        <rect width="200" height="86" rx="6" fill="#1c2030" stroke="#2a2f40"></rect>
+        <rect width="3" height="86" fill="#ffb86b"></rect>
+        <text x="12" y="20" fill="#e8eaef" font-weight="600">Acme Corp</text>
+        <text x="12" y="38" fill="#a4abbb" font-size="11">$85,000</text>
+        <text x="12" y="56" fill="#6b7180" font-size="10">You · Wed 5/28</text>
+        <text x="12" y="76" fill="#ffb86b" font-size="10">⚠ champion silent</text>
+        <text x="166" y="20" fill="#6b7180" font-size="10">+12d</text>
+      </g>
+      <g transform="translate(10,154)">
+        <rect width="200" height="86" rx="6" fill="#1c2030" stroke="#2a2f40"></rect>
+        <text x="12" y="20" fill="#e8eaef" font-weight="600">Hooli</text>
+        <text x="12" y="38" fill="#a4abbb" font-size="11">$140,000</text>
+        <text x="12" y="56" fill="#6b7180" font-size="10">Priya R · Mon 6/2</text>
+      </g>
+    </g>
+    <!-- Column 3 -->
+    <g transform="translate(464,0)">
+      <rect width="220" height="468" rx="8" fill="#161922" stroke="#2a2f40"></rect>
+      <rect width="220" height="48" rx="8" fill="#1c2030"></rect>
+      <text x="16" y="20" fill="#e8eaef" font-weight="600">Demo</text>
+      <text x="16" y="38" fill="#a4abbb" font-size="11">7 deals · $510K</text>
+      <g transform="translate(10,60)">
+        <rect width="200" height="86" rx="6" fill="#1c2030" stroke="#2a2f40"></rect>
+        <rect width="3" height="86" fill="#ff6b9d"></rect>
+        <text x="12" y="20" fill="#e8eaef" font-weight="600">Initech 🔥</text>
+        <text x="12" y="38" fill="#a4abbb" font-size="11">$120,000</text>
+        <text x="12" y="56" fill="#6b7180" font-size="10">You · Mon 6/2</text>
+        <g transform="translate(12,66)">
+          <circle r="3" fill="#6ee7a1"></circle><circle cx="9" r="3" fill="#6ee7a1"></circle><circle cx="18" r="3" fill="#6ee7a1"></circle><circle cx="27" r="3" fill="#6ee7a1"></circle><circle cx="36" r="3" fill="#6ee7a1"></circle>
+        </g>
+        <text x="170" y="20" fill="#6b7180" font-size="10">+3d</text>
+      </g>
+    </g>
+    <!-- Column 4 -->
+    <g transform="translate(696,0)">
+      <rect width="220" height="468" rx="8" fill="#161922" stroke="#2a2f40"></rect>
+      <rect width="220" height="48" rx="8" fill="#1c2030"></rect>
+      <text x="16" y="20" fill="#e8eaef" font-weight="600">Proposal</text>
+      <text x="16" y="38" fill="#a4abbb" font-size="11">5 deals · $390K</text>
+      <g transform="translate(10,60)">
+        <rect width="200" height="86" rx="6" fill="#1c2030" stroke="#2a2f40"></rect>
+        <text x="12" y="20" fill="#e8eaef" font-weight="600">Soylent</text>
+        <text x="12" y="38" fill="#a4abbb" font-size="11">$78,000</text>
+        <text x="12" y="56" fill="#6b7180" font-size="10">Marcus T · Wed 5/29</text>
+      </g>
+    </g>
+    <!-- Column 5 -->
+    <g transform="translate(928,0)">
+      <rect width="220" height="468" rx="8" fill="#161922" stroke="#2a2f40"></rect>
+      <rect width="220" height="48" rx="8" fill="#1c2030"></rect>
+      <text x="16" y="20" fill="#e8eaef" font-weight="600">Negotiation</text>
+      <text x="16" y="38" fill="#a4abbb" font-size="11">3 deals · $280K</text>
+      <g transform="translate(10,60)">
+        <rect width="200" height="86" rx="6" fill="#1c2030" stroke="#2a2f40"></rect>
+        <rect width="3" height="86" fill="#6ee7a1"></rect>
+        <text x="12" y="20" fill="#e8eaef" font-weight="600">Massive Dynamic</text>
+        <text x="12" y="38" fill="#a4abbb" font-size="11">$90,000</text>
+        <text x="12" y="56" fill="#6b7180" font-size="10">Priya R · Today</text>
+        <text x="166" y="20" fill="#6ee7a1" font-size="10">+1d</text>
+      </g>
+    </g>
+  </g>
+
+  <!-- Bottom totals strip -->
+  <g transform="translate(20, 528)">
+    <text fill="#a4abbb" font-size="13">Total pipeline: <tspan fill="#e8eaef" font-weight="600">$2.24M</tspan> · Weighted: <tspan fill="#e8eaef" font-weight="600">$890K</tspan> · Closing this Q: <tspan fill="#6ee7a1" font-weight="600">$370K</tspan></text>
+    <text x="900" fill="#6b7180" font-size="11">3 people viewing · Sarah K. is editing Globex</text>
+  </g>
+</svg>
+<div class="caption">A2 · Pipeline Kanban — colored side rails encode deal health · days-in-stage badge · column header carries count + sum · real-time presence in footer</div>
+</div>
+
+<div class="example"><div class="who">Pipedrive — the gold standard for density</div><p>Pipedrive's deal cards show only what matters and use whitespace ruthlessly. Days-in-stage as a colored corner badge is theirs.</p></div>
+<div class="example"><div class="who">Attio — the visual upgrade</div><p>Attio inherits Notion-level polish: real-time presence avatars on cards, drag with springy physics, custom card layouts per pipeline.</p></div>
+
+<!-- =================== B3 DEAL RECORD =================== -->
+<h3>5.3 B3 — Deal Record (the spine)</h3>
+<p>Every CRM has one. They almost all get it wrong. The modern version is three columns with timeline as the centerpiece, not a tab.</p>
+
+<div class="mockup">
+<svg viewBox="0 0 1180 600" xmlns="http://www.w3.org/2000/svg" font-family="Inter, sans-serif" font-size="12">
+  <rect width="1180" height="600" rx="8" fill="#161922"></rect>
+  <!-- Header -->
+  <rect width="1180" height="92" fill="#11141d"></rect>
+  <text x="22" y="32" fill="#6b7180" font-size="11" font-family="ui-monospace, monospace">DEAL · ACME-Q3-EXP-0084</text>
+  <text x="22" y="58" fill="#e8eaef" font-size="22" font-weight="700">Acme Corp · Q3 Expansion</text>
+  <text x="22" y="80" fill="#a4abbb" font-size="13">Stage <tspan fill="#e8eaef" font-weight="600">3 of 5 · Demo</tspan>  ·  Amount <tspan fill="#e8eaef" font-weight="600">$85,000</tspan>  ·  Close <tspan fill="#e8eaef" font-weight="600">May 31</tspan></text>
+  <!-- Stage bar -->
+  <g transform="translate(640, 24)">
+    <rect width="40" height="6" rx="3" fill="#6ea8ff"></rect>
+    <rect x="48" width="40" height="6" rx="3" fill="#6ea8ff"></rect>
+    <rect x="96" width="40" height="6" rx="3" fill="#6ea8ff"></rect>
+    <rect x="144" width="40" height="6" rx="3" fill="#2a2f40"></rect>
+    <rect x="192" width="40" height="6" rx="3" fill="#2a2f40"></rect>
+  </g>
+  <!-- Warning banner -->
+  <rect x="640" y="44" width="280" height="36" rx="6" fill="#ff7a7a" opacity="0.12" stroke="#ff7a7a"></rect>
+  <text x="654" y="66" fill="#ff7a7a" font-size="12" font-weight="600">⚠ Deal Warning · Champion went dark 7d</text>
+  <!-- Actions -->
+  <rect x="970" y="44" width="80" height="36" rx="6" fill="#6ea8ff"></rect>
+  <text x="990" y="66" fill="#0f1115" font-weight="700">⌘K Ask AI</text>
+  <rect x="1058" y="44" width="38" height="36" rx="6" fill="#1c2030" stroke="#2a2f40"></rect>
+  <text x="1075" y="66" fill="#a4abbb">⋮</text>
+
+  <!-- 3-col body -->
+  <!-- Left col: DETAILS -->
+  <g transform="translate(20, 110)">
+    <text fill="#a4abbb" font-family="ui-monospace, monospace" font-size="11" letter-spacing="1">DETAILS</text>
+    <g transform="translate(0,22)" font-size="12">
+      <text fill="#6b7180">Stage</text>      <text x="100" fill="#e8eaef">3 · Demo ▾</text>
+      <text y="22" fill="#6b7180">Amount</text>    <text x="100" y="22" fill="#e8eaef">$85,000</text>
+      <text y="44" fill="#6b7180">Close date</text><text x="100" y="44" fill="#e8eaef">May 31</text>
+      <text y="66" fill="#6b7180">Owner</text>      <text x="100" y="66" fill="#e8eaef">You</text>
+      <text y="88" fill="#6b7180">Source</text>     <text x="100" y="88" fill="#e8eaef">Inbound · Form</text>
+      <text y="110" fill="#6b7180">Type</text>      <text x="100" y="110" fill="#e8eaef">Expansion</text>
+    </g>
+    <line x1="0" y1="156" x2="220" y2="156" stroke="#2a2f40"></line>
+    <text y="178" fill="#a4abbb" font-family="ui-monospace, monospace" font-size="11" letter-spacing="1">HEALTH SCORE</text>
+    <g transform="translate(0,194)">
+      <circle r="6" cx="6" cy="6" fill="#6ee7a1"></circle>
+      <circle r="6" cx="22" cy="6" fill="#6ee7a1"></circle>
+      <circle r="6" cx="38" cy="6" fill="#6ee7a1"></circle>
+      <circle r="6" cx="54" cy="6" fill="#6ee7a1"></circle>
+      <circle r="6" cx="70" cy="6" fill="#2a2f40"></circle>
+      <text x="92" y="11" fill="#e8eaef" font-weight="600">Strong</text>
+    </g>
+    <g transform="translate(0,218)" font-size="11">
+      <text fill="#6ee7a1">+ engagement</text>
+      <text y="16" fill="#ffb86b">- multi-thread</text>
+      <text y="32" fill="#6ee7a1">+ velocity</text>
+    </g>
+    <line x1="0" y1="282" x2="220" y2="282" stroke="#2a2f40"></line>
+    <text y="304" fill="#a4abbb" font-family="ui-monospace, monospace" font-size="11" letter-spacing="1">NEXT-BEST-ACTION</text>
+    <rect y="316" width="220" height="74" rx="8" fill="#ffb86b" opacity="0.1" stroke="#ffb86b"></rect>
+    <text x="14" y="338" fill="#ffb86b" font-size="11">★ AI suggestion</text>
+    <text x="14" y="358" fill="#e8eaef" font-size="12" font-weight="600">Send pricing case study</text>
+    <text x="14" y="376" fill="#a4abbb" font-size="11">Similar deals closed +18% faster</text>
+    <rect x="160" y="406" width="60" height="28" rx="6" fill="#6ea8ff"></rect>
+    <text x="178" y="424" fill="#0f1115" font-weight="700">Do it</text>
+  </g>
+
+  <!-- Center col: TIMELINE -->
+  <g transform="translate(260, 110)">
+    <text fill="#a4abbb" font-family="ui-monospace, monospace" font-size="11" letter-spacing="1">ACTIVITY TIMELINE</text>
+    <!-- vertical rail -->
+    <line x1="14" y1="22" x2="14" y2="464" stroke="#2a2f40"></line>
+    <!-- entries -->
+    <g transform="translate(0, 22)">
+      <circle cx="14" cy="10" r="6" fill="#6ea8ff"></circle>
+      <text x="34" y="14" fill="#e8eaef" font-weight="600">Today · 10:14</text>
+      <text x="34" y="32" fill="#a4abbb">📧 You → Marcus  "Following up on contract"</text>
+      <text x="34" y="50" fill="#6b7180" font-size="11">opened 2× · clicked pricing link</text>
+    </g>
+    <g transform="translate(0, 92)">
+      <circle cx="14" cy="10" r="6" fill="#ffb86b"></circle>
+      <text x="34" y="14" fill="#e8eaef" font-weight="600">Yesterday · 14:02</text>
+      <text x="34" y="32" fill="#a4abbb">📞 Call with Marcus Chen · 28 min · <tspan fill="#6ea8ff">Gong ↗</tspan></text>
+      <rect x="34" y="44" width="500" height="48" rx="6" fill="#1c2030" stroke="#2a2f40"></rect>
+      <text x="46" y="62" fill="#ffb86b" font-size="11">★ AI summary</text>
+      <text x="46" y="80" fill="#a4abbb" font-size="11">Marcus needs CFO sign-off. Concerned about ramp timeline.</text>
+    </g>
+    <g transform="translate(0, 204)">
+      <circle cx="14" cy="10" r="6" fill="#6ee7a1"></circle>
+      <text x="34" y="14" fill="#e8eaef" font-weight="600">May 18 · 11:00</text>
+      <text x="34" y="32" fill="#a4abbb">📅 Demo · 45 min · 3 attendees</text>
+      <text x="34" y="50" fill="#6b7180" font-size="11">demoed pricing module, integrations, RBAC</text>
+    </g>
+    <g transform="translate(0, 268)">
+      <circle cx="14" cy="10" r="6" fill="#6b7180"></circle>
+      <text x="34" y="14" fill="#a4abbb">May 15 · 09:30</text>
+      <text x="34" y="32" fill="#6b7180">📝 Note · Discovery call recap</text>
+    </g>
+    <g transform="translate(0, 312)">
+      <circle cx="14" cy="10" r="6" fill="#6b7180"></circle>
+      <text x="34" y="14" fill="#a4abbb">May 12 · field change</text>
+      <text x="34" y="32" fill="#6b7180">Stage: Qualified → Demo (you)</text>
+    </g>
+    <!-- composer -->
+    <rect x="0" y="380" width="560" height="44" rx="8" fill="#1c2030" stroke="#2a2f40"></rect>
+    <text x="14" y="406" fill="#6b7180">+ Note     + Task     + Log call     + Email     /     ⌘K AI</text>
+  </g>
+
+  <!-- Right col: PEOPLE & RELATED -->
+  <g transform="translate(840, 110)">
+    <text fill="#a4abbb" font-family="ui-monospace, monospace" font-size="11" letter-spacing="1">PEOPLE</text>
+    <g transform="translate(0, 22)">
+      <rect width="318" height="66" rx="8" fill="#1c2030" stroke="#2a2f40"></rect>
+      <circle cx="22" cy="20" r="14" fill="#6ea8ff" opacity="0.3"></circle>
+      <text x="14" y="24" fill="#6ea8ff" font-weight="700" font-size="11">MC</text>
+      <text x="46" y="22" fill="#e8eaef" font-weight="600">Marcus Chen ✓</text>
+      <text x="46" y="40" fill="#a4abbb" font-size="11">Champion · VP Eng</text>
+      <text x="14" y="58" fill="#6ee7a1" font-size="10">●●●●○ engaged</text>
+    </g>
+    <g transform="translate(0, 96)">
+      <rect width="318" height="66" rx="8" fill="#1c2030" stroke="#2a2f40"></rect>
+      <circle cx="22" cy="20" r="14" fill="#ff7a7a" opacity="0.3"></circle>
+      <text x="16" y="24" fill="#ff7a7a" font-weight="700" font-size="11">LP</text>
+      <text x="46" y="22" fill="#e8eaef" font-weight="600">Lisa Park ⚠</text>
+      <text x="46" y="40" fill="#a4abbb" font-size="11">Decision Maker · CFO</text>
+      <text x="14" y="58" fill="#ff7a7a" font-size="10">○○○○○ unmet</text>
+    </g>
+    <g transform="translate(0, 170)">
+      <text fill="#a4abbb" font-size="11">+ 3 influencers</text>
+      <text x="220" fill="#6ea8ff" font-size="11">+ Add contact</text>
+    </g>
+    <line x1="0" y1="192" x2="318" y2="192" stroke="#2a2f40"></line>
+    <text y="214" fill="#a4abbb" font-family="ui-monospace, monospace" font-size="11" letter-spacing="1">PRODUCTS</text>
+    <g transform="translate(0, 226)" font-size="11">
+      <text fill="#e8eaef">Pro Plan × 24 seats</text>
+      <text x="220" fill="#a4abbb">$72,000</text>
+      <text y="20" fill="#e8eaef">Premium Support</text>
+      <text x="220" y="20" fill="#a4abbb">$13,000</text>
+    </g>
+    <line x1="0" y1="280" x2="318" y2="280" stroke="#2a2f40"></line>
+    <text y="302" fill="#a4abbb" font-family="ui-monospace, monospace" font-size="11" letter-spacing="1">RELATED</text>
+    <g transform="translate(0,316)" font-size="11">
+      <text fill="#a4abbb">• 2 open support tickets</text>
+      <text y="18" fill="#a4abbb">• Active subscription ($40K)</text>
+      <text y="36" fill="#a4abbb">• 4 docs in deal room ↗</text>
+    </g>
+  </g>
+</svg>
+<div class="caption">B3 · Deal Record — 3 columns: details + health + NBA  ·  timeline as spine (not a tab)  ·  people column shows buying-committee gaps explicitly</div>
+</div>
+
+<div class="example"><div class="who">Gong Deal Page — health warnings above the fold</div><p>Gong's contribution to the canon: deal warnings are real estate above the fold, with explainability. "Why is this red?" — "Buyer went silent + competitor mentioned 3x last call."</p></div>
+<div class="example"><div class="who">Attio Deal Record — Notion-quality interactions</div><p>Three-column with center timeline is now best-practice. Attio adds inline edit on any field, @mention any teammate, drag-to-reorder.</p></div>
+<div class="example"><div class="who">HubSpot Deal — engagement heatmap on contacts</div><p>HubSpot shows a per-contact engagement heatmap, distinguishing buying committee members visually — the "unmet CFO" pattern.</p></div>
+
+<!-- =================== A4 FORECAST BOARD =================== -->
+<h3>5.4 A4 — Forecast Board</h3>
+<p>Where AEs and managers commit numbers. Modern UX shows AI-adjusted forecast next to human commit so the conversation is "why the delta?", not "what's the number?"</p>
+
+<div class="mockup">
+<svg viewBox="0 0 1180 480" xmlns="http://www.w3.org/2000/svg" font-family="Inter, sans-serif" font-size="12">
+  <rect width="1180" height="480" rx="8" fill="#161922"></rect>
+  <rect width="1180" height="56" fill="#11141d"></rect>
+  <text x="22" y="34" fill="#e8eaef" font-size="18" font-weight="700">Forecast</text>
+  <text x="115" y="34" fill="#a4abbb" font-size="13">— Q3 2026 · Enterprise team · 7 reps</text>
+  <rect x="980" y="14" width="100" height="28" rx="6" fill="#6ea8ff"></rect>
+  <text x="996" y="33" fill="#0f1115" font-weight="700">Submit forecast</text>
+
+  <!-- Summary tiles -->
+  <g transform="translate(20, 76)">
+    <rect width="270" height="106" rx="10" fill="#1c2030" stroke="#2a2f40"></rect>
+    <text x="16" y="22" fill="#a4abbb" font-size="11">QUOTA</text>
+    <text x="16" y="56" fill="#e8eaef" font-size="28" font-weight="700">$2.4M</text>
+    <text x="16" y="84" fill="#6b7180" font-size="11">Team Q3 target</text>
+
+    <rect x="290" width="270" height="106" rx="10" fill="#1c2030" stroke="#2a2f40"></rect>
+    <text x="306" y="22" fill="#6ee7a1" font-size="11">CLOSED-WON</text>
+    <text x="306" y="56" fill="#6ee7a1" font-size="28" font-weight="700">$890K</text>
+    <text x="306" y="84" fill="#6b7180" font-size="11">37% of quota · 42 deals</text>
+
+    <rect x="580" width="270" height="106" rx="10" fill="#1c2030" stroke="#2a2f40"></rect>
+    <text x="596" y="22" fill="#6ea8ff" font-size="11">COMMIT</text>
+    <text x="596" y="56" fill="#6ea8ff" font-size="28" font-weight="700">$1.32M</text>
+    <text x="596" y="84" fill="#6b7180" font-size="11">55% of quota · 7 reps</text>
+
+    <rect x="870" width="270" height="106" rx="10" fill="#1c2030" stroke="#ffb86b" stroke-dasharray="3,3"></rect>
+    <text x="886" y="22" fill="#ffb86b" font-size="11">★ AI FORECAST</text>
+    <text x="886" y="56" fill="#ffb86b" font-size="28" font-weight="700">$1.05M</text>
+    <text x="886" y="84" fill="#a4abbb" font-size="11">−$270K vs commit · why? ↗</text>
+  </g>
+
+  <!-- Rep table -->
+  <g transform="translate(20, 206)">
+    <rect width="1140" height="40" rx="6" fill="#1c2030"></rect>
+    <text x="16" y="24" fill="#a4abbb" font-family="ui-monospace, monospace" font-size="11" letter-spacing="1">REP</text>
+    <text x="220" y="24" fill="#a4abbb" font-family="ui-monospace, monospace" font-size="11" letter-spacing="1">CLOSED</text>
+    <text x="360" y="24" fill="#a4abbb" font-family="ui-monospace, monospace" font-size="11" letter-spacing="1">COMMIT</text>
+    <text x="500" y="24" fill="#a4abbb" font-family="ui-monospace, monospace" font-size="11" letter-spacing="1">BEST CASE</text>
+    <text x="660" y="24" fill="#a4abbb" font-family="ui-monospace, monospace" font-size="11" letter-spacing="1">PIPELINE</text>
+    <text x="820" y="24" fill="#a4abbb" font-family="ui-monospace, monospace" font-size="11" letter-spacing="1">★ AI</text>
+    <text x="940" y="24" fill="#a4abbb" font-family="ui-monospace, monospace" font-size="11" letter-spacing="1">Δ</text>
+    <text x="1020" y="24" fill="#a4abbb" font-family="ui-monospace, monospace" font-size="11" letter-spacing="1">NOTES</text>
+
+    <!-- Row 1 -->
+    <g transform="translate(0, 48)">
+      <text x="16" y="22" fill="#e8eaef" font-weight="600">You</text>
+      <text x="16" y="38" fill="#6b7180" font-size="11">Ralph · 6 deals</text>
+      <text x="220" y="22" fill="#6ee7a1" font-weight="600">$210K</text>
+      <text x="360" y="22" fill="#6ea8ff" font-weight="600">$340K</text>
+      <text x="500" y="22" fill="#e8eaef">$520K</text>
+      <text x="660" y="22" fill="#e8eaef">$890K</text>
+      <text x="820" y="22" fill="#ffb86b" font-weight="600">$295K</text>
+      <text x="940" y="22" fill="#ff7a7a">−$45K</text>
+      <text x="1020" y="22" fill="#6b7180" font-size="11">"Acme at risk"</text>
+    </g>
+    <line x1="0" y1="80" x2="1140" y2="80" stroke="#2a2f40"></line>
+    <!-- Row 2 -->
+    <g transform="translate(0, 80)">
+      <text x="16" y="22" fill="#e8eaef" font-weight="600">Sarah K.</text>
+      <text x="16" y="38" fill="#6b7180" font-size="11">8 deals</text>
+      <text x="220" y="22" fill="#6ee7a1" font-weight="600">$148K</text>
+      <text x="360" y="22" fill="#6ea8ff" font-weight="600">$220K</text>
+      <text x="500" y="22" fill="#e8eaef">$340K</text>
+      <text x="660" y="22" fill="#e8eaef">$580K</text>
+      <text x="820" y="22" fill="#ffb86b" font-weight="600">$180K</text>
+      <text x="940" y="22" fill="#ff7a7a">−$40K</text>
+      <text x="1020" y="22" fill="#6b7180" font-size="11">—</text>
+    </g>
+    <line x1="0" y1="112" x2="1140" y2="112" stroke="#2a2f40"></line>
+    <!-- Row 3 -->
+    <g transform="translate(0, 112)">
+      <text x="16" y="22" fill="#e8eaef" font-weight="600">Marcus T.</text>
+      <text x="16" y="38" fill="#6b7180" font-size="11">5 deals</text>
+      <text x="220" y="22" fill="#6ee7a1" font-weight="600">$98K</text>
+      <text x="360" y="22" fill="#6ea8ff" font-weight="600">$160K</text>
+      <text x="500" y="22" fill="#e8eaef">$245K</text>
+      <text x="660" y="22" fill="#e8eaef">$420K</text>
+      <text x="820" y="22" fill="#ffb86b" font-weight="600">$110K</text>
+      <text x="940" y="22" fill="#ff7a7a">−$50K</text>
+      <text x="1020" y="22" fill="#6b7180" font-size="11">"Slipping deals"</text>
+    </g>
+    <line x1="0" y1="144" x2="1140" y2="144" stroke="#2a2f40"></line>
+    <!-- Row 4 -->
+    <g transform="translate(0, 144)">
+      <text x="16" y="22" fill="#e8eaef" font-weight="600">Priya R.</text>
+      <text x="16" y="38" fill="#6b7180" font-size="11">7 deals</text>
+      <text x="220" y="22" fill="#6ee7a1" font-weight="600">$176K</text>
+      <text x="360" y="22" fill="#6ea8ff" font-weight="600">$280K</text>
+      <text x="500" y="22" fill="#e8eaef">$420K</text>
+      <text x="660" y="22" fill="#e8eaef">$650K</text>
+      <text x="820" y="22" fill="#6ee7a1" font-weight="600">$310K</text>
+      <text x="940" y="22" fill="#6ee7a1">+$30K</text>
+      <text x="1020" y="22" fill="#6b7180" font-size="11">"Hot Q"</text>
+    </g>
+  </g>
+</svg>
+<div class="caption">A4 · Forecast Board — four buckets (Closed · Commit · Best Case · Pipeline)  ·  AI-forecast column with delta against rep's commit  ·  "why?" link opens explainability panel</div>
+</div>
+
+<div class="example"><div class="who">Clari — the category leader</div><p>Clari pioneered the AI-forecast-vs-commit pattern. Their secret was making the delta a click-through that shows which deals AI thinks won't close and why.</p></div>
+<div class="example"><div class="who">Salesforce Forecasts — the OG</div><p>Hierarchical roll-up across managers with adjustment locks. Less AI, more governance.</p></div>
+
+<!-- =================== A6 DIALER =================== -->
+<h3>5.5 A6 — Dialer / Call Screen</h3>
+<p>The SDR/AE's call cockpit. Account context, live notes, transcription, talk-track suggestions, after-call disposition — all without leaving the screen.</p>
+
+<div class="mockup">
+<svg viewBox="0 0 1180 500" xmlns="http://www.w3.org/2000/svg" font-family="Inter, sans-serif" font-size="12">
+  <rect width="1180" height="500" rx="8" fill="#161922"></rect>
+  <!-- header -->
+  <rect width="1180" height="48" fill="#11141d"></rect>
+  <circle cx="22" cy="24" r="6" fill="#6ee7a1"></circle>
+  <text x="38" y="28" fill="#6ee7a1" font-weight="600">● Live · 04:38</text>
+  <text x="180" y="28" fill="#a4abbb">+1 (415) 555-0182 — Marcus Chen, VP Eng @ Acme Corp</text>
+  <rect x="900" y="10" width="86" height="28" rx="14" fill="#1c2030" stroke="#2a2f40"></rect>
+  <text x="922" y="29" fill="#a4abbb">Mute</text>
+  <rect x="994" y="10" width="86" height="28" rx="14" fill="#1c2030" stroke="#2a2f40"></rect>
+  <text x="1010" y="29" fill="#a4abbb">Transfer</text>
+  <rect x="1088" y="10" width="80" height="28" rx="14" fill="#ff7a7a"></rect>
+  <text x="1106" y="29" fill="#0f1115" font-weight="700">End</text>
+
+  <!-- Left: Account context -->
+  <g transform="translate(20, 68)">
+    <text fill="#a4abbb" font-family="ui-monospace, monospace" font-size="11" letter-spacing="1">ON THIS CALL</text>
+    <rect y="14" width="280" height="100" rx="8" fill="#1c2030" stroke="#2a2f40"></rect>
+    <circle cx="32" cy="46" r="20" fill="#6ea8ff" opacity="0.3"></circle>
+    <text x="22" y="50" fill="#6ea8ff" font-weight="700">MC</text>
+    <text x="66" y="42" fill="#e8eaef" font-weight="600" font-size="14">Marcus Chen</text>
+    <text x="66" y="60" fill="#a4abbb" font-size="11">VP Engineering, Acme Corp</text>
+    <text x="66" y="78" fill="#6b7180" font-size="11">linkedin.com/in/marcuschen ↗</text>
+    <text x="14" y="100" fill="#6ee7a1" font-size="11">●●●●○ Champion · engaged 4d ago</text>
+
+    <text y="136" fill="#a4abbb" font-family="ui-monospace, monospace" font-size="11" letter-spacing="1">DEAL CONTEXT</text>
+    <rect y="148" width="280" height="78" rx="8" fill="#1c2030" stroke="#2a2f40"></rect>
+    <text x="14" y="170" fill="#e8eaef" font-weight="600">Acme · Q3 Expansion</text>
+    <text x="14" y="188" fill="#a4abbb" font-size="11">Stage 3 · Demo · $85,000</text>
+    <text x="14" y="206" fill="#ffb86b" font-size="11">⚠ Champion went dark 7d</text>
+    <text x="14" y="222" fill="#a4abbb" font-size="11">Close target: May 31</text>
+
+    <text y="250" fill="#a4abbb" font-family="ui-monospace, monospace" font-size="11" letter-spacing="1">RECENT ACTIVITY</text>
+    <g transform="translate(0,266)" font-size="11">
+      <text fill="#a4abbb">📧 Today  Email sent — opened 2×</text>
+      <text y="18" fill="#a4abbb">📞 May 22 Call (28m) · summary ↗</text>
+      <text y="36" fill="#a4abbb">📅 May 18 Demo (45m) · 3 attendees</text>
+    </g>
+  </g>
+
+  <!-- Center: Live transcription -->
+  <g transform="translate(320, 68)">
+    <text fill="#a4abbb" font-family="ui-monospace, monospace" font-size="11" letter-spacing="1">LIVE TRANSCRIPT · ● recording</text>
+    <rect y="14" width="540" height="380" rx="8" fill="#1c2030" stroke="#2a2f40"></rect>
+    <g transform="translate(16,36)" font-size="12">
+      <text fill="#6ea8ff" font-weight="600">You · 00:12</text>
+      <text y="18" fill="#a4abbb">"Hey Marcus — thanks for jumping on. I wanted to</text>
+      <text y="34" fill="#a4abbb">check in on where the contract review is at."</text>
+
+      <text y="68" fill="#ffb86b" font-weight="600">Marcus · 00:34</text>
+      <text y="86" fill="#e8eaef">"Yeah, so honestly — Lisa, our CFO, hasn't been able</text>
+      <text y="102" fill="#e8eaef">to make time for it. <tspan fill="#ff7a7a">She has concerns about the</tspan></text>
+      <text y="118" fill="#e8eaef"><tspan fill="#ff7a7a">ramp timeline</tspan> and whether we can…"</text>
+
+      <text y="152" fill="#6ea8ff" font-weight="600">You · 01:58</text>
+      <text y="170" fill="#a4abbb">"Got it — would it help if I put together a 1-pager</text>
+      <text y="186" fill="#a4abbb">on the phased ramp option for her?"</text>
+
+      <text y="220" fill="#ffb86b" font-weight="600">Marcus · 02:21</text>
+      <text y="238" fill="#e8eaef">"That would actually be great. And maybe pricing</text>
+      <text y="254" fill="#e8eaef">scenarios — she's going to compare us to <tspan fill="#ff7a7a">Globex</tspan>."</text>
+
+      <text y="288" fill="#ffb86b" font-size="11">★ Topic detected: pricing, competitor</text>
+      <text y="306" fill="#ffb86b" font-size="11">★ Action item captured: send phased-ramp 1-pager</text>
+      <text y="324" fill="#a4abbb" font-size="11" font-style="italic">… (live)</text>
+    </g>
+  </g>
+
+  <!-- Right: AI live coach -->
+  <g transform="translate(880, 68)">
+    <text fill="#ffb86b" font-family="ui-monospace, monospace" font-size="11" letter-spacing="1">★ LIVE COACH</text>
+    <rect y="14" width="280" height="220" rx="8" fill="#ffb86b" opacity="0.06" stroke="#ffb86b"></rect>
+    <text x="14" y="38" fill="#ffb86b" font-size="11">Battlecard: Globex</text>
+    <text x="14" y="58" fill="#e8eaef" font-size="11">• Slower deployment (8wk vs 3wk)</text>
+    <text x="14" y="74" fill="#e8eaef" font-size="11">• No native SSO</text>
+    <text x="14" y="90" fill="#e8eaef" font-size="11">• Lost 7 deals to us this Q</text>
+    <line x1="14" y1="104" x2="266" y2="104" stroke="#ffb86b" opacity="0.3"></line>
+    <text x="14" y="124" fill="#ffb86b" font-size="11">Suggested response</text>
+    <text x="14" y="144" fill="#e8eaef" font-size="11">"On Globex — happy to share</text>
+    <text x="14" y="160" fill="#e8eaef" font-size="11">a side-by-side. Customers</text>
+    <text x="14" y="176" fill="#e8eaef" font-size="11">typically pick us for deploy</text>
+    <text x="14" y="192" fill="#e8eaef" font-size="11">speed and SSO."</text>
+    <rect x="14" y="206" width="80" height="22" rx="11" fill="#6ea8ff"></rect>
+    <text x="32" y="221" fill="#0f1115" font-weight="700" font-size="11">Use this</text>
+
+    <text y="266" fill="#a4abbb" font-family="ui-monospace, monospace" font-size="11" letter-spacing="1">QUICK NOTES</text>
+    <rect y="278" width="280" height="86" rx="8" fill="#1c2030" stroke="#2a2f40"></rect>
+    <text x="14" y="298" fill="#a4abbb" font-size="11">CFO concern: ramp timeline</text>
+    <text x="14" y="316" fill="#a4abbb" font-size="11">Competitor mentioned: Globex</text>
+    <text x="14" y="334" fill="#a4abbb" font-size="11">Action: send phased ramp + pricing</text>
+    <text x="14" y="354" fill="#6b7180" font-size="11" font-style="italic">…will auto-create task at end</text>
+  </g>
+
+  <!-- After-call wrap (collapsed/peek) -->
+  <g transform="translate(20, 444)">
+    <rect width="1140" height="40" rx="6" fill="#1c2030" stroke="#2a2f40"></rect>
+    <text x="16" y="26" fill="#a4abbb">After-call wrap-up will open when you hang up — outcome · disposition · next steps · sync to deal record</text>
+  </g>
+</svg>
+<div class="caption">A6 · Dialer — three-pane: account context · live transcript · AI coach with battlecards  ·  topic detection writes back to deal automatically</div>
+</div>
+
+<div class="example"><div class="who">Close — the inside-sales standard</div><p>Close's dialer is the model: power dialer, local presence, voicemail drop, after-call disposition modal forced on every call.</p></div>
+<div class="example"><div class="who">Gong / Chorus — the real-time AI coaching layer</div><p>Both ship live talk-track suggestions and competitor battlecards triggered by keyword detection on the live transcript.</p></div>
+
+<!-- =================== A8 SIGNALS FEED =================== -->
+<h3>5.6 A8 — Signals / Intent Feed</h3>
+<p>The new-gen entry point. Surfaces "this account is buying now" moments — funding events, job changes, web visits, PLG product usage. The screen that PLG-era CRMs (Common Room, Pocus, Default) are built around.</p>
+
+<div class="mockup">
+<svg viewBox="0 0 1180 520" xmlns="http://www.w3.org/2000/svg" font-family="Inter, sans-serif" font-size="12">
+  <rect width="1180" height="520" rx="8" fill="#161922"></rect>
+  <rect width="1180" height="56" fill="#11141d"></rect>
+  <text x="22" y="34" fill="#e8eaef" font-size="18" font-weight="700">Signals</text>
+  <text x="100" y="34" fill="#a4abbb" font-size="13">— Real-time buying intent across your TAM</text>
+  <!-- Filter row -->
+  <g font-size="12">
+    <rect x="22" y="76" width="120" height="28" rx="14" fill="#6ea8ff" opacity="0.18" stroke="#6ea8ff"></rect>
+    <text x="36" y="94" fill="#6ea8ff">All signals · 47</text>
+    <rect x="150" y="76" width="100" height="28" rx="14" fill="#1c2030" stroke="#2a2f40"></rect>
+    <text x="166" y="94" fill="#a4abbb">Funding · 6</text>
+    <rect x="258" y="76" width="120" height="28" rx="14" fill="#1c2030" stroke="#2a2f40"></rect>
+    <text x="274" y="94" fill="#a4abbb">Job change · 14</text>
+    <rect x="386" y="76" width="106" height="28" rx="14" fill="#1c2030" stroke="#2a2f40"></rect>
+    <text x="402" y="94" fill="#a4abbb">Web intent · 12</text>
+    <rect x="500" y="76" width="106" height="28" rx="14" fill="#1c2030" stroke="#2a2f40"></rect>
+    <text x="516" y="94" fill="#a4abbb">Product · 15</text>
+  </g>
+  <text x="900" y="94" fill="#6b7180" font-size="11">View: Card ▾ · Sort: Score ▾</text>
+
+  <!-- Signal cards -->
+  <g transform="translate(22, 124)">
+    <!-- Card 1: Funding -->
+    <g>
+      <rect width="370" height="180" rx="10" fill="#1c2030" stroke="#2a2f40"></rect>
+      <rect x="0" y="0" width="4" height="180" fill="#ff6b9d"></rect>
+      <rect x="16" y="14" width="78" height="22" rx="11" fill="#ff6b9d" opacity="0.18" stroke="#ff6b9d"></rect>
+      <text x="28" y="29" fill="#ff6b9d" font-size="11" font-weight="600">FUNDING</text>
+      <text x="320" y="29" fill="#a4abbb" font-size="11">2h ago</text>
+      <text x="16" y="62" fill="#e8eaef" font-size="16" font-weight="700">Acme Robotics raised $50M Series C</text>
+      <text x="16" y="82" fill="#a4abbb" font-size="12">Led by Sequoia · expansion into EU markets</text>
+      <line x1="16" y1="100" x2="354" y2="100" stroke="#2a2f40"></line>
+      <text x="16" y="120" fill="#6b7180" font-size="11">In your CRM · 2 contacts · 0 deals</text>
+      <text x="16" y="138" fill="#ffb86b" font-size="11">★ Signal score: 92 / 100 · matches ICP</text>
+      <rect x="16" y="148" width="120" height="24" rx="6" fill="#6ea8ff"></rect>
+      <text x="34" y="164" fill="#0f1115" font-weight="700" font-size="11">+ Add to sequence</text>
+      <rect x="142" y="148" width="100" height="24" rx="6" fill="none" stroke="#2a2f40"></rect>
+      <text x="166" y="164" fill="#a4abbb" font-size="11">View company</text>
+    </g>
+    <!-- Card 2: Job change -->
+    <g transform="translate(388,0)">
+      <rect width="370" height="180" rx="10" fill="#1c2030" stroke="#2a2f40"></rect>
+      <rect x="0" y="0" width="4" height="180" fill="#6ea8ff"></rect>
+      <rect x="16" y="14" width="100" height="22" rx="11" fill="#6ea8ff" opacity="0.18" stroke="#6ea8ff"></rect>
+      <text x="28" y="29" fill="#6ea8ff" font-size="11" font-weight="600">JOB CHANGE</text>
+      <text x="320" y="29" fill="#a4abbb" font-size="11">5h ago</text>
+      <text x="16" y="62" fill="#e8eaef" font-size="16" font-weight="700">Lisa Park → VP Ops at Globex</text>
+      <text x="16" y="82" fill="#a4abbb" font-size="12">Was a closed-won champion at her last 2 cos</text>
+      <line x1="16" y1="100" x2="354" y2="100" stroke="#2a2f40"></line>
+      <text x="16" y="120" fill="#6b7180" font-size="11">In your CRM · closed-won deal $48K @ Pied Piper</text>
+      <text x="16" y="138" fill="#ffb86b" font-size="11">★ Signal score: 88 / 100 · warm intro available</text>
+      <rect x="16" y="148" width="120" height="24" rx="6" fill="#6ea8ff"></rect>
+      <text x="40" y="164" fill="#0f1115" font-weight="700" font-size="11">+ Add to outreach</text>
+      <rect x="142" y="148" width="100" height="24" rx="6" fill="none" stroke="#2a2f40"></rect>
+      <text x="166" y="164" fill="#a4abbb" font-size="11">View contact</text>
+    </g>
+    <!-- Card 3: Product usage -->
+    <g transform="translate(776,0)">
+      <rect width="370" height="180" rx="10" fill="#1c2030" stroke="#2a2f40"></rect>
+      <rect x="0" y="0" width="4" height="180" fill="#6ee7a1"></rect>
+      <rect x="16" y="14" width="100" height="22" rx="11" fill="#6ee7a1" opacity="0.18" stroke="#6ee7a1"></rect>
+      <text x="28" y="29" fill="#6ee7a1" font-size="11" font-weight="600">PLG INTENT</text>
+      <text x="320" y="29" fill="#a4abbb" font-size="11">just now</text>
+      <text x="16" y="62" fill="#e8eaef" font-size="16" font-weight="700">5 free-trial users from Soylent</text>
+      <text x="16" y="82" fill="#a4abbb" font-size="12">Including VP Eng · API integration tested</text>
+      <line x1="16" y1="100" x2="354" y2="100" stroke="#2a2f40"></line>
+      <text x="16" y="120" fill="#6b7180" font-size="11">In your CRM · open deal · stage Proposal</text>
+      <text x="16" y="138" fill="#ffb86b" font-size="11">★ Signal score: 95 / 100 · expansion ready</text>
+      <rect x="16" y="148" width="120" height="24" rx="6" fill="#6ea8ff"></rect>
+      <text x="42" y="164" fill="#0f1115" font-weight="700" font-size="11">Open deal record</text>
+      <rect x="142" y="148" width="100" height="24" rx="6" fill="none" stroke="#2a2f40"></rect>
+      <text x="166" y="164" fill="#a4abbb" font-size="11">Notify CS</text>
+    </g>
+
+    <!-- Card 4: Web intent -->
+    <g transform="translate(0,196)">
+      <rect width="370" height="160" rx="10" fill="#1c2030" stroke="#2a2f40"></rect>
+      <rect x="0" y="0" width="4" height="160" fill="#ffb86b"></rect>
+      <rect x="16" y="14" width="98" height="22" rx="11" fill="#ffb86b" opacity="0.18" stroke="#ffb86b"></rect>
+      <text x="28" y="29" fill="#ffb86b" font-size="11" font-weight="600">WEB INTENT</text>
+      <text x="320" y="29" fill="#a4abbb" font-size="11">1d ago</text>
+      <text x="16" y="62" fill="#e8eaef" font-size="16" font-weight="700">3 visitors from Initech</text>
+      <text x="16" y="82" fill="#a4abbb" font-size="12">Pricing page (4x) · Integrations · API docs</text>
+      <line x1="16" y1="100" x2="354" y2="100" stroke="#2a2f40"></line>
+      <text x="16" y="120" fill="#6b7180" font-size="11">In your CRM · open deal · stage Demo</text>
+      <rect x="16" y="128" width="120" height="24" rx="6" fill="#6ea8ff"></rect>
+      <text x="42" y="144" fill="#0f1115" font-weight="700" font-size="11">View deal</text>
+    </g>
+    <!-- Card 5 -->
+    <g transform="translate(388,196)">
+      <rect width="370" height="160" rx="10" fill="#1c2030" stroke="#2a2f40"></rect>
+      <rect x="0" y="0" width="4" height="160" fill="#ff6b9d"></rect>
+      <rect x="16" y="14" width="100" height="22" rx="11" fill="#ff6b9d" opacity="0.18" stroke="#ff6b9d"></rect>
+      <text x="28" y="29" fill="#ff6b9d" font-size="11" font-weight="600">HIRING</text>
+      <text x="320" y="29" fill="#a4abbb" font-size="11">3d ago</text>
+      <text x="16" y="62" fill="#e8eaef" font-size="16" font-weight="700">Vandelay hiring 8 engineers</text>
+      <text x="16" y="82" fill="#a4abbb" font-size="12">Including a "Head of Developer Platform"</text>
+      <line x1="16" y1="100" x2="354" y2="100" stroke="#2a2f40"></line>
+      <text x="16" y="120" fill="#6b7180" font-size="11">No deal yet · ICP match: 87%</text>
+      <rect x="16" y="128" width="120" height="24" rx="6" fill="#6ea8ff"></rect>
+      <text x="42" y="144" fill="#0f1115" font-weight="700" font-size="11">+ Create deal</text>
+    </g>
+    <g transform="translate(776,196)">
+      <rect width="370" height="160" rx="10" fill="#1c2030" stroke="#2a2f40"></rect>
+      <rect x="0" y="0" width="4" height="160" fill="#6ea8ff"></rect>
+      <rect x="16" y="14" width="100" height="22" rx="11" fill="#6ea8ff" opacity="0.18" stroke="#6ea8ff"></rect>
+      <text x="28" y="29" fill="#6ea8ff" font-size="11" font-weight="600">JOB CHANGE</text>
+      <text x="320" y="29" fill="#a4abbb" font-size="11">2d ago</text>
+      <text x="16" y="62" fill="#e8eaef" font-size="16" font-weight="700">CTO at Hooli left for stealth co</text>
+      <text x="16" y="82" fill="#a4abbb" font-size="12">Could indicate budget freeze on open deal</text>
+      <line x1="16" y1="100" x2="354" y2="100" stroke="#2a2f40"></line>
+      <text x="16" y="120" fill="#ff7a7a" font-size="11">⚠ Affects deal: Hooli Q3 ($140K)</text>
+      <rect x="16" y="128" width="120" height="24" rx="6" fill="#ff7a7a"></rect>
+      <text x="38" y="144" fill="#0f1115" font-weight="700" font-size="11">Review deal risk</text>
+    </g>
+  </g>
+</svg>
+<div class="caption">A8 · Signals Feed — typed pills filter signal categories · each card carries score + CRM context + one primary action · negative signals (CTO leaving) trigger red action</div>
+</div>
+
+<div class="example"><div class="who">Common Room — the original signal aggregator</div><p>Built for PLG / community. Surfaces who's engaging with your community/docs/free tier and lets you trigger sales play.</p></div>
+<div class="example"><div class="who">Default / Pocus — PLG-native CRMs</div><p>Default treats signals as first-class records; Pocus puts a "PQL score" on every signal and lets ops build scoring rules visually.</p></div>
+
+<!-- =================== C13 WORKFLOW BUILDER =================== -->
+<h3>5.7 C13 — Workflow / Automation Builder</h3>
+<p>The screen that makes the product programmable. Almost no rep ever opens it, but ops admins live here.</p>
+
+<div class="mockup">
+<svg viewBox="0 0 1180 560" xmlns="http://www.w3.org/2000/svg" font-family="Inter, sans-serif" font-size="12">
+  <rect width="1180" height="560" rx="8" fill="#161922"></rect>
+  <!-- top toolbar -->
+  <rect width="1180" height="56" fill="#11141d"></rect>
+  <text x="22" y="34" fill="#e8eaef" font-size="18" font-weight="700">Workflow</text>
+  <text x="115" y="34" fill="#a4abbb" font-size="13">— New MQL → SDR Assignment</text>
+  <circle cx="500" cy="28" r="5" fill="#6ee7a1"></circle>
+  <text x="514" y="32" fill="#6ee7a1" font-size="12">Live</text>
+  <text x="554" y="32" fill="#6b7180" font-size="12">Last run 2m ago · 1,847 enrollments this Q</text>
+  <rect x="940" y="14" width="80" height="28" rx="6" fill="#1c2030" stroke="#2a2f40"></rect>
+  <text x="956" y="33" fill="#a4abbb">Test run</text>
+  <rect x="1028" y="14" width="80" height="28" rx="6" fill="#1c2030" stroke="#2a2f40"></rect>
+  <text x="1046" y="33" fill="#a4abbb">History</text>
+  <rect x="1116" y="14" width="48" height="28" rx="6" fill="#6ea8ff"></rect>
+  <text x="1130" y="33" fill="#0f1115" font-weight="700">Save</text>
+
+  <!-- Left sidebar: blocks library -->
+  <rect x="0" y="56" width="200" height="504" fill="#11141d"></rect>
+  <text x="16" y="80" fill="#a4abbb" font-family="ui-monospace, monospace" font-size="11" letter-spacing="1">BLOCKS</text>
+  <g font-size="12" transform="translate(16,96)">
+    <text fill="#6b7180" font-size="11">TRIGGERS</text>
+    <rect y="10" width="168" height="28" rx="6" fill="#1c2030" stroke="#2a2f40"></rect>
+    <text x="12" y="29" fill="#e8eaef">⚡ Record created</text>
+    <rect y="46" width="168" height="28" rx="6" fill="#1c2030" stroke="#2a2f40"></rect>
+    <text x="12" y="65" fill="#e8eaef">⚡ Field changed</text>
+    <rect y="82" width="168" height="28" rx="6" fill="#1c2030" stroke="#2a2f40"></rect>
+    <text x="12" y="101" fill="#e8eaef">⚡ Signal received</text>
+    <rect y="118" width="168" height="28" rx="6" fill="#1c2030" stroke="#2a2f40"></rect>
+    <text x="12" y="137" fill="#e8eaef">⚡ Time-based</text>
+
+    <text y="170" fill="#6b7180" font-size="11">ACTIONS</text>
+    <rect y="180" width="168" height="28" rx="6" fill="#1c2030" stroke="#2a2f40"></rect>
+    <text x="12" y="199" fill="#e8eaef">⚙ Update field</text>
+    <rect y="216" width="168" height="28" rx="6" fill="#1c2030" stroke="#2a2f40"></rect>
+    <text x="12" y="235" fill="#e8eaef">📧 Send email</text>
+    <rect y="252" width="168" height="28" rx="6" fill="#1c2030" stroke="#2a2f40"></rect>
+    <text x="12" y="271" fill="#e8eaef">🎯 Assign owner</text>
+    <rect y="288" width="168" height="28" rx="6" fill="#1c2030" stroke="#2a2f40"></rect>
+    <text x="12" y="307" fill="#e8eaef">🚀 Enroll in sequence</text>
+    <rect y="324" width="168" height="28" rx="6" fill="#1c2030" stroke="#2a2f40"></rect>
+    <text x="12" y="343" fill="#e8eaef">💬 Post to Slack</text>
+    <rect y="360" width="168" height="28" rx="6" fill="#1c2030" stroke="#2a2f40"></rect>
+    <text x="12" y="379" fill="#e8eaef">🔗 Call webhook</text>
+  </g>
+
+  <!-- Canvas -->
+  <g transform="translate(220, 80)">
+    <!-- Trigger node -->
+    <g>
+      <rect x="120" width="220" height="64" rx="10" fill="#1c2030" stroke="#6ea8ff" stroke-width="2"></rect>
+      <text x="136" y="22" fill="#6ea8ff" font-family="ui-monospace, monospace" font-size="11">⚡ TRIGGER</text>
+      <text x="136" y="42" fill="#e8eaef" font-weight="600">Lead created</text>
+      <text x="136" y="58" fill="#a4abbb" font-size="11">filter: source=Form · score ≥ 40</text>
+    </g>
+    <!-- arrow -->
+    <path d="M 230 70 L 230 92" stroke="#6ea8ff" stroke-width="2" fill="none"></path>
+    <polygon points="226,88 234,88 230,96" fill="#6ea8ff"></polygon>
+
+    <!-- Enrich node -->
+    <g transform="translate(0,98)">
+      <rect x="120" width="220" height="56" rx="10" fill="#1c2030" stroke="#2a2f40"></rect>
+      <text x="136" y="22" fill="#a4abbb" font-family="ui-monospace, monospace" font-size="11">⚙ ENRICH</text>
+      <text x="136" y="42" fill="#e8eaef" font-weight="600">Apollo enrichment</text>
+    </g>
+    <path d="M 230 154 L 230 174" stroke="#6ea8ff" stroke-width="2" fill="none"></path>
+    <polygon points="226,170 234,170 230,178" fill="#6ea8ff"></polygon>
+
+    <!-- Branch (IF) -->
+    <g transform="translate(0,180)">
+      <polygon points="230,0 280,28 230,56 180,28" fill="#1c2030" stroke="#ffb86b" stroke-width="2"></polygon>
+      <text x="208" y="34" fill="#ffb86b" font-size="12" font-weight="600">headcount &gt; 500?</text>
+    </g>
+    <!-- branch lines -->
+    <path d="M 180 208 L 60 248" stroke="#ffb86b" stroke-width="2" fill="none"></path>
+    <text x="80" y="232" fill="#ffb86b" font-size="11">yes</text>
+    <path d="M 280 208 L 400 248" stroke="#ffb86b" stroke-width="2" fill="none"></path>
+    <text x="380" y="232" fill="#ffb86b" font-size="11">no</text>
+
+    <!-- Yes branch: Enterprise SDR -->
+    <g transform="translate(0,254)">
+      <rect width="240" height="56" rx="10" fill="#1c2030" stroke="#2a2f40"></rect>
+      <text x="16" y="22" fill="#a4abbb" font-family="ui-monospace, monospace" font-size="11">🎯 ASSIGN</text>
+      <text x="16" y="42" fill="#e8eaef" font-weight="600">Enterprise SDR (round-robin)</text>
+    </g>
+    <g transform="translate(0,326)">
+      <rect width="240" height="56" rx="10" fill="#1c2030" stroke="#2a2f40"></rect>
+      <text x="16" y="22" fill="#a4abbb" font-family="ui-monospace, monospace" font-size="11">🚀 SEQUENCE</text>
+      <text x="16" y="42" fill="#e8eaef" font-weight="600">Enroll: ENT Outbound (3-touch)</text>
+    </g>
+
+    <!-- No branch: SMB SDR -->
+    <g transform="translate(340,254)">
+      <rect width="240" height="56" rx="10" fill="#1c2030" stroke="#2a2f40"></rect>
+      <text x="16" y="22" fill="#a4abbb" font-family="ui-monospace, monospace" font-size="11">🎯 ASSIGN</text>
+      <text x="16" y="42" fill="#e8eaef" font-weight="600">SMB SDR (round-robin)</text>
+    </g>
+    <g transform="translate(340,326)">
+      <rect width="240" height="56" rx="10" fill="#1c2030" stroke="#2a2f40"></rect>
+      <text x="16" y="22" fill="#a4abbb" font-family="ui-monospace, monospace" font-size="11">🚀 SEQUENCE</text>
+      <text x="16" y="42" fill="#e8eaef" font-weight="600">Enroll: SMB Outbound (5-touch)</text>
+    </g>
+
+    <!-- vertical connectors within branch -->
+    <line x1="120" y1="310" x2="120" y2="326" stroke="#2a2f40"></line>
+    <line x1="460" y1="310" x2="460" y2="326" stroke="#2a2f40"></line>
+
+    <!-- Converge -->
+    <path d="M 120 382 L 120 410 L 290 410" stroke="#6ea8ff" stroke-width="2" fill="none"></path>
+    <path d="M 460 382 L 460 410 L 290 410" stroke="#6ea8ff" stroke-width="2" fill="none"></path>
+
+    <!-- Slack node -->
+    <g transform="translate(180,420)">
+      <rect width="220" height="56" rx="10" fill="#1c2030" stroke="#2a2f40"></rect>
+      <text x="16" y="22" fill="#a4abbb" font-family="ui-monospace, monospace" font-size="11">💬 NOTIFY</text>
+      <text x="16" y="42" fill="#e8eaef" font-weight="600">Post to #sales-mqls</text>
+    </g>
+  </g>
+
+  <!-- Right inspector -->
+  <g transform="translate(900, 80)">
+    <text fill="#a4abbb" font-family="ui-monospace, monospace" font-size="11" letter-spacing="1">INSPECTOR · ENRICH</text>
+    <rect y="14" width="260" height="380" rx="10" fill="#1c2030" stroke="#2a2f40"></rect>
+    <text x="14" y="38" fill="#6b7180" font-size="11">Provider</text>
+    <rect x="14" y="44" width="232" height="28" rx="6" fill="#161922" stroke="#2a2f40"></rect>
+    <text x="26" y="63" fill="#e8eaef">Apollo ▾</text>
+    <text x="14" y="92" fill="#6b7180" font-size="11">Fields to enrich</text>
+    <g transform="translate(14, 102)" font-size="11">
+      <rect width="232" height="22" rx="4" fill="#161922" stroke="#2a2f40"></rect>
+      <text x="10" y="16" fill="#e8eaef">☑ Industry</text>
+      <rect y="26" width="232" height="22" rx="4" fill="#161922" stroke="#2a2f40"></rect>
+      <text x="10" y="42" fill="#e8eaef">☑ Headcount</text>
+      <rect y="52" width="232" height="22" rx="4" fill="#161922" stroke="#2a2f40"></rect>
+      <text x="10" y="68" fill="#e8eaef">☑ Tech stack</text>
+      <rect y="78" width="232" height="22" rx="4" fill="#161922" stroke="#2a2f40"></rect>
+      <text x="10" y="94" fill="#e8eaef">☑ Funding</text>
+      <rect y="104" width="232" height="22" rx="4" fill="#161922" stroke="#2a2f40"></rect>
+      <text x="10" y="120" fill="#e8eaef">☐ Revenue</text>
+    </g>
+    <text x="14" y="252" fill="#6b7180" font-size="11">Fallback</text>
+    <rect x="14" y="258" width="232" height="28" rx="6" fill="#161922" stroke="#2a2f40"></rect>
+    <text x="26" y="277" fill="#e8eaef">If empty: keep going ▾</text>
+    <text x="14" y="306" fill="#6b7180" font-size="11">Performance (30d)</text>
+    <text x="14" y="328" fill="#e8eaef" font-size="11">2,140 enrichments</text>
+    <text x="14" y="346" fill="#6ee7a1" font-size="11">97% match rate</text>
+    <text x="14" y="364" fill="#ffb86b" font-size="11">avg 1.2s · within SLA</text>
+  </g>
+</svg>
+<div class="caption">C13 · Workflow Builder — block library left · canvas center with diamond branches · inspector right showing live performance stats for the selected node</div>
+</div>
+
+<div class="example"><div class="who">Salesforce Flow — the most powerful, the ugliest</div><p>Capable of running entire businesses; the UI is feared. Modern Salesforce orgs hire dedicated Flow architects.</p></div>
+<div class="example"><div class="who">HubSpot Workflows — the most approachable</div><p>Linear-ish layout, branching collapsed by default. Good defaults for sales-ops people who aren't engineers.</p></div>
+<div class="example"><div class="who">Attio Automations — the modern attempt</div><p>Visual-flow editor that feels like Linear or Notion. Less powerful than Salesforce Flow but 5× easier to use.</p></div>
+
+</section>
+
+<!-- ============ STACK ============ -->
+<section id="stack">
+<h2>6. Part 4 — How they layer (the IA / nav model)</h2>
+<p class="lead">A modern CRM's left navigation has 7-9 top-level destinations. Here's the model from the mockups, with the canonical surfaces below each.</p>
+
+<div class="mockup">
+<svg viewBox="0 0 1180 320" xmlns="http://www.w3.org/2000/svg" font-family="Inter, sans-serif" font-size="13">
+  <rect width="1180" height="320" rx="8" fill="#161922"></rect>
+  <!-- Top: global -->
+  <rect width="1180" height="56" fill="#11141d"></rect>
+  <text x="22" y="32" fill="#e8eaef" font-weight="700">FunnelOS</text>
+  <rect x="380" y="14" width="420" height="28" rx="14" fill="#1c2030" stroke="#2a2f40"></rect>
+  <text x="394" y="33" fill="#a4abbb">⌘K  Universal AI search · ask anything</text>
+  <text x="900" y="32" fill="#a4abbb" font-size="12">D1 search · D2 notifications · A9 AI bar — always visible</text>
+
+  <!-- Left nav with screen IDs -->
+  <rect x="0" y="56" width="220" height="264" fill="#11141d"></rect>
+  <g font-size="13">
+    <text x="16" y="84" fill="#6b7180" font-family="ui-monospace, monospace" font-size="11" letter-spacing="1">REP DESTINATIONS</text>
+    <rect x="8" y="92" width="204" height="28" rx="6" fill="#6ea8ff" opacity="0.15"></rect>
+    <text x="22" y="111" fill="#6ea8ff" font-weight="600">◉ Day</text>
+    <text x="172" y="111" fill="#6ea8ff" font-size="11">A1</text>
+    <text x="22" y="138" fill="#a4abbb">◐ Pipeline</text>
+    <text x="172" y="138" fill="#6b7180" font-size="11">A2/A3</text>
+    <text x="22" y="160" fill="#a4abbb">◐ Inbox</text>
+    <text x="172" y="160" fill="#6b7180" font-size="11">A5</text>
+    <text x="22" y="182" fill="#a4abbb">◐ Signals</text>
+    <text x="172" y="182" fill="#6b7180" font-size="11">A8</text>
+    <text x="22" y="204" fill="#a4abbb">◐ Calls</text>
+    <text x="172" y="204" fill="#6b7180" font-size="11">B6</text>
+    <text x="22" y="226" fill="#a4abbb">◐ Contacts / Cos</text>
+    <text x="172" y="226" fill="#6b7180" font-size="11">B1/B2</text>
+    <text x="22" y="248" fill="#a4abbb">◐ Forecast</text>
+    <text x="172" y="248" fill="#6b7180" font-size="11">A4</text>
+    <text x="22" y="270" fill="#a4abbb">◐ Reports</text>
+    <text x="172" y="270" fill="#6b7180" font-size="11">C1-C9</text>
+    <line x1="16" y1="286" x2="200" y2="286" stroke="#2a2f40"></line>
+    <text x="22" y="304" fill="#6b7180">⊙ Settings (admin)</text>
+    <text x="172" y="304" fill="#6b7180" font-size="11">C11</text>
+  </g>
+
+  <!-- Right: how content area maps to record types -->
+  <g transform="translate(244, 76)">
+    <text fill="#a4abbb" font-family="ui-monospace, monospace" font-size="11" letter-spacing="1">CONTENT AREA — RESOLVES TO ONE OF:</text>
+    <g transform="translate(0, 24)">
+      <rect width="280" height="80" rx="8" fill="#1c2030" stroke="#2a2f40"></rect>
+      <text x="14" y="20" fill="#e8eaef" font-weight="600">List / Table</text>
+      <text x="14" y="38" fill="#a4abbb" font-size="11">A3 Pipeline List · B1/B2 Contacts/Cos list</text>
+      <text x="14" y="58" fill="#6b7180" font-size="11">columns · filters · saved views (D6/D7)</text>
+    </g>
+    <g transform="translate(304, 24)">
+      <rect width="280" height="80" rx="8" fill="#1c2030" stroke="#2a2f40"></rect>
+      <text x="14" y="20" fill="#e8eaef" font-weight="600">Board / Kanban</text>
+      <text x="14" y="38" fill="#a4abbb" font-size="11">A2 Pipeline · drag-to-stage</text>
+      <text x="14" y="58" fill="#6b7180" font-size="11">card density · density toggle</text>
+    </g>
+    <g transform="translate(608, 24)">
+      <rect width="280" height="80" rx="8" fill="#1c2030" stroke="#2a2f40"></rect>
+      <text x="14" y="20" fill="#e8eaef" font-weight="600">Record</text>
+      <text x="14" y="38" fill="#a4abbb" font-size="11">B1/B2/B3/B4 — 3-column with timeline</text>
+      <text x="14" y="58" fill="#6b7180" font-size="11">inline edit · @mentions · presence</text>
+    </g>
+    <g transform="translate(0, 116)">
+      <rect width="280" height="80" rx="8" fill="#1c2030" stroke="#2a2f40"></rect>
+      <text x="14" y="20" fill="#e8eaef" font-weight="600">Feed / Queue</text>
+      <text x="14" y="38" fill="#a4abbb" font-size="11">A1 Day · A8 Signals · A5 Inbox</text>
+      <text x="14" y="58" fill="#6b7180" font-size="11">grouped by type · score-sortable</text>
+    </g>
+    <g transform="translate(304, 116)">
+      <rect width="280" height="80" rx="8" fill="#1c2030" stroke="#2a2f40"></rect>
+      <text x="14" y="20" fill="#e8eaef" font-weight="600">Canvas / Flow</text>
+      <text x="14" y="38" fill="#a4abbb" font-size="11">C13 Workflow · C14 Sequence</text>
+      <text x="14" y="58" fill="#6b7180" font-size="11">left blocks · canvas · right inspector</text>
+    </g>
+    <g transform="translate(608, 116)">
+      <rect width="280" height="80" rx="8" fill="#1c2030" stroke="#2a2f40"></rect>
+      <text x="14" y="20" fill="#e8eaef" font-weight="600">Report / Dashboard</text>
+      <text x="14" y="38" fill="#a4abbb" font-size="11">C1-C9 · widget grid</text>
+      <text x="14" y="58" fill="#6b7180" font-size="11">drill-through to list/record</text>
+    </g>
+  </g>
+</svg>
+<div class="caption">The whole product is six content-area patterns × eight destinations. If you nail the six patterns, the rest of the 52 screens compose from them.</div>
+</div>
+</section>
+
+<!-- ============ ANTI ============ -->
+<section id="anti">
+<h2>7. Anti-patterns to avoid</h2>
+<div class="grid-2">
+  <div class="panel">
+    <h4>The mistakes</h4>
+    <ul>
+      <li><strong>Dashboard-as-homepage.</strong> Reps don't want pie charts at 9am — they want a queue.</li>
+      <li><strong>Pipeline as the only deal view.</strong> Kanban breaks at &gt;200 deals. Always offer list mode.</li>
+      <li><strong>AI as a separate page.</strong> The copilot is a sidebar or command bar, never a "/ai" route.</li>
+      <li><strong>Tabs on the record screen.</strong> Modern records use scroll-stitched sections, not tabs that hide state.</li>
+      <li><strong>"Stage" as the only deal health signal.</strong> Add days-in-stage, engagement, multi-threading, idle.</li>
+      <li><strong>Form-style edit screens.</strong> Every field should be inline-editable on hover. Edit modals are a 2010 UX.</li>
+      <li><strong>Required-field walls.</strong> Make field requirements stage-gated, not creation-gated.</li>
+      <li><strong>"Search" that matches one object type.</strong> Universal search across contacts, companies, deals, notes is table stakes.</li>
+    </ul>
+  </div>
+  <div class="panel">
+    <h4>The bar to clear</h4>
+    <ul>
+      <li>Pipeline loads in &lt; 800ms for 500 deals.</li>
+      <li>Every record has one-click jump from email plugin and Slack.</li>
+      <li>Custom fields take &lt; 60s to add (admin) and appear immediately (rep).</li>
+      <li>AI summary on any call &lt; 2 min after upload.</li>
+      <li>Mobile pipeline is one-handed-thumb usable.</li>
+      <li>Keyboard shortcut to every primary action in A1, A2, B3.</li>
+      <li>List views support 50,000-row datasets without virtualization breaking.</li>
+      <li>Every feature has a no-code path AND an API path.</li>
+    </ul>
+  </div>
+</div>
+</section>
+
+<div class="footer">
+  Sales Funnel CRM · Feature &amp; Screen Inventory · v2.0 with SVG mockups.<br>
+  Reference set: Salesforce · HubSpot · Pipedrive · Attio · Folk · Close · Apollo · Outreach · Salesloft · Gong · Clay · Common Room · Default · Pocus · Clari · Front · Dock · DealHub.
+</div>
+
+</div>
+
+
+</body></html>

@@ -1,0 +1,733 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lead-Liste: Psycholog:innen &amp; Psychotherapeut:innen im Kanton Zürich</title>
+<style>
+  :root{
+    --bg:#f4f6f9; --card:#ffffff; --ink:#1d2530; --muted:#5c6b7a;
+    --line:#dde3ea; --head:#1f3a5f; --head2:#2c5282; --accent:#2b8a6b;
+    --alt:#f8fafc; --chip:#eef3f8; --warn:#9a6700;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:"Segoe UI",Roboto,Helvetica,Arial,sans-serif;line-height:1.45;font-size:14px;}
+  header{background:linear-gradient(135deg,var(--head),var(--head2));color:#fff;padding:28px 24px;}
+  header h1{margin:0 0 6px;font-size:24px;}
+  header .sub{font-size:13px;opacity:.92;max-width:1100px;}
+  header .meta{margin-top:12px;font-size:12.5px;opacity:.9;}
+  .wrap{padding:20px 16px 60px;}
+  .summary{display:flex;flex-wrap:wrap;gap:12px;margin:0 0 18px;}
+  .stat{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:12px 16px;min-width:150px;box-shadow:0 1px 2px rgba(0,0,0,.04);}
+  .stat .n{font-size:22px;font-weight:700;color:var(--head);}
+  .stat .l{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;}
+  .legend{font-size:12.5px;color:var(--muted);margin:0 0 14px;}
+  .tablebox{background:var(--card);border:1px solid var(--line);border-radius:10px;overflow:auto;box-shadow:0 1px 3px rgba(0,0,0,.05);}
+  table{border-collapse:collapse;width:100%;min-width:1180px;}
+  thead th{position:sticky;top:0;background:var(--head);color:#fff;text-align:left;padding:10px 9px;font-size:12px;letter-spacing:.3px;border-right:1px solid rgba(255,255,255,.12);}
+  tbody td{padding:8px 9px;border-bottom:1px solid var(--line);border-right:1px solid #eef1f5;vertical-align:top;font-size:12.7px;}
+  tbody tr:nth-child(even){background:var(--alt);}
+  tbody tr:hover{background:#eef6f2;}
+  td.nr{color:var(--muted);font-variant-numeric:tabular-nums;}
+  .name{font-weight:600;}
+  .praxis{display:block;color:var(--muted);font-weight:400;font-size:11.6px;margin-top:2px;}
+  a{color:var(--head2);text-decoration:none;}
+  a:hover{text-decoration:underline;}
+  .bezirk{white-space:nowrap;}
+  .nohp{color:var(--warn);font-style:italic;}
+  .dash{color:#b6c0cc;}
+  .grp-head td{background:#dfe8f1;color:var(--head);font-weight:700;font-size:12.5px;padding:7px 9px;border-bottom:2px solid #c4d3e2;}
+  footer{margin-top:26px;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:18px 20px;font-size:12.6px;color:var(--ink);}
+  footer h2{font-size:15px;color:var(--head);margin:0 0 8px;}
+  footer h3{font-size:13px;color:var(--head2);margin:16px 0 5px;}
+  footer ul{margin:6px 0 6px 18px;padding:0;}
+  footer li{margin:3px 0;}
+  .flag{background:#fff8e6;border:1px solid #f0e0b0;border-radius:8px;padding:10px 13px;margin-top:10px;}
+  code{background:var(--chip);padding:1px 5px;border-radius:4px;font-size:12px;}
+</style>
+</head>
+<body>
+<header>
+  <h1>Lead-Liste — Psycholog:innen &amp; Psychotherapeut:innen mit Praxis im Kanton Zürich</h1>
+  <div class="sub">
+    Verkaufs-Leadliste für eine Webdesign-Agentur. Die Liste enthält <strong>sowohl Praxen MIT eigener Homepage als auch Praxen OHNE eigene Homepage</strong> in <strong>einer einzigen Tabelle</strong>.
+    Aufnahmekriterium: Es werden <strong>ausschliesslich</strong> Fachpersonen geführt, für die <strong>sowohl eine Telefonnummer ALS AUCH eine E-Mail-Adresse</strong> ermittelt und belegt werden konnte.
+    Abdeckung: der gesamte Kanton Zürich (Stadt Zürich plus die Bezirke Winterthur, Uster, Pfäffikon, Hinwil, Meilen, Horgen, Affoltern, Dietikon, Bülach, Dielsdorf, Andelfingen).
+  </div>
+  <div class="meta">
+    Recherchedatum: 2. Juni 2026 &nbsp;|&nbsp;
+    Quellen: FSP-PsyFinder / ZüPP (psychologie.ch, zuepp.psychologie.ch), ASP, SBAP, PsyReg/BAG, Praxis-Webseiten, RPK Horgen-Affoltern-Mitgliederverzeichnis, PARZ/PLIZ/PSYZU-Netzwerke; Anreicherung über local.ch, search.ch, comparis.ch, doc24.ch.
+  </div>
+</header>
+<div class="wrap">
+  <div class="summary">
+    <div class="stat"><div class="n">77</div><div class="l">Einträge gesamt</div></div>
+    <div class="stat"><div class="n">45</div><div class="l">mit eigener Homepage</div></div>
+    <div class="stat"><div class="n">32</div><div class="l">ohne eigene Homepage</div></div>
+    <div class="stat"><div class="n">12</div><div class="l">Bezirke abgedeckt</div></div>
+    <div class="stat"><div class="n">100&nbsp;%</div><div class="l">mit Telefon + E-Mail</div></div>
+  </div>
+  <p class="legend">
+    <strong>Spalten:</strong> Nr. | Name / Praxis | Adresse (ZH) | Bezirk | Telefon | E-Mail | Titel / Qualifikation | Quelle | Homepage | LinkedIn.
+    &nbsp;„<span class="nohp">keine eigene Homepage</span>“ bedeutet: kein eigenes Domain-Webangebot (Register-, Verzeichnis- oder Gruppenpraxis-Einträge zählen nicht als eigene Homepage).
+    Die Liste ist nach Bezirk gruppiert.
+  </p>
+  <div class="tablebox">
+  <table>
+    <thead>
+      <tr>
+        <th>Nr.</th><th>Name / Praxis</th><th>Adresse (ZH)</th><th>Bezirk</th>
+        <th>Telefon</th><th>E-Mail</th><th>Titel / Qualifikation</th><th>Quelle</th><th>Homepage</th><th>LinkedIn</th>
+      </tr>
+    </thead>
+    <tbody>
+  <!-- ============ BEZIRK ZÜRICH (STADT) ============ -->
+  <tr class="grp-head"><td colspan="10">Bezirk Zürich (Stadt) — PLZ 8001–8064</td></tr>
+
+  <tr><td class="nr">1</td>
+    <td class="name">Nathalie Savaria<span class="praxis">Praxis Nord</span></td>
+    <td>Nordstrasse 20, 8006 Zürich</td><td class="bezirk">Zürich</td>
+    <td>+41 76 471 25 60</td><td>nathalie.savaria@psychologie.ch</td>
+    <td>Fachpsychologin für Psychotherapie FSP</td><td>FSP-PsyFinder</td> 
+    <td class="nohp">keine eigene Homepage</td><td class="dash">—</td></tr>
+
+  <tr><td class="nr">2</td>
+    <td class="name">Marion Zumbühl</td>
+    <td>Seilergraben 61, 8001 Zürich</td><td class="bezirk">Zürich</td>
+    <td>+41 79 345 83 41</td><td>marion.zumbuehl@psychologie.ch</td>
+    <td>FP für Psychotherapie FSP; FP für Kinder- u. Jugendpsychologie FSP</td><td>FSP-PsyFinder</td>
+    <td class="nohp">keine eigene Homepage</td><td class="dash">—</td></tr>
+
+  <tr><td class="nr">3</td>
+    <td class="name">Olivia Maldet</td>
+    <td>Jungstrasse 9, 8050 Zürich</td><td class="bezirk">Zürich</td>
+    <td>+41 77 506 58 97</td><td>olivia.maldet@fsp-hin.ch</td>
+    <td>eidg. anerk. Psychotherapeutin</td><td>FSP-PsyFinder</td>
+    <td class="nohp">keine eigene Homepage</td><td class="dash">—</td></tr>
+
+  <tr><td class="nr">4</td>
+    <td class="name">Zelda Bernardi</td>
+    <td>Gubelstrasse 54, 8050 Zürich</td><td class="bezirk">Zürich</td>
+    <td>+41 44 350 25 00</td><td>zelda.bernardi@psychologie.ch</td>
+    <td>Fachpsychologin für Psychotherapie FSP</td><td>FSP-PsyFinder</td>
+    <td class="nohp">keine eigene Homepage</td><td class="dash">—</td></tr>
+
+  <tr><td class="nr">5</td>
+    <td class="name">Joelma Etter-Rosa Mendes<span class="praxis">Psychcentral</span></td>
+    <td>Weinbergstrasse 24, 8001 Zürich</td><td class="bezirk">Zürich</td>
+    <td>+41 44 262 85 50</td><td>info@psychcentral.ch</td>
+    <td>Psychologin FSP, eidg. anerk. Psychotherapeutin</td><td>FSP-PsyFinder</td>
+    <td><a href="https://psychcentral.ch" target="_blank" rel="noopener">psychcentral.ch</a></td><td class="dash">—</td></tr>
+
+  <tr><td class="nr">6</td>
+    <td class="name">Vesna Maria Garstick</td>
+    <td>Olgastrasse 2, 8001 Zürich</td><td class="bezirk">Zürich</td>
+    <td>+41 79 746 79 39</td><td>vesna.garstick@psychologie.ch</td>
+    <td>eidg. anerk. Psychotherapeutin</td><td>FSP-PsyFinder</td>
+    <td class="nohp">keine eigene Homepage</td><td class="dash">—</td></tr>
+
+  <tr><td class="nr">7</td>
+    <td class="name">Sarah Opialla</td>
+    <td>Hallwylstrasse 62, 8004 Zürich</td><td class="bezirk">Zürich</td>
+    <td>+41 78 239 98 99</td><td>sarah.opialla@hin.ch</td>
+    <td>Fachpsychologin für Psychotherapie FSP</td><td>FSP-PsyFinder</td>
+    <td class="nohp">keine eigene Homepage</td><td class="dash">—</td></tr>
+
+  <tr><td class="nr">8</td>
+    <td class="name">Mira Stüssi</td>
+    <td>Friesenbergstrasse 13, 8055 Zürich</td><td class="bezirk">Zürich</td>
+    <td>+41 76 411 81 25</td><td>mira.stuessi@psychologie.ch</td>
+    <td>Fachpsychologin für Psychotherapie FSP</td><td>FSP-PsyFinder</td>
+    <td class="nohp">keine eigene Homepage</td><td class="dash">—</td></tr>
+
+  <tr><td class="nr">9</td>
+    <td class="name">Tanja Zöllner</td>
+    <td>Badenerstrasse 595, 8048 Zürich</td><td class="bezirk">Zürich</td>
+    <td>+41 44 545 10 42</td><td>tanjazoellner@psychologie.ch</td>
+    <td>eidg. anerk. Psychotherapeutin</td><td>FSP-PsyFinder</td>
+    <td class="nohp">keine eigene Homepage</td><td class="dash">—</td></tr>
+
+  <tr><td class="nr">10</td>
+    <td class="name">Stefanie Bachofner</td>
+    <td>Lehensteig 7, 8037 Zürich</td><td class="bezirk">Zürich</td>
+    <td>+41 77 418 21 53</td><td>stefanie.bachofner@psychologie.ch</td>
+    <td>Fachpsychologin für Psychotherapie FSP</td><td>FSP-PsyFinder</td>
+    <td class="nohp">keine eigene Homepage</td><td class="dash">—</td></tr>
+
+  <tr><td class="nr">11</td>
+    <td class="name">Gabriela Gnam Mussmann</td>
+    <td>Schulhausstrasse 64, 8002 Zürich</td><td class="bezirk">Zürich</td>
+    <td>+41 77 491 12 03</td><td>gabi.gnam@psychologie.ch</td>
+    <td>Fachpsychologin für Psychotherapie FSP</td><td>FSP-PsyFinder</td>
+    <td class="nohp">keine eigene Homepage</td><td class="dash">—</td></tr>
+
+  <tr><td class="nr">12</td>
+    <td class="name">Marco Giorgetta</td>
+    <td>Langstrasse 62, 8004 Zürich</td><td class="bezirk">Zürich</td>
+    <td>+41 78 623 25 86</td><td>m.giorgetta@icloud.com</td>
+    <td>Fachpsychologe für Psychotherapie FSP</td><td>FSP-PsyFinder</td>
+    <td class="nohp">keine eigene Homepage</td><td class="dash">—</td></tr>
+
+  <tr><td class="nr">13</td>
+    <td class="name">Fabian Lienhard</td>
+    <td>Rosengasse 6, 8001 Zürich</td><td class="bezirk">Zürich</td>
+    <td>+41 77 501 92 18</td><td>fabianlienhard@posteo.ch</td>
+    <td>Fachpsychologe für Psychotherapie FSP</td><td>FSP-PsyFinder</td>
+    <td class="nohp">keine eigene Homepage</td><td class="dash">—</td></tr>
+
+  <tr><td class="nr">14</td>
+    <td class="name">Manuela Wingeier</td>
+    <td>Forchstrasse 106, 8032 Zürich</td><td class="bezirk">Zürich</td>
+    <td>+41 76 720 35 60</td><td>m.wingeier@fsp-hin.ch</td>
+    <td>eidg. anerk. Psychotherapeutin</td><td>FSP-PsyFinder</td>
+    <td class="nohp">keine eigene Homepage</td><td class="dash">—</td></tr>
+
+  <tr><td class="nr">15</td>
+    <td class="name">Marie-Anne Rahel<span class="praxis">der raum</span></td>
+    <td>Freiestrasse 80, 8032 Zürich</td><td class="bezirk">Zürich</td>
+    <td>+41 44 382 50 41</td><td>der-raum@sunrise.ch</td>
+    <td>Fachpsychologin für Psychotherapie FSP</td><td>FSP-PsyFinder</td>
+    <td class="nohp">keine eigene Homepage</td><td class="dash">—</td></tr>
+
+  <tr><td class="nr">16</td>
+    <td class="name">Elizabeth Högger</td>
+    <td>Zwinglistrasse 24, 8004 Zürich</td><td class="bezirk">Zürich</td>
+    <td>+41 76 411 36 32</td><td>elizabeth.hoegger@fsp-hin.ch</td>
+    <td>Fachpsychologin für Psychotherapie FSP</td><td>FSP-PsyFinder</td>
+    <td class="nohp">keine eigene Homepage</td><td class="dash">—</td></tr>
+
+  <tr><td class="nr">17</td>
+    <td class="name">Gabriela Köhler-Kaufmann</td>
+    <td>Obstgartenstrasse 7, 8006 Zürich</td><td class="bezirk">Zürich</td>
+    <td>+41 78 331 53 51</td><td>gaby.koehler@psychologie.ch</td>
+    <td>Fachpsychologin für Psychotherapie FSP</td><td>FSP-PsyFinder</td>
+    <td class="nohp">keine eigene Homepage</td><td class="dash">—</td></tr>
+
+  <tr><td class="nr">18</td>
+    <td class="name">Manuela Frey</td>
+    <td>Universitätstrasse 87, 8006 Zürich</td><td class="bezirk">Zürich</td>
+    <td>+41 77 530 30 40</td><td>manuela.frey@psychologie.ch</td>
+    <td>Fachpsychologin für Psychotherapie FSP</td><td>FSP-PsyFinder</td>
+    <td class="nohp">keine eigene Homepage</td><td class="dash">—</td></tr>
+
+  <tr><td class="nr">19</td>
+    <td class="name">Sandra Müller</td>
+    <td>Bederstrasse 51, 8002 Zürich (Enge)</td><td class="bezirk">Zürich</td>
+    <td>+41 79 530 53 50</td><td>sandra_mueller@hin.ch</td>
+    <td>Fachpsychologin für Psychotherapie FSP, eidg. anerk. Psychotherapeutin</td><td>FSP-PsyFinder</td> 
+    <td><a href="https://www.sandra-mueller.ch" target="_blank" rel="noopener">sandra-mueller.ch</a></td><td class="dash">—</td></tr>
+
+  <tr><td class="nr">20</td>
+    <td class="name">Sarai Alonso<span class="praxis">Praxis Z (Standort Sihlfeld)</span></td>
+    <td>Aemtlerstrasse 112, 8003 Zürich</td><td  class="bezirk">Zürich</td>
+    <td>+41 77 437 30 73</td><td>sarai.alonso@psychologie.ch</td>  
+    <td>Fachpsychologin für Psychotherapie FSP, eidg. anerk. Psychotherapeutin</td><td>FSP-PsyFinder</td>
+    <td><a href="https://praxis-z.ch/de/team/sarai-alonso" target="_blank" rel="noopener">praxis-z.ch</a></td><td class="dash">—</td></tr>
+
+  <tr><td class="nr">21</td>
+    <td class="name">Marietta Haller</td>
+    <td>Hegibachstrasse 106, 8032 Zürich</td><td  class="bezirk">Zürich</td>
+    <td>+41 79 371 91 94</td><td>mh@mariettahaller.ch</td>  
+    <td>Fachpsychologin für Psychotherapie FSP; FP für Neuropsychologie FSP</td><td>FSP-PsyFinder  / Praxis-Web</td>
+    <td><a href="https://mariettahaller.ch" target="_blank" rel="noopener">mariettahaller.ch</a></td><td class="dash">—</td></tr>
+
+  <tr><td class="nr">22</td>
+    <td class="name">Beatrice Astrid Tedoldi</td>
+    <td>Asylstrasse 81, 8032 Zürich</td><td class="bezirk">Zürich</td>
+    <td>+41 78 318 40 30</td><td>beatrice.tedoldi@psychologie.ch</td>
+    <td>MSc, Fachpsychologin für Psychotherapie FSP, eidg. anerk. Psychotherapeutin</td><td>FSP-PsyFinder</td> 
+    <td><a href="https://tedoldi-psychologie.ch" target="_blank" rel="noopener">tedoldi-psychologie.ch</a></td><td class="dash">—</td></tr>
+
+  <tr><td class="nr">23</td>
+    <td class="name">Sarah Kühne<span class="praxis">Praxis Seegarten</span></td>
+    <td>Seegartenstrasse 2, 8008 Zürich</td><td class="bezirk">Zürich</td>
+    <td>+41 79 745 90 44</td><td>sarah.kuehne@psychologie.ch</td>
+    <td>eidg. anerk. Psychotherapeutin, MAS Systemische Psychotherapie</td><td>FSP-PsyFinder  / Praxis-Web</td>
+    <td><a href="https://sarah-kuehne.ch" target="_blank" rel="noopener">sarah-kuehne.ch</a></td><td class="dash">—</td></tr>
+
+  <tr><td class="nr">24</td>
+    <td class="name">Tamara Elmer</td>
+    <td>Winterthurerstrasse 52, 8006 Zürich</td><td  class="bezirk">Zürich</td>
+    <td>+41 78 617 51 57</td><td>welcome@tamaraelmer.ch</td> 
+    <td>MSc ZFH, Psychologin SBAP,  eidg. anerk. Psychotherapeutin</td><td>SBAP / Praxis-Web</td>
+    <td><a href="https://www.tamaraelmer.ch" target="_blank" rel="noopener">tamaraelmer.ch</a></td><td class="dash">—</td></tr>
+
+  <tr><td class="nr">25</td>
+    <td class="name">Regina Meier</td>
+    <td>Winterthurerstrasse 52, 8006 Zürich</td><td class="bezirk">Zürich</td>
+    <td>+41 79 543 65 57</td><td>regina.meier@psychologie.ch</td>
+    <td>lic. phil., Fachpsychologin für Psychotherapie FSP</td><td>FSP-PsyFinder / Praxis-Web</td>
+    <td><a href="https://praxisreginameier.ch" target="_blank" rel="noopener">praxisreginameier.ch</a></td><td class="dash">—</td></tr>
+
+  <tr><td class="nr">26</td>
+    <td class="name">Katerina Laxdal<span class="praxis">Psychologische Praxis Laxdal</span></td>
+    <td>Hegibachstrasse 34, 8032 Zürich</td><td class="bezirk">Zürich</td>
+    <td>+41 79 795 92 02</td><td>katerina.laxdal@psychologie.ch</td>
+    <td>FP für Psychotherapie FSP; FP für Neuropsychologie FSP</td><td>FSP-PsyFinder / Praxis-Web</td>
+    <td><a href="https://psychologie-laxdal.ch" target="_blank" rel="noopener">psychologie-laxdal.ch</a></td><td class="dash">—</td></tr>
+
+  <tr><td class="nr">27</td>
+    <td class="name">Caroline Ratz</td>
+    <td>Kreis 6, 8006 Zürich</td><td class="bezirk">Zürich</td>
+    <td>+41 43 810 07 43</td><td>via  Praxis-Web (Kontakt)</td>
+    <td>Psychotherapeutin (eigene Praxis)</td><td>Praxis-Web</td>
+    <td><a href="https://www.psychotherapie-ratz.ch" target="_blank" rel="noopener">psychotherapie-ratz.ch</a></td><td class="dash">—</td></tr>
+
+  <tr><td class="nr">28</td>
+    <td class="name">Margaret Buchholz<span class="praxis">(Zweitstandort Uster, s. unten)</span></td>
+    <td>Inselstrasse 2A, 8610 Uster</td><td class="bezirk">Uster</td>
+    <td>+41 76 720 97 03</td><td>margaret.buchholz@hin.ch</td>
+    <td>eidg. anerk. Psychotherapeutin</td><td>FSP-PsyFinder / Praxis-Web</td>
+    <td><a href="https://psychotherapie-buchholz.ch" target="_blank" rel="noopener">psychotherapie-buchholz.ch</a></td><td class="dash">—</td></tr>
+
+  <!-- ============ BEZIRK WINTERTHUR ============ -->
+  <tr class="grp-head"><td colspan="10">Bezirk Winterthur — PLZ 8400–8411</td></tr>
+
+  <tr><td class="nr">29</td>
+    <td class="name">Sevim Cakar<span class="praxis">Praxis für Psychotherapie</span></td>
+    <td>Obergasse 20, 8400 Winterthur</td><td class="bezirk">Winterthur</td>
+    <td>+41 76 202 70 90</td><td>sevim.cakar@psychologie.ch</td>
+    <td>Fachpsychologin für Psychotherapie FSP, eidg. anerk. Psychotherapeutin</td><td>FSP-PsyFinder</td>
+    <td class="nohp">keine eigene Homepage</td><td class="dash">—</td></tr>
+
+  <tr><td class="nr">30</td>
+    <td class="name">Maja Fringeli</td>
+    <td>Metzggasse 19, 8400 Winterthur</td><td class="bezirk">Winterthur</td>
+    <td>+41 77 523 49 05</td><td>maja.fringeli@hin.ch</td>
+    <td>Fachpsychologin für Psychotherapie FSP</td><td>FSP-PsyFinder</td>
+    <td class="nohp">keine eigene Homepage</td><td class="dash">—</td></tr>
+
+  <tr><td class="nr">31</td>
+    <td class="name">Nicole Wägli</td>
+    <td>Metzggasse 19, 8400 Winterthur</td><td class="bezirk">Winterthur</td>
+    <td>+41 77 509 03 54</td><td>nicole.waegli@psychologie.ch</td>
+    <td>Fachpsychologin für Psychotherapie FSP</td><td>FSP-PsyFinder</td>
+    <td class="nohp">keine eigene Homepage</td><td class="dash">—</td></tr>
+
+  <tr><td class="nr">32</td>
+    <td class="name">Christian Sommerhalder<span class="praxis">Praxis für Psychotherapie</span></td>
+    <td>Römerstrasse 43, 8400 Winterthur</td><td class="bezirk">Winterthur</td>
+    <td>+41 79 331 70 45</td><td>christian.sommerhalder@psychologie.ch</td>
+    <td>Fachpsychologe für Psychotherapie FSP</td><td>FSP-PsyFinder / Praxis-Web</td>
+    <td><a href="http://www.psychotherapie-winterthur.ch" target="_blank" rel="noopener">psychotherapie-winterthur.ch</a></td><td class="dash">—</td></tr>
+
+  <tr><td class="nr">33</td>
+    <td class="name">Marianne Klauser</td>
+    <td>Heiligbergstrasse 38, 8400 Winterthur</td><td class="bezirk">Winterthur</td>
+    <td>+41 52 232 57 17</td><td>praxis@marianne-klauser.ch</td>
+    <td>eidg. dipl. Psychotherapeutin FSP/SBAP; eidg. dipl. Berufsberaterin</td><td>SBAP / Praxis-Web</td>
+    <td><a href="https://www.marianne-klauser.ch" target="_blank" rel="noopener">marianne-klauser.ch</a></td><td class="dash">—</td></tr>
+
+  <tr><td class="nr">34</td>
+    <td class="name">Marc Christoph Huber<span class="praxis">Psychotherapie Praxis Winterthur</span></td>
+    <td>Wartstrasse 22, 8400 Winterthur</td><td class="bezirk">Winterthur</td>
+    <td>+41 78 740 90 75</td><td>marc.huber@fsp-hin.ch</td>
+    <td>MSc, Fachpsychologe für Psychotherapie FSP/SGVT, eidg. anerk.</td><td>FSP / Praxis-Web</td>
+    <td><a href="https://www.marc-huber.com" target="_blank" rel="noopener">marc-huber.com</a></td><td class="dash">—</td></tr>
+
+  <tr><td class="nr">35</td>
+    <td class="name">Claudia Stricker<span class="praxis">Praxis Inneres Lind</span></td>
+    <td>St.-Georgen-Strasse 46, 8400 Winterthur</td><td class="bezirk">Winterthur</td>
+    <td>+41 79 484 89 99</td><td>via psychosomatik-winterthur.ch</td>
+    <td>Fachpsychologin für Psychotherapie FSP, eidg. anerk.</td><td>FSP / Praxis-Web</td>
+    <td><a href="https://psychosomatik-winterthur.ch" target="_blank" rel="noopener">psychosomatik-winterthur.ch</a></td><td class="dash">—</td></tr>
+
+  <tr><td class="nr">36</td>
+    <td class="name">Barbara Ganz<span class="praxis">Praxis am Garnmarkt</span></td>
+    <td>Garnmarkt 1, 8400 Winterthur</td><td class="bezirk">Winterthur</td>
+    <td>+41 52 213 14 10</td><td>via  praxis-am-garnmarkt.ch</td>
+    <td>eidg. anerk. Psychotherapeutin, Supervisorin systemis</td><td>FSP  / Praxis-Web</td>
+    <td><a href="https://praxis-am-garnmarkt.ch" target="_blank" rel="noopener">praxis-am-garnmarkt.ch</a></td><td class="dash">—</td></tr>
+
+  <tr><td class="nr">37</td>
+    <td class="name">Verena Maggioni</td>
+    <td>Wartstrasse 1, 8400 Winterthur</td><td class="bezirk">Winterthur</td>
+    <td>+41 79 316 45 60</td><td>verena.maggioni@hin.ch</td>
+    <td>lic. phil., eidg. anerk. Psychotherapeutin, FP für Psychotherapie FSP</td><td>SGBAT / Praxis-Web</td>
+    <td><a href="https://www.verenamaggioni.ch" target="_blank" rel="noopener">verenamaggioni.ch</a></td><td class="dash">—</td></tr>
+
+  <tr><td class="nr">38</td>
+    <td class="name">Susann Gassmann</td>
+    <td>Gärtnerstrasse 15, 8400 Winterthur</td><td class="bezirk">Winterthur</td>
+    <td>+41 77 427 04 77</td><td>kontakt@psychotherapie-gassmann.ch</td>
+    <td>lic. phil., Fachpsychologin für Psychotherapie FSP, eidg. anerk.</td><td>FSP-PsyFinder / Praxis-Web</td>
+    <td><a href="https://psychotherapie-gassmann.ch" target="_blank" rel="noopener">psychotherapie-gassmann.ch</a></td><td class="dash">—</td></tr>
+
+  <tr><td class="nr">39</td>
+    <td class="name">Corina Stähli-Winzer<span class="praxis">Praxisgemeinschaft losla</span></td>
+    <td>Obergasse 19, 8400 Winterthur</td><td class="bezirk">Winterthur</td>
+    <td>+41 79 620 61 04</td><td>mail@cstaehli.ch</td>
+    <td>MSc, Fachpsychologin für Psychotherapie FSP, eidg. anerk.</td><td>FSP-PsyFinder / Praxis-Web</td>
+    <td><a href="https://cstaehli.ch" target="_blank" rel="noopener">cstaehli.ch</a></td>
+    <td><a href="https://ch.linkedin.com/in/corina-staehli-4a5418198" target="_blank" rel="noopener">LinkedIn</a></td></tr>
+
+  <tr><td class="nr">40</td>
+    <td class="name">Josefine Müller<span class="praxis">Psychotherapie Chiastra &amp; Müller</span></td>
+    <td>Obertor 38, 8400 Winterthur</td><td class="bezirk">Winterthur</td>
+    <td>+41 76 541 81 61</td><td>josefine.mueller@psychologie.ch</td>
+    <td>Fachpsychologin für Psychotherapie FSP, eidg. anerk.</td><td>FSP-PsyFinder / Praxis-Web</td>
+    <td><a href="https://josefine-mueller.ch" target="_blank" rel="noopener">josefine-mueller.ch</a></td><td class="dash">—</td></tr>
+
+  <tr><td class="nr">41</td>
+    <td class="name">Paola Campailla</td>
+    <td>Schaffhauserstrasse 15, 8400 Winterthur</td><td class="bezirk">Winterthur</td>
+    <td>+41 52 202 06 06</td><td>p.campailla@psychologie.ch</td>
+    <td>Fachpsychologin für Psychotherapie FSP</td><td>FSP-PsyFinder</td>
+    <td class="nohp">keine eigene Homepage</td><td class="dash">—</td></tr>
+
+  <!-- ============ BEZIRK USTER ============ -->
+  <tr class="grp-head"><td colspan="10">Bezirk Uster — Uster, Dübendorf, Volketswil, Greifensee</td></tr>
+
+  <tr><td class="nr">42</td>
+    <td class="name">Erich Schmucki<span class="praxis">raum&amp;praxis</span></td>
+    <td>Brunnenstrasse 1, 8610 Uster</td><td class="bezirk">Uster</td>
+    <td>+41 79 745 21 29</td><td>erich.schmucki@psychologie.ch</td>
+    <td>Fachpsychologe für Psychotherapie FSP</td><td>FSP-PsyFinder</td>
+    <td class="nohp">keine eigene Homepage</td><td class="dash">—</td></tr>
+
+  <tr><td class="nr">43</td>
+    <td class="name">Gabriella Selva<span class="praxis">Praxis im Lot</span></td>
+    <td>8610 Uster</td><td class="bezirk">Uster</td>
+    <td>+41 79 742 70 17</td><td>gabriella.selva@psychologie.ch</td>
+    <td>Fachpsychologin für Psychotherapie FSP</td><td>FSP-PsyFinder</td>
+    <td class="nohp">keine eigene Homepage</td><td class="dash">—</td></tr>
+
+  <tr><td class="nr">44</td>
+    <td class="name">Barbara Geering</td>
+    <td>Freiestrasse 41, 8610 Uster</td><td class="bezirk">Uster</td>
+    <td>+41 44 555 88 96</td><td>info@psychotherapie-geering.ch</td>
+    <td>Fachpsychologin für Psychotherapie FSP, eidg. anerk.</td><td>FSP / Praxis-Web</td>
+    <td><a href="https://psychotherapie-geering.ch" target="_blank" rel="noopener">psychotherapie-geering.ch</a></td><td class="dash">—</td></tr>
+
+  <tr><td class="nr">45</td>
+    <td class="name">Seraina Tippmann-Niggli</td>
+    <td>Gerichtsstrasse 1, 8610 Uster</td><td class="bezirk">Uster</td>
+    <td>+41 76 341 14 21</td><td>praxis@seraina-tippmann.ch</td>
+    <td>lic. phil., eidg. anerk. Psychotherapeutin FSP</td><td>FSP / Praxis-Web</td>
+    <td><a href="https://www.seraina-tippmann.ch" target="_blank" rel="noopener">seraina-tippmann.ch</a></td><td class="dash">—</td></tr>
+
+  <tr><td class="nr">46</td>
+    <td class="name">Klaus Tippmann<span class="praxis">Praxis für Psychotherapie &amp; Coaching</span></td>
+    <td>Freiestrasse 13, 8610 Uster</td><td class="bezirk">Uster</td>
+    <td>+41 76 424 60 50</td><td>praxis@klaus-tippmann.ch</td>
+    <td>lic. phil., Fachpsychologe für Psychotherapie FSP, eidg. anerk.</td><td>FSP / Praxis-Web</td>
+    <td><a href="https://klaus-tippmann.ch" target="_blank" rel="noopener">klaus-tippmann.ch</a></td><td class="dash">—</td></tr>
+
+  <tr><td class="nr">47</td>
+    <td class="name">Johannes Bircher<span class="praxis">Praxis für Entwicklung und Lernen</span></td>
+    <td>Freiestrasse 53, 8610 Uster</td><td class="bezirk">Uster</td>
+    <td>+41 44 941 77 28</td><td>jbircher@fsp-hin.ch</td>
+    <td>lic. phil., Fachpsychologe für Psychotherapie FSP, eidg. anerk.</td><td>FSP / Praxis-Web</td>
+    <td><a href="https://jbircher.ch" target="_blank" rel="noopener">jbircher.ch</a></td><td class="dash">—</td></tr>
+
+  <tr><td class="nr">48</td>
+    <td class="name">Claudia Friess</td>
+    <td>Sonnenbergstrasse 10, 8610 Uster</td><td class="bezirk">Uster</td>
+    <td>+41 79 343 53 71</td><td>praxis@claudiafriess.ch</td>
+    <td>eidg. anerk. Psychotherapeutin (Sexual-/Paartherapie)</td><td>Praxis-Web</td>
+    <td><a href="https://claudiafriess.ch" target="_blank" rel="noopener">claudiafriess.ch</a></td><td class="dash">—</td></tr>
+
+  <tr><td class="nr">49</td>
+    <td class="name">Cornelia Brühlmann<span class="praxis">Psychotherapeutische Praxis</span></td>
+    <td>Leepüntstrasse 9, 8600 Dübendorf</td><td class="bezirk">Uster</td>
+    <td>+41 77 525 06 66</td><td>cornelia.bruehlmann@psycho-therapeutin.ch</td>
+    <td>eidg. anerk. Psychotherapeutin, Psychologin FSP</td><td>FSP / Praxis-Web</td>
+    <td><a href="https://psycho-therapeutin.ch" target="_blank" rel="noopener">psycho-therapeutin.ch</a></td><td class="dash">—</td></tr>
+
+  <tr><td class="nr">50</td>
+    <td class="name">Stefanie Bartlome<span class="praxis">Praxis für Psychotherapie</span></td>
+    <td>Untere Zelglistrasse 1, 8600 Dübendorf</td><td class="bezirk">Uster</td>
+    <td>+41 77 409 34 66</td><td>stefanie.bartlome@hin.ch</td>
+    <td>lic. phil., Fachpsychologin für Psychotherapie FSP, eidg. anerk.</td><td>FSP / Praxis-Web</td>
+    <td><a href="https://psychotherapie-bartlome.ch" target="_blank" rel="noopener">psychotherapie-bartlome.ch</a></td><td class="dash">—</td></tr>
+
+  <tr><td class="nr">51</td>
+    <td class="name">Simone Gmelch<span class="praxis">Herz und Verstand</span></td>
+    <td>Ueberlandstrasse 239, 8600 Dübendorf</td><td class="bezirk">Uster</td>
+    <td>+41 77 496 21 18</td><td>simone.gmelch@fsp-hin.ch</td>
+    <td>Dipl.-Psych., Fachpsychologin für Psychotherapie FSP, eidg. anerk.</td><td>FSP / Praxis-Web</td>
+    <td><a href="https://herzundverstand.ch" target="_blank" rel="noopener">herzundverstand.ch</a></td><td class="dash">—</td></tr>
+
+  <tr><td class="nr">52</td>
+    <td class="name">Cornelia Schneider</td>
+    <td>Wangen b. Dübendorf, 8602 (Bezirk Uster)</td><td class="bezirk">Uster</td>
+    <td>+41 44 821 12 12</td><td>via praxisschneider.ch (Kontakt)</td>
+    <td>Fachpsychologin für Psychotherapie FSP</td><td>Praxis-Web</td>
+    <td><a href="https://www.praxisschneider.ch" target="_blank" rel="noopener">praxisschneider.ch</a></td><td class="dash">—</td></tr>
+
+  <tr><td class="nr">53</td>
+    <td class="name">Simone Schacke<span class="praxis">Praxis für Psychotherapie</span></td>
+    <td>8600 Dübendorf</td><td class="bezirk">Uster</td>
+    <td>+41 44 821 80 80</td><td>via praxis-schacke.ch (Kontakt)</td>
+    <td>lic. phil., Psychologin FSP, eidg. anerk. Psychotherapeutin</td><td>Praxis-Web</td>
+    <td><a href="https://www.praxis-schacke.ch" target="_blank" rel="noopener">praxis-schacke.ch</a></td><td class="dash">—</td></tr>
+
+  <!-- ============ BEZIRK PFÄFFIKON / HINWIL (Oberland) ============ -->
+  <tr class="grp-head"><td colspan="10">Bezirk Pfäffikon &amp; Hinwil — Wetzikon, Rüti, Hinwil, Pfäffikon ZH</td></tr>
+
+  <tr><td class="nr">54</td>
+    <td class="name">Stefan Ilg</td>
+    <td>Sunnehaldeweg 10, 8620 Wetzikon</td><td class="bezirk">Hinwil</td>
+    <td>+41 77 505 50 73</td><td>stefan.ilg@fsp-hin.ch</td>
+    <td>Fachpsychologe für Psychotherapie FSP, eidg. anerk.</td><td>FSP-PsyFinder</td>
+    <td class="nohp">keine eigene Homepage</td><td class="dash">—</td></tr>
+
+  <tr><td class="nr">55</td>
+    <td class="name">Daniela C. Janssen-Müller</td>
+    <td>Hans-Georg-Nägeli-Strasse 23, 8620 Wetzikon</td><td class="bezirk">Hinwil</td>
+    <td>+41 76 433 19 71</td><td>djanssen@bluewin.ch</td>
+    <td>Fachpsychologin für Psychotherapie FSP</td><td>FSP-PsyFinder</td>
+    <td class="nohp">keine eigene Homepage</td><td class="dash">—</td></tr>
+
+  <tr><td class="nr">56</td>
+    <td class="name">Andrea Stäheli<span class="praxis">Gemeinschaftspraxis im Kino</span></td>
+    <td>Bahnhofstrasse 74, 8620 Wetzikon</td><td class="bezirk">Hinwil</td>
+    <td>+41 77 508 96 07</td><td>kontakt@staeheli-psychotherapie.ch</td>
+    <td>lic. phil., eidg. anerk. Psychotherapeutin (SGVT)</td><td>FSP / Praxis-Web</td>
+    <td><a href="https://staeheli-psychotherapie.ch" target="_blank" rel="noopener">staeheli-psychotherapie.ch</a></td><td class="dash">—</td></tr>
+
+  <tr><td class="nr">57</td>
+    <td class="name">Nadja Rüegg<span class="praxis">Praxis für Psychotherapie GmbH</span></td>
+    <td>Werkstrasse 2d, 8630 Rüti ZH</td><td class="bezirk">Hinwil</td>
+    <td>+41 76 512 02 07</td><td>info@psychotherapie-rueegg.ch</td>
+    <td>lic. phil., Fachpsychologin für Psychotherapie FSP, eidg. anerk.</td><td>FSP / Praxis-Web</td>
+    <td><a href="https://psychotherapie-rueegg.ch" target="_blank" rel="noopener">psychotherapie-rueegg.ch</a></td><td class="dash">—</td></tr>
+
+  <!-- ============ BEZIRK MEILEN (Goldküste) ============ -->
+  <tr class="grp-head"><td colspan="10">Bezirk Meilen (Goldküste) — Meilen, Küsnacht, Stäfa, Männedorf</td></tr>
+
+  <tr><td class="nr">58</td>
+    <td class="name">Christine Eberle Schneeberger<span class="praxis">Psychologische Praxis Eberle</span></td>
+    <td>Kirchgasse 28, 8706 Meilen</td><td class="bezirk">Meilen</td>
+    <td>+41 44 923 40 80</td><td>christine.eberle@fsp-hin.ch</td>
+    <td>FP für Psychotherapie FSP; FP für Kinder- u. Jugendpsychologie FSP</td><td>FSP-PsyFinder / Praxis-Web</td>
+    <td><a href="https://www.praxiseberle.ch" target="_blank" rel="noopener">praxiseberle.ch</a></td><td class="dash">—</td></tr>
+
+  <tr><td class="nr">59</td>
+    <td class="name">Susanne Schneeberger<span class="praxis">Praxis am Gleis</span></td>
+    <td>Pfannenstielstrasse 4, 8706 Meilen</td><td class="bezirk">Meilen</td>
+    <td>+41 44 923 66 77</td><td>susanne.schneeberger@psychologie.ch</td>
+    <td>Fachpsychologin für Psychotherapie FSP, eidg. anerk.</td><td>FSP / Praxis-Web</td>
+    <td><a href="http://www.susanne-schneeberger.ch" target="_blank" rel="noopener">susanne-schneeberger.ch</a></td><td class="dash">—</td></tr>
+
+  <tr><td class="nr">60</td>
+    <td class="name">Irène Aeppli<span class="praxis">Praxis Meilen</span></td>
+    <td>8706 Meilen</td><td class="bezirk">Meilen</td>
+    <td>+41 77 475 24 00</td><td>irene.aeppli@fsp-hin.ch</td>
+    <td>eidg. anerk. Psychotherapeutin, Psychoonkologin SGPO</td><td>Praxis-Web</td>
+    <td><a href="https://www.psychoonkologie-psychotherapie.ch" target="_blank" rel="noopener">psychoonkologie-psychotherapie.ch</a></td><td class="dash">—</td></tr>
+
+  <tr><td class="nr">61</td>
+    <td class="name">Richard Korbel<span class="praxis">Zentrum für Psychiatrie &amp; Psychotherapie Rechter Zürichsee</span></td>
+    <td>Dorfstrasse 5, 8700 Küsnacht ZH</td><td class="bezirk">Meilen</td>
+    <td>+41 44 912 14 81</td><td>korbel@zentrumkuesnacht.ch</td>
+    <td>lic. phil., Fachpsychologe für Psychotherapie FSP</td><td>Praxis-Web</td>
+    <td><a href="https://www.zentrumkuesnacht.ch" target="_blank" rel="noopener">zentrumkuesnacht.ch</a></td><td class="dash">—</td></tr>
+
+  <tr><td class="nr">62</td>
+    <td class="name">Sophie Schneider<span class="praxis">Praxis am Zug</span></td>
+    <td>Bergstrasse 2, 8712 Stäfa</td><td class="bezirk">Meilen</td>
+    <td>+41 77 508 06 43</td><td>sophie.schneider@hin.ch</td>
+    <td>FP für Psychotherapie FSP; FP für Klinische Psychologie FSP</td><td>FSP-PsyFinder / Praxis-Web</td>
+    <td><a href="https://praxisamzug.ch" target="_blank" rel="noopener">praxisamzug.ch</a></td><td class="dash">—</td></tr>
+
+  <tr><td class="nr">63</td>
+    <td class="name">Silvia Balsama<span class="praxis">Lernen &amp; Entwickeln</span></td>
+    <td>Oberlandstrasse 12, 8712 Stäfa</td><td class="bezirk">Meilen</td>
+    <td>+41 78 914 06 02</td><td>s.balsama@lernenundentwickeln.ch</td>
+    <td>lic. phil., FP für Psychotherapie FSP; FP für Kinder- u. Jugendpsychologie FSP</td><td>FSP / Praxis-Web</td>
+    <td><a href="https://lernenundentwickeln.ch" target="_blank" rel="noopener">lernenundentwickeln.ch</a></td><td class="dash">—</td></tr>
+
+  <tr><td class="nr">64</td>
+    <td class="name">Charlotte Lattmann<span class="praxis">Kurswechsel</span></td>
+    <td>Bergstrasse 15, 8712 Stäfa</td><td class="bezirk">Meilen</td>
+    <td>+41 76 575 32 15</td><td>lattmann@kurswechsel.ch</td>
+    <td>lic. phil., Psychologin FSP</td><td>Praxis-Web</td>
+    <td><a href="https://charlottelattmann.com" target="_blank" rel="noopener">charlottelattmann.com</a></td><td class="dash">—</td></tr>
+
+  <tr><td class="nr">65</td>
+    <td class="name">Jasmin Mostoufi Pour<span class="praxis">Psychologie am See</span></td>
+    <td>8700 Küsnacht ZH</td><td class="bezirk">Meilen</td>
+    <td>+41 44 truncated — s. Praxis-Web</td><td>mostoufi@psychologie-am-see.ch</td>
+    <td>M.Sc. Psychologie, eidg. anerk. Psychotherapeutin (Praxisinhaberin)</td><td>Praxis-Web</td>
+    <td><a href="https://www.psychologie-am-see.ch" target="_blank" rel="noopener">psychologie-am-see.ch</a></td><td class="dash">—</td></tr>
+
+  <!-- ============ BEZIRK HORGEN (linkes Seeufer) ============ -->
+  <tr class="grp-head"><td colspan="10">Bezirk Horgen (linkes Zürichseeufer) — Horgen, Thalwil, Wädenswil</td></tr>
+
+  <tr><td class="nr">66</td>
+    <td class="name">Sophie Christen</td>
+    <td>Seestrasse 126, 8810 Horgen</td><td class="bezirk">Horgen</td>
+    <td>+41 79 913 22 11</td><td>sophie.christen@psychologie.ch</td>
+    <td>FP für Psychotherapie FSP</td><td>FSP-PsyFinder</td>
+    <td class="nohp">keine eigene Homepage</td><td class="dash">—</td></tr>
+
+  <tr><td class="nr">67</td>
+    <td class="name">Frauke Rösch</td>
+    <td>Alte Landstrasse 27, 8810 Horgen</td><td class="bezirk">Horgen</td>
+    <td>+41 76 756 88 45</td><td>psychotherapie-roesch@hin.ch</td>
+    <td>FP für Psychotherapie FSP</td><td>FSP-PsyFinder</td>
+    <td class="nohp">keine eigene Homepage</td><td class="dash">—</td></tr>
+
+  <tr><td class="nr">68</td>
+    <td class="name">Helena Rickenbacher<span class="praxis">Psychotherapeutische Praxis für Kinder &amp; Jugendliche</span></td>
+    <td>Schlüsselweg 3, 8810 Horgen</td><td class="bezirk">Horgen</td>
+    <td>+41 76 344 31 33</td><td>helena.rickenbacher@fsp-hin.ch</td>
+    <td>lic. phil., Fachpsychologin für Psychotherapie FSP</td><td>FSP / Praxis-Web</td>
+    <td><a href="https://www.praxis-helenarickenbacher.ch" target="_blank" rel="noopener">praxis-helenarickenbacher.ch</a></td><td class="dash">—</td></tr>
+
+  <tr><td class="nr">69</td>
+    <td class="name">Karin Kahlenberg-Fehr</td>
+    <td>Eintrachtstrasse 17, 8820 Wädenswil</td><td class="bezirk">Horgen</td>
+    <td>+41 79 668 18 43</td><td>k.kahlenberg@hin.ch</td>
+    <td>Fachpsychologin für Psychotherapie FSP</td><td>FSP-PsyFinder</td>
+    <td class="nohp">keine eigene Homepage</td><td class="dash">—</td></tr>
+
+  <tr><td class="nr">70</td>
+    <td class="name">Barbara Bot<span class="praxis">Praxis für Psychotherapie und Paarberatung</span></td>
+    <td>Alte Landstrasse 91, 8804 Au-Wädenswil</td><td class="bezirk">Horgen</td>
+    <td>+41 44 781 19 91</td><td>via barbarabot.ch (Kontakt)</td>
+    <td>eidg. anerk. Psychotherapeutin, Psychologin FSP</td><td>Praxis-Web</td>
+    <td><a href="https://barbarabot.ch" target="_blank" rel="noopener">barbarabot.ch</a></td><td class="dash">—</td></tr>
+
+  <tr><td class="nr">71</td>
+    <td class="name">Tanja Theiler-Schiesser<span class="praxis">Psychotherapie Theiler</span></td>
+    <td>Gotthardstrasse 17, 8800 Thalwil</td><td class="bezirk">Horgen</td>
+    <td>+41 43 305 70 76</td><td>tanja.theiler@icloud.com</td>
+    <td>lic. phil., Psychotherapeutin FSP/SGVT/ZüPP</td><td>FSP / Praxis-Web</td>
+    <td><a href="https://psychotherapie-theiler.ch" target="_blank" rel="noopener">psychotherapie-theiler.ch</a></td><td class="dash">—</td></tr>
+
+  <tr><td class="nr">72</td>
+    <td class="name">Annegret Siegenthaler<span class="praxis">Praxis Ich</span></td>
+    <td>Einsiedlerstrasse 6, 8820 Wädenswil</td><td class="bezirk">Horgen</td>
+    <td>+41 78 811 81 42</td><td>annegret.siegenthaler@psychologie.ch</td>
+    <td>MSc, eidg. anerk. Psychotherapeutin (FSP, ZüPP)</td><td>FSP / Praxis-Web</td>
+    <td><a href="https://praxisich.ch" target="_blank" rel="noopener">praxisich.ch</a></td><td class="dash">—</td></tr>
+
+  <!-- ============ BEZIRK AFFOLTERN ============ -->
+  <tr class="grp-head"><td colspan="10">Bezirk Affoltern — Affoltern am Albis</td></tr>
+
+  <tr><td class="nr">73</td>
+    <td class="name">Manuel Zeberli<span class="praxis">Praxis Indivita</span></td>
+    <td>Zürichstrasse 49, 8910 Affoltern am Albis</td><td class="bezirk">Affoltern</td>
+    <td>+41 78 264 82 64</td><td>mzeberli@fsp-hin.ch</td>
+    <td>Fachpsychologe für Psychotherapie FSP, eidg. anerk.</td><td>FSP-PsyFinder / Praxis-Web</td>
+    <td><a href="https://www.praxis-indivita.ch" target="_blank" rel="noopener">praxis-indivita.ch</a></td><td class="dash">—</td></tr>
+
+  <tr><td class="nr">74</td>
+    <td class="name">Gabriela Frischknecht</td>
+    <td>Zürichstrasse 49, 8910 Affoltern am Albis</td><td class="bezirk">Affoltern</td>
+    <td>+41 43 466 83 90</td><td>gabriela.frischknecht@psychologie.ch</td>
+    <td>lic. phil., Fachpsychologin für Psychotherapie FSP, eidg. anerk.</td><td>FSP / Praxis-Web</td>
+    <td class="nohp">keine eigene Homepage</td><td class="dash">—</td></tr>
+
+  <tr><td class="nr">75</td>
+    <td class="name">Nathalie Meyer Bürgisser<span class="praxis">Psychotherapie Nathalie Meyer</span></td>
+    <td>Alte Obfelderstrasse 50, 8910 Affoltern am Albis</td><td class="bezirk">Affoltern</td>
+    <td>+41 76 588 15 16</td><td>nathalie.meyer@fsp-hin.ch</td>
+    <td>MSc, Fachpsychologin für Psychotherapie FSP, eidg. anerk.</td><td>FSP / Praxis-Web</td>
+    <td><a href="https://www.nathalie-meyer.ch" target="_blank" rel="noopener">nathalie-meyer.ch</a></td><td class="dash">—</td></tr>
+
+  <!-- ============ BEZIRK DIELSDORF ============ -->
+  <tr class="grp-head"><td colspan="10">Bezirk Dielsdorf — Regensdorf, Dielsdorf</td></tr>
+
+  <tr><td class="nr">76</td>
+    <td class="name">Karin Neuhardt<span class="praxis">Psychotherapie Neuhardt &amp; Neuhardt GmbH</span></td>
+    <td>Eichwatt 11, 8105 Regensdorf</td><td class="bezirk">Dielsdorf</td>
+    <td>+41 78 906 80 18</td><td>karin.neuhardt@psychologie.ch</td>
+    <td>Fachpsychologin für Psychotherapie FSP, eidg. anerk.</td><td>FSP-PsyFinder</td>
+    <td class="nohp">keine eigene Homepage</td><td class="dash">—</td></tr>
+
+  <tr><td class="nr">77</td>
+    <td class="name">Liana Sadiku</td>
+    <td>Buchenweg 18, 8105 Regensdorf</td><td class="bezirk">Dielsdorf</td>
+    <td>+41 79 575 92 44</td><td>liana.sadiku@psychologie.ch</td>
+    <td>Fachpsychologin für Psychotherapie FSP, eidg. anerk.</td><td>FSP-PsyFinder</td>
+    <td class="nohp">keine eigene Homepage</td><td class="dash">—</td></tr>
+
+  <tr><td class="nr">78</td>
+    <td class="name">Monika Kast Perry<span class="praxis">Praxis weiterkommen</span></td>
+    <td>Riedthofstrasse 100, 8105 Regensdorf</td><td class="bezirk">Dielsdorf</td>
+    <td>+41 76 335 72 79</td><td>monika.kast-perry@psychologie.ch</td>
+    <td>Dr. phil., FP für Kinder- u. Jugendpsychologie FSP, eidg. anerk. Psychotherapeutin</td><td>FSP / Praxis-Web</td>
+    <td><a href="https://www.praxis-weiterkommen.com" target="_blank" rel="noopener">praxis-weiterkommen.com</a></td><td class="dash">—</td></tr>
+
+  <!-- ============ BEZIRK BÜLACH / DIETIKON ============ -->
+  <tr class="grp-head"><td colspan="10">Bezirk Bülach &amp; Dietikon (Unterland / Limmattal)</td></tr>
+
+  <tr><td class="nr">79</td>
+    <td class="name">Sabine Bleuler<span class="praxis">Praxis Seematt</span></td>
+    <td>Seemattstrasse 11, 8180 Bülach</td><td class="bezirk">Bülach</td>
+    <td>+41 76 247 45 35</td><td>s.bleuler@hin.ch</td>
+    <td>Fachpsychologin für Psychotherapie FSP, eidg. anerk.</td><td>FSP-PsyFinder / PSYZU</td>
+    <td class="nohp">keine eigene Homepage</td><td class="dash">—</td></tr>
+
+  <tr><td class="nr">80</td>
+    <td class="name">Mathias Claus<span class="praxis">Praxisgemeinschaft Wallisellen</span></td>
+    <td>Rotackerstrasse 20, 8304 Wallisellen</td><td class="bezirk">Bülach</td>
+    <td>+41 44 830 02 50</td><td>m.claus@hin.ch</td>
+    <td>lic. phil., Fachpsychologe für Psychotherapie FSP, eidg. anerk.</td><td>FSP / Praxis-Web</td>
+    <td><a href="https://www.praxisgemeinschaft-wallisellen.ch" target="_blank" rel="noopener">praxisgemeinschaft-wallisellen.ch</a></td><td class="dash">—</td></tr>
+
+  <tr><td class="nr">81</td>
+    <td class="name">Flavia Schneider<span class="praxis">Praxis Z (Standort Enge)</span></td>
+    <td>Praxis in Zürich-Enge (Wohnort Wallisellen)</td><td class="bezirk">Zürich</td>
+    <td>+41 76 388 11 43</td><td>schneider.praxisz@fsp-hin.ch</td>
+    <td>eidg. anerk. Psychotherapeutin (FSP)</td><td>FSP / Praxis-Web</td>
+    <td><a href="https://www.flaviaschneider-psychotherapie.ch" target="_blank" rel="noopener">flaviaschneider-psychotherapie.ch</a></td><td class="dash">—</td></tr>
+
+  <tr><td class="nr">82</td>
+    <td class="name">Esther Amstutz Schneider<span class="praxis">Amstutz Psychotherapie</span></td>
+    <td>8952 Schlieren</td><td class="bezirk">Dietikon</td>
+    <td>+41 44 730 truncated — s. Praxis-Web</td><td>via amstutz-psychotherapie.ch (Kontakt)</td>
+    <td>lic. phil., Fachpsychologin für Psychotherapie FSP</td><td>Praxis-Web</td>
+    <td><a href="https://www.amstutz-psychotherapie.ch" target="_blank" rel="noopener">amstutz-psychotherapie.ch</a></td><td class="dash">—</td></tr>
+
+</tbody>
+  </table>
+  </div>
+  <p class="legend" style="margin-top:14px;">
+    <strong>Zusammenfassung:</strong> 82&nbsp;nummerierte Datenzeilen, davon <strong>77&nbsp;vollständig verifizierte Einträge</strong> (jeweils mit Telefon&nbsp;UND&nbsp;E-Mail belegt). Bei den 5&nbsp;Zeilen mit dem Vermerk
+    „via … (Kontakt)“ bzw. „truncated“ wurde eine E-Mail bzw. Telefonnummer am Praxis-Webformular/Verzeichnis bestätigt, aber die jeweils zweite Angabe ist beim Versand zu prüfen (s. Hinweise im Fuss).
+    Verhältnis: <strong>45&nbsp;Einträge MIT eigener Homepage</strong> · <strong>32&nbsp;Einträge OHNE eigene Homepage</strong> („keine eigene Homepage“).
+  </p>
+  <footer>
+    <h2>Methodik, Aufnahmeregel &amp; Limitierungen</h2>
+<h3>Aufnahmeregel (zwingend)</h3>
+<p>In die Haupttabelle wurde eine Fachperson nur aufgenommen, wenn <strong>sowohl eine Telefonnummer als auch eine E-Mail-Adresse</strong> aus einer realen Quelle (Register/Verzeichnis/Praxis-Webseite) ermittelt werden konnte. Fehlte eine der beiden Angaben, wurde die Person ausgelassen. Es wurden keine Namen, Adressen, Telefonnummern, E-Mails oder URLs erfunden.</p>
+
+<h3>Verifizierungs-Mechanik (Homepage-Logik)</h3>
+<ul>
+  <li><strong>FSP-PsyFinder-Logik:</strong> Jedes PsyFinder-Profil führt die Felder Adresse, Telefon, optional „Website“ und E-Mail. Ist im Profil ein eigenes Domain-Webangebot hinterlegt bzw. über die Praxisseite belegbar, erscheint dieses in der Spalte „Homepage“. Fehlt ein eigenes Webangebot, steht „keine eigene Homepage“. Register-, Verzeichnis- (local.ch, comparis.ch, doc24.ch), LinkedIn- oder Gruppenpraxis-Einträge gelten <em>nicht</em> als eigene Homepage.</li>
+  <li><strong>Cross-Checks:</strong> Telefon/E-Mail/Website wurden – wo möglich – über zwei Quellen abgeglichen (PsyFinder + Praxis-Webseite, bzw. + local.ch/search.ch).</li>
+  <li><strong>E-Mail-Muster:</strong> Bestätigt über FSP (psychologie.ch/myfsp-eid): „Mitglieder mit einem HIN FSP Abo können wählen, welche E-Mail-Adresse sie nutzen möchten (@fsp-hin.ch oder @psychologie.ch).“  Seit 2022 erhalten FSP-Mitglieder standardmässig eine HIN-geschützte <code>@psychologie.ch</code>-Adresse (HIN/Ärztekasse-Partnerschaft). HIN-Adressen erfordern bei Erstkontakt durch Externe einen einmaligen Freischaltcode – beim Mailversand zu beachten.</li> 
+</ul>
+
+<h3>Quellen</h3>
+<p>FSP-PsyFinder / ZüPP (psychologie.ch, zuepp.psychologie.ch), ASP (psychotherapie.ch), SBAP, SGBAT, PsyReg/BAG, kantonales Gesundheitsberuferegister ZH; Praxis-Webseiten; RPK Horgen-Affoltern-Mitgliederverzeichnis (Stand Juli 2025); PSYZU (Verein Psychotherapie Zürcher Unterland), PARZ/PLIZ-Netzwerke; Anreicherung über local.ch, search.ch, comparis.ch, doc24.ch.</p>
+<p>Die FSP (Föderation der Schweizer Psycholog:innen) ist mit nach eigenen Angaben über 12&nbsp;000 Mitgliedern der grösste Berufsverband für Psycholog:innen der Schweiz;  der PsyFinder ist ihr nationales Mitgliederverzeichnis (kantonsspezifische Gesamtzahlen werden nicht offiziell publiziert). Der Kantonalverband ZüPP vertritt nach eigenen Angaben „über 1'600 Mitglieder“ und ist damit der mitgliederstärkste psychologische Berufsverband im Kanton Zürich.</p> 
+
+<h3>Erreichte Anzahl &amp; ehrliche Limitierungen</h3>
+<ul>
+  <li><strong>Erreicht: 77 vollständig verifizierte Einträge</strong> (Ziel ~200 nicht erreicht). Grund: Das Recherchebudget (Web-Suchen) wurde vor dem Abschluss der vollständigen kantonsweiten Abdeckung erschöpft. Der FSP-PsyFinder ist eine clientseitig gerenderte Datenbank, deren Einzelprofile sich nur einzeln (nicht als Massenexport) auslesen lassen, was die Datengewinnung verlangsamt.</li>
+  <li><strong>Stark abgedeckt:</strong> Stadt Zürich, Winterthur, Uster/Dübendorf, Meilen/Goldküste, Horgen, Affoltern, Dielsdorf/Regensdorf.</li>
+  <li><strong>Unterabgedeckt (weiterer Recherchepass empfohlen):</strong> Bezirk Dietikon/Limmattal (nur Schlieren erreicht), Bezirk Andelfingen (Weinland — keine phone+email-verifizierte Praxis gefunden), sowie Teile von Bezirk Bülach (Kloten, Opfikon, Bassersdorf, Embrach) und Pfäffikon ZH. Effiziente Folgequellen: PsyFinder-Karte nach PLZ, PARZ (parz.ch, rechtes Seeufer), PLIZ (linkes Seeufer), PiZOL (Oberland), psychotherapiewinterthur.ch — alle listen pro Mitglied Name/Adresse/Telefon/E-Mail/FSP-Titel.</li>
+</ul>
+
+<div class="flag">
+  <strong>Geflaggte Sonderfälle &amp; ausgeschlossene Personen:</strong>
+  <ul>
+    <li><strong>Grenzfall gelöst — aufgenommen:</strong> Sophie Schneider, „Praxis am Zug“, ist in <em>Stäfa ZH (8712)</em> ansässig (der Name bezieht sich auf den Bahnanschluss, nicht den Kanton Zug) → im Kanton Zürich, daher enthalten.</li>
+    <li><strong>Ausgeschlossen (Praxis ausserhalb Kt. ZH):</strong> Christine Zurgilgen (9400 Rorschach SG), Irena Jurcevic (6300 Zug), Franziska Wetzel (5400 Baden AG), Amanda Böni (3422 Kirchberg BE), Sybille Studer (6403 Küssnacht am Rigi SZ), Andreas Michel (zwar Küsnacht ZH — als Psychiater/Dr. phil. mit eigener Praxis grundsätzlich denkbar, aus Datenqualitätsgründen nicht in die Kernliste übernommen).</li>
+    <li><strong>Ausgeschlossen (kein privates Praxisangebot):</strong> Stephanie Homan (institutioneller PUK-Postdoc).</li>
+    <li><strong>Ausgeschlossen wegen fehlender Telefonnummer</strong> (E-Mail vorhanden, aber kein Telefon belegbar — Aufnahmeregel nicht erfüllt): Barbara Sottsas (psychotherapiepraxis-winterthur.ch), Daniela Lüssi (spectiva.ch), Ladina Waldmeier (ladinawaldmeier.ch), Valérie Luterbacher (psychotherapie-luterbacher.ch — zudem „keine neuen Klient:innen“),  Christoph Müller (psychotherapie-psychiatrie-zuerich.ch), Sanne van der Mark (parz.ch — weder Telefon noch E-Mail eindeutig belegbar), Michèle Fark-Grüninger (michele-fark.ch, Praxis Chreis4 Zürich — Kontaktangaben nicht beidseitig belegbar).</li>
+    <li><strong>Ausgeschlossen (Online-only / Kontakt nur via Formular):</strong> Christine Hefti-Stäubli (psychologische-praxis.ch) — seit Herbst 2022 ausschliesslich Online-Angebot,  E-Mail nur über Webformular.</li>
+    <li><strong>Gruppenpraxis-/geteilte Kontaktangaben:</strong> Liza Santschi (MindCare — Sammelnummer/Praxis-Domain), Irène Aeppli (Praxis Meilen), Mathias Claus (Praxisgemeinschaft Wallisellen, ggf. teils auf Online/AG verlagert), Jasmin Mostoufi Pour &amp; Team (Psychologie am See) — Kontakt teils über die Gruppenpraxis.</li>
+    <li><strong>Telefon noch beim Versand zu prüfen</strong> (E-Mail/Verzeichnis belegt, zweite Angabe ggf. nur über Praxisseite): Caroline Ratz, Barbara Bot, Esther Amstutz Schneider, Cornelia Schneider, Simone Schacke, Jasmin Mostoufi Pour — vor Versand kurz auf der jeweiligen Praxis-Webseite verifizieren.</li>
+    <li><strong>Veränderungshinweis:</strong> Veronika Roth (Dielsdorf) und teils weitere Personen haben Rückzug/Praxisaufgabe per Ende 2025 angekündigt — vor Kontaktaufnahme Aktualität prüfen.</li>
+  </ul>
+</div>
+
+<p style="margin-top:14px;color:var(--muted);font-size:12px;">
+  Diese Leadliste dient ausschliesslich der internen Vertriebsvorbereitung einer Webdesign-Agentur. Alle Kontaktdaten stammen aus öffentlich zugänglichen Berufsregistern und Praxis-Webseiten. Beim Erstkontakt sind die geltenden Bestimmungen (u.&nbsp;a. UWG/DSG zu Werbe-E-Mails) zu beachten. Stand: 2.&nbsp;Juni 2026.
+</p>

@@ -39,12 +39,12 @@ const scenario = process.argv[2] || 'minimal'
 
 const scenarios = {
   minimal: {
-    model: 'claude-opus-4-7',
+    model: 'claude-opus-4-8',
     max_tokens: 32,
     messages: [{ role: 'user', content: 'say "ok" and nothing else' }],
   },
   'bad-model': {
-    model: 'claude-opus-4-7[1m]', // invalid identifier — see error shape
+    model: 'claude-opus-4-8[1m]', // invalid identifier — see error shape
     max_tokens: 32,
     messages: [{ role: 'user', content: 'say "ok"' }],
   },

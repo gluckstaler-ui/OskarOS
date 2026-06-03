@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>B6 — Conversation Intelligence (modeled on Gong) · FunnelOS</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0f1115; --panel:#161922; --panel2:#1c2030; --panel3:#212637;
+    --ink:#e8eaef; --dim:#a4abbb; --soft:#6b7180; --rule:#2a2f40; --rule2:#232838;
+    --accent:#6ea8ff; --amber:#ffb86b; --good:#6ee7a1; --warn:#ff7a7a; --hot:#ff6b9d;
+    --rep:#6ea8ff; --cust:#ffb86b;
+    --mono:ui-monospace,"SF Mono","JetBrains Mono",Menlo,Consolas,monospace;
+    --sans:"Inter",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;background:#0b0d12;color:var(--ink);font-family:var(--sans);font-size:14px;line-height:1.5;-webkit-font-smoothing:antialiased;}
+  .app{max-width:1320px;margin:0 auto;background:var(--bg);min-height:100vh;border-left:1px solid var(--rule2);border-right:1px solid var(--rule2);}
+  .mono{font-family:var(--mono);}
+  /* top bar */
+  .topbar{height:52px;display:flex;align-items:center;gap:18px;padding:0 18px;background:#11141d;border-bottom:1px solid var(--rule);}
+  .logo{display:flex;align-items:center;gap:8px;font-weight:700;}
+  .logo .dot{width:22px;height:22px;border-radius:6px;background:linear-gradient(135deg,#6ea8ff,#3f6fd6);}
+  .crumb{color:var(--dim);font-size:13px;}
+  .crumb b{color:var(--ink);font-weight:600;}
+  .search{margin-left:auto;width:300px;height:30px;border-radius:8px;background:var(--panel2);border:1px solid var(--rule);color:var(--soft);display:flex;align-items:center;padding:0 12px;font-size:12px;gap:8px;}
+  .av{width:26px;height:26px;border-radius:50%;background:#2a3350;color:var(--accent);font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;border:1px solid var(--rule);}
+  /* call header */
+  .callhead{padding:18px 22px;border-bottom:1px solid var(--rule);display:flex;align-items:flex-start;gap:20px;flex-wrap:wrap;}
+  .callhead .eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:.1em;color:var(--soft);text-transform:uppercase;}
+  .callhead h1{font-size:21px;margin:4px 0 6px;font-weight:700;letter-spacing:-.01em;}
+  .callmeta{color:var(--dim);font-size:13px;}
+  .parts{display:flex;align-items:center;gap:6px;margin-top:12px;}
+  .parts .p{display:flex;align-items:center;gap:6px;background:var(--panel2);border:1px solid var(--rule);border-radius:999px;padding:3px 10px 3px 3px;font-size:12px;}
+  .parts .p .av{width:22px;height:22px;}
+  .parts .p.cust .av{background:#3a2f1c;color:var(--amber);}
+  .parts .sep{color:var(--soft);font-size:11px;font-family:var(--mono);padding:0 4px;}
+  .headright{margin-left:auto;display:flex;flex-direction:column;align-items:flex-end;gap:8px;}
+  .dealchip{display:flex;align-items:center;gap:10px;background:var(--panel2);border:1px solid var(--rule);border-radius:10px;padding:8px 14px;}
+  .dealchip .amt{font-weight:700;font-size:15px;}
+  .dealchip .stg{color:var(--dim);font-size:12px;}
+  .pips{display:inline-flex;gap:3px;margin-left:4px;vertical-align:middle;}
+  .pips i{width:14px;height:5px;border-radius:3px;background:var(--rule);display:inline-block;}
+  .pips i.on{background:var(--accent);}
+  .risk{display:flex;align-items:center;gap:7px;background:rgba(255,184,107,.1);border:1px solid rgba(255,184,107,.4);color:var(--amber);border-radius:8px;padding:6px 12px;font-size:12px;font-weight:600;}
+  .btn{border-radius:8px;padding:7px 14px;font-size:13px;font-weight:600;border:1px solid var(--rule);background:var(--panel2);color:var(--dim);cursor:default;}
+  .btn.pri{background:var(--accent);color:#0f1115;border-color:var(--accent);}
+  /* columns */
+  .cols{display:grid;grid-template-columns:1.6fr 1fr;gap:0;}
+  .main{border-right:1px solid var(--rule);padding:20px 22px;min-width:0;}
+  .rail{padding:18px;display:flex;flex-direction:column;gap:14px;background:#13161f;}
+  /* player */
+  .player{background:var(--panel);border:1px solid var(--rule);border-radius:12px;padding:16px 18px;}
+  .pcontrols{display:flex;align-items:center;gap:14px;margin-bottom:14px;}
+  .play{width:40px;height:40px;border-radius:50%;background:var(--accent);color:#0f1115;display:flex;align-items:center;justify-content:center;font-size:15px;}
+  .time{font-family:var(--mono);font-size:12px;color:var(--dim);}
+  .speed{margin-left:auto;font-family:var(--mono);font-size:12px;color:var(--dim);border:1px solid var(--rule);border-radius:6px;padding:3px 8px;}
+  .wave{display:flex;align-items:center;gap:2px;height:64px;padding:0 2px;position:relative;}
+  .wave i{flex:1;border-radius:2px;background:var(--rep);opacity:.55;}
+  .wave i.c{background:var(--cust);opacity:.5;}
+  .wave i.played{opacity:1;}
+  .wave .head{position:absolute;top:-4px;bottom:-4px;width:2px;background:var(--ink);left:43%;}
+  .markers{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap;}
+  .mk{font-size:11px;font-family:var(--mono);border:1px solid var(--rule);border-radius:999px;padding:3px 9px;color:var(--dim);display:flex;gap:6px;align-items:center;}
+  .mk .d{width:6px;height:6px;border-radius:50%;}
+  .stats{display:flex;gap:10px;margin-top:14px;flex-wrap:wrap;}
+  .stat{flex:1;min-width:120px;background:var(--panel2);border:1px solid var(--rule);border-radius:9px;padding:10px 12px;}
+  .stat .n{font-size:18px;font-weight:700;font-family:var(--mono);}
+  .stat .l{color:var(--soft);font-size:11px;margin-top:2px;}
+  .talk{margin-top:14px;}
+  .talk .bar{height:10px;border-radius:5px;overflow:hidden;display:flex;border:1px solid var(--rule);}
+  .talk .bar .r{background:var(--rep);}
+  .talk .bar .c{background:var(--cust);}
+  .talk .lbl{display:flex;justify-content:space-between;font-size:11px;color:var(--dim);margin-top:5px;font-family:var(--mono);}
+  /* transcript */
+  .tsec{margin-top:20px;}
+  .tsec h3{font-size:12px;font-family:var(--mono);text-transform:uppercase;letter-spacing:.08em;color:var(--soft);margin:0 0 12px;}
+  .tsearch{display:flex;gap:8px;margin-bottom:14px;}
+  .tsearch .in{flex:1;height:30px;border-radius:8px;background:var(--panel2);border:1px solid var(--rule);color:var(--soft);display:flex;align-items:center;padding:0 12px;font-size:12px;}
+  .tchip{font-size:11px;font-family:var(--mono);border:1px solid var(--rule);border-radius:999px;padding:0 10px;display:flex;align-items:center;color:var(--dim);}
+  .line{display:grid;grid-template-columns:54px 26px 1fr;gap:10px;padding:9px 0;border-bottom:1px solid var(--rule2);}
+  .line .ts{font-family:var(--mono);font-size:11px;color:var(--soft);padding-top:4px;}
+  .line .who{width:24px;height:24px;border-radius:50%;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;}
+  .who.rep{background:#23304e;color:var(--rep);}
+  .who.cust{background:#3a2f1c;color:var(--cust);}
+  .line .nm{font-weight:600;font-size:12px;margin-bottom:2px;}
+  .nm.rep{color:var(--rep);} .nm.cust{color:var(--cust);}
+  .line .tx{color:var(--ink);font-size:13.5px;line-height:1.55;}
+  .hl{background:rgba(110,168,255,.16);border-bottom:1px solid var(--accent);border-radius:2px;padding:0 2px;}
+  .hl.comp{background:rgba(255,122,122,.16);border-color:var(--warn);}
+  .moment{margin:8px 0;padding:8px 12px;border-left:3px solid var(--amber);background:rgba(255,184,107,.07);border-radius:0 8px 8px 0;font-size:12px;color:var(--amber);}
+  /* rail cards */
+  .card{background:var(--panel);border:1px solid var(--rule);border-radius:12px;padding:14px 16px;}
+  .card .ct{font-family:var(--mono);font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--soft);margin:0 0 10px;display:flex;align-items:center;gap:7px;}
+  .tabs{display:flex;gap:6px;}
+  .tabs .t{font-size:12px;font-weight:600;padding:6px 11px;border-radius:7px;color:var(--dim);border:1px solid transparent;}
+  .tabs .t.on{background:rgba(110,168,255,.14);color:var(--accent);border-color:rgba(110,168,255,.35);}
+  .ai{border-color:rgba(255,184,107,.3);}
+  .ai .ct{color:var(--amber);}
+  .ai ul{margin:0;padding-left:16px;}
+  .ai li{margin:5px 0;font-size:13px;color:var(--ink);}
+  .ai .sent{display:flex;gap:8px;margin-top:10px;font-size:12px;}
+  .tag{font-size:11px;border-radius:6px;padding:2px 8px;font-weight:600;}
+  .tag.pos{background:rgba(110,231,161,.14);color:var(--good);}
+  .tag.neu{background:rgba(164,171,187,.14);color:var(--dim);}
+  .trk{display:flex;align-items:center;gap:10px;margin:9px 0;}
+  .trk .nm{font-size:13px;width:96px;}
+  .trk .ct2{font-family:var(--mono);font-size:12px;color:var(--dim);width:24px;text-align:right;}
+  .trk .bar{flex:1;height:6px;border-radius:3px;background:var(--rule);overflow:hidden;}
+  .trk .bar i{display:block;height:100%;background:var(--accent);}
+  .ai-row{display:flex;gap:7px;align-items:flex-start;margin:8px 0;font-size:13px;}
+  .ck{width:16px;height:16px;border-radius:5px;border:1px solid var(--rule);flex:none;margin-top:2px;}
+  .ck.done{background:var(--good);border-color:var(--good);}
+  .owner{color:var(--soft);font-size:11px;font-family:var(--mono);}
+  .ctx-row{display:flex;justify-content:space-between;font-size:12.5px;margin:7px 0;}
+  .ctx-row .k{color:var(--soft);}
+  .person{display:flex;align-items:center;gap:9px;margin:8px 0;}
+  .person .av{width:26px;height:26px;}
+  .person .meta{font-size:12px;}
+  .person .meta .r{color:var(--dim);font-size:11px;}
+  .dotline{font-family:var(--mono);font-size:10px;letter-spacing:1px;}
+  .comment{display:flex;gap:9px;font-size:12.5px;}
+  .comment .av{width:26px;height:26px;background:#2b3a26;color:var(--good);}
+  .footnote{color:var(--soft);font-size:11px;text-align:center;padding:14px;font-family:var(--mono);}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- TOP BAR -->
+  <div class="topbar">
+    <div class="logo"><span class="dot"></span> FunnelOS</div>
+    <div class="crumb">Calls&nbsp; /&nbsp; Acme Corp&nbsp; /&nbsp; <b>Discovery call · May 22</b></div>
+    <div class="search">⌘K&nbsp; Ask anything — "what did the CFO object to?"</div>
+    <div class="av">RP</div>
+  </div>
+
+  <!-- CALL HEADER -->
+  <div class="callhead">
+    <div>
+      <div class="eyebrow">Recorded call · Conversation intelligence</div>
+      <h1>Discovery call — Acme Corp · Q3 Expansion</h1>
+      <div class="callmeta mono">May 22, 2026 · 28:14 · Zoom · recorded by you</div>
+      <div class="parts">
+        <span class="p"><span class="av">RP</span> Ralph P. <span style="color:var(--soft);font-size:11px">· AE</span></span>
+        <span class="p"><span class="av">SE</span> Sara E. <span style="color:var(--soft);font-size:11px">· SE</span></span>
+        <span class="sep">↔</span>
+        <span class="p cust"><span class="av">MC</span> Marcus Chen <span style="color:var(--good);font-size:11px">· champion</span></span>
+        <span class="p cust"><span class="av">LP</span> Lisa Park <span style="color:var(--warn);font-size:11px">· CFO</span></span>
+        <span class="p cust"><span class="av">+1</span></span>
+      </div>
+    </div>
+    <div class="headright">
+      <div class="dealchip">
+        <div><div class="amt">$85,000</div><div class="stg">Q3 Expansion</div></div>
+        <div style="border-left:1px solid var(--rule);padding-left:10px">
+          <div class="stg">Stage 3 · Demo</div>
+          <span class="pips"><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i></span>
+        </div>
+      </div>
+      <div class="risk">⚠ Deal risk · economic buyer not engaged</div>
+      <div style="display:flex;gap:8px"><span class="btn">Share ↗</span><span class="btn pri">★ Ask AI</span></div>
+    </div>
+  </div>
+
+  <!-- COLUMNS -->
+  <div class="cols">
+
+    <!-- MAIN: player + transcript -->
+    <div class="main">
+      <div class="player">
+        <div class="pcontrols">
+          <div class="play">▶</div>
+          <div class="time">12:04 / 28:14</div>
+          <div class="speed">1.5×</div>
+        </div>
+        <div class="wave">
+          <i class="played" style="height:30%"></i><i class="played" style="height:52%"></i><i class="played" style="height:44%"></i><i class="played" style="height:68%"></i><i class="played" style="height:38%"></i><i class="played c" style="height:60%"></i><i class="played c" style="height:80%"></i><i class="played c" style="height:50%"></i><i class="played" style="height:34%"></i><i class="played" style="height:58%"></i><i class="played" style="height:72%"></i><i class="played" style="height:42%"></i><i class="played c" style="height:64%"></i><i class="played c" style="height:88%"></i><i class="played c" style="height:54%"></i><i class="played c" style="height:40%"></i><i class="played" style="height:48%"></i><i class="played" style="height:30%"></i>
+          <i style="height:62%"></i><i style="height:46%"></i><i class="c" style="height:78%"></i><i class="c" style="height:92%"></i><i class="c" style="height:58%"></i><i class="c" style="height:44%"></i><i style="height:36%"></i><i style="height:54%"></i><i style="height:40%"></i><i class="c" style="height:66%"></i><i class="c" style="height:84%"></i><i class="c" style="height:50%"></i><i style="height:32%"></i><i style="height:56%"></i><i style="height:70%"></i><i style="height:46%"></i><i class="c" style="height:60%"></i><i class="c" style="height:38%"></i><i style="height:50%"></i><i style="height:64%"></i><i style="height:42%"></i><i class="c" style="height:74%"></i><i class="c" style="height:54%"></i><i style="height:34%"></i><i style="height:48%"></i>
+          <div class="head"></div>
+        </div>
+        <div class="markers">
+          <span class="mk"><span class="d" style="background:var(--accent)"></span> 02:10 Pricing</span>
+          <span class="mk"><span class="d" style="background:var(--warn)"></span> 09:32 Competitor: Salesforce</span>
+          <span class="mk"><span class="d" style="background:var(--amber)"></span> 14:05 ★ CFO objection</span>
+          <span class="mk"><span class="d" style="background:var(--good)"></span> 24:40 Next steps</span>
+        </div>
+        <div class="stats">
+          <div class="stat"><div class="n">41<span style="font-size:12px">%</span></div><div class="l">Your talk ratio</div></div>
+          <div class="stat"><div class="n">2:14</div><div class="l">Longest monologue</div></div>
+          <div class="stat"><div class="n">11</div><div class="l">Questions asked</div></div>
+          <div class="stat"><div class="n">9</div><div class="l">Engaging moments</div></div>
+        </div>
+        <div class="talk">
+          <div class="bar"><div class="r" style="width:41%"></div><div class="c" style="width:59%"></div></div>
+          <div class="lbl"><span style="color:var(--rep)">● You + Sara · 41%</span><span style="color:var(--cust)">Customer · 59% ●</span></div>
+        </div>
+      </div>
+
+      <!-- TRANSCRIPT -->
+      <div class="tsec">
+        <h3>Transcript</h3>
+        <div class="tsearch">
+          <div class="in">🔍 Search the transcript…</div>
+          <span class="tchip">Pricing ×5</span>
+          <span class="tchip">Competitor ×2</span>
+          <span class="tchip">Pain ×4</span>
+        </div>
+
+        <div class="line">
+          <div class="ts">12:01</div>
+          <div class="who rep">RP</div>
+          <div><div class="nm rep">Ralph</div><div class="tx">So before we get into <span class="hl">pricing</span> — Marcus, walk me through what breaks today when a new region spins up.</div></div>
+        </div>
+        <div class="line">
+          <div class="ts">12:18</div>
+          <div class="who cust">MC</div>
+          <div><div class="nm cust">Marcus Chen</div><div class="tx">Honestly it's <span class="hl comp">manual</span> — we're stitching three tools together. The bigger problem is we tried <span class="hl comp">Salesforce</span> last year and the rollout stalled for six months.</div></div>
+        </div>
+
+        <div class="moment">★ Key moment · 14:05 — CFO raises ramp-cost objection. AI flagged this as the deal's pivotal exchange.</div>
+
+        <div class="line">
+          <div class="ts">14:05</div>
+          <div class="who cust">LP</div>
+          <div><div class="nm cust">Lisa Park · CFO</div><div class="tx">My concern is the <span class="hl">ramp cost</span>. If we're paying for 24 seats from day one but only onboard 8 in Q3, that's dead budget I have to defend.</div></div>
+        </div>
+        <div class="line">
+          <div class="ts">14:33</div>
+          <div class="who rep">SE</div>
+          <div><div class="nm rep">Sara · SE</div><div class="tx">That's fair — we can structure a phased ramp so you only pay for active seats through Q3, then step up. I'll put the numbers in writing.</div></div>
+        </div>
+        <div class="line">
+          <div class="ts">24:40</div>
+          <div class="who rep">RP</div>
+          <div><div class="nm rep">Ralph</div><div class="tx">Great. <span class="hl">Next step</span> — I'll send the phased-ramp pricing today, and Marcus, can you get us 20 minutes with Lisa next week to walk the numbers?</div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- RAIL -->
+    <aside class="rail">
+      <div class="tabs">
+        <span class="t on">Summary</span><span class="t">Trackers</span><span class="t">Next steps</span><span class="t">Comments</span>
+      </div>
+
+      <div class="card ai">
+        <div class="ct">★ AI call brief</div>
+        <ul>
+          <li>Strong discovery — pain is manual multi-region setup; prior <b>Salesforce</b> rollout failed (trust angle).</li>
+          <li>CFO (Lisa) is the unmet economic buyer; sole objection is <b>ramp cost</b>, addressable with phased seats.</li>
+          <li>Champion (Marcus) is engaged and agreed to broker a CFO meeting.</li>
+        </ul>
+        <div class="sent">
+          <span class="tag pos">Sentiment ↑ positive</span>
+          <span class="tag neu">Outcome · advancing</span>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="ct">Trackers</div>
+        <div class="trk"><span class="nm">Pricing</span><span class="bar"><i style="width:90%"></i></span><span class="ct2">5</span></div>
+        <div class="trk"><span class="nm">Pain points</span><span class="bar"><i style="width:74%"></i></span><span class="ct2">4</span></div>
+        <div class="trk"><span class="nm">Next steps</span><span class="bar"><i style="width:55%"></i></span><span class="ct2">3</span></div>
+        <div class="trk"><span class="nm" style="color:var(--warn)">Competitor</span><span class="bar"><i style="width:36%;background:var(--warn)"></i></span><span class="ct2">2</span></div>
+        <div class="trk"><span class="nm">Budget</span><span class="bar"><i style="width:18%"></i></span><span class="ct2">1</span></div>
+      </div>
+
+      <div class="card">
+        <div class="ct">★ AI next steps</div>
+        <div class="ai-row"><span class="ck"></span><div>Send phased-ramp pricing one-pager <div class="owner">You · due today</div></div></div>
+        <div class="ai-row"><span class="ck"></span><div>Book 20-min CFO numbers review <div class="owner">Marcus (champion) · next week</div></div></div>
+        <div class="ai-row"><span class="ck done"></span><div style="color:var(--soft);text-decoration:line-through">Recap email to thread <div class="owner">sent 12:46</div></div></div>
+      </div>
+
+      <div class="card">
+        <div class="ct">Deal context</div>
+        <div class="ctx-row"><span class="k">Stage</span><span>3 · Demo &nbsp;<span class="pips"><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i></span></span></div>
+        <div class="ctx-row"><span class="k">Amount</span><span>$85,000</span></div>
+        <div class="ctx-row"><span class="k">Close</span><span>May 31</span></div>
+        <div class="person"><span class="av">MC</span><div class="meta">Marcus Chen <span class="dotline" style="color:var(--good)">●●●●○</span><div class="r">Champion · VP Eng · engaged</div></div></div>
+        <div class="person"><span class="av" style="background:#3a1f22;color:var(--warn)">LP</span><div class="meta">Lisa Park <span class="dotline" style="color:var(--warn)">○○○○○</span><div class="r">Economic buyer · CFO · <b style="color:var(--warn)">unmet</b></div></div></div>
+      </div>
+
+      <div class="card">
+        <div class="ct">Comments</div>
+        <div class="comment"><span class="av">DK</span><div><b>Dana K.</b> <span class="owner">· 1h ago</span><div style="margin-top:2px">Nice discovery 🙌 Don't let the CFO meeting slip — that's the whole deal. Loop me in if you want backup on the ramp math.</div></div></div>
+      </div>
+    </aside>
+  </div>
+
+  <div class="footnote">B6 · Call / Conversation Detail — modeled on Gong · FunnelOS house style · waveform + speaker-split transcript · talk-ratio &amp; trackers · ★ AI brief + next steps · deal-risk with buying-committee gaps</div>
+</div>
+</body>
+</html>

@@ -39,8 +39,14 @@ FWD_PID=$!
 # Kill the forwarder when this script exits — Ctrl+C, normal exit, error.
 trap 'sudo kill $FWD_PID 2>/dev/null; exit' INT TERM EXIT
 
+# LAN identity, derived not hardcoded (WP-40 2026-06-02): hostname for the
+# mDNS .local name, primary IP for hosts without mDNS (servers, WSL).
+HOST="$(hostname -s 2>/dev/null || hostname 2>/dev/null || echo localhost)"
+IP="$(hostname -I 2>/dev/null | awk '{print $1}')"
+if [ -z "$IP" ]; then IP="$(ipconfig getifaddr en0 2>/dev/null || true)"; fi
+
 echo ""
-echo "  LAN:    http://paradiso.local  or  http://paradiso"
+echo "  LAN:    http://${HOST}.local${IP:+   or   http://$IP}"
 echo "  Local:  http://localhost"
 echo "  Stop:   Ctrl+C"
 echo ""

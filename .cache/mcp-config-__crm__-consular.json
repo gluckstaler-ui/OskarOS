@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "orch": {
+      "type": "http",
+      "url": "http://localhost:3000/api/mcp/server?session=__crm__&agent=consular&instance=f7d8dfc1-d2ac-4112-9f7a-b50b5fcff3e8"
+    }
+  }
+}

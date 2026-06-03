@@ -3,18 +3,24 @@
 /**
  * BuildJobCard — Archetype 1 from docs/toolcards-mockup.html.
  *
- * Single shape backs `build_vibe` (one row) and `build_all_vibes` (N rows).
- * Each row carries thumb · id+label · timeline · ETA · ONE button.
+ * Single shape backs `build_vibe` (1..N rows, array-based since 2026-05-18)
+ * and `build_wireframes` (N rows). Each row carries thumb · id+label ·
+ * timeline · ETA · ONE button.
  *
  *   - Button is CANCEL while the row is in progress, OPEN when it lands `done`.
- *   - WF (worktree-fork) step renders only for JuniorDev rows.
+ *   - DYNAMIC LADDER per row (Ralph 2026-05-18, Job-Card Ladder Fix):
+ *       build_wireframes rows: queued → html → verify → critique → done (5)
+ *       build_vibe rows:        queued → html → verify → done           (4)
+ *     The route sets `row.hasCritique: true` for wireframe rows; vibe rows
+ *     omit it. `buildSteps()` reads hasCritique to pick the ladder.
+ *   - Milestone bullets render for ALL row counts (single AND multi-row
+ *     views) so multi-vibe builds aren't invisible mid-flight.
  *   - No card-foot, no "cancel all" — each row owns its own cancel.
- *   - Single-vibe view (build_vibe): same primitive, just one row, optional
- *     milestone bullets sourced from `report_build_progress` events.
  *
  * Data flow (live builds, not previews):
  *   build_started      → push card with rows[].state='queued'
- *   report_build_progress (per-vibe) → flip a row's state (wf → html → verify)
+ *   build_progress (per-vibe) → flip a row's state (html → verify → critique)
+ *                               via payload.filename routing
  *   vibe_built         → row.state = 'done', button → OPEN
  *   vibe_failed        → row.state = 'failed', show row.error
  *   build_complete     → no further updates (terminal)
@@ -93,18 +99,23 @@ export interface BuildJobCardProps extends Omit<BuildCardPayload, 'kind'> {
  *               the failure visibly halts the sweep; error renders below.
  */
 function buildSteps(row: BuildCardRow): { lbl: string; status: 'done' | 'active' | 'pending' }[] {
-  const ladder: BuildRowState[] = ['queued', 'html', 'verify', 'done']
+  // Dynamic per-row ladder (Ralph 2026-05-18, Job-Card Ladder Fix).
+  // Wireframes (hasCritique: true) get the 5-stage ladder including
+  // 'critique' between 'verify' and 'done'. Vibes use the 4-stage ladder.
+  const ladder: BuildRowState[] = row.hasCritique
+    ? ['queued', 'html', 'verify', 'critique', 'done']
+    : ['queued', 'html', 'verify', 'done']
   const labelByState: Record<BuildRowState, string> = {
     queued: 'queued',
-    wf: 'queued',     // legacy alias — wf rows treated as queued
     html: 'html',
     verify: 'verify',
+    critique: 'critique',
     done: 'done',
     failed: 'verify',    // unreached after failure; harmless default
     cancelled: 'verify', // user cancel — treated like failure for label fallback
   }
   const cur = row.state
-  const curIdx = ladder.indexOf(cur === 'wf' ? 'queued' : cur)
+  const curIdx = ladder.indexOf(cur)
   return ladder.map((step, i) => {
     const lbl = labelByState[step]
     if (cur === 'failed') {
@@ -153,7 +164,7 @@ export function BuildJobCard({
               isPreview={isPreview}
               onCancel={onCancel}
               onOpen={onOpen}
-              showMilestones={safeRows.length === 1}
+              showMilestones={true}
             />
           ))
         )}

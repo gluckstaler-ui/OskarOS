@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "orch": {
+      "type": "http",
+      "url": "http://localhost:3000/api/mcp/server?session=2026-05-28-caf%C3%A9-hofmann&agent=cd&instance=b6066316-551a-4de3-9bb8-50d1cc08d488"
+    }
+  }
+}

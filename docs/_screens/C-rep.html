@@ -1,0 +1,1779 @@
+<h2>C. Reporting &amp; dashboards</h2>
+
+<!-- =================== C1 SALES DASHBOARD (REP) =================== -->
+<section class="screen" id="C1">
+  <h3>C1 — Sales Dashboard (rep)</h3>
+  <p class="screen-meta">AE · my quota / my pipeline / my activity at a glance · ref: HubSpot, Pipedrive</p>
+  <div class="mockup">
+    <svg viewBox="0 0 1180 560" xmlns="http://www.w3.org/2000/svg" font-family="Inter, sans-serif" font-size="12">
+      <defs>
+        <linearGradient id="c1bg" x1="0" x2="0" y1="0" y2="1">
+          <stop offset="0" stop-color="#1a1d29"></stop><stop offset="1" stop-color="#161922"></stop>
+        </linearGradient>
+      </defs>
+      <rect width="1180" height="560" rx="8" fill="url(#c1bg)"></rect>
+
+      <!-- Top bar -->
+      <rect x="0" y="0" width="1180" height="48" fill="#11141d"></rect>
+      <circle cx="22" cy="24" r="6" fill="#6ea8ff"></circle>
+      <text x="38" y="28" fill="#e8eaef" font-weight="600">FunnelOS</text>
+      <rect x="380" y="13" width="420" height="22" rx="11" fill="#1c2030" stroke="#2a2f40"></rect>
+      <text x="394" y="28" fill="#a4abbb">⌘K  Ask anything — "Am I going to hit quota this quarter?"</text>
+      <circle cx="1090" cy="24" r="11" fill="#2a2f40"></circle>
+      <text x="1085" y="28" fill="#a4abbb" font-size="11">3</text>
+      <circle cx="1130" cy="24" r="13" fill="#6ea8ff"></circle>
+      <text x="1125" y="28" fill="#0f1115" font-weight="700" font-size="11">RP</text>
+
+      <!-- Left nav -->
+      <rect x="0" y="48" width="180" height="512" fill="#11141d"></rect>
+      <g font-size="13">
+        <text x="22" y="80" fill="#a4abbb">◐ Day</text>
+        <text x="22" y="108" fill="#a4abbb">◐ Pipeline</text>
+        <text x="22" y="136" fill="#a4abbb">◐ Inbox  <tspan fill="#ff7a7a">●</tspan></text>
+        <text x="22" y="164" fill="#a4abbb">◐ Signals  <tspan fill="#ffb86b">12</tspan></text>
+        <text x="22" y="192" fill="#a4abbb">◐ Contacts</text>
+        <text x="22" y="220" fill="#a4abbb">◐ Forecast</text>
+        <rect x="8" y="236" width="164" height="32" rx="6" fill="#6ea8ff" opacity="0.15"></rect>
+        <text x="22" y="256" fill="#6ea8ff" font-weight="600">◉ Reports</text>
+        <line x1="20" y1="286" x2="160" y2="286" stroke="#2a2f40"></line>
+        <text x="22" y="308" fill="#6b7180">⊙ Settings</text>
+      </g>
+
+      <!-- Main -->
+      <g transform="translate(200, 64)">
+        <text x="0" y="14" fill="#e8eaef" font-size="20" font-weight="700">My Dashboard</text>
+        <text x="0" y="34" fill="#a4abbb" font-size="13">Ralph Park · Q3 2026 · Enterprise · resets Jul 1</text>
+        <rect x="820" y="0" width="140" height="28" rx="6" fill="#1c2030" stroke="#2a2f40"></rect>
+        <text x="836" y="19" fill="#a4abbb">This quarter ▾</text>
+
+        <!-- Quota gauge -->
+        <g transform="translate(0, 56)">
+          <rect width="300" height="208" rx="10" fill="#1c2030" stroke="#2a2f40"></rect>
+          <text x="18" y="26" fill="#a4abbb" font-family="ui-monospace, monospace" font-size="11" letter-spacing="1">QUOTA ATTAINMENT</text>
+          <!-- gauge arc: semicircle radius 92, center (150,150) -->
+          <path d="M 58 150 A 92 92 0 0 1 242 150" fill="none" stroke="#2a2f40" stroke-width="16" stroke-linecap="round"></path>
+          <!-- 72% of 180deg sweep = arc to angle. start 180°, sweep 0.72*180=129.6° -> end angle = 180-129.6 = 50.4° from +x -->
+          <path d="M 58 150 A 92 92 0 0 1 208.7 79.3" fill="none" stroke="#6ea8ff" stroke-width="16" stroke-linecap="round"></path>
+          <text x="150" y="138" fill="#e8eaef" font-size="40" font-weight="700" text-anchor="middle" font-family="ui-monospace, monospace">72%</text>
+          <text x="150" y="160" fill="#a4abbb" font-size="12" text-anchor="middle">$864K of $1.2M</text>
+          <text x="58" y="178" fill="#6b7180" font-size="10" text-anchor="middle">$0</text>
+          <text x="242" y="178" fill="#6b7180" font-size="10" text-anchor="middle">$1.2M</text>
+          <line x1="18" y1="190" x2="282" y2="190" stroke="#2a2f40"></line>
+          <text x="18" y="200" fill="#6ee7a1" font-size="11">▲ pacing 4% ahead · need $336K in 28d</text>
+        </g>
+
+        <!-- KPI stat strip -->
+        <g transform="translate(316, 56)">
+          <rect width="150" height="100" rx="10" fill="#1c2030" stroke="#2a2f40"></rect>
+          <text x="14" y="24" fill="#a4abbb" font-size="11">CLOSED-WON</text>
+          <text x="14" y="58" fill="#6ee7a1" font-size="26" font-weight="700" font-family="ui-monospace, monospace">$864K</text>
+          <text x="14" y="80" fill="#6b7180" font-size="11">18 deals · QTD</text>
+
+          <rect x="162" width="150" height="100" rx="10" fill="#1c2030" stroke="#2a2f40"></rect>
+          <text x="176" y="24" fill="#a4abbb" font-size="11">OPEN PIPELINE</text>
+          <text x="176" y="58" fill="#6ea8ff" font-size="26" font-weight="700" font-family="ui-monospace, monospace">$1.9M</text>
+          <text x="176" y="80" fill="#6b7180" font-size="11">31 deals · 2.2× cover</text>
+
+          <rect width="150" height="100" y="108" rx="10" fill="#1c2030" stroke="#2a2f40"></rect>
+          <text x="14" y="132" fill="#a4abbb" font-size="11">WIN RATE</text>
+          <text x="14" y="166" fill="#e8eaef" font-size="26" font-weight="700" font-family="ui-monospace, monospace">34%</text>
+          <text x="14" y="188" fill="#6ee7a1" font-size="11">▲ +6pt vs last Q</text>
+
+          <rect x="162" width="150" height="100" y="108" rx="10" fill="#1c2030" stroke="#2a2f40"></rect>
+          <text x="176" y="132" fill="#a4abbb" font-size="11">AVG DEAL</text>
+          <text x="176" y="166" fill="#e8eaef" font-size="26" font-weight="700" font-family="ui-monospace, monospace">$48K</text>
+          <text x="176" y="188" fill="#ff7a7a" font-size="11">▼ −$3K vs last Q</text>
+        </g>
+
+        <!-- Leaderboard mini -->
+        <g transform="translate(646, 56)">
+          <rect width="314" height="208" rx="10" fill="#1c2030" stroke="#2a2f40"></rect>
+          <text x="18" y="26" fill="#a4abbb" font-family="ui-monospace, monospace" font-size="11" letter-spacing="1">TEAM LEADERBOARD</text>
+          <text x="296" y="26" fill="#6b7180" font-size="11" text-anchor="end">% quota</text>
+          <!-- rows -->
+          <g transform="translate(18,44)" font-size="12">
+            <text x="0" y="12" fill="#6b7180" font-family="ui-monospace, monospace">1</text>
+            <text x="22" y="12" fill="#e8eaef" font-weight="600">Priya R.</text>
+            <rect x="120" y="3" width="120" height="10" rx="5" fill="#2a2f40"></rect>
+            <rect x="120" y="3" width="116" height="10" rx="5" fill="#6ee7a1"></rect>
+            <text x="278" y="12" fill="#6ee7a1" text-anchor="end" font-family="ui-monospace, monospace">97%</text>
+
+            <text x="0" y="40" fill="#6b7180" font-family="ui-monospace, monospace">2</text>
+            <text x="22" y="40" fill="#e8eaef" font-weight="600">Sarah K.</text>
+            <rect x="120" y="31" width="120" height="10" rx="5" fill="#2a2f40"></rect>
+            <rect x="120" y="31" width="102" height="10" rx="5" fill="#6ee7a1"></rect>
+            <text x="278" y="40" fill="#6ee7a1" text-anchor="end" font-family="ui-monospace, monospace">85%</text>
+
+            <rect x="-6" y="52" width="296" height="26" rx="6" fill="#6ea8ff" opacity="0.12"></rect>
+            <text x="0" y="68" fill="#6ea8ff" font-family="ui-monospace, monospace">3</text>
+            <text x="22" y="68" fill="#6ea8ff" font-weight="700">You · Ralph</text>
+            <rect x="120" y="59" width="120" height="10" rx="5" fill="#2a2f40"></rect>
+            <rect x="120" y="59" width="86" height="10" rx="5" fill="#6ea8ff"></rect>
+            <text x="278" y="68" fill="#6ea8ff" text-anchor="end" font-family="ui-monospace, monospace">72%</text>
+
+            <text x="0" y="96" fill="#6b7180" font-family="ui-monospace, monospace">4</text>
+            <text x="22" y="96" fill="#e8eaef" font-weight="600">Marcus T.</text>
+            <rect x="120" y="87" width="120" height="10" rx="5" fill="#2a2f40"></rect>
+            <rect x="120" y="87" width="74" height="10" rx="5" fill="#ffb86b"></rect>
+            <text x="278" y="96" fill="#ffb86b" text-anchor="end" font-family="ui-monospace, monospace">61%</text>
+
+            <text x="0" y="124" fill="#6b7180" font-family="ui-monospace, monospace">5</text>
+            <text x="22" y="124" fill="#e8eaef" font-weight="600">Dani O.</text>
+            <rect x="120" y="115" width="120" height="10" rx="5" fill="#2a2f40"></rect>
+            <rect x="120" y="115" width="52" height="10" rx="5" fill="#ff7a7a"></rect>
+            <text x="278" y="124" fill="#ff7a7a" text-anchor="end" font-family="ui-monospace, monospace">43%</text>
+          </g>
+        </g>
+
+        <!-- Pipeline by stage bar chart -->
+        <g transform="translate(0, 284)">
+          <rect width="600" height="208" rx="10" fill="#1c2030" stroke="#2a2f40"></rect>
+          <text x="18" y="26" fill="#a4abbb" font-family="ui-monospace, monospace" font-size="11" letter-spacing="1">OPEN PIPELINE BY STAGE</text>
+          <text x="582" y="26" fill="#6b7180" font-size="11" text-anchor="end">$1.9M total</text>
+          <!-- y gridlines -->
+          <g stroke="#2a2f40" stroke-dasharray="2,3">
+            <line x1="60" y1="60" x2="582" y2="60"></line>
+            <line x1="60" y1="100" x2="582" y2="100"></line>
+            <line x1="60" y1="140" x2="582" y2="140"></line>
+          </g>
+          <g fill="#6b7180" font-size="9" font-family="ui-monospace, monospace" text-anchor="end">
+            <text x="52" y="64">$600K</text>
+            <text x="52" y="104">$400K</text>
+            <text x="52" y="144">$200K</text>
+            <text x="52" y="180">$0</text>
+          </g>
+          <line x1="60" y1="176" x2="582" y2="176" stroke="#2a2f40"></line>
+          <!-- bars: baseline y=176, scale 200K=40px height -->
+          <g>
+            <!-- Qualify 540K -> 108px -->
+            <rect x="78" y="68" width="62" height="108" rx="3" fill="#6ea8ff" opacity="0.55"></rect>
+            <text x="109" y="62" fill="#e8eaef" font-size="11" text-anchor="middle" font-family="ui-monospace, monospace">$540K</text>
+            <text x="109" y="194" fill="#a4abbb" font-size="10" text-anchor="middle">Qualify</text>
+            <text x="109" y="207" fill="#6b7180" font-size="9" text-anchor="middle">11 deals</text>
+            <!-- Demo 480K -> 96px -->
+            <rect x="170" y="80" width="62" height="96" rx="3" fill="#6ea8ff" opacity="0.7"></rect>
+            <text x="201" y="74" fill="#e8eaef" font-size="11" text-anchor="middle" font-family="ui-monospace, monospace">$480K</text>
+            <text x="201" y="194" fill="#a4abbb" font-size="10" text-anchor="middle">Demo</text>
+            <text x="201" y="207" fill="#6b7180" font-size="9" text-anchor="middle">8 deals</text>
+            <!-- Proposal 420K -> 84px -->
+            <rect x="262" y="92" width="62" height="84" rx="3" fill="#6ea8ff"></rect>
+            <text x="293" y="86" fill="#e8eaef" font-size="11" text-anchor="middle" font-family="ui-monospace, monospace">$420K</text>
+            <text x="293" y="194" fill="#a4abbb" font-size="10" text-anchor="middle">Proposal</text>
+            <text x="293" y="207" fill="#6b7180" font-size="9" text-anchor="middle">6 deals</text>
+            <!-- Negotiate 310K -> 62px -->
+            <rect x="354" y="114" width="62" height="62" rx="3" fill="#ffb86b"></rect>
+            <text x="385" y="108" fill="#e8eaef" font-size="11" text-anchor="middle" font-family="ui-monospace, monospace">$310K</text>
+            <text x="385" y="194" fill="#a4abbb" font-size="10" text-anchor="middle">Negotiate</text>
+            <text x="385" y="207" fill="#6b7180" font-size="9" text-anchor="middle">4 deals</text>
+            <!-- Verbal 150K -> 30px -->
+            <rect x="446" y="146" width="62" height="30" rx="3" fill="#6ee7a1"></rect>
+            <text x="477" y="140" fill="#e8eaef" font-size="11" text-anchor="middle" font-family="ui-monospace, monospace">$150K</text>
+            <text x="477" y="194" fill="#a4abbb" font-size="10" text-anchor="middle">Verbal</text>
+            <text x="477" y="207" fill="#6b7180" font-size="9" text-anchor="middle">2 deals</text>
+          </g>
+        </g>
+
+        <!-- Activity sparklines -->
+        <g transform="translate(616, 284)">
+          <rect width="344" height="208" rx="10" fill="#1c2030" stroke="#2a2f40"></rect>
+          <text x="18" y="26" fill="#a4abbb" font-family="ui-monospace, monospace" font-size="11" letter-spacing="1">MY ACTIVITY · LAST 14 DAYS</text>
+          <!-- Calls -->
+          <g transform="translate(18, 44)">
+            <text x="0" y="12" fill="#6ea8ff" font-size="12">📞 Calls</text>
+            <text x="118" y="12" fill="#e8eaef" font-weight="700" font-family="ui-monospace, monospace" font-size="14">142</text>
+            <text x="160" y="12" fill="#6ee7a1" font-size="10">▲ 12%</text>
+            <polyline points="206,16 218,10 230,14 242,6 254,12 266,4 278,9 290,2 302,10 314,5"
+              fill="none" stroke="#6ea8ff" stroke-width="2"></polyline>
+          </g>
+          <line x1="18" y1="74" x2="326" y2="74" stroke="#2a2f40"></line>
+          <!-- Emails -->
+          <g transform="translate(18, 88)">
+            <text x="0" y="12" fill="#ffb86b" font-size="12">📧 Emails</text>
+            <text x="118" y="12" fill="#e8eaef" font-weight="700" font-family="ui-monospace, monospace" font-size="14">389</text>
+            <text x="160" y="12" fill="#6ee7a1" font-size="10">▲ 8%</text>
+            <polyline points="206,12 218,8 230,14 242,10 254,4 266,12 278,7 290,11 302,3 314,8"
+              fill="none" stroke="#ffb86b" stroke-width="2"></polyline>
+          </g>
+          <line x1="18" y1="118" x2="326" y2="118" stroke="#2a2f40"></line>
+          <!-- Meetings -->
+          <g transform="translate(18, 132)">
+            <text x="0" y="12" fill="#6ee7a1" font-size="12">📅 Meetings</text>
+            <text x="118" y="12" fill="#e8eaef" font-weight="700" font-family="ui-monospace, monospace" font-size="14">37</text>
+            <text x="160" y="12" fill="#ff7a7a" font-size="10">▼ 4%</text>
+            <polyline points="206,8 218,12 230,6 242,14 254,9 266,13 278,7 290,12 302,8 314,14"
+              fill="none" stroke="#6ee7a1" stroke-width="2"></polyline>
+          </g>
+          <line x1="18" y1="162" x2="326" y2="162" stroke="#2a2f40"></line>
+          <text x="18" y="182" fill="#ffb86b" font-size="11">★ AI: book 3 more demos this week to stay on pace</text>
+        </g>
+      </g>
+
+      <!-- annotations -->
+      <g class="anno">
+        <circle cx="350" cy="180" r="3" class="note-anchor"></circle>
+        <text x="356" y="184" fill="#ffb86b" font-size="10">①</text>
+        <circle cx="846" cy="180" r="3" class="note-anchor"></circle>
+        <text x="852" y="184" fill="#ffb86b" font-size="10">②</text>
+        <circle cx="500" cy="350" r="3" class="note-anchor"></circle>
+        <text x="506" y="354" fill="#ffb86b" font-size="10">③</text>
+      </g>
+    </svg>
+    <div class="caption">C1 · Sales Dashboard — ① quota-attainment gauge with pacing  ② live leaderboard rank highlights "you"  ③ pipeline-by-stage bars + activity sparklines</div>
+  </div>
+</section>
+
+<!-- =================== C2 MANAGER DASHBOARD =================== -->
+<section class="screen" id="C2">
+  <h3>C2 — Manager Dashboard</h3>
+  <p class="screen-meta">Manager · team rollup — per-rep health, team totals, drill-down · ref: Salesforce Lightning</p>
+  <div class="mockup">
+    <svg viewBox="0 0 1180 540" xmlns="http://www.w3.org/2000/svg" font-family="Inter, sans-serif" font-size="12">
+      <rect width="1180" height="540" rx="8" fill="#161922"></rect>
+
+      <!-- Top bar -->
+      <rect x="0" y="0" width="1180" height="48" fill="#11141d"></rect>
+      <circle cx="22" cy="24" r="6" fill="#6ea8ff"></circle>
+      <text x="38" y="28" fill="#e8eaef" font-weight="600">FunnelOS</text>
+      <text x="200" y="28" fill="#6b7180" font-size="11" font-family="ui-monospace, monospace">REPORTS · TEAM ROLLUP</text>
+      <rect x="940" y="13" width="150" height="22" rx="11" fill="#1c2030" stroke="#2a2f40"></rect>
+      <text x="954" y="28" fill="#a4abbb">Enterprise team ▾</text>
+      <circle cx="1130" cy="24" r="13" fill="#ffb86b"></circle>
+      <text x="1122" y="28" fill="#0f1115" font-weight="700" font-size="11">JM</text>
+
+      <!-- Title -->
+      <text x="22" y="78" fill="#e8eaef" font-size="20" font-weight="700">Team Dashboard</text>
+      <text x="22" y="98" fill="#a4abbb" font-size="13">Jordan Maes · Enterprise West · 6 reps · Q3 2026</text>
+      <text x="1158" y="78" fill="#6ea8ff" font-size="12" text-anchor="end">Drill into a rep ↗</text>
+
+      <!-- Team total KPI strip -->
+      <g transform="translate(22, 116)">
+        <rect width="270" height="92" rx="10" fill="#1c2030" stroke="#2a2f40"></rect>
+        <text x="16" y="24" fill="#a4abbb" font-size="11">TEAM QUOTA</text>
+        <text x="16" y="56" fill="#e8eaef" font-size="26" font-weight="700" font-family="ui-monospace, monospace">$7.2M</text>
+        <text x="16" y="78" fill="#6b7180" font-size="11">Q3 target · 6 reps</text>
+
+        <rect x="286" width="270" height="92" rx="10" fill="#1c2030" stroke="#2a2f40"></rect>
+        <text x="302" y="24" fill="#6ee7a1" font-size="11">CLOSED-WON</text>
+        <text x="302" y="56" fill="#6ee7a1" font-size="26" font-weight="700" font-family="ui-monospace, monospace">$4.6M</text>
+        <text x="302" y="78" fill="#6b7180" font-size="11">64% to quota · 92 deals</text>
+
+        <rect x="572" width="270" height="92" rx="10" fill="#1c2030" stroke="#2a2f40"></rect>
+        <text x="588" y="24" fill="#6ea8ff" font-size="11">WEIGHTED PIPELINE</text>
+        <text x="588" y="56" fill="#6ea8ff" font-size="26" font-weight="700" font-family="ui-monospace, monospace">$3.1M</text>
+        <text x="588" y="78" fill="#6b7180" font-size="11">128 open deals</text>
+
+        <rect x="858" width="270" height="92" rx="10" fill="#1c2030" stroke="#ffb86b" stroke-dasharray="3,3"></rect>
+        <text x="874" y="24" fill="#ffb86b" font-size="11">★ AI TEAM FORECAST</text>
+        <text x="874" y="56" fill="#ffb86b" font-size="26" font-weight="700" font-family="ui-monospace, monospace">$6.4M</text>
+        <text x="874" y="78" fill="#ff7a7a" font-size="11">89% to quota · −$800K gap</text>
+      </g>
+
+      <!-- Per-rep cards header -->
+      <text x="22" y="232" fill="#a4abbb" font-family="ui-monospace, monospace" font-size="11" letter-spacing="1">REPS · SORTED BY QUOTA ATTAINMENT</text>
+
+      <!-- Rep card template (6 cards, 2 rows x 3) -->
+      <!-- Card 1: Priya -->
+      <g transform="translate(22, 244)">
+        <rect width="365" height="128" rx="10" fill="#1c2030" stroke="#2a2f40"></rect>
+        <circle cx="34" cy="34" r="18" fill="#6ee7a1" opacity="0.3"></circle>
+        <text x="26" y="38" fill="#6ee7a1" font-weight="700" font-size="12">PR</text>
+        <text x="62" y="30" fill="#e8eaef" font-weight="600">Priya Rao</text>
+        <text x="62" y="48" fill="#6b7180" font-size="11">Sr AE · 17 open deals</text>
+        <text x="345" y="30" fill="#6ee7a1" font-weight="700" font-family="ui-monospace, monospace" text-anchor="end">97%</text>
+        <text x="345" y="48" fill="#6b7180" font-size="10" text-anchor="end">to quota</text>
+        <!-- quota bar -->
+        <rect x="16" y="64" width="333" height="10" rx="5" fill="#2a2f40"></rect>
+        <rect x="16" y="64" width="323" height="10" rx="5" fill="#6ee7a1"></rect>
+        <!-- metrics -->
+        <text x="16" y="98" fill="#6b7180" font-size="10" font-family="ui-monospace, monospace">PIPELINE</text>
+        <text x="16" y="114" fill="#e8eaef" font-weight="600">$640K</text>
+        <text x="140" y="98" fill="#6b7180" font-size="10" font-family="ui-monospace, monospace">WON</text>
+        <text x="140" y="114" fill="#6ee7a1" font-weight="600">$1.16M</text>
+        <text x="250" y="98" fill="#6b7180" font-size="10" font-family="ui-monospace, monospace">ACTIVITY</text>
+        <!-- mini activity bars -->
+        <g transform="translate(250, 104)">
+          <rect x="0" y="0" width="6" height="10" fill="#6ea8ff"></rect>
+          <rect x="9" y="-4" width="6" height="14" fill="#6ea8ff"></rect>
+          <rect x="18" y="2" width="6" height="8" fill="#6ea8ff"></rect>
+          <rect x="27" y="-6" width="6" height="16" fill="#6ea8ff"></rect>
+          <rect x="36" y="-2" width="6" height="12" fill="#6ea8ff"></rect>
+          <rect x="45" y="-8" width="6" height="18" fill="#6ea8ff"></rect>
+          <rect x="54" y="-4" width="6" height="14" fill="#6ea8ff"></rect>
+          <rect x="63" y="0" width="6" height="10" fill="#6ea8ff"></rect>
+        </g>
+      </g>
+
+      <!-- Card 2: Sarah -->
+      <g transform="translate(407, 244)">
+        <rect width="365" height="128" rx="10" fill="#1c2030" stroke="#2a2f40"></rect>
+        <circle cx="34" cy="34" r="18" fill="#6ea8ff" opacity="0.3"></circle>
+        <text x="26" y="38" fill="#6ea8ff" font-weight="700" font-size="12">SK</text>
+        <text x="62" y="30" fill="#e8eaef" font-weight="600">Sarah Kim</text>
+        <text x="62" y="48" fill="#6b7180" font-size="11">AE · 21 open deals</text>
+        <text x="345" y="30" fill="#6ee7a1" font-weight="700" font-family="ui-monospace, monospace" text-anchor="end">85%</text>
+        <text x="345" y="48" fill="#6b7180" font-size="10" text-anchor="end">to quota</text>
+        <rect x="16" y="64" width="333" height="10" rx="5" fill="#2a2f40"></rect>
+        <rect x="16" y="64" width="283" height="10" rx="5" fill="#6ee7a1"></rect>
+        <text x="16" y="98" fill="#6b7180" font-size="10" font-family="ui-monospace, monospace">PIPELINE</text>
+        <text x="16" y="114" fill="#e8eaef" font-weight="600">$580K</text>
+        <text x="140" y="98" fill="#6b7180" font-size="10" font-family="ui-monospace, monospace">WON</text>
+        <text x="140" y="114" fill="#6ee7a1" font-weight="600">$1.02M</text>
+        <text x="250" y="98" fill="#6b7180" font-size="10" font-family="ui-monospace, monospace">ACTIVITY</text>
+        <g transform="translate(250, 104)">
+          <rect x="0" y="-2" width="6" height="12" fill="#6ea8ff"></rect>
+          <rect x="9" y="2" width="6" height="8" fill="#6ea8ff"></rect>
+          <rect x="18" y="-6" width="6" height="16" fill="#6ea8ff"></rect>
+          <rect x="27" y="-2" width="6" height="12" fill="#6ea8ff"></rect>
+          <rect x="36" y="0" width="6" height="10" fill="#6ea8ff"></rect>
+          <rect x="45" y="-4" width="6" height="14" fill="#6ea8ff"></rect>
+          <rect x="54" y="2" width="6" height="8" fill="#6ea8ff"></rect>
+          <rect x="63" y="-6" width="6" height="16" fill="#6ea8ff"></rect>
+        </g>
+      </g>
+
+      <!-- Card 3: Ralph -->
+      <g transform="translate(792, 244)">
+        <rect width="366" height="128" rx="10" fill="#1c2030" stroke="#2a2f40"></rect>
+        <circle cx="34" cy="34" r="18" fill="#6ea8ff" opacity="0.3"></circle>
+        <text x="26" y="38" fill="#6ea8ff" font-weight="700" font-size="12">RP</text>
+        <text x="62" y="30" fill="#e8eaef" font-weight="600">Ralph Park</text>
+        <text x="62" y="48" fill="#6b7180" font-size="11">AE · 31 open deals</text>
+        <text x="346" y="30" fill="#6ea8ff" font-weight="700" font-family="ui-monospace, monospace" text-anchor="end">72%</text>
+        <text x="346" y="48" fill="#6b7180" font-size="10" text-anchor="end">to quota</text>
+        <rect x="16" y="64" width="334" height="10" rx="5" fill="#2a2f40"></rect>
+        <rect x="16" y="64" width="240" height="10" rx="5" fill="#6ea8ff"></rect>
+        <text x="16" y="98" fill="#6b7180" font-size="10" font-family="ui-monospace, monospace">PIPELINE</text>
+        <text x="16" y="114" fill="#e8eaef" font-weight="600">$1.9M</text>
+        <text x="140" y="98" fill="#6b7180" font-size="10" font-family="ui-monospace, monospace">WON</text>
+        <text x="140" y="114" fill="#6ee7a1" font-weight="600">$864K</text>
+        <text x="250" y="98" fill="#6b7180" font-size="10" font-family="ui-monospace, monospace">ACTIVITY</text>
+        <g transform="translate(250, 104)">
+          <rect x="0" y="0" width="6" height="10" fill="#6ea8ff"></rect>
+          <rect x="9" y="-4" width="6" height="14" fill="#6ea8ff"></rect>
+          <rect x="18" y="-8" width="6" height="18" fill="#6ea8ff"></rect>
+          <rect x="27" y="-2" width="6" height="12" fill="#6ea8ff"></rect>
+          <rect x="36" y="-6" width="6" height="16" fill="#6ea8ff"></rect>
+          <rect x="45" y="2" width="6" height="8" fill="#6ea8ff"></rect>
+          <rect x="54" y="-4" width="6" height="14" fill="#6ea8ff"></rect>
+          <rect x="63" y="0" width="6" height="10" fill="#6ea8ff"></rect>
+        </g>
+      </g>
+
+      <!-- Card 4: Marcus -->
+      <g transform="translate(22, 380)">
+        <rect width="365" height="128" rx="10" fill="#1c2030" stroke="#2a2f40"></rect>
+        <circle cx="34" cy="34" r="18" fill="#ffb86b" opacity="0.3"></circle>
+        <text x="24" y="38" fill="#ffb86b" font-weight="700" font-size="12">MT</text>
+        <text x="62" y="30" fill="#e8eaef" font-weight="600">Marcus Tran</text>
+        <text x="62" y="48" fill="#6b7180" font-size="11">AE · 14 open deals</text>
+        <text x="345" y="30" fill="#ffb86b" font-weight="700" font-family="ui-monospace, monospace" text-anchor="end">61%</text>
+        <text x="345" y="48" fill="#6b7180" font-size="10" text-anchor="end">to quota</text>
+        <rect x="16" y="64" width="333" height="10" rx="5" fill="#2a2f40"></rect>
+        <rect x="16" y="64" width="203" height="10" rx="5" fill="#ffb86b"></rect>
+        <text x="16" y="98" fill="#6b7180" font-size="10" font-family="ui-monospace, monospace">PIPELINE</text>
+        <text x="16" y="114" fill="#e8eaef" font-weight="600">$420K</text>
+        <text x="140" y="98" fill="#6b7180" font-size="10" font-family="ui-monospace, monospace">WON</text>
+        <text x="140" y="114" fill="#6ee7a1" font-weight="600">$732K</text>
+        <text x="250" y="98" fill="#ff7a7a" font-size="10" font-family="ui-monospace, monospace">LOW ACTIVITY</text>
+        <g transform="translate(250, 104)">
+          <rect x="0" y="4" width="6" height="6" fill="#ff7a7a" opacity="0.7"></rect>
+          <rect x="9" y="2" width="6" height="8" fill="#ff7a7a" opacity="0.7"></rect>
+          <rect x="18" y="6" width="6" height="4" fill="#ff7a7a" opacity="0.7"></rect>
+          <rect x="27" y="2" width="6" height="8" fill="#ff7a7a" opacity="0.7"></rect>
+          <rect x="36" y="4" width="6" height="6" fill="#ff7a7a" opacity="0.7"></rect>
+          <rect x="45" y="6" width="6" height="4" fill="#ff7a7a" opacity="0.7"></rect>
+          <rect x="54" y="2" width="6" height="8" fill="#ff7a7a" opacity="0.7"></rect>
+          <rect x="63" y="5" width="6" height="5" fill="#ff7a7a" opacity="0.7"></rect>
+        </g>
+      </g>
+
+      <!-- Card 5: Dani -->
+      <g transform="translate(407, 380)">
+        <rect width="365" height="128" rx="10" fill="#1c2030" stroke="#2a2f40"></rect>
+        <circle cx="34" cy="34" r="18" fill="#ff7a7a" opacity="0.3"></circle>
+        <text x="26" y="38" fill="#ff7a7a" font-weight="700" font-size="12">DO</text>
+        <text x="62" y="30" fill="#e8eaef" font-weight="600">Dani Ortiz</text>
+        <text x="62" y="48" fill="#6b7180" font-size="11">Jr AE · 9 open deals</text>
+        <text x="345" y="30" fill="#ff7a7a" font-weight="700" font-family="ui-monospace, monospace" text-anchor="end">43%</text>
+        <text x="345" y="48" fill="#6b7180" font-size="10" text-anchor="end">to quota</text>
+        <rect x="16" y="64" width="333" height="10" rx="5" fill="#2a2f40"></rect>
+        <rect x="16" y="64" width="143" height="10" rx="5" fill="#ff7a7a"></rect>
+        <text x="16" y="98" fill="#6b7180" font-size="10" font-family="ui-monospace, monospace">PIPELINE</text>
+        <text x="16" y="114" fill="#e8eaef" font-weight="600">$280K</text>
+        <text x="140" y="98" fill="#6b7180" font-size="10" font-family="ui-monospace, monospace">WON</text>
+        <text x="140" y="114" fill="#6ee7a1" font-weight="600">$430K</text>
+        <text x="250" y="98" fill="#ffb86b" font-size="10" font-family="ui-monospace, monospace">★ COACH</text>
+        <text x="250" y="114" fill="#a4abbb" font-size="10">ramp plan ↗</text>
+      </g>
+
+      <!-- Card 6: Lee -->
+      <g transform="translate(792, 380)">
+        <rect width="366" height="128" rx="10" fill="#1c2030" stroke="#2a2f40"></rect>
+        <circle cx="34" cy="34" r="18" fill="#6ea8ff" opacity="0.3"></circle>
+        <text x="28" y="38" fill="#6ea8ff" font-weight="700" font-size="12">LW</text>
+        <text x="62" y="30" fill="#e8eaef" font-weight="600">Lee Wong</text>
+        <text x="62" y="48" fill="#6b7180" font-size="11">AE · 18 open deals</text>
+        <text x="346" y="30" fill="#6ee7a1" font-weight="700" font-family="ui-monospace, monospace" text-anchor="end">79%</text>
+        <text x="346" y="48" fill="#6b7180" font-size="10" text-anchor="end">to quota</text>
+        <rect x="16" y="64" width="334" height="10" rx="5" fill="#2a2f40"></rect>
+        <rect x="16" y="64" width="264" height="10" rx="5" fill="#6ee7a1"></rect>
+        <text x="16" y="98" fill="#6b7180" font-size="10" font-family="ui-monospace, monospace">PIPELINE</text>
+        <text x="16" y="114" fill="#e8eaef" font-weight="600">$510K</text>
+        <text x="140" y="98" fill="#6b7180" font-size="10" font-family="ui-monospace, monospace">WON</text>
+        <text x="140" y="114" fill="#6ee7a1" font-weight="600">$948K</text>
+        <text x="250" y="98" fill="#6b7180" font-size="10" font-family="ui-monospace, monospace">ACTIVITY</text>
+        <g transform="translate(250, 104)">
+          <rect x="0" y="-2" width="6" height="12" fill="#6ea8ff"></rect>
+          <rect x="9" y="-6" width="6" height="16" fill="#6ea8ff"></rect>
+          <rect x="18" y="0" width="6" height="10" fill="#6ea8ff"></rect>
+          <rect x="27" y="-4" width="6" height="14" fill="#6ea8ff"></rect>
+          <rect x="36" y="-2" width="6" height="12" fill="#6ea8ff"></rect>
+          <rect x="45" y="-8" width="6" height="18" fill="#6ea8ff"></rect>
+          <rect x="54" y="0" width="6" height="10" fill="#6ea8ff"></rect>
+          <rect x="63" y="-4" width="6" height="14" fill="#6ea8ff"></rect>
+        </g>
+      </g>
+
+      <!-- annotations -->
+      <g class="anno">
+        <circle cx="1000" cy="162" r="3" class="note-anchor"></circle>
+        <text x="1006" y="166" fill="#ffb86b" font-size="10">①</text>
+        <circle cx="240" cy="308" r="3" class="note-anchor"></circle>
+        <text x="246" y="312" fill="#ffb86b" font-size="10">②</text>
+        <circle cx="1080" cy="78" r="3" class="note-anchor"></circle>
+        <text x="1066" y="78" fill="#ffb86b" font-size="10">③</text>
+      </g>
+    </svg>
+    <div class="caption">C2 · Manager Dashboard — ① team-total KPI strip with AI forecast gap  ② per-rep cards: quota bar + pipeline / won / activity micro-chart  ③ one-click drill into any rep</div>
+  </div>
+</section>
+
+<!-- =================== C3 FUNNEL / CONVERSION REPORT =================== -->
+<section class="screen" id="C3">
+  <h3>C3 — Funnel / Conversion Report</h3>
+  <p class="screen-meta">Manager, ops · stage-to-stage conversion and drop-off · ref: HubSpot Funnel</p>
+  <div class="mockup">
+    <svg viewBox="0 0 1180 540" xmlns="http://www.w3.org/2000/svg" font-family="Inter, sans-serif" font-size="12">
+      <rect width="1180" height="540" rx="8" fill="#161922"></rect>
+
+      <!-- header -->
+      <rect width="1180" height="56" fill="#11141d"></rect>
+      <text x="22" y="34" fill="#e8eaef" font-size="18" font-weight="700">Conversion Funnel</text>
+      <text x="200" y="34" fill="#a4abbb" font-size="13">— Q3 2026 · Enterprise · all sources</text>
+      <rect x="820" y="14" width="130" height="28" rx="6" fill="#1c2030" stroke="#2a2f40"></rect>
+      <text x="836" y="33" fill="#a4abbb">Last 90 days ▾</text>
+      <rect x="960" y="14" width="120" height="28" rx="6" fill="#1c2030" stroke="#2a2f40"></rect>
+      <text x="976" y="33" fill="#a4abbb">Export ↧</text>
+
+      <!-- KPI summary -->
+      <g transform="translate(22, 76)">
+        <rect width="200" height="76" rx="10" fill="#1c2030" stroke="#2a2f40"></rect>
+        <text x="14" y="22" fill="#a4abbb" font-size="11">LEADS IN</text>
+        <text x="14" y="50" fill="#e8eaef" font-size="24" font-weight="700" font-family="ui-monospace, monospace">4,820</text>
+        <text x="14" y="68" fill="#6b7180" font-size="11">top of funnel</text>
+
+        <rect x="216" width="200" height="76" rx="10" fill="#1c2030" stroke="#2a2f40"></rect>
+        <text x="230" y="22" fill="#6ee7a1" font-size="11">WON</text>
+        <text x="230" y="50" fill="#6ee7a1" font-size="24" font-weight="700" font-family="ui-monospace, monospace">131</text>
+        <text x="230" y="68" fill="#6b7180" font-size="11">closed-won</text>
+
+        <rect x="432" width="200" height="76" rx="10" fill="#1c2030" stroke="#2a2f40"></rect>
+        <text x="446" y="22" fill="#6ea8ff" font-size="11">LEAD→WON</text>
+        <text x="446" y="50" fill="#6ea8ff" font-size="24" font-weight="700" font-family="ui-monospace, monospace">2.7%</text>
+        <text x="446" y="68" fill="#6b7180" font-size="11">overall conversion</text>
+
+        <rect x="648" width="200" height="76" rx="10" fill="#1c2030" stroke="#2a2f40"></rect>
+        <text x="662" y="22" fill="#a4abbb" font-size="11">AVG VELOCITY</text>
+        <text x="662" y="50" fill="#e8eaef" font-size="24" font-weight="700" font-family="ui-monospace, monospace">38d</text>
+        <text x="662" y="68" fill="#6b7180" font-size="11">lead → close</text>
+
+        <rect x="864" width="252" height="76" rx="10" fill="#ff7a7a" opacity="0.08" stroke="#ff7a7a"></rect>
+        <text x="878" y="22" fill="#ff7a7a" font-size="11">⚠ BIGGEST DROP-OFF</text>
+        <text x="878" y="50" fill="#ff7a7a" font-size="20" font-weight="700">SQL → Demo</text>
+        <text x="878" y="68" fill="#a4abbb" font-size="11">only 38% advance · −62%</text>
+      </g>
+
+      <!-- Horizontal funnel: descending bars -->
+      <text x="22" y="188" fill="#a4abbb" font-family="ui-monospace, monospace" font-size="11" letter-spacing="1">FUNNEL — STAGE COUNTS &amp; CONVERSION</text>
+      <g transform="translate(22, 204)">
+        <!-- Each stage: centered bar. Max width 1136 at top, shrinking. baseline center x = 568 -->
+        <!-- Lead 4820 (100%) width 1100 -->
+        <g transform="translate(0,0)">
+          <rect x="18" y="0" width="1100" height="40" rx="4" fill="#6ea8ff" opacity="0.85"></rect>
+          <text x="36" y="25" fill="#0f1115" font-weight="700">Lead</text>
+          <text x="568" y="25" fill="#0f1115" font-weight="700" text-anchor="middle" font-family="ui-monospace, monospace">4,820</text>
+          <text x="1100" y="25" fill="#0f1115" font-weight="700" text-anchor="end" font-size="11">100%</text>
+        </g>
+        <!-- conv label -->
+        <text x="1140" y="56" fill="#6ee7a1" font-size="11" font-family="ui-monospace, monospace" text-anchor="end">↓ 41% advance</text>
+        <!-- MQL 1980 width 902 centered -->
+        <g transform="translate(99,64)">
+          <rect x="0" y="0" width="902" height="40" rx="4" fill="#6ea8ff" opacity="0.72"></rect>
+          <text x="18" y="25" fill="#0f1115" font-weight="700">MQL</text>
+          <text x="469" y="25" fill="#0f1115" font-weight="700" text-anchor="middle" font-family="ui-monospace, monospace">1,980</text>
+          <text x="884" y="25" fill="#0f1115" font-weight="700" text-anchor="end" font-size="11">41%</text>
+        </g>
+        <text x="1140" y="120" fill="#6ee7a1" font-size="11" font-family="ui-monospace, monospace" text-anchor="end">↓ 47% advance</text>
+        <!-- SQL 930 width 640 centered -->
+        <g transform="translate(230,128)">
+          <rect x="0" y="0" width="640" height="40" rx="4" fill="#6ea8ff" opacity="0.6"></rect>
+          <text x="18" y="25" fill="#0f1115" font-weight="700">SQL</text>
+          <text x="320" y="25" fill="#0f1115" font-weight="700" text-anchor="middle" font-family="ui-monospace, monospace">930</text>
+          <text x="622" y="25" fill="#0f1115" font-weight="700" text-anchor="end" font-size="11">19%</text>
+        </g>
+        <text x="1140" y="184" fill="#ff7a7a" font-size="11" font-family="ui-monospace, monospace" text-anchor="end">↓ 38% advance ⚠</text>
+        <!-- Demo 354 width 360 centered -->
+        <g transform="translate(370,192)">
+          <rect x="0" y="0" width="360" height="40" rx="4" fill="#ffb86b" opacity="0.85"></rect>
+          <text x="18" y="25" fill="#0f1115" font-weight="700">Demo</text>
+          <text x="180" y="25" fill="#0f1115" font-weight="700" text-anchor="middle" font-family="ui-monospace, monospace">354</text>
+          <text x="342" y="25" fill="#0f1115" font-weight="700" text-anchor="end" font-size="11">7.3%</text>
+        </g>
+        <text x="1140" y="248" fill="#6ee7a1" font-size="11" font-family="ui-monospace, monospace" text-anchor="end">↓ 58% advance</text>
+        <!-- Proposal 205 width 215 centered -->
+        <g transform="translate(442,256)">
+          <rect x="0" y="0" width="215" height="40" rx="4" fill="#ffb86b"></rect>
+          <text x="14" y="25" fill="#0f1115" font-weight="700" font-size="11">Proposal</text>
+          <text x="107" y="25" fill="#0f1115" font-weight="700" text-anchor="middle" font-family="ui-monospace, monospace">205</text>
+          <text x="201" y="25" fill="#0f1115" font-weight="700" text-anchor="end" font-size="11">4.3%</text>
+        </g>
+        <text x="1140" y="312" fill="#6ee7a1" font-size="11" font-family="ui-monospace, monospace" text-anchor="end">↓ 64% advance</text>
+        <!-- Won 131 width 120 centered -->
+        <g transform="translate(490,320)">
+          <rect x="0" y="0" width="120" height="40" rx="4" fill="#6ee7a1"></rect>
+          <text x="14" y="25" fill="#0f1115" font-weight="700">Won</text>
+          <text x="60" y="25" fill="#0f1115" font-weight="700" text-anchor="middle" font-family="ui-monospace, monospace" font-size="11">131</text>
+        </g>
+      </g>
+
+      <!-- annotations -->
+      <g class="anno">
+        <circle cx="900" cy="248" r="3" class="note-anchor"></circle>
+        <text x="906" y="252" fill="#ffb86b" font-size="10">①</text>
+        <circle cx="1042" cy="392" r="3" class="note-anchor"></circle>
+        <text x="1048" y="396" fill="#ffb86b" font-size="10">②</text>
+        <circle cx="980" cy="118" r="3" class="note-anchor"></circle>
+        <text x="986" y="122" fill="#ffb86b" font-size="10">③</text>
+      </g>
+    </svg>
+    <div class="caption">C3 · Conversion Funnel — ① descending centered stage bars (Lead→Won)  ② stage-to-stage advance % between every bar  ③ biggest drop-off (SQL→Demo) flagged in red</div>
+  </div>
+</section>
+
+<!-- =================== C4 PIPELINE MOVEMENT WATERFALL =================== -->
+<section class="screen" id="C4">
+  <h3>C4 — Pipeline Movement Waterfall</h3>
+  <p class="screen-meta">Ops, exec · what changed pipeline this period · ref: Clari, InsightSquared</p>
+  <div class="mockup">
+    <svg viewBox="0 0 1180 520" xmlns="http://www.w3.org/2000/svg" font-family="Inter, sans-serif" font-size="12">
+      <rect width="1180" height="520" rx="8" fill="#161922"></rect>
+
+      <!-- header -->
+      <rect width="1180" height="56" fill="#11141d"></rect>
+      <text x="22" y="34" fill="#e8eaef" font-size="18" font-weight="700">Pipeline Movement</text>
+      <text x="220" y="34" fill="#a4abbb" font-size="13">— Q3 2026 · week-over-week · committed deals</text>
+      <rect x="900" y="14" width="180" height="28" rx="6" fill="#1c2030" stroke="#2a2f40"></rect>
+      <text x="916" y="33" fill="#a4abbb">vs last week ▾</text>
+
+      <!-- KPI -->
+      <g transform="translate(22, 76)">
+        <rect width="260" height="72" rx="10" fill="#1c2030" stroke="#2a2f40"></rect>
+        <text x="14" y="22" fill="#a4abbb" font-size="11">STARTING PIPELINE</text>
+        <text x="14" y="50" fill="#e8eaef" font-size="22" font-weight="700" font-family="ui-monospace, monospace">$8.40M</text>
+        <text x="180" y="50" fill="#6b7180" font-size="11">Jul 1</text>
+
+        <rect x="276" width="260" height="72" rx="10" fill="#1c2030" stroke="#2a2f40"></rect>
+        <text x="290" y="22" fill="#6ee7a1" font-size="11">NET CHANGE</text>
+        <text x="290" y="50" fill="#6ee7a1" font-size="22" font-weight="700" font-family="ui-monospace, monospace">+$0.70M</text>
+        <text x="456" y="50" fill="#6ee7a1" font-size="11">▲ 8.3%</text>
+
+        <rect x="552" width="260" height="72" rx="10" fill="#1c2030" stroke="#2a2f40"></rect>
+        <text x="566" y="22" fill="#6ea8ff" font-size="11">ENDING PIPELINE</text>
+        <text x="566" y="50" fill="#6ea8ff" font-size="22" font-weight="700" font-family="ui-monospace, monospace">$9.10M</text>
+        <text x="730" y="50" fill="#6b7180" font-size="11">today</text>
+
+        <rect x="828" width="288" height="72" rx="10" fill="#ffb86b" opacity="0.08" stroke="#ffb86b"></rect>
+        <text x="842" y="22" fill="#ffb86b" font-size="11">★ AI READ</text>
+        <text x="842" y="44" fill="#e8eaef" font-size="12">Healthy net-new, but slippage</text>
+        <text x="842" y="62" fill="#a4abbb" font-size="11">up 22% vs 4-wk avg — watch Demo stage</text>
+      </g>
+
+      <!-- Waterfall chart -->
+      <text x="22" y="184" fill="#a4abbb" font-family="ui-monospace, monospace" font-size="11" letter-spacing="1">WATERFALL — $M</text>
+      <g transform="translate(22, 200)">
+        <!-- plot area: baseline y for $0 at 260; scale: $1M = 24px; top axis ~ $9.5M -->
+        <!-- y gridlines/labels -->
+        <g stroke="#2a2f40" stroke-dasharray="2,3">
+          <line x1="70" y1="32" x2="1116" y2="32"></line>
+          <line x1="70" y1="92" x2="1116" y2="92"></line>
+          <line x1="70" y1="152" x2="1116" y2="152"></line>
+          <line x1="70" y1="212" x2="1116" y2="212"></line>
+          <line x1="70" y1="260" x2="1116" y2="260"></line>
+        </g>
+        <g fill="#6b7180" font-size="9" font-family="ui-monospace, monospace" text-anchor="end">
+          <text x="62" y="36">$9.5M</text>
+          <text x="62" y="96">$7.0M</text>
+          <text x="62" y="156">$4.5M</text>
+          <text x="62" y="216">$2.0M</text>
+          <text x="62" y="264">$0</text>
+        </g>
+        <!-- bars. Cumulative starts at 8.40. scale 1M=24px, $0 baseline y=260, so y(value)=260-value*24 -->
+        <!-- Start: full bar 0..8.40 -> top y=260-8.40*24=58.4 -->
+        <rect x="92" y="58" width="92" height="202" rx="2" fill="#6ea8ff" opacity="0.6"></rect>
+        <text x="138" y="50" fill="#e8eaef" font-size="11" text-anchor="middle" font-family="ui-monospace, monospace">8.40</text>
+        <text x="138" y="280" fill="#a4abbb" font-size="10" text-anchor="middle">Starting</text>
+        <!-- connector -->
+        <line x1="184" y1="58" x2="220" y2="58" stroke="#2a2f40" stroke-dasharray="2,2"></line>
+
+        <!-- +Created +1.85 -> from 8.40 to 10.25? cap at chart. value rise. top of float: 260-10.25*24=14 ; bottom: 260-8.40*24=58 -->
+        <rect x="220" y="14" width="92" height="44" rx="2" fill="#6ee7a1"></rect>
+        <text x="266" y="8" fill="#6ee7a1" font-size="11" text-anchor="middle" font-family="ui-monospace, monospace">+1.85</text>
+        <text x="266" y="280" fill="#a4abbb" font-size="10" text-anchor="middle">Created</text>
+        <line x1="312" y1="14" x2="348" y2="14" stroke="#2a2f40" stroke-dasharray="2,2"></line>
+
+        <!-- +Advanced +0.95 (expansion/upsell within open) cumulative 10.25->11.20 but cap; show as rise. bottom 260-10.25*24=14 top 260-11.20*24=-9 -> clamp top to 6 -->
+        <rect x="348" y="-6" width="92" height="20" rx="2" fill="#6ee7a1" opacity="0.75"></rect>
+        <text x="394" y="-12" fill="#6ee7a1" font-size="11" text-anchor="middle" font-family="ui-monospace, monospace">+0.95</text>
+        <text x="394" y="280" fill="#a4abbb" font-size="10" text-anchor="middle">Expanded</text>
+        <line x1="440" y1="-6" x2="476" y2="-6" stroke="#2a2f40" stroke-dasharray="2,2"></line>
+
+        <!-- −Slipped −1.10 cumulative 11.20->10.10. bottom 260-10.10*24=17.6 top 260-11.20*24=-9 clamp; show drop from -6 down to 18 -->
+        <rect x="476" y="-6" width="92" height="24" rx="2" fill="#ff7a7a"></rect>
+        <text x="522" y="-12" fill="#ff7a7a" font-size="11" text-anchor="middle" font-family="ui-monospace, monospace">−1.10</text>
+        <text x="522" y="280" fill="#a4abbb" font-size="10" text-anchor="middle">Slipped</text>
+        <line x1="568" y1="18" x2="604" y2="18" stroke="#2a2f40" stroke-dasharray="2,2"></line>
+
+        <!-- −Closed-Won −0.90 cumulative 10.10->9.20. bottom 260-9.20*24=39 top 260-10.10*24=17.6 -->
+        <rect x="604" y="18" width="92" height="21" rx="2" fill="#6ee7a1" opacity="0.55"></rect>
+        <text x="650" y="12" fill="#6ee7a1" font-size="11" text-anchor="middle" font-family="ui-monospace, monospace">−0.90</text>
+        <text x="650" y="280" fill="#a4abbb" font-size="10" text-anchor="middle">Won</text>
+        <text x="650" y="294" fill="#6b7180" font-size="9" text-anchor="middle">(exits as won)</text>
+        <line x1="696" y1="39" x2="732" y2="39" stroke="#2a2f40" stroke-dasharray="2,2"></line>
+
+        <!-- −Closed-Lost −0.10 cumulative 9.20->9.10. bottom 260-9.10*24=41.6 top 260-9.20*24=39 -->
+        <rect x="732" y="39" width="92" height="3" rx="1" fill="#ff7a7a" opacity="0.7"></rect>
+        <text x="778" y="32" fill="#ff7a7a" font-size="11" text-anchor="middle" font-family="ui-monospace, monospace">−0.10</text>
+        <text x="778" y="280" fill="#a4abbb" font-size="10" text-anchor="middle">Lost</text>
+        <line x1="824" y1="42" x2="860" y2="42" stroke="#2a2f40" stroke-dasharray="2,2"></line>
+
+        <!-- Ending full bar 9.10 -> top 260-9.10*24=41.6 -->
+        <rect x="860" y="42" width="92" height="218" rx="2" fill="#6ea8ff"></rect>
+        <text x="906" y="34" fill="#6ea8ff" font-size="11" text-anchor="middle" font-weight="700" font-family="ui-monospace, monospace">9.10</text>
+        <text x="906" y="280" fill="#e8eaef" font-size="10" text-anchor="middle" font-weight="600">Ending</text>
+
+        <!-- legend -->
+        <g transform="translate(990, 60)" font-size="11">
+          <rect width="120" height="14" rx="6" fill="#6ee7a1"></rect>
+          <text x="0" y="34" fill="#6ee7a1">▮ Adds to pipeline</text>
+          <text x="0" y="58" fill="#ff7a7a">▮ Removes pipeline</text>
+          <text x="0" y="82" fill="#6ea8ff">▮ Balance (start/end)</text>
+          <line x1="0" y1="98" x2="120" y2="98" stroke="#2a2f40"></line>
+          <text x="0" y="120" fill="#6b7180">Net +$0.70M this week</text>
+          <text x="0" y="138" fill="#6b7180" font-size="10">126 deals moved</text>
+        </g>
+      </g>
+
+      <!-- annotations -->
+      <g class="anno">
+        <circle cx="288" cy="220" r="3" class="note-anchor"></circle>
+        <text x="294" y="224" fill="#ffb86b" font-size="10">①</text>
+        <circle cx="544" cy="216" r="3" class="note-anchor"></circle>
+        <text x="550" y="220" fill="#ffb86b" font-size="10">②</text>
+        <circle cx="960" cy="78" r="3" class="note-anchor"></circle>
+        <text x="966" y="82" fill="#ffb86b" font-size="10">③</text>
+      </g>
+    </svg>
+    <div class="caption">C4 · Pipeline Waterfall — ① green floating bars add (Created / Expanded)  ② red floating bars remove (Slipped / Won-exit / Lost)  ③ start &amp; end anchored full bars with AI read of slippage</div>
+  </div>
+</section>
+
+<!-- =================== C5 ACTIVITY REPORT (HEATMAP) =================== -->
+<section class="screen" id="C5">
+  <h3>C5 — Activity Report</h3>
+  <p class="screen-meta">Manager · who is doing the work, when — heatmap of activity volume · ref: Outreach Insights</p>
+  <div class="mockup">
+    <svg viewBox="0 0 1180 520" xmlns="http://www.w3.org/2000/svg" font-family="Inter, sans-serif" font-size="12">
+      <rect width="1180" height="520" rx="8" fill="#161922"></rect>
+
+      <!-- header -->
+      <rect width="1180" height="56" fill="#11141d"></rect>
+      <text x="22" y="34" fill="#e8eaef" font-size="18" font-weight="700">Activity Report</text>
+      <text x="190" y="34" fill="#a4abbb" font-size="13">— Enterprise team · calls + emails + meetings · last 14 days</text>
+      <rect x="900" y="14" width="120" height="28" rx="6" fill="#1c2030" stroke="#2a2f40"></rect>
+      <text x="916" y="33" fill="#a4abbb">All types ▾</text>
+      <rect x="1030" y="14" width="50" height="28" rx="6" fill="#1c2030" stroke="#2a2f40"></rect>
+      <text x="1046" y="33" fill="#a4abbb">↧</text>
+
+      <!-- column day headers -->
+      <g transform="translate(150, 96)" fill="#6b7180" font-size="10" font-family="ui-monospace, monospace" text-anchor="middle">
+        <text x="0" y="0" fill="#6b7180">Mon</text><text x="62" y="0">Tue</text><text x="124" y="0">Wed</text>
+        <text x="186" y="0">Thu</text><text x="248" y="0">Fri</text>
+        <text x="310" y="0" opacity="0.5">Sat</text><text x="372" y="0" opacity="0.5">Sun</text>
+        <text x="434" y="0" fill="#6b7180">Mon</text><text x="496" y="0">Tue</text><text x="558" y="0">Wed</text>
+        <text x="620" y="0">Thu</text><text x="682" y="0">Fri</text>
+        <text x="744" y="0" opacity="0.5">Sat</text><text x="806" y="0" opacity="0.5">Sun</text>
+      </g>
+      <text x="908" y="96" fill="#6b7180" font-size="10" font-family="ui-monospace, monospace" text-anchor="middle">14d total</text>
+      <text x="1010" y="96" fill="#6b7180" font-size="10" font-family="ui-monospace, monospace" text-anchor="middle">trend</text>
+
+      <!-- Heatmap rows. cell 34x34 with 28 gap step. Colors = blue at varying opacity; red for zero/low risk -->
+      <!-- color helper: we use fill #6ea8ff at opacities 0.08(empty)..1.0 -->
+      <!-- Row: Priya -->
+      <g transform="translate(22, 108)">
+        <text x="0" y="40" fill="#e8eaef" font-weight="600" font-size="12">Priya R.</text>
+        <text x="0" y="56" fill="#6b7180" font-size="10">Sr AE</text>
+        <g transform="translate(112, 20)">
+          <rect x="0"   width="34" height="34" rx="4" fill="#6ea8ff" opacity="0.85"></rect>
+          <rect x="62"  width="34" height="34" rx="4" fill="#6ea8ff" opacity="1"></rect>
+          <rect x="124" width="34" height="34" rx="4" fill="#6ea8ff" opacity="0.7"></rect>
+          <rect x="186" width="34" height="34" rx="4" fill="#6ea8ff" opacity="0.95"></rect>
+          <rect x="248" width="34" height="34" rx="4" fill="#6ea8ff" opacity="0.6"></rect>
+          <rect x="310" width="34" height="34" rx="4" fill="#6ea8ff" opacity="0.1"></rect>
+          <rect x="372" width="34" height="34" rx="4" fill="#6ea8ff" opacity="0.08"></rect>
+          <rect x="434" width="34" height="34" rx="4" fill="#6ea8ff" opacity="0.9"></rect>
+          <rect x="496" width="34" height="34" rx="4" fill="#6ea8ff" opacity="0.75"></rect>
+          <rect x="558" width="34" height="34" rx="4" fill="#6ea8ff" opacity="1"></rect>
+          <rect x="620" width="34" height="34" rx="4" fill="#6ea8ff" opacity="0.8"></rect>
+          <rect x="682" width="34" height="34" rx="4" fill="#6ea8ff" opacity="0.65"></rect>
+          <rect x="744" width="34" height="34" rx="4" fill="#6ea8ff" opacity="0.12"></rect>
+          <rect x="806" width="34" height="34" rx="4" fill="#6ea8ff" opacity="0.08"></rect>
+        </g>
+        <text x="886" y="42" fill="#e8eaef" font-weight="700" font-family="ui-monospace, monospace" text-anchor="middle">312</text>
+        <polyline points="966,46 974,40 982,44 990,36 998,42 1006,34 1014,38" fill="none" stroke="#6ee7a1" stroke-width="1.5"></polyline>
+      </g>
+      <!-- Row: Sarah -->
+      <g transform="translate(22, 168)">
+        <text x="0" y="40" fill="#e8eaef" font-weight="600" font-size="12">Sarah K.</text>
+        <text x="0" y="56" fill="#6b7180" font-size="10">AE</text>
+        <g transform="translate(112, 20)">
+          <rect x="0"   width="34" height="34" rx="4" fill="#6ea8ff" opacity="0.7"></rect>
+          <rect x="62"  width="34" height="34" rx="4" fill="#6ea8ff" opacity="0.85"></rect>
+          <rect x="124" width="34" height="34" rx="4" fill="#6ea8ff" opacity="0.95"></rect>
+          <rect x="186" width="34" height="34" rx="4" fill="#6ea8ff" opacity="0.6"></rect>
+          <rect x="248" width="34" height="34" rx="4" fill="#6ea8ff" opacity="0.8"></rect>
+          <rect x="310" width="34" height="34" rx="4" fill="#6ea8ff" opacity="0.08"></rect>
+          <rect x="372" width="34" height="34" rx="4" fill="#6ea8ff" opacity="0.08"></rect>
+          <rect x="434" width="34" height="34" rx="4" fill="#6ea8ff" opacity="0.65"></rect>
+          <rect x="496" width="34" height="34" rx="4" fill="#6ea8ff" opacity="0.9"></rect>
+          <rect x="558" width="34" height="34" rx="4" fill="#6ea8ff" opacity="0.7"></rect>
+          <rect x="620" width="34" height="34" rx="4" fill="#6ea8ff" opacity="0.85"></rect>
+          <rect x="682" width="34" height="34" rx="4" fill="#6ea8ff" opacity="0.5"></rect>
+          <rect x="744" width="34" height="34" rx="4" fill="#6ea8ff" opacity="0.08"></rect>
+          <rect x="806" width="34" height="34" rx="4" fill="#6ea8ff" opacity="0.08"></rect>
+        </g>
+        <text x="886" y="42" fill="#e8eaef" font-weight="700" font-family="ui-monospace, monospace" text-anchor="middle">268</text>
+        <polyline points="966,42 974,44 982,38 990,42 998,36 1006,40 1014,38" fill="none" stroke="#6ea8ff" stroke-width="1.5"></polyline>
+      </g>
+      <!-- Row: Ralph -->
+      <g transform="translate(22, 228)">
+        <text x="0" y="40" fill="#6ea8ff" font-weight="700" font-size="12">You · Ralph</text>
+        <text x="0" y="56" fill="#6b7180" font-size="10">AE</text>
+        <g transform="translate(112, 20)">
+          <rect x="0"   width="34" height="34" rx="4" fill="#6ea8ff" opacity="0.95"></rect>
+          <rect x="62"  width="34" height="34" rx="4" fill="#6ea8ff" opacity="0.8"></rect>
+          <rect x="124" width="34" height="34" rx="4" fill="#6ea8ff" opacity="1"></rect>
+          <rect x="186" width="34" height="34" rx="4" fill="#6ea8ff" opacity="0.9"></rect>
+          <rect x="248" width="34" height="34" rx="4" fill="#6ea8ff" opacity="0.85"></rect>
+          <rect x="310" width="34" height="34" rx="4" fill="#6ea8ff" opacity="0.15"></rect>
+          <rect x="372" width="34" height="34" rx="4" fill="#6ea8ff" opacity="0.08"></rect>
+          <rect x="434" width="34" height="34" rx="4" fill="#6ea8ff" opacity="1"></rect>
+          <rect x="496" width="34" height="34" rx="4" fill="#6ea8ff" opacity="0.95"></rect>
+          <rect x="558" width="34" height="34" rx="4" fill="#6ea8ff" opacity="0.8"></rect>
+          <rect x="620" width="34" height="34" rx="4" fill="#6ea8ff" opacity="0.9"></rect>
+          <rect x="682" width="34" height="34" rx="4" fill="#6ea8ff" opacity="0.7"></rect>
+          <rect x="744" width="34" height="34" rx="4" fill="#6ea8ff" opacity="0.08"></rect>
+          <rect x="806" width="34" height="34" rx="4" fill="#6ea8ff" opacity="0.08"></rect>
+        </g>
+        <text x="886" y="42" fill="#6ea8ff" font-weight="700" font-family="ui-monospace, monospace" text-anchor="middle">345</text>
+        <polyline points="966,44 974,38 982,42 990,34 998,40 1006,32 1014,36" fill="none" stroke="#6ee7a1" stroke-width="1.5"></polyline>
+      </g>
+      <!-- Row: Marcus (low) -->
+      <g transform="translate(22, 288)">
+        <text x="0" y="40" fill="#e8eaef" font-weight="600" font-size="12">Marcus T.</text>
+        <text x="0" y="56" fill="#ffb86b" font-size="10">⚠ light</text>
+        <g transform="translate(112, 20)">
+          <rect x="0"   width="34" height="34" rx="4" fill="#6ea8ff" opacity="0.3"></rect>
+          <rect x="62"  width="34" height="34" rx="4" fill="#6ea8ff" opacity="0.45"></rect>
+          <rect x="124" width="34" height="34" rx="4" fill="#6ea8ff" opacity="0.2"></rect>
+          <rect x="186" width="34" height="34" rx="4" fill="#6ea8ff" opacity="0.4"></rect>
+          <rect x="248" width="34" height="34" rx="4" fill="#6ea8ff" opacity="0.15"></rect>
+          <rect x="310" width="34" height="34" rx="4" fill="#6ea8ff" opacity="0.08"></rect>
+          <rect x="372" width="34" height="34" rx="4" fill="#6ea8ff" opacity="0.08"></rect>
+          <rect x="434" width="34" height="34" rx="4" fill="#6ea8ff" opacity="0.35"></rect>
+          <rect x="496" width="34" height="34" rx="4" fill="#6ea8ff" opacity="0.25"></rect>
+          <rect x="558" width="34" height="34" rx="4" fill="#ff7a7a" opacity="0.4"></rect>
+          <rect x="620" width="34" height="34" rx="4" fill="#6ea8ff" opacity="0.3"></rect>
+          <rect x="682" width="34" height="34" rx="4" fill="#6ea8ff" opacity="0.2"></rect>
+          <rect x="744" width="34" height="34" rx="4" fill="#6ea8ff" opacity="0.08"></rect>
+          <rect x="806" width="34" height="34" rx="4" fill="#6ea8ff" opacity="0.08"></rect>
+        </g>
+        <text x="886" y="42" fill="#ffb86b" font-weight="700" font-family="ui-monospace, monospace" text-anchor="middle">98</text>
+        <polyline points="966,40 974,42 982,44 990,42 998,46 1006,44 1014,48" fill="none" stroke="#ff7a7a" stroke-width="1.5"></polyline>
+      </g>
+      <!-- Row: Dani -->
+      <g transform="translate(22, 348)">
+        <text x="0" y="40" fill="#e8eaef" font-weight="600" font-size="12">Dani O.</text>
+        <text x="0" y="56" fill="#6b7180" font-size="10">Jr AE</text>
+        <g transform="translate(112, 20)">
+          <rect x="0"   width="34" height="34" rx="4" fill="#6ea8ff" opacity="0.6"></rect>
+          <rect x="62"  width="34" height="34" rx="4" fill="#6ea8ff" opacity="0.5"></rect>
+          <rect x="124" width="34" height="34" rx="4" fill="#6ea8ff" opacity="0.7"></rect>
+          <rect x="186" width="34" height="34" rx="4" fill="#6ea8ff" opacity="0.55"></rect>
+          <rect x="248" width="34" height="34" rx="4" fill="#6ea8ff" opacity="0.65"></rect>
+          <rect x="310" width="34" height="34" rx="4" fill="#6ea8ff" opacity="0.08"></rect>
+          <rect x="372" width="34" height="34" rx="4" fill="#6ea8ff" opacity="0.08"></rect>
+          <rect x="434" width="34" height="34" rx="4" fill="#6ea8ff" opacity="0.5"></rect>
+          <rect x="496" width="34" height="34" rx="4" fill="#6ea8ff" opacity="0.6"></rect>
+          <rect x="558" width="34" height="34" rx="4" fill="#6ea8ff" opacity="0.45"></rect>
+          <rect x="620" width="34" height="34" rx="4" fill="#6ea8ff" opacity="0.7"></rect>
+          <rect x="682" width="34" height="34" rx="4" fill="#6ea8ff" opacity="0.55"></rect>
+          <rect x="744" width="34" height="34" rx="4" fill="#6ea8ff" opacity="0.08"></rect>
+          <rect x="806" width="34" height="34" rx="4" fill="#6ea8ff" opacity="0.08"></rect>
+        </g>
+        <text x="886" y="42" fill="#e8eaef" font-weight="700" font-family="ui-monospace, monospace" text-anchor="middle">187</text>
+        <polyline points="966,44 974,42 982,40 990,42 998,38 1006,40 1014,36" fill="none" stroke="#6ee7a1" stroke-width="1.5"></polyline>
+      </g>
+      <!-- Row: Lee -->
+      <g transform="translate(22, 408)">
+        <text x="0" y="40" fill="#e8eaef" font-weight="600" font-size="12">Lee W.</text>
+        <text x="0" y="56" fill="#6b7180" font-size="10">AE</text>
+        <g transform="translate(112, 20)">
+          <rect x="0"   width="34" height="34" rx="4" fill="#6ea8ff" opacity="0.8"></rect>
+          <rect x="62"  width="34" height="34" rx="4" fill="#6ea8ff" opacity="0.7"></rect>
+          <rect x="124" width="34" height="34" rx="4" fill="#6ea8ff" opacity="0.9"></rect>
+          <rect x="186" width="34" height="34" rx="4" fill="#6ea8ff" opacity="0.6"></rect>
+          <rect x="248" width="34" height="34" rx="4" fill="#6ea8ff" opacity="0.75"></rect>
+          <rect x="310" width="34" height="34" rx="4" fill="#6ea8ff" opacity="0.1"></rect>
+          <rect x="372" width="34" height="34" rx="4" fill="#6ea8ff" opacity="0.08"></rect>
+          <rect x="434" width="34" height="34" rx="4" fill="#6ea8ff" opacity="0.7"></rect>
+          <rect x="496" width="34" height="34" rx="4" fill="#6ea8ff" opacity="0.85"></rect>
+          <rect x="558" width="34" height="34" rx="4" fill="#6ea8ff" opacity="0.65"></rect>
+          <rect x="620" width="34" height="34" rx="4" fill="#6ea8ff" opacity="0.8"></rect>
+          <rect x="682" width="34" height="34" rx="4" fill="#6ea8ff" opacity="0.6"></rect>
+          <rect x="744" width="34" height="34" rx="4" fill="#6ea8ff" opacity="0.08"></rect>
+          <rect x="806" width="34" height="34" rx="4" fill="#6ea8ff" opacity="0.08"></rect>
+        </g>
+        <text x="886" y="42" fill="#e8eaef" font-weight="700" font-family="ui-monospace, monospace" text-anchor="middle">241</text>
+        <polyline points="966,42 974,40 982,42 990,38 998,40 1006,36 1014,38" fill="none" stroke="#6ea8ff" stroke-width="1.5"></polyline>
+      </g>
+
+      <!-- legend scale -->
+      <g transform="translate(112, 478)">
+        <text x="0" y="10" fill="#6b7180" font-size="10" font-family="ui-monospace, monospace">Less</text>
+        <rect x="38" y="0" width="14" height="12" rx="2" fill="#6ea8ff" opacity="0.15"></rect>
+        <rect x="56" y="0" width="14" height="12" rx="2" fill="#6ea8ff" opacity="0.35"></rect>
+        <rect x="74" y="0" width="14" height="12" rx="2" fill="#6ea8ff" opacity="0.6"></rect>
+        <rect x="92" y="0" width="14" height="12" rx="2" fill="#6ea8ff" opacity="0.8"></rect>
+        <rect x="110" y="0" width="14" height="12" rx="2" fill="#6ea8ff" opacity="1"></rect>
+        <text x="130" y="10" fill="#6b7180" font-size="10" font-family="ui-monospace, monospace">More</text>
+        <rect x="200" y="0" width="14" height="12" rx="2" fill="#ff7a7a" opacity="0.4"></rect>
+        <text x="220" y="10" fill="#6b7180" font-size="10" font-family="ui-monospace, monospace">no-touch on active deal</text>
+        <text x="700" y="10" fill="#ffb86b" font-size="10">★ AI: Marcus T. activity 65% below team median — coaching flag</text>
+      </g>
+
+      <!-- annotations -->
+      <g class="anno">
+        <circle cx="700" cy="262" r="3" class="note-anchor"></circle>
+        <text x="706" y="266" fill="#ffb86b" font-size="10">①</text>
+        <circle cx="90" cy="336" r="3" class="note-anchor"></circle>
+        <text x="74" y="336" fill="#ffb86b" font-size="10">②</text>
+        <circle cx="1010" cy="140" r="3" class="note-anchor"></circle>
+        <text x="1016" y="144" fill="#ffb86b" font-size="10">③</text>
+      </g>
+    </svg>
+    <div class="caption">C5 · Activity Report — ① reps × days heatmap, cell opacity = daily volume  ② low-activity reps surface as pale rows, no-touch-on-active-deal cells turn red  ③ per-rep 14-day totals + trend spark on the right</div>
+  </div>
+</section>
+
+<!-- =================== C6 FORECAST ROLL-UP =================== -->
+<section class="screen" id="C6">
+  <h3>C6 — Forecast Roll-up</h3>
+  <p class="screen-meta">Exec · multi-level roll-up VP → managers → reps with AI comparison · ref: Clari, Salesforce</p>
+  <div class="mockup">
+    <svg viewBox="0 0 1180 560" xmlns="http://www.w3.org/2000/svg" font-family="Inter, sans-serif" font-size="12">
+      <rect width="1180" height="560" rx="8" fill="#161922"></rect>
+
+      <!-- header -->
+      <rect width="1180" height="56" fill="#11141d"></rect>
+      <text x="22" y="34" fill="#e8eaef" font-size="18" font-weight="700">Forecast Roll-up</text>
+      <text x="200" y="34" fill="#a4abbb" font-size="13">— Q3 2026 · Global Sales · VP view</text>
+      <rect x="820" y="14" width="150" height="28" rx="6" fill="#1c2030" stroke="#2a2f40"></rect>
+      <text x="836" y="33" fill="#a4abbb">Revenue · ARR ▾</text>
+      <rect x="980" y="14" width="100" height="28" rx="6" fill="#6ea8ff"></rect>
+      <text x="996" y="33" fill="#0f1115" font-weight="700">Submit ↑</text>
+
+      <!-- top summary bar -->
+      <g transform="translate(22, 72)">
+        <text x="0" y="14" fill="#6b7180" font-size="11" font-family="ui-monospace, monospace">QUARTER QUOTA $24.0M  ·  GAP TO COMMIT</text>
+        <rect x="0" y="22" width="1136" height="16" rx="8" fill="#2a2f40"></rect>
+        <!-- closed 8.9 of 24 -> 421px -->
+        <rect x="0" y="22" width="421" height="16" rx="8" fill="#6ee7a1"></rect>
+        <!-- commit add to 16.7 -> total 790px; segment from 421..790 -->
+        <rect x="421" y="22" width="369" height="16" fill="#6ea8ff"></rect>
+        <!-- best case add to 21.2 -> 1003px; from 790..1003 -->
+        <rect x="790" y="22" width="213" height="16" fill="#6ea8ff" opacity="0.45"></rect>
+        <rect x="1000" y="22" width="3" height="16" fill="#161922"></rect>
+        <!-- quota marker at 24 = 1136 (full). show commit threshold line -->
+        <line x1="790" y1="18" x2="790" y2="44" stroke="#e8eaef" stroke-width="1.5"></line>
+        <text x="794" y="54" fill="#a4abbb" font-size="10">commit $16.7M (70%)</text>
+        <text x="0" y="54" fill="#6ee7a1" font-size="10">won $8.9M</text>
+        <text x="1136" y="54" fill="#6b7180" font-size="10" text-anchor="end">quota $24.0M</text>
+      </g>
+
+      <!-- Roll-up table -->
+      <g transform="translate(22, 142)">
+        <!-- header row -->
+        <rect width="1136" height="36" rx="6" fill="#1c2030"></rect>
+        <text x="16" y="23" fill="#a4abbb" font-family="ui-monospace, monospace" font-size="11" letter-spacing="1">HIERARCHY</text>
+        <text x="450" y="23" fill="#a4abbb" font-family="ui-monospace, monospace" font-size="11" text-anchor="end">CLOSED</text>
+        <text x="580" y="23" fill="#a4abbb" font-family="ui-monospace, monospace" font-size="11" text-anchor="end">COMMIT</text>
+        <text x="720" y="23" fill="#a4abbb" font-family="ui-monospace, monospace" font-size="11" text-anchor="end">BEST CASE</text>
+        <text x="850" y="23" fill="#a4abbb" font-family="ui-monospace, monospace" font-size="11" text-anchor="end">PIPELINE</text>
+        <text x="990" y="23" fill="#ffb86b" font-family="ui-monospace, monospace" font-size="11" text-anchor="end">★ AI FCST</text>
+        <text x="1090" y="23" fill="#a4abbb" font-family="ui-monospace, monospace" font-size="11" text-anchor="end">Δ vs COMMIT</text>
+
+        <!-- VP row (level 0) -->
+        <g transform="translate(0,36)">
+          <rect width="1136" height="40" fill="#6ea8ff" opacity="0.08"></rect>
+          <text x="16" y="25" fill="#e8eaef" font-weight="700">▾ VP · Alex Rivera</text>
+          <text x="180" y="25" fill="#6b7180" font-size="11">Global · 3 teams · 18 reps</text>
+          <text x="450" y="25" fill="#6ee7a1" font-weight="700" font-family="ui-monospace, monospace" text-anchor="end">$8.9M</text>
+          <text x="580" y="25" fill="#6ea8ff" font-weight="700" font-family="ui-monospace, monospace" text-anchor="end">$16.7M</text>
+          <text x="720" y="25" fill="#e8eaef" font-weight="700" font-family="ui-monospace, monospace" text-anchor="end">$21.2M</text>
+          <text x="850" y="25" fill="#e8eaef" font-weight="700" font-family="ui-monospace, monospace" text-anchor="end">$31.4M</text>
+          <text x="990" y="25" fill="#ffb86b" font-weight="700" font-family="ui-monospace, monospace" text-anchor="end">$15.1M</text>
+          <text x="1090" y="25" fill="#ff7a7a" font-weight="700" font-family="ui-monospace, monospace" text-anchor="end">−$1.6M</text>
+        </g>
+        <line x1="0" y1="76" x2="1136" y2="76" stroke="#2a2f40"></line>
+
+        <!-- Manager 1 (level 1) -->
+        <g transform="translate(0,76)">
+          <text x="28" y="25" fill="#e8eaef" font-weight="600">▾ Jordan Maes</text>
+          <text x="170" y="25" fill="#6b7180" font-size="11">Enterprise West · 6 reps</text>
+          <text x="450" y="25" fill="#6ee7a1" font-family="ui-monospace, monospace" text-anchor="end">$4.6M</text>
+          <text x="580" y="25" fill="#6ea8ff" font-family="ui-monospace, monospace" text-anchor="end">$7.4M</text>
+          <text x="720" y="25" fill="#e8eaef" font-family="ui-monospace, monospace" text-anchor="end">$9.1M</text>
+          <text x="850" y="25" fill="#e8eaef" font-family="ui-monospace, monospace" text-anchor="end">$12.8M</text>
+          <text x="990" y="25" fill="#ffb86b" font-family="ui-monospace, monospace" text-anchor="end">$6.4M</text>
+          <text x="1090" y="25" fill="#ff7a7a" font-family="ui-monospace, monospace" text-anchor="end">−$1.0M</text>
+        </g>
+        <line x1="0" y1="116" x2="1136" y2="116" stroke="#2a2f40" stroke-dasharray="2,3"></line>
+
+        <!-- rep rows under manager 1 (level 2, indented) -->
+        <g transform="translate(0,116)" font-size="11">
+          <rect x="44" y="8" width="3" height="22" fill="#2a2f40"></rect>
+          <text x="56" y="22" fill="#a4abbb">Priya R.</text>
+          <text x="450" y="22" fill="#6ee7a1" font-family="ui-monospace, monospace" text-anchor="end">$1.16M</text>
+          <text x="580" y="22" fill="#6ea8ff" font-family="ui-monospace, monospace" text-anchor="end">$1.62M</text>
+          <text x="720" y="22" fill="#a4abbb" font-family="ui-monospace, monospace" text-anchor="end">$1.9M</text>
+          <text x="850" y="22" fill="#a4abbb" font-family="ui-monospace, monospace" text-anchor="end">$2.4M</text>
+          <text x="990" y="22" fill="#ffb86b" font-family="ui-monospace, monospace" text-anchor="end">$1.58M</text>
+          <text x="1090" y="22" fill="#6b7180" font-family="ui-monospace, monospace" text-anchor="end">−$0.04M</text>
+        </g>
+        <g transform="translate(0,146)" font-size="11">
+          <rect x="44" y="8" width="3" height="22" fill="#2a2f40"></rect>
+          <text x="56" y="22" fill="#a4abbb">Ralph P.</text>
+          <text x="450" y="22" fill="#6ee7a1" font-family="ui-monospace, monospace" text-anchor="end">$0.86M</text>
+          <text x="580" y="22" fill="#6ea8ff" font-family="ui-monospace, monospace" text-anchor="end">$1.34M</text>
+          <text x="720" y="22" fill="#a4abbb" font-family="ui-monospace, monospace" text-anchor="end">$1.7M</text>
+          <text x="850" y="22" fill="#a4abbb" font-family="ui-monospace, monospace" text-anchor="end">$1.9M</text>
+          <text x="990" y="22" fill="#ffb86b" font-family="ui-monospace, monospace" text-anchor="end">$1.05M</text>
+          <text x="1090" y="22" fill="#ff7a7a" font-family="ui-monospace, monospace" text-anchor="end">−$0.29M</text>
+          <!-- adjustment audit hint -->
+          <circle cx="600" cy="18" r="6" fill="#ffb86b" opacity="0.2"></circle>
+          <text x="600" y="22" fill="#ffb86b" font-size="9" text-anchor="middle">✎</text>
+        </g>
+        <g transform="translate(0,176)" font-size="11">
+          <rect x="44" y="8" width="3" height="22" fill="#2a2f40"></rect>
+          <text x="56" y="22" fill="#a4abbb">Marcus T.</text>
+          <text x="450" y="22" fill="#6ee7a1" font-family="ui-monospace, monospace" text-anchor="end">$0.73M</text>
+          <text x="580" y="22" fill="#6ea8ff" font-family="ui-monospace, monospace" text-anchor="end">$1.10M</text>
+          <text x="720" y="22" fill="#a4abbb" font-family="ui-monospace, monospace" text-anchor="end">$1.4M</text>
+          <text x="850" y="22" fill="#a4abbb" font-family="ui-monospace, monospace" text-anchor="end">$2.1M</text>
+          <text x="990" y="22" fill="#ffb86b" font-family="ui-monospace, monospace" text-anchor="end">$0.78M</text>
+          <text x="1090" y="22" fill="#ff7a7a" font-family="ui-monospace, monospace" text-anchor="end">−$0.32M</text>
+        </g>
+        <line x1="0" y1="206" x2="1136" y2="206" stroke="#2a2f40"></line>
+
+        <!-- Manager 2 (level 1, collapsed) -->
+        <g transform="translate(0,206)">
+          <text x="28" y="25" fill="#e8eaef" font-weight="600">▸ Sam Okafor</text>
+          <text x="170" y="25" fill="#6b7180" font-size="11">Enterprise East · 6 reps</text>
+          <text x="450" y="25" fill="#6ee7a1" font-family="ui-monospace, monospace" text-anchor="end">$2.8M</text>
+          <text x="580" y="25" fill="#6ea8ff" font-family="ui-monospace, monospace" text-anchor="end">$5.6M</text>
+          <text x="720" y="25" fill="#e8eaef" font-family="ui-monospace, monospace" text-anchor="end">$7.4M</text>
+          <text x="850" y="25" fill="#e8eaef" font-family="ui-monospace, monospace" text-anchor="end">$10.9M</text>
+          <text x="990" y="25" fill="#ffb86b" font-family="ui-monospace, monospace" text-anchor="end">$5.3M</text>
+          <text x="1090" y="25" fill="#6b7180" font-family="ui-monospace, monospace" text-anchor="end">−$0.3M</text>
+        </g>
+        <line x1="0" y1="246" x2="1136" y2="246" stroke="#2a2f40" stroke-dasharray="2,3"></line>
+
+        <!-- Manager 3 (level 1, collapsed) -->
+        <g transform="translate(0,246)">
+          <text x="28" y="25" fill="#e8eaef" font-weight="600">▸ Nadia Hassan</text>
+          <text x="170" y="25" fill="#6b7180" font-size="11">Mid-Market · 6 reps</text>
+          <text x="450" y="25" fill="#6ee7a1" font-family="ui-monospace, monospace" text-anchor="end">$1.5M</text>
+          <text x="580" y="25" fill="#6ea8ff" font-family="ui-monospace, monospace" text-anchor="end">$3.7M</text>
+          <text x="720" y="25" fill="#e8eaef" font-family="ui-monospace, monospace" text-anchor="end">$4.7M</text>
+          <text x="850" y="25" fill="#e8eaef" font-family="ui-monospace, monospace" text-anchor="end">$7.7M</text>
+          <text x="990" y="25" fill="#ffb86b" font-family="ui-monospace, monospace" text-anchor="end">$3.4M</text>
+          <text x="1090" y="25" fill="#ff7a7a" font-family="ui-monospace, monospace" text-anchor="end">−$0.3M</text>
+        </g>
+      </g>
+
+      <!-- adjustment audit footnote -->
+      <g transform="translate(22, 520)">
+        <rect width="1136" height="28" rx="6" fill="#ffb86b" opacity="0.08" stroke="#ffb86b" stroke-opacity="0.4"></rect>
+        <text x="14" y="19" fill="#ffb86b" font-size="11">✎ Manager adjustments applied on 4 reps</text>
+        <text x="380" y="19" fill="#a4abbb" font-size="11">· Ralph P. commit raised +$120K by J.Maes on Jun 1 — hover ✎ for audit trail</text>
+        <text x="1122" y="19" fill="#6ea8ff" font-size="11" text-anchor="end">View change log ↗</text>
+      </g>
+
+      <!-- annotations -->
+      <g class="anno">
+        <circle cx="1010" cy="186" r="3" class="note-anchor"></circle>
+        <text x="1016" y="190" fill="#ffb86b" font-size="10">①</text>
+        <circle cx="68" cy="180" r="3" class="note-anchor"></circle>
+        <text x="74" y="184" fill="#ffb86b" font-size="10">②</text>
+        <circle cx="606" cy="290" r="3" class="note-anchor"></circle>
+        <text x="612" y="294" fill="#ffb86b" font-size="10">③</text>
+      </g>
+    </svg>
+    <div class="caption">C6 · Forecast Roll-up — ① AI-forecast column with Δ-vs-commit per node  ② expand/collapse VP → manager → rep hierarchy  ③ ✎ adjustment audit trail on overridden commits</div>
+  </div>
+</section>
+
+<!-- =================== C7 REPORT BUILDER =================== -->
+<section class="screen" id="C7">
+  <h3>C7 — Report Builder</h3>
+  <p class="screen-meta">Ops · pivot-style builder — fields, drop zones, live preview · ref: Salesforce Reports</p>
+  <div class="mockup">
+    <svg viewBox="0 0 1180 560" xmlns="http://www.w3.org/2000/svg" font-family="Inter, sans-serif" font-size="12">
+      <rect width="1180" height="560" rx="8" fill="#161922"></rect>
+
+      <!-- header -->
+      <rect width="1180" height="56" fill="#11141d"></rect>
+      <text x="22" y="26" fill="#6b7180" font-size="11" font-family="ui-monospace, monospace">REPORTS · NEW</text>
+      <text x="22" y="46" fill="#e8eaef" font-size="16" font-weight="700">Pipeline by Stage &amp; Owner</text>
+      <rect x="860" y="14" width="100" height="28" rx="6" fill="#1c2030" stroke="#2a2f40"></rect>
+      <text x="876" y="33" fill="#a4abbb">Run ▷</text>
+      <rect x="970" y="14" width="110" height="28" rx="6" fill="#6ea8ff"></rect>
+      <text x="986" y="33" fill="#0f1115" font-weight="700">Save report</text>
+
+      <!-- Left: field list -->
+      <rect x="0" y="56" width="220" height="504" fill="#11141d"></rect>
+      <text x="16" y="82" fill="#a4abbb" font-family="ui-monospace, monospace" font-size="11" letter-spacing="1">FIELDS</text>
+      <rect x="16" y="92" width="188" height="24" rx="6" fill="#1c2030" stroke="#2a2f40"></rect>
+      <text x="28" y="108" fill="#6b7180" font-size="11">⌕ Search fields…</text>
+      <!-- Deal object group -->
+      <text x="16" y="138" fill="#6b7180" font-size="10" font-family="ui-monospace, monospace">▾ DEAL</text>
+      <g transform="translate(16,148)" font-size="12">
+        <rect x="0" y="0" width="188" height="26" rx="5" fill="#6ea8ff" opacity="0.12" stroke="#6ea8ff" stroke-opacity="0.4"></rect>
+        <text x="12" y="17" fill="#6ea8ff">⠿ Stage</text>
+        <rect x="0" y="30" width="188" height="26" rx="5" fill="#6ea8ff" opacity="0.12" stroke="#6ea8ff" stroke-opacity="0.4"></rect>
+        <text x="12" y="47" fill="#6ea8ff">⠿ Owner</text>
+        <rect x="0" y="60" width="188" height="26" rx="5" fill="#1c2030"></rect>
+        <text x="12" y="77" fill="#a4abbb">⠿ Amount</text>
+        <rect x="0" y="90" width="188" height="26" rx="5" fill="#1c2030"></rect>
+        <text x="12" y="107" fill="#a4abbb">⠿ Close date</text>
+        <rect x="0" y="120" width="188" height="26" rx="5" fill="#1c2030"></rect>
+        <text x="12" y="137" fill="#a4abbb">⠿ Source</text>
+        <rect x="0" y="150" width="188" height="26" rx="5" fill="#1c2030"></rect>
+        <text x="12" y="167" fill="#a4abbb">⠿ Deal type</text>
+      </g>
+      <text x="16" y="346" fill="#6b7180" font-size="10" font-family="ui-monospace, monospace">▾ COMPANY</text>
+      <g transform="translate(16,356)" font-size="12">
+        <rect x="0" y="0" width="188" height="26" rx="5" fill="#1c2030"></rect>
+        <text x="12" y="17" fill="#a4abbb">⠿ Industry</text>
+        <rect x="0" y="30" width="188" height="26" rx="5" fill="#1c2030"></rect>
+        <text x="12" y="47" fill="#a4abbb">⠿ Region</text>
+        <rect x="0" y="60" width="188" height="26" rx="5" fill="#1c2030"></rect>
+        <text x="12" y="77" fill="#a4abbb">⠿ Employees</text>
+      </g>
+
+      <!-- Middle: drop zones -->
+      <g transform="translate(236, 76)">
+        <text x="0" y="6" fill="#a4abbb" font-family="ui-monospace, monospace" font-size="11" letter-spacing="1">LAYOUT</text>
+
+        <!-- Rows zone -->
+        <text x="0" y="30" fill="#6b7180" font-size="11">ROWS</text>
+        <rect x="0" y="36" width="300" height="56" rx="8" fill="#1c2030" stroke="#2a2f40"></rect>
+        <rect x="10" y="46" width="130" height="24" rx="12" fill="#6ea8ff" opacity="0.18" stroke="#6ea8ff"></rect>
+        <text x="22" y="62" fill="#6ea8ff" font-size="11">Stage ✕</text>
+
+        <!-- Columns zone -->
+        <text x="0" y="118" fill="#6b7180" font-size="11">COLUMNS</text>
+        <rect x="0" y="124" width="300" height="56" rx="8" fill="#1c2030" stroke="#2a2f40"></rect>
+        <rect x="10" y="134" width="130" height="24" rx="12" fill="#6ea8ff" opacity="0.18" stroke="#6ea8ff"></rect>
+        <text x="22" y="150" fill="#6ea8ff" font-size="11">Owner ✕</text>
+
+        <!-- Measures zone -->
+        <text x="0" y="206" fill="#6b7180" font-size="11">MEASURES</text>
+        <rect x="0" y="212" width="300" height="80" rx="8" fill="#1c2030" stroke="#2a2f40"></rect>
+        <rect x="10" y="222" width="170" height="24" rx="12" fill="#6ee7a1" opacity="0.18" stroke="#6ee7a1"></rect>
+        <text x="22" y="238" fill="#6ee7a1" font-size="11">SUM(Amount) ✕</text>
+        <rect x="10" y="252" width="150" height="24" rx="12" fill="#6ee7a1" opacity="0.18" stroke="#6ee7a1"></rect>
+        <text x="22" y="268" fill="#6ee7a1" font-size="11">COUNT(Deals) ✕</text>
+
+        <!-- Filters zone (drop-target active) -->
+        <text x="0" y="318" fill="#6b7180" font-size="11">FILTERS</text>
+        <rect x="0" y="324" width="300" height="80" rx="8" fill="#6ea8ff" opacity="0.06" stroke="#6ea8ff" stroke-dasharray="4,3"></rect>
+        <rect x="10" y="334" width="220" height="24" rx="12" fill="#1c2030" stroke="#2a2f40"></rect>
+        <text x="22" y="350" fill="#a4abbb" font-size="11">Close date = This quarter ✕</text>
+        <text x="14" y="384" fill="#6ea8ff" font-size="11" font-style="italic">⤓ Drop a field here to filter…</text>
+      </g>
+
+      <!-- Right: live preview pivot -->
+      <g transform="translate(556, 76)">
+        <text x="0" y="6" fill="#a4abbb" font-family="ui-monospace, monospace" font-size="11" letter-spacing="1">LIVE PREVIEW</text>
+        <text x="600" y="6" fill="#6b7180" font-size="11" text-anchor="end">132 deals · $3.1M · updated live</text>
+        <rect x="0" y="16" width="600" height="430" rx="8" fill="#1c2030" stroke="#2a2f40"></rect>
+
+        <!-- pivot table -->
+        <g transform="translate(16, 16)" font-size="11">
+          <!-- column header row -->
+          <rect x="0" y="6" width="568" height="30" rx="4" fill="#11141d"></rect>
+          <text x="10" y="26" fill="#6b7180" font-family="ui-monospace, monospace" font-size="10">STAGE \ OWNER</text>
+          <text x="200" y="26" fill="#a4abbb" font-size="10" text-anchor="middle">Priya</text>
+          <text x="290" y="26" fill="#a4abbb" font-size="10" text-anchor="middle">Ralph</text>
+          <text x="380" y="26" fill="#a4abbb" font-size="10" text-anchor="middle">Sarah</text>
+          <text x="470" y="26" fill="#a4abbb" font-size="10" text-anchor="middle">Marcus</text>
+          <text x="558" y="26" fill="#e8eaef" font-size="10" text-anchor="end" font-weight="600">Total</text>
+
+          <!-- rows -->
+          <g font-family="ui-monospace, monospace" font-size="11">
+            <!-- Qualify -->
+            <text x="10" y="58" fill="#e8eaef" font-family="Inter, sans-serif">Qualify</text>
+            <text x="225" y="58" fill="#a4abbb" text-anchor="end">$210K</text>
+            <text x="315" y="58" fill="#a4abbb" text-anchor="end">$540K</text>
+            <text x="405" y="58" fill="#a4abbb" text-anchor="end">$180K</text>
+            <text x="495" y="58" fill="#a4abbb" text-anchor="end">$120K</text>
+            <text x="558" y="58" fill="#e8eaef" text-anchor="end" font-weight="600">$1.05M</text>
+            <line x1="0" y1="70" x2="568" y2="70" stroke="#2a2f40" stroke-dasharray="2,3"></line>
+            <!-- Demo -->
+            <text x="10" y="92" fill="#e8eaef" font-family="Inter, sans-serif">Demo</text>
+            <text x="225" y="92" fill="#a4abbb" text-anchor="end">$160K</text>
+            <text x="315" y="92" fill="#a4abbb" text-anchor="end">$480K</text>
+            <text x="405" y="92" fill="#a4abbb" text-anchor="end">$220K</text>
+            <text x="495" y="92" fill="#a4abbb" text-anchor="end">$90K</text>
+            <text x="558" y="92" fill="#e8eaef" text-anchor="end" font-weight="600">$0.95M</text>
+            <line x1="0" y1="104" x2="568" y2="104" stroke="#2a2f40" stroke-dasharray="2,3"></line>
+            <!-- Proposal -->
+            <text x="10" y="126" fill="#e8eaef" font-family="Inter, sans-serif">Proposal</text>
+            <text x="225" y="126" fill="#a4abbb" text-anchor="end">$140K</text>
+            <text x="315" y="126" fill="#a4abbb" text-anchor="end">$420K</text>
+            <text x="405" y="126" fill="#a4abbb" text-anchor="end">$120K</text>
+            <text x="495" y="126" fill="#a4abbb" text-anchor="end">$110K</text>
+            <text x="558" y="126" fill="#e8eaef" text-anchor="end" font-weight="600">$0.79M</text>
+            <line x1="0" y1="138" x2="568" y2="138" stroke="#2a2f40" stroke-dasharray="2,3"></line>
+            <!-- Negotiate -->
+            <text x="10" y="160" fill="#e8eaef" font-family="Inter, sans-serif">Negotiate</text>
+            <text x="225" y="160" fill="#a4abbb" text-anchor="end">$90K</text>
+            <text x="315" y="160" fill="#a4abbb" text-anchor="end">$310K</text>
+            <text x="405" y="160" fill="#a4abbb" text-anchor="end">$60K</text>
+            <text x="495" y="160" fill="#a4abbb" text-anchor="end">$100K</text>
+            <text x="558" y="160" fill="#e8eaef" text-anchor="end" font-weight="600">$0.56M</text>
+            <line x1="0" y1="172" x2="568" y2="172" stroke="#2a2f40" stroke-dasharray="2,3"></line>
+            <!-- Verbal -->
+            <text x="10" y="194" fill="#e8eaef" font-family="Inter, sans-serif">Verbal</text>
+            <text x="225" y="194" fill="#a4abbb" text-anchor="end">$40K</text>
+            <text x="315" y="194" fill="#a4abbb" text-anchor="end">$150K</text>
+            <text x="405" y="194" fill="#a4abbb" text-anchor="end">—</text>
+            <text x="495" y="194" fill="#a4abbb" text-anchor="end">$60K</text>
+            <text x="558" y="194" fill="#e8eaef" text-anchor="end" font-weight="600">$0.25M</text>
+            <line x1="0" y1="206" x2="568" y2="206" stroke="#2a2f40"></line>
+            <!-- Total row -->
+            <rect x="0" y="212" width="568" height="30" rx="4" fill="#6ea8ff" opacity="0.08"></rect>
+            <text x="10" y="232" fill="#e8eaef" font-family="Inter, sans-serif" font-weight="700">Total</text>
+            <text x="225" y="232" fill="#6ea8ff" text-anchor="end" font-weight="600">$640K</text>
+            <text x="315" y="232" fill="#6ea8ff" text-anchor="end" font-weight="600">$1.9M</text>
+            <text x="405" y="232" fill="#6ea8ff" text-anchor="end" font-weight="600">$580K</text>
+            <text x="495" y="232" fill="#6ea8ff" text-anchor="end" font-weight="600">$480K</text>
+            <text x="558" y="232" fill="#6ee7a1" text-anchor="end" font-weight="700">$3.1M</text>
+          </g>
+
+          <!-- inline mini bar visualization under table -->
+          <text x="0" y="276" fill="#6b7180" font-size="10" font-family="ui-monospace, monospace">PIPELINE $ BY OWNER</text>
+          <g transform="translate(0, 286)">
+            <text x="0" y="12" fill="#a4abbb" font-size="10">Priya</text>
+            <rect x="60" y="3" width="103" height="11" rx="3" fill="#6ea8ff" opacity="0.55"></rect>
+            <text x="0" y="32" fill="#a4abbb" font-size="10">Ralph</text>
+            <rect x="60" y="23" width="305" height="11" rx="3" fill="#6ea8ff"></rect>
+            <text x="0" y="52" fill="#a4abbb" font-size="10">Sarah</text>
+            <rect x="60" y="43" width="93" height="11" rx="3" fill="#6ea8ff" opacity="0.55"></rect>
+            <text x="0" y="72" fill="#a4abbb" font-size="10">Marcus</text>
+            <rect x="60" y="63" width="77" height="11" rx="3" fill="#6ea8ff" opacity="0.55"></rect>
+          </g>
+        </g>
+      </g>
+
+      <!-- annotations -->
+      <g class="anno">
+        <circle cx="120" cy="166" r="3" class="note-anchor"></circle>
+        <text x="126" y="170" fill="#ffb86b" font-size="10">①</text>
+        <circle cx="240" cy="430" r="3" class="note-anchor"></circle>
+        <text x="246" y="434" fill="#ffb86b" font-size="10">②</text>
+        <circle cx="760" cy="100" r="3" class="note-anchor"></circle>
+        <text x="766" y="104" fill="#ffb86b" font-size="10">③</text>
+      </g>
+    </svg>
+    <div class="caption">C7 · Report Builder — ① draggable field list grouped by object  ② Rows / Columns / Measures / Filters drop zones (filter zone is an active drop-target)  ③ live pivot preview recalculates as fields drop</div>
+  </div>
+</section>
+
+<!-- =================== C8 DASHBOARD BUILDER =================== -->
+<section class="screen" id="C8">
+  <h3>C8 — Dashboard Builder</h3>
+  <p class="screen-meta">Ops · drag-and-drop widget canvas · ref: HubSpot, Salesforce</p>
+  <div class="mockup">
+    <svg viewBox="0 0 1180 560" xmlns="http://www.w3.org/2000/svg" font-family="Inter, sans-serif" font-size="12">
+      <rect width="1180" height="560" rx="8" fill="#161922"></rect>
+
+      <!-- header -->
+      <rect width="1180" height="56" fill="#11141d"></rect>
+      <text x="22" y="26" fill="#6b7180" font-size="11" font-family="ui-monospace, monospace">DASHBOARDS · EDIT</text>
+      <text x="22" y="46" fill="#e8eaef" font-size="16" font-weight="700">Exec Revenue Dashboard</text>
+      <text x="320" y="46" fill="#6b7180" font-size="11">· editing · autosaved 2m ago</text>
+      <rect x="840" y="14" width="120" height="28" rx="6" fill="#1c2030" stroke="#2a2f40"></rect>
+      <text x="856" y="33" fill="#a4abbb">Preview ◐</text>
+      <rect x="970" y="14" width="110" height="28" rx="6" fill="#6ea8ff"></rect>
+      <text x="986" y="33" fill="#0f1115" font-weight="700">Publish ↑</text>
+
+      <!-- Left: widget palette -->
+      <rect x="0" y="56" width="200" height="504" fill="#11141d"></rect>
+      <text x="16" y="82" fill="#a4abbb" font-family="ui-monospace, monospace" font-size="11" letter-spacing="1">WIDGETS</text>
+
+      <!-- palette items, each a mini icon -->
+      <g transform="translate(16, 94)">
+        <!-- KPI -->
+        <rect x="0" y="0" width="168" height="48" rx="8" fill="#1c2030" stroke="#2a2f40"></rect>
+        <text x="14" y="20" fill="#6ea8ff" font-size="16" font-weight="700" font-family="ui-monospace, monospace">42</text>
+        <text x="50" y="18" fill="#e8eaef" font-size="11" font-weight="600">KPI Stat</text>
+        <text x="50" y="34" fill="#6b7180" font-size="10">big number + label</text>
+        <!-- Bar -->
+        <rect x="0" y="56" width="168" height="48" rx="8" fill="#1c2030" stroke="#2a2f40"></rect>
+        <g transform="translate(14,68)">
+          <rect x="0" y="14" width="6" height="14" fill="#6ea8ff"></rect>
+          <rect x="9" y="8" width="6" height="20" fill="#6ea8ff"></rect>
+          <rect x="18" y="2" width="6" height="26" fill="#6ea8ff"></rect>
+        </g>
+        <text x="50" y="74" fill="#e8eaef" font-size="11" font-weight="600">Bar chart</text>
+        <text x="50" y="90" fill="#6b7180" font-size="10">grouped / stacked</text>
+        <!-- Line -->
+        <rect x="0" y="112" width="168" height="48" rx="8" fill="#1c2030" stroke="#2a2f40"></rect>
+        <polyline points="14,150 22,140 30,146 38,134" fill="none" stroke="#6ee7a1" stroke-width="2"></polyline>
+        <text x="50" y="130" fill="#e8eaef" font-size="11" font-weight="600">Line / trend</text>
+        <text x="50" y="146" fill="#6b7180" font-size="10">time series</text>
+        <!-- Funnel -->
+        <rect x="0" y="168" width="168" height="48" rx="8" fill="#1c2030" stroke="#2a2f40"></rect>
+        <g transform="translate(14,180)">
+          <rect x="0" y="2" width="26" height="5" fill="#6ea8ff"></rect>
+          <rect x="3" y="9" width="20" height="5" fill="#6ea8ff" opacity="0.8"></rect>
+          <rect x="6" y="16" width="14" height="5" fill="#6ea8ff" opacity="0.6"></rect>
+        </g>
+        <text x="50" y="186" fill="#e8eaef" font-size="11" font-weight="600">Funnel</text>
+        <text x="50" y="202" fill="#6b7180" font-size="10">stage conversion</text>
+        <!-- Gauge -->
+        <rect x="0" y="224" width="168" height="48" rx="8" fill="#1c2030" stroke="#2a2f40"></rect>
+        <path d="M14 252 A 14 14 0 0 1 42 252" fill="none" stroke="#2a2f40" stroke-width="4"></path>
+        <path d="M14 252 A 14 14 0 0 1 36 240" fill="none" stroke="#ffb86b" stroke-width="4"></path>
+        <text x="50" y="242" fill="#e8eaef" font-size="11" font-weight="600">Gauge</text>
+        <text x="50" y="258" fill="#6b7180" font-size="10">% to goal</text>
+        <!-- Table (being dragged - source) -->
+        <rect x="0" y="280" width="168" height="48" rx="8" fill="#1c2030" stroke="#6ea8ff" stroke-dasharray="4,3"></rect>
+        <g transform="translate(14,290)" stroke="#6b7180">
+          <line x1="0" y1="3" x2="26" y2="3"></line>
+          <line x1="0" y1="11" x2="26" y2="11"></line>
+          <line x1="0" y1="19" x2="26" y2="19"></line>
+        </g>
+        <text x="50" y="298" fill="#6ea8ff" font-size="11" font-weight="600">Table ⠿</text>
+        <text x="50" y="314" fill="#6b7180" font-size="10">dragging…</text>
+        <!-- Heatmap -->
+        <rect x="0" y="336" width="168" height="48" rx="8" fill="#1c2030" stroke="#2a2f40"></rect>
+        <g transform="translate(14,348)">
+          <rect x="0" y="0" width="7" height="7" fill="#6ea8ff" opacity="0.4"></rect>
+          <rect x="9" y="0" width="7" height="7" fill="#6ea8ff" opacity="0.8"></rect>
+          <rect x="18" y="0" width="7" height="7" fill="#6ea8ff" opacity="0.6"></rect>
+          <rect x="0" y="9" width="7" height="7" fill="#6ea8ff" opacity="0.7"></rect>
+          <rect x="9" y="9" width="7" height="7" fill="#6ea8ff" opacity="0.3"></rect>
+          <rect x="18" y="9" width="7" height="7" fill="#6ea8ff"></rect>
+        </g>
+        <text x="50" y="362" fill="#e8eaef" font-size="11" font-weight="600">Heatmap</text>
+        <text x="50" y="378" fill="#6b7180" font-size="10">2-axis density</text>
+      </g>
+
+      <!-- Canvas: placement grid -->
+      <rect x="200" y="56" width="980" height="504" fill="#0f1115"></rect>
+      <!-- grid dots -->
+      <g fill="#2a2f40">
+        <!-- draw subtle grid intersections -->
+        <g>
+          <circle cx="240" cy="96" r="1"></circle><circle cx="320" cy="96" r="1"></circle><circle cx="400" cy="96" r="1"></circle>
+          <circle cx="480" cy="96" r="1"></circle><circle cx="560" cy="96" r="1"></circle><circle cx="640" cy="96" r="1"></circle>
+          <circle cx="720" cy="96" r="1"></circle><circle cx="800" cy="96" r="1"></circle><circle cx="880" cy="96" r="1"></circle>
+          <circle cx="960" cy="96" r="1"></circle><circle cx="1040" cy="96" r="1"></circle><circle cx="1120" cy="96" r="1"></circle>
+        </g>
+        <g>
+          <circle cx="240" cy="176" r="1"></circle><circle cx="320" cy="176" r="1"></circle><circle cx="400" cy="176" r="1"></circle>
+          <circle cx="480" cy="176" r="1"></circle><circle cx="560" cy="176" r="1"></circle><circle cx="640" cy="176" r="1"></circle>
+          <circle cx="720" cy="176" r="1"></circle><circle cx="800" cy="176" r="1"></circle><circle cx="880" cy="176" r="1"></circle>
+          <circle cx="960" cy="176" r="1"></circle><circle cx="1040" cy="176" r="1"></circle><circle cx="1120" cy="176" r="1"></circle>
+        </g>
+        <g>
+          <circle cx="240" cy="440" r="1"></circle><circle cx="400" cy="440" r="1"></circle><circle cx="560" cy="440" r="1"></circle>
+          <circle cx="720" cy="440" r="1"></circle><circle cx="880" cy="440" r="1"></circle><circle cx="1040" cy="440" r="1"></circle>
+        </g>
+      </g>
+
+      <!-- Placed widget 1: KPI row (top) -->
+      <g transform="translate(224, 76)">
+        <rect width="456" height="92" rx="10" fill="#161922" stroke="#2a2f40"></rect>
+        <text x="14" y="22" fill="#6b7180" font-size="10" font-family="ui-monospace, monospace">⠿ KPI · CLOSED-WON QTD</text>
+        <text x="14" y="60" fill="#6ee7a1" font-size="30" font-weight="700" font-family="ui-monospace, monospace">$8.9M</text>
+        <text x="14" y="80" fill="#6b7180" font-size="11">64% to quota · ▲ 12% WoW</text>
+        <!-- resize handle -->
+        <rect x="444" y="80" width="8" height="8" rx="2" fill="#6ea8ff" opacity="0.5"></rect>
+      </g>
+
+      <!-- Placed widget 2: bar chart (top right) -->
+      <g transform="translate(696, 76)">
+        <rect width="460" height="92" rx="10" fill="#161922" stroke="#2a2f40"></rect>
+        <text x="14" y="22" fill="#6b7180" font-size="10" font-family="ui-monospace, monospace">⠿ BAR · BOOKINGS BY MONTH</text>
+        <g transform="translate(14, 32)">
+          <rect x="0" y="30" width="22" height="22" rx="2" fill="#6ea8ff" opacity="0.6"></rect>
+          <rect x="34" y="20" width="22" height="32" rx="2" fill="#6ea8ff" opacity="0.7"></rect>
+          <rect x="68" y="10" width="22" height="42" rx="2" fill="#6ea8ff" opacity="0.8"></rect>
+          <rect x="102" y="24" width="22" height="28" rx="2" fill="#6ea8ff" opacity="0.7"></rect>
+          <rect x="136" y="6" width="22" height="46" rx="2" fill="#6ea8ff"></rect>
+          <rect x="170" y="14" width="22" height="38" rx="2" fill="#6ea8ff" opacity="0.85"></rect>
+          <text x="280" y="20" fill="#a4abbb" font-size="11">Apr–Sep</text>
+          <text x="280" y="38" fill="#6ee7a1" font-size="11">peak: Aug $1.8M</text>
+        </g>
+        <rect x="448" y="80" width="8" height="8" rx="2" fill="#6ea8ff" opacity="0.5"></rect>
+      </g>
+
+      <!-- Placed widget 3: line chart (bottom) -->
+      <g transform="translate(224, 184)">
+        <rect width="600" height="256" rx="10" fill="#161922" stroke="#2a2f40"></rect>
+        <text x="14" y="24" fill="#6b7180" font-size="10" font-family="ui-monospace, monospace">⠿ LINE · PIPELINE COVERAGE TREND (12 WK)</text>
+        <!-- axes -->
+        <line x1="50" y1="40" x2="50" y2="220" stroke="#2a2f40"></line>
+        <line x1="50" y1="220" x2="580" y2="220" stroke="#2a2f40"></line>
+        <g fill="#6b7180" font-size="9" font-family="ui-monospace, monospace" text-anchor="end">
+          <text x="44" y="56">4×</text><text x="44" y="112">3×</text><text x="44" y="168">2×</text><text x="44" y="224">1×</text>
+        </g>
+        <!-- target band 3x -->
+        <line x1="50" y1="112" x2="580" y2="112" stroke="#6ee7a1" stroke-dasharray="4,3" opacity="0.5"></line>
+        <text x="576" y="108" fill="#6ee7a1" font-size="9" text-anchor="end">target 3×</text>
+        <!-- coverage line -->
+        <polyline points="50,150 94,142 138,158 182,130 226,124 270,138 314,118 358,108 402,120 446,100 490,96 534,104 578,90"
+          fill="none" stroke="#6ea8ff" stroke-width="2"></polyline>
+        <!-- AI projection dashed -->
+        <polyline points="578,90 600,84" fill="none" stroke="#ffb86b" stroke-width="2" stroke-dasharray="3,2"></polyline>
+        <circle cx="578" cy="90" r="3" fill="#6ea8ff"></circle>
+        <g fill="#6b7180" font-size="9" font-family="ui-monospace, monospace">
+          <text x="50" y="236">W1</text><text x="270" y="236">W6</text><text x="560" y="236">W12</text>
+        </g>
+        <rect x="588" y="240" width="8" height="8" rx="2" fill="#6ea8ff" opacity="0.5"></rect>
+      </g>
+
+      <!-- Drop ghost: where Table widget will land -->
+      <g transform="translate(840, 184)">
+        <rect width="316" height="256" rx="10" fill="#6ea8ff" opacity="0.06" stroke="#6ea8ff" stroke-dasharray="6,4"></rect>
+        <!-- ghost preview of table -->
+        <g opacity="0.6">
+          <text x="14" y="28" fill="#6ea8ff" font-size="10" font-family="ui-monospace, monospace">⠿ TABLE · TOP DEALS (ghost)</text>
+          <rect x="14" y="40" width="288" height="20" rx="3" fill="#1c2030"></rect>
+          <line x1="14" y1="74" x2="302" y2="74" stroke="#2a2f40"></line>
+          <line x1="14" y1="100" x2="302" y2="100" stroke="#2a2f40"></line>
+          <line x1="14" y1="126" x2="302" y2="126" stroke="#2a2f40"></line>
+          <line x1="14" y1="152" x2="302" y2="152" stroke="#2a2f40"></line>
+        </g>
+        <text x="158" y="200" fill="#6ea8ff" font-size="12" text-anchor="middle" font-weight="600">Drop to place here</text>
+        <text x="158" y="218" fill="#6b7180" font-size="10" text-anchor="middle">snaps to 4-col grid</text>
+      </g>
+
+      <!-- floating dragged widget (cursor) -->
+      <g transform="translate(560, 300)" opacity="0.9">
+        <rect width="180" height="60" rx="8" fill="#1c2030" stroke="#6ea8ff" stroke-width="1.5"></rect>
+        <g transform="translate(14,16)" stroke="#a4abbb">
+          <line x1="0" y1="4" x2="34" y2="4"></line>
+          <line x1="0" y1="14" x2="34" y2="14"></line>
+          <line x1="0" y1="24" x2="34" y2="24"></line>
+        </g>
+        <text x="60" y="26" fill="#e8eaef" font-size="12" font-weight="600">Table widget</text>
+        <text x="60" y="44" fill="#6b7180" font-size="10">⠿ drag to canvas</text>
+        <circle cx="0" cy="0" r="4" fill="#6ea8ff"></circle>
+      </g>
+
+      <!-- annotations -->
+      <g class="anno">
+        <circle cx="200" cy="384" r="3" class="note-anchor"></circle>
+        <text x="186" y="384" fill="#ffb86b" font-size="10">①</text>
+        <circle cx="998" cy="312" r="3" class="note-anchor"></circle>
+        <text x="1004" y="316" fill="#ffb86b" font-size="10">②</text>
+        <circle cx="640" cy="300" r="3" class="note-anchor"></circle>
+        <text x="646" y="304" fill="#ffb86b" font-size="10">③</text>
+      </g>
+    </svg>
+    <div class="caption">C8 · Dashboard Builder — ① left palette of chart-type widgets (KPI / bar / line / funnel / gauge / heatmap)  ② snap-to-grid canvas with 3 placed widgets + drop ghost  ③ a Table widget being dragged onto the canvas</div>
+  </div>
+</section>
+
+<!-- =================== C9 ATTRIBUTION REPORT =================== -->
+<section class="screen" id="C9">
+  <h3>C9 — Attribution Report</h3>
+  <p class="screen-meta">Marketing · revenue attributed to sources across touch models · ref: HubSpot Attribution</p>
+  <div class="mockup">
+    <svg viewBox="0 0 1180 560" xmlns="http://www.w3.org/2000/svg" font-family="Inter, sans-serif" font-size="12">
+      <rect width="1180" height="560" rx="8" fill="#161922"></rect>
+
+      <!-- header -->
+      <rect width="1180" height="56" fill="#11141d"></rect>
+      <text x="22" y="34" fill="#e8eaef" font-size="18" font-weight="700">Marketing Attribution</text>
+      <text x="240" y="34" fill="#a4abbb" font-size="13">— Q3 2026 · $8.9M closed-won attributed</text>
+      <rect x="860" y="14" width="100" height="28" rx="6" fill="#1c2030" stroke="#2a2f40"></rect>
+      <text x="876" y="33" fill="#a4abbb">90 days ▾</text>
+      <rect x="970" y="14" width="110" height="28" rx="6" fill="#1c2030" stroke="#2a2f40"></rect>
+      <text x="986" y="33" fill="#a4abbb">Export ↧</text>
+
+      <!-- Multi-touch model toggle + path bars -->
+      <text x="22" y="84" fill="#a4abbb" font-family="ui-monospace, monospace" font-size="11" letter-spacing="1">ATTRIBUTION MODEL · SAME REVENUE, CREDITED 3 WAYS</text>
+
+      <!-- model selector -->
+      <g transform="translate(22, 96)" font-size="11">
+        <rect x="0" y="0" width="120" height="26" rx="6" fill="#6ea8ff" opacity="0.18" stroke="#6ea8ff"></rect>
+        <text x="14" y="17" fill="#6ea8ff" font-weight="600">First touch</text>
+        <rect x="130" y="0" width="120" height="26" rx="6" fill="#1c2030" stroke="#2a2f40"></rect>
+        <text x="144" y="17" fill="#a4abbb">Last touch</text>
+        <rect x="260" y="0" width="120" height="26" rx="6" fill="#1c2030" stroke="#2a2f40"></rect>
+        <text x="274" y="17" fill="#a4abbb">Linear (shown)</text>
+        <rect x="390" y="0" width="130" height="26" rx="6" fill="#1c2030" stroke="#2a2f40"></rect>
+        <text x="404" y="17" fill="#a4abbb">W-shaped</text>
+      </g>
+
+      <!-- Three model comparison: stacked horizontal bars showing where credit lands per model -->
+      <g transform="translate(22, 138)">
+        <!-- legend -->
+        <g font-size="10" font-family="ui-monospace, monospace">
+          <rect x="0" y="0" width="10" height="10" rx="2" fill="#6ea8ff"></rect><text x="16" y="9" fill="#a4abbb">Paid search</text>
+          <rect x="120" y="0" width="10" height="10" rx="2" fill="#ffb86b"></rect><text x="136" y="9" fill="#a4abbb">Content/SEO</text>
+          <rect x="250" y="0" width="10" height="10" rx="2" fill="#6ee7a1"></rect><text x="266" y="9" fill="#a4abbb">Events</text>
+          <rect x="340" y="0" width="10" height="10" rx="2" fill="#ff6b9d"></rect><text x="356" y="9" fill="#a4abbb">Webinar</text>
+          <rect x="450" y="0" width="10" height="10" rx="2" fill="#a4abbb"></rect><text x="466" y="9" fill="#a4abbb">Outbound/SDR</text>
+        </g>
+
+        <!-- First touch row -->
+        <text x="0" y="42" fill="#e8eaef" font-size="11" font-weight="600">First touch</text>
+        <text x="0" y="58" fill="#6b7180" font-size="10">credit to entry</text>
+        <g transform="translate(140, 30)">
+          <!-- total width 900; segments sum to 900 -->
+          <rect x="0"   y="0" width="378" height="26" rx="3" fill="#6ea8ff"></rect>
+          <text x="189" y="17" fill="#0f1115" font-size="10" text-anchor="middle" font-weight="700">42% · $3.7M</text>
+          <rect x="378" y="0" width="180" height="26" fill="#ffb86b"></rect>
+          <text x="468" y="17" fill="#0f1115" font-size="10" text-anchor="middle" font-weight="700">20%</text>
+          <rect x="558" y="0" width="135" height="26" fill="#6ee7a1"></rect>
+          <text x="625" y="17" fill="#0f1115" font-size="10" text-anchor="middle">15%</text>
+          <rect x="693" y="0" width="90" height="26" fill="#ff6b9d"></rect>
+          <text x="738" y="17" fill="#0f1115" font-size="10" text-anchor="middle">10%</text>
+          <rect x="783" y="0" width="117" height="26" rx="0" fill="#a4abbb"></rect>
+          <text x="841" y="17" fill="#0f1115" font-size="10" text-anchor="middle">13%</text>
+        </g>
+
+        <!-- Last touch row -->
+        <text x="0" y="82" fill="#e8eaef" font-size="11" font-weight="600">Last touch</text>
+        <text x="0" y="98" fill="#6b7180" font-size="10">credit to close</text>
+        <g transform="translate(140, 70)">
+          <rect x="0"   y="0" width="153" height="26" rx="3" fill="#6ea8ff"></rect>
+          <text x="76" y="17" fill="#0f1115" font-size="10" text-anchor="middle" font-weight="700">17%</text>
+          <rect x="153" y="0" width="117" height="26" fill="#ffb86b"></rect>
+          <text x="211" y="17" fill="#0f1115" font-size="10" text-anchor="middle">13%</text>
+          <rect x="270" y="0" width="225" height="26" fill="#6ee7a1"></rect>
+          <text x="382" y="17" fill="#0f1115" font-size="10" text-anchor="middle" font-weight="700">25%</text>
+          <rect x="495" y="0" width="153" height="26" fill="#ff6b9d"></rect>
+          <text x="571" y="17" fill="#0f1115" font-size="10" text-anchor="middle">17%</text>
+          <rect x="648" y="0" width="252" height="26" fill="#a4abbb"></rect>
+          <text x="774" y="17" fill="#0f1115" font-size="10" text-anchor="middle" font-weight="700">28% · SDR closes</text>
+        </g>
+
+        <!-- Linear row (highlighted) -->
+        <text x="0" y="122" fill="#6ea8ff" font-size="11" font-weight="700">Linear ◉</text>
+        <text x="0" y="138" fill="#6b7180" font-size="10">even split</text>
+        <g transform="translate(140, 110)">
+          <rect x="-6" y="-6" width="912" height="38" rx="6" fill="#6ea8ff" opacity="0.06"></rect>
+          <rect x="0"   y="0" width="270" height="26" rx="3" fill="#6ea8ff"></rect>
+          <text x="135" y="17" fill="#0f1115" font-size="10" text-anchor="middle" font-weight="700">30% · $2.7M</text>
+          <rect x="270" y="0" width="153" height="26" fill="#ffb86b"></rect>
+          <text x="346" y="17" fill="#0f1115" font-size="10" text-anchor="middle">17%</text>
+          <rect x="423" y="0" width="180" height="26" fill="#6ee7a1"></rect>
+          <text x="513" y="17" fill="#0f1115" font-size="10" text-anchor="middle" font-weight="700">20%</text>
+          <rect x="603" y="0" width="117" height="26" fill="#ff6b9d"></rect>
+          <text x="661" y="17" fill="#0f1115" font-size="10" text-anchor="middle">13%</text>
+          <rect x="720" y="0" width="180" height="26" fill="#a4abbb"></rect>
+          <text x="810" y="17" fill="#0f1115" font-size="10" text-anchor="middle">20%</text>
+        </g>
+      </g>
+
+      <!-- Source breakdown bar chart ($) -->
+      <g transform="translate(22, 312)">
+        <text x="0" y="0" fill="#a4abbb" font-family="ui-monospace, monospace" font-size="11" letter-spacing="1">SOURCE BREAKDOWN — REVENUE &amp; ROI (LINEAR MODEL)</text>
+        <rect x="0" y="14" width="720" height="232" rx="10" fill="#1c2030" stroke="#2a2f40"></rect>
+
+        <!-- horizontal $ bars per source with ROI -->
+        <g transform="translate(120, 36)" font-size="11">
+          <!-- scale: $2.7M = 480px -->
+          <!-- Paid search -->
+          <text x="-10" y="14" fill="#e8eaef" text-anchor="end">Paid search</text>
+          <rect x="0" y="4" width="480" height="14" rx="3" fill="#6ea8ff"></rect>
+          <text x="488" y="15" fill="#e8eaef" font-family="ui-monospace, monospace">$2.70M</text>
+          <text x="588" y="15" fill="#6ee7a1" font-size="10">ROI 4.2×</text>
+          <!-- Events -->
+          <text x="-10" y="46" fill="#e8eaef" text-anchor="end">Events</text>
+          <rect x="0" y="36" width="320" height="14" rx="3" fill="#6ee7a1"></rect>
+          <text x="328" y="47" fill="#e8eaef" font-family="ui-monospace, monospace">$1.78M</text>
+          <text x="588" y="47" fill="#ffb86b" font-size="10">ROI 1.9×</text>
+          <!-- Outbound -->
+          <text x="-10" y="78" fill="#e8eaef" text-anchor="end">Outbound/SDR</text>
+          <rect x="0" y="68" width="320" height="14" rx="3" fill="#a4abbb"></rect>
+          <text x="328" y="79" fill="#e8eaef" font-family="ui-monospace, monospace">$1.78M</text>
+          <text x="588" y="79" fill="#6ee7a1" font-size="10">ROI 3.1×</text>
+          <!-- Content -->
+          <text x="-10" y="110" fill="#e8eaef" text-anchor="end">Content/SEO</text>
+          <rect x="0" y="100" width="272" height="14" rx="3" fill="#ffb86b"></rect>
+          <text x="280" y="111" fill="#e8eaef" font-family="ui-monospace, monospace">$1.51M</text>
+          <text x="588" y="111" fill="#6ee7a1" font-size="10">ROI 6.8×</text>
+          <!-- Webinar -->
+          <text x="-10" y="142" fill="#e8eaef" text-anchor="end">Webinar</text>
+          <rect x="0" y="132" width="208" height="14" rx="3" fill="#ff6b9d"></rect>
+          <text x="216" y="143" fill="#e8eaef" font-family="ui-monospace, monospace">$1.16M</text>
+          <text x="588" y="143" fill="#6ee7a1" font-size="10">ROI 5.1×</text>
+          <!-- axis -->
+          <line x1="0" y1="160" x2="480" y2="160" stroke="#2a2f40"></line>
+          <g fill="#6b7180" font-size="9" font-family="ui-monospace, monospace" text-anchor="middle">
+            <text x="0" y="174">$0</text><text x="160" y="174">$0.9M</text><text x="320" y="174">$1.8M</text><text x="480" y="174">$2.7M</text>
+          </g>
+        </g>
+      </g>
+
+      <!-- Right: top converting path + AI insight -->
+      <g transform="translate(762, 312)">
+        <text x="0" y="0" fill="#a4abbb" font-family="ui-monospace, monospace" font-size="11" letter-spacing="1">TOP CONVERTING PATH</text>
+        <rect x="0" y="14" width="396" height="118" rx="10" fill="#1c2030" stroke="#2a2f40"></rect>
+        <!-- path nodes -->
+        <g transform="translate(20, 50)">
+          <rect x="0" y="0" width="74" height="28" rx="6" fill="#6ea8ff" opacity="0.2" stroke="#6ea8ff"></rect>
+          <text x="37" y="18" fill="#6ea8ff" font-size="10" text-anchor="middle">Paid ad</text>
+          <line x1="74" y1="14" x2="98" y2="14" stroke="#6b7180"></line>
+          <path d="M94 10 L100 14 L94 18 Z" fill="#6b7180"></path>
+          <rect x="100" y="0" width="74" height="28" rx="6" fill="#ffb86b" opacity="0.2" stroke="#ffb86b"></rect>
+          <text x="137" y="18" fill="#ffb86b" font-size="10" text-anchor="middle">eBook</text>
+          <line x1="174" y1="14" x2="198" y2="14" stroke="#6b7180"></line>
+          <path d="M194 10 L200 14 L194 18 Z" fill="#6b7180"></path>
+          <rect x="200" y="0" width="74" height="28" rx="6" fill="#6ee7a1" opacity="0.2" stroke="#6ee7a1"></rect>
+          <text x="237" y="18" fill="#6ee7a1" font-size="10" text-anchor="middle">Demo</text>
+          <line x1="274" y1="14" x2="298" y2="14" stroke="#6b7180"></line>
+          <path d="M294 10 L300 14 L294 18 Z" fill="#6b7180"></path>
+          <rect x="300" y="0" width="56" height="28" rx="6" fill="#6ee7a1"></rect>
+          <text x="328" y="18" fill="#0f1115" font-size="10" text-anchor="middle" font-weight="700">Won</text>
+        </g>
+        <text x="20" y="106" fill="#a4abbb" font-size="11">38 deals · avg 4.2 touches · 31d to close</text>
+
+        <text x="0" y="156" fill="#ffb86b" font-family="ui-monospace, monospace" font-size="11" letter-spacing="1">★ AI INSIGHT</text>
+        <rect x="0" y="166" width="396" height="80" rx="10" fill="#ffb86b" opacity="0.06" stroke="#ffb86b"></rect>
+        <text x="16" y="190" fill="#e8eaef" font-size="11">Content/SEO has the best ROI (6.8×) but</text>
+        <text x="16" y="208" fill="#e8eaef" font-size="11">only 17% of spend. Shift budget from</text>
+        <text x="16" y="226" fill="#e8eaef" font-size="11">Events (1.9×) → Content to lift CAC payback.</text>
+      </g>
+
+      <!-- annotations -->
+      <g class="anno">
+        <circle cx="160" cy="258" r="3" class="note-anchor"></circle>
+        <text x="166" y="262" fill="#ffb86b" font-size="10">①</text>
+        <circle cx="730" cy="420" r="3" class="note-anchor"></circle>
+        <text x="736" y="424" fill="#ffb86b" font-size="10">②</text>
+        <circle cx="1140" cy="412" r="3" class="note-anchor"></circle>
+        <text x="1126" y="412" fill="#ffb86b" font-size="10">③</text>
+      </g>
+    </svg>
+    <div class="caption">C9 · Attribution Report — ① same revenue credited 3 ways (First / Last / Linear) as stacked source bars  ② source breakdown with $ and ROI per channel  ③ top converting touch-path + AI budget-shift insight</div>
+  </div>
+</section>
+
+<!-- =================== C10 FORECAST SETTINGS =================== -->
+<section class="screen" id="C10">
+  <h3>C10 — Forecast Settings</h3>
+  <p class="screen-meta">Ops · forecast periods, category weights, lock dates · ref: Salesforce</p>
+  <div class="mockup">
+    <svg viewBox="0 0 1180 540" xmlns="http://www.w3.org/2000/svg" font-family="Inter, sans-serif" font-size="12">
+      <rect width="1180" height="540" rx="8" fill="#161922"></rect>
+
+      <!-- header -->
+      <rect width="1180" height="56" fill="#11141d"></rect>
+      <text x="22" y="26" fill="#6b7180" font-size="11" font-family="ui-monospace, monospace">SETTINGS · FORECASTING</text>
+      <text x="22" y="46" fill="#e8eaef" font-size="16" font-weight="700">Forecast Configuration</text>
+      <rect x="860" y="14" width="100" height="28" rx="6" fill="#1c2030" stroke="#2a2f40"></rect>
+      <text x="876" y="33" fill="#a4abbb">Cancel</text>
+      <rect x="970" y="14" width="110" height="28" rx="6" fill="#6ea8ff"></rect>
+      <text x="986" y="33" fill="#0f1115" font-weight="700">Save changes</text>
+
+      <!-- Left settings nav -->
+      <rect x="0" y="56" width="200" height="484" fill="#11141d"></rect>
+      <g font-size="12">
+        <text x="20" y="88" fill="#6b7180" font-size="10" font-family="ui-monospace, monospace">FORECASTING</text>
+        <rect x="8" y="98" width="184" height="30" rx="6" fill="#6ea8ff" opacity="0.15"></rect>
+        <text x="22" y="118" fill="#6ea8ff" font-weight="600">Periods &amp; categories</text>
+        <text x="22" y="148" fill="#a4abbb">Quota plans</text>
+        <text x="22" y="176" fill="#a4abbb">Roll-up hierarchy</text>
+        <text x="22" y="204" fill="#a4abbb">Adjustment locks</text>
+        <text x="22" y="232" fill="#a4abbb">AI forecast model</text>
+        <line x1="20" y1="252" x2="180" y2="252" stroke="#2a2f40"></line>
+        <text x="20" y="278" fill="#6b7180" font-size="10" font-family="ui-monospace, monospace">OTHER</text>
+        <text x="22" y="302" fill="#6b7180">Pipeline stages</text>
+        <text x="22" y="330" fill="#6b7180">Currencies</text>
+      </g>
+
+      <!-- Main form column -->
+      <g transform="translate(232, 80)">
+        <!-- Section 1: forecast period -->
+        <text x="0" y="6" fill="#e8eaef" font-size="14" font-weight="700">Forecast period</text>
+        <text x="0" y="26" fill="#a4abbb" font-size="11">How often forecasts roll up and reset.</text>
+        <!-- segmented toggle monthly/quarterly -->
+        <g transform="translate(0, 38)">
+          <rect width="320" height="36" rx="8" fill="#1c2030" stroke="#2a2f40"></rect>
+          <rect x="4" y="4" width="104" height="28" rx="6" fill="#6ea8ff"></rect>
+          <text x="56" y="23" fill="#0f1115" font-weight="700" font-size="12" text-anchor="middle">Monthly</text>
+          <text x="160" y="23" fill="#6ea8ff" font-size="12" text-anchor="middle" font-weight="600">Quarterly</text>
+          <text x="270" y="23" fill="#a4abbb" font-size="12" text-anchor="middle">Custom</text>
+        </g>
+        <text x="0" y="96" fill="#6b7180" font-size="11">Fiscal year starts</text>
+        <rect x="0" y="104" width="150" height="32" rx="6" fill="#1c2030" stroke="#2a2f40"></rect>
+        <text x="14" y="125" fill="#e8eaef" font-size="12">February ▾</text>
+        <text x="170" y="96" fill="#6b7180" font-size="11">Current period</text>
+        <rect x="170" y="104" width="150" height="32" rx="6" fill="#1c2030" stroke="#2a2f40"></rect>
+        <text x="184" y="125" fill="#e8eaef" font-size="12">Q3 2026 ▾</text>
+
+        <line x1="0" y1="160" x2="560" y2="160" stroke="#2a2f40"></line>
+
+        <!-- Section 2: forecast categories with weights -->
+        <text x="0" y="186" fill="#e8eaef" font-size="14" font-weight="700">Forecast categories</text>
+        <text x="0" y="206" fill="#a4abbb" font-size="11">Probability weight applied to each category for the weighted forecast.</text>
+
+        <!-- category rows -->
+        <g transform="translate(0, 222)" font-size="12">
+          <!-- header -->
+          <text x="0" y="12" fill="#6b7180" font-size="10" font-family="ui-monospace, monospace">CATEGORY</text>
+          <text x="300" y="12" fill="#6b7180" font-size="10" font-family="ui-monospace, monospace">WEIGHT %</text>
+          <text x="430" y="12" fill="#6b7180" font-size="10" font-family="ui-monospace, monospace">IN WEIGHTED FCST</text>
+
+          <!-- Pipeline -->
+          <g transform="translate(0,24)">
+            <circle cx="6" cy="10" r="6" fill="#6b7180"></circle>
+            <text x="22" y="14" fill="#e8eaef">Pipeline</text>
+            <rect x="300" y="0" width="70" height="24" rx="6" fill="#1c2030" stroke="#2a2f40"></rect>
+            <text x="335" y="16" fill="#e8eaef" font-family="ui-monospace, monospace" text-anchor="middle">10</text>
+            <!-- weight bar -->
+            <rect x="430" y="6" width="120" height="10" rx="5" fill="#2a2f40"></rect>
+            <rect x="430" y="6" width="12" height="10" rx="5" fill="#6b7180"></rect>
+          </g>
+          <!-- Best Case -->
+          <g transform="translate(0,56)">
+            <circle cx="6" cy="10" r="6" fill="#6ea8ff" opacity="0.6"></circle>
+            <text x="22" y="14" fill="#e8eaef">Best Case</text>
+            <rect x="300" y="0" width="70" height="24" rx="6" fill="#1c2030" stroke="#2a2f40"></rect>
+            <text x="335" y="16" fill="#e8eaef" font-family="ui-monospace, monospace" text-anchor="middle">35</text>
+            <rect x="430" y="6" width="120" height="10" rx="5" fill="#2a2f40"></rect>
+            <rect x="430" y="6" width="42" height="10" rx="5" fill="#6ea8ff" opacity="0.6"></rect>
+          </g>
+          <!-- Commit -->
+          <g transform="translate(0,88)">
+            <circle cx="6" cy="10" r="6" fill="#6ea8ff"></circle>
+            <text x="22" y="14" fill="#e8eaef">Commit</text>
+            <rect x="300" y="0" width="70" height="24" rx="6" fill="#1c2030" stroke="#6ea8ff"></rect>
+            <text x="335" y="16" fill="#6ea8ff" font-family="ui-monospace, monospace" text-anchor="middle" font-weight="700">90</text>
+            <rect x="430" y="6" width="120" height="10" rx="5" fill="#2a2f40"></rect>
+            <rect x="430" y="6" width="108" height="10" rx="5" fill="#6ea8ff"></rect>
+          </g>
+          <!-- Closed -->
+          <g transform="translate(0,120)">
+            <circle cx="6" cy="10" r="6" fill="#6ee7a1"></circle>
+            <text x="22" y="14" fill="#e8eaef">Closed-Won</text>
+            <rect x="300" y="0" width="70" height="24" rx="6" fill="#1c2030" stroke="#2a2f40"></rect>
+            <text x="335" y="16" fill="#6ee7a1" font-family="ui-monospace, monospace" text-anchor="middle">100</text>
+            <rect x="430" y="6" width="120" height="10" rx="5" fill="#2a2f40"></rect>
+            <rect x="430" y="6" width="120" height="10" rx="5" fill="#6ee7a1"></rect>
+          </g>
+          <!-- Omitted -->
+          <g transform="translate(0,152)">
+            <circle cx="6" cy="10" r="6" fill="#ff7a7a" opacity="0.6"></circle>
+            <text x="22" y="14" fill="#a4abbb">Omitted</text>
+            <rect x="300" y="0" width="70" height="24" rx="6" fill="#1c2030" stroke="#2a2f40"></rect>
+            <text x="335" y="16" fill="#a4abbb" font-family="ui-monospace, monospace" text-anchor="middle">0</text>
+            <text x="430" y="14" fill="#6b7180" font-size="10">excluded from forecast</text>
+          </g>
+        </g>
+      </g>
+
+      <!-- Right column: lock dates + AI toggle -->
+      <g transform="translate(820, 80)">
+        <text x="0" y="6" fill="#e8eaef" font-size="14" font-weight="700">Submission lock dates</text>
+        <text x="0" y="26" fill="#a4abbb" font-size="11">When the forecast freezes for each role.</text>
+
+        <g transform="translate(0, 40)" font-size="12">
+          <!-- Rep lock -->
+          <rect x="0" y="0" width="320" height="48" rx="8" fill="#1c2030" stroke="#2a2f40"></rect>
+          <text x="14" y="22" fill="#e8eaef" font-weight="600">Reps submit by</text>
+          <text x="14" y="40" fill="#6b7180" font-size="10">locks Mon 5pm each week</text>
+          <rect x="190" y="10" width="116" height="28" rx="6" fill="#11141d" stroke="#2a2f40"></rect>
+          <text x="204" y="29" fill="#6ea8ff" font-family="ui-monospace, monospace" font-size="11">Mon 17:00</text>
+
+          <!-- Manager lock -->
+          <rect x="0" y="60" width="320" height="48" rx="8" fill="#1c2030" stroke="#2a2f40"></rect>
+          <text x="14" y="82" fill="#e8eaef" font-weight="600">Managers submit by</text>
+          <text x="14" y="100" fill="#6b7180" font-size="10">locks Tue 12pm each week</text>
+          <rect x="190" y="70" width="116" height="28" rx="6" fill="#11141d" stroke="#2a2f40"></rect>
+          <text x="204" y="89" fill="#6ea8ff" font-family="ui-monospace, monospace" font-size="11">Tue 12:00</text>
+
+          <!-- VP lock -->
+          <rect x="0" y="120" width="320" height="48" rx="8" fill="#1c2030" stroke="#2a2f40"></rect>
+          <text x="14" y="142" fill="#e8eaef" font-weight="600">VP commit locks</text>
+          <text x="14" y="160" fill="#6b7180" font-size="10">final · end of quarter</text>
+          <rect x="190" y="130" width="116" height="28" rx="6" fill="#11141d" stroke="#2a2f40"></rect>
+          <text x="204" y="149" fill="#6ea8ff" font-family="ui-monospace, monospace" font-size="11">Sep 30</text>
+        </g>
+
+        <!-- after-lock behavior -->
+        <g transform="translate(0, 224)">
+          <rect width="320" height="56" rx="8" fill="#1c2030" stroke="#2a2f40"></rect>
+          <text x="14" y="24" fill="#e8eaef" font-weight="600" font-size="12">Allow edits after lock</text>
+          <text x="14" y="42" fill="#6b7180" font-size="10">requires manager approval + audit</text>
+          <!-- toggle off -->
+          <rect x="270" y="18" width="38" height="20" rx="10" fill="#2a2f40"></rect>
+          <circle cx="280" cy="28" r="7" fill="#6b7180"></circle>
+        </g>
+
+        <!-- AI forecast toggle -->
+        <g transform="translate(0, 296)">
+          <rect width="320" height="84" rx="8" fill="#ffb86b" opacity="0.06" stroke="#ffb86b"></rect>
+          <text x="14" y="26" fill="#ffb86b" font-weight="600" font-size="12">★ Show AI forecast column</text>
+          <text x="14" y="44" fill="#a4abbb" font-size="11">Surfaces AI prediction beside commit</text>
+          <text x="14" y="60" fill="#a4abbb" font-size="11">across all roll-up tables.</text>
+          <!-- toggle on -->
+          <rect x="270" y="18" width="38" height="20" rx="10" fill="#ffb86b"></rect>
+          <circle cx="298" cy="28" r="7" fill="#0f1115"></circle>
+          <text x="14" y="78" fill="#6b7180" font-size="10">Model: gradient-boosted · retrained weekly</text>
+        </g>
+      </g>
+
+      <!-- annotations -->
+      <g class="anno">
+        <circle cx="392" cy="118" r="3" class="note-anchor"></circle>
+        <text x="398" y="122" fill="#ffb86b" font-size="10">①</text>
+        <circle cx="567" cy="338" r="3" class="note-anchor"></circle>
+        <text x="573" y="342" fill="#ffb86b" font-size="10">②</text>
+        <circle cx="1010" cy="200" r="3" class="note-anchor"></circle>
+        <text x="1016" y="204" fill="#ffb86b" font-size="10">③</text>
+      </g>
+    </svg>
+    <div class="caption">C10 · Forecast Settings — ① monthly / quarterly / custom period toggle + fiscal-year start  ② forecast categories with editable weight % and live weight bars  ③ per-role submission lock dates + AI-forecast toggle</div>
+  </div>
+</section>

@@ -1,0 +1,243 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Brand Tab — Wireframe C — Workbench</title>
+<style>
+  :root{
+    --ink:#1a1a1a;
+    --line:#bdbdbd;
+    --line-strong:#6b6b6b;
+    --bg:#f4f4f2;
+    --paper:#fafaf8;
+    --tint:#e8e8e4;
+    --hot:#c8553d;
+    --note:#8a7a3d;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%;font-family:ui-monospace,'SF Mono',Menlo,monospace;color:var(--ink);background:var(--bg);font-size:12px;overflow:hidden}
+  .frame{height:100vh;display:grid;grid-template-rows:36px 38px 1fr 22px;position:relative}
+  /* TABS */
+  .tabs{display:flex;align-items:center;border-bottom:1px solid var(--line);background:var(--paper);padding-left:12px}
+  .tabs .t{padding:8px 14px;border-right:1px solid var(--line);font-size:11px;color:#666;letter-spacing:.05em}
+  .tabs .t.active{color:var(--ink);background:var(--bg);border-bottom:2px solid var(--ink);margin-bottom:-1px;font-weight:600}
+  .tabs .spacer{flex:1}
+  .tabs .meta{padding:0 12px;color:#888;font-size:10px}
+  /* DELIVERABLE STRIP — minimal */
+  .strip{display:flex;align-items:center;gap:6px;padding:0 14px;border-bottom:1px solid var(--line);background:var(--paper)}
+  .pill{padding:5px 10px;border:1px solid var(--line);border-radius:999px;color:#666;font-size:10px;letter-spacing:.04em;background:#fff}
+  .pill.on{background:var(--ink);color:#fff;border-color:var(--ink)}
+  .strip .label{color:#888;font-size:10px;letter-spacing:.08em;margin-right:6px}
+  .strip .spacer{flex:1}
+  .strip .ver{font-size:10px;color:#666;letter-spacing:.06em;display:flex;gap:4px;align-items:center}
+  .vchip{padding:2px 6px;border:1px solid var(--line);font-size:9px}
+  .vchip.on{background:var(--ink);color:#fff;border-color:var(--ink)}
+  /* CANVAS — fills middle, single artifact */
+  .canvas{position:relative;background:repeating-linear-gradient(45deg,#ececea 0 8px,#f3f3f1 8px 16px);display:flex;align-items:center;justify-content:center;min-height:0;overflow:hidden}
+  .preview{width:54%;aspect-ratio:1/1;background:#fff;border:1px solid var(--line-strong);box-shadow:0 16px 50px rgba(0,0,0,.10);position:relative;display:flex;align-items:center;justify-content:center}
+  .preview .crosshair{position:absolute;inset:0;background:
+    linear-gradient(transparent calc(50% - 1px),rgba(0,0,0,.1) 50%,transparent calc(50% + 1px)),
+    linear-gradient(90deg,transparent calc(50% - 1px),rgba(0,0,0,.1) 50%,transparent calc(50% + 1px))}
+  .preview .placeholder{position:relative;text-align:center;color:#888;font-size:10px;letter-spacing:.1em}
+  .preview .placeholder strong{display:block;font-size:14px;color:#444;letter-spacing:.18em;margin-bottom:6px}
+  .ratio-tag{position:absolute;top:14px;left:14px;background:#fff;border:1px solid var(--line);padding:3px 8px;font-size:10px;letter-spacing:.08em;color:#666}
+  .toolbar{position:absolute;top:14px;right:14px;display:flex;gap:6px}
+  .btn{padding:5px 9px;border:1px solid var(--line);border-radius:5px;background:#fff;font-size:10px;color:#444;letter-spacing:.04em;cursor:pointer}
+  .btn.primary{background:var(--ink);color:#fff;border-color:var(--ink)}
+  /* FLOATING BRAND CHIP — top-left over canvas */
+  .brandchip{position:absolute;top:96px;left:18px;background:#fff;border:1px solid var(--line-strong);padding:8px 10px 10px;width:240px;box-shadow:0 6px 20px rgba(0,0,0,.06);z-index:5}
+  .brandchip h4{margin:0 0 6px;font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:#888;display:flex;justify-content:space-between}
+  .brandchip h4 span{color:#aaa}
+  .swrow{display:flex;gap:4px;margin-bottom:6px}
+  .sw{width:24px;height:24px;border:1px solid var(--line)}
+  .brandchip .kv{font-size:10px;line-height:1.6;color:#444}
+  .brandchip .kv b{color:#888;font-weight:500;font-size:9px;text-transform:uppercase;letter-spacing:.08em}
+  /* FLOATING NAV — left middle, deliverable list */
+  .nav{position:absolute;top:280px;left:18px;background:#fff;border:1px solid var(--line);width:240px;box-shadow:0 4px 14px rgba(0,0,0,.04);z-index:5}
+  .nav h4{margin:0;padding:8px 10px;font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:#888;border-bottom:1px solid var(--line);background:var(--paper)}
+  .nav ul{list-style:none;margin:0;padding:0}
+  .nav li{padding:7px 10px;border-bottom:1px solid #ececea;font-size:11px;color:#444;display:flex;justify-content:space-between;align-items:center}
+  .nav li.on{background:var(--tint);color:var(--ink);font-weight:600}
+  .nav li .st{font-size:9px;color:#999;letter-spacing:.06em}
+  .nav li.on .st{color:var(--ink)}
+  /* FLOATING CHAT — bottom-right */
+  .chat{position:absolute;right:18px;bottom:50px;width:340px;height:380px;background:#fff;border:1px solid var(--line-strong);box-shadow:0 16px 40px rgba(0,0,0,.10);display:flex;flex-direction:column;z-index:6}
+  .chat .head{padding:8px 10px;border-bottom:1px solid var(--line);font-size:10px;letter-spacing:.1em;color:#666;background:var(--paper);text-transform:uppercase;display:flex;justify-content:space-between;align-items:center}
+  .chat .head .pulse{width:6px;height:6px;background:#22a06b;border-radius:50%;margin-right:6px;display:inline-block}
+  .chat .body{flex:1;overflow:auto;padding:10px;display:flex;flex-direction:column;gap:8px}
+  .msg{padding:7px 9px;border:1px dashed var(--line);background:#fff;border-radius:5px;line-height:1.4;font-size:11px}
+  .msg.cd{border-style:solid;border-color:var(--line-strong);background:var(--paper)}
+  .msg .who{font-size:9px;letter-spacing:.1em;color:#888;text-transform:uppercase;margin-bottom:3px}
+  .composer{border-top:1px solid var(--line);padding:8px;background:var(--paper);display:flex;flex-direction:column;gap:6px}
+  .composer .input{border:1px solid var(--line);background:#fff;height:48px;border-radius:5px;padding:6px 8px;color:#aaa;font-size:11px}
+  .composer .row{display:flex;justify-content:space-between;align-items:center;font-size:9px;color:#999}
+  .chip-collapsed{position:absolute;right:18px;bottom:14px;width:120px;border:1px dashed var(--note);padding:5px 8px;font-size:9px;color:var(--note);background:#fff;letter-spacing:.06em;display:none}
+  /* BOTTOM DRAWER — variants + assets */
+  .drawer{position:absolute;left:0;right:0;bottom:22px;height:96px;background:var(--paper);border-top:1px solid var(--line);display:flex;align-items:center;padding:0 18px;gap:18px;z-index:4}
+  .drawer .group{display:flex;flex-direction:column;gap:4px}
+  .drawer .ghead{font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:#888}
+  .drawer .row{display:flex;gap:6px}
+  .thumb-sm{width:64px;height:64px;border:1px solid var(--line);background:#fff;position:relative;display:flex;align-items:center;justify-content:center;font-size:9px;color:#999}
+  .thumb-sm.on{border:2px solid var(--ink);box-shadow:0 0 0 2px var(--bg)}
+  .thumb-sm.asset{background:repeating-linear-gradient(135deg,#eee 0 6px,#f6f6f4 6px 12px)}
+  .drawer .spacer{flex:1}
+  .drawer .more{font-size:10px;color:#666;letter-spacing:.06em;text-decoration:underline;cursor:pointer}
+  /* FOOTER */
+  .foot{display:flex;align-items:center;gap:14px;padding:0 12px;border-top:1px solid var(--line);font-size:10px;color:#777;background:var(--paper);letter-spacing:.06em}
+  .foot .dot{width:6px;height:6px;background:var(--hot);border-radius:50%}
+  .foot .spacer{flex:1}
+  /* anno */
+  .anno{position:absolute;font-family:'Caveat','Comic Sans MS',cursive;font-size:14px;color:var(--note);transform:rotate(-2deg);pointer-events:none;max-width:240px;z-index:9}
+  .legend{position:fixed;left:14px;bottom:130px;background:#fff;border:1px solid var(--line-strong);padding:8px 10px;font-size:10px;line-height:1.5;color:#444;max-width:260px;box-shadow:0 6px 16px rgba(0,0,0,.06);z-index:10;display:none}
+  /* show legend when not crowded */
+  @media (min-height:780px){.legend{display:block}}
+</style>
+</head>
+<body>
+<div class="frame">
+
+  <!-- TABS -->
+  <div class="tabs">
+    <div class="t">VIBES</div>
+    <div class="t">FINAL</div>
+    <div class="t">IMAGES</div>
+    <div class="t active">BRAND</div>
+    <div class="t">DECKS</div>
+    <div class="spacer"></div>
+    <div class="meta">FalCaMel Café · session 2026-01-27-31</div>
+  </div>
+
+  <!-- STRIP -->
+  <div class="strip">
+    <div class="label">FOCUS</div>
+    <div class="pill on">Logo</div>
+    <div class="pill">Card</div>
+    <div class="pill">Guide</div>
+    <div class="pill">Slide</div>
+    <div class="pill">Hero</div>
+    <div class="pill">Post</div>
+    <div class="pill">Story</div>
+    <div class="pill" style="border-style:dashed;color:#999">+ Scene</div>
+    <div class="spacer"></div>
+    <div class="ver">VERSIONS · <span class="vchip">v1</span><span class="vchip">v2</span><span class="vchip on">v3</span></div>
+  </div>
+
+  <!-- CANVAS WITH FLOATING PANELS -->
+  <div class="canvas">
+    <div class="ratio-tag">LOGO · 1:1 · 1024×1024</div>
+    <div class="toolbar">
+      <div class="btn">EDIT PROMPT</div>
+      <div class="btn">CHROMA-KEY ↧</div>
+      <div class="btn primary">GENERATE</div>
+    </div>
+
+    <div class="preview">
+      <div class="crosshair"></div>
+      <div class="placeholder"><strong>FOCUSED ARTIFACT</strong>one deliverable, full attention</div>
+    </div>
+
+    <!-- FLOATING BRAND CHIP -->
+    <div class="brandchip">
+      <h4><span>BRAND SPEC</span><span>edit ↗</span></h4>
+      <div class="swrow">
+        <div class="sw" style="background:#1A1A1A"></div>
+        <div class="sw" style="background:#00C853"></div>
+        <div class="sw" style="background:#FFD700"></div>
+        <div class="sw" style="background:#F5F5F5"></div>
+      </div>
+      <div class="kv">
+        <b>FONTS</b><br>Anton / Barlow<br>
+        <b style="display:block;margin-top:4px">VOICE</b>heritage · dry · deadpan
+      </div>
+    </div>
+
+    <!-- FLOATING DELIVERABLE NAV -->
+    <div class="nav">
+      <h4>DELIVERABLES</h4>
+      <ul>
+        <li class="on">Logo <span class="st">v3 · ✓</span></li>
+        <li>Business Card <span class="st">v1 · draft</span></li>
+        <li>Brand Guide <span class="st">—</span></li>
+        <li>Pitch Slide <span class="st">v2 · ✓</span></li>
+        <li>Website Hero <span class="st">v1 · draft</span></li>
+        <li>Social Post <span class="st">—</span></li>
+        <li>Social Story <span class="st">—</span></li>
+        <li style="color:var(--note)">+ Scene <span class="st">huashu</span></li>
+      </ul>
+    </div>
+
+    <!-- FLOATING CHAT -->
+    <div class="chat">
+      <div class="head"><span><span class="pulse"></span>ASK CD</span><span style="color:#aaa">— minimize</span></div>
+      <div class="body">
+        <div class="msg cd"><div class="who">CD</div>Logo prompt seeded from your brand spec. Magenta key on. Tell me what to push.</div>
+        <div class="msg"><div class="who">YOU</div>can sultan be more central?</div>
+        <div class="msg cd"><div class="who">CD</div>Falcon dominant, cliff line under. v3 generating.</div>
+      </div>
+      <div class="composer">
+        <div class="input">Type a refinement…</div>
+        <div class="row"><span>⌘↩ to send · ⌘. for prompt</span><div class="btn primary">SEND</div></div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- BOTTOM DRAWER -->
+  <div class="drawer">
+    <div class="group">
+      <div class="ghead">VARIANTS · LOGO</div>
+      <div class="row">
+        <div class="thumb-sm">v1</div>
+        <div class="thumb-sm">v2</div>
+        <div class="thumb-sm on">v3</div>
+        <div class="thumb-sm" style="border-style:dashed;color:#aaa">+ new</div>
+      </div>
+    </div>
+    <div class="group" style="border-left:1px solid var(--line);padding-left:18px">
+      <div class="ghead">SOURCE ASSETS · drag to canvas</div>
+      <div class="row">
+        <div class="thumb-sm asset"></div>
+        <div class="thumb-sm asset"></div>
+        <div class="thumb-sm asset"></div>
+        <div class="thumb-sm asset"></div>
+        <div class="thumb-sm asset"></div>
+        <div class="thumb-sm asset"></div>
+      </div>
+    </div>
+    <div class="spacer"></div>
+    <div class="group" style="text-align:right">
+      <div class="ghead">EXPORT</div>
+      <div class="row">
+        <div class="btn">PNG</div>
+        <div class="btn">SVG</div>
+        <div class="btn">PDF</div>
+        <div class="btn">PPTX</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- FOOTER -->
+  <div class="foot">
+    <div class="dot"></div>
+    <div>BRAND v3 · focus: LOGO · 7 deliverables · 12 source assets</div>
+    <div class="spacer"></div>
+    <div>magenta-key: ON</div>
+    <div>auto-save: ON</div>
+  </div>
+</div>
+
+<!-- annotations -->
+<div class="anno" style="top:88px;right:380px;width:240px;text-align:right">single artifact in focus — Figma-style stage</div>
+<div class="anno" style="top:96px;left:280px;width:200px">brand spec floats top-left, always inside eyeline</div>
+<div class="anno" style="top:280px;left:280px;width:200px">deliverable nav as a sidekick, not a tab — switch focus in one click</div>
+<div class="anno" style="bottom:170px;right:380px;width:200px;text-align:right">chat dock floats bottom-right, draggable, collapses to a chip</div>
+<div class="anno" style="bottom:128px;left:280px">variants + assets in a slim bottom drawer — out of the way until needed</div>
+
+<div class="legend">
+  <h4>WIREFRAME C — WORKBENCH</h4>
+  Single-canvas focus mode. Floating panels, no rails.<br>
+  Strength: artifact gets the room it deserves; closest to a real design tool.<br>
+  Risk: discoverability lower; first-time user needs onboarding hint.
+</div>
+</body>
+</html>

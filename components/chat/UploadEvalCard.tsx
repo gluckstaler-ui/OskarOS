@@ -38,7 +38,6 @@ interface UploadEvalCardProps extends Omit<UploadEvalCardPayload, 'kind'> {
 
 export function UploadEvalCard({
   filename,
-  path,
   verdict,
   note,
   description,
@@ -46,9 +45,20 @@ export function UploadEvalCard({
   status: initialStatus,
   sessionId,
 }: UploadEvalCardProps) {
+  // Ralph 2026-05-12 — images live in `/{sessionId}/` by definition (Next.js
+  // serves `public/{sessionId}/` at the root). No `path` prop, no `/uploads/`
+  // fallback. Both lied. If sessionId is missing the URL fails loud — that's
+  // a config bug upstream, not something the card should silently mask.
+  const safeFilename = typeof filename === 'string' && filename ? filename : 'upload.jpg'
+  const src = `/${sessionId}/${safeFilename}`
+  const safeSuggestedUses = Array.isArray(suggestedUses) ? suggestedUses : []
+  const safeVerdict: '✓' | '≈' | '✗' = verdict === '✓' || verdict === '≈' || verdict === '✗' ? verdict : '≈'
+  const safeNote = typeof note === 'string' ? note : ''
+  const safeStatus: UserTag | 'INGESTED' = initialStatus ?? 'INGESTED'
+
   const [pendingTag, setPendingTag] = useState<UserTag | null>(null)
   const [isWriting, setIsWriting] = useState(false)
-  const currentTag: UserTag | 'INGESTED' = pendingTag ?? initialStatus
+  const currentTag: UserTag | 'INGESTED' = pendingTag ?? safeStatus
 
   const setTag = useCallback(async (next: UserTag) => {
     if (isWriting) return
@@ -74,29 +84,40 @@ export function UploadEvalCard({
     }
   }, [currentTag, filename, isWriting, sessionId])
 
-  const verdictColor = verdict === '✓' ? 'var(--brand-green-bright, #10B981)'
-    : verdict === '✗' ? 'var(--brand-red, #EF4444)'
+  const verdictColor = safeVerdict === '✓' ? 'var(--brand-green-bright, #10B981)'
+    : safeVerdict === '✗' ? 'var(--brand-red, #EF4444)'
     : 'var(--brand-yellow, #FACC15)'
 
   return (
     <div
       className="tool-card upload-eval-card"
       role="region"
-      aria-label={`Evaluated upload: ${filename}`}
+      aria-label={`Evaluated upload: ${safeFilename}`}
     >
       {/* HEAD ─────────────────────────────────────────── */}
       <div className="tool-card-head">
         <span className="tool-card-icon" data-accent="cyan" aria-hidden>⬆</span>
-        <span className="tool-card-title">Evaluated upload: {filename}</span>
+        <span className="tool-card-title">Evaluated upload: {safeFilename}</span>
         <span className="tool-card-meta">just now</span>
       </div>
 
       {/* BODY ─────────────────────────────────────────── */}
       <div className="tool-card-body">
         <div className="tool-card-img-frame" data-aspect="16-9">
-          <img src={path} alt={filename} />
+          <img
+            src={src}
+            alt={safeFilename}
+            onError={(e) => {
+              // File missing (common on previews with stub filenames).
+              // Hide the broken-img icon + alt-text; leave the frame as a
+              // clean gradient. Real uploads always resolve — this is a
+              // preview-grace path, not a fallback URL.
+              const t = e.currentTarget
+              t.style.visibility = 'hidden'
+            }}
+          />
           <span className="tool-card-ratio-badge">
-            {(filename.split('.').pop() || 'JPG').toUpperCase()}
+            {(safeFilename.split('.').pop() || 'JPG').toUpperCase()}
           </span>
         </div>
 
@@ -109,8 +130,8 @@ export function UploadEvalCard({
 
         <div className="tool-card-readout tool-card-readout--bottom">
           <span className="tool-card-readout-label">Verdict</span>
-          <span style={{ color: verdictColor, fontWeight: 700, marginRight: 4 }}>{verdict}</span>
-          {note}
+          <span style={{ color: verdictColor, fontWeight: 700, marginRight: 4 }}>{safeVerdict}</span>
+          {safeNote}
         </div>
       </div>
 
@@ -127,10 +148,10 @@ export function UploadEvalCard({
           <UserTagButton variant="TRASH"  active={currentTag === 'TRASH'}  onClick={() => setTag('TRASH')}  disabled={isWriting} />
         </div>
 
-        {suggestedUses.length > 0 && (
+        {safeSuggestedUses.length > 0 && (
           <div className="tool-card-tag-row">
             <span className="tool-card-tag-label">Suggested uses</span>
-            {suggestedUses.map((use) => (
+            {safeSuggestedUses.map((use) => (
               <span
                 key={use}
                 className="tool-card-tag"

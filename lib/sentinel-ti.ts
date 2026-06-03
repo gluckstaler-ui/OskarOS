@@ -55,7 +55,8 @@ function loadAgentPrompt(): string {
   const candidates = [
     path.join(process.cwd(), 'agents', 'sentinel-ti.md'),
     path.join(process.cwd(), '..', 'oskar-prototype', 'agents', 'sentinel-ti.md'),
-    '/Users/ralphlengler/OskarOS/oskar-prototype/agents/sentinel-ti.md',
+    // Removed the hardcoded /Users/ralphlengler/... fallback (WP-40, 2026-06-02);
+    // the cwd-relative candidates above cover macOS, Linux, and WSL.
   ]
   for (const p of candidates) {
     if (existsSync(p)) {
@@ -185,7 +186,7 @@ to the file path the user prompt specifies. Do not invent file paths.`
     '--verbose',
     '--no-session-persistence',
     '--model',
-    'claude-opus-4-7[1m]',
+    'claude-opus-4-8[1m]',
     '--output-format',
     'stream-json',
     '--permission-mode',

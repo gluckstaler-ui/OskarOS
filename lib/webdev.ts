@@ -7,12 +7,13 @@ import { spawn } from 'child_process'
 import { existsSync, readFileSync, createWriteStream, appendFileSync } from 'fs'
 import { readFile, writeFile, readdir, mkdir } from 'fs/promises'
 import { join } from 'path'
-import type { ParsedVibe } from './creative-brief-parser'
 import { trackUsageFromCLIOutput } from './usage-tracker'
 import { verifyVibeHtml, parseTrailingJson } from './vibe-verify'
 import { ensureMcpConfig, WEBDEV_ALLOWED_TOOLS } from './mcp-config'
-import { collectFromStdout } from './mcp-tool-collector'
+import { collectFromStdout, streamAssistantToolUses } from './mcp-tool-collector'
 import { publish } from './event-bus'
+import { buildModeBanner } from './webdev-mode-banner'
+import { findBinary, safePath } from './cli-paths'
 
 // ==========================================
 // Load WebDev Agent Prompt from MD file
@@ -36,7 +37,7 @@ function loadWebDevAgentPrompt(): string {
 // ==========================================
 
 /**
- * Read `report_build_complete` args from the agent's stream-json output.
+ * Read `build_done` args from the agent's stream-json output.
  * Returns the manifest in the same shape as parseTrailingJson did, so all
  * downstream code keeps working unchanged. This is the PRIMARY path; the
  * trailing-JSON parser + fallbacks remain as safety net.
@@ -44,8 +45,8 @@ function loadWebDevAgentPrompt(): string {
 function readReportBuildCompleteFromStdout(
   stdout: string,
 ): { filename: string; vibeIndex: number; vibeName: string } | null {
-  const calls = collectFromStdout(stdout, ['report_build_complete'])
-  const args = calls.report_build_complete as
+  const calls = collectFromStdout(stdout, ['build_done'])
+  const args = calls.build_done as
     | { filename?: unknown; vibeIndex?: unknown; vibeName?: unknown }
     | undefined
   if (!args) return null
@@ -77,38 +78,13 @@ function logFallbackFired(sessionPath: string, target: string, fallbackName: str
 // ==========================================
 
 export function findClaudeBinary(): string {
-  const possiblePaths = [
-    '/opt/homebrew/bin/claude',
-    '/usr/local/bin/claude',
-    join(process.env.HOME || '', '.npm-global/bin/claude'),
-    join(process.env.HOME || '', 'node_modules/.bin/claude'),
-    'claude'
-  ]
-
-  for (const p of possiblePaths) {
-    if (existsSync(p)) {
-      return p
-    }
-  }
-
-  return 'claude'
+  // Consolidated into lib/cli-paths.ts (WP-40, 2026-06-02). Kept as a thin
+  // re-export so existing importers (e.g. sentinel-ti.ts) keep working.
+  return findBinary('claude')
 }
 
 export function findGeminiBinary(): string {
-  const possiblePaths = [
-    '/opt/homebrew/bin/gemini',
-    '/usr/local/bin/gemini',
-    join(process.env.HOME || '', '.npm-global/bin/gemini'),
-    'gemini'
-  ]
-
-  for (const p of possiblePaths) {
-    if (existsSync(p)) {
-      return p
-    }
-  }
-
-  return 'gemini'
+  return findBinary('gemini')  // consolidated into lib/cli-paths.ts (WP-40)
 }
 
 // ==========================================
@@ -296,78 +272,6 @@ export const SCROLLBAR_CSS = `
 `
 
 // ==========================================
-// Build Vibe Prompt
-// ==========================================
-
-function buildVibePrompt(vibe: ParsedVibe, sessionImages: string[]): string {
-  const imageList = sessionImages.length > 0
-    ? `\n\nAVAILABLE IMAGES IN SESSION:\n${sessionImages.map(img => `- ${img}`).join('\n')}`
-    : '\n\n(No images available yet)'
-
-  return `
-## Vibe Details
-
-**Name:** ${vibe.name}
-**One-liner:** ${vibe.oneLiner}
-**Voice:** ${vibe.voice}
-**Target Audience:** ${vibe.whoFor}
-
-**Colors:**
-- Primary: ${vibe.colors.primary}
-- Secondary: ${vibe.colors.secondary}
-- Accent: ${vibe.colors.accent}
-
-**Fonts:**
-- Headings: ${vibe.fonts.headings}
-- Body: ${vibe.fonts.body}
-
-## Full Vibe Content
-
-${vibe.content}
-${imageList}
-
-## Technical Requirements
-
-### HTML Structure
-- All CSS inline (in <style> tag) for portability
-- Use CSS variables for the colors above
-- Mobile-first, responsive design
-- Include data-usage attributes on images for the preview system
-- Include data-editable attributes on text elements
-
-### Image References
-Use relative paths:
-\`\`\`html
-<img src="[filename].jpg" alt="[Descriptive alt text]" data-usage="hero">
-\`\`\`
-
-### Fonts
-Use Google Fonts:
-\`\`\`html
-<link href="https://fonts.googleapis.com/css2?family=${vibe.fonts.headings.replace(/\s+/g, '+')}:wght@400;700&family=${vibe.fonts.body.replace(/\s+/g, '+')}:wght@400;500&display=swap" rel="stylesheet">
-\`\`\`
-
-## Required Sections
-
-Build a landing page with these sections based on the vibe content:
-1. Hero with headline, tagline, and CTA
-2. Hook/Story section
-3. How It Works section
-4. Residents section (the six animals)
-5. Menu section with items and prices
-6. Location section
-7. Final booking CTA
-8. Footer with tagline
-
-## Voice Requirements
-- Every piece of copy must match the "${vibe.name}" voice: ${vibe.voice}
-- Distinctive tone throughout
-- CTA that makes people feel something
-- Zero generic language ("Book Now", "About Us", "Our Services")
-`
-}
-
-// ==========================================
 // Build Result Interface
 // ==========================================
 
@@ -390,6 +294,27 @@ export async function buildVibeHTML(
   sessionPath: string,
   model: string = 'claude-sonnet-4-6',
   abortSignal?: AbortSignal,
+  /**
+   * Ralph 2026-05-18 (Job-Card Ladder Fix — phase-flag plumb-through):
+   * true when spawned by `build_wireframes`, false (or omitted) for
+   * `build_vibe`. Injected at the top of the per-build user prompt via
+   * `buildModeBanner` so the agent has a STATIC signal about wireframe
+   * vs vibe mode — was previously inferred from spec content, which
+   * silently failed when an existing HTML was found.
+   */
+  hasCritique?: boolean,
+  /**
+   * Ralph 2026-05-19 (Job-Card Ladder Fix — CLI onToolCall hookup):
+   * mid-build tool-call forwarder. The route (build-wireframes/route.ts)
+   * passes a closure-bound callback that publishes the agent's
+   * `build_progress` / `submit_critique` fires to the SSE bus per-slug.
+   * Before this, the callback was only invoked in API mode — CLI mode
+   * dropped the hook, so the agent's `stage:"critique"` event never
+   * reached the job-card UI, leaving wireframe rows hanging on
+   * `verify` even though Phase 7 ran cleanly. Now wired into
+   * `streamAssistantToolUses` against the stdout stream.
+   */
+  onToolCall?: (toolName: string, input: Record<string, unknown>) => void,
 ): Promise<VibeBuildResult> {
   const requestId = Date.now()
 
@@ -410,7 +335,12 @@ export async function buildVibeHTML(
   // under "## Orchestration Contract" and is included via ${agentPrompt}.
   // Don't add tool-contract instructions here — edit the agent file instead.
   // Ralph + Jedi Code 2026-05-06.
-  const userPrompt = `
+  // Ralph 2026-05-18: ${modeBanner} is injected BEFORE ${agentPrompt} so the
+  // wireframe/vibe distinction lands BEFORE the agent reads the spec and
+  // forms an "existing file = skip" judgment.
+  const modeBanner = buildModeBanner(hasCritique)
+  const userPrompt = `${modeBanner}
+
 ${agentPrompt}
 
 ---
@@ -438,7 +368,7 @@ a kebab-case version of the vibe name (e.g. \`vibe-5-oskar-home-staging.html\`).
 Do NOT output the HTML in chat. Use your file writing capability.
 
 Follow the Orchestration Contract above for tool calls
-(\`report_build_complete\`, \`report_build_progress\`, \`notify_agent\`,
+(\`build_done\`, \`build_progress\`, \`notify_agent\`,
 inbox drain).
 `
 
@@ -448,11 +378,35 @@ inbox drain).
   // image-bearing vibes. Image-free vibes keep the original budget so
   // simple builds don't sit waiting on a stuck process.
   // Detected by checking the session folder for any image files.
+  //
+  // Ralph 2026-05-18: no-image budget bumped from 8 → 12 min. Wireframe
+  // builds (hasCritique: true) need Phase 7 time (compute scores, FileEdit
+  // polygon points + verdict lists) regardless of whether the session has
+  // images.
+  //
+  // Ralph 2026-05-19: FLAT 20 min regardless of images. Second bump after
+  // batch 2026-05-19 empirically showed:
+  //   - 8 Sonnet full-success builds: 12:59 – 16:01 elapsed
+  //   - 6 Sonnet partial-Phase-7 builds: ALL hit exactly 16:01 wall (defect rate 43%)
+  //   - Earlier 18-min bump never deployed (Next.js HMR didn't reload runner
+  //     closures captured at queue enqueue time)
+  //
+  // The 6 partials all looked like "agent was mid-Phase-7 FileEdit when SIGTERM
+  // fired" — bullets unfilled, sometimes polygon at zeros, em-dash composite.
+  // 4 min of additional headroom (16 → 20) gives Sonnet enough runway to finish
+  // the final FileEdit batch that ships the critique surface. Cost: maybe 25%
+  // more Sonnet tokens per build that uses the extra time. Benefit: 6 defective
+  // partials → ~0-1 partials per batch.
+  //
+  // Image heuristic remains gone — workload is determined by SPEC, not disk
+  // presence. Counting sessionImages array for logs only.
+  //
+  // NOTE: requires Next.js dev server restart to deploy — in-flight queue
+  // closures hold the old timeout reference until then.
   const sessionImages = await readdir(sessionPath).catch(() => [] as string[])
     .then(files => files.filter(f => /\.(jpg|jpeg|png|webp|gif|avif)$/i.test(f)))
-  const hasImages = sessionImages.length > 0
-  const TIMEOUT_MS = hasImages ? 16 * 60 * 1000 : 8 * 60 * 1000
-  const TIMEOUT_LABEL = hasImages ? '16 min (images present)' : '8 min'
+  const TIMEOUT_MS = 20 * 60 * 1000
+  const TIMEOUT_LABEL = `20 min flat (${sessionImages.length} on-disk images)`
 
   // ── Set up the per-build debug log up here (outside the Promise executor)
   // so we can `await mkdir` safely. Inside `new Promise(...)` an async executor
@@ -465,7 +419,7 @@ inbox drain).
     await mkdir(logsDir, { recursive: true })
     debugStream = createWriteStream(debugLogPath, { flags: 'a' })
     debugStream.write(`# WebDev debug log — target="${target}" — ${new Date().toISOString()}\n`)
-    debugStream.write(`# model=${model} timeout=${TIMEOUT_LABEL} hasImages=${hasImages} (${sessionImages.length} files)\n`)
+    debugStream.write(`# model=${model} timeout=${TIMEOUT_LABEL}\n`)
     debugStream.write(`# raw stream-json from claude --print follows:\n\n`)
     console.log(`[WebDev] Debug log: ${debugLogPath}`)
   } catch (err) {
@@ -495,7 +449,7 @@ inbox drain).
     // every prior failed build. Adding it makes the debug log actually useful.
     //
     // Phase 2 (2026-04-30): WebDev now gets --mcp-config + the WebDev-scoped
-    // allowed-tools whitelist. The agent calls `report_build_complete` after
+    // allowed-tools whitelist. The agent calls `build_done` after
     // writing the file; we capture the args from the stream-json output via
     // lib/mcp-tool-collector. parseTrailingJson + the disk-mtime fallback
     // chain stay as defensive last-resort — when the tool call is missing,
@@ -517,7 +471,7 @@ inbox drain).
       env: {
         ...process.env,
         HOME: process.env.HOME,
-        PATH: '/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:' + (process.env.PATH || ''),
+        PATH: safePath(),
         CLAUDE_CODE_OAUTH_TOKEN: process.env.CLAUDE_CODE_OAUTH_TOKEN || ''
       }
     })
@@ -591,9 +545,29 @@ inbox drain).
       }
     }, TIMEOUT_MS)
 
+    // Ralph 2026-05-19 (Job-Card Ladder Fix — CLI onToolCall hookup):
+    // real-time tool_use forwarder. Parses stream-json line-by-line as
+    // chunks arrive, invokes the route's per-slug onToolCall callback
+    // the moment an `assistant` event lands with a tool_use block. This
+    // is what makes the agent's mid-build `build_progress({stage:"verify"})`
+    // and `build_progress({stage:"critique"})` fires reach the SSE bus.
+    // Before this hookup, those fires landed at the MCP server (acked)
+    // but the route never saw them, so the job-card row hung at `html`.
+    // The streamer is a no-op when onToolCall is undefined.
+    const toolStream = onToolCall
+      ? streamAssistantToolUses((name, input) => {
+          // streamAssistantToolUses already strips the mcp__<server>__
+          // prefix, so name matches what the route's switch expects
+          // ('build_progress', 'submit_critique', etc.).
+          onToolCall(name, (input ?? {}) as Record<string, unknown>)
+        })
+      : null
+
     child.stdout.on('data', (data) => {
-      fullOutput += data.toString()
+      const chunk = data.toString()
+      fullOutput += chunk
       if (debugStream) debugStream.write(data)
+      toolStream?.feed(chunk)
     })
 
     child.stderr.on('data', (data) => {
@@ -610,6 +584,7 @@ inbox drain).
       if (fullOutput.length < 100) {
         console.log(`[WebDev] Full output: ${fullOutput}`)
       }
+      toolStream?.end()
       if (debugStream) {
         debugStream.write(`\n# stdout ended — total ${fullOutput.length} chars\n`)
         debugStream.end()
@@ -644,7 +619,7 @@ inbox drain).
         console.error(`[WebDev] Failed to track usage:`, usageError)
       }
 
-      // Phase 2 PRIMARY: read the agent's `report_build_complete` tool call.
+      // Phase 2 PRIMARY: read the agent's `build_done` tool call.
       // This is the structured-args contract — typed, validated, no regex.
       let manifest = readReportBuildCompleteFromStdout(fullOutput)
 
@@ -656,7 +631,7 @@ inbox drain).
       if (!manifest) {
         manifest = parseTrailingJson(fullOutput)
         if (manifest) {
-          console.warn(`[WebDev] ⚠️ report_build_complete missing; recovered via parseTrailingJson`)
+          console.warn(`[WebDev] ⚠️ build_done missing; recovered via parseTrailingJson`)
           logFallbackFired(sessionPath, target, 'parseTrailingJson')
         }
       }
@@ -724,7 +699,7 @@ inbox drain).
       // Stage transition html → verify (Ralph 2026-05-06): the file landed,
       // verifyVibeHtml is about to run. Publishing here keeps the timeline
       // deterministic — independent of whether the WebDev agent emitted
-      // its optional report_build_progress milestone. Console.log left in
+      // its optional build_progress milestone. Console.log left in
       // (cheap, dev-only signal) so "did verify fire?" is greppable in
       // server logs after a build.
       console.log(`[WebDev] verify stage starting for target="${target}"`)
@@ -794,6 +769,21 @@ export async function buildVibeHTMLGemini(
   target: string,
   sessionPath: string,
   abortSignal?: AbortSignal,
+  /**
+   * Ralph 2026-05-18 (Job-Card Ladder Fix — phase-flag plumb-through):
+   * true when spawned by `build_wireframes`, false (or omitted) for
+   * `build_vibe`. Injected at the top of the per-build user prompt via
+   * `buildModeBanner` so Gemini has a STATIC signal about wireframe
+   * vs vibe mode — same fix as Claude CLI path above.
+   */
+  hasCritique?: boolean,
+  /**
+   * Ralph 2026-05-19 (Job-Card Ladder Fix — CLI onToolCall hookup):
+   * same as Claude CLI path. Mid-build tool-call forwarder for the
+   * route's per-slug closure. Gemini emits the same `assistant` event
+   * shape with tool_use blocks per their stream-json contract.
+   */
+  onToolCall?: (toolName: string, input: Record<string, unknown>) => void,
 ): Promise<VibeBuildResult> {
   const requestId = Date.now()
   const agentPrompt = loadWebDevAgentPrompt()
@@ -802,7 +792,12 @@ export async function buildVibeHTMLGemini(
   // notify_agent, inbox drain) lives in agents/webdev-agent.md and is
   // included via ${agentPrompt}. Mirrors the Claude CLI path above —
   // edit the .md file, not this template. Ralph + Jedi Code 2026-05-06.
-  const userPrompt = `
+  // Ralph 2026-05-18: ${modeBanner} injected BEFORE ${agentPrompt} for
+  // the same reason as the Claude path — wireframe-vs-vibe signal lands
+  // before the agent reads the spec.
+  const modeBanner = buildModeBanner(hasCritique)
+  const userPrompt = `${modeBanner}
+
 ${agentPrompt}
 
 ---
@@ -826,12 +821,16 @@ Do NOT output the HTML in chat. Use shell file writing.
 Follow the Orchestration Contract above for tool calls.
 `
 
-  // Same overthink-on-images problem — double timeout when images are present
+  // Ralph 2026-05-19: FLAT 20 min regardless of images. Same rationale as
+  // the Claude path above — `hasImages` was a disk-presence heuristic that
+  // didn't match agent workload (specs reference images that don't exist
+  // yet). Gemini's per-turn pace is genuinely slower than Sonnet's, so it
+  // keeps the higher 20-min budget (vs Claude's flat 16) — but the
+  // image-vs-no-image branching is gone.
   const sessionImages = await readdir(sessionPath).catch(() => [] as string[])
     .then(files => files.filter(f => /\.(jpg|jpeg|png|webp|gif|avif)$/i.test(f)))
-  const hasImagesGem = sessionImages.length > 0
-  const TIMEOUT_MS_GEM = hasImagesGem ? 20 * 60 * 1000 : 10 * 60 * 1000
-  const TIMEOUT_LABEL_GEM = hasImagesGem ? '20 min (images present)' : '10 min'
+  const TIMEOUT_MS_GEM = 20 * 60 * 1000
+  const TIMEOUT_LABEL_GEM = `20 min flat (${sessionImages.length} on-disk images)`
 
   return new Promise((resolve) => {
     const geminiPath = findGeminiBinary()
@@ -844,7 +843,7 @@ Follow the Orchestration Contract above for tool calls.
 
     // Phase 2 (2026-04-30): Gemini gets the same MCP wiring as Claude. The
     // Gemini CLI accepts `--mcp-config` and emits tool_use blocks in
-    // stream-json, so the same tool collector reads `report_build_complete`
+    // stream-json, so the same tool collector reads `build_done`
     // args. parseTrailingJson + fallbacks remain as defensive last-resort —
     // Gemini's MCP support is documented but less battle-tested than Claude's.
     const mcpConfigFileGemini = ensureMcpConfig({ sessionId, cwd: process.cwd(), agentRole: 'webdev' })
@@ -861,7 +860,7 @@ Follow the Orchestration Contract above for tool calls.
       env: {
         ...process.env,
         HOME: process.env.HOME,
-        PATH: '/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:' + (process.env.PATH || ''),
+        PATH: safePath(),
         GEMINI_API_KEY: process.env.GOOGLE_API_KEY || ''
       }
     })
@@ -892,15 +891,29 @@ Follow the Orchestration Contract above for tool calls.
       }
     }, TIMEOUT_MS_GEM)
 
-    child.stdout.on('data', (data) => { fullOutput += data.toString() })
+    // Ralph 2026-05-19 (Job-Card Ladder Fix — CLI onToolCall hookup):
+    // same streamer as the Claude path. Forwards Gemini's mid-stream
+    // tool_use events to the route per-slug callback in real time.
+    const toolStreamGem = onToolCall
+      ? streamAssistantToolUses((name, input) => {
+          onToolCall(name, (input ?? {}) as Record<string, unknown>)
+        })
+      : null
+    child.stdout.on('data', (data) => {
+      const chunk = data.toString()
+      fullOutput += chunk
+      toolStreamGem?.feed(chunk)
+    })
     child.stderr.on('data', (data) => { console.error(`[WebDev-Gemini] stderr:`, data.toString().substring(0, 500)) })
 
     child.on('error', (error) => {
       clearTimeout(timeout)
+      toolStreamGem?.end()
       resolve({ vibeIndex: 0, vibeName: target, filename: '', status: 'error', error: error.message })
     })
 
     child.on('close', async (code) => {
+      toolStreamGem?.end()
       clearTimeout(timeout)
       console.log(`[WebDev-Gemini] Gemini exited with code ${code}. Output: ${fullOutput.length} chars`)
 
@@ -911,7 +924,7 @@ Follow the Orchestration Contract above for tool calls.
       if (!manifest) {
         manifest = parseTrailingJson(fullOutput)
         if (manifest) {
-          console.warn(`[WebDev-Gemini] ⚠️ report_build_complete missing; recovered via parseTrailingJson`)
+          console.warn(`[WebDev-Gemini] ⚠️ build_done missing; recovered via parseTrailingJson`)
           logFallbackFired(sessionPath, target, 'parseTrailingJson (gemini)')
         }
       }

@@ -1,0 +1,1501 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SEO/GEO Ecosystem Evaluation for OskarOS</title>
+  <style>
+    :root {
+      --bg-app: #0e0f12;
+      --bg-card: #1a1c20;
+      --bg-card-hover: #21242a;
+      --bg-input: #161819;
+      --text-main: #f5f5f7;
+      --text-muted: rgba(245, 245, 247, 0.72);
+      --text-faint: rgba(245, 245, 247, 0.46);
+      --border-card: rgba(255, 255, 255, 0.08);
+      --border-strong: rgba(255, 255, 255, 0.18);
+      --brand-green-bright: #15b981;
+      --brand-green-dim: #0f7a59;
+      --brand-cyan: #4fd1c5;
+      --brand-yellow: #facc15;
+      --brand-red: #ef4444;
+      --brand-blue: #60a5fa;
+      --brand-violet: #a78bfa;
+      --font-display: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+      --radius-card: 10px;
+      --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.02);
+    }
+    * { box-sizing: border-box; }
+    html { font-size: 16px; }
+    body {
+      margin: 0;
+      background: var(--bg-app);
+      color: var(--text-main);
+      font-family: var(--font-display);
+      line-height: 1.6;
+      font-size: 15px;
+    }
+    .wrap {
+      max-width: 1080px;
+      margin: 0 auto;
+      padding: 80px 32px 120px;
+    }
+    /* ── DOC HEADER ───────────────────────────────────────────────── */
+    .doc-head {
+      padding-bottom: 32px;
+      border-bottom: 1px solid var(--border-card);
+      margin-bottom: 56px;
+    }
+    .doc-eyebrow {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--brand-green-bright);
+      margin-bottom: 16px;
+    }
+    .doc-head h1 {
+      font-size: 44px;
+      line-height: 1.1;
+      margin: 0 0 16px;
+      letter-spacing: -0.02em;
+      font-weight: 700;
+    }
+    .doc-head .lead {
+      font-size: 18px;
+      color: var(--text-muted);
+      max-width: 760px;
+      margin: 0 0 24px;
+    }
+    .doc-meta {
+      display: flex;
+      gap: 32px;
+      flex-wrap: wrap;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--text-faint);
+    }
+    .doc-meta b {
+      color: var(--text-main);
+      font-weight: 500;
+    }
+    /* ── SECTION HEADS ────────────────────────────────────────────── */
+    section { margin-bottom: 72px; }
+    h2 {
+      font-size: 28px;
+      line-height: 1.2;
+      letter-spacing: -0.01em;
+      margin: 0 0 8px;
+      font-weight: 700;
+    }
+    h2 .num {
+      font-family: var(--font-mono);
+      font-size: 13px;
+      color: var(--brand-green-bright);
+      margin-right: 14px;
+      letter-spacing: 0.06em;
+    }
+    h3 {
+      font-size: 19px;
+      margin: 32px 0 12px;
+      font-weight: 600;
+      letter-spacing: -0.005em;
+    }
+    .section-lead {
+      color: var(--text-muted);
+      max-width: 760px;
+      margin: 0 0 32px;
+      font-size: 16px;
+    }
+    /* ── PRIORITY CARDS (Exec Summary) ────────────────────────────── */
+    .priority-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 12px;
+      margin-bottom: 36px;
+    }
+    .priority {
+      background: var(--bg-card);
+      border: 1px solid var(--border-card);
+      border-radius: var(--radius-card);
+      padding: 20px 24px;
+      box-shadow: var(--shadow-card);
+      display: grid;
+      grid-template-columns: 80px 1fr auto;
+      gap: 24px;
+      align-items: center;
+    }
+    .priority[data-rank="1"] { border-left: 3px solid var(--brand-green-bright); }
+    .priority[data-rank="2"] { border-left: 3px solid var(--brand-cyan); }
+    .priority[data-rank="3"] { border-left: 3px solid var(--brand-yellow); }
+    .priority[data-rank="4"] { border-left: 3px solid var(--brand-violet); }
+    .priority .rank {
+      font-family: var(--font-mono);
+      font-size: 32px;
+      line-height: 1;
+      color: var(--text-faint);
+      font-weight: 700;
+    }
+    .priority .body { display: flex; flex-direction: column; gap: 4px; }
+    .priority .title { font-size: 17px; font-weight: 600; }
+    .priority .blurb { font-size: 14px; color: var(--text-muted); }
+    .priority .meta {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      color: var(--text-faint);
+      text-align: right;
+      line-height: 1.5;
+    }
+    .priority .meta .effort-val { color: var(--text-main); }
+    .priority .meta .cost-val { color: var(--brand-green-bright); }
+    /* ── IGNORE LIST ──────────────────────────────────────────────── */
+    .ignore-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 8px;
+      margin: 16px 0 0;
+    }
+    .ignore-grid .ign {
+      background: rgba(239, 68, 68, 0.04);
+      border: 1px solid rgba(239, 68, 68, 0.18);
+      border-radius: 6px;
+      padding: 10px 14px;
+      font-size: 13px;
+      color: var(--text-muted);
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+    .ignore-grid .ign .name {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      color: var(--text-main);
+    }
+    .ignore-grid .ign .why { font-size: 12px; color: var(--text-faint); }
+    /* ── COMMUNITY CHART ──────────────────────────────────────────── */
+    .chart-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-card);
+      border-radius: var(--radius-card);
+      padding: 32px;
+      box-shadow: var(--shadow-card);
+      margin-top: 24px;
+    }
+    .chart-card h4 {
+      margin: 0 0 4px;
+      font-size: 16px;
+      font-weight: 600;
+    }
+    .chart-card .sub {
+      color: var(--text-faint);
+      font-size: 13px;
+      margin-bottom: 24px;
+    }
+    .bar-row {
+      display: grid;
+      grid-template-columns: 220px 1fr 60px;
+      align-items: center;
+      gap: 16px;
+      margin-bottom: 10px;
+    }
+    .bar-row .label {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      color: var(--text-main);
+      text-align: right;
+    }
+    .bar-row .track {
+      height: 22px;
+      background: var(--bg-input);
+      border-radius: 4px;
+      overflow: hidden;
+      position: relative;
+    }
+    .bar-row .fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--brand-green-bright), var(--brand-green-dim));
+      border-radius: 4px;
+    }
+    .bar-row .stars {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      color: var(--text-main);
+    }
+    .chart-foot {
+      margin-top: 20px;
+      font-size: 13px;
+      color: var(--text-muted);
+      border-top: 1px solid var(--border-card);
+      padding-top: 16px;
+    }
+    /* ── REPO CARDS ───────────────────────────────────────────────── */
+    .repo {
+      background: var(--bg-card);
+      border: 1px solid var(--border-card);
+      border-radius: var(--radius-card);
+      padding: 28px 32px;
+      margin-bottom: 20px;
+      box-shadow: var(--shadow-card);
+    }
+    .repo[data-verdict="LIFT"]    { border-left: 3px solid var(--brand-green-bright); }
+    .repo[data-verdict="INSTALL"] { border-left: 3px solid var(--brand-cyan); }
+    .repo[data-verdict="IGNORE"]  { border-left: 3px solid rgba(239, 68, 68, 0.5); opacity: 0.78; }
+    .repo[data-verdict="MIXED"]   { border-left: 3px solid var(--brand-yellow); }
+    .repo-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 16px;
+      margin-bottom: 16px;
+    }
+    .repo-name {
+      font-family: var(--font-mono);
+      font-size: 18px;
+      font-weight: 600;
+      color: var(--text-main);
+      letter-spacing: -0.01em;
+    }
+    .repo-tagline {
+      font-size: 13px;
+      color: var(--text-faint);
+      margin-top: 2px;
+    }
+    .repo-stats {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      color: var(--text-faint);
+      text-align: right;
+      line-height: 1.7;
+      white-space: nowrap;
+    }
+    .repo-stats .stars { color: var(--text-main); font-size: 14px; }
+    .repo-stats .stars b { font-weight: 600; }
+    .verdict-pill {
+      display: inline-block;
+      font-family: var(--font-mono);
+      font-size: 10px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      padding: 4px 10px;
+      border-radius: 4px;
+      font-weight: 600;
+      margin-bottom: 14px;
+    }
+    .verdict-pill[data-v="LIFT"] {
+      background: rgba(21, 185, 129, 0.14);
+      color: var(--brand-green-bright);
+      border: 1px solid rgba(21, 185, 129, 0.4);
+    }
+    .verdict-pill[data-v="INSTALL"] {
+      background: rgba(79, 209, 197, 0.12);
+      color: var(--brand-cyan);
+      border: 1px solid rgba(79, 209, 197, 0.4);
+    }
+    .verdict-pill[data-v="IGNORE"] {
+      background: rgba(239, 68, 68, 0.10);
+      color: var(--brand-red);
+      border: 1px solid rgba(239, 68, 68, 0.4);
+    }
+    .verdict-pill[data-v="MIXED"] {
+      background: rgba(250, 204, 21, 0.10);
+      color: var(--brand-yellow);
+      border: 1px solid rgba(250, 204, 21, 0.4);
+    }
+    .repo .block {
+      margin-top: 16px;
+    }
+    .repo .block-label {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--text-faint);
+      margin-bottom: 6px;
+    }
+    .repo .gem {
+      background: var(--bg-input);
+      border-left: 2px solid var(--text-faint);
+      padding: 12px 16px;
+      color: var(--text-muted);
+      font-size: 14px;
+      border-radius: 0 6px 6px 0;
+      font-style: italic;
+    }
+    .repo .delta {
+      padding: 12px 16px;
+      background: rgba(96, 165, 250, 0.06);
+      border-left: 2px solid var(--brand-blue);
+      border-radius: 0 6px 6px 0;
+      font-size: 14px;
+      color: var(--text-main);
+    }
+    .repo .verdict {
+      padding: 14px 16px;
+      background: rgba(21, 185, 129, 0.05);
+      border: 1px solid rgba(21, 185, 129, 0.18);
+      border-radius: 6px;
+      font-size: 14px;
+      color: var(--text-main);
+    }
+    .repo[data-verdict="IGNORE"] .verdict {
+      background: rgba(239, 68, 68, 0.04);
+      border-color: rgba(239, 68, 68, 0.18);
+    }
+    .repo .verdict ul, .delta ul { margin: 8px 0 0; padding-left: 22px; }
+    .repo .verdict li, .delta li { margin: 4px 0; }
+    /* ── WORKPACKAGE CARDS ────────────────────────────────────────── */
+    .wp {
+      background: var(--bg-card);
+      border: 1px solid var(--border-card);
+      border-radius: var(--radius-card);
+      padding: 32px;
+      margin-bottom: 28px;
+      box-shadow: var(--shadow-card);
+    }
+    .wp-head {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 18px;
+      padding-bottom: 18px;
+      border-bottom: 1px solid var(--border-card);
+    }
+    .wp-id {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--brand-green-bright);
+      margin-bottom: 6px;
+    }
+    .wp-title {
+      font-size: 22px;
+      font-weight: 700;
+      letter-spacing: -0.01em;
+    }
+    .wp-pills {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .wp-pill {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      letter-spacing: 0.04em;
+      padding: 4px 10px;
+      border-radius: 4px;
+      background: var(--bg-input);
+      color: var(--text-muted);
+      border: 1px solid var(--border-card);
+      white-space: nowrap;
+    }
+    .wp-pill b { color: var(--text-main); font-weight: 600; }
+    .wp h4 {
+      margin: 20px 0 8px;
+      font-size: 14px;
+      font-weight: 600;
+      font-family: var(--font-mono);
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--text-faint);
+    }
+    .wp p { margin: 0 0 8px; color: var(--text-main); }
+    .wp ul { margin: 0 0 4px; padding-left: 22px; color: var(--text-main); }
+    .wp ul li { margin: 4px 0; }
+    .wp code {
+      font-family: var(--font-mono);
+      font-size: 13px;
+      background: var(--bg-input);
+      padding: 1px 6px;
+      border-radius: 3px;
+      color: var(--brand-cyan);
+    }
+    .wp-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 8px;
+      font-size: 13px;
+    }
+    .wp-table th, .wp-table td {
+      text-align: left;
+      padding: 8px 12px;
+      border-bottom: 1px solid var(--border-card);
+    }
+    .wp-table th {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--text-faint);
+      font-weight: 500;
+    }
+    .wp-table td.num {
+      font-family: var(--font-mono);
+      color: var(--text-muted);
+      white-space: nowrap;
+    }
+    /* ── TIER DIVIDERS ────────────────────────────────────────────── */
+    .tier-head {
+      margin: 48px 0 20px;
+      padding-top: 24px;
+      border-top: 1px solid var(--border-card);
+    }
+    .tier-head .label {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--brand-green-bright);
+    }
+    .tier-head h3 {
+      margin: 4px 0 4px;
+      font-size: 22px;
+    }
+    .tier-head p {
+      color: var(--text-muted);
+      font-size: 14px;
+      margin: 0;
+    }
+    /* ── INLINE BITS ──────────────────────────────────────────────── */
+    code.inline {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      background: var(--bg-input);
+      padding: 1px 6px;
+      border-radius: 3px;
+      color: var(--brand-cyan);
+    }
+    strong { color: var(--text-main); }
+    a { color: var(--brand-cyan); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    .footnote {
+      margin-top: 64px;
+      padding-top: 24px;
+      border-top: 1px solid var(--border-card);
+      font-size: 13px;
+      color: var(--text-faint);
+    }
+  </style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="doc-head">
+    <div class="doc-eyebrow">Research Report · OskarOS · Strategic evaluation</div>
+    <h1>SEO/GEO Ecosystem Evaluation for OskarOS</h1>
+    <p class="lead">
+      18 Claude-Code SEO/GEO repositories cloned, inspected, and graded for OskarOS-fit. Survey is exhaustive; the verdict is opinionated — we ship roughly one-fifth of what the ecosystem offers, and skip the rest with a clear conscience.
+    </p>
+    <div class="doc-meta">
+      <span><b>Evaluated:</b> 2026-05-13</span>
+      <span><b>Author:</b> Ralph + Jedi</span>
+      <span><b>Repos surveyed:</b> 18</span>
+      <span><b>Repos cloned:</b> <code class="inline">external/</code></span>
+      <span><b>Implementation budget:</b> ~1,800 LOC</span>
+    </div>
+  </header>
+
+  <!-- ════════════════════════════════════════════════════════ -->
+  <!-- EXECUTIVE SUMMARY                                          -->
+  <!-- ════════════════════════════════════════════════════════ -->
+  <section>
+    <h2><span class="num">§1</span>Executive Summary</h2>
+    <p class="section-lead">
+      The 18-repo ecosystem we surveyed is built mostly for SEO consultancies running client audits. OskarOS isn't a consultancy — it's a brand-site builder for small businesses. The right move is not to install the biggest framework; the right move is to extract the four primitives that fold into our existing build pipeline and make every site we ship measurably better at being found.
+    </p>
+
+    <h3>What we should implement, ranked</h3>
+    <p class="section-lead">
+      Four workpackages, ordered by leverage. WP-91 alone shifts the OskarOS product story from "beautiful brand sites" to "beautiful brand sites that are AI-citable from day one" — pure code, zero per-client cost, ships with every site automatically. The other three are conditional add-ons.
+    </p>
+
+    <div class="priority-grid">
+      <div class="priority" data-rank="1">
+        <div class="rank">01</div>
+        <div class="body">
+          <div class="title">WP-91 — Build-time GEO craft + OskarOS Quality Score</div>
+          <div class="blurb">
+            Every site we generate ships with JSON-LD schema, <code class="inline">/llms.txt</code>, AI-crawler-permissive <code class="inline">/robots.txt</code>, citability-scored hero copy, AND a composite quality score rendered as a dashboard tile. Highest leverage in the stack: pure code, zero per-client cost. Lift primitives from <code class="inline">geo-seo-claude</code> + <code class="inline">AgriciDaniel/claude-seo</code>; redefine the scoring formula around what OskarOS actually delivers (not SEO-consultancy weights).
+          </div>
+        </div>
+        <div class="meta">
+          Effort <span class="effort-val">~750 LOC</span><br>
+          Cost <span class="cost-val">$0</span>
+        </div>
+      </div>
+
+      <div class="priority" data-rank="2">
+        <div class="rank">02</div>
+        <div class="body">
+          <div class="title">WP-92 — GSC client feedback loop</div>
+          <div class="blurb">
+            Post-launch, client OAuths their Google Search Console. OskarOS surfaces "what queries surfaced your site, what's the CTR, where's the position trending" in a dashboard panel. Closes the OskarOS loop: from one-shot ship to ongoing relationship anchor. Install <code class="inline">AminForou/mcp-gsc</code>.
+          </div>
+        </div>
+        <div class="meta">
+          Effort <span class="effort-val">~700 LOC</span><br>
+          Cost <span class="cost-val">$0</span>
+        </div>
+      </div>
+
+      <div class="priority" data-rank="3">
+        <div class="rank">03</div>
+        <div class="body">
+          <div class="title">WP-93 — Discovery anchoring</div>
+          <div class="blurb">
+            When a brand URL appears in Discovery, CD fires <code class="inline">seo_quick(url)</code>. Returns current SERP presence, top competitors, content gaps. CD opens Discovery with category context instead of fishing from a blank slate. Install the official <code class="inline">dataforseo/mcp-server-typescript</code>.
+          </div>
+        </div>
+        <div class="meta">
+          Effort <span class="effort-val">~150 LOC</span><br>
+          Cost <span class="cost-val">$0.05–0.15 / session</span>
+        </div>
+      </div>
+
+      <div class="priority" data-rank="4">
+        <div class="rank">04</div>
+        <div class="body">
+          <div class="title">WP-94 — Migration redirect map <span style="color: var(--text-faint); font-weight: 400; font-size: 13px;">(conditional)</span></div>
+          <div class="blurb">
+            When a client replaces an existing site, we crawl the old domain, map URLs to closest match on the new OskarOS site, and emit a redirect file. Zero ranking-dip on migration. Only fires when the client has an existing site. Install <code class="inline">houtini-ai/seo-crawler-mcp</code>.
+          </div>
+        </div>
+        <div class="meta">
+          Effort <span class="effort-val">~200 LOC</span><br>
+          Cost <span class="cost-val">$0</span>
+        </div>
+      </div>
+    </div>
+
+    <h3>Why this priority order, not the obvious one</h3>
+    <p>
+      The "obvious" order would be to install the biggest framework (Gemini's #1 pick, <code class="inline">AgriciDaniel/claude-seo</code> with its 25 sub-skills and 18 sub-agents). The right order is different because <strong>OskarOS already orchestrates</strong>; we don't need someone else's orchestrator. What we need are <strong>primitives that bake GEO discipline into every site automatically</strong>, without CD or the user thinking about it — that's WP-91. From there, GSC (WP-92) is the loop-closer, DataForSEO (WP-93) is Discovery-time enrichment, and the crawler (WP-94) covers the migration edge case.
+    </p>
+
+    <h3>What we are <em>not</em> implementing — and why</h3>
+    <p class="section-lead">
+      Eleven repos are off-target for OskarOS. Most solve SEO-consultancy problems. None match our product surface. Listing them so the decision is explicit, not implicit:
+    </p>
+    <div class="ignore-grid">
+      <div class="ign"><span class="name">TheCraigHewitt/seomachine</span><span class="why">Long-form article factory. Different product.</span></div>
+      <div class="ign"><span class="name">OpenAnalystInc/10x-MM-Skill</span><span class="why">Requires their commercial hosted platform. Lock-in.</span></div>
+      <div class="ign"><span class="name">nowork-studio/toprank</span><span class="why">Paid-ads cross-channel. Outside scope.</span></div>
+      <div class="ign"><span class="name">SEO-Review-Tools/SEO-API-MCP</span><span class="why">Backlink data. New brands have no backlinks.</span></div>
+      <div class="ign"><span class="name">Archie0125/a7seo-mcp</span><span class="why">0 stars. Content engine. Abandon-risk.</span></div>
+      <div class="ign"><span class="name">SerpstatGlobal/serpstat-mcp</span><span class="why">Alternative to DataForSEO. Redundant.</span></div>
+      <div class="ign"><span class="name">jae-jae/g-search-mcp</span><span class="why">Google scraping. Unreliable + 11 months stale.</span></div>
+      <div class="ign"><span class="name">AndreasH96/seo-geo-consultant</span><span class="why">Next.js stack. Wrong target framework.</span></div>
+      <div class="ign"><span class="name">aevans-eng/seo-skill</span><span class="why">Static portfolio scope. Too small.</span></div>
+      <div class="ign"><span class="name">boraoztunc/skills</span><span class="why">Generic skill bag. Off-topic.</span></div>
+      <div class="ign"><span class="name">AgriciDaniel/claude-seo</span><span class="why">Full framework: overkill. We lift schema only.</span></div>
+    </div>
+
+    <h3>The shift in product story</h3>
+    <p>
+      Without these integrations, OskarOS sells <strong>"beautiful brand sites."</strong> With WP-91 alone, it sells <strong>"beautiful brand sites that are AI-citable from day one."</strong> With all four, it sells <strong>"beautiful brand sites that get organic discovery, and you can see the numbers."</strong> That's a 2-3× price-point shift at the top tier, because the client gets <em>measurable customer acquisition</em>, not just an artifact.
+    </p>
+
+    <div class="chart-card">
+      <h4>Community Adoption of Leading Claude-Code SEO Repositories</h4>
+      <div class="sub">GitHub stars — verified via API, 2026-05-13. Three repos dominate adoption; community size correlates roughly with utility for SEO consultancies, not necessarily for OskarOS.</div>
+
+      <div class="bar-row">
+        <div class="label">zubair-trabzada/geo-seo-claude</div>
+        <div class="track"><div class="fill" style="width: 100%;"></div></div>
+        <div class="stars">7,181</div>
+      </div>
+      <div class="bar-row">
+        <div class="label">TheCraigHewitt/seomachine</div>
+        <div class="track"><div class="fill" style="width: 96.7%;"></div></div>
+        <div class="stars">6,942</div>
+      </div>
+      <div class="bar-row">
+        <div class="label">AgriciDaniel/claude-seo</div>
+        <div class="track"><div class="fill" style="width: 90.2%;"></div></div>
+        <div class="stars">6,481</div>
+      </div>
+      <div class="bar-row">
+        <div class="label">nowork-studio/toprank</div>
+        <div class="track"><div class="fill" style="width: 28.6%;"></div></div>
+        <div class="stars">2,054</div>
+      </div>
+      <div class="bar-row">
+        <div class="label">aaron-he-zhu/seo-geo-claude-skills</div>
+        <div class="track"><div class="fill" style="width: 22.2%;"></div></div>
+        <div class="stars">1,592</div>
+      </div>
+      <div class="bar-row">
+        <div class="label">AminForou/mcp-gsc</div>
+        <div class="track"><div class="fill" style="width: 11.5%;"></div></div>
+        <div class="stars">823</div>
+      </div>
+      <div class="bar-row">
+        <div class="label">jae-jae/g-search-mcp</div>
+        <div class="track"><div class="fill" style="width: 3.7%;"></div></div>
+        <div class="stars">263</div>
+      </div>
+      <div class="bar-row">
+        <div class="label">dataforseo/mcp-server-typescript</div>
+        <div class="track"><div class="fill" style="width: 2.7%;"></div></div>
+        <div class="stars">196</div>
+      </div>
+      <div class="bar-row">
+        <div class="label">zubair-trabzada/dataforseo-claude</div>
+        <div class="track"><div class="fill" style="width: 0.9%;"></div></div>
+        <div class="stars">64</div>
+      </div>
+      <div class="bar-row">
+        <div class="label">boraoztunc/skills</div>
+        <div class="track"><div class="fill" style="width: 0.5%;"></div></div>
+        <div class="stars">35</div>
+      </div>
+      <div class="bar-row">
+        <div class="label">houtini-ai/seo-crawler-mcp</div>
+        <div class="track"><div class="fill" style="width: 0.18%;"></div></div>
+        <div class="stars">13</div>
+      </div>
+
+      <div class="chart-foot">
+        <strong>Reading guide.</strong> The big three (Trabzada, Hewitt, AgriciDaniel) all sit above 6,400 stars and dominate the community footprint. They are full frameworks aimed at SEO agencies — installing them whole is wrong for OskarOS. We lift schema/llms.txt/citability primitives from Trabzada's <code class="inline">geo-seo-claude</code>; we ignore Hewitt's content-production engine; we lift Daniel's expanded schema templates. The smaller-star repos matter when their scope is precise: <code class="inline">mcp-gsc</code> at 823 ⭐ does exactly one thing (GSC bridge) and does it cleanly — that's what we want. <code class="inline">houtini-ai/seo-crawler-mcp</code> at 13 ⭐ is small but sharply scoped for migrations.
+      </div>
+    </div>
+
+  </section>
+
+  <!-- ════════════════════════════════════════════════════════ -->
+  <!-- REPOSITORY-BY-REPOSITORY EVALUATIONS                       -->
+  <!-- ════════════════════════════════════════════════════════ -->
+  <section>
+    <h2><span class="num">§2</span>Repository-by-Repository Evaluation</h2>
+    <p class="section-lead">
+      Each block: name + community stats, Gemini's framing (italic, quoted directly from the research report you shared), my modifications where Gemini was over-credulous or directionally off, and the OskarOS verdict — <span style="color: var(--brand-green-bright); font-family: var(--font-mono);">LIFT</span> primitives, <span style="color: var(--brand-cyan); font-family: var(--font-mono);">INSTALL</span> as MCP, or <span style="color: var(--brand-red); font-family: var(--font-mono);">IGNORE</span>.
+    </p>
+
+    <!-- ────── TIER 1 ────── -->
+    <div class="tier-head">
+      <div class="label">Tier 1 · Big-community frameworks</div>
+      <h3>Universal orchestrators (6,500+ stars)</h3>
+      <p>The flagship full-stack SEO frameworks. All three dominate the community chart; all three are over-equipped for what OskarOS needs.</p>
+    </div>
+
+    <!-- geo-seo-claude -->
+    <div class="repo" data-verdict="LIFT">
+      <div class="repo-head">
+        <div>
+          <div class="repo-name">zubair-trabzada/geo-seo-claude</div>
+          <div class="repo-tagline">"Generative Search Specialist" — AI-search-first SEO pack</div>
+        </div>
+        <div class="repo-stats">
+          <div class="stars"><b>7,181</b> ⭐</div>
+          <div>1,175 forks · MIT</div>
+          <div>last push 2026-04-29</div>
+        </div>
+      </div>
+      <span class="verdict-pill" data-v="LIFT">LIFT — Primary GEO reference</span>
+
+      <div class="block">
+        <div class="block-label">Gemini's description</div>
+        <div class="gem">
+          With 7,200 stars and 1,200 forks, the largest community footprint in the analysis. Driven by a profound strategic pivot: explicitly prioritizes Generative Engine Optimization over traditional search heuristics, operating under the thesis that AI search platforms are fundamentally displacing legacy search engines. Recognizing that large language models heavily weight off-site brand mentions for entity resolution, the tool scans YouTube, Reddit, LinkedIn, and Wikipedia to assess brand authority correlations — documentation notes brand mentions exhibit a correlation with AI visibility 3× stronger than traditional link-building. Performs targeted audits of <code class="inline">robots.txt</code> for 14+ AI crawlers (GPTBot, ClaudeBot). Analyzes and generates <code class="inline">llms.txt</code> files. At the content level, dissects text blocks and scores them for "citability" — fact-rich, self-contained passages at optimal lengths for model ingestion.
+        </div>
+      </div>
+
+      <div class="block">
+        <div class="block-label">Where I modify Gemini</div>
+        <div class="delta">
+          Stars are 7,181, not 7,200 — minor. The "3× stronger correlation" cite traces to an Ahrefs Dec 2025 study of 75,000 brands. Single-source. Directionally credible but not gospel; do <strong>not</strong> put exact percentages in client-facing copy. Gemini's "profound strategic pivot" framing is correct but understates one practical limitation: the tool installs as <code class="inline">~/.claude/skills/geo/</code> with its own <code class="inline">.env</code>, bypassing OskarOS's MCP spawn config + per-agent allowlist doctrine. Installing whole is wrong for our integration shape.
+        </div>
+      </div>
+
+      <div class="block">
+        <div class="block-label">Verdict for OskarOS</div>
+        <div class="verdict">
+          The single most useful repo in the entire ecosystem for OskarOS, IF we lift primitives rather than install the framework whole. What to lift, specifically:
+          <ul>
+            <li><code class="inline">scripts/citability_scorer.py</code> → port to ~150 LOC TS as a CD copy-review tool</li>
+            <li><code class="inline">scripts/llmstxt_generator.py</code> → port to ~80 LOC TS, fed by <code class="inline">CREATIVE-BRIEF.md</code></li>
+            <li><code class="inline">schema/*.json</code> → 6 JSON-LD templates (Organization, LocalBusiness, Article+Author, SoftwareApplication, Product, WebSite), lift as-is</li>
+            <li>The 14-AI-crawler allowlist → bake into the <code class="inline">robots.txt</code> every OskarOS site emits</li>
+            <li><em>Optional</em>: <code class="inline">scripts/brand_scanner.py</code> → port if we want a "where does my brand show up?" CD tool</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- seomachine -->
+    <div class="repo" data-verdict="IGNORE">
+      <div class="repo-head">
+        <div>
+          <div class="repo-name">TheCraigHewitt/seomachine</div>
+          <div class="repo-tagline">"High-Volume Content Production Engine" — long-form blog-content factory</div>
+        </div>
+        <div class="repo-stats">
+          <div class="stars"><b>6,942</b> ⭐</div>
+          <div>945 forks · MIT</div>
+          <div>last push 2026-04-10</div>
+        </div>
+      </div>
+      <span class="verdict-pill" data-v="IGNORE">IGNORE — Different product</span>
+
+      <div class="block">
+        <div class="block-label">Gemini's description</div>
+        <div class="gem">
+          A holistic workspace designed to replicate the function of an entire content marketing department. Requires the user to define global context files: brand voice parameters, target keyword maps, competitor analyses, product features, stylistic guidelines. 26 specialized marketing skills + 10 multi-functional agents (conversion rate analyst, headline generator, internal linking specialist). Python backend with NLTK + textstat + scikit-learn. Authors 2,000–3,000-word articles while integrating keywords naturally. Quality assurance computes keyword density, Flesch-Kincaid readability, sentence complexity, and a strict 0–100 rating. Post-production automates the publication pipeline directly into platforms like WordPress.
+        </div>
+      </div>
+
+      <div class="block">
+        <div class="block-label">Where I modify Gemini</div>
+        <div class="delta">
+          Description is accurate. What Gemini doesn't say: this is the opposite product from OskarOS. Hewitt's tool exists to produce <em>volume</em> of long-form content for content-marketing teams. OskarOS exists to produce <em>concentrated brand identity</em> in a small-surface site (hero + 5-10 sections). The two products serve different customers: Hewitt serves an in-house SEO content team scaling blog output; OskarOS serves a small-business owner who wants their brand to exist on the internet, period.
+        </div>
+      </div>
+
+      <div class="block">
+        <div class="block-label">Verdict for OskarOS</div>
+        <div class="verdict">
+          <strong>Ignore.</strong> The skill set (long-form article generation, WordPress publishing, internal linking at scale, Flesch-Kincaid optimization) is foreign to our product. If a client later wants ongoing blog content, point them at this — not us. Nothing to lift; nothing to install.
+        </div>
+      </div>
+    </div>
+
+    <!-- AgriciDaniel -->
+    <div class="repo" data-verdict="MIXED">
+      <div class="repo-head">
+        <div>
+          <div class="repo-name">AgriciDaniel/claude-seo</div>
+          <div class="repo-tagline">"Definitive Universal Orchestrator" — full-stack SEO framework</div>
+        </div>
+        <div class="repo-stats">
+          <div class="stars"><b>6,481</b> ⭐</div>
+          <div>991 forks · MIT</div>
+          <div>last push 2026-05-11</div>
+        </div>
+      </div>
+      <span class="verdict-pill" data-v="MIXED">MIXED — Lift schema, ignore framework</span>
+
+      <div class="block">
+        <div class="block-label">Gemini's description</div>
+        <div class="gem">
+          Most comprehensive, technically robust, and actively maintained automation suite available for the Claude Code ecosystem. Three-layer architecture (directive, orchestration, execution) with 25 sub-skills + 18 sub-agents. Strict security: SSRF protection hardcoded into Python execution scripts (blocks private IPs, loopback, cloud metadata endpoints). Markdown skill files capped at 5,000 tokens to preserve context. Distributed via Git cloning rather than direct remote execution to mitigate supply-chain risks. Capability domains: deep sitemap analysis, hreflang for international, E-E-A-T evaluation, competitor comparison with AggregateRating schema, semantic topic clustering, programmatic-page audits (with hard stops above 500 URLs without quality review), GEO modules, local geo-grid + Business Profile consistency. Native integration with Google Search Console, PageSpeed Insights, Chrome User Experience Report, GA4, plus support for Firecrawl, Banana, DataForSEO.
+        </div>
+      </div>
+
+      <div class="block">
+        <div class="block-label">Where I modify Gemini</div>
+        <div class="delta">
+          Gemini ranked this <strong>#1 overall</strong>. For OskarOS specifically, that's wrong — and worth saying clearly. Architectural depth is exactly the property we don't need. We already have an orchestration layer (the OskarOS MCP server). Three more layers on top is dead weight. The 18-sub-agent fan-out, the international hreflang machinery, the GA4 integration, the programmatic-pages audit logic — none of these map to "build a brand site for a café." What <em>is</em> useful here is what Gemini barely mentions: the breadth of schema templates is wider than <code class="inline">geo-seo-claude</code>'s six.
+        </div>
+      </div>
+
+      <div class="block">
+        <div class="block-label">Verdict for OskarOS</div>
+        <div class="verdict">
+          <strong>Lift schema templates only. Ignore the framework.</strong> Skim <code class="inline">skills/schema-*</code> for additional JSON-LD types beyond what <code class="inline">geo-seo-claude</code> ships: Restaurant, Dentist, LegalService, HomeAndConstructionBusiness variants — useful for OskarOS's local-business client base. Drop everything else. The orchestration framework is a tool for someone else's product.
+        </div>
+      </div>
+    </div>
+
+    <!-- ────── TIER 2 ────── -->
+    <div class="tier-head">
+      <div class="label">Tier 2 · Specialized diagnostics</div>
+      <h3>Single-purpose tools (3-1,600 stars)</h3>
+      <p>Mid-sized repos that solve one problem each. The wide gap in stars masks the fact that small + focused often beats big + sprawling for OskarOS's integration shape.</p>
+    </div>
+
+    <!-- aaron-he-zhu -->
+    <div class="repo" data-verdict="LIFT">
+      <div class="repo-head">
+        <div>
+          <div class="repo-name">aaron-he-zhu/seo-geo-claude-skills</div>
+          <div class="repo-tagline">"Framework-Driven Orchestration" — quantitative quality rubrics</div>
+        </div>
+        <div class="repo-stats">
+          <div class="stars"><b>1,592</b> ⭐</div>
+          <div>235 forks · MIT</div>
+          <div>last push 2026-04-28</div>
+        </div>
+      </div>
+      <span class="verdict-pill" data-v="LIFT">LIFT — Checklists only</span>
+
+      <div class="block">
+        <div class="block-label">Gemini's description</div>
+        <div class="gem">
+          A highly portable, zero-dependency library of 20 skills + 16 commands. Strict adherence to two proprietary quantifiable quality frameworks. <strong>CORE-EEAT</strong>: 80-item checklist evaluating content quality across 8 dimensions; the GEO score is derived from the CORE average, the traditional SEO score from the EEAT average. Strict veto items halt workflows on critical failures. <strong>CITE</strong>: 40-item benchmark assessing domain trust + authority across 4 dimensions. The markdown skills work in Claude Code, Cursor, Windsurf, Copilot, Kimi Code CLI, and Gemini extensions. Implements a sophisticated "Inter-Skill Handoff" mechanism passing objective payloads (dimension scores, priority items, open loops) into a hot cache in the central instruction file. Individual skill files capped at 350 lines.
+        </div>
+      </div>
+
+      <div class="block">
+        <div class="block-label">Where I modify Gemini</div>
+        <div class="delta">
+          Description is accurate. What Gemini doesn't say: the "inter-skill handoff" architecture isn't relevant to us — OskarOS's MCP orchestrator already handles state. What <em>is</em> useful is the rubric itself. 80 specific items for "is this content actually good?" — concrete, mathematical, opinionated. That's worth distilling.
+        </div>
+      </div>
+
+      <div class="block">
+        <div class="block-label">Verdict for OskarOS</div>
+        <div class="verdict">
+          <strong>Lift the CORE-EEAT 80-item checklist; distill to ~15 items.</strong> Add to CD doctrine (<code class="inline">agents/CD-PROMPTING.md</code>) as a copy-review pass: 15 yes/no questions CD checks before committing hero copy. Skip CITE — its 40 domain-trust items measure backlinks/age/authority, which OskarOS can't manufacture at build time.
+        </div>
+      </div>
+    </div>
+
+    <!-- houtini-ai -->
+    <div class="repo" data-verdict="INSTALL">
+      <div class="repo-head">
+        <div>
+          <div class="repo-name">houtini-ai/seo-crawler-mcp</div>
+          <div class="repo-tagline">"Localized Technical Auditor" — Crawlee + SQLite site crawler</div>
+        </div>
+        <div class="repo-stats">
+          <div class="stars"><b>13</b> ⭐</div>
+          <div>2 forks · MIT</div>
+          <div>last push 2026-04-16</div>
+        </div>
+      </div>
+      <span class="verdict-pill" data-v="INSTALL">INSTALL — Migration-only</span>
+
+      <div class="block">
+        <div class="block-label">Gemini's description</div>
+        <div class="gem">
+          A self-contained local application wrapped in the MCP SDK that leverages the Crawlee library to execute asynchronous, concurrent web crawls with 5 simultaneous workers. As the tool navigates a site, it streams HTML, metadata, server response headers, and link relationship architectures directly into an embedded Better-SQLite3 database. Memory-efficient streaming allows processing of large enterprise sites without crashing. 25+ predefined SQL queries identify broken internal links (4xx/5xx), orphaned pages, canonical URL mismatches, missing security headers (CSP, HSTS, X-Frame-Options), unsafe external links lacking <code class="inline">rel="noopener"</code>, duplicated titles/meta/H1s, thin content under 300 words.
+        </div>
+      </div>
+
+      <div class="block">
+        <div class="block-label">Where I modify Gemini</div>
+        <div class="delta">
+          Gemini's framing as "premier technical auditing tool" oversells it — at <strong>13 stars</strong> and 2 forks, this is one developer's side project, not a battle-tested enterprise tool. Implementation IS solid (Crawlee + SQLite is a sane choice), but treat as forkable code, not a long-term dependency. Single-maintainer abandonment is the real risk.
+        </div>
+      </div>
+
+      <div class="block">
+        <div class="block-label">Verdict for OskarOS</div>
+        <div class="verdict">
+          <strong>Install (conditional).</strong> Use case: when an OskarOS client REPLACES an existing site. Without it, switching from <code class="inline">oldsite.ch</code> to the OskarOS-built site nukes existing rankings. With it: crawl the old domain once, produce a URL inventory, generate a 301 redirect map, deploy with the new site. Zero ranking dip on migration. Fork the repo into <code class="inline">external/seo-crawler-mcp/</code> so we control upgrades; install as an MCP server gated to migration scenarios only.
+        </div>
+      </div>
+    </div>
+
+    <!-- ivankuznetsov -->
+    <div class="repo" data-verdict="LIFT">
+      <div class="repo-head">
+        <div>
+          <div class="repo-name">ivankuznetsov/claude-seo</div>
+          <div class="repo-tagline">"Ruby-Backed Content Humanizer" — AI-tell scrubbing</div>
+        </div>
+        <div class="repo-stats">
+          <div class="stars"><b>5</b> ⭐</div>
+          <div>0 forks · MIT</div>
+          <div>last push 2026-03-11</div>
+        </div>
+      </div>
+      <span class="verdict-pill" data-v="LIFT">LIFT — Banned-phrase list only</span>
+
+      <div class="block">
+        <div class="block-label">Gemini's description</div>
+        <div class="gem">
+          Agentic content pipeline relying on a Ruby backend for analytical scripts. The standout feature is its rigorous "AI Humanization" module — systematically scans drafts to remove common AI writing patterns based on Wikipedia's AI Cleanup guidelines. Explicitly targets and scrubs inflated vocabulary ("pivotal," "testament," "delve"), eliminates sycophantic tones, rewrites sentences to correct em-dash overuse and copula avoidance. Higher guarantee of content authenticity than simple instructional prompting.
+        </div>
+      </div>
+
+      <div class="block">
+        <div class="block-label">Where I modify Gemini</div>
+        <div class="delta">
+          The Ruby dependency is overhead for a single feature. The valuable artifact is just the <strong>banned-phrase list</strong> itself — a concrete enumeration of "tells" that out an AI-written paragraph. We don't need to install Ruby to use the list.
+        </div>
+      </div>
+
+      <div class="block">
+        <div class="block-label">Verdict for OskarOS</div>
+        <div class="verdict">
+          <strong>Lift the banned-phrase list as inline doctrine.</strong> Fold into <code class="inline">agents/CD-PROMPTING.md</code> § "Voice doctrine" as a hard-no-words list: <em>pivotal, testament, leverage, unlock, seamless, delve, spearhead, robust, navigate the landscape, in today's fast-paced world,</em> etc. 5-minute lift, no code dependency. OskarOS already has anti-slop discipline in CD; this is a concrete vocabulary to reject.
+        </div>
+      </div>
+    </div>
+
+    <!-- AndreasH96 -->
+    <div class="repo" data-verdict="IGNORE">
+      <div class="repo-head">
+        <div>
+          <div class="repo-name">AndreasH96/seo-geo-consultant</div>
+          <div class="repo-tagline">"Modern JavaScript Specialist" — Next.js Metadata API generator</div>
+        </div>
+        <div class="repo-stats">
+          <div class="stars"><b>3</b> ⭐</div>
+          <div>0 forks · MIT</div>
+          <div>last push 2026-03-10</div>
+        </div>
+      </div>
+      <span class="verdict-pill" data-v="IGNORE">IGNORE — Wrong stack</span>
+
+      <div class="block">
+        <div class="block-label">Gemini's description</div>
+        <div class="gem">
+          For frontend engineers working in modern JavaScript frameworks. Acts as a senior consultant bridging the gap between technical search strategy and production-ready code implementation for decentralized applications. Analyzes a developer's codebase and outputs exact implementation syntax for the Next.js App Router Metadata API, or react-helmet-async for Vite and Create React App. Ensures complex structured data, dynamic Open Graph tags, and routing logic are rendered correctly in SPA and SSR environments. Integrates generative principles via the "120-180 word section rule."
+        </div>
+      </div>
+
+      <div class="block">
+        <div class="block-label">Where I modify Gemini</div>
+        <div class="delta">
+          At <strong>3 stars and 0 forks</strong>, calling this "highly useful" is generous. Gemini was charitable about scope and adoption. The real question is whether OskarOS-generated sites are Next.js apps — they're not (vanilla HTML/CSS from WebDev). If we ever pivot to a Next.js-output mode for premium clients, this is reference material, not before.
+        </div>
+      </div>
+
+      <div class="block">
+        <div class="block-label">Verdict for OskarOS</div>
+        <div class="verdict">
+          <strong>Ignore today. Marginal future.</strong> If we ever generate Next.js sites instead of static HTML, return here. Until then, nothing to take.
+        </div>
+      </div>
+    </div>
+
+    <!-- ────── TIER 3 ────── -->
+    <div class="tier-head">
+      <div class="label">Tier 3 · Data providers + MCP servers</div>
+      <h3>Bridges to external services (4-2,054 stars)</h3>
+      <p>Mostly thin MCP wrappers around third-party SEO data providers. Two are essential (GSC, DataForSEO); the rest are redundant or off-target.</p>
+    </div>
+
+    <!-- mcp-gsc -->
+    <div class="repo" data-verdict="INSTALL">
+      <div class="repo-head">
+        <div>
+          <div class="repo-name">AminForou/mcp-gsc</div>
+          <div class="repo-tagline">"Essential Analytical Bridge" — Google Search Console MCP server</div>
+        </div>
+        <div class="repo-stats">
+          <div class="stars"><b>823</b> ⭐</div>
+          <div>120 forks · MIT</div>
+          <div>last push 2026-04-30</div>
+        </div>
+      </div>
+      <span class="verdict-pill" data-v="INSTALL">INSTALL — Post-launch loop-closer</span>
+
+      <div class="block">
+        <div class="block-label">Gemini's description</div>
+        <div class="gem">
+          The critical foundational layer that powers higher-level skill frameworks. The primary limitation of language models in search optimization is their inability to access real-time, proprietary performance data. This server eliminates that bottleneck by securely handling OAuth authentication to expose Google Search Console endpoints as callable tools. Users can engage in natural-language conversations to interrogate their own analytics data: impression counts, click-through rates, historical performance trends. Full capability to inspect individual URLs, identify systemic indexing errors, manage sitemap submissions. Recent updates improved the OAuth browser flow to run seamlessly as a subprocess and added capability-tool self-discovery.
+        </div>
+      </div>
+
+      <div class="block">
+        <div class="block-label">Where I modify Gemini</div>
+        <div class="delta">
+          Description is accurate. What Gemini doesn't surface: there's a hosted commercial version at <a href="https://www.advancedgsc.com/mcp">advancedgsc.com</a> ($12/mo) that handles OAuth in a browser instead of via local subprocess — UX trade-off. For OskarOS, we want the open-source version because we need to host it ourselves and embed the OAuth flow in OskarOS's own dashboard, not redirect clients to a third-party SaaS.
+        </div>
+      </div>
+
+      <div class="block">
+        <div class="block-label">Verdict for OskarOS</div>
+        <div class="verdict">
+          <strong>Install. This is the missing piece for OskarOS's value prop.</strong> Today: we ship a site, the client never knows if it's working. With this: the client OAuths their GSC into OskarOS's dashboard, and we surface "your site got 1,200 impressions for 'Coffee Neubau' last week, 80 clicks, avg position 4." Real numbers, ongoing visibility, converts one-shot ship into ongoing relationship. 823 ⭐ + 120 forks + active April 2026 = healthy enough to depend on.
+        </div>
+      </div>
+    </div>
+
+    <!-- dataforseo-mcp -->
+    <div class="repo" data-verdict="INSTALL">
+      <div class="repo-head">
+        <div>
+          <div class="repo-name">dataforseo/mcp-server-typescript</div>
+          <div class="repo-tagline">"Live SERP & Keyword Data" — official DataForSEO MCP</div>
+        </div>
+        <div class="repo-stats">
+          <div class="stars"><b>196</b> ⭐</div>
+          <div>111 forks · official from DataForSEO</div>
+          <div>last push 2026-05-12</div>
+        </div>
+      </div>
+      <span class="verdict-pill" data-v="INSTALL">INSTALL — Discovery anchoring</span>
+
+      <div class="block">
+        <div class="block-label">Gemini's description</div>
+        <div class="gem">
+          Provides a standardized interface for DataForSEO application programming interfaces. Enables the assistant to pull live search engine results page layouts, keyword clickstream data, and high-fidelity backlink indices — crucial for real-time rank tracking.
+        </div>
+      </div>
+
+      <div class="block">
+        <div class="block-label">Where I modify Gemini</div>
+        <div class="delta">
+          Gemini didn't emphasize: this is the <strong>OFFICIAL DataForSEO MCP</strong>, maintained by DataForSEO themselves in TypeScript. Cleaner than the community <code class="inline">zubair-trabzada/dataforseo-claude</code> Python slash-command pack (64 ⭐). For OskarOS's TS-native MCP infrastructure, this is the right integration choice.
+        </div>
+      </div>
+
+      <div class="block">
+        <div class="block-label">Verdict for OskarOS</div>
+        <div class="verdict">
+          <strong>Install. Discovery anchoring.</strong> When a brand URL appears in Discovery, CD fires 1-3 calls: <code class="inline">domain_rank_overview</code> for brand snapshot ($0.01-0.03), <code class="inline">competitors_domain</code> for top SERP competitors ($0.05-0.08), <code class="inline">domain_intersection</code> for content gap ($0.02/comparison). Per real Discovery session: $0.05-0.15. Free trial $1 = ~50 quick snapshots. CD opens Discovery with category + competitor context, not from a blank slate.
+        </div>
+      </div>
+    </div>
+
+    <!-- toprank -->
+    <div class="repo" data-verdict="IGNORE">
+      <div class="repo-head">
+        <div>
+          <div class="repo-name">nowork-studio/toprank</div>
+          <div class="repo-tagline">"Cross-Channel Analyzer" — GSC + Google Ads + Meta Ads bundle</div>
+        </div>
+        <div class="repo-stats">
+          <div class="stars"><b>2,054</b> ⭐</div>
+          <div>275 forks · MIT</div>
+          <div>last push 2026-05-10</div>
+        </div>
+      </div>
+      <span class="verdict-pill" data-v="IGNORE">IGNORE — Wrong scope, but reference for productization</span>
+
+      <div class="block">
+        <div class="block-label">Gemini's description</div>
+        <div class="gem">
+          Combines organic optimization skills with servers designed to manage Google Ads and Meta Ads campaigns. This cross-pollination allows the language model to analyze paid search conversion data to inform organic content strategies, bridging the historical divide between paid media buyers and organic search specialists.
+        </div>
+      </div>
+
+      <div class="block">
+        <div class="block-label">Where I modify Gemini</div>
+        <div class="delta">
+          Gemini ranked this #12 and downplayed it. Two observations she missed: (1) at 2,054 ⭐ it has serious adoption — fourth largest in the chart. (2) Its companion web app at <a href="https://notfair.co">notfair.co</a> (sign in once, connect your Google/Meta accounts, run audits in browser) is exactly the productization pattern OskarOS could grow toward for a self-serve tier. Not an integration target, but a UX reference.
+        </div>
+      </div>
+
+      <div class="block">
+        <div class="block-label">Verdict for OskarOS</div>
+        <div class="verdict">
+          <strong>Ignore for direct integration. Read for productization patterns.</strong> The Google Ads + Meta Ads analysis surface is outside OskarOS — we build brand sites, we don't run paid campaigns. But the open-source-CLI + companion-web-app + sign-in-once shape is the right shape for OskarOS's eventual self-serve product.
+        </div>
+      </div>
+    </div>
+
+    <!-- The rest of Tier 3 — compressed -->
+    <div class="repo" data-verdict="IGNORE">
+      <div class="repo-head">
+        <div>
+          <div class="repo-name">jae-jae/g-search-mcp</div>
+          <div class="repo-tagline">"Live Parallel Web Scraping" — Playwright-based Google scraper</div>
+        </div>
+        <div class="repo-stats">
+          <div class="stars"><b>263</b> ⭐</div>
+          <div>36 forks</div>
+          <div>last push 2025-06-14 <strong style="color: var(--brand-red);">(11mo stale)</strong></div>
+        </div>
+      </div>
+      <span class="verdict-pill" data-v="IGNORE">IGNORE — Stale + unreliable</span>
+      <div class="block">
+        <div class="block-label">Gemini's description (with my mods)</div>
+        <div class="delta">
+          Gemini: "Utilizes a Playwright headless browser for parallel search execution. It simulates real user behavior to manage CAPTCHAs and returns structured data — essential for live intent analysis when proprietary API access is cost-prohibitive." <strong>What Gemini missed:</strong> last push was June 2025 — 11 months stale. Scraping Google directly is unreliable (CAPTCHAs, IP blocks, ToS), and "cost-prohibitive" is overstated when DataForSEO quick calls are ~$0.01-0.03. We pay them; they handle the scraping legally + at scale.
+        </div>
+      </div>
+    </div>
+
+    <div class="repo" data-verdict="IGNORE">
+      <div class="repo-head">
+        <div>
+          <div class="repo-name">SEO-Review-Tools/SEO-API-MCP</div>
+          <div class="repo-tagline">"Backlink Analysis" — 3.1T-backlink database</div>
+        </div>
+        <div class="repo-stats">
+          <div class="stars"><b>4</b> ⭐</div>
+          <div>0 forks</div>
+          <div>last push 2025-06-11 <strong style="color: var(--brand-red);">(11mo stale)</strong></div>
+        </div>
+      </div>
+      <span class="verdict-pill" data-v="IGNORE">IGNORE — Not our problem</span>
+      <div class="block">
+        <div class="block-label">Verdict</div>
+        <div class="verdict">
+          Backlink data isn't OskarOS's problem. Our clients are NEW brand sites — they won't have backlinks day one, and backlink-building isn't part of our value prop. 4 ⭐ + 11mo stale confirms this is a low-priority project for its maintainer.
+        </div>
+      </div>
+    </div>
+
+    <div class="repo" data-verdict="IGNORE">
+      <div class="repo-head">
+        <div>
+          <div class="repo-name">Archie0125/a7seo-mcp</div>
+          <div class="repo-tagline">"Keyword Intelligence Aggregation" — keyword discovery → article gen → CMS publish</div>
+        </div>
+        <div class="repo-stats">
+          <div class="stars"><b>0</b> ⭐</div>
+          <div>0 forks</div>
+          <div>last push 2026-04-14</div>
+        </div>
+      </div>
+      <span class="verdict-pill" data-v="IGNORE">IGNORE — Zero adoption</span>
+      <div class="block">
+        <div class="block-label">Where I modify Gemini</div>
+        <div class="delta">
+          Gemini ranked this <strong>#7 overall</strong> with glowing language about "elegant multi-tiered abstraction layer." Reality: <strong>0 stars, 0 forks</strong>. Either an unreleased project or a maintained-by-no-one experiment. Treat Gemini's high ranking here as a signal to <strong>distrust her ranking methodology generally</strong> — popularity is not part of her function. Different product anyway (content production, not brand sites).
+        </div>
+      </div>
+    </div>
+
+    <div class="repo" data-verdict="IGNORE">
+      <div class="repo-head">
+        <div>
+          <div class="repo-name">SerpstatGlobal/serpstat-mcp-server-js</div>
+          <div class="repo-tagline">"Competitor Domain Analytics" — Serpstat MCP wrapper</div>
+        </div>
+        <div class="repo-stats">
+          <div class="stars"><b>4</b> ⭐</div>
+          <div>1 fork · official from Serpstat</div>
+          <div>last push 2026-02-07</div>
+        </div>
+      </div>
+      <span class="verdict-pill" data-v="IGNORE">IGNORE — Redundant with DataForSEO</span>
+      <div class="block">
+        <div class="block-label">Verdict</div>
+        <div class="verdict">
+          Serpstat is a competitor to DataForSEO in the SEO data SaaS space. No reason to add a second provider unless a specific client demands Serpstat. Skip.
+        </div>
+      </div>
+    </div>
+
+    <div class="repo" data-verdict="IGNORE">
+      <div class="repo-head">
+        <div>
+          <div class="repo-name">OpenAnalystInc/10x-MM-Skill</div>
+          <div class="repo-tagline">"Marketing Deployment" — full marketing team plugin</div>
+        </div>
+        <div class="repo-stats">
+          <div class="stars"><b>5</b> ⭐</div>
+          <div>0 forks</div>
+          <div>last push 2026-03-15</div>
+        </div>
+      </div>
+      <span class="verdict-pill" data-v="IGNORE">IGNORE — Vendor lock-in</span>
+      <div class="block">
+        <div class="block-label">Where I modify Gemini</div>
+        <div class="delta">
+          Gemini mentioned "supports complex deployment modes" + "JSON Web Token authenticated interface" — what she didn't say: <strong>requires their hosted commercial platform 10x.in</strong>. The "open source" plugin is the front door to a SaaS; the actual orchestration logic runs on their servers. Lock-in to a third party we don't control.
+        </div>
+      </div>
+    </div>
+
+    <!-- ────── TIER 4 ────── -->
+    <div class="tier-head">
+      <div class="label">Tier 4 · Lightweight wrappers</div>
+      <h3>Generalist skill bundles (3-35 stars)</h3>
+      <p>Bag-of-skills repos. Mostly off-topic for OskarOS.</p>
+    </div>
+
+    <div class="repo" data-verdict="IGNORE">
+      <div class="repo-head">
+        <div>
+          <div class="repo-name">boraoztunc/skills</div>
+          <div class="repo-tagline">"Generalist Skill Bundle" — copywriting, ads, design, SEO</div>
+        </div>
+        <div class="repo-stats">
+          <div class="stars"><b>35</b> ⭐</div>
+          <div>3 forks</div>
+          <div>last push 2026-05-13</div>
+        </div>
+      </div>
+      <span class="verdict-pill" data-v="IGNORE">IGNORE — Mostly off-topic</span>
+      <div class="block">
+        <div class="block-label">Verdict</div>
+        <div class="verdict">
+          Skim <code class="inline">copywriting/</code> and <code class="inline">competitor-alternatives/</code> for stylistic angles — but don't depend on the repo. Most of its 20+ skills (animejs, app-store-screenshots, analytics tracking) are unrelated to OskarOS.
+        </div>
+      </div>
+    </div>
+
+    <div class="repo" data-verdict="IGNORE">
+      <div class="repo-head">
+        <div>
+          <div class="repo-name">aevans-eng/seo-skill</div>
+          <div class="repo-tagline">"Static Site Wrapper" — 9-point HTML audit for portfolio sites</div>
+        </div>
+        <div class="repo-stats">
+          <div class="stars"><b>3</b> ⭐</div>
+          <div>1 fork · MIT</div>
+          <div>last push 2026-03-14</div>
+        </div>
+      </div>
+      <span class="verdict-pill" data-v="IGNORE">IGNORE — Too small</span>
+      <div class="block">
+        <div class="block-label">Verdict</div>
+        <div class="verdict">
+          What this does, OskarOS sites should already do at build time once WP-91 lands (schema + meta tags + llms.txt). Skip.
+        </div>
+      </div>
+    </div>
+
+    <!-- The two pre-cloned repos -->
+    <div class="tier-head">
+      <div class="label">Pre-cloned · zubair-trabzada family</div>
+      <h3>Already in <code class="inline">external/</code></h3>
+      <p>The two repos cloned in earlier work — for completeness.</p>
+    </div>
+
+    <div class="repo" data-verdict="IGNORE">
+      <div class="repo-head">
+        <div>
+          <div class="repo-name">zubair-trabzada/dataforseo-claude</div>
+          <div class="repo-tagline">"SEO Agency Killer" — DataForSEO slash-command pack</div>
+        </div>
+        <div class="repo-stats">
+          <div class="stars"><b>64</b> ⭐</div>
+          <div>29 forks · MIT</div>
+          <div>last push 2026-05-07</div>
+        </div>
+      </div>
+      <span class="verdict-pill" data-v="IGNORE">IGNORE — Use official MCP instead</span>
+      <div class="block">
+        <div class="block-label">Verdict</div>
+        <div class="verdict">
+          Same author as <code class="inline">geo-seo-claude</code>. Wraps DataForSEO via Python scripts + slash commands. <strong>Skip in favor of the official <code class="inline">dataforseo/mcp-server-typescript</code></strong> — same data source, cleaner TS-native integration, maintained by DataForSEO themselves.
+        </div>
+      </div>
+    </div>
+
+  </section>
+
+  <!-- ════════════════════════════════════════════════════════ -->
+  <!-- WORKPACKAGES                                                -->
+  <!-- ════════════════════════════════════════════════════════ -->
+  <section>
+    <h2><span class="num">§3</span>Workpackages</h2>
+    <p class="section-lead">
+      Four pre-formulated WP entries ready to be lifted into <code class="inline">docs/Feature-X.md</code>. WP-91 is the load-bearing one — every site OskarOS ships benefits forever, with no per-client runtime cost. The rest are conditional add-ons.
+    </p>
+
+    <!-- WP-91 -->
+    <div class="wp">
+      <div class="wp-head">
+        <div>
+          <div class="wp-id">WP-91 · Priority 1 · Load-bearing</div>
+          <div class="wp-title">Build-time GEO craft + OskarOS Quality Score</div>
+        </div>
+        <div class="wp-pills">
+          <div class="wp-pill"><b>LOC:</b> ~550 (GEO craft) + ~200 (score + dashboard tile) = <b>~750</b></div>
+          <div class="wp-pill"><b>Cost:</b> $0/client</div>
+        </div>
+      </div>
+
+      <p>Every generated OskarOS site ships with GEO-correct structure (JSON-LD schema, <code class="inline">/llms.txt</code>, AI-permissive <code class="inline">/robots.txt</code>, citability-scored hero copy) AND gets a measurable OskarOS Quality Score that combines build-time signals into one composite number with a per-dimension rubric. Pure code, fires automatically at build time, no per-client decision.</p>
+
+      <h4>Scope — Part 1: build-time craft</h4>
+      <ul>
+        <li><strong>JSON-LD schema embeds.</strong> WebDev injects <code class="inline">&lt;script type="application/ld+json"&gt;</code> in every page <code class="inline">&lt;head&gt;</code> based on business type. Templates lifted from <code class="inline">external/geo-seo-claude/schema/*.json</code> (6 types) + <code class="inline">external/_eval-tier1/claude-seo-AgriciDaniel/skills/schema-*</code> (LocalBusiness variants: Restaurant, Dentist, LegalService, etc.).</li>
+        <li><strong>llms.txt generator.</strong> Port <code class="inline">external/geo-seo-claude/scripts/llmstxt_generator.py</code> to TypeScript (~80 LOC). Reads <code class="inline">CREATIVE-BRIEF.md</code>, emits <code class="inline">/llms.txt</code> with brand name + one-liner + key offerings + location + founder.</li>
+        <li><strong>robots.txt with AI allowlist.</strong> Lift the 14+ AI crawler list (GPTBot, ClaudeBot, PerplexityBot, Google-Extended, etc.). WebDev writes <code class="inline">/robots.txt</code> at build time.</li>
+        <li><strong>Citability scoring as CD copy-review.</strong> Port <code class="inline">external/geo-seo-claude/scripts/citability_scorer.py</code> to TS (~150 LOC). New CD-callable tool <code class="inline">score_citability(passage)</code> returns 0-100 across 5 dimensions: answer block, self-containment, structural readability, statistical density, uniqueness. CD self-checks hero copy before commit.</li>
+      </ul>
+
+      <h4>Scope — Part 2: OskarOS Quality Score (the composite)</h4>
+      <p>Compute one number per built site. Stored in <code class="inline">.meta/quality-score.json</code> alongside the vibe HTML. Computed at build time, recomputed on rebuild. Acts as both a build-time quality gate (refuse to ship below threshold) and a pre/post-launch delta metric for clients.</p>
+
+      <p><strong>Why we are not using the community pack's formula.</strong> The widely-shared SEO-pack composite (calibrated for SEO consultancies running client audits) looks like:</p>
+
+<pre style="background: var(--bg-input); border: 1px solid var(--border-card); border-radius: 6px; padding: 14px 18px; font-family: var(--font-mono); font-size: 13px; color: var(--text-muted); overflow-x: auto; line-height: 1.55; margin: 0 0 16px;">
+<span style="color: var(--text-faint);">// SEO-consultancy composite — NOT what OskarOS uses</span>
+composite = 0.25 × keyword_score        <span style="color: var(--text-faint);">// volume × difficulty opportunities</span>
+          + 0.25 × technical_score      <span style="color: var(--text-faint);">// site-crawl issues found / total checks</span>
+          + 0.20 × competitive_score    <span style="color: var(--text-faint);">// target_traffic / sum_top_10_traffic</span>
+          + 0.15 × content_score        <span style="color: var(--text-faint);">// topical-cluster strength</span>
+          + 0.15 × authority_score      <span style="color: var(--text-faint);">// referring-domain count, backlink quality</span>
+</pre>
+
+      <p>Four of its five inputs are wrong for OskarOS: <strong>keyword_score</strong> assumes per-page keyword optimization (we write brand copy, not keyword-targeted pages); <strong>competitive_score</strong> measures a comparative position we don't directly improve at build time; <strong>content_score</strong> rewards topical-cluster depth (blog-content marketing, not OskarOS's brand-site scope); <strong>authority_score</strong> is backlinks, which we can't manufacture at build time. We can't gate-keep on metrics we don't influence.</p>
+
+      <p><strong>The OskarOS Quality Score, calibrated for what we actually deliver:</strong></p>
+
+<pre style="background: rgba(21, 185, 129, 0.06); border: 1px solid rgba(21, 185, 129, 0.3); border-radius: 6px; padding: 14px 18px; font-family: var(--font-mono); font-size: 13px; color: var(--text-main); overflow-x: auto; line-height: 1.55; margin: 0 0 16px;">
+<span style="color: var(--brand-green-bright);">// OskarOS Quality Score — calibrated for what we deliver</span>
+oskar_score = 0.30 × citability             <span style="color: var(--text-faint);">// avg citability score of all hero/section copy</span>
+            + 0.20 × schema_completeness    <span style="color: var(--text-faint);">// % of recommended JSON-LD types present + valid</span>
+            + 0.15 × crawler_readiness      <span style="color: var(--text-faint);">// llms.txt valid + robots.txt allowlist + sitemap.xml</span>
+            + 0.15 × core_web_vitals        <span style="color: var(--text-faint);">// LCP/CLS/INP via PageSpeed Insights → green/yellow/red 100/60/20</span>
+            + 0.10 × brand_distinctiveness  <span style="color: var(--text-faint);">// Sentinel Ti verdict on voice-match to brief</span>
+            + 0.10 × accessibility          <span style="color: var(--text-faint);">// alt-text coverage, contrast ratios, semantic HTML</span>
+</pre>
+
+      <p>Per-weight rationale:</p>
+      <ul>
+        <li><strong>30% citability.</strong> This is THE GEO discipline — passages structured so AI assistants extract them as answers. The highest leverage of any single dimension; weight is the largest accordingly.</li>
+        <li><strong>20% schema completeness.</strong> Schema is the entity-identification layer. AI assistants use it to know what a site IS. Lower than citability because schema is binary (present/absent) while citability is graded.</li>
+        <li><strong>15% crawler readiness.</strong> llms.txt + robots.txt + sitemap. Either valid or not. Binary signals, smaller weight.</li>
+        <li><strong>15% Core Web Vitals.</strong> Measurable via PageSpeed Insights API at build time. LCP green (under 2.5s) = 100, yellow (2.5-4s) = 60, red (over 4s) = 20. Same buckets for CLS and INP. Average the three dimensions.</li>
+        <li><strong>10% brand distinctiveness.</strong> Subjective; comes from Sentinel Ti's existing critique radar (Philosophy / Hierarchy / Craft / Function / Originality, 0-10 each). Average the five, scale to 0-100. The "did this site preserve brand voice?" signal.</li>
+        <li><strong>10% accessibility.</strong> Run axe-core or pa11y; count rule violations. 0 violations = 100, 10+ = ~50, scaled. WCAG AA is the floor.</li>
+      </ul>
+
+      <h4>Output format — dashboard tile</h4>
+      <p>Single tile in WP-XX3's dashboard. Composite at top; six dimension bars below. Score persists to <code class="inline">.meta/quality-score.json</code> alongside the vibe HTML for downstream reuse.</p>
+<pre style="background: var(--bg-input); border: 1px solid var(--border-card); border-radius: 6px; padding: 14px 18px; font-family: var(--font-mono); font-size: 13px; color: var(--text-main); overflow-x: auto; line-height: 1.55; margin: 0 0 12px;">
+OskarOS Quality Score: <b style="color: var(--brand-green-bright);">87 / 100</b>
+  Citability             94    ████████████████████░
+  Schema completeness   100    █████████████████████
+  Crawler readiness     100    █████████████████████
+  Core Web Vitals      <span style="color: var(--text-faint);">—  (v2: PageSpeed Insights API)</span>
+  Brand distinctiveness  80    ████████████████░░░░░
+  Accessibility        <span style="color: var(--text-faint);">—  (v2: axe-core wrapper)</span>
+</pre>
+      <p><strong>v1 ships with 4 measured dimensions + 2 stubbed.</strong> CWV (Core Web Vitals via PageSpeed Insights) and Accessibility (axe-core) add external infrastructure — both stubbed as "not yet measured" in the rubric, weights re-balanced so the 4 measured dimensions sum to 1.0. Honest UI: tile clearly labels the two stubs. Adding them later is a ~250 LOC follow-up, not WP-91 scope.</p>
+
+      <p>Re-weighted formula for v1 (4 dimensions actually computed):</p>
+<pre style="background: var(--bg-input); border: 1px solid var(--border-card); border-radius: 6px; padding: 14px 18px; font-family: var(--font-mono); font-size: 13px; color: var(--text-muted); overflow-x: auto; line-height: 1.55; margin: 0 0 16px;">
+<span style="color: var(--brand-green-bright);">// v1 — 4 measured dimensions, sum to 1.0</span>
+oskar_score_v1 = 0.40 × citability             <span style="color: var(--text-faint);">// was 0.30 — boosted to cover dropped weights</span>
+               + 0.25 × schema_completeness    <span style="color: var(--text-faint);">// was 0.20</span>
+               + 0.20 × crawler_readiness      <span style="color: var(--text-faint);">// was 0.15</span>
+               + 0.15 × brand_distinctiveness  <span style="color: var(--text-faint);">// was 0.10</span>
+</pre>
+
+      <p>v2 re-introduces CWV (0.15) and accessibility (0.10), rebalancing back to the original 6-dimension weights.</p>
+
+      <h4>Acceptance criteria</h4>
+      <table class="wp-table">
+        <thead><tr><th>Test</th><th>Expected</th></tr></thead>
+        <tbody>
+          <tr><td>Build a vibe for a coffee shop</td><td>Generated HTML contains <code>&lt;script type="application/ld+json"&gt;</code> with LocalBusiness schema, served-cuisine, address, hours</td></tr>
+          <tr><td>Visit <code class="inline">/llms.txt</code> on the deployed site</td><td>Returns brand name + one-liner + offerings + location</td></tr>
+          <tr><td>Visit <code class="inline">/robots.txt</code></td><td><code class="inline">User-agent: GPTBot</code> + <code class="inline">Allow: /</code> present, all 14 AI bots allowed</td></tr>
+          <tr><td>CD calls <code class="inline">score_citability("...")</code> on a hero paragraph</td><td>Returns <code class="inline">{score: 0-100, dimensions: {answer_block, self_containment, ...}}</code></td></tr>
+          <tr><td>After build, read <code class="inline">.meta/quality-score.json</code></td><td>Contains composite + 6 dimension scores (4 measured, 2 stubbed with <code class="inline">"v1_stub": true</code>)</td></tr>
+          <tr><td>Build a deliberately-thin vibe (no schema, plain prose hero copy)</td><td>Composite scores in 40-60 range, dashboard tile flags low dimensions visibly. <em>No build-time gate in v1</em> — score is a signal, not a refuser.</td></tr>
+          <tr><td>Dashboard tile renders in client view (post-WP-XX3)</td><td>Six dimension bars; two clearly labeled as "v2: not yet measured" — no false-precision aggregation</td></tr>
+        </tbody>
+      </table>
+
+      <h4>Client value</h4>
+      <p>Every site is born AI-citable, AND has a measurable quality bar enforced before it ships. The score isn't a "we passed an audit" trophy — it's a build-time refusal to ship sub-standard work. For clients with existing sites, run the same scorer on the OLD site for a baseline; show pre/post-launch delta. "Your old site: 28/100. OskarOS site at launch: 87/100." Tangible, defensible, repeatable.</p>
+    </div>
+
+    <!-- WP-92 -->
+    <div class="wp">
+      <div class="wp-head">
+        <div>
+          <div class="wp-id">WP-92 · Priority 2 · Loop-closer</div>
+          <div class="wp-title">Post-launch GSC client feedback dashboard</div>
+        </div>
+        <div class="wp-pills">
+          <div class="wp-pill"><b>LOC:</b> ~300 (MCP wiring) + ~400 (dashboard UI) = <b>~700</b></div>
+          <div class="wp-pill"><b>Cost:</b> $0 (client OAuth, our hosting)</div>
+        </div>
+      </div>
+
+      <p>Client OAuths their Google Search Console into OskarOS's dashboard. OskarOS surfaces traffic data, queries, indexing status, position trends. The site we built isn't a black box — they see numbers from day one of indexing.</p>
+
+      <h4>Scope</h4>
+      <ul>
+        <li><strong>Install MCP server.</strong> Fork <code class="inline">AminForou/mcp-gsc</code> into <code class="inline">external/mcp-gsc/</code>. Run as a server subprocess in OskarOS's spawn config.</li>
+        <li><strong>OAuth flow.</strong> Client clicks "Connect Google Search Console" in OskarOS dashboard → standard Google OAuth → tokens stored encrypted per-session.</li>
+        <li><strong>Dashboard panel.</strong> New panel in OskarOS UI: top 10 queries by impressions, CTR, position trend chart, indexing status, sitemap submission state. Refreshes daily.</li>
+        <li><strong>CD allowlist update.</strong> Add <code class="inline">gsc_query_report</code>, <code class="inline">gsc_url_inspect</code>, <code class="inline">gsc_indexing_errors</code> to both gates (<code class="inline">mcp-server/tools.ts</code> + <code class="inline">lib/mcp-config.ts</code>, per INSTITUTIONAL-MEMORY's drift entry). CD can answer "how's the site performing?" naturally.</li>
+      </ul>
+
+      <h4>Acceptance criteria</h4>
+      <table class="wp-table">
+        <thead><tr><th>Test</th><th>Expected</th></tr></thead>
+        <tbody>
+          <tr><td>Client OAuths GSC into OskarOS</td><td>Tokens stored, "Connected" badge shows in dashboard</td></tr>
+          <tr><td>30 days post-launch</td><td>Panel shows real impressions/clicks/CTR data, refreshed daily</td></tr>
+          <tr><td>CD asked "how is my site doing?"</td><td>CD calls <code class="inline">gsc_query_report</code> and replies with real numbers</td></tr>
+          <tr><td>Indexing error appears in GSC</td><td>OskarOS surfaces it in the dashboard within 24h</td></tr>
+        </tbody>
+      </table>
+
+      <h4>Client value</h4>
+      <p>Converts a one-shot site delivery into an ongoing relationship anchor. Client sees the OskarOS-built site working (or not) without learning to navigate GSC themselves. Justifies a monthly retainer model if we want one.</p>
+    </div>
+
+    <!-- WP-93 -->
+    <div class="wp">
+      <div class="wp-head">
+        <div>
+          <div class="wp-id">WP-93 · Priority 3 · Discovery enrichment</div>
+          <div class="wp-title">DataForSEO Discovery anchoring during Phase 1</div>
+        </div>
+        <div class="wp-pills">
+          <div class="wp-pill"><b>LOC:</b> ~150 (MCP wiring + 3 CD tools) = <b>~150</b></div>
+          <div class="wp-pill"><b>Cost:</b> $0.05-0.15 / Discovery session</div>
+        </div>
+      </div>
+
+      <p>When a brand URL appears in Discovery, CD fires <code class="inline">seo_quick(url)</code> first. Returns existing SERP presence, top keywords, traffic estimate. CD walks into Discovery with category context, not from a blank slate. <code class="inline">seo_competitors</code> and <code class="inline">seo_content_gap</code> available as CD-judgment calls.</p>
+
+      <h4>Scope</h4>
+      <ul>
+        <li><strong>Install official MCP server.</strong> <code class="inline">dataforseo/mcp-server-typescript</code> as a subprocess in OskarOS's spawn config. Credentials in <code class="inline">.env.local</code>.</li>
+        <li><strong>CD allowlist (both gates).</strong> Add <code class="inline">seo_quick</code>, <code class="inline">seo_competitors</code>, <code class="inline">seo_content_gap</code> to <code class="inline">CD_ALLOWED</code> Set (<code class="inline">mcp-server/tools.ts</code>) + <code class="inline">CD_ALLOWED_TOOLS</code> array (<code class="inline">lib/mcp-config.ts</code>).</li>
+        <li><strong>CD doctrine update.</strong> Add §"DataForSEO Discovery anchoring" to <code class="inline">agents/creative-director-agent.md</code>. Rule: <em>"When the user shares a brand URL, fire <code class="inline">seo_quick</code> first to anchor context. Don't auto-fire competitor/content-gap — those are judgment calls."</em></li>
+        <li><strong>Locale awareness.</strong> Default <code class="inline">location=United States, language=en</code> overridden per-session from user.md (e.g., Swiss client → <code class="inline">location=Switzerland, language=de</code>). CD reads user.md, plumbs through to every call.</li>
+      </ul>
+
+      <h4>Acceptance criteria</h4>
+      <table class="wp-table">
+        <thead><tr><th>Test</th><th>Expected</th></tr></thead>
+        <tbody>
+          <tr><td>User pastes <code class="inline">https://bareggcenter.ch/</code></td><td>CD fires <code class="inline">seo_quick</code> within 5s, returns ranking-keyword list, traffic estimate</td></tr>
+          <tr><td>Swiss session, German-language brand</td><td>Call uses <code class="inline">location=Switzerland, language=de</code> automatically</td></tr>
+          <tr><td>CD opens Discovery</td><td>First question is brand-anchored, not category-asking (e.g., "I see you're a 24h gas station + restaurant in Mellingen — what pulls A1 travelers to stop here?")</td></tr>
+          <tr><td>Brand-new domain with no SERP presence</td><td>Graceful fallback — CD acknowledges no data, continues Discovery normally</td></tr>
+        </tbody>
+      </table>
+
+      <h4>Client value</h4>
+      <p>Sharper first Discovery question. CD walks in already knowing the brand's category, customer-search-intent, and competitive set. Trims 5-10 minutes of warm-up questions from every session and produces a sharper Phase-1 brand.</p>
+    </div>
+
+    <!-- WP-94 -->
+    <div class="wp">
+      <div class="wp-head">
+        <div>
+          <div class="wp-id">WP-94 · Priority 4 · Conditional (migration only)</div>
+          <div class="wp-title">Migration crawl + 301 redirect map for site replacements</div>
+        </div>
+        <div class="wp-pills">
+          <div class="wp-pill"><b>LOC:</b> ~200 (MCP wrap + redirect-map generator) = <b>~200</b></div>
+          <div class="wp-pill"><b>Cost:</b> $0 (local crawl)</div>
+        </div>
+      </div>
+
+      <p>When a client replaces an existing site, crawl the old domain, map every URL to its closest match on the new OskarOS site, emit a redirect file. Deploy with the new site. Zero ranking dip on migration.</p>
+
+      <h4>Scope</h4>
+      <ul>
+        <li><strong>Fork + install MCP server.</strong> Fork <code class="inline">houtini-ai/seo-crawler-mcp</code> into <code class="inline">external/seo-crawler-mcp/</code> so we control the upgrade path (single-maintainer upstream).</li>
+        <li><strong>CD tool.</strong> <code class="inline">migrate_existing_site(oldUrl, newUrl)</code>. Workflow: (1) crawl old site → URL inventory + content fingerprints (SHA256 of body text); (2) for each OskarOS-generated page, find closest match by content similarity; (3) emit <code class="inline">redirects.conf</code> (Nginx) / <code class="inline">_redirects</code> (Netlify/Vercel) file; (4) include in deployment.</li>
+        <li><strong>Sitemap.xml regeneration.</strong> Auto-generate fresh sitemap from new OskarOS pages, submit to GSC via WP-92's connection.</li>
+      </ul>
+
+      <h4>Acceptance criteria</h4>
+      <table class="wp-table">
+        <thead><tr><th>Test</th><th>Expected</th></tr></thead>
+        <tbody>
+          <tr><td>Migrate a 30-page existing site to OskarOS</td><td>30 URLs crawled, mapped to 5-10 OskarOS pages, redirect map deployed</td></tr>
+          <tr><td>Hit an old URL post-launch</td><td>301 to the right new URL</td></tr>
+          <tr><td>Check GSC indexing 7 days post-migration</td><td>No drop in indexed pages; old URLs marked "redirected" not "removed"</td></tr>
+          <tr><td>Rankings check 30 days post-migration</td><td>Old keyword rankings transferred to new URLs (typical Google grace period for clean 301 migration)</td></tr>
+        </tbody>
+      </table>
+
+      <h4>Client value</h4>
+      <p>Clients with existing brand sites (years of accumulated Google rankings) don't lose them on redesign. Without this: 30-90 day ranking dip is the norm after any site replacement. With this: zero dip. Removes the biggest objection to choosing OskarOS over keeping the old site.</p>
+    </div>
+
+  </section>
+
+  <footer class="footnote">
+    <p><strong>Sources.</strong> All repositories cloned to <code class="inline">OskarOS/external/_eval-tier{1,2,3,4}/</code> plus the two earlier-cloned <code class="inline">dataforseo-claude</code> and <code class="inline">geo-seo-claude</code> at the top level. Star counts verified via GitHub API on 2026-05-13. Gemini's original research framing retained verbatim in italics; modifications marked in blue.</p>
+    <p><strong>Caveats.</strong> The "brand mentions 3× stronger than backlinks for AI visibility" claim and related Ahrefs Dec 2025 study numbers are single-source. Treat as directionally credible, not proven causation. Don't surface exact percentages in client-facing copy. Solo-maintainer install risk applies to <code class="inline">houtini-ai/seo-crawler-mcp</code> (13 ⭐) — fork before depending.</p>
+    <p><strong>Not in scope.</strong> Long-form blog content generation, paid-ads cross-channel analysis, backlink toxicity, rank tracking subscriptions, enterprise SEO consulting. Different product surface; different customer.</p>
+  </footer>
+
+</div>
+</body>
+</html>

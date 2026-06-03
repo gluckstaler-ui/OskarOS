@@ -16,7 +16,7 @@ import { NextResponse } from 'next/server'
 import { notifyAgent, type AgentRole, canNotify } from '@/lib/agent-inbox-bus'
 import { publish } from '@/lib/event-bus'
 
-const VALID_ROLES = new Set<AgentRole>(['cd', 'webdev', 'sentinel', 'jedi-code', 'user'])
+const VALID_ROLES = new Set<AgentRole>(['cd', 'webdev', 'sentinel', 'jedi-code', 'user', 'consular'])
 
 function isRole(v: unknown): v is AgentRole {
   return typeof v === 'string' && VALID_ROLES.has(v as AgentRole)

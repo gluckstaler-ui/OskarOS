@@ -1,0 +1,30 @@
+# Caddyfile — HTTP/2 dev proxy for OskarOS (Ralph 2026-06-03)
+#
+# Why: `next dev` only speaks HTTP/1.1, where the browser caps ~6 connections
+# per origin. The studio holds long-lived streams (the /api/events SSE, the
+# chat-stream) and fires many parallel upload→eval fetches; once ~6 lanes are
+# camped the UI starves (chunks/SSE can't load → "Failed to fetch", freeze).
+# HTTP/2 collapses those lanes into ONE connection with ~100 multiplexed
+# streams, so nothing starves. Browser <-> Caddy = HTTP/2; Caddy <-> next dev =
+# a normal server-to-server pool (not browser-limited). The backend already
+# self-limits heavy work (CD upload-eval worker pool = 5), so firing 30 uploads
+# is safe: unlimited door, bounded kitchen.
+#
+# Setup (one time):    brew install caddy
+# Run:
+#   npm run dev         # next dev on :3000 (your terminal, as today)
+#   npm run dev:proxy   # this proxy (separate terminal, or background it)
+# Then open  https://localhost:8443   (NOT :3000)
+#
+# First `dev:proxy` run installs Caddy's local root CA into your login keychain
+# (one password prompt) so https://localhost:8443 is trusted — green lock, no
+# cert warning. Port 8443 (not 443) so it never needs sudo.
+
+localhost:8443 {
+	tls internal
+	reverse_proxy localhost:3000 {
+		# SSE / streaming must flush each chunk immediately (the /api/events
+		# bus + the chat-stream). Without this Caddy buffers and events stall.
+		flush_interval -1
+	}
+}

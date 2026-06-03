@@ -17,6 +17,8 @@ import { WEBDEV_TOOL_DEFINITIONS, callWebDevTool } from './tools-webdev.js';
 import { SENTINEL_TOOL_DEFINITIONS, callSentinelTool } from './tools-sentinel.js';
 import { CAPABILITY_TOOL_DEFINITIONS, callCapabilityTool } from './tools-capabilities.js';
 import { ORCHESTRATOR_TOOL_DEFINITIONS, callOrchestratorTool } from './tools-orchestrator.js';
+// [RETIRED 2026-05-29] crm_query SQL MCP disabled — see the note at CONSULAR_ALLOWED below.
+// import { CONSULAR_TOOL_DEFINITIONS, callConsularTool, type ConsularToolName } from './tools-consular.js'
 // 2026-04-30: only the stdio entrypoint enforces OSKAR_SESSION_ID. The HTTP
 // route uses headers; tests use mocks. This guard remains for the stdio
 // path so misconfigured spawns fail loud at startup.
@@ -31,12 +33,16 @@ export const TOOL_DEFINITIONS = [
     ...SENTINEL_TOOL_DEFINITIONS,
     ...CAPABILITY_TOOL_DEFINITIONS,
     ...ORCHESTRATOR_TOOL_DEFINITIONS,
+    // ...CONSULAR_TOOL_DEFINITIONS,   // [RETIRED 2026-05-29] crm_query not advertised in tools/list
 ];
+// | ConsularToolName   // [RETIRED 2026-05-29] crm_query SQL MCP
 const CD_NAMES = new Set(CD_TOOL_DEFINITIONS.map((t) => t.name));
 const WEBDEV_NAMES = new Set(WEBDEV_TOOL_DEFINITIONS.map((t) => t.name));
 const SENTINEL_NAMES = new Set(SENTINEL_TOOL_DEFINITIONS.map((t) => t.name));
 const CAPABILITY_NAMES = new Set(CAPABILITY_TOOL_DEFINITIONS.map((t) => t.name));
 const ORCHESTRATOR_NAMES = new Set(ORCHESTRATOR_TOOL_DEFINITIONS.map((t) => t.name));
+// [RETIRED 2026-05-29] crm_query SQL MCP — names set unused while disabled.
+// const CONSULAR_NAMES = new Set<string>(CONSULAR_TOOL_DEFINITIONS.map((t) => t.name))
 /**
  * Dispatch a tool call to its audience-specific handler. The handler
  * returns `{text, isError}`; the MCP server wraps that into a CallToolResult.
@@ -55,6 +61,8 @@ export async function callTool(name, args, ctx) {
         return callCapabilityTool(name, args, ctx);
     if (ORCHESTRATOR_NAMES.has(name))
         return callOrchestratorTool(name, args, ctx);
+    // [RETIRED 2026-05-29] crm_query SQL MCP — dispatch disabled (tool not advertised).
+    // if (CONSULAR_NAMES.has(name)) return callConsularTool(name as ConsularToolName, args, ctx)
     return { text: `Unknown tool: ${name}`, isError: true };
 }
 // ── Per-role tool scoping ────────────────────────────────────────────────────
@@ -77,7 +85,10 @@ const ORCHESTRATOR_BASIC = [
 ];
 const CD_ALLOWED = new Set([
     // Phase 1 orchestration
-    'build_vibe', 'build_all_vibes', 'build_final', 'hotswap', 'images_needed', 'refresh_assets',
+    // Ralph 2026-05-18: build_all_vibes + build_final collapsed into
+    // array-based build_vibe([slug, ...]). Two build tools now: wireframes
+    // (Phase 2) and vibe (Phase 4 + Phase 5).
+    'build_vibe', 'build_wireframes', 'hotswap', 'images_needed', 'refresh_assets',
     // Phase 2 Family 1 (submit/report)
     'submit_proofread', 'submit_image_verdict', 'submit_upload_eval', 'submit_image_prompt',
     // Bug 18 typed gateway
@@ -85,7 +96,7 @@ const CD_ALLOWED = new Set([
     // Phase 2.5 escrow
     'job_status', 'cancel_job',
     // Phase 2 Tier S capabilities
-    'generate_image', 'screenshot', 'snackbar', 'ask_user',
+    'generate_image', 'screenshot', 'snackbar', 'modal',
     // Phase 2 Tier A
     'session_meta', 'list_assets', 'find_assets', 'lint_brand_compliance', 'apply_patch',
     // Phase 2 Tier B
@@ -101,23 +112,37 @@ const CD_ALLOWED = new Set([
     // build_vibe wrapper drift logged in INSTITUTIONAL-MEMORY.
     // The two allowlists MUST stay in sync. Future entries: add to BOTH
     // files in the same commit, or factor them into a single source.
-    'ask_discovery_questions', 'confirm_understanding',
+    'tc_discovery', 'tc_understanding',
+    'tc_image_strategy',
+    'tc_design_directions',
+    'tc_design_system',
+    // 2026-05-10 Ralph + CD: was in CD_ALLOWED_TOOLS at lib/mcp-config.ts:179
+    // but missing here. ToolSearch couldn't find it → CD couldn't fire it
+    // even though spawn allowed the call. Same drift class as the 2026-05-06
+    // entry. Sync with lib/mcp-config.ts whenever you add/remove a tool here.
+    'tc_descent_selection',
     'propose_image_prompt',
     'todo_write',
     'preview_card',
-    'report_build_complete', 'report_build_failed', 'report_build_progress',
+    'build_done', 'build_fail', 'build_progress',
     'submit_critique',
 ]);
 const WEBDEV_ALLOWED = new Set([
-    'report_build_complete', 'report_build_failed', 'report_build_progress',
-    'screenshot', 'snackbar', 'ask_user',
+    'build_done', 'build_fail', 'build_progress',
+    'screenshot', 'snackbar', 'modal',
     'session_meta', 'list_assets', 'lint_brand_compliance',
     'job_status',
+    // Ralph 2026-05-18 — WebDev self-critiques in WF mode (Phase 2 wireframes)
+    // per agents/webdev-agent.md § "Self-Critique (WF mode only)" lines 514-565.
+    // Doctrine said fire it; advertise filter omitted it; the call silently
+    // dropped. Same two-state-machine drift class as the historic CD allowlist
+    // misses logged earlier in this file. Sync with lib/mcp-config.ts:244.
+    'submit_critique',
     ...ORCHESTRATOR_BASIC,
 ]);
 const SENTINEL_ALLOWED = new Set([
     'submit_critique',
-    'snackbar', 'ask_user',
+    'snackbar', 'modal',
     'session_meta', 'screenshot',
     'job_status',
     ...ORCHESTRATOR_BASIC,
@@ -126,11 +151,19 @@ const SENTINEL_ALLOWED = new Set([
 // other agents' submit/report tools, since Jedi may need to verify the full
 // contract end-to-end while debugging seams.
 const JEDI_CODE_ALLOWED = new Set(ALL_TOOL_NAMES);
+// Ralph 2026-05-29: the Consular gets EXACTLY the same tools as CD — aliased to
+// CD_ALLOWED so the server-side advertise/dispatch gate can't drift from CD's.
+// (History: the `crm_query` SQL MCP was RETIRED 2026-05-29 — DB access is via
+// the HTTP route POST /api/admin/crm/consular/sql, not an MCP tool. The earlier
+// minimal set — submit_image_prompt, snackbar, modal, bus — is subsumed by CD's
+// superset.) Persona stays distinct via agents/CONSULAR-agent.md.
+const CONSULAR_ALLOWED = CD_ALLOWED;
 const ROLE_ALLOWED = {
     cd: CD_ALLOWED,
     webdev: WEBDEV_ALLOWED,
     sentinel: SENTINEL_ALLOWED,
     'jedi-code': JEDI_CODE_ALLOWED,
+    consular: CONSULAR_ALLOWED,
 };
 export function isToolAllowedForRole(toolName, role) {
     return ROLE_ALLOWED[role]?.has(toolName) ?? false;

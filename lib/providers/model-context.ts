@@ -24,8 +24,10 @@
 
 const CONTEXT_WINDOW_BY_MODEL: Record<string, number> = {
   // ── Anthropic — current generation (1M native) ─────────────────────
-  'claude-opus-4-7': 1_000_000,
-  'claude-opus-4-7[1m]': 1_000_000,    // Claude Code CLI alias
+  'claude-opus-4-8': 1_000_000,        // newest Opus (launched 2026-05-29) — 1M native, no beta header
+  'claude-opus-4-8[1m]': 1_000_000,    // Claude Code CLI alias
+  'claude-opus-4-7': 1_000_000,        // legacy but still served + still 1M
+  'claude-opus-4-7[1m]': 1_000_000,    // CLI alias
   'claude-sonnet-4-6': 1_000_000,
   'claude-sonnet-4-6[1m]': 1_000_000,  // CLI alias
   'claude-opus-4-6': 1_000_000,        // legacy but still 1M

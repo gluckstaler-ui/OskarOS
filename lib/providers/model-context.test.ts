@@ -16,6 +16,14 @@ beforeEach(() => {
 })
 
 describe('getContextWindow — Anthropic current generation', () => {
+  it('Opus 4.8 returns 1M', () => {
+    expect(getContextWindow('claude-opus-4-8')).toBe(1_000_000)
+  })
+
+  it('Opus 4.8 with [1m] CLI suffix returns 1M', () => {
+    expect(getContextWindow('claude-opus-4-8[1m]')).toBe(1_000_000)
+  })
+
   it('Opus 4.7 returns 1M', () => {
     expect(getContextWindow('claude-opus-4-7')).toBe(1_000_000)
   })

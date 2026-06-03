@@ -11,7 +11,7 @@
 import { NextResponse } from 'next/server'
 import { drainInbox, type AgentRole } from '@/lib/agent-inbox-bus'
 
-const VALID_ROLES = new Set<AgentRole>(['cd', 'webdev', 'sentinel', 'jedi-code'])
+const VALID_ROLES = new Set<AgentRole>(['cd', 'webdev', 'sentinel', 'jedi-code', 'consular'])
 
 function isRole(v: unknown): v is AgentRole {
   return typeof v === 'string' && VALID_ROLES.has(v as AgentRole)

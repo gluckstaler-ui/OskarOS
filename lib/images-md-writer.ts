@@ -19,9 +19,10 @@
  * lib/session.ts:parseImagesMd.
  */
 
-import { readFile, writeFile, mkdir } from 'fs/promises'
+import { readFile, writeFile, mkdir, rename } from 'fs/promises'
 import { existsSync } from 'fs'
 import { join, dirname } from 'path'
+import crypto from 'crypto'
 import { replaceField } from './markdown-fields'
 
 export type ImageStatus =
@@ -83,7 +84,11 @@ async function readOrSeed(sessionDir: string): Promise<string> {
   // `## Image Prompts + Generated`. Future refactor: kill that
   // early-return; for now, the writer seeds both so the parser is happy.
   const seed = '# Image Registry\n\n## Uploaded Images\n\n## Image Prompts + Generated\n\n'
-  await writeFile(p, seed, 'utf-8')
+  // Atomic seed write — an external reader (page.tsx manifest refresh)
+  // landing in the middle of cold-start should never see a partial file.
+  // atomicWriteFile is a function declaration so it's hoisted and
+  // callable here even though it's defined further down. Ralph 2026-05-12.
+  await atomicWriteFile(p, seed)
   return seed
 }
 
@@ -122,9 +127,42 @@ function setOrInsertField(body: string, fieldName: string, value: string): strin
 }
 
 /**
+ * Atomic write via temp-file + rename. Prevents the IMAGES.md parser
+ * running concurrently (page.tsx's manifest refresh during a generation
+ * burst) from seeing a half-written file. POSIX rename(2) is atomic on
+ * the same filesystem; the temp file is always created in the same
+ * directory as the target so the rename stays intra-filesystem.
+ */
+async function atomicWriteFile(targetPath: string, content: string): Promise<void> {
+  const tmp = `${targetPath}.${crypto.randomBytes(4).toString('hex')}.tmp`
+  await writeFile(tmp, content, 'utf-8')
+  await rename(tmp, targetPath)
+}
+
+/**
  * Upsert an entry. Creates under `## Image Prompts + Generated` if absent;
  * otherwise patches the existing block in place. Returns the updated md
  * for callers that want to inspect; also writes to disk.
+ *
+ * Concurrency (Ralph 2026-05-12 — locks ripped out):
+ * IMAGES.md is NOT a load-bearing source of truth — it's a metadata
+ * catalog on top of files-on-disk. The Assets panel hydrates from the
+ * actual directory listing (admin route walks `public/{sessionId}/`),
+ * with IMAGES.md providing optional enrichment (tag, evaluation, etc.).
+ * If a concurrent-write race loses an entry, the image FILE is still on
+ * disk and still appears in the panel — just without the metadata until
+ * the next CD pass touches it.
+ *
+ * Pre-2026-05-12 we serialized writes via a per-session in-process lock.
+ * It worked but stalled 20-image generation bursts: 20 parallel
+ * generate_image calls each awaited the lock, IMAGES.md grew with each
+ * iteration so writes got progressively slower, CD's bridge sat for
+ * 5-10s waiting for tool results. Doctrine call: NO LOCK ON IMAGES.MD.
+ * Other files (SESSION.md, BUILD.md, where data loss matters) get locks
+ * if needed; this one does not.
+ *
+ * The atomic write itself (tmp + rename) stays — that prevents
+ * half-written file content. Just no JS-level serialization above it.
  */
 export async function upsertImageMetadata(
   sessionDir: string,
@@ -224,6 +262,6 @@ export async function upsertImageMetadata(
       md = md.trimEnd() + `\n\n${sectionHeader}\n\n${body}`
     }
   }
-  await writeFile(imagesMdPath(sessionDir), md, 'utf-8')
+  await atomicWriteFile(imagesMdPath(sessionDir), md)
   return { created }
 }

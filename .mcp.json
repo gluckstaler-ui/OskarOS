@@ -1,6 +1,6 @@
 {
   "mcpServers": {
-    "oskar-orchestrator": {
+    "orch": {
       "command": "node",
       "args": ["/Users/ralphlengler/OskarOS/oskar-prototype/scripts/mcp-stdio-proxy.mjs"],
       "env": {

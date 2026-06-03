@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "orch": {
+      "type": "http",
+      "url": "http://localhost:3000/api/mcp/server?session=2026-05-23-pizzeria-da-mario&agent=cd&instance=98ffa3ff-95c1-49f8-8928-2f62ae454d7b"
+    }
+  }
+}

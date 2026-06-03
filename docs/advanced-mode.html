@@ -1,0 +1,1203 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Advanced Mode v3 — Image Workspace</title>
+<style>
+  *, *::before, *::after {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+
+  :root {
+    --canvas-bg: #0f0f0f;
+    --panel-bg: #161616;
+    --workbench-bg: #1a1a1a;
+    --nav-bg: #1a1a1a;
+    --input-bg: #222;
+    --border: #2a2a2a;
+    --border-hover: #444;
+    --text: #e0e0e0;
+    --text-muted: #888;
+    --text-dim: #555;
+    --blue: #3B82F6;
+    --purple: #8B5CF6;
+    --green: #10B981;
+    --orange: #F59E0B;
+    --red: #EF4444;
+    --radius: 8px;
+    --radius-sm: 4px;
+    --active-color: var(--blue);
+    --assets-width: 300px;
+  }
+
+  html, body {
+    height: 100%;
+    overflow: hidden;
+    background: var(--canvas-bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    font-size: 14px;
+    line-height: 1.4;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* ========================================
+     MAIN LAYOUT: Assets Left | Overlay Right
+     ======================================== */
+
+  .viewport {
+    display: flex;
+    height: 100vh;
+    width: 100vw;
+  }
+
+  /* ========================================
+     LEFT: ASSETS PANEL (full height, persists)
+     ======================================== */
+
+  .assets-panel {
+    flex: 0 0 var(--assets-width);
+    background: var(--panel-bg);
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    z-index: 2;
+  }
+
+  .assets-header {
+    flex: 0 0 44px;
+    display: flex;
+    align-items: center;
+    padding: 0 16px;
+    border-bottom: 1px solid var(--border);
+    gap: 8px;
+  }
+
+  .assets-header-icon { width: 16px; height: 16px; opacity: 0.4; }
+
+  .assets-header-title {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+  }
+
+  .assets-section-label {
+    padding: 14px 14px 8px;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .assets-section-label svg { opacity: 0.4; }
+
+  .assets-grid {
+    flex: 1;
+    overflow-y: auto;
+    padding: 0 10px 10px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    align-content: start;
+  }
+
+  .assets-grid::-webkit-scrollbar { width: 4px; }
+  .assets-grid::-webkit-scrollbar-track { background: transparent; }
+  .assets-grid::-webkit-scrollbar-thumb { background: #2a2a2a; border-radius: 2px; }
+
+  .asset-tile {
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+  }
+
+  .asset-thumb {
+    width: 100%;
+    aspect-ratio: 1;
+    border-radius: 6px;
+    position: relative;
+    transition: all 0.15s ease;
+    border: 2px solid transparent;
+    overflow: hidden;
+  }
+
+  .asset-thumb:hover { border-color: #444; }
+
+  .asset-thumb.active {
+    border-color: var(--blue);
+    box-shadow: 0 0 0 1px var(--blue);
+  }
+
+  .asset-thumb-overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(59, 130, 246, 0.15);
+    opacity: 0;
+    transition: opacity 0.15s;
+  }
+
+  .asset-thumb.active .asset-thumb-overlay { opacity: 1; }
+
+  .asset-thumb-actions {
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    display: flex;
+    gap: 3px;
+    opacity: 0;
+    transition: opacity 0.15s;
+  }
+
+  .asset-tile:hover .asset-thumb-actions { opacity: 1; }
+
+  .asset-action-btn {
+    width: 22px;
+    height: 22px;
+    border-radius: 4px;
+    border: none;
+    background: rgba(0,0,0,0.7);
+    color: white;
+    font-size: 10px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    backdrop-filter: blur(4px);
+  }
+
+  .asset-action-btn:hover { background: rgba(0,0,0,0.9); }
+
+  .asset-label {
+    font-size: 10px;
+    color: var(--text-dim);
+    text-align: center;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    padding: 0 2px;
+  }
+
+  .upload-zone {
+    flex: 0 0 auto;
+    margin: 8px 10px 10px;
+    padding: 16px;
+    border: 1.5px dashed #333;
+    border-radius: var(--radius);
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+
+  .upload-zone:hover {
+    border-color: #555;
+    background: rgba(255,255,255,0.02);
+  }
+
+  .upload-zone-text { font-size: 11px; color: var(--text-dim); }
+  .upload-zone-icon { font-size: 18px; opacity: 0.3; margin-bottom: 4px; }
+
+  /* ========================================
+     RIGHT: WORKSPACE OVERLAY (covers everything except assets)
+     ======================================== */
+
+  .workspace {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    background: var(--canvas-bg);
+    position: relative;
+  }
+
+  /* --- Tab Bar: CLEAN. Tabs left, close right. --- */
+
+  .tab-bar {
+    flex: 0 0 44px;
+    background: var(--nav-bg);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    padding: 0 8px 0 16px;
+  }
+
+  .tab-bar-left {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .tab-bar-right {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+  }
+
+  .tab-btn {
+    height: 28px;
+    padding: 0 14px;
+    border-radius: 6px;
+    border: 1px solid transparent;
+    background: transparent;
+    color: var(--text-dim);
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    white-space: nowrap;
+  }
+
+  .tab-btn:hover {
+    color: var(--text-muted);
+    background: rgba(255,255,255,0.04);
+  }
+
+  .tab-btn.active {
+    color: var(--text);
+    background: rgba(255,255,255,0.08);
+    border-color: #333;
+  }
+
+  .close-btn {
+    width: 36px;
+    height: 28px;
+    border-radius: 6px;
+    border: 1px solid rgba(239, 68, 68, 0.25);
+    background: rgba(239, 68, 68, 0.08);
+    color: var(--red);
+    font-size: 16px;
+    font-weight: 400;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s ease;
+  }
+
+  .close-btn:hover {
+    background: rgba(239, 68, 68, 0.15);
+    border-color: rgba(239, 68, 68, 0.5);
+    color: #ff6b6b;
+  }
+
+  /* ========================================
+     TOP SECTION: Image (left) + Versions (right)  ~58%
+     ======================================== */
+
+  .top-section {
+    flex: 0 0 58%;
+    display: flex;
+    overflow: hidden;
+    position: relative;
+  }
+
+  /* --- Source Image (left) --- */
+
+  .image-pane {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px 24px;
+    position: relative;
+    min-width: 0;
+  }
+
+  .image-preview {
+    max-width: 100%;
+    max-height: 100%;
+    border-radius: 6px;
+    background: linear-gradient(135deg, #1a1a24 0%, #241a1a 30%, #1a241a 60%, #1a1a24 100%);
+    aspect-ratio: 4/3;
+    width: 100%;
+    max-width: 680px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.4);
+  }
+
+  .image-preview::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background:
+      radial-gradient(ellipse at 30% 40%, rgba(139, 92, 246, 0.06) 0%, transparent 60%),
+      radial-gradient(ellipse at 70% 60%, rgba(245, 158, 11, 0.04) 0%, transparent 50%);
+  }
+
+  .image-preview-label {
+    color: var(--text-dim);
+    font-size: 12px;
+    z-index: 1;
+  }
+
+  /* Approve button — floats top-right of image pane */
+  .approve-floating {
+    position: absolute;
+    top: 16px;
+    right: 196px; /* clear the versions pane */
+    height: 30px;
+    padding: 0 14px;
+    border-radius: 6px;
+    border: 1px solid rgba(16, 185, 129, 0.3);
+    background: rgba(16, 185, 129, 0.1);
+    color: var(--green);
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    backdrop-filter: blur(8px);
+    z-index: 5;
+  }
+
+  .approve-floating:hover {
+    background: rgba(16, 185, 129, 0.18);
+    border-color: rgba(16, 185, 129, 0.5);
+    box-shadow: 0 2px 12px rgba(16, 185, 129, 0.15);
+  }
+
+  /* --- Versions Pane (right) --- */
+
+  .versions-pane {
+    flex: 0 0 180px;
+    border-left: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    background: var(--panel-bg);
+  }
+
+  .versions-header {
+    flex: 0 0 auto;
+    padding: 12px 14px 8px;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+  }
+
+  .versions-grid {
+    flex: 1;
+    overflow-y: auto;
+    padding: 0 10px 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .versions-grid::-webkit-scrollbar { width: 4px; }
+  .versions-grid::-webkit-scrollbar-track { background: transparent; }
+  .versions-grid::-webkit-scrollbar-thumb { background: #2a2a2a; border-radius: 2px; }
+
+  .version-card {
+    width: 100%;
+    aspect-ratio: 4/3;
+    border-radius: 6px;
+    position: relative;
+    cursor: pointer;
+    border: 2px solid transparent;
+    overflow: hidden;
+    transition: all 0.15s;
+    flex-shrink: 0;
+  }
+
+  .version-card:hover { border-color: #444; }
+  .version-card.active { border-color: var(--green); }
+
+  .version-card-label {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    padding: 4px 8px;
+    background: linear-gradient(transparent, rgba(0,0,0,0.8));
+    font-size: 10px;
+    color: rgba(255,255,255,0.7);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .version-card-tag {
+    font-size: 9px;
+    padding: 1px 5px;
+    border-radius: 3px;
+    background: rgba(255,255,255,0.1);
+    color: rgba(255,255,255,0.5);
+  }
+
+  .version-card-tag.latest {
+    background: rgba(16, 185, 129, 0.2);
+    color: var(--green);
+  }
+
+  /* --- Description Overlay (bottom of image pane) --- */
+
+  .description-overlay {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 180px;
+    background: linear-gradient(transparent, rgba(0,0,0,0.9) 40%);
+    padding: 48px 24px 14px;
+    display: flex;
+    align-items: flex-end;
+    gap: 10px;
+  }
+
+  .description-icon {
+    flex-shrink: 0;
+    font-size: 11px;
+    opacity: 0.4;
+    margin-bottom: 1px;
+  }
+
+  .description-text {
+    flex: 1;
+    font-size: 12px;
+    line-height: 1.55;
+    color: rgba(255,255,255,0.5);
+    min-width: 0;
+  }
+
+  .copy-to-prompt-btn {
+    flex-shrink: 0;
+    height: 24px;
+    padding: 0 8px;
+    border-radius: 4px;
+    border: 1px solid rgba(255,255,255,0.12);
+    background: rgba(255,255,255,0.05);
+    color: rgba(255,255,255,0.45);
+    font-size: 10px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.15s;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    backdrop-filter: blur(8px);
+    white-space: nowrap;
+  }
+
+  .copy-to-prompt-btn:hover {
+    border-color: rgba(255,255,255,0.25);
+    color: rgba(255,255,255,0.75);
+    background: rgba(255,255,255,0.08);
+  }
+
+  /* ========================================
+     BOTTOM SECTION: Templates + Prompt + Controls  ~42%
+     ======================================== */
+
+  .bottom-section {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    border-top: 1px solid var(--border);
+    background: var(--workbench-bg);
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  /* --- Templates Row (bigger cards) --- */
+
+  .templates-row {
+    flex: 0 0 auto;
+    display: flex;
+    gap: 8px;
+    padding: 14px 20px 10px;
+    overflow-x: auto;
+  }
+
+  .templates-row::-webkit-scrollbar { height: 0; }
+
+  .template-card {
+    flex: 0 0 auto;
+    width: 140px;
+    padding: 10px 12px;
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+    background: rgba(255,255,255,0.02);
+    cursor: pointer;
+    transition: all 0.15s ease;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .template-card:hover {
+    border-color: var(--border-hover);
+    background: rgba(255,255,255,0.04);
+  }
+
+  .template-card.active {
+    border-color: var(--active-color);
+    background: rgba(59, 130, 246, 0.06);
+  }
+
+  .template-card-icon {
+    font-size: 16px;
+    opacity: 0.5;
+  }
+
+  .template-card-name {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text);
+  }
+
+  .template-card-desc {
+    font-size: 10px;
+    color: var(--text-dim);
+    line-height: 1.4;
+  }
+
+  /* --- Prompt Area --- */
+
+  .prompt-area {
+    flex: 1;
+    display: flex;
+    padding: 0 20px;
+    gap: 12px;
+    min-height: 0;
+  }
+
+  .prompt-textarea {
+    flex: 1;
+    background: var(--input-bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    color: var(--text);
+    font-family: inherit;
+    font-size: 14px;
+    line-height: 1.6;
+    padding: 12px 16px;
+    resize: none;
+    outline: none;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  }
+
+  .prompt-textarea::placeholder { color: #3a3a3a; }
+
+  .prompt-textarea:focus {
+    border-color: var(--active-color);
+    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.08);
+  }
+
+  /* CD Interaction Panel (right of textarea) */
+  .cd-panel {
+    flex: 0 0 200px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .cd-review-box {
+    flex: 1;
+    background: rgba(245, 158, 11, 0.04);
+    border: 1px solid rgba(245, 158, 11, 0.15);
+    border-radius: var(--radius);
+    padding: 10px 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    overflow-y: auto;
+    min-height: 0;
+  }
+
+  .cd-review-header {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--orange);
+  }
+
+  .cd-review-text {
+    font-size: 12px;
+    line-height: 1.55;
+    color: var(--text-muted);
+  }
+
+  .cd-review-actions {
+    display: flex;
+    gap: 6px;
+    margin-top: auto;
+  }
+
+  .cd-action-btn {
+    flex: 1;
+    height: 26px;
+    border-radius: 4px;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--text-dim);
+    font-size: 10px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+
+  .cd-action-btn:hover {
+    border-color: var(--border-hover);
+    color: var(--text-muted);
+  }
+
+  .cd-action-btn.accept {
+    border-color: rgba(16, 185, 129, 0.3);
+    color: var(--green);
+  }
+
+  .cd-action-btn.accept:hover {
+    background: rgba(16, 185, 129, 0.08);
+  }
+
+  /* --- Controls Bar (bottom) --- */
+
+  .controls-bar {
+    flex: 0 0 auto;
+    display: flex;
+    align-items: center;
+    padding: 10px 20px 14px;
+    gap: 16px;
+  }
+
+  .control-group {
+    display: flex;
+    align-items: center;
+    gap: 3px;
+  }
+
+  .control-label {
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    margin-right: 4px;
+    white-space: nowrap;
+  }
+
+  .pill {
+    height: 24px;
+    padding: 0 9px;
+    border-radius: 4px;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--text-dim);
+    font-size: 11px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    white-space: nowrap;
+  }
+
+  .pill:hover {
+    border-color: var(--border-hover);
+    color: var(--text-muted);
+  }
+
+  .pill.active {
+    background: rgba(255,255,255,0.08);
+    border-color: #555;
+    color: var(--text);
+  }
+
+  .cd-check-btn {
+    height: 28px;
+    padding: 0 12px;
+    border-radius: 6px;
+    border: 1px solid rgba(245, 158, 11, 0.2);
+    background: rgba(245, 158, 11, 0.06);
+    color: var(--orange);
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    white-space: nowrap;
+  }
+
+  .cd-check-btn:hover {
+    border-color: rgba(245, 158, 11, 0.4);
+    background: rgba(245, 158, 11, 0.1);
+  }
+
+  .cd-check-btn span {
+    font-size: 11px;
+    font-weight: 600;
+  }
+
+  .controls-spacer {
+    flex: 1;
+  }
+
+  .generate-btn {
+    height: 36px;
+    padding: 0 28px;
+    border-radius: var(--radius);
+    border: none;
+    background: var(--active-color);
+    color: #fff;
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+
+  .generate-btn:hover {
+    filter: brightness(1.12);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+  }
+
+  .generate-btn:active {
+    transform: translateY(0);
+    filter: brightness(0.95);
+  }
+
+  /* ========================================
+     FOCUS COLORS
+     ======================================== */
+
+  .prompt-textarea.focus-view:focus {
+    border-color: var(--text-muted);
+    box-shadow: 0 0 0 2px rgba(136, 136, 136, 0.08);
+  }
+  .prompt-textarea.focus-edit:focus {
+    border-color: var(--blue);
+    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.08);
+  }
+  .prompt-textarea.focus-compose:focus {
+    border-color: var(--purple);
+    box-shadow: 0 0 0 2px rgba(139, 92, 246, 0.08);
+  }
+  .prompt-textarea.focus-layout:focus {
+    border-color: var(--green);
+    box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.08);
+  }
+</style>
+</head>
+<body>
+
+<div class="viewport">
+
+  <!-- ======== LEFT: ASSETS PANEL (persists from app) ======== -->
+  <div class="assets-panel">
+    <div class="assets-header">
+      <svg class="assets-header-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+        <circle cx="8.5" cy="8.5" r="1.5"/>
+        <polyline points="21 15 16 10 5 21"/>
+      </svg>
+      <span class="assets-header-title">Assets</span>
+    </div>
+
+    <div class="assets-section-label">
+      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h7"/>
+        <line x1="16" y1="5" x2="22" y2="5"/>
+        <line x1="19" y1="2" x2="19" y2="8"/>
+      </svg>
+      Image Library
+    </div>
+
+    <div class="assets-grid" id="assetsGrid"></div>
+
+    <div class="upload-zone">
+      <div class="upload-zone-icon">+</div>
+      <div class="upload-zone-text">Drop images or click</div>
+    </div>
+  </div>
+
+  <!-- ======== RIGHT: WORKSPACE OVERLAY ======== -->
+  <div class="workspace">
+
+    <!-- Tab Bar: tabs left, close right -->
+    <div class="tab-bar">
+      <div class="tab-bar-left">
+        <button class="tab-btn" data-tab="view">View</button>
+        <button class="tab-btn active" data-tab="edit">Edit</button>
+        <button class="tab-btn" data-tab="compose">Compose</button>
+        <button class="tab-btn" data-tab="layout">Layout</button>
+      </div>
+      <div class="tab-bar-right">
+        <button class="close-btn" title="Close Advanced Mode">&times;</button>
+      </div>
+    </div>
+
+    <!-- TOP: Image + Versions -->
+    <div class="top-section">
+
+      <!-- Source Image -->
+      <div class="image-pane">
+        <div class="image-preview">
+          <span class="image-preview-label">Source Image</span>
+        </div>
+      </div>
+
+      <!-- Approve (floats in top section) -->
+      <button class="approve-floating" id="approveBtn">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="20 6 9 17 4 12"/>
+        </svg>
+        Approve
+      </button>
+
+      <!-- Versions (right column) -->
+      <div class="versions-pane">
+        <div class="versions-header">Generated</div>
+        <div class="versions-grid" id="versionsGrid"></div>
+      </div>
+
+      <!-- Description overlay (bottom of image) -->
+      <div class="description-overlay">
+        <span class="description-icon">🦅</span>
+        <div class="description-text" id="descriptionText">
+          Studio portrait of a peregrine falcon perched on a carved wooden stand against warm beige backdrop. Sharp plumage detail in brown-gold breast feathers. Soft directional lighting from upper left. Professional studio quality, shallow depth of field.
+        </div>
+        <button class="copy-to-prompt-btn" id="copyToPromptBtn">
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+          </svg>
+          Copy to prompt
+        </button>
+      </div>
+    </div>
+
+    <!-- BOTTOM: Templates, Prompt, Controls -->
+    <div class="bottom-section">
+
+      <!-- Templates (bigger cards) -->
+      <div class="templates-row" id="templatesRow">
+        <div class="template-card" data-template="studio">
+          <span class="template-card-icon">📷</span>
+          <span class="template-card-name">Studio Portrait</span>
+          <span class="template-card-desc">Seamless backdrop, rim light, shallow DOF</span>
+        </div>
+        <div class="template-card" data-template="bento">
+          <span class="template-card-icon">⊞</span>
+          <span class="template-card-name">Bento Grid</span>
+          <span class="template-card-desc">2×2 asymmetric, consistent grade</span>
+        </div>
+        <div class="template-card" data-template="hero">
+          <span class="template-card-icon">🌅</span>
+          <span class="template-card-name">Hero Scene</span>
+          <span class="template-card-desc">Cinematic wide, golden hour, epic scale</span>
+        </div>
+        <div class="template-card" data-template="product">
+          <span class="template-card-icon">📦</span>
+          <span class="template-card-name">Product Shot</span>
+          <span class="template-card-desc">Clean, focus stacked, neutral bg</span>
+        </div>
+        <div class="template-card" data-template="editorial">
+          <span class="template-card-icon">📰</span>
+          <span class="template-card-name">Editorial</span>
+          <span class="template-card-desc">Magazine spread, asymmetric crops</span>
+        </div>
+      </div>
+
+      <!-- Prompt + CD Panel -->
+      <div class="prompt-area">
+        <textarea
+          class="prompt-textarea focus-edit"
+          id="promptTextarea"
+          placeholder="What do you want to change?"
+        ></textarea>
+
+        <!-- CD Review Panel (right of textarea) -->
+        <div class="cd-panel" id="cdPanel">
+          <div class="cd-review-box">
+            <div class="cd-review-header">
+              <span>🦅</span>
+              CD Review
+            </div>
+            <div class="cd-review-text" id="cdReviewText">
+              The prompt is solid but lacks specificity. Consider adding: the perch material (carved walnut), the backdrop color (warm camel beige, not gray), and the lighting direction (45° key from camera-left). Also specify "no motion blur on feathers."
+            </div>
+            <div class="cd-review-actions">
+              <button class="cd-action-btn accept" id="cdAcceptBtn">✓ Apply</button>
+              <button class="cd-action-btn">Ignore</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Controls Bar: Ratio, Res, CD Check, Generate -->
+      <div class="controls-bar">
+        <div class="control-group">
+          <span class="control-label">Ratio</span>
+          <button class="pill active" data-group="ratio">1:1</button>
+          <button class="pill" data-group="ratio">16:9</button>
+          <button class="pill" data-group="ratio">9:16</button>
+          <button class="pill" data-group="ratio">3:4</button>
+          <button class="pill" data-group="ratio">4:3</button>
+        </div>
+
+        <div class="control-group">
+          <span class="control-label">Res</span>
+          <button class="pill" data-group="res">1K</button>
+          <button class="pill active" data-group="res">2K</button>
+          <button class="pill" data-group="res">4K</button>
+        </div>
+
+        <button class="cd-check-btn" id="cdCheckBtn">
+          🦅
+          <span>CD Check</span>
+        </button>
+
+        <div class="controls-spacer"></div>
+
+        <button class="generate-btn" id="generateBtn">Generate</button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+(function() {
+
+  const TAB_CONFIG = {
+    view:    { placeholder: 'Notes...', focusClass: 'focus-view' },
+    edit:    { placeholder: 'What do you want to change?', focusClass: 'focus-edit' },
+    compose: { placeholder: 'Describe the scene — who\'s where, what\'s the mood', focusClass: 'focus-compose' },
+    layout:  { placeholder: 'Style notes — lighting, color palette, mood', focusClass: 'focus-layout' },
+  };
+
+  const TEMPLATE_PROMPTS = {
+    studio:    'Full-body studio portrait on seamless backdrop, rim lighting from behind, key light at 45° camera-left, fill card camera-right. Shallow depth of field, subject sharp, background smooth gradient.',
+    bento:     'Compose a 2×2 bento grid: top-left close-up detail, top-right wide environmental, bottom-left action moment, bottom-right portrait. Consistent warm color grade across all cells.',
+    hero:      'Cinematic wide-angle hero scene, golden hour light raking across landscape. Subject at left third, leading lines to horizon. Epic scale, warm tones.',
+    product:   'Clean product shot on matte surface. Overhead softbox, subtle shadow lower-right. Focus stacked for sharpness. Neutral background, minimal styling.',
+    editorial: 'Editorial spread layout. Left: full-bleed moody portrait. Right: detail crops arranged asymmetrically with generous white space.',
+  };
+
+  const LIBRARY_IMAGES = [
+    { name: 'sultan.jpg',   bg: '#3a2e26' },
+    { name: 'hero.jpg',     bg: '#2a2e36' },
+    { name: 'shabby-1.jpg', bg: '#2e3a2a' },
+    { name: 'haboob.jpg',   bg: '#3a3428' },
+    { name: 'cats-2.jpg',   bg: '#2e2634' },
+    { name: 'majlis.jpg',   bg: '#34302a' },
+    { name: 'dallah.jpg',   bg: '#282e34' },
+    { name: 'sunset.jpg',   bg: '#3a2a2a' },
+    { name: 'qamar.jpg',    bg: '#2a3432' },
+    { name: 'steve-3.jpg',  bg: '#34342a' },
+    { name: 'bento.jpg',    bg: '#2e2e26' },
+    { name: 'promo.jpg',    bg: '#2a2634' },
+  ];
+
+  const VERSIONS = [
+    { label: 'v3 — latest', bg: 'linear-gradient(135deg, #2a3a2a, #1e2e1e)', latest: true },
+    { label: 'v2',          bg: 'linear-gradient(135deg, #2a2a3a, #1e1e2e)', latest: false },
+    { label: 'v1',          bg: 'linear-gradient(135deg, #3a2a2a, #2e1e1e)', latest: false },
+  ];
+
+  // Refs
+  const textarea     = document.getElementById('promptTextarea');
+  const generateBtn  = document.getElementById('generateBtn');
+  const assetsGrid   = document.getElementById('assetsGrid');
+  const versionsGrid = document.getElementById('versionsGrid');
+  const tabBtns      = document.querySelectorAll('.tab-btn');
+  const copyBtn      = document.getElementById('copyToPromptBtn');
+  const descText     = document.getElementById('descriptionText');
+  const cdCheckBtn   = document.getElementById('cdCheckBtn');
+  const cdPanel      = document.getElementById('cdPanel');
+  const cdAcceptBtn  = document.getElementById('cdAcceptBtn');
+  const approveBtn   = document.getElementById('approveBtn');
+
+  let activeTab = 'edit';
+  let cdVisible = true; // Start visible for demo
+
+  // Build asset thumbnails
+  LIBRARY_IMAGES.forEach((img, idx) => {
+    const tile = document.createElement('div');
+    tile.className = 'asset-tile';
+
+    const thumb = document.createElement('div');
+    thumb.className = 'asset-thumb' + (idx === 0 ? ' active' : '');
+    thumb.style.background = img.bg;
+
+    const overlay = document.createElement('div');
+    overlay.className = 'asset-thumb-overlay';
+    thumb.appendChild(overlay);
+
+    const actions = document.createElement('div');
+    actions.className = 'asset-thumb-actions';
+    const expandBtn = document.createElement('button');
+    expandBtn.className = 'asset-action-btn';
+    expandBtn.innerHTML = '⤢';
+    expandBtn.title = 'Open in Advanced Mode';
+    actions.appendChild(expandBtn);
+    thumb.appendChild(actions);
+
+    const label = document.createElement('div');
+    label.className = 'asset-label';
+    label.textContent = img.name;
+
+    tile.appendChild(thumb);
+    tile.appendChild(label);
+
+    tile.addEventListener('click', () => {
+      document.querySelectorAll('.asset-thumb').forEach(t => t.classList.remove('active'));
+      thumb.classList.add('active');
+    });
+
+    assetsGrid.appendChild(tile);
+  });
+
+  // Build version cards
+  VERSIONS.forEach((v) => {
+    const card = document.createElement('div');
+    card.className = 'version-card' + (v.latest ? ' active' : '');
+    card.style.background = v.bg;
+
+    const label = document.createElement('div');
+    label.className = 'version-card-label';
+    const text = document.createElement('span');
+    text.textContent = v.label;
+    label.appendChild(text);
+
+    if (v.latest) {
+      const tag = document.createElement('span');
+      tag.className = 'version-card-tag latest';
+      tag.textContent = 'latest';
+      label.appendChild(tag);
+    }
+
+    card.appendChild(label);
+    card.addEventListener('click', () => {
+      document.querySelectorAll('.version-card').forEach(c => c.classList.remove('active'));
+      card.classList.add('active');
+    });
+
+    versionsGrid.appendChild(card);
+  });
+
+  // Tab switching
+  function setActiveTab(tab) {
+    activeTab = tab;
+    const cfg = TAB_CONFIG[tab];
+    tabBtns.forEach(btn => btn.classList.toggle('active', btn.dataset.tab === tab));
+    textarea.placeholder = cfg.placeholder;
+    textarea.className = 'prompt-textarea ' + cfg.focusClass;
+
+    const colors = { view: '#666', edit: '#3B82F6', compose: '#8B5CF6', layout: '#10B981' };
+    const color = colors[tab] || '#3B82F6';
+    generateBtn.style.background = color;
+    document.documentElement.style.setProperty('--active-color', color);
+
+    generateBtn.style.display = tab === 'view' ? 'none' : '';
+  }
+
+  tabBtns.forEach(btn => {
+    btn.addEventListener('click', () => setActiveTab(btn.dataset.tab));
+  });
+
+  // Pill groups
+  document.querySelectorAll('.pill').forEach(pill => {
+    pill.addEventListener('click', () => {
+      const group = pill.dataset.group;
+      document.querySelectorAll(`.pill[data-group="${group}"]`).forEach(p => p.classList.remove('active'));
+      pill.classList.add('active');
+    });
+  });
+
+  // Templates
+  document.querySelectorAll('.template-card').forEach(card => {
+    card.addEventListener('click', () => {
+      document.querySelectorAll('.template-card').forEach(c => c.classList.remove('active'));
+      card.classList.add('active');
+      const key = card.dataset.template;
+      textarea.value = TEMPLATE_PROMPTS[key] || '';
+      textarea.focus();
+    });
+  });
+
+  // Copy description to prompt
+  copyBtn.addEventListener('click', () => {
+    textarea.value = descText.textContent.trim();
+    textarea.focus();
+    copyBtn.textContent = '✓ Copied';
+    setTimeout(() => {
+      copyBtn.innerHTML = '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg> Copy to prompt';
+    }, 1200);
+  });
+
+  // CD Check — toggle panel visibility
+  cdCheckBtn.addEventListener('click', () => {
+    cdVisible = !cdVisible;
+    cdPanel.style.display = cdVisible ? '' : 'none';
+    cdCheckBtn.style.background = cdVisible ? 'rgba(245, 158, 11, 0.15)' : '';
+  });
+
+  // CD Accept — apply suggestion to prompt
+  cdAcceptBtn.addEventListener('click', () => {
+    const current = textarea.value;
+    const suggestion = 'Full-body studio portrait on seamless warm camel-beige backdrop. Carved walnut perch. Key light at 45° camera-left, rim light from behind, fill card camera-right. Shallow depth of field, subject razor sharp. No motion blur on feathers.';
+    textarea.value = suggestion;
+    textarea.focus();
+    cdAcceptBtn.textContent = '✓ Applied';
+    setTimeout(() => { cdAcceptBtn.textContent = '✓ Apply'; }, 1000);
+  });
+
+  // Approve
+  approveBtn.addEventListener('click', () => {
+    approveBtn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg> Approved!';
+    approveBtn.style.background = 'rgba(16, 185, 129, 0.2)';
+    approveBtn.style.borderColor = 'rgba(16, 185, 129, 0.6)';
+    setTimeout(() => {
+      approveBtn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg> Approve';
+      approveBtn.style.background = '';
+      approveBtn.style.borderColor = '';
+    }, 1500);
+  });
+
+  // Generate
+  generateBtn.addEventListener('click', () => {
+    const orig = generateBtn.textContent;
+    generateBtn.textContent = 'Generating…';
+    generateBtn.style.opacity = '0.7';
+    generateBtn.style.pointerEvents = 'none';
+    setTimeout(() => {
+      generateBtn.textContent = orig;
+      generateBtn.style.opacity = '';
+      generateBtn.style.pointerEvents = '';
+    }, 1500);
+  });
+
+  // Close
+  document.querySelector('.close-btn').addEventListener('click', () => {
+    const btn = document.querySelector('.close-btn');
+    btn.style.background = 'rgba(239, 68, 68, 0.3)';
+    setTimeout(() => { btn.style.background = ''; }, 200);
+  });
+
+})();
+</script>
+</body>
+</html>

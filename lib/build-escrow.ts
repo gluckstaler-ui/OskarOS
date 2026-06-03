@@ -1,9 +1,9 @@
 /**
  * build-escrow.ts — async job ledger for long-running tools (Phase 2.5, Ralph 2026-04-30).
  *
- * Problem: synchronous MCP calls to build_vibe / build_all_vibes /
- * build_final / generate_image block CD for the full 2–10 minutes the
- * underlying work needs. CD looks dead for that whole window.
+ * Problem: synchronous MCP calls to build_vibe / build_wireframes /
+ * generate_image block CD for the full 2–10 minutes the underlying work
+ * needs. CD looks dead for that whole window.
  *
  * Fix: escrow. The MCP route accepts the job, kicks the runner off in
  * the background WITHOUT awaiting, and returns {jobId, status: "running"}
@@ -21,10 +21,10 @@
  *      `status: "stuck"` when a job has been running > STUCK_THRESHOLD_MS.
  *      CD reads the verdict, never does timestamp math.
  *
- *   3. **Per-job IDs for build_all_vibes.** The umbrella pattern was
- *      rejected. /api/mcp/build-all-vibes enqueues N separate
- *      build_vibe jobs and returns the array of jobIds; CD acts per
- *      vibe (e.g. retry just the one that failed) without an extra
+ *   3. **Per-job IDs for array-based builds.** Both /api/mcp/build-vibe
+ *      and /api/mcp/build-wireframes take `slugs[]` and enqueue one
+ *      job per slug, returning the array of jobIds. CD acts per slug
+ *      (e.g. retry just the one that failed) without an extra
  *      list_jobs round-trip.
  *
  *   4. **Cancellation surface.** Each job has an AbortController. The
@@ -40,11 +40,16 @@
  * State persistence: pinned to globalThis (HMR-safe). Lost on Node
  * process restart — that's acceptable; jobs that disappear can be
  * detected by CD as "unknown jobId" → re-fire if needed.
+ *
+ * Ralph 2026-05-18: build_all_vibes + build_final removed from JobKind.
+ * Both collapsed into array-based build_vibe (which already used the
+ * 'build_vibe' kind for its escrow rows). See:
+ * docs/INSTITUTIONAL-MEMORY.md "Two build-tool surfaces" entry.
  */
 
 import { randomUUID } from 'crypto'
 
-export type JobKind = 'build_vibe' | 'build_all_vibes' | 'build_final' | 'generate_image'
+export type JobKind = 'build_vibe' | 'build_wireframes' | 'generate_image'
 
 export type JobStatus = 'running' | 'complete' | 'failed' | 'cancelled' | 'stuck'
 
@@ -52,13 +57,11 @@ export type JobStatus = 'running' | 'complete' | 'failed' | 'cancelled' | 'stuck
 const STUCK_THRESHOLD_MS = 15 * 60_000
 
 export interface JobResult {
-  // build_vibe / build_final / build_all_vibes
+  // build_vibe / build_wireframes (per-slug rows)
   filename?: string
   vibeName?: string
   vibeIndex?: number
   paths?: { landing?: string }
-  // build_all_vibes umbrella echo (the per-vibe IDs are individual jobs)
-  childJobIds?: string[]
   // generate_image
   savedPath?: string
   geminiText?: string | null
@@ -252,11 +255,11 @@ export function cancelJob(jobId: string): BuildJob | undefined {
 }
 
 // ── Per-session WebDev mutex ─────────────────────────────────────────────────
-// build_all_vibes enqueues N jobs at once. Without this, all N runners would
-// spawn Claude CLIs in parallel and saturate the API. The mutex serializes
-// runners that opt in via withWebdevMutex() — CD still sees all N jobIds
-// up-front (so she can monitor / cancel any of them); the actual spawns
-// run one at a time.
+// build_vibe / build_wireframes both enqueue N jobs at once (array-based).
+// Without this, all N runners would spawn Claude CLIs in parallel and
+// saturate the API. The mutex serializes runners that opt in via
+// withWebdevMutex() — CD still sees all N jobIds up-front (so she can
+// monitor / cancel any of them); the actual spawns run one at a time.
 
 const webdevChains = new Map<string, Promise<unknown>>()
 

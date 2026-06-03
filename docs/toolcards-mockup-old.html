@@ -1,0 +1,2842 @@
+<!doctype html>
+<html lang="en" data-theme="onyx">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>OskarOS — ToolCard mockup</title>
+<style>
+  /* ---------- ONYX tokens (lifted from app/globals.css) ---------- */
+  :root {
+    --bg-page: #0d0d0f;
+    --bg-card: #1e1e22;
+    --bg-card-hover: #2a2a2e;
+    --bg-input: #16161a;
+    --border-card: #2e2e33;
+    --text-main: #f4f4f5;
+    --text-muted: #a1a1aa;
+    --text-faint: #6b6b73;
+    --radius-card: 12px;
+    --radius-pill: 999px;
+    --shadow-card: 0 1px 3px 0 rgba(0,0,0,0.4), 0 1px 2px -1px rgba(0,0,0,0.2);
+    --shadow-blocker: 0 0 0 1px var(--brand-green-bright), 0 12px 32px rgba(0,0,0,0.5);
+    --font-mono: 'JetBrains Mono','SF Mono',Monaco,Consolas,monospace;
+    --font-body: -apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+
+    --brand-green-bright: #15B981;
+    --brand-green-deep:   #047857;
+    --brand-teal-bright:  #5EEAD4;
+    --brand-teal-deep:    #0F766E;
+    --brand-red:          #ef4444;
+    --brand-yellow:       #eab308;
+    --brand-violet:       #a78bfa;
+    --brand-cyan:         #22d3ee;
+  }
+
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0;
+    background: var(--bg-page);
+    color: var(--text-main);
+    font-family: var(--font-body);
+    font-size: 14px;
+    line-height: 1.5;
+  }
+
+  .stage {
+    max-width: 720px;
+    margin: 0 auto;
+    padding: 48px 24px 96px;
+  }
+  h1.stage-title {
+    font-size: 28px;
+    font-weight: 700;
+    margin: 0 0 8px;
+    letter-spacing: -0.02em;
+  }
+  p.stage-sub {
+    color: var(--text-muted);
+    margin: 0 0 48px;
+    font-size: 14px;
+  }
+  h2.archetype {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--brand-green-bright);
+    margin: 56px 0 4px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border-card);
+  }
+  p.archetype-sub {
+    color: var(--text-muted);
+    margin: 0 0 24px;
+    font-size: 13px;
+  }
+
+  /* ---------- BENTO CARD CHASSIS (matches .unfinished-todos) ---------- */
+  .card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-card);
+    border-radius: var(--radius-card);
+    box-shadow: var(--shadow-card);
+    margin: 12px 0;
+    overflow: hidden;
+  }
+  .card-head {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 14px 16px 10px;
+    border-bottom: 1px solid var(--border-card);
+  }
+  .card-head .icon {
+    width: 22px; height: 22px;
+    border-radius: 6px;
+    background: var(--bg-input);
+    border: 1px solid var(--border-card);
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: 12px; color: var(--text-muted);
+  }
+  .card-head .title {
+    font-weight: 600;
+    font-size: 13px;
+    flex: 1 1 auto;
+  }
+  .card-head .meta {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--text-faint);
+  }
+  .card-body {
+    padding: 14px 16px;
+  }
+  .card-foot {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    padding: 10px 16px 14px;
+    border-top: 1px solid var(--border-card);
+  }
+
+  /* ---------- BUTTONS ---------- */
+  .btn {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: var(--bg-input);
+    border: 1px solid var(--border-card);
+    color: var(--text-main);
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-family: inherit;
+    cursor: pointer;
+    transition: background 0.12s ease;
+  }
+  .btn:hover { background: var(--bg-card-hover); }
+  .btn.primary {
+    background: var(--brand-green-bright);
+    border-color: var(--brand-green-bright);
+    color: #0a0a0a;
+    font-weight: 600;
+  }
+  .btn.primary:hover { background: var(--brand-green-deep); color: #fff; }
+  .btn.danger { color: var(--brand-red); border-color: rgba(239,68,68,0.4); }
+  .btn.ghost { background: transparent; }
+
+  /* ---------- PROGRESS DOTS ---------- */
+  .phase-dots {
+    display: flex; align-items: center; gap: 4px; margin-bottom: 10px;
+  }
+  .phase-dots .dot {
+    width: 10px; height: 10px; border-radius: 50%;
+    background: var(--border-card);
+  }
+  .phase-dots .dot.done { background: var(--brand-green-bright); }
+  .phase-dots .dot.active {
+    background: var(--brand-green-bright);
+    animation: pulse 1.2s ease-in-out infinite;
+  }
+  .phase-dots .bar {
+    flex: 1; height: 2px; background: var(--border-card);
+  }
+  .phase-dots .bar.done { background: var(--brand-green-bright); }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+  }
+  .phase-labels {
+    display: flex; justify-content: space-between;
+    font-size: 10px; color: var(--text-faint);
+    text-transform: uppercase; letter-spacing: 0.08em;
+    margin-bottom: 14px;
+  }
+  .phase-row {
+    display: flex; justify-content: space-between; align-items: center;
+    font-size: 12px; color: var(--text-muted);
+  }
+  .phase-row .eta { color: var(--text-main); font-family: var(--font-mono); }
+
+  /* ---------- UNIFIED BUILD ROW (build_vibe + build_all_vibes) ---------- */
+  .build-row {
+    display: grid;
+    grid-template-columns: 36px 110px 1fr auto auto;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 0;
+    font-size: 12px;
+  }
+  .build-row + .build-row { border-top: 1px solid var(--border-card); }
+  .build-row .thumb {
+    width: 36px; height: 36px;
+    border-radius: 6px;
+    background: var(--bg-input);
+    border: 1px solid var(--border-card);
+    overflow: hidden;
+    position: relative;
+  }
+  .build-row .thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .build-row .thumb.empty {
+    display: flex; align-items: center; justify-content: center;
+    color: var(--text-faint); font-size: 11px;
+  }
+  .build-row .name {
+    display: flex; flex-direction: column;
+    gap: 2px;
+  }
+  .build-row .name .id {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--text-faint);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+  .build-row .name .label {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-main);
+  }
+  .timeline {
+    display: flex; align-items: center; gap: 0;
+  }
+  .timeline .step {
+    display: flex; flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    min-width: 64px;
+  }
+  .timeline .step .dot {
+    width: 12px; height: 12px;
+    border-radius: 50%;
+    background: var(--border-card);
+    border: 2px solid var(--bg-card);
+    box-shadow: 0 0 0 1px var(--border-card);
+  }
+  .timeline .step.done .dot {
+    background: var(--brand-green-bright);
+    box-shadow: 0 0 0 1px var(--brand-green-bright);
+  }
+  .timeline .step.active .dot {
+    background: var(--working);
+    box-shadow: 0 0 0 1px var(--working);
+    animation: pulse 1.2s ease-in-out infinite;
+  }
+  .timeline .step.optional .dot {
+    border-style: dashed;
+  }
+  .timeline .step .lbl {
+    font-family: var(--font-mono);
+    font-size: 9px;
+    color: var(--text-faint);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+  .timeline .step.done .lbl, .timeline .step.active .lbl {
+    color: var(--text-main);
+  }
+  .timeline .step.optional .lbl {
+    opacity: 0.6;
+  }
+  .timeline .connector {
+    flex: 1;
+    height: 2px;
+    background: var(--border-card);
+    margin: 0 -2px;
+    margin-top: -14px;
+    position: relative;
+    z-index: -1;
+    min-width: 16px;
+  }
+  .timeline .connector.done {
+    background: var(--brand-green-bright);
+  }
+  .build-row .eta {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--text-faint);
+    text-align: right;
+    white-space: nowrap;
+  }
+  .build-row .eta.done {
+    color: var(--brand-green-bright);
+  }
+  .build-row .row-btn {
+    background: transparent;
+    border: 1px solid var(--border-card);
+    color: var(--text-main);
+    padding: 6px 14px;
+    border-radius: 6px;
+    font-size: 11px;
+    font-family: var(--font-mono);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    font-weight: 700;
+    cursor: pointer;
+    min-width: 76px;
+    text-align: center;
+  }
+  .build-row .row-btn.cancel {
+    color: var(--text-muted);
+  }
+  .build-row .row-btn.cancel:hover {
+    border-color: var(--brand-red);
+    color: var(--brand-red);
+    background: rgba(239,68,68,0.05);
+  }
+  .build-row .row-btn.open {
+    border-color: var(--brand-green-bright);
+    color: var(--brand-green-bright);
+  }
+  .build-row .row-btn.open:hover {
+    background: var(--brand-green-bright);
+    color: #042f1f;
+  }
+
+  /* ---------- IMAGE THUMBNAILS ---------- */
+  .img-frame {
+    position: relative;
+    border-radius: 8px;
+    overflow: hidden;
+    background: var(--bg-input);
+    border: 1px solid var(--border-card);
+  }
+  .img-frame.aspect-16-9 { aspect-ratio: 16/9; }
+  .img-frame.aspect-1-1  { aspect-ratio: 1/1; }
+  .img-frame.aspect-3-4  { aspect-ratio: 3/4; }
+  .img-frame img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .img-frame.greyed img { filter: grayscale(1) brightness(0.6); }
+  .img-frame .ratio-badge {
+    position: absolute; top: 6px; right: 6px;
+    font-family: var(--font-mono); font-size: 10px;
+    background: rgba(0,0,0,0.6); color: var(--text-main);
+    padding: 2px 6px; border-radius: 4px;
+  }
+
+  .swap-grid {
+    display: grid;
+    grid-template-columns: 1fr 24px 1fr;
+    align-items: center; gap: 10px;
+  }
+  .swap-arrow {
+    color: var(--brand-green-bright);
+    font-size: 20px; text-align: center;
+  }
+  .swap-caption {
+    margin-top: 6px;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--text-muted);
+    text-align: center;
+  }
+
+  /* ---------- PROMPT PREVIEW ---------- */
+  .prompt-preview {
+    margin-top: 10px;
+    padding: 8px 10px;
+    background: var(--bg-input);
+    border: 1px solid var(--border-card);
+    border-radius: 6px;
+    font-size: 12px;
+    color: var(--text-muted);
+    line-height: 1.5;
+  }
+  .prompt-preview .more {
+    color: var(--brand-teal-bright);
+    cursor: pointer;
+    font-size: 11px;
+    margin-left: 4px;
+  }
+
+  /* ---------- VERDICT PILLS ---------- */
+  .verdict-row { display: flex; align-items: center; gap: 12px; }
+  .pill-big {
+    font-size: 22px; font-weight: 700;
+    width: 80px; height: 80px;
+    border-radius: 12px;
+    display: inline-flex; align-items: center; justify-content: center;
+    flex-direction: column;
+    flex-shrink: 0;
+  }
+  .pill-big.accept { background: rgba(21,185,129,0.12); color: var(--brand-green-bright); border: 1px solid rgba(21,185,129,0.3); }
+  .pill-big.usable { background: rgba(234,179,8,0.12); color: var(--brand-yellow); border: 1px solid rgba(234,179,8,0.3); }
+  .pill-big.redo   { background: rgba(239,68,68,0.12); color: var(--brand-red); border: 1px solid rgba(239,68,68,0.3); }
+  .pill-big .label { font-size: 9px; font-weight: 700; letter-spacing: 0.12em; margin-top: 2px; }
+  .pill-big .glyph { font-size: 28px; line-height: 1; }
+
+  .pill-small {
+    display: inline-flex; align-items: center; gap: 4px;
+    font-size: 10px; font-weight: 700;
+    padding: 3px 8px;
+    border-radius: var(--radius-pill);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+  .pill-small.pass { background: rgba(21,185,129,0.15); color: var(--brand-green-bright); }
+  .pill-small.fail { background: rgba(239,68,68,0.15); color: var(--brand-red); }
+  .pill-small.advisory { background: rgba(234,179,8,0.15); color: var(--brand-yellow); }
+  .pill-small.rewritten { background: rgba(167,139,250,0.15); color: var(--brand-violet); }
+  .pill-small.kind { background: var(--bg-input); color: var(--text-muted); border: 1px solid var(--border-card); }
+
+  .verdict-note {
+    font-size: 13px;
+    color: var(--text-main);
+    line-height: 1.55;
+  }
+
+  .suggested-uses {
+    display: flex; gap: 6px; flex-wrap: wrap; margin-top: 10px;
+  }
+  .chip-use {
+    padding: 4px 10px;
+    background: var(--bg-input);
+    border: 1px solid var(--border-card);
+    border-radius: var(--radius-pill);
+    font-size: 11px;
+    color: var(--text-main);
+    cursor: pointer;
+    font-family: var(--font-mono);
+  }
+  .chip-use:hover { border-color: var(--brand-green-bright); color: var(--brand-green-bright); }
+
+  /* ---------- DIFF DISPLAY ---------- */
+  .diff {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    border-radius: 6px;
+    overflow: hidden;
+    border: 1px solid var(--border-card);
+  }
+  .diff .line {
+    padding: 6px 12px;
+    display: flex; align-items: flex-start; gap: 8px;
+  }
+  .diff .line.del { background: rgba(239,68,68,0.07); color: #fca5a5; }
+  .diff .line.add { background: rgba(21,185,129,0.07); color: #6ee7b7; }
+  .diff .line .marker { width: 14px; flex-shrink: 0; opacity: 0.6; }
+
+  /* ---------- DIFF SELECTOR LIST ---------- */
+  .diff-selector-list { display: flex; flex-direction: column; gap: 0; }
+  .diff-selector {
+    display: grid;
+    grid-template-columns: 14px 1fr auto auto;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 0;
+    font-size: 12px;
+    cursor: pointer;
+  }
+  .diff-selector + .diff-selector { border-top: 1px solid var(--border-card); }
+  .diff-selector .caret { color: var(--text-faint); }
+  .diff-selector .selector { font-family: var(--font-mono); color: var(--text-main); }
+  .diff-selector .kind { font-size: 10px; color: var(--text-muted); padding: 2px 6px; background: var(--bg-input); border-radius: 4px; }
+  .diff-selector .nums { font-family: var(--font-mono); font-size: 11px; }
+  .diff-selector .nums .pos { color: var(--brand-green-bright); }
+  .diff-selector .nums .neg { color: var(--brand-red); }
+
+  /* ---------- LINT VIOLATIONS ---------- */
+  .lint-headline {
+    display: flex; align-items: center; gap: 16px;
+    margin-bottom: 16px;
+  }
+  .lint-pill {
+    font-size: 18px; font-weight: 800;
+    padding: 10px 24px;
+    border-radius: var(--radius-pill);
+    letter-spacing: 0.08em;
+  }
+  .lint-pill.fail { background: rgba(239,68,68,0.12); color: var(--brand-red); border: 1px solid rgba(239,68,68,0.3); }
+  .lint-pill.pass { background: rgba(21,185,129,0.12); color: var(--brand-green-bright); border: 1px solid rgba(21,185,129,0.3); }
+  .lint-summary { color: var(--text-muted); font-size: 13px; }
+
+  .violations { list-style: none; padding: 0; margin: 0; }
+  .violation {
+    display: grid;
+    grid-template-columns: 14px 1fr auto;
+    align-items: center; gap: 10px;
+    padding: 8px 0;
+    font-size: 12px;
+  }
+  .violation + .violation { border-top: 1px solid var(--border-card); }
+  .violation .sel { font-family: var(--font-mono); color: var(--text-main); }
+  .violation .x { color: var(--brand-red); font-weight: 700; }
+  .violation .fixable { font-size: 10px; padding: 2px 6px; background: rgba(21,185,129,0.12); color: var(--brand-green-bright); border-radius: 4px; cursor: pointer; }
+
+  /* ---------- RADAR CHART ---------- */
+  .radar-wrap {
+    display: grid;
+    grid-template-columns: 220px 1fr;
+    gap: 16px;
+    align-items: center;
+  }
+  .radar-svg { display: block; }
+  .radar-axis { stroke: var(--border-card); stroke-width: 1; fill: none; }
+  .radar-grid { stroke: var(--border-card); stroke-width: 0.5; fill: none; opacity: 0.4; }
+  .radar-shape { fill: var(--brand-green-bright); fill-opacity: 0.15; stroke: var(--brand-green-bright); stroke-width: 1.5; }
+  .radar-dot { fill: var(--brand-green-bright); }
+  .radar-label { font-size: 9px; fill: var(--text-muted); font-family: var(--font-body); }
+  .radar-score { font-size: 10px; fill: var(--brand-green-bright); font-family: var(--font-mono); font-weight: 700; }
+
+  .keep-fix-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 12px;
+    margin-top: 14px;
+    padding-top: 14px;
+    border-top: 1px solid var(--border-card);
+  }
+  .kf-col { font-size: 11px; }
+  .kf-col h4 {
+    margin: 0 0 6px;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--text-faint);
+  }
+  .kf-col.keep h4 { color: var(--brand-green-bright); }
+  .kf-col.fix h4 { color: var(--brand-red); }
+  .kf-col.qw h4 { color: var(--brand-teal-bright); }
+  .kf-col ul { list-style: none; padding: 0; margin: 0; color: var(--text-muted); }
+  .kf-col li { padding: 2px 0; font-size: 11px; }
+  .kf-col li::before { content: "•  "; color: var(--text-faint); }
+
+  /* ---------- ASK USER (BLOCKING) ---------- */
+  .card.blocking {
+    border: 1px solid var(--brand-green-bright);
+    box-shadow: var(--shadow-blocker);
+    position: relative;
+  }
+  .card.blocking::before {
+    content: "BLOCKING";
+    position: absolute;
+    top: -8px; left: 12px;
+    font-size: 9px; font-weight: 800;
+    letter-spacing: 0.12em;
+    background: var(--brand-green-bright);
+    color: #0a0a0a;
+    padding: 2px 8px;
+    border-radius: 4px;
+  }
+  .ask-options {
+    display: flex; flex-direction: column; gap: 8px;
+    margin-top: 12px;
+  }
+  .ask-options .btn {
+    justify-content: flex-start;
+    padding: 12px 16px;
+    font-size: 13px;
+  }
+  .ask-options .btn.primary { font-size: 13px; }
+
+  /* ---------- DIAGNOSTIC CHIPS ---------- */
+  .chip-row {
+    display: flex; flex-direction: column; gap: 6px;
+    padding: 8px 0;
+  }
+  .chip {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 4px 10px;
+    background: var(--bg-input);
+    border: 1px solid var(--border-card);
+    border-radius: var(--radius-pill);
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--text-muted);
+    width: fit-content;
+    max-width: 100%;
+  }
+  .chip .arrow { color: var(--brand-teal-bright); }
+  .chip .ts { color: var(--text-faint); margin-left: auto; padding-left: 12px; }
+  .chip.expandable { cursor: pointer; }
+  .chip.expandable:hover { border-color: var(--brand-teal-bright); }
+
+  .thread-expanded {
+    margin-top: 8px;
+    padding: 12px;
+    background: var(--bg-input);
+    border: 1px solid var(--border-card);
+    border-radius: 8px;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    line-height: 1.7;
+  }
+  .thread-expanded .row { display: grid; grid-template-columns: 130px 60px 1fr; gap: 10px; color: var(--text-muted); }
+  .thread-expanded .row .from { color: var(--brand-teal-bright); }
+  .thread-expanded .row .ts { color: var(--text-faint); }
+
+  /* ---------- IMAGE-OPS COMPOSITE ---------- */
+  .composite-row {
+    display: grid;
+    grid-template-columns: 60px 60px 28px 90px;
+    align-items: center;
+    gap: 10px;
+  }
+  .composite-row .arrow { color: var(--brand-green-bright); text-align: center; font-size: 18px; }
+  .composite-row .op-chip {
+    padding: 3px 8px;
+    background: var(--bg-input);
+    border: 1px solid var(--border-card);
+    border-radius: var(--radius-pill);
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--text-muted);
+    text-align: center;
+    white-space: nowrap;
+  }
+
+  /* ---------- SCREENSHOT FRAME ---------- */
+  .ss-frame {
+    border-radius: 6px;
+    overflow: hidden;
+    border: 1px solid var(--border-card);
+    background: var(--bg-input);
+    aspect-ratio: 16/10;
+  }
+  .ss-frame img { width: 100%; height: 100%; object-fit: cover; display: block; }
+
+  /* ---------- REAL OS-SNACKBAR (lifted from app/globals.css:1236) ---------- */
+  :root {
+    --info:    #3B82F6;
+    --warning: #FACC15;
+    --error:   #EF4444;
+    --working: #F97316;
+    --success: var(--brand-green-bright);
+    --text-on-brand: #042f1f;
+    --text-dim: var(--text-faint);
+    --border-strong: var(--border-card);
+  }
+  .snackbar-stage {
+    background: #050507;
+    border: 1px dashed var(--border-card);
+    border-radius: var(--radius-card);
+    padding: 36px 24px 24px;
+    margin: 12px 0;
+    position: relative;
+    display: flex; flex-direction: column; gap: 8px;
+    align-items: flex-end;
+  }
+  .snackbar-stage::before {
+    content: "os-snackbar surface — fixed bottom-right at z-index 9999";
+    position: absolute;
+    top: 10px; left: 14px;
+    font-family: var(--font-mono); font-size: 10px;
+    color: var(--text-faint);
+    text-transform: uppercase; letter-spacing: 0.08em;
+  }
+  .os-snackbar {
+    display: flex;
+    align-items: stretch;
+    background: var(--bg-card);
+    border: 1px solid var(--border-card);
+    border-radius: var(--radius-card);
+    box-shadow: 0 8px 20px rgba(0,0,0,0.4);
+    overflow: hidden;
+    position: relative;
+    min-width: 440px;
+    max-width: 560px;
+    font-family: var(--font-body);
+  }
+  .os-snackbar-state {
+    display: flex; flex-direction: column;
+    justify-content: center; align-items: flex-start;
+    padding: 14px 16px;
+    width: 140px; flex-shrink: 0;
+    color: var(--text-on-brand);
+    gap: 6px;
+  }
+  .os-snackbar-state-icon {
+    display: flex; align-items: center; justify-content: flex-start;
+    margin-bottom: 2px;
+    font-size: 18px; font-weight: 700;
+  }
+  .os-snackbar-state-label {
+    font-family: var(--font-mono);
+    font-size: 11px; font-weight: 700;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    line-height: 1; white-space: nowrap;
+  }
+  .os-snackbar-state-code {
+    font-family: var(--font-mono);
+    font-size: 9px; font-weight: 500;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    line-height: 1; opacity: 0.72;
+    white-space: nowrap;
+  }
+  .os-snackbar-success .os-snackbar-state { background: var(--brand-green-bright); color: var(--text-on-brand); }
+  .os-snackbar-info    .os-snackbar-state { background: var(--info);                color: #fff; }
+  .os-snackbar-warning .os-snackbar-state { background: var(--warning);             color: var(--text-on-brand); }
+  .os-snackbar-error   .os-snackbar-state { background: var(--error);               color: #fff; }
+
+  .os-snackbar-progress {
+    background: #fff;
+    border: 2px solid var(--working);
+  }
+  .os-snackbar-progress .os-snackbar-state {
+    background: transparent;
+    color: var(--working);
+  }
+  .os-snackbar-progress .os-snackbar-heading,
+  .os-snackbar-progress .os-snackbar-message { color: #0f172a; }
+  .os-snackbar-progress .os-snackbar-action {
+    color: var(--working);
+    border-color: rgba(249,115,22,0.5);
+  }
+
+  .os-snackbar-body {
+    flex: 1;
+    padding: 12px 14px;
+    display: flex; flex-direction: column;
+    gap: 3px; min-width: 0;
+    justify-content: center;
+  }
+  .os-snackbar-heading {
+    font-size: 14px; font-weight: 600;
+    color: var(--text-main);
+    line-height: 1.3;
+    letter-spacing: -0.005em;
+    word-break: break-word;
+  }
+  .os-snackbar-message {
+    font-size: 13px;
+    line-height: 1.45;
+    color: var(--text-muted);
+    word-break: break-word;
+  }
+  .os-snackbar-actions {
+    display: flex; align-items: center; gap: 6px;
+    padding: 10px 12px 10px 0;
+    flex-shrink: 0;
+  }
+  .os-snackbar-action {
+    font-family: var(--font-mono);
+    font-size: 10px; font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    padding: 6px 12px;
+    border-radius: 6px;
+    border: 1px solid var(--border-card);
+    background: transparent;
+    color: var(--text-main);
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  .os-snackbar-action:hover {
+    border-color: var(--brand-green-bright);
+    color: var(--brand-green-bright);
+  }
+  .os-snackbar-dismiss {
+    width: 28px; height: 28px;
+    display: flex; align-items: center; justify-content: center;
+    border-radius: 6px;
+    border: 0;
+    background: transparent;
+    color: var(--text-faint);
+    cursor: pointer;
+    font-size: 14px;
+  }
+  .os-snackbar-dismiss:hover {
+    color: var(--text-main);
+    background: var(--bg-card-hover);
+  }
+  .os-snackbar-progress-bar {
+    position: absolute;
+    bottom: 0; left: 3px; right: 0;
+    height: 2px;
+    background: rgba(249,115,22,0.18);
+    overflow: hidden;
+  }
+  .os-snackbar-progress-bar::after {
+    content: '';
+    display: block;
+    width: 32%; height: 100%;
+    background: var(--working);
+    animation: os-fathom 1.6s cubic-bezier(0.4,0,0.2,1) infinite;
+  }
+  @keyframes os-fathom {
+    0% { transform: translateX(-110%); }
+    100% { transform: translateX(420%); }
+  }
+
+  /* ---------- TODO PANEL ---------- */
+  .todos-panel {
+    background: var(--bg-card);
+    border: 1px solid var(--border-card);
+    border-radius: var(--radius-card);
+    padding: 14px 16px;
+    box-shadow: var(--shadow-card);
+  }
+  .todos-head {
+    display: flex; align-items: center; gap: 10px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--border-card);
+    margin-bottom: 10px;
+  }
+  .todos-head .glyph {
+    color: var(--brand-green-bright);
+    font-size: 14px;
+  }
+  .todos-head .title {
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-muted);
+  }
+  .todos-list { list-style: none; padding: 0; margin: 0; }
+  .todos-list li {
+    display: flex; align-items: center; gap: 10px;
+    padding: 6px 0;
+    font-size: 13px;
+  }
+  .todos-list li .gly {
+    width: 14px; color: var(--text-faint);
+  }
+  .todos-list li[data-status="in_progress"] .gly {
+    color: var(--brand-green-bright);
+    animation: pulse 1.2s ease-in-out infinite;
+  }
+  .todos-list li[data-status="completed"] .gly { color: var(--brand-green-bright); }
+  .todos-list li[data-status="in_progress"] .text { color: var(--text-main); font-weight: 500; }
+  .todos-list li[data-status="pending"] .text { color: var(--text-muted); }
+  .todos-list li[data-status="completed"] .text { color: var(--text-faint); text-decoration: line-through; }
+  .todos-more {
+    background: none; border: 0;
+    color: var(--text-muted); font-size: 11px;
+    padding: 6px 0;
+    cursor: pointer;
+    font-family: inherit;
+  }
+  .todos-foot {
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid var(--border-card);
+  }
+  .todos-foot .btn-continue {
+    background: transparent;
+    border: 1px solid var(--text-muted);
+    color: var(--text-main);
+    padding: 7px 16px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 500;
+    letter-spacing: 0.04em;
+    cursor: pointer;
+    transition: all 0.12s ease;
+  }
+  .todos-foot .btn-continue:hover {
+    border-color: var(--brand-green-bright);
+    color: var(--brand-green-bright);
+  }
+
+  /* ---------- TAG CHIPS (image status) ---------- */
+  .tag-row {
+    display: flex; flex-wrap: wrap; gap: 6px;
+    align-items: center;
+  }
+  .tag-row .tag-label {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--text-faint);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-right: 4px;
+  }
+  .tag {
+    font-family: var(--font-mono);
+    font-size: 10px; font-weight: 700;
+    padding: 4px 9px;
+    border-radius: 4px;
+    border: 1px solid var(--border-card);
+    background: var(--bg-input);
+    color: var(--text-muted);
+    cursor: pointer;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+  .tag:hover { border-color: var(--text-main); color: var(--text-main); }
+  .tag.active.star     { background: rgba(250,204,21,0.18); border-color: #facc15; color: #facc15; }
+  .tag.active.b-roll   { background: rgba(167,139,250,0.15); border-color: var(--brand-violet); color: var(--brand-violet); }
+  .tag.active.trash    { background: rgba(239,68,68,0.15); border-color: var(--brand-red); color: var(--brand-red); }
+  /* Auto-assigned (display-only) tag chips — non-clickable, smaller, sit
+     above the user-assignable button row. */
+  .tag-display-row {
+    display: flex; flex-wrap: wrap; gap: 4px;
+    align-items: center;
+    padding: 0 0 6px 0;
+  }
+  .tag-display-row .tag-label { margin-right: 4px; }
+  .chip {
+    font-family: var(--font-mono);
+    font-size: 9px; font-weight: 700;
+    padding: 2px 6px;
+    border-radius: 3px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    border: 1px solid transparent;
+  }
+  .chip.hero     { background: rgba(245,158,11,0.15); border-color: #f59e0b; color: #fbbf24; }
+  .chip.used     { background: rgba(16,185,129,0.15); border-color: var(--brand-green-bright); color: var(--brand-green-bright); }
+  .chip.ready    { background: rgba(6,182,212,0.15);  border-color: #06b6d4; color: #22d3ee; }
+  .chip.approved { background: rgba(94,234,212,0.15); border-color: var(--brand-teal-bright); color: var(--brand-teal-bright); }
+  .chip.redo     { background: rgba(234,179,8,0.15);  border-color: var(--brand-yellow); color: var(--brand-yellow); }
+  .chip.ingested { background: rgba(107,114,128,0.20); border-color: #6b7280; color: #9ca3af; }
+
+  /* ---------- SLOT ASSIGN ROW ---------- */
+  .slot-assign {
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top: 1px solid var(--border-card);
+    display: flex; align-items: center; gap: 8px;
+    flex-wrap: wrap;
+  }
+  .slot-assign .label {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--text-faint);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+  .slot-assign select {
+    background: var(--bg-input);
+    border: 1px solid var(--border-card);
+    color: var(--text-main);
+    padding: 5px 10px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-family: inherit;
+  }
+
+  /* ---------- IMAGE_OPS WORKSHOP ---------- */
+  .ops-tabs {
+    display: flex;
+    gap: 0;
+    border-bottom: 1px solid var(--border-card);
+    margin: -14px -16px 14px;
+  }
+  .ops-tab {
+    padding: 10px 14px;
+    font-family: var(--font-mono);
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--text-muted);
+    background: transparent;
+    border: 0;
+    border-bottom: 2px solid transparent;
+    cursor: pointer;
+  }
+  .ops-tab.active {
+    color: var(--brand-green-bright);
+    border-bottom-color: var(--brand-green-bright);
+  }
+  .ops-tab:hover:not(.active) {
+    color: var(--text-main);
+  }
+  .ops-canvas {
+    background: var(--bg-input);
+    border: 1px solid var(--border-card);
+    border-radius: 8px;
+    padding: 14px;
+    position: relative;
+  }
+  /* SLICE: grid overlay on source */
+  .slice-source {
+    position: relative;
+    aspect-ratio: 16/9;
+    border-radius: 6px;
+    overflow: hidden;
+  }
+  .slice-source img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .slice-grid {
+    position: absolute; inset: 0;
+    pointer-events: none;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    grid-template-rows: repeat(2, 1fr);
+  }
+  .slice-grid > div {
+    border: 1px dashed rgba(94,234,212,0.7);
+    background: rgba(94,234,212,0.05);
+    display: flex; align-items: center; justify-content: center;
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--brand-teal-bright);
+    text-shadow: 0 0 4px rgba(0,0,0,0.6);
+  }
+  .slice-controls {
+    display: flex; gap: 16px; align-items: center;
+    margin-top: 10px;
+    font-size: 12px;
+    color: var(--text-muted);
+  }
+  .slice-controls input[type="number"] {
+    width: 50px;
+    background: var(--bg-card);
+    border: 1px solid var(--border-card);
+    color: var(--text-main);
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-family: var(--font-mono);
+  }
+  .slice-outputs {
+    margin-top: 12px;
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 6px;
+  }
+  .slice-outputs .out-tile {
+    aspect-ratio: 1/1;
+    border-radius: 4px;
+    background: var(--bg-input);
+    border: 1px solid var(--border-card);
+    overflow: hidden;
+    position: relative;
+  }
+  .slice-outputs .out-tile img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .slice-outputs .out-tile .num {
+    position: absolute; top: 2px; left: 4px;
+    font-family: var(--font-mono);
+    font-size: 9px; font-weight: 700;
+    color: var(--brand-teal-bright);
+    text-shadow: 0 0 3px rgba(0,0,0,0.7);
+  }
+
+  /* CROP: source with crop frame overlay */
+  .crop-source {
+    position: relative;
+    aspect-ratio: 4/3;
+    border-radius: 6px;
+    overflow: hidden;
+  }
+  .crop-source img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .crop-frame {
+    position: absolute;
+    top: 12%; left: 18%;
+    width: 50%; height: 70%;
+    border: 2px solid var(--brand-green-bright);
+    box-shadow: 0 0 0 9999px rgba(0,0,0,0.55);
+  }
+  .crop-frame .corner {
+    position: absolute;
+    width: 10px; height: 10px;
+    background: var(--brand-green-bright);
+  }
+  .crop-frame .corner.tl { top: -2px; left: -2px; }
+  .crop-frame .corner.tr { top: -2px; right: -2px; }
+  .crop-frame .corner.bl { bottom: -2px; left: -2px; }
+  .crop-frame .corner.br { bottom: -2px; right: -2px; }
+
+  /* FORMAT-CONVERT: simple before/after row */
+  .convert-row {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    gap: 14px;
+    align-items: center;
+  }
+  .convert-row .file-info {
+    background: var(--bg-card);
+    border: 1px solid var(--border-card);
+    border-radius: 6px;
+    padding: 10px;
+    text-align: center;
+  }
+  .convert-row .file-info .name {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--text-main);
+    margin-bottom: 4px;
+  }
+  .convert-row .file-info .meta {
+    font-family: var(--font-mono);
+    font-size: 9px;
+    color: var(--text-faint);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+  .convert-row .arrow {
+    color: var(--brand-green-bright);
+    font-size: 24px;
+  }
+
+  /* ---------- ASK_USER variants ---------- */
+  .ask-context-box {
+    padding: 10px 12px;
+    background: var(--bg-input);
+    border: 1px solid var(--border-card);
+    border-radius: 6px;
+    font-size: 12px;
+    color: var(--text-muted);
+    line-height: 1.55;
+    margin-bottom: 14px;
+    border-left: 2px solid var(--brand-teal-bright);
+  }
+  .ask-agent-chip {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 3px 10px;
+    background: rgba(21,185,129,0.12);
+    border: 1px solid rgba(21,185,129,0.3);
+    color: var(--brand-green-bright);
+    border-radius: var(--radius-pill);
+    font-family: var(--font-mono);
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+  .ask-question-large {
+    font-size: 16px;
+    color: var(--text-main);
+    font-weight: 500;
+    line-height: 1.4;
+    margin: 12px 0 4px;
+  }
+  .ask-freeform {
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px dashed var(--border-card);
+  }
+  .ask-freeform-label {
+    font-size: 11px;
+    color: var(--text-faint);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-bottom: 6px;
+  }
+  .ask-freeform-input {
+    width: 100%;
+    padding: 10px 12px;
+    background: var(--bg-input);
+    border: 1px solid var(--border-card);
+    border-radius: 6px;
+    color: var(--text-main);
+    font-family: inherit;
+    font-size: 13px;
+  }
+  .ask-freeform-input:focus {
+    outline: none;
+    border-color: var(--brand-green-bright);
+  }
+  .ask-button-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin-top: 12px;
+  }
+  .ask-button-grid .btn {
+    padding: 14px 16px;
+    font-size: 13px;
+    justify-content: center;
+    text-align: center;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .ask-button-grid .btn .sub {
+    font-size: 10px;
+    color: var(--text-muted);
+    font-weight: 400;
+  }
+  .ask-button-grid .btn.primary .sub { color: rgba(0,0,0,0.65); }
+
+  /* ---------- TOOL EXPLAINER ---------- */
+  .explainer {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin: 12px 0 24px;
+  }
+  .explainer .col {
+    background: var(--bg-card);
+    border: 1px solid var(--border-card);
+    border-radius: var(--radius-card);
+    padding: 16px;
+  }
+  .explainer .col h4 {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    margin: 0 0 4px;
+    color: var(--brand-green-bright);
+    letter-spacing: 0.04em;
+  }
+  .explainer .col .subtitle {
+    font-size: 11px;
+    color: var(--text-faint);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-bottom: 12px;
+  }
+  .explainer .col p {
+    margin: 8px 0;
+    font-size: 12px;
+    line-height: 1.55;
+    color: var(--text-muted);
+  }
+  .explainer .col strong { color: var(--text-main); font-weight: 600; }
+  .explainer .col code {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    background: var(--bg-input);
+    padding: 1px 5px;
+    border-radius: 3px;
+    color: var(--brand-teal-bright);
+  }
+  .explainer .col .verb {
+    display: inline-block;
+    font-family: var(--font-mono);
+    font-size: 10px; font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+  }
+  .explainer .col .verb.write { background: rgba(21,185,129,0.15); color: var(--brand-green-bright); }
+  .explainer .col .verb.read { background: rgba(94,234,212,0.15); color: var(--brand-teal-bright); }
+
+  /* ---------- ASK_USER w/ image preview ---------- */
+  .ask-image-preview {
+    margin: 12px 0;
+    border-radius: 8px;
+    overflow: hidden;
+    border: 1px solid var(--border-card);
+    aspect-ratio: 16/9;
+  }
+  .ask-image-preview img { width: 100%; height: 100%; object-fit: cover; display: block; }
+
+  /* ---------- ASK_USER w/ recommendation badge ---------- */
+  .ask-recommendation {
+    position: absolute;
+    top: -8px; right: 12px;
+    font-family: var(--font-mono);
+    font-size: 9px; font-weight: 700;
+    background: var(--brand-teal-bright);
+    color: #042f1f;
+    padding: 3px 8px;
+    border-radius: 4px;
+    letter-spacing: 0.12em;
+  }
+  .ask-button-grid .btn.recommended {
+    position: relative;
+  }
+
+  /* ---------- DISCOVERY MULTI-FIELD ---------- */
+  .discovery-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-card);
+    border-radius: var(--radius-card);
+    padding: 18px;
+    box-shadow: var(--shadow-card);
+  }
+  .discovery-card .head {
+    display: flex; align-items: center; gap: 10px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--border-card);
+    margin-bottom: 14px;
+  }
+  .discovery-card .head .glyph {
+    color: var(--brand-green-bright);
+    font-size: 14px;
+  }
+  .discovery-card .head .title {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-main);
+  }
+  .discovery-card .head .progress {
+    margin-left: auto;
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--text-faint);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+  .discovery-card .context {
+    font-size: 13px;
+    color: var(--text-muted);
+    line-height: 1.55;
+    margin-bottom: 16px;
+    padding-left: 12px;
+    border-left: 2px solid var(--brand-teal-bright);
+  }
+  .field {
+    display: flex; flex-direction: column;
+    gap: 6px;
+    margin-bottom: 16px;
+  }
+  .field .q {
+    font-size: 13px;
+    color: var(--text-main);
+    font-weight: 500;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .field .q .req {
+    color: var(--brand-red);
+    font-size: 11px;
+  }
+  .field .help {
+    font-size: 11px;
+    color: var(--text-faint);
+  }
+  .field input[type="text"],
+  .field textarea,
+  .field select {
+    background: var(--bg-input);
+    border: 1px solid var(--border-card);
+    color: var(--text-main);
+    padding: 10px 12px;
+    border-radius: 6px;
+    font-family: inherit;
+    font-size: 13px;
+    width: 100%;
+  }
+  .field input[type="text"]:focus,
+  .field textarea:focus,
+  .field select:focus {
+    outline: none;
+    border-color: var(--brand-green-bright);
+  }
+  .field textarea { min-height: 60px; resize: vertical; }
+  .field .radio-row {
+    display: flex; flex-wrap: wrap; gap: 6px;
+  }
+  .field .radio-row label {
+    padding: 8px 14px;
+    background: var(--bg-input);
+    border: 1px solid var(--border-card);
+    border-radius: 6px;
+    font-size: 12px;
+    cursor: pointer;
+    color: var(--text-main);
+  }
+  .field .radio-row label.selected {
+    background: rgba(21,185,129,0.12);
+    border-color: var(--brand-green-bright);
+    color: var(--brand-green-bright);
+  }
+  .field .radio-row input { display: none; }
+
+  /* ---------- DIRECTION CARDS ---------- */
+  .direction-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+    margin-top: 6px;
+  }
+  .direction {
+    background: var(--bg-input);
+    border: 1px solid var(--border-card);
+    border-radius: 8px;
+    padding: 12px;
+    cursor: pointer;
+    transition: all 0.12s ease;
+  }
+  .direction:hover {
+    border-color: var(--text-muted);
+  }
+  .direction.selected {
+    border-color: var(--brand-green-bright);
+    box-shadow: 0 0 0 2px rgba(21,185,129,0.2);
+  }
+  .direction .dir-label {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-main);
+    margin-bottom: 4px;
+  }
+  .direction .dir-mood {
+    font-size: 11px;
+    color: var(--text-muted);
+    line-height: 1.4;
+    margin-bottom: 8px;
+    font-style: italic;
+  }
+  .direction .dir-palette {
+    display: flex; gap: 0;
+    border-radius: 4px;
+    overflow: hidden;
+    height: 18px;
+    margin-bottom: 6px;
+  }
+  .direction .dir-palette .swatch { flex: 1; }
+  .direction .dir-fonts {
+    font-family: var(--font-mono);
+    font-size: 9px;
+    color: var(--text-faint);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+  .direction .dir-refs {
+    margin-top: 4px;
+    font-size: 10px;
+    color: var(--text-faint);
+  }
+
+  /* ---------- ANNOTATION ---------- */
+  .annotation {
+    margin-top: 4px;
+    margin-bottom: 16px;
+    padding: 8px 12px;
+    background: rgba(94, 234, 212, 0.06);
+    border-left: 2px solid var(--brand-teal-bright);
+    border-radius: 0 6px 6px 0;
+    font-size: 12px;
+    color: var(--text-muted);
+    font-family: var(--font-mono);
+  }
+  .annotation strong { color: var(--brand-teal-bright); font-weight: 600; }
+</style>
+</head>
+<body>
+<div class="stage">
+
+  <h1 class="stage-title">ToolCard mockup — what JC would build</h1>
+  <p class="stage-sub">
+    Single file, ONYX dark theme, all tokens lifted from
+    <span style="font-family:var(--font-mono);color:var(--brand-teal-bright)">app/globals.css</span>.
+    13 tools collapse to 4 archetypes + ~7 base components.
+    Open this in a browser to evaluate spacing, contrast, hierarchy.
+  </p>
+
+  <!-- ============================================================== -->
+  <h2 class="archetype">Archetype 1 — Job cards</h2>
+  <p class="archetype-sub">Long-running, mounts at tool-fire, keeps updating from the event bus across turns. Six tools, one base.</p>
+
+  <div class="annotation"><strong>Unified build card</strong> — same shape for <code>build_vibe</code> (1 row) and <code>build_all_vibes</code> (N rows). Each row: thumb · id+label · timeline · ETA · ONE button. Button is <strong>CANCEL during build, OPEN when done</strong>. WF step renders only when JuniorDev produced one (vibe-3 below); otherwise the timeline starts at <code>html</code>. No card-foot, no "cancel all" — each row owns its own cancel.</div>
+  <div class="card">
+    <div class="card-head">
+      <span class="icon">⚙</span>
+      <span class="title">Building 4 vibes</span>
+      <span class="meta">job_b91d4e</span>
+    </div>
+    <div class="card-body" style="padding-top:4px;padding-bottom:4px">
+      <!-- DONE row, no WF -->
+      <div class="build-row">
+        <div class="thumb"><img src="../public/2026-01-27-debug/hero.jpg" alt=""/></div>
+        <div class="name">
+          <span class="id">vibe-1</span>
+          <span class="label">Qahwa</span>
+        </div>
+        <div class="timeline">
+          <div class="step done"><span class="dot"></span><span class="lbl">html</span></div>
+          <div class="connector done"></div>
+          <div class="step done"><span class="dot"></span><span class="lbl">verify</span></div>
+          <div class="connector done"></div>
+          <div class="step done"><span class="dot"></span><span class="lbl">done</span></div>
+        </div>
+        <span class="eta done">1:42</span>
+        <button class="row-btn open">open</button>
+      </div>
+
+      <!-- VERIFY active, no WF -->
+      <div class="build-row">
+        <div class="thumb"><img src="../public/2026-01-27-debug/cd-direct-hero-v1.jpg" alt=""/></div>
+        <div class="name">
+          <span class="id">vibe-2</span>
+          <span class="label">Heritage</span>
+        </div>
+        <div class="timeline">
+          <div class="step done"><span class="dot"></span><span class="lbl">html</span></div>
+          <div class="connector done"></div>
+          <div class="step active"><span class="dot"></span><span class="lbl">verify</span></div>
+          <div class="connector"></div>
+          <div class="step"><span class="dot"></span><span class="lbl">done</span></div>
+        </div>
+        <span class="eta">~0:30</span>
+        <button class="row-btn cancel">cancel</button>
+      </div>
+
+      <!-- HTML active, JuniorDev (WF visible) -->
+      <div class="build-row">
+        <div class="thumb"><img src="../public/2026-01-27-debug/cliff-majlis-steve.jpeg" alt=""/></div>
+        <div class="name">
+          <span class="id">vibe-3</span>
+          <span class="label">The Deployment <span style="font-size:9px;font-family:var(--font-mono);color:var(--brand-teal-bright);text-transform:uppercase;letter-spacing:0.06em;margin-left:6px">JuniorDev</span></span>
+        </div>
+        <div class="timeline">
+          <div class="step done"><span class="dot"></span><span class="lbl">WF</span></div>
+          <div class="connector done"></div>
+          <div class="step active"><span class="dot"></span><span class="lbl">html</span></div>
+          <div class="connector"></div>
+          <div class="step"><span class="dot"></span><span class="lbl">verify</span></div>
+          <div class="connector"></div>
+          <div class="step"><span class="dot"></span><span class="lbl">done</span></div>
+        </div>
+        <span class="eta">~2:14</span>
+        <button class="row-btn cancel">cancel</button>
+      </div>
+
+      <!-- HTML active, no WF, queued/just-started -->
+      <div class="build-row">
+        <div class="thumb empty">—</div>
+        <div class="name">
+          <span class="id">vibe-4</span>
+          <span class="label">The Race</span>
+        </div>
+        <div class="timeline">
+          <div class="step active"><span class="dot"></span><span class="lbl">html</span></div>
+          <div class="connector"></div>
+          <div class="step"><span class="dot"></span><span class="lbl">verify</span></div>
+          <div class="connector"></div>
+          <div class="step"><span class="dot"></span><span class="lbl">done</span></div>
+        </div>
+        <span class="eta">~3:50</span>
+        <button class="row-btn cancel">cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="annotation"><strong>Single-vibe build (build_vibe)</strong> — same primitive, just one row. Card head names the vibe directly instead of "Building 4 vibes." This row is JuniorDev mode (WF visible) at the verify step — milestone sub-line under html shows what was emitted via <code>report_build_progress</code>.</div>
+  <div class="card">
+    <div class="card-head">
+      <span class="icon">⚙</span>
+      <span class="title">Building vibe-3 — The Deployment</span>
+      <span class="meta">job_a3f12c</span>
+    </div>
+    <div class="card-body" style="padding-top:4px;padding-bottom:4px">
+      <div class="build-row" style="border-top:0">
+        <div class="thumb"><img src="../public/2026-01-27-debug/cliff-majlis-steve.jpeg" alt=""/></div>
+        <div class="name">
+          <span class="id">vibe-3</span>
+          <span class="label">The Deployment <span style="font-size:9px;font-family:var(--font-mono);color:var(--brand-teal-bright);text-transform:uppercase;letter-spacing:0.06em;margin-left:6px">JuniorDev</span></span>
+        </div>
+        <div class="timeline">
+          <div class="step done"><span class="dot"></span><span class="lbl">WF</span></div>
+          <div class="connector done"></div>
+          <div class="step done"><span class="dot"></span><span class="lbl">html</span></div>
+          <div class="connector done"></div>
+          <div class="step active"><span class="dot"></span><span class="lbl">verify</span></div>
+          <div class="connector"></div>
+          <div class="step"><span class="dot"></span><span class="lbl">done</span></div>
+        </div>
+        <span class="eta">~0:30</span>
+        <button class="row-btn cancel">cancel</button>
+      </div>
+      <div style="padding:0 0 12px 60px;font-size:11px;color:var(--text-muted);line-height:1.6">
+        <span style="color:var(--text-faint);font-family:var(--font-mono);text-transform:uppercase;letter-spacing:0.06em;font-size:9px">milestones</span><br/>
+        ▸ Hero section built<br/>
+        ▸ Menu section built<br/>
+        ▸ Booking flow built<br/>
+        <span style="color:var(--brand-green-bright)">▸ Screenshot capturing…</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="annotation"><strong>generate_image (assets-panel route)</strong> — complete. Fires when CD called <code>images_needed</code> from the assets panel + Nano returned. The card layout is image → image description → CD's one-line verdict → STATUS + TAG on the same row → slot-assign. Status (READY, system-set) is display-only; Tag (★ / B-ROLL / TRASH) is the user-assignable triad. <strong>IMAGE-mode generation does NOT get this card</strong> — that path stays snackbar-only (verdict snackbar fires on <code>submit_image_verdict</code>). The split: assets-panel generation is a deliberate "I asked for this prompt" moment that earns chat history; IMAGE-mode iteration is high-volume and would clutter chat. (Ralph 2026-05-06.)</div>
+  <div class="card">
+    <div class="card-head">
+      <span class="icon" style="color:var(--brand-green-bright);border-color:var(--brand-green-bright)">✶</span>
+      <span class="title">Generated cd-direct-hero-v1.jpg — vibe-3 hero</span>
+      <span class="meta">23s</span>
+    </div>
+    <div class="card-body">
+      <div class="img-frame aspect-16-9">
+        <img src="../public/2026-01-27-debug/hero-night.jpeg" alt="" />
+        <span class="ratio-badge">16:9</span>
+      </div>
+      <!-- Image description (Nano's self-description / prompt preview). -->
+      <div class="prompt-preview">
+        Steve sits in the majlis, Sultan on his arm. Golden hour light fills the room as the theme park glitters in the valley below…
+        <span class="more">view full prompt</span>
+      </div>
+      <!-- CD's verdict — one-line take. Renders directly under the image,
+           above the status/tag row. -->
+      <div style="font-family:var(--font-mono);font-size:11px;color:var(--text-main);
+                  padding:6px 0 0;border-top:1px solid var(--border-card);margin-top:6px;
+                  line-height:1.5;">
+        <span style="color:var(--text-faint);font-size:9px;text-transform:uppercase;
+                     letter-spacing:0.08em;margin-right:6px;">Verdict</span>
+        Light is on the money — Sultan's posture reads exactly like the brand shot.
+        Ship it as hero.
+      </div>
+    </div>
+    <div class="card-foot" style="flex-direction:column;align-items:stretch;gap:0">
+      <!-- Status (system-set, display-only) + Tag (user-assignable, 3 options)
+           share a SINGLE row. Status on left, separator, Tag on right.
+           (Ralph 2026-05-06: collapsed from two rows into one.) -->
+      <div class="tag-row" style="align-items:center;gap:10px;flex-wrap:wrap;">
+        <span class="tag-label">Status</span>
+        <span class="chip ready">READY</span>
+        <span style="color:var(--border-card);font-family:var(--font-mono);font-size:14px;
+                     padding:0 4px;">|</span>
+        <span class="tag-label">Tag</span>
+        <button class="tag active star" title="Mark as a great picture">★ STAR</button>
+        <button class="tag" title="Keep as secondary / variant">B-ROLL</button>
+        <button class="tag" title="Cull this asset">TRASH</button>
+      </div>
+      <div class="slot-assign">
+        <span class="label">Hot-swap into</span>
+        <select>
+          <option>— pick slot —</option>
+          <option>vibe-3 / hero</option>
+          <option>vibe-3 / portrait</option>
+          <option>vibe-3 / menu-bg</option>
+          <option>vibe-1 / hero</option>
+          <option>vibe-1 / portrait</option>
+        </select>
+        <button class="btn primary" style="margin-left:auto">Apply swap</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="annotation"><strong>submit_upload_eval (Evaluated upload)</strong> — fires when the user drops a file in the asset library. <strong>Both</strong> surfaces fire: snackbar carries the verdict moment (✓/≈/✗ + one-line note); this toolcard lands beneath as the permanent record. Same data, different role — moment vs archive. Asset-card badge in the panel updates as the third surface (state, not history). (Ralph 2026-05-06.)</div>
+  <div class="card">
+    <div class="card-head">
+      <span class="icon" style="color:var(--brand-cyan-bright,#22d3ee);border-color:var(--brand-cyan-bright,#22d3ee)">⬆</span>
+      <span class="title">Evaluated upload: tags-polar.jpg</span>
+      <span class="meta">just now</span>
+    </div>
+    <div class="card-body">
+      <div class="img-frame aspect-16-9">
+        <img src="../public/2026-01-27-debug/tags-polar.jpg" alt="" />
+        <span class="ratio-badge">JPG</span>
+      </div>
+      <!-- WHAT IT IS — CD's read of the image content. -->
+      <div class="prompt-preview">
+        <span style="color:var(--text-faint);font-size:9px;text-transform:uppercase;
+                     letter-spacing:0.08em;margin-right:6px;">What it is</span>
+        Bug-report screenshot showing the View-tab tag overlay rendered in
+        POLAR theme — dark backdrop on light bg, B-ROLL chip blending into white…
+      </div>
+      <!-- VERDICT — one-line take, same field that flowed to the snackbar. -->
+      <div style="font-family:var(--font-mono);font-size:11px;color:var(--text-main);
+                  padding:6px 0 0;border-top:1px solid var(--border-card);margin-top:6px;
+                  line-height:1.5;">
+        <span style="color:var(--text-faint);font-size:9px;text-transform:uppercase;
+                     letter-spacing:0.08em;margin-right:6px;">Verdict</span>
+        <span style="color:#facc15;font-weight:700;">≈</span>
+        Usable as a bug-report — doesn't need to live in the brand library.
+      </div>
+    </div>
+    <div class="card-foot" style="flex-direction:column;align-items:stretch;gap:0">
+      <!-- Status + Tag on a single row, identical grammar to the
+           generated_image card. INGESTED is the system fallback for uploaded
+           files (READY is the parallel for Nano outputs). -->
+      <div class="tag-row" style="align-items:center;gap:10px;flex-wrap:wrap;">
+        <span class="tag-label">Status</span>
+        <span class="chip ingested">INGESTED</span>
+        <span style="color:var(--border-card);font-family:var(--font-mono);font-size:14px;
+                     padding:0 4px;">|</span>
+        <span class="tag-label">Tag</span>
+        <button class="tag" title="Mark as a great picture">★ STAR</button>
+        <button class="tag active b-roll" title="Keep as secondary / variant">B-ROLL</button>
+        <button class="tag" title="Cull this asset">TRASH</button>
+      </div>
+      <!-- Suggested uses — derived from CD's submit_upload_eval call.
+           Click one to assign the image to that slot intent. -->
+      <div class="slot-assign">
+        <span class="label">Suggested uses</span>
+        <button class="tag" style="cursor:pointer;">bug-report</button>
+        <button class="tag" style="cursor:pointer;">screenshot</button>
+        <span style="margin-left:auto;color:var(--text-faint);font-size:10px;
+                     font-family:var(--font-mono);">CD-suggested</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="annotation"><strong>hotswap (Swapped)</strong> — fires from two paths: (1) CD calls <code>hotswap(vibe, slot)</code> to apply an asset to a slot — captures before-state at request-time so undo is real; (2) <strong>system-fired</strong> when Director Mode is turned OFF and the apply included image swaps. The Director-OFF path renders alongside the <code>vibe_diff</code> card from the same commit (text changes there, image changes here).</div>
+  <div class="card">
+    <div class="card-head">
+      <span class="icon" style="color:var(--brand-green-bright);border-color:var(--brand-green-bright)">↻</span>
+      <span class="title">Swapped vibe-3 / hero</span>
+      <span class="meta">just now</span>
+    </div>
+    <div class="card-body">
+      <div class="swap-grid">
+        <div>
+          <div class="img-frame aspect-16-9 greyed">
+            <img src="../public/2026-01-27-debug/hero.jpg" alt="" />
+          </div>
+          <div class="swap-caption">hero-night.jpg</div>
+        </div>
+        <div class="swap-arrow">→</div>
+        <div>
+          <div class="img-frame aspect-16-9">
+            <img src="../public/2026-01-27-debug/cd-direct-hero-v1.jpg" alt="" />
+          </div>
+          <div class="swap-caption" style="color:var(--brand-green-bright)">cd-direct-hero-v1.jpg</div>
+        </div>
+      </div>
+    </div>
+    <div class="card-foot">
+      <button class="btn primary">View vibe</button>
+      <button class="btn ghost">Undo swap</button>
+    </div>
+  </div>
+
+  <div class="annotation"><strong>image_ops moved out of cards</strong>. It's not a chat-surface tool — it's a workshop. See dedicated mockup at <code>image-ops-mockup.html</code> in this session folder, and workpackages at FEATURE-X.md §1.5 (IMAGE TRACK).</div>
+
+  <!-- ============================================================== -->
+  <h2 class="archetype">Archetype 2 — Diff cards</h2>
+  <p class="archetype-sub">Same diff renderer, opposite verbs. Both tools share the diff visual primitive but mean different things.</p>
+
+  <div class="explainer">
+    <div class="col">
+      <h4>apply_patch <span class="verb write">WRITE</span></h4>
+      <div class="subtitle">surgical change · agent makes the edit in place</div>
+      <p>CD calls <code>apply_patch(target, edit)</code> with one of six edit kinds: <code>css-var-set</code>, <code>text-replace</code>, <code>attr-set</code>, <code>class-toggle</code>, <code>delete</code>, <code>insert</code>.</p>
+      <p>Refuses <code>&lt;script&gt;</code> selectors. Records the diff so the change is revertable from the card foot.</p>
+      <p><strong>When:</strong> trivia too small for <code>build_vibe</code>. Fix a typo, tighten a CSS var, swap an attribute. The edit happens immediately; the card is the receipt.</p>
+    </div>
+    <div class="col">
+      <h4>vibe_diff <span class="verb read">READ</span></h4>
+      <div class="subtitle">comparison · system-fired on Director-OFF</div>
+      <p>The <strong>system</strong> fires this card automatically when the user turns Director Mode OFF and the changes are applied. Shows the text changes (per-selector, additions/deletions) so both user and CD can see what landed in this commit. Not CD-callable for this purpose — the <code>director_save</code> event drives the render.</p>
+      <p>If the same Director-OFF commit included image swaps, a separate <strong>hotswap (Swapped)</strong> card fires alongside this one — text changes in vibe_diff, image changes in the swap card. Two cards, one apply.</p>
+      <p>v1 spec lock: only <code>since='last-build'</code> works on the manual call (kept for CD's pre-build sanity check).</p>
+      <p><strong>When (system-driven):</strong> Director Mode toggled OFF + apply. <strong>When (CD-driven, optional):</strong> pre-build sanity check.</p>
+    </div>
+  </div>
+
+  <div class="annotation"><strong>apply_patch</strong> — single text-replace edit. Edit-kind chip in head.</div>
+  <div class="card">
+    <div class="card-head">
+      <span class="icon">✎</span>
+      <span class="title">Patched vibe-3.html / .hero-cta</span>
+      <span class="pill-small kind">text-replace</span>
+    </div>
+    <div class="card-body">
+      <div class="diff">
+        <div class="line del"><span class="marker">−</span><span>Book Now</span></div>
+        <div class="line add"><span class="marker">+</span><span>Claim a seat at the table</span></div>
+      </div>
+    </div>
+    <div class="card-foot">
+      <button class="btn">View vibe</button>
+      <button class="btn ghost">Revert patch</button>
+    </div>
+  </div>
+
+  <div class="annotation"><strong>vibe_diff</strong> — collapsed selector list, click to expand inline.</div>
+  <div class="card">
+    <div class="card-head">
+      <span class="icon">Δ</span>
+      <span class="title">Diff: vibe-3.html since last build</span>
+      <span class="meta">3 selectors</span>
+    </div>
+    <div class="card-body">
+      <div class="diff-selector-list">
+        <div class="diff-selector">
+          <span class="caret">▸</span>
+          <span class="selector">.hero-cta</span>
+          <span class="kind">text</span>
+          <span class="nums"><span class="pos">+1</span> <span class="neg">−1</span></span>
+        </div>
+        <div class="diff-selector">
+          <span class="caret">▸</span>
+          <span class="selector">:root --color-accent</span>
+          <span class="kind">css-var</span>
+          <span class="nums"><span class="pos">+1</span> <span class="neg">−1</span></span>
+        </div>
+        <div class="diff-selector">
+          <span class="caret">▸</span>
+          <span class="selector">section.menu</span>
+          <span class="kind">structure</span>
+          <span class="nums"><span class="pos">+12</span></span>
+        </div>
+      </div>
+    </div>
+    <div class="card-foot">
+      <button class="btn">Stash</button>
+      <button class="btn primary">Bake into next build</button>
+      <button class="btn danger">Revert all</button>
+    </div>
+  </div>
+
+  <!-- ============================================================== -->
+  <h2 class="archetype">Archetype 3 — Verdict cards</h2>
+  <p class="archetype-sub">
+    Typed opinion frozen in chat. Most verdict tools (<code>submit_image_verdict</code>, <code>submit_proofread</code>, <code>submit_upload_eval</code>, <code>lint_brand_compliance</code>)
+    are <strong>snackbars, not cards</strong> — see Snackbar Surface section below. Only <code>submit_critique</code> deserves a panel because it carries a radar chart + KEEP/FIX/QUICK-WINS triple column that won't fit in a toast.
+  </p>
+
+  <div class="annotation"><strong>submit_critique</strong> — Sentinel Ti only. Tiny SVG radar, no chart-lib dep. KEEP / FIX / QUICK-WINS triple column.</div>
+  <div class="card">
+    <div class="card-head">
+      <span class="icon" style="color:var(--brand-teal-bright);border-color:rgba(94,234,212,0.3)">◈</span>
+      <span class="title">Sentinel Ti — vibe-3</span>
+    </div>
+    <div class="card-body">
+      <div class="radar-wrap">
+        <svg class="radar-svg" viewBox="-110 -110 220 220" width="200" height="200">
+          <!-- grid rings -->
+          <polygon class="radar-grid" points="0,-25 23.78,-7.73 14.69,20.23 -14.69,20.23 -23.78,-7.73"/>
+          <polygon class="radar-grid" points="0,-50 47.55,-15.45 29.39,40.45 -29.39,40.45 -47.55,-15.45"/>
+          <polygon class="radar-grid" points="0,-75 71.33,-23.18 44.08,60.68 -44.08,60.68 -71.33,-23.18"/>
+          <polygon class="radar-grid" points="0,-100 95.11,-30.9 58.78,80.9 -58.78,80.9 -95.11,-30.9"/>
+          <!-- axes -->
+          <line class="radar-axis" x1="0" y1="0" x2="0" y2="-100"/>
+          <line class="radar-axis" x1="0" y1="0" x2="95.11" y2="-30.9"/>
+          <line class="radar-axis" x1="0" y1="0" x2="58.78" y2="80.9"/>
+          <line class="radar-axis" x1="0" y1="0" x2="-58.78" y2="80.9"/>
+          <line class="radar-axis" x1="0" y1="0" x2="-95.11" y2="-30.9"/>
+          <!-- score shape: 10/9/8/7/8 -->
+          <polygon class="radar-shape"
+            points="0,-100 85.6,-27.81 47.03,64.72 -41.16,56.63 -76.09,-24.72"/>
+          <!-- dots -->
+          <circle class="radar-dot" cx="0" cy="-100" r="3"/>
+          <circle class="radar-dot" cx="85.6" cy="-27.81" r="3"/>
+          <circle class="radar-dot" cx="47.03" cy="64.72" r="3"/>
+          <circle class="radar-dot" cx="-41.16" cy="56.63" r="3"/>
+          <circle class="radar-dot" cx="-76.09" cy="-24.72" r="3"/>
+          <!-- labels -->
+          <text class="radar-label" x="0" y="-108" text-anchor="middle">Philosophy</text>
+          <text class="radar-score" x="0" y="-95" text-anchor="middle">10</text>
+          <text class="radar-label" x="105" y="-30" text-anchor="start">Hierarchy</text>
+          <text class="radar-score" x="89" y="-22" text-anchor="start">9</text>
+          <text class="radar-label" x="65" y="93" text-anchor="middle">Craft</text>
+          <text class="radar-score" x="50" y="78" text-anchor="middle">8</text>
+          <text class="radar-label" x="-65" y="93" text-anchor="middle">Function</text>
+          <text class="radar-score" x="-44" y="69" text-anchor="middle">7</text>
+          <text class="radar-label" x="-105" y="-30" text-anchor="end">Originality</text>
+          <text class="radar-score" x="-79" y="-19" text-anchor="end">8</text>
+        </svg>
+        <div style="font-size:13px;color:var(--text-muted);line-height:1.6">
+          Verdict: <strong style="color:var(--brand-green-bright)">Keep direction</strong>.
+          Strong philosophy, hierarchy holds. Function score drags on mobile gutter and CTA copy weakness.
+        </div>
+      </div>
+      <div class="keep-fix-grid">
+        <div class="kf-col keep">
+          <h4>Keep</h4>
+          <ul>
+            <li>palette</li>
+            <li>hero crop</li>
+            <li>voice</li>
+          </ul>
+        </div>
+        <div class="kf-col fix">
+          <h4>Fix</h4>
+          <ul>
+            <li>CTA copy</li>
+            <li>menu density</li>
+            <li>mobile gutter</li>
+          </ul>
+        </div>
+        <div class="kf-col qw">
+          <h4>Quick-wins</h4>
+          <ul>
+            <li>h1 letter-spacing</li>
+            <li>footer color</li>
+            <li>icon size +2</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+    <div class="card-foot">
+      <button class="btn primary">Apply quick-wins</button>
+      <button class="btn ghost">Full critique</button>
+    </div>
+  </div>
+
+  <!-- ============================================================== -->
+  <h2 class="archetype">Archetype 4 — Control + ambient</h2>
+  <p class="archetype-sub">Blocking modal (3 variants below — needs design vote), screenshot preview, debug chips.</p>
+
+  <div class="annotation"><strong>ask_user — Variant A</strong> · vertical stack, single primary. Cleanest. Use when the question is binary or near-binary and the "right answer" is clear.</div>
+  <div class="card blocking">
+    <div class="card-head">
+      <span class="ask-agent-chip">CD asking</span>
+      <span class="title" style="font-weight:400;color:var(--text-muted);font-size:12px;margin-left:auto">14:23:11</span>
+    </div>
+    <div class="card-body">
+      <div class="ask-question-large">
+        Should I commit the rewrite, or keep your draft?
+      </div>
+      <div class="ask-options" style="margin-top:14px">
+        <button class="btn primary">Use rewrite</button>
+        <button class="btn">Keep mine</button>
+        <button class="btn ghost">Cancel — I'll think about it</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="annotation"><strong>ask_user — Variant B</strong> · with reasoning slot. CD explains what triggered the question BEFORE asking it. Better for genuine forks where the user wouldn't know what's at stake.</div>
+  <div class="card blocking">
+    <div class="card-head">
+      <span class="ask-agent-chip">CD asking</span>
+      <span class="title" style="font-weight:400;color:var(--text-muted);font-size:12px;margin-left:auto">14:23:11</span>
+    </div>
+    <div class="card-body">
+      <div class="ask-context-box">
+        Your prompt has "preserve identity" missing — without it Nano will drift Steve's face by ~15%. Your version reads cleaner; mine is safer.
+      </div>
+      <div class="ask-question-large">
+        Which one ships?
+      </div>
+      <div class="ask-button-grid" style="margin-top:12px">
+        <button class="btn primary">
+          <span>Use rewrite</span>
+          <span class="sub">Safer — face stays consistent</span>
+        </button>
+        <button class="btn">
+          <span>Keep mine</span>
+          <span class="sub">Cleaner read — accept ~15% drift</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div class="annotation"><strong>ask_user — Variant C</strong> · with freeform fallback. Used when the choices might not cover the user's actual answer. The "type your own" slot is below a dashed divider so it reads as escape hatch, not equal option.</div>
+  <div class="card blocking">
+    <div class="card-head">
+      <span class="ask-agent-chip">CD asking</span>
+      <span class="title" style="font-weight:400;color:var(--text-muted);font-size:12px;margin-left:auto">14:23:11</span>
+    </div>
+    <div class="card-body">
+      <div class="ask-question-large">
+        Which one ships?
+      </div>
+      <div class="ask-options" style="margin-top:14px">
+        <button class="btn primary">Use rewrite</button>
+        <button class="btn">Keep mine</button>
+      </div>
+      <div class="ask-freeform">
+        <div class="ask-freeform-label">Or type your own answer</div>
+        <input class="ask-freeform-input" type="text" placeholder="e.g. Combine both — keep my hook, add 'preserve identity'…" />
+      </div>
+    </div>
+  </div>
+
+  <div class="annotation"><strong>ask_user — Variant D</strong> · with image preview. CD is asking about something visual — show it. Used after generate_image when CD needs to confirm before tagging APPROVED + assigning slot.</div>
+  <div class="card blocking">
+    <div class="card-head">
+      <span class="ask-agent-chip">CD asking</span>
+      <span class="title" style="font-weight:400;color:var(--text-muted);font-size:12px;margin-left:auto">14:23:11</span>
+    </div>
+    <div class="card-body">
+      <div class="ask-question-large">Hot-swap this into vibe-3 / hero?</div>
+      <div class="ask-image-preview">
+        <img src="../public/2026-01-27-debug/hero-night.jpeg" alt="" />
+      </div>
+      <div class="ask-context-box" style="margin-top:0">
+        Current hero is hero.jpg (greyed-out moonlight). New gen is golden-hour with Steve in the majlis. Big tonal shift.
+      </div>
+      <div class="ask-options" style="margin-top:8px">
+        <button class="btn primary">Yes, swap and tag HERO</button>
+        <button class="btn">Keep as B-ROLL only</button>
+        <button class="btn ghost">Cancel — let me iterate</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="annotation"><strong>ask_user — Variant E</strong> · with diff preview. CD is asking about a code/copy change. Used after apply_patch when CD wants confirmation before persisting.</div>
+  <div class="card blocking">
+    <div class="card-head">
+      <span class="ask-agent-chip">CD asking</span>
+      <span class="title" style="font-weight:400;color:var(--text-muted);font-size:12px;margin-left:auto">14:23:11</span>
+    </div>
+    <div class="card-body">
+      <div class="ask-question-large">Apply this CTA copy across all 4 vibes?</div>
+      <div class="diff" style="margin:12px 0">
+        <div class="line del"><span class="marker">−</span><span>Book Now</span></div>
+        <div class="line add"><span class="marker">+</span><span>Claim a seat at the table</span></div>
+      </div>
+      <div class="ask-button-grid">
+        <button class="btn primary recommended">
+          <span style="position:relative">
+            <span class="ask-recommendation">Recommended</span>
+            All 4 vibes
+          </span>
+          <span class="sub">Voice consistency across set</span>
+        </button>
+        <button class="btn">
+          <span>Just vibe-3</span>
+          <span class="sub">Test the change before propagating</span>
+        </button>
+      </div>
+      <div class="ask-options" style="margin-top:8px">
+        <button class="btn ghost">Cancel — keep "Book Now"</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="annotation"><strong>ask_user — Variant F</strong> · multi-select. Used when the answer is a SET, not a single pick. E.g. "which vibes should I rebuild after this brief change?"</div>
+  <div class="card blocking">
+    <div class="card-head">
+      <span class="ask-agent-chip">CD asking</span>
+      <span class="title" style="font-weight:400;color:var(--text-muted);font-size:12px;margin-left:auto">14:23:11</span>
+    </div>
+    <div class="card-body">
+      <div class="ask-question-large">I changed the voice. Which vibes should I rebuild?</div>
+      <div class="ask-context-box">Voice tweak in CREATIVE-BRIEF.md — "warmer, more first-person." Affects copy in any vibe that uses it.</div>
+      <ul class="todos-list" style="margin:8px 0">
+        <li><span class="gly" style="color:var(--brand-green-bright)">☑</span><span class="text" style="color:var(--text-main)">vibe-1 — Qahwa</span></li>
+        <li><span class="gly" style="color:var(--brand-green-bright)">☑</span><span class="text" style="color:var(--text-main)">vibe-2 — Heritage</span></li>
+        <li><span class="gly" style="color:var(--text-faint)">☐</span><span class="text" style="color:var(--text-muted)">vibe-3 — The Deployment <span style="color:var(--text-faint);font-size:11px">(skipped — different voice anyway)</span></span></li>
+        <li><span class="gly" style="color:var(--brand-green-bright)">☑</span><span class="text" style="color:var(--text-main)">vibe-4 — The Race</span></li>
+      </ul>
+      <div class="ask-options" style="margin-top:8px">
+        <button class="btn primary">Rebuild 3 selected</button>
+        <button class="btn">Select all</button>
+        <button class="btn ghost">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="annotation"><strong>ask_user — resolved</strong>. Card collapses to record. No longer blocking, no border.</div>
+  <div class="card">
+    <div class="card-head">
+      <span class="icon">?</span>
+      <span class="title">CD asked — answered</span>
+      <span class="meta">14:23:41</span>
+    </div>
+    <div class="card-body" style="padding-top:8px;padding-bottom:8px">
+      <div style="font-size:13px;color:var(--text-muted);margin-bottom:4px">
+        Should I commit the rewrite, or keep your draft?
+      </div>
+      <div style="font-size:13px">
+        <span style="color:var(--brand-teal-bright)">→</span>
+        <span style="color:var(--text-main)">You picked: Use rewrite</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================================== -->
+  <h2 class="archetype">Discovery panel — ask_discovery_questions</h2>
+  <p class="archetype-sub">
+    Existing card (<code>components/chat/DiscoveryQuestionsCard.tsx</code>) is text-only. The full design space is much wider —
+    <code>question-form</code> doctrine in CD's prompt supports text · textarea · radio · checkbox · select · direction-cards.
+    Below: progressive multi-field discovery + visual direction-cards (the killer for "pick a brand vibe").
+  </p>
+
+  <div class="annotation"><strong>discovery — multi-field form</strong>. Mixed input types in one panel. Required indicator (red *), help text under field labels, focus ring on active input.</div>
+  <div class="discovery-card">
+    <div class="head">
+      <span class="glyph">?</span>
+      <span class="title">Discovery — about FalCaMel</span>
+      <span class="progress">step 1 / 3</span>
+    </div>
+    <div class="context">
+      Tell me what makes the place specific. The weirder the detail, the better — generic answers make generic vibes.
+    </div>
+
+    <div class="field">
+      <label class="q">What's the business called? <span class="req">*</span></label>
+      <input type="text" placeholder="e.g. FalCaMel Cafe" value="FalCaMel" />
+    </div>
+
+    <div class="field">
+      <label class="q">Who's the customer? <span class="req">*</span></label>
+      <span class="help">Pick one person. Describe them. Don't say "everyone."</span>
+      <textarea placeholder="A specific person, not a demographic…">Saudi expat in Vienna, 30-45, dual-income, kids in school. Misses qahwa. Will pay €7 for the real thing.</textarea>
+    </div>
+
+    <div class="field">
+      <label class="q">Who comes here? <span class="req">*</span></label>
+      <div class="radio-row">
+        <label class="selected"><input type="radio"/> Locals only</label>
+        <label><input type="radio"/> Tourists only</label>
+        <label><input type="radio"/> Both</label>
+      </div>
+    </div>
+
+    <div class="field">
+      <label class="q">Price ceiling for a regular order</label>
+      <select>
+        <option>under €5</option>
+        <option selected>€5–€10</option>
+        <option>€10–€20</option>
+        <option>over €20</option>
+      </select>
+    </div>
+
+    <div style="display:flex;justify-content:flex-end;gap:8px">
+      <button class="btn ghost">Skip step</button>
+      <button class="btn primary">Next →</button>
+    </div>
+  </div>
+
+  <div class="annotation"><strong>discovery — direction cards</strong>. Visual brand-direction picker. Each card carries mood + palette + fonts + reference brands. Multi-select up to maxSelections (here: 2). The card-grid is the killer for "pick a vibe" — text descriptions never work as well as palette swatches + sample type.</div>
+  <div class="discovery-card">
+    <div class="head">
+      <span class="glyph">?</span>
+      <span class="title">Pick up to 2 directions that resonate</span>
+      <span class="progress">step 3 / 3</span>
+    </div>
+    <div class="context">
+      These aren't final — they're seeds for the 4 vibes I'll write. The further apart your two picks are, the more interesting the spread.
+    </div>
+
+    <div class="direction-grid">
+      <div class="direction selected">
+        <div class="dir-label">Luxury — Hermès / Aman</div>
+        <div class="dir-mood">Hushed, exclusive, every detail considered.</div>
+        <div class="dir-palette">
+          <span class="swatch" style="background:#1a1a1a"></span>
+          <span class="swatch" style="background:#d4af37"></span>
+          <span class="swatch" style="background:#f5f5f0"></span>
+          <span class="swatch" style="background:#8b7355"></span>
+        </div>
+        <div class="dir-fonts">Didot · Inter</div>
+        <div class="dir-refs">Hermès · Aman · The Carlyle</div>
+      </div>
+
+      <div class="direction selected">
+        <div class="dir-label">Warm — Soho House / Nopa</div>
+        <div class="dir-mood">Familiar, generous, like grandma's kitchen.</div>
+        <div class="dir-palette">
+          <span class="swatch" style="background:#3a2820"></span>
+          <span class="swatch" style="background:#d4a574"></span>
+          <span class="swatch" style="background:#f4ede0"></span>
+          <span class="swatch" style="background:#7a5c3a"></span>
+        </div>
+        <div class="dir-fonts">Inter Tight · Inter</div>
+        <div class="dir-refs">Soho House · Nopa · Joe & The Juice</div>
+      </div>
+
+      <div class="direction">
+        <div class="dir-label">Bold — Off-White / Supreme</div>
+        <div class="dir-mood">Loud, unmistakable, branded to within an inch.</div>
+        <div class="dir-palette">
+          <span class="swatch" style="background:#ff3b30"></span>
+          <span class="swatch" style="background:#000000"></span>
+          <span class="swatch" style="background:#ffffff"></span>
+          <span class="swatch" style="background:#fbe600"></span>
+        </div>
+        <div class="dir-fonts">Helvetica Bold · Mono</div>
+        <div class="dir-refs">Off-White · Supreme · Palace</div>
+      </div>
+
+      <div class="direction">
+        <div class="dir-label">Eastern — Hara / Takram</div>
+        <div class="dir-mood">Whitespace is content. Restraint as posture.</div>
+        <div class="dir-palette">
+          <span class="swatch" style="background:#fafaf7"></span>
+          <span class="swatch" style="background:#1c1c1c"></span>
+          <span class="swatch" style="background:#a89968"></span>
+          <span class="swatch" style="background:#e8e2d3"></span>
+        </div>
+        <div class="dir-fonts">Tsukushi Mincho · Inter</div>
+        <div class="dir-refs">Kenya Hara · Takram · MUJI</div>
+      </div>
+    </div>
+
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-top:14px">
+      <span style="font-size:11px;color:var(--text-faint);font-family:var(--font-mono);text-transform:uppercase;letter-spacing:0.08em">2 of 2 selected</span>
+      <div style="display:flex;gap:8px">
+        <button class="btn ghost">Back</button>
+        <button class="btn primary">Build 4 vibes from these →</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="annotation"><strong>screenshot</strong> — simplest card. Image + reshoot at other frame sizes.</div>
+  <div class="card">
+    <div class="card-head">
+      <span class="icon">📷</span>
+      <span class="title">Screenshot: vibe-3 / desktop</span>
+      <span class="meta">1440×900</span>
+    </div>
+    <div class="card-body">
+      <div class="ss-frame">
+        <img src="../public/2026-01-27-debug/hero-night.jpeg" alt="" />
+      </div>
+    </div>
+    <div class="card-foot">
+      <button class="btn">Open full</button>
+      <button class="btn ghost">Reshoot mobile</button>
+      <button class="btn ghost">Reshoot tablet</button>
+    </div>
+  </div>
+
+  <div class="annotation"><strong>Diagnostic chips</strong> — notify_agent, claim_orphan, thread_history. Single-row, no card chrome. Ambient debug, not action.</div>
+  <div class="chip-row">
+    <span class="chip">
+      <span class="arrow">→</span>
+      <span>webdev: queued</span>
+      <span style="color:var(--brand-green-bright)">priority:high</span>
+      <span class="ts">14:22:03</span>
+    </span>
+    <span class="chip">
+      <span class="arrow">↻</span>
+      <span>orphan claimed: job_a3f12c</span>
+      <span class="ts">14:22:11</span>
+    </span>
+    <span class="chip expandable">
+      <span>≡</span>
+      <span>thread (5 msgs)</span>
+      <span style="color:var(--text-faint);margin-left:auto">▾</span>
+    </span>
+    <div class="thread-expanded">
+      <div class="row"><span class="from">cd → webdev</span><span class="ts">14:01:02</span><span>"Build vibe-3 with new hero"</span></div>
+      <div class="row"><span class="from">webdev → cd</span><span class="ts">14:03:18</span><span>"Started, eta 2:30"</span></div>
+      <div class="row"><span class="from">webdev → cd</span><span class="ts">14:05:51</span><span>"Complete"</span></div>
+      <div class="row"><span class="from">cd → webdev</span><span class="ts">14:06:02</span><span>"Reshoot at tablet please"</span></div>
+      <div class="row"><span class="from">webdev → cd</span><span class="ts">14:06:31</span><span>"Done"</span></div>
+    </div>
+  </div>
+
+  <!-- ============================================================== -->
+  <h2 class="archetype">Snackbar surface — not cards</h2>
+  <p class="archetype-sub">
+    Per <code>SnackbarProvider.tsx:213-236</code>, the verdict + lint tools route to ephemeral toasts, not the chat surface.
+    Bottom-right of viewport, severity-coloured left border, dismiss-on-X. Sticky duration matches WP-15 §"Paper-trail filter":
+    <code>✓</code> auto-dismiss, <code>≈</code> 7s, <code>✗</code> sticky.
+  </p>
+
+  <div class="annotation">Real <code>os-snackbar</code> structure — left state pill (140px, colored fill, mono uppercase LABEL + optional CODE) · body (heading + message stacked) · actions (outlined mono buttons + dismiss). WORKING is the only one with white interior + orange stroke.</div>
+
+  <div class="snackbar-stage">
+    <!-- READY (success) -->
+    <div class="os-snackbar os-snackbar-success">
+      <div class="os-snackbar-state">
+        <div class="os-snackbar-state-icon">✓</div>
+        <span class="os-snackbar-state-label">Ready</span>
+        <span class="os-snackbar-state-code">VIBE-3 / hero</span>
+      </div>
+      <div class="os-snackbar-body">
+        <span class="os-snackbar-heading">img-7 generated</span>
+        <span class="os-snackbar-message">Lands. Light reads as real golden hour. Ship.</span>
+      </div>
+      <div class="os-snackbar-actions">
+        <button class="os-snackbar-action">View</button>
+        <button class="os-snackbar-dismiss">×</button>
+      </div>
+    </div>
+
+    <!-- FAILED (error) -->
+    <div class="os-snackbar os-snackbar-error">
+      <div class="os-snackbar-state">
+        <div class="os-snackbar-state-icon">⊘</div>
+        <span class="os-snackbar-state-label">Failed</span>
+        <span class="os-snackbar-state-code">VIBE-3 / hero</span>
+      </div>
+      <div class="os-snackbar-body">
+        <span class="os-snackbar-heading">img-7 — verdict ✗</span>
+        <span class="os-snackbar-message">Cliff reads South African, not Tuwaiq. Sandstone tone wrong.</span>
+      </div>
+      <div class="os-snackbar-actions">
+        <button class="os-snackbar-action">Reprompt</button>
+        <button class="os-snackbar-dismiss">×</button>
+      </div>
+    </div>
+
+    <!-- WORKING (progress, outlined orange) -->
+    <div class="os-snackbar os-snackbar-progress">
+      <div class="os-snackbar-state">
+        <div class="os-snackbar-state-icon">◐</div>
+        <span class="os-snackbar-state-label">Working</span>
+        <span class="os-snackbar-state-code">ITER 3/5</span>
+      </div>
+      <div class="os-snackbar-body">
+        <span class="os-snackbar-heading">Generating cd-direct-hero-v1.jpg</span>
+        <span class="os-snackbar-message">Nano Banana — 16:9 — eta ~12s</span>
+      </div>
+      <div class="os-snackbar-actions">
+        <button class="os-snackbar-action">Cancel</button>
+        <button class="os-snackbar-dismiss">×</button>
+      </div>
+      <div class="os-snackbar-progress-bar"></div>
+    </div>
+
+    <!-- ATTENTION (warning) -->
+    <div class="os-snackbar os-snackbar-warning">
+      <div class="os-snackbar-state">
+        <div class="os-snackbar-state-icon">⚠</div>
+        <span class="os-snackbar-state-label">Attention</span>
+        <span class="os-snackbar-state-code">VIBE-3</span>
+      </div>
+      <div class="os-snackbar-body">
+        <span class="os-snackbar-heading">Lint failed — 3 violations</span>
+        <span class="os-snackbar-message">2 auto-fixable. Open vibe-3.html to review.</span>
+      </div>
+      <div class="os-snackbar-actions">
+        <button class="os-snackbar-action">Auto-fix</button>
+        <button class="os-snackbar-dismiss">×</button>
+      </div>
+    </div>
+
+    <!-- INFO -->
+    <div class="os-snackbar os-snackbar-info">
+      <div class="os-snackbar-state">
+        <div class="os-snackbar-state-icon">i</div>
+        <span class="os-snackbar-state-label">Info</span>
+        <span class="os-snackbar-state-code">PROOFREAD</span>
+      </div>
+      <div class="os-snackbar-body">
+        <span class="os-snackbar-heading">CD rewrote your prompt</span>
+        <span class="os-snackbar-message">Added "preserve identity" to prevent face drift.</span>
+      </div>
+      <div class="os-snackbar-actions">
+        <button class="os-snackbar-action">Show diff</button>
+        <button class="os-snackbar-dismiss">×</button>
+      </div>
+    </div>
+
+    <!-- READY (upload eval) -->
+    <div class="os-snackbar os-snackbar-success">
+      <div class="os-snackbar-state">
+        <div class="os-snackbar-state-icon">✓</div>
+        <span class="os-snackbar-state-label">Ready</span>
+        <span class="os-snackbar-state-code">UPLOAD</span>
+      </div>
+      <div class="os-snackbar-body">
+        <span class="os-snackbar-heading">sultan.jpg — filed</span>
+        <span class="os-snackbar-message">Crisp falcon portrait. Suggested: portrait · icon · gallery.</span>
+      </div>
+      <div class="os-snackbar-actions">
+        <button class="os-snackbar-action">Assign</button>
+        <button class="os-snackbar-dismiss">×</button>
+      </div>
+    </div>
+  </div>
+
+  <p style="font-size:12px;color:var(--text-muted);margin-top:14px;line-height:1.6">
+    <strong style="color:var(--text-main)">Why snackbar, not card:</strong> these tools fire dozens of times per session
+    (every Nano gen, every upload, every prompt send). Cards would flood the chat log. Snackbars are ephemeral by design — they
+    surface the verdict at the moment it matters, then evaporate. The chat record stays clean.
+    The state pill carries the full context (LABEL + CODE) so even at-a-glance the user knows which vibe / which iter / which slot.
+  </p>
+
+  <!-- ============================================================== -->
+  <h2 class="archetype">TodoWrite — agent narrating itself</h2>
+  <p class="archetype-sub">
+    Built today: <code>components/chat/UnfinishedTodosPanel.tsx</code> (104 LOC). Spec lives at <code>FEATURE-X.md:1098</code>
+    "WP-2.7 + WP-2.8 — DESIGN DIRECTION". Renders when CD emits a TodoWrite tool call (≥3 multi-step task).
+    Same chassis as the cards above, slightly different head treatment because it's a panel, not a verdict.
+  </p>
+
+  <div class="annotation"><strong>UnfinishedTodosPanel</strong> · "Working on this:" framing. In-progress glyph pulses. Pending = empty circle. Completed = struck-through.   "Continue" is the agent's "I have unfinished steps, want me to keep going?" handle.</div>
+  <div class="todos-panel">
+    <div class="todos-head">
+      <span class="glyph">✦</span>
+      <span class="title">Working on this:</span>
+    </div>
+    <ul class="todos-list">
+      <li data-status="completed">
+        <span class="gly">✓</span>
+        <span class="text">Read FEATURE-X.md and audit WP statuses</span>
+      </li>
+      <li data-status="in_progress">
+        <span class="gly">◐</span>
+        <span class="text">Building ToolCard mockup HTML</span>
+      </li>
+      <li data-status="pending">
+        <span class="gly">○</span>
+        <span class="text">Write docs/TOOLCARD-SPEC.md</span>
+      </li>
+      <li data-status="pending">
+        <span class="gly">○</span>
+        <span class="text">Notify Jedi Code that WP-0.3 is unblocked</span>
+      </li>
+    </ul>
+    <button class="todos-more">+1 more ↓</button>
+    <div class="todos-foot">
+      <button class="btn-continue">Continue</button>
+    </div>
+  </div>
+
+  <div class="annotation"><strong>UnfinishedTodosPanel</strong> · all complete state. Strikethrough on every line, "Done" framing replaces "Working on this:".</div>
+  <div class="todos-panel">
+    <div class="todos-head">
+      <span class="glyph" style="color:var(--brand-green-bright)">✓</span>
+      <span class="title" style="color:var(--brand-green-bright)">Done</span>
+    </div>
+    <ul class="todos-list">
+      <li data-status="completed">
+        <span class="gly">✓</span>
+        <span class="text">Audit WP-0.3 status</span>
+      </li>
+      <li data-status="completed">
+        <span class="gly">✓</span>
+        <span class="text">Build ToolCard mockup</span>
+      </li>
+      <li data-status="completed">
+        <span class="gly">✓</span>
+        <span class="text">Write spec</span>
+      </li>
+    </ul>
+  </div>
+
+  <!-- ============================================================== -->
+  <h2 class="archetype">Visual hierarchy — the discipline</h2>
+  <p class="archetype-sub">If notify_agent and build_vibe look the same size, the chat becomes noise. If ask_user looks the same as a verdict, the agent freezes silently.</p>
+
+  <div class="card" style="background:transparent;border:1px dashed var(--border-card)">
+    <div class="card-body">
+      <div style="display:grid;grid-template-columns:80px 1fr 1fr;gap:12px;align-items:center;font-size:12px">
+        <div style="color:var(--brand-green-bright);font-weight:700;text-transform:uppercase;letter-spacing:0.08em;font-size:10px">Tier</div>
+        <div style="color:var(--text-muted);text-transform:uppercase;letter-spacing:0.08em;font-size:10px">Surface</div>
+        <div style="color:var(--text-muted);text-transform:uppercase;letter-spacing:0.08em;font-size:10px">Visual weight</div>
+
+        <div style="color:var(--brand-green-bright);font-weight:700">Blocker</div>
+        <div>ask_user (only)</div>
+        <div style="color:var(--text-muted)">accent border, BLOCKING flag, outranks all</div>
+
+        <div style="color:var(--text-main);font-weight:600">Live card</div>
+        <div>build_*, generate_image, hotswap</div>
+        <div style="color:var(--text-muted)">full bento card, animated progress, event-bus subscribed</div>
+
+        <div style="color:var(--text-main);font-weight:600">Diff card</div>
+        <div>apply_patch, vibe_diff</div>
+        <div style="color:var(--text-muted)">bento card, old → new, revert action</div>
+
+        <div style="color:var(--text-main);font-weight:600">Panel</div>
+        <div>submit_critique, screenshot, TodoWrite</div>
+        <div style="color:var(--text-muted)">bento card, custom interior (radar, image, checklist)</div>
+
+        <div style="color:var(--text-main);font-weight:600">Snackbar</div>
+        <div>submit_image_verdict, submit_proofread, submit_upload_eval, lint_brand_compliance</div>
+        <div style="color:var(--text-muted)">bottom-right toast, severity border, sticky on ✗/warn/error</div>
+
+        <div style="color:var(--text-faint);font-weight:600">Ambient</div>
+        <div>notify_agent, claim_orphan, thread_history</div>
+        <div style="color:var(--text-muted)">single-row chip, no card chrome</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card" style="background:transparent;border:1px dashed var(--border-card);margin-top:24px">
+    <div class="card-body">
+      <div style="font-size:11px;color:var(--brand-green-bright);font-weight:700;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:8px">Tool → surface map (final, after Ralph corrections)</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px 24px;font-size:12px;font-family:var(--font-mono);line-height:1.7">
+        <div><span style="color:var(--text-muted)">build_vibe / build_all / build_final</span> → <span style="color:var(--brand-green-bright)">live card</span></div>
+        <div><span style="color:var(--text-muted)">generate_image</span> → <span style="color:var(--brand-green-bright)">live card</span></div>
+        <div><span style="color:var(--text-muted)">hotswap</span> → <span style="color:var(--brand-green-bright)">live card</span></div>
+        <div><span style="color:var(--text-muted)">image_ops</span> → <span style="color:var(--brand-violet)">IMAGE-mode panel (separate)</span></div>
+        <div><span style="color:var(--text-muted)">apply_patch</span> → <span style="color:var(--brand-green-bright)">diff card</span></div>
+        <div><span style="color:var(--text-muted)">vibe_diff</span> → <span style="color:var(--brand-green-bright)">diff card</span></div>
+        <div><span style="color:var(--text-muted)">submit_critique</span> → <span style="color:var(--brand-green-bright)">panel</span></div>
+        <div><span style="color:var(--text-muted)">screenshot</span> → <span style="color:var(--brand-green-bright)">panel</span></div>
+        <div><span style="color:var(--text-muted)">TodoWrite</span> → <span style="color:var(--brand-green-bright)">panel</span></div>
+        <div><span style="color:var(--text-muted)">submit_image_verdict</span> → <span style="color:var(--brand-yellow)">snackbar</span></div>
+        <div><span style="color:var(--text-muted)">submit_proofread</span> → <span style="color:var(--brand-yellow)">snackbar</span></div>
+        <div><span style="color:var(--text-muted)">submit_upload_eval</span> → <span style="color:var(--brand-yellow)">snackbar</span></div>
+        <div><span style="color:var(--text-muted)">lint_brand_compliance</span> → <span style="color:var(--brand-yellow)">snackbar</span></div>
+        <div><span style="color:var(--text-muted)">ask_user</span> → <span style="color:var(--brand-red)">blocking card</span></div>
+        <div><span style="color:var(--text-muted)">report_build_*</span> → <span style="color:var(--text-faint)">event source (drives build_vibe)</span></div>
+        <div><span style="color:var(--text-muted)">notify_agent / claim_orphan / thread_history</span> → <span style="color:var(--brand-cyan)">chip</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================================== -->
+  <h2 class="archetype">Surface placement — overlay vs chat scroll <span style="font-size:11px;font-family:var(--font-mono);color:var(--brand-green-bright);text-transform:uppercase;letter-spacing:0.08em;margin-left:8px">latest · 2026-05-06</span></h2>
+  <p class="archetype-sub">
+    The tier system above tells you HOW each card is shaped. This section tells you WHERE it lives.
+    Two surfaces total: chat scroll (default — every card is conversation record) +
+    live overlay (mounted in ChatPanel, anchored top-right corner; cards flow horizontally side-by-side, wrap to vertical stack when out of space).
+    Snackbars and the Sentinel feedback sub-tab are separate surfaces and don't count here.
+  </p>
+  <p class="archetype-sub" style="font-style:italic;color:var(--text-faint)">
+    This section supersedes the tool → surface map above where they disagree. Specifically:
+    <code>thread_history</code> + <code>claim_orphan</code> chips are deleted entirely (debug noise);
+    <code>vibe_diff</code> downgraded to snackbar (single-fire, low-volume);
+    <code>generate_image</code> moved to inline (one-shot lifecycle, identical to image upload);
+    <code>submit_critique</code> moved to the feedback sub-tab (out of chat/overlay scope);
+    <code>ask_user</code> variants C (freeform) and F (multi-select) deleted (overlap with chat box and question-form respectively).
+  </p>
+
+  <div class="card" style="background:transparent;border:1px dashed var(--border-card);margin-top:8px">
+    <div class="card-body">
+      <div style="font-size:11px;color:var(--brand-green-bright);font-weight:700;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:8px">Criterion for overlay</div>
+      <div style="font-size:13px;color:var(--text-main);line-height:1.6">
+        <strong>Auto-updates over time</strong> AND <strong>would be a shame to scroll past</strong>.
+        Single-fire receipts (hotswap, apply_patch, generate_image, screenshot) fail the first test
+        and stay inline. Sentinel critique fails the first test too — single produce-and-commit, lives in feedback sub-tab.
+      </div>
+    </div>
+  </div>
+
+  <div class="card" style="background:transparent;border:1px dashed var(--border-card);margin-top:16px">
+    <div class="card-body">
+      <div style="font-size:11px;color:var(--brand-green-bright);font-weight:700;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:12px">Surface map (final)</div>
+      <div style="display:grid;grid-template-columns:140px 1fr;gap:10px 24px;font-size:12px;font-family:var(--font-mono);line-height:1.7">
+        <div style="color:var(--brand-green-bright);font-weight:700">Chat scroll</div>
+        <div style="color:var(--text-muted)">build receipts · generate_image · image upload · hotswap · apply_patch · vibe_diff · screenshot · ask_user · discovery (form + direction-cards) · notify_agent chip</div>
+
+        <div style="color:var(--brand-violet);font-weight:700">Live overlay</div>
+        <div style="color:var(--text-muted)">builds (live mirror clone) · TodoWrite (queue panel)</div>
+
+        <div style="color:var(--brand-yellow);font-weight:700">Snackbar</div>
+        <div style="color:var(--text-muted)">submit_image_verdict · submit_proofread · submit_upload_eval · lint_brand_compliance · vibe_diff (collapsed)</div>
+
+        <div style="color:var(--brand-cyan);font-weight:700">Feedback sub-tab</div>
+        <div style="color:var(--text-muted)">submit_critique (Sentinel — accumulates per vibe per pass)</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card" style="background:transparent;border:1px dashed var(--border-card);margin-top:16px">
+    <div class="card-body">
+      <div style="font-size:11px;color:var(--brand-green-bright);font-weight:700;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:12px">Overlay dismissal rules</div>
+      <div style="display:grid;grid-template-columns:140px 1fr 1fr;gap:10px 16px;font-size:12px;line-height:1.6">
+        <div style="color:var(--text-muted);text-transform:uppercase;font-size:10px;letter-spacing:0.08em">Card</div>
+        <div style="color:var(--text-muted);text-transform:uppercase;font-size:10px;letter-spacing:0.08em">Lifecycle</div>
+        <div style="color:var(--text-muted);text-transform:uppercase;font-size:10px;letter-spacing:0.08em">Dismissal</div>
+
+        <div style="color:var(--text-main);font-weight:600">Builds</div>
+        <div>until <code>complete</code> / <code>failed</code></div>
+        <div><strong style="color:var(--brand-green-bright)">closeable</strong> — inline receipt carries record</div>
+
+        <div style="color:var(--text-main);font-weight:600">TodoWrite</div>
+        <div>until all items completed</div>
+        <div><strong style="color:var(--brand-yellow)">minimize-only</strong> — shared queue, can't be hidden</div>
+      </div>
+      <div style="font-size:12px;color:var(--text-muted);margin-top:14px;line-height:1.6">
+        <strong style="color:var(--text-main)">Why the asymmetry:</strong> builds are events — once seen, the inline
+        receipt is the durable record. TodoWrite is a <strong>shared visibility, single-writer</strong> queue
+        (both parties see it; only CD writes — user contributions flow through chat, CD encodes them) —
+        hiding it would lie to both parties about agent state. Minimized form sits as a single-line strip
+        anchored to the overlay edge: <code style="color:var(--brand-teal-bright)">✦ Queue · 3 / 7 · CD on item 2</code> — click to expand.
+      </div>
+    </div>
+  </div>
+
+  <div class="card" style="background:transparent;border:1px dashed var(--border-card);margin-top:16px">
+    <div class="card-body">
+      <div style="font-size:11px;color:var(--brand-green-bright);font-weight:700;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:8px">Implementation impact (for JC)</div>
+      <ul style="font-size:13px;color:var(--text-main);line-height:1.7;margin:0;padding-left:20px">
+        <li>Tier 2 build cards render INLINE as receipts AND clone a compact mirror row into overlay while <code>running</code>. Overlay-mirror primitive: <code>&lt;BuildOverlayRow jobId thumb id label timeline eta /&gt;</code> — same fields, no card chrome. Snaps out on terminal state.</li>
+        <li>Tier 3 TodoWrite panel renders in overlay ONLY (not inline). Originating agent-message anchors it; overlay is the live surface. Minimize toggles between full panel and single-line strip.</li>
+        <li>New container: <code>&lt;LiveOverlay /&gt;</code> — mounted in <code>ChatPanel</code>, anchored top-right corner. <strong>Layout: horizontal-first with wrap.</strong> <code>flex-row</code> + <code>flex-wrap: wrap</code>; newest card closest to the corner, older pushed left; wraps down when horizontal space runs out. 1 build + 1 todo on wide desktop = side-by-side; 4+ in-flight on narrow viewport = stacked. Visible only when ≥1 card has live content. Same theme tokens as ToolCard (theme-radius, 12-16px padding).</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="card" style="background:transparent;border:1px dashed var(--border-card);margin-top:16px">
+    <div class="card-body">
+      <div style="font-size:11px;color:var(--brand-green-bright);font-weight:700;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:8px">TodoWrite write authority — CD-only (locked)</div>
+      <div style="font-size:13px;color:var(--text-main);line-height:1.6">
+        User has READ access to the panel (sees the queue, sees items flip pending → in_progress → completed).
+        User does NOT have direct write access. User contributions flow through normal chat — "add: redo vibe-3 hero" —
+        and CD encodes the request as a todo on its next turn.
+        <br/><br/>
+        <strong style="color:var(--brand-green-bright)">Result:</strong> no bidirectional MCP tools, no <code>todo_user_change</code> event,
+        no race conditions. Single-writer store. Chat is already the channel for user→CD intent.
+      </div>
+    </div>
+  </div>
+
+  <div class="card" style="background:transparent;border:1px dashed var(--border-card);margin-top:16px">
+    <div class="card-body">
+      <div style="font-size:11px;color:var(--brand-green-bright);font-weight:700;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:8px">Storage — <code>## Todos</code> section in <code>SESSION.md</code></div>
+      <div style="font-size:13px;color:var(--text-main);line-height:1.6">
+        No new file. Todos live as a section in the existing <code>SESSION.md</code>, sibling to the existing
+        <code>## Workflow State</code>. Same checkbox idiom CD already maintains for workflow.
+        <strong>Minimum-changes principle:</strong> reuse the file CD writes to anyway, reuse the grammar Sage already parses,
+        no new write path, no new parser file.
+      </div>
+      <pre style="font-family:var(--font-mono);font-size:11px;color:var(--text-muted);background:rgba(255,255,255,0.02);border:1px solid var(--border-card);border-radius:6px;padding:10px 12px;margin:10px 0 0 0;overflow-x:auto;line-height:1.5">## Todos
+
+- [/] Build vibe-3
+- [ ] Review vibe-2 hero
+- [ ] Update CREATIVE-BRIEF.md menu copy
+- [x] ~~Read FEATURE-X.md and audit WP statuses~~</pre>
+      <div style="font-size:11px;color:var(--text-faint);font-family:var(--font-mono);text-transform:uppercase;letter-spacing:0.06em;margin-top:14px;margin-bottom:6px">Status mapping</div>
+      <div style="font-size:12px;color:var(--text-main);line-height:1.7">
+        <code>[ ]</code> → <span style="color:var(--text-muted)">pending</span>
+        &nbsp;·&nbsp;
+        <code>[/]</code> → <span style="color:var(--brand-yellow)">in_progress</span>
+        &nbsp;·&nbsp;
+        <code>[x]</code> → <span style="color:var(--brand-green-bright)">completed</span> (paired with <code>~~strikethrough~~</code>)
+      </div>
+      <div style="font-size:11px;color:var(--text-faint);font-family:var(--font-mono);text-transform:uppercase;letter-spacing:0.06em;margin-top:14px;margin-bottom:6px">Position + parser</div>
+      <ul style="font-size:12px;color:var(--text-main);line-height:1.7;margin:0;padding-left:20px">
+        <li>Section sits near the top of SESSION.md, just below <code>## Workflow State</code>. Position is fixed — CD rewrites the body, never moves the heading.</li>
+        <li>Each <code>- [x] content</code> / <code>- [ ] content</code> / <code>- [/] content</code> line = one todo.</li>
+        <li>Checkbox glyph is the status source of truth. Strikethrough is cosmetic.</li>
+        <li>Order = priority. Anything not matching the checkbox-line shape is ignored.</li>
+      </ul>
+      <div style="font-size:11px;color:var(--text-faint);font-family:var(--font-mono);text-transform:uppercase;letter-spacing:0.06em;margin-top:14px;margin-bottom:6px">Lifecycle</div>
+      <ol style="font-size:13px;color:var(--text-main);line-height:1.7;margin:0;padding-left:20px">
+        <li>CD calls <code>TodoWrite({todos: [...]})</code> — full-list replace.</li>
+        <li>Orchestrator find-replaces the <code>## Todos</code> section body in <code>SESSION.md</code> + emits <code>todos_updated</code> on the bus.</li>
+        <li><code>&lt;LiveOverlay /&gt;</code> subscribes → re-reads section → re-renders panel.</li>
+        <li>On session resume / agent respawn (Order 66, dev reload, crash): LiveOverlay reads the section from <code>SESSION.md</code> on mount. State survives because SESSION.md is already persisted.</li>
+      </ol>
+      <div style="font-size:12px;color:var(--text-muted);margin-top:12px;line-height:1.6">
+        <strong style="color:var(--text-main)">User-add path uses the same storage:</strong>
+        user types "add: redo vibe-3 hero" → CD's next turn calls <code>TodoWrite</code> with the appended item → orchestrator rewrites the section + broadcasts → panel updates. No second storage path. Single source of truth.
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================================ -->
+  <!-- §4 — 4-Phase Junior Pass model: Moodboard + Descent cards    -->
+  <!-- Added 2026-05-07 (CD).                                        -->
+  <!-- ============================================================ -->
+
+  <h2 class="archetype">§4 — 4-Phase Junior Pass cards (Moodboard + Descent)</h2>
+  <p class="archetype-sub">Two new Tier-3 specialty panels for the Discovery → Junior Pass → Vibes → Final Build workflow. Both carry the universal user-input textarea at the bottom (locked 2026-05-07 — applies to every discovery-phase card).</p>
+
+  <!-- MOODBOARD -->
+  <div class="card" style="margin-top:24px">
+    <div class="card-body">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+        <span style="display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:8px;background:rgba(94,234,212,0.12);color:var(--brand-teal-bright);font-family:var(--font-mono);font-weight:700;font-size:11px;letter-spacing:0.04em">MB</span>
+        <div style="flex:1;display:flex;flex-direction:column;gap:2px">
+          <div style="font-size:13px;font-weight:600;color:var(--text-main)">Moodboard · Junior Pass complete</div>
+          <div style="font-size:11px;color:var(--text-faint);font-family:var(--font-mono);text-transform:uppercase;letter-spacing:0.08em">Phase 2 → Phase 3 · Track: webpage</div>
+        </div>
+        <span style="display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:var(--radius-pill);background:rgba(94,234,212,0.08);color:var(--brand-teal-bright);font-family:var(--font-mono);font-weight:700;font-size:10px;letter-spacing:0.1em">REVIEW</span>
+      </div>
+      <div style="font-size:12px;color:var(--text-muted);margin-bottom:14px;line-height:1.55">
+        Three wireframes built from Discovery alone. No school anchors yet — that comes in Phase 3. Pick a direction, or tell CD what to take from each.
+      </div>
+
+      <!-- 3 wireframe thumbs -->
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px">
+        <div style="border:1px solid var(--border-card);border-radius:8px;overflow:hidden;background:rgba(255,255,255,0.02)">
+          <div style="height:120px;background:linear-gradient(135deg,#3a2820 0%,#7a5c3a 100%);position:relative">
+            <div style="position:absolute;left:10px;top:10px;font-family:var(--font-mono);font-size:9px;color:rgba(255,255,255,0.7);letter-spacing:0.1em;text-transform:uppercase">A · Warm-editorial</div>
+            <div style="position:absolute;left:10px;bottom:10px;color:#f4ede0;font-size:18px;font-weight:700;line-height:1">Grandma's<br/>waiting.</div>
+          </div>
+          <div style="padding:8px 10px;font-size:11px;color:var(--text-muted);line-height:1.4">Long-form copy, generous whitespace, food-as-hero.</div>
+        </div>
+        <div style="border:1px solid var(--border-card);border-radius:8px;overflow:hidden;background:rgba(255,255,255,0.02)">
+          <div style="height:120px;background:linear-gradient(135deg,#0a0a0a 0%,#1a1a1a 100%);position:relative">
+            <div style="position:absolute;left:10px;top:10px;font-family:var(--font-mono);font-size:9px;color:rgba(255,255,255,0.7);letter-spacing:0.1em;text-transform:uppercase">B · Brutalist</div>
+            <div style="position:absolute;left:10px;bottom:10px;color:#15B981;font-size:22px;font-weight:800;line-height:0.95;font-family:var(--font-mono);text-transform:uppercase">CLIFF<br/>MAJLIS<br/>200M</div>
+          </div>
+          <div style="padding:8px 10px;font-size:11px;color:var(--text-muted);line-height:1.4">Mono type, raw grid, geographic specificity as anchor.</div>
+        </div>
+        <div style="border:1px solid var(--border-card);border-radius:8px;overflow:hidden;background:rgba(255,255,255,0.02)">
+          <div style="height:120px;background:linear-gradient(135deg,#1a1a2e 0%,#0f0f1f 100%);position:relative">
+            <div style="position:absolute;left:10px;top:10px;font-family:var(--font-mono);font-size:9px;color:rgba(255,255,255,0.7);letter-spacing:0.1em;text-transform:uppercase">C · Motion-led</div>
+            <div style="position:absolute;left:10px;bottom:10px;color:#5EEAD4;font-size:14px;font-weight:600;line-height:1.1;letter-spacing:-0.01em">Scroll past the cliff.<br/><span style="color:#a1a1aa;font-weight:400">↓</span></div>
+          </div>
+          <div style="padding:8px 10px;font-size:11px;color:var(--text-muted);line-height:1.4">Damped scroll-coupled motion, parallax cliff drop.</div>
+        </div>
+      </div>
+
+      <!-- Universal user-input textarea -->
+      <div style="border-top:1px solid var(--border-card);padding-top:12px;margin-top:4px">
+        <div style="font-size:11px;color:var(--text-faint);font-family:var(--font-mono);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:6px">Thoughts, comments, anything else?</div>
+        <textarea placeholder="e.g. love B's headline mass, but want A's warmth in the body copy. C feels too techy for grandma." style="width:100%;min-height:64px;background:var(--bg-input);border:1px solid var(--border-card);border-radius:8px;padding:10px 12px;font-family:var(--font-body);font-size:13px;color:var(--text-main);resize:vertical;outline:none"></textarea>
+      </div>
+
+      <!-- Action row -->
+      <div style="display:flex;gap:8px;margin-top:12px">
+        <button style="flex:1;padding:10px 16px;border-radius:8px;border:1px solid var(--brand-green-bright);background:var(--brand-green-bright);color:#0a0a0a;font-family:var(--font-mono);font-weight:700;font-size:11px;letter-spacing:0.1em;text-transform:uppercase;cursor:pointer">Send to CD</button>
+        <button style="padding:10px 16px;border-radius:8px;border:1px solid var(--border-card);background:transparent;color:var(--text-muted);font-family:var(--font-mono);font-weight:600;font-size:11px;letter-spacing:0.1em;text-transform:uppercase;cursor:pointer">Skip</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- DESCENT SELECTION -->
+  <div class="card" style="margin-top:24px">
+    <div class="card-body">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+        <span style="display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:8px;background:rgba(167,139,250,0.12);color:var(--brand-violet);font-family:var(--font-mono);font-weight:700;font-size:11px;letter-spacing:0.04em">DS</span>
+        <div style="flex:1;display:flex;flex-direction:column;gap:2px">
+          <div style="font-size:13px;font-weight:600;color:var(--text-main)">Descent Selection · Star up to 7</div>
+          <div style="font-size:11px;color:var(--text-faint);font-family:var(--font-mono);text-transform:uppercase;letter-spacing:0.08em">Phase 2 → Phase 3 · Track: brand-cards · 25 candidates</div>
+        </div>
+        <span style="display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:var(--radius-pill);background:rgba(167,139,250,0.08);color:var(--brand-violet);font-family:var(--font-mono);font-weight:700;font-size:10px;letter-spacing:0.1em">PICK</span>
+      </div>
+      <div style="font-size:12px;color:var(--text-muted);margin-bottom:14px;line-height:1.55">
+        20 designer cards plus 5 CD intuition cards. Star the ones that fit the brand. CD curates the starred set into Phase 3.
+      </div>
+
+      <!-- Card grid (5×5) -->
+      <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin-bottom:16px">
+        <!-- 25 mini cards, alternating styles to imply 5 clusters of 4 + 5 CD picks -->
+        <div style="aspect-ratio:7/4;border:1px solid var(--border-card);border-radius:4px;background:#fff;color:#0f172a;font-family:var(--font-body);font-size:6px;padding:5px;display:flex;flex-direction:column;justify-content:space-between;position:relative"><span style="font-weight:700;letter-spacing:0.05em">PENTAGRAM</span><span style="font-size:5px;color:#64748b">FALCAMEL</span><span style="position:absolute;top:3px;right:4px;color:#fbbf24;font-size:9px">★</span></div>
+        <div style="aspect-ratio:7/4;border:1px solid var(--border-card);border-radius:4px;background:#fff;color:#0f172a;font-family:var(--font-body);font-size:6px;padding:5px;display:flex;flex-direction:column;justify-content:space-between"><span style="font-weight:700;letter-spacing:0.05em">STAMEN</span><span style="font-size:5px;color:#64748b">·</span></div>
+        <div style="aspect-ratio:7/4;border:1px solid var(--border-card);border-radius:4px;background:#fff;color:#0f172a;font-family:var(--font-body);font-size:6px;padding:5px;display:flex;flex-direction:column;justify-content:space-between"><span style="font-weight:700;letter-spacing:0.05em">REICHENSTEIN</span><span style="font-size:5px;color:#64748b">·</span></div>
+        <div style="aspect-ratio:7/4;border:1px solid var(--border-card);border-radius:4px;background:#fff;color:#0f172a;font-family:var(--font-body);font-size:6px;padding:5px;display:flex;flex-direction:column;justify-content:space-between"><span style="font-weight:700;letter-spacing:0.05em">FATHOM</span><span style="font-size:5px;color:#64748b">·</span></div>
+        <div style="aspect-ratio:7/4;border:1px solid var(--border-card);border-radius:4px;background:#0a0a0a;color:#15B981;font-family:var(--font-mono);font-size:6px;padding:5px;display:flex;flex-direction:column;justify-content:space-between;position:relative"><span style="font-weight:700;letter-spacing:0.05em">LOCOMOTIVE</span><span style="font-size:5px">·</span><span style="position:absolute;top:3px;right:4px;color:#fbbf24;font-size:9px">★</span></div>
+        <div style="aspect-ratio:7/4;border:1px solid var(--border-card);border-radius:4px;background:#0a0a0a;color:#5EEAD4;font-family:var(--font-mono);font-size:6px;padding:5px;display:flex;flex-direction:column;justify-content:space-between"><span style="font-weight:700;letter-spacing:0.05em">ACTIVE TH.</span><span style="font-size:5px">·</span></div>
+        <div style="aspect-ratio:7/4;border:1px solid var(--border-card);border-radius:4px;background:#0a0a0a;color:#a78bfa;font-family:var(--font-mono);font-size:6px;padding:5px;display:flex;flex-direction:column;justify-content:space-between"><span style="font-weight:700;letter-spacing:0.05em">FIELD.IO</span><span style="font-size:5px">·</span></div>
+        <div style="aspect-ratio:7/4;border:1px solid var(--border-card);border-radius:4px;background:#0a0a0a;color:#22d3ee;font-family:var(--font-mono);font-size:6px;padding:5px;display:flex;flex-direction:column;justify-content:space-between"><span style="font-weight:700;letter-spacing:0.05em">RESN</span><span style="font-size:5px">·</span></div>
+        <div style="aspect-ratio:7/4;border:1px solid var(--border-card);border-radius:4px;background:#fff;color:#000;font-family:var(--font-body);font-size:6px;padding:5px;display:flex;flex-direction:column;justify-content:space-between;position:relative"><span style="font-weight:700;letter-spacing:0">JETSET</span><span style="font-size:5px">·</span><span style="position:absolute;top:3px;right:4px;color:#fbbf24;font-size:9px">★</span></div>
+        <div style="aspect-ratio:7/4;border:1px solid var(--border-card);border-radius:4px;background:#fff;color:#000;font-family:var(--font-body);font-size:6px;padding:5px;display:flex;flex-direction:column;justify-content:space-between"><span style="font-weight:700;letter-spacing:0">BROCKMANN</span><span style="font-size:5px">·</span></div>
+        <div style="aspect-ratio:7/4;border:1px solid var(--border-card);border-radius:4px;background:#fff;color:#000;font-family:var(--font-body);font-size:6px;padding:5px;display:flex;flex-direction:column;justify-content:space-between"><span style="font-weight:700;letter-spacing:0">BUILD</span><span style="font-size:5px">·</span></div>
+        <div style="aspect-ratio:7/4;border:1px solid var(--border-card);border-radius:4px;background:#fff;color:#dc2626;font-family:var(--font-body);font-size:6px;padding:5px;display:flex;flex-direction:column;justify-content:space-between;position:relative"><span style="font-weight:700;letter-spacing:0">SAGMEISTER</span><span style="font-size:5px;color:#000">·</span><span style="position:absolute;top:3px;right:4px;color:#fbbf24;font-size:9px">★</span></div>
+        <div style="aspect-ratio:7/4;border:1px solid var(--border-card);border-radius:4px;background:#0a0a0a;color:#22d3ee;font-family:var(--font-mono);font-size:6px;padding:5px;display:flex;flex-direction:column;justify-content:space-between"><span style="font-weight:700;letter-spacing:0.05em">LIEBERMAN</span><span style="font-size:5px">·</span></div>
+        <div style="aspect-ratio:7/4;border:1px solid var(--border-card);border-radius:4px;background:#0a0a0a;color:#a78bfa;font-family:var(--font-mono);font-size:6px;padding:5px;display:flex;flex-direction:column;justify-content:space-between"><span style="font-weight:700;letter-spacing:0.05em">RAVEN KWOK</span><span style="font-size:5px">·</span></div>
+        <div style="aspect-ratio:7/4;border:1px solid var(--border-card);border-radius:4px;background:#0a0a0a;color:#15B981;font-family:var(--font-mono);font-size:6px;padding:5px;display:flex;flex-direction:column;justify-content:space-between"><span style="font-weight:700;letter-spacing:0.05em">ASH THORP</span><span style="font-size:5px">·</span></div>
+        <div style="aspect-ratio:7/4;border:1px solid var(--border-card);border-radius:4px;background:#0a0a0a;color:#15B981;font-family:var(--font-mono);font-size:6px;padding:5px;display:flex;flex-direction:column;justify-content:space-between;position:relative"><span style="font-weight:700;letter-spacing:0.05em">TERRITORY</span><span style="font-size:5px">·</span><span style="position:absolute;top:3px;right:4px;color:#fbbf24;font-size:9px">★</span></div>
+        <div style="aspect-ratio:7/4;border:1px solid var(--border-card);border-radius:4px;background:#f4ede0;color:#0f172a;font-family:var(--font-body);font-size:6px;padding:5px;display:flex;flex-direction:column;justify-content:space-between"><span style="font-weight:700;letter-spacing:0">TAKRAM</span><span style="font-size:5px">·</span></div>
+        <div style="aspect-ratio:7/4;border:1px solid var(--border-card);border-radius:4px;background:#f4ede0;color:#0f172a;font-family:var(--font-body);font-size:6px;padding:5px;display:flex;flex-direction:column;justify-content:space-between;position:relative"><span style="font-weight:700;letter-spacing:0">HARA</span><span style="font-size:5px">·</span><span style="position:absolute;top:3px;right:4px;color:#fbbf24;font-size:9px">★</span></div>
+        <div style="aspect-ratio:7/4;border:1px solid var(--border-card);border-radius:4px;background:#f4ede0;color:#0f172a;font-family:var(--font-body);font-size:6px;padding:5px;display:flex;flex-direction:column;justify-content:space-between"><span style="font-weight:700;letter-spacing:0">IRMA BOOM</span><span style="font-size:5px">·</span></div>
+        <div style="aspect-ratio:7/4;border:1px solid var(--border-card);border-radius:4px;background:#f4ede0;color:#0f172a;font-family:var(--font-body);font-size:6px;padding:5px;display:flex;flex-direction:column;justify-content:space-between"><span style="font-weight:700;letter-spacing:0">NEO SHEN</span><span style="font-size:5px">·</span></div>
+        <!-- 5 CD intuition cards (dashed border) -->
+        <div style="aspect-ratio:7/4;border:1px dashed var(--brand-green-bright);border-radius:4px;background:rgba(21,185,129,0.06);color:var(--brand-green-bright);font-family:var(--font-mono);font-size:6px;padding:5px;display:flex;flex-direction:column;justify-content:space-between"><span style="font-weight:700;letter-spacing:0.05em">CD-1</span><span style="font-size:5px;color:var(--text-faint)">CD intuition</span></div>
+        <div style="aspect-ratio:7/4;border:1px dashed var(--brand-green-bright);border-radius:4px;background:rgba(21,185,129,0.06);color:var(--brand-green-bright);font-family:var(--font-mono);font-size:6px;padding:5px;display:flex;flex-direction:column;justify-content:space-between;position:relative"><span style="font-weight:700;letter-spacing:0.05em">CD-2</span><span style="font-size:5px;color:var(--text-faint)">CD intuition</span><span style="position:absolute;top:3px;right:4px;color:#fbbf24;font-size:9px">★</span></div>
+        <div style="aspect-ratio:7/4;border:1px dashed var(--brand-green-bright);border-radius:4px;background:rgba(21,185,129,0.06);color:var(--brand-green-bright);font-family:var(--font-mono);font-size:6px;padding:5px;display:flex;flex-direction:column;justify-content:space-between"><span style="font-weight:700;letter-spacing:0.05em">CD-3</span><span style="font-size:5px;color:var(--text-faint)">CD intuition</span></div>
+        <div style="aspect-ratio:7/4;border:1px dashed var(--brand-green-bright);border-radius:4px;background:rgba(21,185,129,0.06);color:var(--brand-green-bright);font-family:var(--font-mono);font-size:6px;padding:5px;display:flex;flex-direction:column;justify-content:space-between"><span style="font-weight:700;letter-spacing:0.05em">CD-4</span><span style="font-size:5px;color:var(--text-faint)">CD intuition</span></div>
+        <div style="aspect-ratio:7/4;border:1px dashed var(--brand-green-bright);border-radius:4px;background:rgba(21,185,129,0.06);color:var(--brand-green-bright);font-family:var(--font-mono);font-size:6px;padding:5px;display:flex;flex-direction:column;justify-content:space-between"><span style="font-weight:700;letter-spacing:0.05em">CD-5</span><span style="font-size:5px;color:var(--text-faint)">CD intuition</span></div>
+      </div>
+
+      <!-- Selection counter -->
+      <div style="display:flex;justify-content:space-between;align-items:center;font-size:11px;font-family:var(--font-mono);text-transform:uppercase;letter-spacing:0.08em;color:var(--text-muted);margin-bottom:14px">
+        <span>Starred: <span style="color:var(--brand-yellow)">★ 6</span> / 7 max</span>
+        <span>5 designers · 1 CD intuition</span>
+      </div>
+
+      <!-- Universal user-input textarea -->
+      <div style="border-top:1px solid var(--border-card);padding-top:12px">
+        <div style="font-size:11px;color:var(--text-faint);font-family:var(--font-mono);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:6px">Thoughts, comments, anything else?</div>
+        <textarea placeholder="e.g. starred Pentagram + Hara — keep them rigorous. Sagmeister is a stretch but I want to try the rubber-stamp logo back." style="width:100%;min-height:64px;background:var(--bg-input);border:1px solid var(--border-card);border-radius:8px;padding:10px 12px;font-family:var(--font-body);font-size:13px;color:var(--text-main);resize:vertical;outline:none"></textarea>
+      </div>
+
+      <!-- Action row -->
+      <div style="display:flex;gap:8px;margin-top:12px">
+        <button style="flex:1;padding:10px 16px;border-radius:8px;border:1px solid var(--brand-green-bright);background:var(--brand-green-bright);color:#0a0a0a;font-family:var(--font-mono);font-weight:700;font-size:11px;letter-spacing:0.1em;text-transform:uppercase;cursor:pointer">Commit selection</button>
+        <button style="padding:10px 16px;border-radius:8px;border:1px solid var(--border-card);background:transparent;color:var(--text-muted);font-family:var(--font-mono);font-weight:600;font-size:11px;letter-spacing:0.1em;text-transform:uppercase;cursor:pointer">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- DESIGN SYSTEM (MOODBOARD-SINGLE) -->
+  <div class="card" style="margin-top:24px">
+    <div class="card-body" style="padding:20px 22px">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px">
+        <span style="display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;border-radius:8px;background:rgba(21,185,129,0.12);color:var(--brand-green-bright);font-family:var(--font-mono);font-weight:700;font-size:11px;letter-spacing:0.04em">DS</span>
+        <div style="flex:1;display:flex;flex-direction:column;gap:2px">
+          <div style="font-size:14px;font-weight:600;color:var(--text-main)">Design System · Vibe-3 Grandma's Cliff</div>
+          <div style="font-size:11px;color:var(--text-faint);font-family:var(--font-mono);text-transform:uppercase;letter-spacing:0.08em">MOODBOARD-SINGLE · Phase 3 → Phase 4 sign-off · Track: webpage</div>
+        </div>
+        <span style="display:inline-flex;align-items:center;gap:6px;padding:5px 11px;border-radius:var(--radius-pill);background:rgba(21,185,129,0.08);color:var(--brand-green-bright);font-family:var(--font-mono);font-weight:700;font-size:10px;letter-spacing:0.1em">REVIEW</span>
+      </div>
+
+      <div style="font-size:13px;color:var(--text-main);line-height:1.55;margin-bottom:18px;font-style:italic;border-left:2px solid var(--brand-green-bright);padding-left:12px">
+        Warm, oracular, restrained. One bright accent against a deep neutral field. Grandma's living room reframed as a cliff-edge majlis — domestic warmth holding the void.
+      </div>
+
+      <!-- Color palette -->
+      <div style="margin-bottom:20px">
+        <div style="font-size:11px;color:var(--text-faint);font-family:var(--font-mono);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:10px">Color palette &amp; roles</div>
+        <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:8px">
+          <div>
+            <div style="height:60px;background:#3a2820;border:1px solid var(--border-card);border-radius:6px;margin-bottom:6px"></div>
+            <div style="font-size:11px;font-family:var(--font-mono);color:var(--text-main)">#3A2820</div>
+            <div style="font-size:10px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em;margin-top:2px">Background</div>
+          </div>
+          <div>
+            <div style="height:60px;background:#5a3a28;border:1px solid var(--border-card);border-radius:6px;margin-bottom:6px"></div>
+            <div style="font-size:11px;font-family:var(--font-mono);color:var(--text-main)">#5A3A28</div>
+            <div style="font-size:10px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em;margin-top:2px">Surface</div>
+          </div>
+          <div>
+            <div style="height:60px;background:#d4a574;border:1px solid var(--border-card);border-radius:6px;margin-bottom:6px"></div>
+            <div style="font-size:11px;font-family:var(--font-mono);color:var(--text-main)">#D4A574</div>
+            <div style="font-size:10px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em;margin-top:2px">Primary</div>
+          </div>
+          <div>
+            <div style="height:60px;background:#f4ede0;border:1px solid var(--border-card);border-radius:6px;margin-bottom:6px"></div>
+            <div style="font-size:11px;font-family:var(--font-mono);color:var(--text-main)">#F4EDE0</div>
+            <div style="font-size:10px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em;margin-top:2px">Ink</div>
+          </div>
+          <div>
+            <div style="height:60px;background:#c44536;border:1px solid var(--border-card);border-radius:6px;margin-bottom:6px"></div>
+            <div style="font-size:11px;font-family:var(--font-mono);color:var(--text-main)">#C44536</div>
+            <div style="font-size:10px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em;margin-top:2px">Accent</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Typography -->
+      <div style="margin-bottom:20px;padding:16px;background:#3a2820;border-radius:8px;border:1px solid #5a3a28">
+        <div style="font-size:11px;color:#a39080;font-family:var(--font-mono);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:14px">Typography · Inter Tight (display) · Inter (body)</div>
+        <div style="font-family:'Inter Tight',Inter,sans-serif;font-weight:800;font-size:42px;line-height:1.05;color:#d4a574;text-transform:uppercase;letter-spacing:-0.01em;margin-bottom:6px">Grandma's Waiting</div>
+        <div style="font-size:10px;color:#a39080;font-family:var(--font-mono);margin-bottom:14px">H1 · 48px Inter Tight 800 UPPERCASE</div>
+        <div style="font-family:'Inter Tight',Inter,sans-serif;font-weight:800;font-size:30px;line-height:1.1;color:#f4ede0;margin-bottom:6px">She's already made too much food</div>
+        <div style="font-size:10px;color:#a39080;font-family:var(--font-mono);margin-bottom:14px">H2 · 36px Inter Tight 800 sentence case</div>
+        <div style="font-family:'Inter',sans-serif;font-weight:400;font-size:14px;line-height:1.6;color:#f4ede0;margin-bottom:6px">The man in white isn't performing heritage. He IS heritage. The roller coasters are an accident of geography — we were here first.</div>
+        <div style="font-size:10px;color:#a39080;font-family:var(--font-mono)">Body · 16px Inter 400 · 1.6 line-height</div>
+      </div>
+
+      <!-- Components -->
+      <div style="margin-bottom:20px">
+        <div style="font-size:11px;color:var(--text-faint);font-family:var(--font-mono);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:10px">Components</div>
+        <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+          <button style="padding:14px 28px;border-radius:6px;border:none;background:#d4a574;color:#3a2820;font-family:'Inter',sans-serif;font-weight:700;font-size:14px;letter-spacing:0.02em;cursor:pointer">Reserve a seat</button>
+          <button style="padding:14px 28px;border-radius:6px;border:1px solid #d4a574;background:transparent;color:#d4a574;font-family:'Inter',sans-serif;font-weight:600;font-size:14px;letter-spacing:0.02em;cursor:pointer">Read more</button>
+          <div style="padding:16px 20px;background:#5a3a28;border:1px solid #6a4a38;border-radius:8px;color:#f4ede0;font-family:'Inter',sans-serif;font-size:13px">Card chassis · 24px padding</div>
+        </div>
+      </div>
+
+      <!-- Image treatment + animation -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:20px">
+        <div style="padding:12px;background:rgba(255,255,255,0.02);border:1px solid var(--border-card);border-radius:6px">
+          <div style="font-size:10px;color:var(--text-faint);font-family:var(--font-mono);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:6px">Image treatment</div>
+          <div style="font-size:12px;color:var(--text-main);line-height:1.5">Hero: full-bleed, <code style="font-size:11px">object-fit: contain</code>. No overlay rectangles. Text-shadow only on overlaid type.</div>
+        </div>
+        <div style="padding:12px;background:rgba(255,255,255,0.02);border:1px solid var(--border-card);border-radius:6px">
+          <div style="font-size:10px;color:var(--text-faint);font-family:var(--font-mono);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:6px">Animation</div>
+          <div style="font-size:12px;color:var(--text-main);line-height:1.5">Static. No scroll-coupled motion. Restrained: only entrance fade on hero, expoOut 600ms.</div>
+        </div>
+      </div>
+
+      <!-- Do's and Don'ts -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:20px">
+        <div style="padding:12px;background:rgba(21,185,129,0.05);border:1px solid rgba(21,185,129,0.2);border-radius:6px">
+          <div style="font-size:10px;color:var(--brand-green-bright);font-family:var(--font-mono);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:8px">DO</div>
+          <ul style="margin:0;padding-left:18px;font-size:12px;color:var(--text-main);line-height:1.7">
+            <li>Use Primary <code style="font-size:11px">#D4A574</code> only for CTAs + links</li>
+            <li>Use the spacing scale (4/8/16/24/32/48/64/96)</li>
+            <li>Maintain 4.5:1 body / 3:1 large text contrast</li>
+            <li>Animate transform + opacity only</li>
+          </ul>
+        </div>
+        <div style="padding:12px;background:rgba(239,68,68,0.05);border:1px solid rgba(239,68,68,0.2);border-radius:6px">
+          <div style="font-size:10px;color:var(--brand-red);font-family:var(--font-mono);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:8px">DON'T</div>
+          <ul style="margin:0;padding-left:18px;font-size:12px;color:var(--text-main);line-height:1.7">
+            <li>Introduce colors outside this palette</li>
+            <li>Drop shadows above 8px offset</li>
+            <li>Animate width/height/top/left</li>
+            <li>Add a second accent color for emphasis</li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- Universal user-input textarea -->
+      <div style="border-top:1px solid var(--border-card);padding-top:14px">
+        <div style="font-size:11px;color:var(--text-faint);font-family:var(--font-mono);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:6px">Thoughts, comments, anything else?</div>
+        <textarea placeholder="e.g. love the palette, but bump Accent saturation 5%. Body line-height feels tight at 1.6 — try 1.7." style="width:100%;min-height:64px;background:var(--bg-input);border:1px solid var(--border-card);border-radius:8px;padding:10px 12px;font-family:var(--font-body);font-size:13px;color:var(--text-main);resize:vertical;outline:none"></textarea>
+      </div>
+
+      <!-- Action row -->
+      <div style="display:flex;gap:8px;margin-top:14px">
+        <button style="flex:1;padding:11px 18px;border-radius:8px;border:1px solid var(--brand-green-bright);background:var(--brand-green-bright);color:#0a0a0a;font-family:var(--font-mono);font-weight:700;font-size:11px;letter-spacing:0.1em;text-transform:uppercase;cursor:pointer">Approve &amp; lock</button>
+        <button style="padding:11px 18px;border-radius:8px;border:1px solid var(--brand-yellow);background:transparent;color:var(--brand-yellow);font-family:var(--font-mono);font-weight:700;font-size:11px;letter-spacing:0.1em;text-transform:uppercase;cursor:pointer">Tweak</button>
+        <button style="padding:11px 18px;border-radius:8px;border:1px solid var(--border-card);background:transparent;color:var(--text-muted);font-family:var(--font-mono);font-weight:600;font-size:11px;letter-spacing:0.1em;text-transform:uppercase;cursor:pointer">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Universal-input-field doctrine block -->
+  <div class="card" style="background:transparent;border:1px dashed var(--border-card);margin-top:16px">
+    <div class="card-body">
+      <div style="font-size:11px;color:var(--brand-green-bright);font-weight:700;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:8px">Universal user-input field — every discovery card carries it (locked 2026-05-07)</div>
+      <div style="font-size:13px;color:var(--text-main);line-height:1.6">
+        Every card surfaced during Discovery / Junior Pass / Vibes phases carries a textarea at the bottom labeled
+        "Thoughts, comments, anything else?" Submitting the card posts the textarea content as a normal user message
+        in chat, alongside the structured selection. CD reads both — the structured pick AND the freeform context.
+        <br/><br/>
+        <strong style="color:var(--brand-green-bright)">Why universal:</strong>
+        the user always has more to say than the form captures. A structured selection without a freeform escape hatch
+        forces them to either stuff context into a label they don't control, or break out of the card flow entirely.
+        Both are friction. The textarea is cheap to add and load-bearing for honest feedback.
+        <br/><br/>
+        <strong style="color:var(--text-main)">No card ships without it.</strong>
+        Direction-cards, moodboard, descent_selection, confirm_understanding, and any future Phase 1–3 card all
+        compose the same <code>&lt;DiscoveryCardFooter /&gt;</code> primitive (per WP-73).
+      </div>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

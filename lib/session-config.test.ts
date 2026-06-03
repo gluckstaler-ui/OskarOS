@@ -42,17 +42,19 @@ describe('readSessionConfig', () => {
   })
 
   it('returns DEFAULT_SESSION_CONFIG on malformed JSON', () => {
-    const path = join(TEST_SESSION_DIR, '_session-config.json')
+    const path = join(TEST_SESSION_DIR, 'logs', '_session-config.json')
+    require('fs').mkdirSync(join(TEST_SESSION_DIR, 'logs'), { recursive: true })
     require('fs').writeFileSync(path, '{ not valid json', 'utf-8')
     const cfg = readSessionConfig(TEST_SESSION_ID)
     expect(cfg.webDevModel).toBe(DEFAULT_SESSION_CONFIG.webDevModel)
   })
 
   it('merges partial file over defaults so a missing field still resolves', () => {
-    const path = join(TEST_SESSION_DIR, '_session-config.json')
-    require('fs').writeFileSync(path, JSON.stringify({ webDevModel: 'claude-opus-4-7' }), 'utf-8')
+    const path = join(TEST_SESSION_DIR, 'logs', '_session-config.json')
+    require('fs').mkdirSync(join(TEST_SESSION_DIR, 'logs'), { recursive: true })
+    require('fs').writeFileSync(path, JSON.stringify({ webDevModel: 'claude-opus-4-8' }), 'utf-8')
     const cfg = readSessionConfig(TEST_SESSION_ID)
-    expect(cfg.webDevModel).toBe('claude-opus-4-7')
+    expect(cfg.webDevModel).toBe('claude-opus-4-8')
     // Other fields fall back to default
     expect(cfg.cdModel).toBe(DEFAULT_SESSION_CONFIG.cdModel)
     expect(cfg.billingMode).toBe(DEFAULT_SESSION_CONFIG.billingMode)
@@ -73,7 +75,7 @@ describe('writeSessionConfig', () => {
   })
 
   it('partial updates merge over existing values', () => {
-    writeSessionConfig(TEST_SESSION_ID, { webDevModel: 'claude-opus-4-7', billingMode: 'api' })
+    writeSessionConfig(TEST_SESSION_ID, { webDevModel: 'claude-opus-4-8', billingMode: 'api' })
     const second = writeSessionConfig(TEST_SESSION_ID, { webDevModel: 'claude-sonnet-4-6' })
     expect(second.webDevModel).toBe('claude-sonnet-4-6')
     // billingMode preserved from the prior write
@@ -93,11 +95,11 @@ describe('resolveConfig — 3-tier precedence', () => {
     writeSessionConfig(TEST_SESSION_ID, { cdModel: 'claude-sonnet-4-6' })
     const resolved = resolveConfig(
       'cdModel',
-      'claude-opus-4-7',  // override
+      'claude-opus-4-8',  // override
       TEST_SESSION_ID,
-      'claude-opus-4-7[1m]',  // default — should be ignored
+      'claude-opus-4-8[1m]',  // default — should be ignored
     )
-    expect(resolved).toBe('claude-opus-4-7')
+    expect(resolved).toBe('claude-opus-4-8')
   })
 
   it('file wins over default when override is undefined', () => {
@@ -106,7 +108,7 @@ describe('resolveConfig — 3-tier precedence', () => {
       'cdModel',
       undefined,
       TEST_SESSION_ID,
-      'claude-opus-4-7[1m]',
+      'claude-opus-4-8[1m]',
     )
     expect(resolved).toBe('claude-sonnet-4-6')
   })
@@ -118,9 +120,9 @@ describe('resolveConfig — 3-tier precedence', () => {
       'cdModel',
       undefined,
       TEST_SESSION_ID,
-      'claude-opus-4-7',  // caller-specified default differs from schema default
+      'claude-opus-4-8',  // caller-specified default differs from schema default
     )
-    expect(resolved).toBe('claude-opus-4-7')
+    expect(resolved).toBe('claude-opus-4-8')
   })
 
   it('treats null override the same as undefined', () => {
@@ -129,7 +131,7 @@ describe('resolveConfig — 3-tier precedence', () => {
       'cdModel',
       null,
       TEST_SESSION_ID,
-      'claude-opus-4-7[1m]',
+      'claude-opus-4-8[1m]',
     )
     expect(resolved).toBe('claude-sonnet-4-6')
   })
@@ -147,9 +149,9 @@ describe('resolveWebDevExecution — combo helper', () => {
   })
 
   it('falls back to file when no override', () => {
-    writeSessionConfig(TEST_SESSION_ID, { webDevModel: 'claude-opus-4-7', webDevMode: 'api' })
+    writeSessionConfig(TEST_SESSION_ID, { webDevModel: 'claude-opus-4-8', webDevMode: 'api' })
     const result = resolveWebDevExecution(undefined, TEST_SESSION_ID)
-    expect(result.model).toBe('claude-opus-4-7')
+    expect(result.model).toBe('claude-opus-4-8')
     expect(result.mode).toBe('api')
   })
 

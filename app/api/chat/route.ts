@@ -11,10 +11,12 @@ import { buildSagePrompt } from '@/lib/sage-agent-prompt'
 const MAIN_CHAT_AGENT: 'sage' | 'cd' = 'cd'
 // 2026-05-04 (Ralph): trimmed import — VibeToolInput, ImageAsset,
 // AspectRatio, ImageSize, ImageOperation were all references for the
-// deleted generate_vibe dispatcher. ImageManifest stays because the
-// ParsedVibeResult shape still declares it (kept for now to avoid
-// cascading downstream changes).
-import { ImageManifest } from '@/lib/types'
+// deleted generate_vibe dispatcher.
+// 2026-05-18 (Jedi, WP-83): ImageManifest import removed alongside
+// `imageManifests` field on ParsedVibeResult — that field was a permanent
+// empty array because the inline generate_vibe dispatcher is gone, and
+// the consumer branches (chat NextResponse field + page.tsx setter)
+// never fired. Cleared as part of the creative-brief-parser retirement.
 import { appendUsage, calculateCost } from '@/lib/usage-tracker'
 import {
   getSessionMdPath, getUserMemoryPath, getDreamLogPath,
@@ -38,6 +40,16 @@ import {
   stripEagerInputStreaming,
 } from '@/lib/providers/normalize'
 import { getContextWindow } from '@/lib/providers/model-context'
+// 2026-05-27 (Ralph): card-vs-chat strip + feedback loop. Doctrine alone
+// can't keep the model from adding chat prose alongside a tc_* card.
+// Enforcement is at the render layer: strip the chat, persist it, quote
+// it back next turn so the model learns from the disappearance.
+import {
+  isCardThatOwnsTheTurn,
+  persistStrippedChat,
+  consumeStrippedChat,
+  buildFeedbackSystemNote,
+} from '@/lib/strip-feedback'
 
 function getApiKey(): string {
   // 2026-05-03 (Ralph): API_KEY env var first; .api-key file as fallback
@@ -52,8 +64,8 @@ function getApiKey(): string {
 }
 
 // 2026-05-04 (Ralph): there used to be a `toApiModel()` helper here that
-// tried to translate CLI-form model identifiers (e.g. `claude-opus-4-7[1m]`)
-// into API-form (`claude-opus-4-7`). It was removed. CLI and API use
+// tried to translate CLI-form model identifiers (e.g. `claude-opus-4-8[1m]`)
+// into API-form (`claude-opus-4-8`). It was removed. CLI and API use
 // genuinely different model identifiers and the mapping isn't reliably
 // expressible as "strip a suffix" — better to hardwire the API-mode
 // model in the call sites and let session-config carry the CLI form
@@ -127,8 +139,8 @@ function cacheLastMessageBlock(messages: any[]): any[] {
 // ==========================================
 
 // 2026-05-04 (Ralph): `generate_vibe` was a Phase-1 inline "build it all in
-// one tool call" path. Superseded by the MCP `build_vibe` /
-// `build_all_vibes` / `build_final` tools that delegate to runWebDev (CLI
+// one tool call" path. Superseded by the MCP `build_vibe([slugs])` and
+// `build_wireframes([slugs])` tools that delegate to runWebDev (CLI
 // or API depending on session config). The inline tool's existence
 // confused CD — sometimes she'd pick generate_vibe, get the placeholder
 // "acknowledged but processed outside the conversation loop" string,
@@ -136,7 +148,7 @@ function cacheLastMessageBlock(messages: any[]): any[] {
 // dispatcher in parseToolCalls, the post-loop dispatcher's "outside the
 // loop" comment, and the page.tsx SSE `case 'tool_complete'` handler
 // that pushed VibeData into collectedVibes.
-// 2026-05-04 (Ralph): inline ask_discovery_questions + confirm_understanding
+// 2026-05-04 (Ralph): inline tc_discovery + tc_understanding
 // definitions are RESTORED here as fallbacks. The MCP-promoted versions
 // (mcp-server/tools-cd.ts) are now the live path — see the dedupe filter
 // at the spread point below. The first attempt at this fix DELETED the
@@ -151,7 +163,7 @@ function cacheLastMessageBlock(messages: any[]): any[] {
 // so a fallback-mode session reads the agent's args correctly.
 const TOOLS = [
   {
-    name: "ask_discovery_questions",
+    name: "tc_discovery",
     description: "Ask the business owner questions to understand their business better. Use this during the discovery phase before generating vibes.",
     input_schema: {
       type: "object",
@@ -170,7 +182,7 @@ const TOOLS = [
     }
   },
   {
-    name: "confirm_understanding",
+    name: "tc_understanding",
     description: "Confirm your understanding of the business before generating vibes. Use this after discovery is complete.",
     input_schema: {
       type: "object",
@@ -228,15 +240,15 @@ const TOOLS = [
     }
   },
   // 2026-05-03 (Ralph): MCP tools — build_vibe, snackbar, hotswap,
-  // ask_user, generate_image, screenshot, apply_patch, image_ops, vibe_diff,
+  // modal, generate_image, screenshot, apply_patch, image_ops, vibe_diff,
   // lint_brand_compliance, list_assets, find_assets, session_meta,
   // notify_agent, agent_inbox, claim_orphan, thread_history, replay_events,
   // submit_proofread, submit_image_verdict, submit_upload_eval,
-  // submit_image_prompt, submit_critique, report_build_*. ~30 tools total.
+  // submit_image_prompt, submit_critique, build_*. ~30 tools total.
   // Spread directly — already in Anthropic shape via api-mcp-bridge.
   //
-  // 2026-05-04 (Ralph): dedupe filter. ask_discovery_questions +
-  // confirm_understanding exist in BOTH this inline TOOLS array AND the
+  // 2026-05-04 (Ralph): dedupe filter. tc_discovery +
+  // tc_understanding exist in BOTH this inline TOOLS array AND the
   // MCP_TOOL_DEFINITIONS_FOR_ANTHROPIC list (Commit B promoted them to
   // MCP for CLI-mode parity). Anthropic rejects duplicate tool names
   // with a 400 ("tools: Tool names must be unique"). The filter skips
@@ -252,8 +264,8 @@ const TOOLS = [
     // walking the inline TOOLS slice. Update this set when you add or
     // remove an inline tool that ALSO exists in MCP.
     const inlineNamesAlsoInMcp = new Set<string>([
-      'ask_discovery_questions',
-      'confirm_understanding',
+      'tc_discovery',
+      'tc_understanding',
     ])
     return MCP_TOOL_DEFINITIONS_FOR_ANTHROPIC.filter(
       (mcpTool) => !inlineNamesAlsoInMcp.has(mcpTool.name),
@@ -333,12 +345,10 @@ interface Message {
   images?: string[]
 }
 
-interface ImagePrompt {
-  filename: string
-  prompt: string
-  purpose: string
-  vibes: string[]
-}
+// 2026-05-18 (Jedi, WP-83): `ImagePrompt` interface lived here. Its
+// only consumer (`const imagePrompts: ImagePrompt[] = []`) was
+// removed alongside the dead `parsed.vibes` extraction; the type was
+// otherwise unreferenced.
 
 interface SourceImageInfo {
   path: string
@@ -367,7 +377,7 @@ async function callAnthropicAPI(
   // Default to Opus-1M for parity with the bridge (CLI mode runs Opus-1M
   // for CD too). The session-config resolver upstream picks the actual
   // value; this default only matters if the caller didn't pass one.
-  const effectiveModel = requestModel || 'claude-opus-4-7'
+  const effectiveModel = requestModel || 'claude-opus-4-8'
 
   for (let attempt = 1; attempt <= retries; attempt++) {
     try {
@@ -767,34 +777,24 @@ async function executeFileTool(
 // Parse Tool Calls from Claude's Response
 // ==========================================
 
-interface ParsedVibeResult {
-  vibes: {
-    name: string
-    html: string
-    headline: string
-    tagline: string
-    colors: string[]
-    typography: { heading: string; body: string }
-    voiceSamples: string[]
-  }[]
-  imageManifests: ImageManifest[]
+// 2026-05-18 (Jedi, WP-83): slimmed from the old generate_vibe-era shape.
+// `vibes` and `imageManifests` were dead — the inline dispatcher that
+// populated them is gone, both fields were always empty arrays, and
+// every downstream consumer was gated behind `length > 0`. Kept only the
+// fields parseToolCalls still populates: textMessage (text blocks),
+// discoveryQuestions (inline ask_discovery_questions case), and
+// confirmSummary (inline confirm_understanding case).
+interface ParsedToolCallResult {
   textMessage: string
   discoveryQuestions?: string[]
   confirmSummary?: string
 }
 
-function parseToolCalls(response: any, requestId: number): ParsedVibeResult {
-  const result: ParsedVibeResult = {
-    vibes: [],
-    imageManifests: [],
+function parseToolCalls(response: any, requestId: number): ParsedToolCallResult {
+  const result: ParsedToolCallResult = {
     textMessage: '',
   }
 
-  // 2026-05-04 (Ralph): vibeIndex used to be incremented inside the
-  // generate_vibe dispatcher; that tool is gone. result.vibes stays in
-  // the shape (downstream reads .length to log "0 vibes") but the loop
-  // never pushes any more — vibes always come back as an empty array
-  // from this path.
 
   for (const block of response.content) {
     if (block.type === 'text') {
@@ -810,13 +810,13 @@ function parseToolCalls(response: any, requestId: number): ParsedVibeResult {
       // definitions win. Keeping them means the fallback path captures
       // args correctly; removing them would silently strand the inline
       // tools on rollback.
-      if (block.name === 'ask_discovery_questions') {
+      if (block.name === 'tc_discovery') {
         const input = block.input as { questions: string[]; context?: string }
         result.discoveryQuestions = input.questions
         if (input.context) {
           result.textMessage += '\n\n' + input.context
         }
-      } else if (block.name === 'confirm_understanding') {
+      } else if (block.name === 'tc_understanding') {
         const input = block.input as { summary: string; readyToGenerate: boolean }
         result.confirmSummary = input.summary
         result.textMessage += '\n\n' + input.summary
@@ -827,7 +827,7 @@ function parseToolCalls(response: any, requestId: number): ParsedVibeResult {
     }
   }
 
-  console.log(`[${requestId}] Parsed ${result.vibes.length} vibes, ${result.imageManifests.length} manifests`)
+  console.log(`[${requestId}] Parsed tool calls: discovery=${result.discoveryQuestions?.length ?? 0}, confirm=${result.confirmSummary ? 'yes' : 'no'}`)
   return result
 }
 
@@ -953,9 +953,9 @@ export async function POST(req: NextRequest) {
     // Phase 2 toggle wiring (Ralph 2026-05-04). Resolve cdModel once at the
     // top: per-request body > session config file > hardcoded default. The
     // value flows into every callAnthropicAPI invocation below.
-    // 2026-05-04 (Ralph): API mode is HARDWIRED to `claude-opus-4-7`.
+    // 2026-05-04 (Ralph): API mode is HARDWIRED to `claude-opus-4-8`.
     // The session-config cdModel field uses Claude Code CLI strings
-    // (e.g. `claude-opus-4-7[1m]`) that the Anthropic API doesn't
+    // (e.g. `claude-opus-4-8[1m]`) that the Anthropic API doesn't
     // accept. CLI and API need genuinely different identifiers — they
     // are not derivable from each other by simple translation.
     // Originally hardwired here for that reason; Bug A's "make the
@@ -963,7 +963,7 @@ export async function POST(req: NextRequest) {
     // The toggle now only meaningfully controls CLI mode; API mode
     // uses this fixed value. If you need Sonnet in API mode, change
     // this constant.
-    const resolvedCdModel = 'claude-opus-4-7'
+    const resolvedCdModel = 'claude-opus-4-8'
     const memorySessionFiles = await (async () => {
       try {
         const consolidatedSessionMd = await readFile(getSessionMdPath(effectiveSessionId), 'utf-8').catch(() => undefined)
@@ -995,6 +995,19 @@ export async function POST(req: NextRequest) {
       } catch (e) {
         console.error(`[${requestId}] Failed to load CD-MEMORY.md:`, e)
       }
+    }
+
+    // 2026-05-27 (Ralph): card-vs-chat feedback injection. If the PREVIOUS
+    // turn fired a tc_* card alongside chat prose, the chat was stripped
+    // (see post-parseToolCalls block below). Now, before this turn fires,
+    // inject a system note quoting the stripped paragraph back to the
+    // model with explicit guidance on where it should have lived. This is
+    // the learning signal — doctrine alone bends the curve but doesn't
+    // reach zero. Enforcement + feedback does.
+    const strippedRecord = consumeStrippedChat(effectiveSessionId)
+    if (strippedRecord) {
+      systemPrompt = systemPrompt + buildFeedbackSystemNote(strippedRecord)
+      console.log(`[${requestId}] Strip-feedback injected: ${strippedRecord.cardNames.join('+')} stripped ${strippedRecord.stripped.length}ch`)
     }
 
     // Build messages for Claude
@@ -1184,8 +1197,8 @@ Don't be polite. Be brilliant. If something is stunning, say "holy shit." If som
       // the model can adapt rather than re-call the same dead-end tool.
       // (2026-05-04: `generate_vibe` is no longer in TOOLS, so the
       // outside-the-loop placeholder branch is now ONLY for tools the model
-      // hallucinated. The other inline tools — ask_discovery_questions,
-      // confirm_understanding — are handled by parseToolCalls AFTER the loop
+      // hallucinated. The other inline tools — tc_discovery,
+      // tc_understanding — are handled by parseToolCalls AFTER the loop
       // exits; their loop-time result is the placeholder string, which is
       // fine because they're idempotent metadata captures.)
       const allToolCalls = (response.content || []).filter((block: any) => block.type === 'tool_use')
@@ -1248,7 +1261,7 @@ Don't be polite. Be brilliant. If something is stunning, say "holy shit." If som
           dispatchedCount++
         } else {
           // Tool we know about but don't dispatch in the loop. Today this
-          // is `ask_discovery_questions` + `confirm_understanding` (handled
+          // is `tc_discovery` + `tc_understanding` (handled
           // by post-loop parseToolCalls until Commit E migrates them to
           // MCP-only) and any tool the model hallucinated. Either way we
           // MUST emit a tool_result so the next API call doesn't 400.
@@ -1340,199 +1353,52 @@ Don't be polite. Be brilliant. If something is stunning, say "holy shit." If som
       assistantMessage += '\n\n**Questions:**\n' + parsed.discoveryQuestions.map((q, i) => `${i + 1}. ${q}`).join('\n')
     }
 
-    // Extract results
-    const vibes = parsed.vibes
-    const imageManifests = parsed.imageManifests
-    const imagePrompts: ImagePrompt[] = [] // Legacy format, no longer used with Tool Use
+    // 2026-05-27 (Ralph): card-vs-chat STRIP + PERSIST.
+    //
+    // If this turn fired any tc_* card that owns the user's response
+    // (tc_discovery, tc_understanding, tc_design_directions, etc.) AND
+    // there is also chat prose, the prose is removed before it reaches
+    // the user, and the verbatim text is persisted for next-turn feedback
+    // injection. See lib/strip-feedback.ts for the full doctrine.
+    //
+    // Detection walks the FINAL response's content blocks for tool_use
+    // calls. The dispatch loop above may have fired tc_* in earlier
+    // iterations, but the final response is where chat prose lands
+    // (the model stops calling tools when it wants to "explain"). If
+    // the final iteration has both a card and text, we have a collision.
+    if (effectiveSessionId && assistantMessage.trim() && Array.isArray(response?.content)) {
+      const tcCardsFired: string[] = []
+      for (const block of response.content) {
+        if (block?.type === 'tool_use' && typeof block.name === 'string' && isCardThatOwnsTheTurn(block.name)) {
+          tcCardsFired.push(block.name)
+        }
+      }
+      if (tcCardsFired.length > 0) {
+        const strippedText = assistantMessage
+        persistStrippedChat(effectiveSessionId, strippedText, tcCardsFired)
+        assistantMessage = ''
+        console.log(`[${requestId}] Strip-feedback armed: stripped ${strippedText.length}ch alongside ${tcCardsFired.join('+')}`)
+      }
+    }
 
-    console.log(`[${requestId}] Returning response with ${vibes.length} vibes, ${imageManifests.length} manifests`)
+    // 2026-05-18 (Jedi, WP-83): `vibes` / `imageManifests` / `imagePrompts`
+    // extraction removed. parseToolCalls no longer surfaces them (inline
+    // generate_vibe dispatcher is gone), and the dead branches further down
+    // were always skipped.
+    console.log(`[${requestId}] Returning response (textOnly path)`)
 
     // Log the assistant's response - VERBATIM per MD spec
     await logConversation('assistant', assistantMessage, effectiveSessionId)
 
-    // ==========================================
-    // Bridge Script for Live Preview & Director Mode
-    // ==========================================
-    const BRIDGE_SCRIPT = `
-<script>
-  // OskarOS Bridge - enables live preview updates and Director Mode editing
-  (function() {
-    // Director Mode state
-    var directorModeEnabled = false;
-
-    // Inject Director Mode styles
-    var directorStyle = document.createElement('style');
-    directorStyle.id = 'oskar-director-styles';
-    directorStyle.textContent = \`
-      .oskar-director-active [data-editable],
-      .oskar-director-active [data-usage] {
-        outline: 2px dashed rgba(59, 130, 246, 0.4) !important;
-        outline-offset: 2px;
-        cursor: pointer !important;
-        transition: outline 0.2s, background 0.2s;
-      }
-      .oskar-director-active [data-editable]:hover,
-      .oskar-director-active [data-usage]:hover {
-        outline: 2px solid rgba(59, 130, 246, 0.8) !important;
-        background: rgba(59, 130, 246, 0.1) !important;
-      }
-      .oskar-selected {
-        outline: 3px solid #3b82f6 !important;
-        outline-offset: 2px;
-        background: rgba(59, 130, 246, 0.15) !important;
-      }
-      .oskar-director-banner {
-        position: fixed;
-        top: 0;
-        left: 0;
-        right: 0;
-        background: linear-gradient(135deg, #3b82f6, #8b5cf6);
-        color: white;
-        padding: 8px 16px;
-        font-family: system-ui, sans-serif;
-        font-size: 12px;
-        font-weight: 600;
-        text-align: center;
-        z-index: 99999;
-        display: none;
-      }
-      .oskar-director-banner.active { display: block; }
-    \`;
-    document.head.appendChild(directorStyle);
-
-    // Add Director Mode banner
-    var banner = document.createElement('div');
-    banner.className = 'oskar-director-banner';
-    banner.innerHTML = '🎬 DIRECTOR MODE — Click any element to select and edit';
-    document.body.appendChild(banner);
-
-    // Listen for messages from parent React app
-    window.addEventListener('message', function(event) {
-      var data = event.data;
-      if (!data || !data.type) return;
-
-      // SET_DIRECTOR_MODE: Toggle Director Mode
-      if (data.type === 'SET_DIRECTOR_MODE') {
-        directorModeEnabled = data.enabled;
-        if (data.enabled) {
-          document.body.classList.add('oskar-director-active');
-          banner.classList.add('active');
-        } else {
-          document.body.classList.remove('oskar-director-active');
-          banner.classList.remove('active');
-          // Clear selection
-          document.querySelectorAll('.oskar-selected').forEach(function(e) {
-            e.classList.remove('oskar-selected');
-          });
-        }
-      }
-
-      // UPDATE_IMAGE: Replace image src when asset is generated
-      if (data.type === 'UPDATE_IMAGE') {
-        var images = document.querySelectorAll('[data-usage="' + data.usage + '"]');
-        images.forEach(function(img) {
-          img.src = data.url;
-          img.style.opacity = '0';
-          img.onload = function() { img.style.opacity = '1'; };
-        });
-      }
-
-      // UPDATE_TEXT: Replace text content
-      if (data.type === 'UPDATE_TEXT') {
-        var el = document.querySelector('[data-editable="' + data.id + '"]');
-        if (el) el.textContent = data.text;
-      }
-
-      // HIGHLIGHT_ELEMENT: Visual feedback for selection
-      if (data.type === 'HIGHLIGHT_ELEMENT') {
-        document.querySelectorAll('.oskar-selected').forEach(function(e) {
-          e.classList.remove('oskar-selected');
-        });
-        if (data.id) {
-          var target = document.querySelector('[data-editable="' + data.id + '"], [data-usage="' + data.id + '"]');
-          if (target) target.classList.add('oskar-selected');
-        }
-      }
-    });
-
-    // Director Mode: Click-to-select elements (only when enabled)
-    document.addEventListener('click', function(e) {
-      if (!directorModeEnabled) return;
-
-      var target = e.target;
-      var editable = target.dataset ? target.dataset.editable : null;
-      var usage = target.dataset ? target.dataset.usage : null;
-
-      if (editable || usage) {
-        e.preventDefault();
-        e.stopPropagation();
-
-        var rect = target.getBoundingClientRect();
-
-        // Notify parent of selection
-        window.parent.postMessage({
-          type: 'ELEMENT_SELECTED',
-          elementType: target.tagName === 'IMG' ? 'image' : 'text',
-          id: editable || usage,
-          currentValue: target.tagName === 'IMG' ? target.src : target.textContent,
-          tagName: target.tagName,
-          rect: { top: rect.top, left: rect.left, width: rect.width, height: rect.height }
-        }, '*');
-
-        // Visual feedback
-        document.querySelectorAll('.oskar-selected').forEach(function(e) {
-          e.classList.remove('oskar-selected');
-        });
-        target.classList.add('oskar-selected');
-      }
-    });
-
-    // Notify parent that bridge is ready
-    window.parent.postMessage({ type: 'BRIDGE_READY' }, '*');
-  })();
-</script>
-`;
-
-    // Auto-save vibes to disk
-    const savedPaths: string[] = []
-    if (vibes.length > 0) {
-      const outputDir = path.join(process.cwd(), 'public', 'generated-vibes')
-      await mkdir(outputDir, { recursive: true })
-
-      for (const vibe of vibes) {
-        const filename = `${vibe.name.toLowerCase().replace(/[^a-z0-9]+/g, '-')}-${Date.now()}.html`
-        const filePath = path.join(outputDir, filename)
-
-        // Fix image paths: convert /uploads/ to ../uploads/ for standalone HTML viewing
-        let htmlContent = vibe.html
-          .replace(/src="\/uploads\//g, 'src="../uploads/')
-          .replace(/src='\/uploads\//g, "src='../uploads/")
-          .replace(/src="\/images\//g, 'src="../images/')
-          .replace(/src='\/images\//g, "src='../images/")
-          .replace(/src="\/generated-images\//g, 'src="../generated-images/')
-          .replace(/src='\/generated-images\//g, "src='../generated-images/")
-
-        // Inject bridge script before </body> for live preview and Director Mode
-        if (htmlContent.includes('</body>')) {
-          htmlContent = htmlContent.replace('</body>', BRIDGE_SCRIPT + '</body>')
-        } else {
-          // If no </body> tag, append to end
-          htmlContent += BRIDGE_SCRIPT
-        }
-
-        await writeFile(filePath, htmlContent, 'utf-8')
-        const publicPath = `/generated-vibes/${filename}`
-        savedPaths.push(publicPath)
-        console.log(`[${requestId}] Saved vibe "${vibe.name}" to ${publicPath}`)
-      }
-    }
-
+    // 2026-05-18 (Jedi, WP-83): the local `BRIDGE_SCRIPT` duplicate + the
+    // auto-save-vibes-to-disk block lived here (~150 lines). The script
+    // injected Director-Mode editing into vibes saved by the now-defunct
+    // inline `generate_vibe` dispatcher. Canonical export still lives in
+    // `lib/webdev.ts` and is used by `lib/gemini-loop.ts` and
+    // `lib/claude-api-loop.ts`. Vibes flow through MCP build_vibe to
+    // `public/{sessionId}/vibe-N-*.html` now; this path is dead.
     return NextResponse.json({
       message: assistantMessage,
-      vibes: vibes.length > 0 ? vibes : undefined,
-      vibePaths: savedPaths.length > 0 ? savedPaths : undefined,
-      imageManifests: imageManifests.length > 0 ? imageManifests : undefined,
-      imagePrompts: imagePrompts.length > 0 ? imagePrompts : undefined,
       contextPct,
       inputTokens: totalInputTokens,
       contextWindow,
@@ -1599,10 +1465,10 @@ async function handleStreamingPOST(
 
   // 2026-05-04 (Ralph): hardwired — see same-named constant in the JSON
   // path above. API and CLI use genuinely different model identifiers
-  // (`claude-opus-4-7` vs `claude-opus-4-7[1m]`); session-config's
+  // (`claude-opus-4-8` vs `claude-opus-4-8[1m]`); session-config's
   // cdModel field carries the CLI form. The API path overrides with
   // this fixed value to avoid 404s.
-  const resolvedCdModel = 'claude-opus-4-7'
+  const resolvedCdModel = 'claude-opus-4-8'
 
   // 2026-05-04 (Ralph, Bug K): normalize → sanitize, same order as JSON path.
   // Normalize merges consecutive same-role + drops empty content; sanitize

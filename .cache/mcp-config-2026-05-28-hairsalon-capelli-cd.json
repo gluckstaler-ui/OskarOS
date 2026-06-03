@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "orch": {
+      "type": "http",
+      "url": "http://localhost:3000/api/mcp/server?session=2026-05-28-hairsalon-capelli&agent=cd&instance=f137bdb2-5ec1-42cd-8839-6c0da1063fd6"
+    }
+  }
+}

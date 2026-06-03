@@ -123,6 +123,43 @@ function generateSlug(businessName: string): string {
     .substring(0, 30)
 }
 
+/**
+ * Derive a human-readable display name from a sessionId.
+ *
+ * Ralph 2026-06-01 — replaces the fragile regex `/Business:\s*(.+)/i`
+ * that used to scan SESSION.md for the top-bar name. That regex got
+ * hijacked by Confirm-Understanding cards which wrote a multi-sentence
+ * brand paragraph after `**Business:**`, producing 500-character
+ * gibberish in the UI (e.g. "** Weingut Barbazza (Tomašić · 'Barbazza')
+ *  — a 500-year-documented family winery in Smokvica, Korčula. …").
+ *
+ * The sessionId is ALREADY the canonical slug — produced by `generateSlug`
+ * at session creation from the businessName. Reversing the slug back to a
+ * title-cased name is a pure deterministic transformation: no markdown
+ * parsing, no regex on free-form CD output, no failure modes.
+ *
+ *   "2026-05-31-weingut-barbazza"  → "Weingut Barbazza"
+ *   "2026-01-26-falcamel-cafe"     → "Falcamel Cafe"
+ *   "escrow-smoketest"             → "Escrow Smoketest"   (no date prefix)
+ *   ""                             → ""
+ *
+ * Loss: diacritics + apostrophes don't survive (the slug already dropped
+ * them via `generateSlug`'s `[^a-z0-9]+ → -`). That's not new loss; it's
+ * the same lossiness that always existed at the slug layer. Recovery for
+ * "Tomašić Estate" → "Tomasic Estate", which is acceptable in the top
+ * bar. Users who need the original styling can rename the project — the
+ * rename feature already keeps sessionId in sync with the chosen name.
+ */
+export function humanizeSessionId(sessionId: string): string {
+  if (!sessionId) return ''
+  const slug = sessionId.replace(/^\d{4}-\d{2}-\d{2}-/, '')
+  return slug
+    .split('-')
+    .filter(Boolean)
+    .map((w) => (w[0]?.toUpperCase() ?? '') + w.slice(1))
+    .join(' ')
+}
+
 // Create initial SESSION.md content
 //
 // Top-level sections, top-to-bottom:
@@ -933,8 +970,11 @@ export async function appendToSessionLog(
   agent: string,
   content: string
 ): Promise<void> {
-  const sessionPath = getSessionPath(sessionId)
-  const sessionMdPath = path.join(sessionPath, 'SESSION.md')
+  // Directory-aware path: getSessionMdPath resolves the CRM sentinel
+  // (__crm__ → db/SESSION.md) as well as normal session ids
+  // (→ public/{id}/SESSION.md). Never hardwire public/ here — the Consular's
+  // session log lives in db/, not public/.
+  const sessionMdPath = getSessionMdPath(sessionId)
 
   const existingContent = await readFile(sessionMdPath, 'utf-8')
   const timestamp = formatLogTimestamp()

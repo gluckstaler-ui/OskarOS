@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { writeFile, mkdir, access } from 'fs/promises'
+import { randomUUID } from 'crypto'
 import path from 'path'
 
 // Check if file exists
@@ -83,7 +84,15 @@ export async function POST(req: NextRequest) {
     // Images are saved to disk, CD reads and analyzes them during discovery
 
     return NextResponse.json({
-      id: `upload-${Date.now()}`,  // ID still uses timestamp for uniqueness
+      // Ralph 2026-05-12 — was `upload-${Date.now()}`. Date.now() is
+      // millisecond-resolution: 20 parallel uploads (or the auto-generated
+      // image_ready cascade firing 20 inject-images calls) land in the
+      // same millisecond and produce duplicate IDs, which AssetGrid uses
+      // as React keys. The "Encountered two children with the same key"
+      // warning fired exactly when N images landed at the same time.
+      // randomUUID() is collision-proof; timestamp prefix kept for
+      // sort/grep ergonomics.
+      id: `upload-${Date.now()}-${randomUUID().slice(0, 8)}`,
       filename,
       path: publicPath,
       originalName: file.name,

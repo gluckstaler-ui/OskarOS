@@ -1,12 +1,18 @@
 /**
  * Session-scoped runtime config (Ralph 2026-05-04).
  *
- * Lives at `public/{sessionId}/_session-config.json`. Owns the user's
- * TopBar choices: which model + transport powers CD, and which model +
- * mode powers WebDev. The MCP build routes (which can't see UI state
- * because they're downstream of the bridge subprocess) read this file
- * to pick up the user's selection. The chat routes read it as a fallback
- * when a per-request override isn't present.
+ * Lives at `public/{sessionId}/logs/_session-config.json` (post-WP-CRM-A12).
+ * Owns the user's TopBar choices: which model + transport powers CD, and
+ * which model + mode powers WebDev. The MCP build routes (which can't see
+ * UI state because they're downstream of the bridge subprocess) read this
+ * file to pick up the user's selection. The chat routes read it as a
+ * fallback when a per-request override isn't present.
+ *
+ * Also carries the optional CRM linkage fields (WP-CRM-A11): when a
+ * session was created from a prospect via /api/admin/crm/sessions, that
+ * route sets `prospect_id` here. The CRM scanner reads `logs/_session-config.json`
+ * across all session folders to derive the prospect→session linkage —
+ * no more `public/_crm/links.json` shadow database.
  *
  * Read order at every consumer:
  *   1. Per-request override from request body (instant — toggle change
@@ -30,13 +36,13 @@ import crypto from 'crypto'
 
 // Bug M (Ralph 2026-05-04): `'auto'` means "use whatever Claude Code's
 // OWN settings have configured." For users running stock Claude Code,
-// that's claude-opus-4-7. For users who've base-URL-piped Claude Code
+// that's claude-opus-4-8. For users who've base-URL-piped Claude Code
 // to Z.ai, that's their configured GLM model. Forcing `--model` from
 // the bridge would override the user's intent and make Z.ai-configured
-// CLI sessions report claude-opus-4-7 in the system/init event (which
+// CLI sessions report claude-opus-4-8 in the system/init event (which
 // is what we passed, not what they wanted).
-export type CdModel = 'auto' | 'opus' | 'claude-opus-4-7[1m]' | 'claude-opus-4-7' | 'claude-sonnet-4-6'
-export type WebDevModel = 'claude-opus-4-7' | 'claude-sonnet-4-6' | 'gemini-3.1-pro-preview'
+export type CdModel = 'auto' | 'opus' | 'claude-opus-4-8[1m]' | 'claude-opus-4-8' | 'claude-sonnet-4-6'
+export type WebDevModel = 'claude-opus-4-8' | 'claude-sonnet-4-6' | 'gemini-3.1-pro-preview'
 export type ExecutionMode = 'smpl' | 'cli' | 'api'
 
 // Mode → cdModel defaults. When the user toggles execution mode, cdModel
@@ -47,8 +53,8 @@ export type ExecutionMode = 'smpl' | 'cli' | 'api'
 // endpoint's model ID directly. Ralph 2026-05-04.
 export const MODE_DEFAULTS: Record<ExecutionMode, CdModel> = {
   smpl: 'opus',
-  cli: 'claude-opus-4-7[1m]',
-  api: 'claude-opus-4-7',
+  cli: 'claude-opus-4-8[1m]',
+  api: 'claude-opus-4-8',
 }
 
 export interface SessionConfig {
@@ -60,22 +66,38 @@ export interface SessionConfig {
    * `~/.claude/settings.json` (or env) selects. Specific values force a
    * model regardless of Claude Code's defaults — useful only when you
    * KNOW the model is supported by the endpoint Claude Code is talking
-   * to. For Anthropic the default Claude Code config is claude-opus-4-7
+   * to. For Anthropic the default Claude Code config is claude-opus-4-8
    * which equals 'auto' in practice.
    */
   cdModel: CdModel
   billingMode: ExecutionMode
   updatedAt: string
+
+  // ────────────────────────────────────────────────────────────────────
+  // CRM linkage (optional — populated only for sessions created via
+  // /api/admin/crm/sessions). The presence of `prospect_id` is what
+  // makes a session folder show up in `scanProspectSessions()` in
+  // lib/crm-store.ts. Folder names are mutable labels; this field is
+  // the immutable foreign key. WP-CRM-A11.
+  // ────────────────────────────────────────────────────────────────────
+  prospect_id?: string
+  createdAt?: string
+  outcome?: 'won' | 'lost' | 'abandoned' | null
+  phase?: number
 }
 
 export const DEFAULT_SESSION_CONFIG: SessionConfig = {
   webDevModel: 'claude-sonnet-4-6',
   webDevMode: 'cli',
-  // SMPL default — passes tier alias 'opus' to the bridge. Claude Code
-  // resolves via ANTHROPIC_DEFAULT_OPUS_MODEL in settings.json. On Z.ai,
-  // that's glm-5.1 (best model). On Anthropic, that's claude-opus-4-7.
-  cdModel: MODE_DEFAULTS.smpl,
-  billingMode: 'smpl',
+  // CLI default — passes the full Claude identifier with [1m] suffix so
+  // the bridge spawns with 1M context on Anthropic. Ralph 2026-05-27:
+  // the previous SMPL default ('opus' tier alias) could silently demote
+  // to a 200K wire model via the user's ~/.claude/settings.json alias
+  // chain. SMPL and API remain as user-clickable options in TopBar; the
+  // default just never lands there. API in particular is real out-of-
+  // pocket spend and must NEVER be entered without an explicit click.
+  cdModel: MODE_DEFAULTS.cli,
+  billingMode: 'cli',
   updatedAt: '1970-01-01T00:00:00.000Z',
 }
 
@@ -83,8 +105,12 @@ export const DEFAULT_SESSION_CONFIG: SessionConfig = {
 // Paths
 // ──────────────────────────────────────────────────────────────────────
 
+// WP-CRM-A12 (Ralph 2026-05-22): moved from session root into `logs/`
+// alongside USAGE.json and BRIDGE.json. One source-of-truth path constant.
+// Migration of existing 15 files: run `scripts/migrate-session-config.mjs`
+// once after this WP ships. Subsequent reads/writes use the new path only.
 function getConfigPath(sessionId: string): string {
-  return join(process.cwd(), 'public', sessionId, '_session-config.json')
+  return join(process.cwd(), 'public', sessionId, 'logs', '_session-config.json')
 }
 
 // ──────────────────────────────────────────────────────────────────────
@@ -161,7 +187,7 @@ export function writeSessionConfig(sessionId: string, partial: Partial<SessionCo
  * Generic so it works for any field of SessionConfig.
  *
  * Example:
- *   const cdModel = resolveConfig('cdModel', req.cdModel, sessionId, 'claude-opus-4-7[1m]')
+ *   const cdModel = resolveConfig('cdModel', req.cdModel, sessionId, 'claude-opus-4-8[1m]')
  */
 export function resolveConfig<K extends keyof SessionConfig>(
   field: K,

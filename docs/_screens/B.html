@@ -1,0 +1,1343 @@
+<h2>B. Record &amp; detail screens — the deep views</h2>
+
+<!-- =================== B1 CONTACT / PERSON RECORD =================== -->
+<section class="screen" id="B1">
+  <h3>B1 — Contact / Person Record</h3>
+  <p class="screen-meta">All · 360° on a person — identity, engagement, activity spine, related deals &amp; people · ref: Attio, HubSpot, Folk</p>
+  <div class="mockup">
+<svg viewBox="0 0 1180 600" xmlns="http://www.w3.org/2000/svg" font-family="Inter, sans-serif" font-size="12">
+  <rect width="1180" height="600" rx="8" fill="#161922"/>
+  <!-- Header -->
+  <rect width="1180" height="92" fill="#11141d"/>
+  <text x="118" y="32" fill="#6b7180" font-size="11" font-family="ui-monospace, monospace">CONTACT · PER-MCHEN-2291 · Contacts › Acme Corp ›</text>
+  <circle cx="46" cy="56" r="26" fill="#6ea8ff" opacity="0.28"/>
+  <text x="34" y="61" fill="#6ea8ff" font-weight="700" font-size="17">MC</text>
+  <text x="84" y="52" fill="#e8eaef" font-size="22" font-weight="700">Marcus Chen</text>
+  <circle cx="262" cy="46" r="6" fill="#6ee7a1"/>
+  <text x="84" y="74" fill="#a4abbb" font-size="13">VP Engineering · <tspan fill="#e8eaef" font-weight="600">Acme Corp</tspan> · San Francisco, CA</text>
+  <!-- engagement meter -->
+  <text x="640" y="40" fill="#a4abbb" font-family="ui-monospace, monospace" font-size="11">ENGAGEMENT</text>
+  <g transform="translate(640,52)">
+    <circle r="7" cx="7" cy="7" fill="#6ee7a1"/><circle r="7" cx="25" cy="7" fill="#6ee7a1"/><circle r="7" cx="43" cy="7" fill="#6ee7a1"/><circle r="7" cx="61" cy="7" fill="#6ee7a1"/><circle r="7" cx="79" cy="7" fill="#2a2f40"/>
+    <text x="98" y="12" fill="#6ee7a1" font-weight="600" font-size="12">High · trending up</text>
+  </g>
+  <!-- actions -->
+  <rect x="884" y="40" width="74" height="34" rx="6" fill="#6ea8ff"/>
+  <text x="900" y="61" fill="#0f1115" font-weight="700">✉ Email</text>
+  <rect x="966" y="40" width="62" height="34" rx="6" fill="#1c2030" stroke="#2a2f40"/>
+  <text x="982" y="61" fill="#a4abbb">📞 Call</text>
+  <rect x="1036" y="40" width="60" height="34" rx="6" fill="#1c2030" stroke="#2a2f40"/>
+  <text x="1058" y="61" fill="#a4abbb">⋮</text>
+
+  <!-- LEFT col: IDENTITY + FIELDS -->
+  <g transform="translate(20,110)">
+    <text fill="#a4abbb" font-family="ui-monospace, monospace" font-size="11" letter-spacing="1">IDENTITY</text>
+    <g transform="translate(0,22)" font-size="12">
+      <text fill="#6b7180">Email</text><text x="86" fill="#6ea8ff">m.chen@acme.com</text>
+      <text y="22" fill="#6b7180">Phone</text><text x="86" y="22" fill="#e8eaef">+1 (415) 555‑0142</text>
+      <text y="44" fill="#6b7180">Title</text><text x="86" y="44" fill="#e8eaef">VP Engineering</text>
+      <text y="66" fill="#6b7180">Reports to</text><text x="86" y="66" fill="#e8eaef">Lisa Park (CFO)</text>
+      <text y="88" fill="#6b7180">Timezone</text><text x="86" y="88" fill="#e8eaef">PT · 11:42 local</text>
+      <text y="110" fill="#6b7180">Owner</text><text x="86" y="110" fill="#e8eaef">You</text>
+    </g>
+    <line x1="0" y1="232" x2="232" y2="232" stroke="#2a2f40"/>
+    <text y="254" fill="#a4abbb" font-family="ui-monospace, monospace" font-size="11" letter-spacing="1">SOCIAL</text>
+    <g transform="translate(0,266)" font-size="12">
+      <rect width="232" height="30" rx="6" fill="#1c2030" stroke="#2a2f40"/>
+      <text x="12" y="20" fill="#6ea8ff">in</text><text x="34" y="20" fill="#e8eaef">linkedin.com/in/marcuschen</text>
+      <text x="206" y="20" fill="#6b7180">↗</text>
+      <rect y="38" width="232" height="30" rx="6" fill="#1c2030" stroke="#2a2f40"/>
+      <text x="12" y="58" fill="#6ea8ff">𝕏</text><text x="34" y="58" fill="#e8eaef">@mchen_builds</text>
+      <text x="150" y="58" fill="#ffb86b" font-size="11">★ posted 2d ago</text>
+    </g>
+    <line x1="0" y1="348" x2="232" y2="348" stroke="#2a2f40"/>
+    <text y="370" fill="#a4abbb" font-family="ui-monospace, monospace" font-size="11" letter-spacing="1">FIELDS</text>
+    <g transform="translate(0,386)" font-size="12">
+      <text fill="#6b7180">Persona</text><text x="86" fill="#e8eaef">Economic buyer</text>
+      <text y="22" fill="#6b7180">Seniority</text><text x="86" y="22" fill="#e8eaef">VP</text>
+      <text y="44" fill="#6b7180">Lifecycle</text><text x="86" y="44" fill="#6ee7a1">Opportunity</text>
+    </g>
+    <line x1="0" y1="452" x2="232" y2="452" stroke="#2a2f40"/>
+    <text y="474" fill="#a4abbb" font-family="ui-monospace, monospace" font-size="11" letter-spacing="1">TAGS</text>
+    <g transform="translate(0,484)" font-size="11">
+      <rect width="64" height="22" rx="11" fill="#6ea8ff" opacity="0.15"/><text x="12" y="15" fill="#6ea8ff">Champion</text>
+      <rect x="72" width="58" height="22" rx="11" fill="#ff6b9d" opacity="0.15"/><text x="82" y="15" fill="#ff6b9d">Webinar</text>
+      <rect x="138" width="50" height="22" rx="11" fill="#1c2030" stroke="#2a2f40"/><text x="150" y="15" fill="#a4abbb">+ Tag</text>
+    </g>
+  </g>
+
+  <!-- CENTER col: ACTIVITY TIMELINE SPINE -->
+  <g transform="translate(280,110)">
+    <text fill="#a4abbb" font-family="ui-monospace, monospace" font-size="11" letter-spacing="1">ACTIVITY TIMELINE</text>
+    <text x="430" fill="#6b7180" font-family="ui-monospace, monospace" font-size="11">All ▾</text>
+    <line x1="14" y1="22" x2="14" y2="430" stroke="#2a2f40"/>
+    <g transform="translate(0,22)">
+      <circle cx="14" cy="10" r="6" fill="#6ea8ff"/>
+      <text x="34" y="14" fill="#e8eaef" font-weight="600">Today · 09:32</text>
+      <text x="34" y="32" fill="#a4abbb">✉ Replied "Re: Q3 expansion pricing"</text>
+      <text x="34" y="50" fill="#6b7180" font-size="11">"Looping in Lisa for sign‑off — can we do Thu?"</text>
+    </g>
+    <g transform="translate(0,92)">
+      <circle cx="14" cy="10" r="6" fill="#ffb86b"/>
+      <text x="34" y="14" fill="#e8eaef" font-weight="600">Yesterday · 14:02</text>
+      <text x="34" y="32" fill="#a4abbb">📞 Call · 28 min · <tspan fill="#6ea8ff">recording ↗</tspan></text>
+      <rect x="34" y="44" width="446" height="46" rx="6" fill="#1c2030" stroke="#2a2f40"/>
+      <text x="46" y="62" fill="#ffb86b" font-size="11">★ AI summary</text>
+      <text x="46" y="80" fill="#a4abbb" font-size="11">Wants CFO on next call. Concerned about ramp timeline.</text>
+    </g>
+    <g transform="translate(0,202)">
+      <circle cx="14" cy="10" r="6" fill="#6ee7a1"/>
+      <text x="34" y="14" fill="#e8eaef" font-weight="600">May 18 · 11:00</text>
+      <text x="34" y="32" fill="#a4abbb">📅 Demo · 45 min · 3 attendees</text>
+      <text x="34" y="50" fill="#6b7180" font-size="11">opened deck 4× after the call</text>
+    </g>
+    <g transform="translate(0,266)">
+      <circle cx="14" cy="10" r="6" fill="#6b7180"/>
+      <text x="34" y="14" fill="#a4abbb">May 15 · field change</text>
+      <text x="34" y="32" fill="#6b7180">Persona: Influencer → Economic buyer (you)</text>
+    </g>
+    <g transform="translate(0,318)">
+      <circle cx="14" cy="10" r="6" fill="#6b7180"/>
+      <text x="34" y="14" fill="#a4abbb">May 11 · 16:20</text>
+      <text x="34" y="32" fill="#6b7180">📝 Note · "Met at SaaStr — owns platform roadmap"</text>
+    </g>
+    <!-- composer -->
+    <rect x="0" y="386" width="480" height="44" rx="8" fill="#1c2030" stroke="#2a2f40"/>
+    <text x="14" y="412" fill="#6b7180">+ Note   + Task   + Log call   + Email   /   ⌘K AI</text>
+  </g>
+
+  <!-- RIGHT col: RELATED DEALS & PEOPLE -->
+  <g transform="translate(792,110)">
+    <text fill="#a4abbb" font-family="ui-monospace, monospace" font-size="11" letter-spacing="1">DEALS · 2 OPEN</text>
+    <g transform="translate(0,22)">
+      <rect width="366" height="58" rx="8" fill="#1c2030" stroke="#2a2f40"/>
+      <rect width="4" height="58" rx="2" fill="#ffb86b"/>
+      <text x="16" y="22" fill="#e8eaef" font-weight="600">Acme Corp · Q3 Expansion</text>
+      <text x="16" y="42" fill="#a4abbb" font-size="11">$85,000 · Stage 3 Demo · close May 31</text>
+      <text x="300" y="22" fill="#ffb86b" font-size="11">⚠ risk</text>
+    </g>
+    <g transform="translate(0,88)">
+      <rect width="366" height="58" rx="8" fill="#1c2030" stroke="#2a2f40"/>
+      <rect width="4" height="58" rx="2" fill="#6ee7a1"/>
+      <text x="16" y="22" fill="#e8eaef" font-weight="600">Acme · Platform Renewal</text>
+      <text x="16" y="42" fill="#a4abbb" font-size="11">$40,000 · Stage 4 · close Jun 30</text>
+      <text x="298" y="22" fill="#6ee7a1" font-size="11">healthy</text>
+    </g>
+    <line x1="0" y1="160" x2="366" y2="160" stroke="#2a2f40"/>
+    <text y="182" fill="#a4abbb" font-family="ui-monospace, monospace" font-size="11" letter-spacing="1">RELATED PEOPLE · ACME</text>
+    <g transform="translate(0,196)">
+      <rect width="366" height="54" rx="8" fill="#1c2030" stroke="#2a2f40"/>
+      <circle cx="26" cy="27" r="14" fill="#ff7a7a" opacity="0.3"/><text x="20" y="31" fill="#ff7a7a" font-weight="700" font-size="11">LP</text>
+      <text x="50" y="24" fill="#e8eaef" font-weight="600">Lisa Park · CFO</text>
+      <text x="50" y="42" fill="#ff7a7a" font-size="11">Decision maker · ○○○○○ unmet</text>
+    </g>
+    <g transform="translate(0,258)">
+      <rect width="366" height="54" rx="8" fill="#1c2030" stroke="#2a2f40"/>
+      <circle cx="26" cy="27" r="14" fill="#6ea8ff" opacity="0.3"/><text x="20" y="31" fill="#6ea8ff" font-weight="700" font-size="11">RT</text>
+      <text x="50" y="24" fill="#e8eaef" font-weight="600">Raj Tiwari · Eng Lead</text>
+      <text x="50" y="42" fill="#a4abbb" font-size="11">Influencer · ●●●○○ warm</text>
+    </g>
+    <text x="0" y="330" fill="#6ea8ff" font-size="11">+ Add related contact</text>
+    <line x1="0" y1="346" x2="366" y2="346" stroke="#2a2f40"/>
+    <text y="368" fill="#a4abbb" font-family="ui-monospace, monospace" font-size="11" letter-spacing="1">★ AI INSIGHT</text>
+    <rect y="378" width="366" height="60" rx="8" fill="#ffb86b" opacity="0.1" stroke="#ffb86b"/>
+    <text x="14" y="400" fill="#ffb86b" font-size="11">★ Best time to reach</text>
+    <text x="14" y="420" fill="#e8eaef" font-size="12">Tue–Thu mornings PT · replies in &lt;2h</text>
+  </g>
+
+  <!-- annotations -->
+  <g class="anno">
+    <circle cx="724" cy="59" r="3" class="note-anchor"/><text x="736" y="63" fill="#ffb86b" font-size="10">①</text>
+    <circle cx="294" cy="132" r="3" class="note-anchor"/><text x="278" y="136" fill="#ffb86b" font-size="10">②</text>
+    <circle cx="1158" cy="378" r="3" class="note-anchor"/><text x="1144" y="372" fill="#ffb86b" font-size="10">③</text>
+  </g>
+</svg>
+    <div class="caption">B1 · Contact Record — ① engagement meter ●●●●○ in the header  ② timeline as the spine, not a tab  ③ AI insight surfaces best-time-to-reach</div>
+  </div>
+</section>
+
+<!-- =================== B2 COMPANY / ACCOUNT RECORD =================== -->
+<section class="screen" id="B2">
+  <h3>B2 — Company / Account Record</h3>
+  <p class="screen-meta">AE, CS · Account 360° — org tree, contacts, open deals, tickets, signals feed, ★AI brief · ref: Salesforce, Attio</p>
+  <div class="mockup">
+<svg viewBox="0 0 1180 600" xmlns="http://www.w3.org/2000/svg" font-family="Inter, sans-serif" font-size="12">
+  <rect width="1180" height="600" rx="8" fill="#161922"/>
+  <!-- Header -->
+  <rect width="1180" height="92" fill="#11141d"/>
+  <rect x="20" y="32" width="48" height="48" rx="10" fill="#1c2030" stroke="#2a2f40"/>
+  <text x="32" y="62" fill="#6ea8ff" font-weight="700" font-size="16">AC</text>
+  <text x="84" y="30" fill="#6b7180" font-size="11" font-family="ui-monospace, monospace">ACCOUNT · ACME-CORP-0007 · Companies ›</text>
+  <text x="84" y="56" fill="#e8eaef" font-size="22" font-weight="700">Acme Corporation</text>
+  <text x="84" y="78" fill="#a4abbb" font-size="13">Enterprise · SaaS · 2,400 employees · acme.com · <tspan fill="#6ee7a1">Customer since 2023</tspan></text>
+  <!-- ARR chip -->
+  <rect x="560" y="38" width="150" height="40" rx="8" fill="#6ee7a1" opacity="0.1" stroke="#6ee7a1"/>
+  <text x="574" y="56" fill="#a4abbb" font-size="10" font-family="ui-monospace, monospace">CURRENT ARR</text>
+  <text x="574" y="72" fill="#6ee7a1" font-size="15" font-weight="700">$240,000</text>
+  <rect x="884" y="40" width="100" height="34" rx="6" fill="#6ea8ff"/>
+  <text x="900" y="61" fill="#0f1115" font-weight="700">+ New deal</text>
+  <rect x="992" y="40" width="36" height="34" rx="6" fill="#1c2030" stroke="#2a2f40"/>
+  <text x="1006" y="61" fill="#a4abbb">★</text>
+  <rect x="1036" y="40" width="36" height="34" rx="6" fill="#1c2030" stroke="#2a2f40"/>
+  <text x="1050" y="61" fill="#a4abbb">⋮</text>
+
+  <!-- LEFT col: ORG TREE + FIRMOGRAPHICS -->
+  <g transform="translate(20,110)">
+    <text fill="#a4abbb" font-family="ui-monospace, monospace" font-size="11" letter-spacing="1">ORG HIERARCHY</text>
+    <g transform="translate(0,22)" font-size="12">
+      <rect width="260" height="26" rx="6" fill="#6ea8ff" opacity="0.12"/>
+      <text x="12" y="18" fill="#e8eaef" font-weight="600">▾ Acme Corporation</text><text x="226" y="18" fill="#6b7180" font-size="10">HQ</text>
+      <text x="24" y="44" fill="#a4abbb">├ Acme Platform Div.</text><text x="226" y="44" fill="#6b7180" font-size="10">$180K</text>
+      <text x="38" y="64" fill="#6b7180">└ Data Cloud team</text>
+      <text x="24" y="86" fill="#a4abbb">├ Acme EMEA Ltd</text><text x="226" y="86" fill="#6b7180" font-size="10">$40K</text>
+      <text x="24" y="106" fill="#a4abbb">└ Acme Labs (R&amp;D)</text><text x="226" y="106" fill="#6b7180" font-size="10">$20K</text>
+    </g>
+    <line x1="0" y1="232" x2="260" y2="232" stroke="#2a2f40"/>
+    <text y="254" fill="#a4abbb" font-family="ui-monospace, monospace" font-size="11" letter-spacing="1">FIRMOGRAPHICS</text>
+    <g transform="translate(0,270)" font-size="12">
+      <text fill="#6b7180">Industry</text><text x="100" fill="#e8eaef">B2B SaaS</text>
+      <text y="22" fill="#6b7180">HQ</text><text x="100" y="22" fill="#e8eaef">San Francisco</text>
+      <text y="44" fill="#6b7180">Revenue</text><text x="100" y="44" fill="#e8eaef">$310M est.</text>
+      <text y="66" fill="#6b7180">Owner (AE)</text><text x="100" y="66" fill="#e8eaef">You</text>
+      <text y="88" fill="#6b7180">CSM</text><text x="100" y="88" fill="#e8eaef">Dana Wu</text>
+      <text y="110" fill="#6b7180">Health</text><text x="100" y="110" fill="#6ee7a1">●●●●○ Good</text>
+    </g>
+    <line x1="0" y1="396" x2="260" y2="396" stroke="#2a2f40"/>
+    <text y="418" fill="#a4abbb" font-family="ui-monospace, monospace" font-size="11" letter-spacing="1">SUPPORT TICKETS · 2</text>
+    <g transform="translate(0,430)">
+      <rect width="260" height="34" rx="6" fill="#1c2030" stroke="#2a2f40"/>
+      <rect width="4" height="34" rx="2" fill="#ff7a7a"/>
+      <text x="14" y="16" fill="#e8eaef" font-size="11">#4821 SSO login errors</text>
+      <text x="14" y="29" fill="#ff7a7a" font-size="10">P1 · open 2d · breaching SLA</text>
+      <rect y="42" width="260" height="34" rx="6" fill="#1c2030" stroke="#2a2f40"/>
+      <rect y="42" width="4" height="34" rx="2" fill="#ffb86b"/>
+      <text x="14" y="58" fill="#e8eaef" font-size="11">#4795 API rate limits</text>
+      <text x="14" y="71" fill="#ffb86b" font-size="10">P2 · waiting on customer</text>
+    </g>
+  </g>
+
+  <!-- CENTER col: CONTACTS GRID + OPEN DEALS -->
+  <g transform="translate(300,110)">
+    <text fill="#a4abbb" font-family="ui-monospace, monospace" font-size="11" letter-spacing="1">KEY CONTACTS · 9</text>
+    <text x="430" fill="#6ea8ff" font-family="ui-monospace, monospace" font-size="11">View all ›</text>
+    <g transform="translate(0,22)" font-size="11">
+      <!-- contact cards 2x2 -->
+      <rect width="232" height="52" rx="8" fill="#1c2030" stroke="#2a2f40"/>
+      <circle cx="24" cy="26" r="13" fill="#6ea8ff" opacity="0.3"/><text x="18" y="30" fill="#6ea8ff" font-weight="700">MC</text>
+      <text x="46" y="22" fill="#e8eaef" font-weight="600" font-size="12">Marcus Chen</text>
+      <text x="46" y="40" fill="#6ea8ff">VP Eng · champion</text>
+      <rect x="244" width="232" height="52" rx="8" fill="#1c2030" stroke="#2a2f40"/>
+      <circle cx="268" cy="26" r="13" fill="#ff7a7a" opacity="0.3"/><text x="262" y="30" fill="#ff7a7a" font-weight="700">LP</text>
+      <text x="290" y="22" fill="#e8eaef" font-weight="600" font-size="12">Lisa Park</text>
+      <text x="290" y="40" fill="#ff7a7a">CFO · unengaged</text>
+      <rect y="62" width="232" height="52" rx="8" fill="#1c2030" stroke="#2a2f40"/>
+      <circle cx="24" cy="88" r="13" fill="#6ea8ff" opacity="0.3"/><text x="18" y="92" fill="#6ea8ff" font-weight="700">RT</text>
+      <text x="46" y="84" fill="#e8eaef" font-weight="600" font-size="12">Raj Tiwari</text>
+      <text x="46" y="102" fill="#a4abbb">Eng Lead · influencer</text>
+      <rect x="244" y="62" width="232" height="52" rx="8" fill="#1c2030" stroke="#2a2f40"/>
+      <circle cx="268" cy="88" r="13" fill="#6ee7a1" opacity="0.3"/><text x="262" y="92" fill="#6ee7a1" font-weight="700">DW</text>
+      <text x="290" y="84" fill="#e8eaef" font-weight="600" font-size="12">Dana Wu</text>
+      <text x="290" y="102" fill="#6ee7a1">Procurement · ally</text>
+    </g>
+    <line x1="0" y1="148" x2="476" y2="148" stroke="#2a2f40"/>
+    <text y="170" fill="#a4abbb" font-family="ui-monospace, monospace" font-size="11" letter-spacing="1">OPEN DEALS · 3 · $215K</text>
+    <g transform="translate(0,182)" font-size="11">
+      <rect width="476" height="40" rx="8" fill="#1c2030" stroke="#2a2f40"/>
+      <rect width="4" height="40" rx="2" fill="#ffb86b"/>
+      <text x="16" y="18" fill="#e8eaef" font-weight="600" font-size="12">Q3 Expansion</text>
+      <text x="16" y="33" fill="#a4abbb">Stage 3 Demo · close May 31</text>
+      <text x="380" y="26" fill="#e8eaef" font-weight="600">$85,000</text>
+      <rect y="48" width="476" height="40" rx="8" fill="#1c2030" stroke="#2a2f40"/>
+      <rect y="48" width="4" height="40" rx="2" fill="#6ee7a1"/>
+      <text x="16" y="66" fill="#e8eaef" font-weight="600" font-size="12">Platform Renewal</text>
+      <text x="16" y="81" fill="#a4abbb">Stage 4 Negotiation · close Jun 30</text>
+      <text x="380" y="74" fill="#e8eaef" font-weight="600">$40,000</text>
+      <rect y="96" width="476" height="40" rx="8" fill="#1c2030" stroke="#2a2f40"/>
+      <rect y="96" width="4" height="40" rx="2" fill="#6ea8ff"/>
+      <text x="16" y="114" fill="#e8eaef" font-weight="600" font-size="12">Data Cloud add‑on</text>
+      <text x="16" y="129" fill="#a4abbb">Stage 2 Qualified · close Jul 15</text>
+      <text x="380" y="122" fill="#e8eaef" font-weight="600">$90,000</text>
+    </g>
+    <line x1="0" y1="332" x2="476" y2="332" stroke="#2a2f40"/>
+    <text y="354" fill="#a4abbb" font-family="ui-monospace, monospace" font-size="11" letter-spacing="1">NEWS &amp; SIGNALS</text>
+    <g transform="translate(0,366)">
+      <circle cx="6" cy="12" r="3" fill="#ff6b9d"/>
+      <text x="20" y="16" fill="#e8eaef" font-size="11">Acme announced $50M Series D · 3d ago</text>
+      <text x="20" y="32" fill="#6b7180" font-size="10">Signal: budget expansion likely → upsell Data Cloud</text>
+      <circle cx="6" cy="52" r="3" fill="#6ea8ff"/>
+      <text x="20" y="56" fill="#a4abbb" font-size="11">Hiring 12 platform engineers · LinkedIn · 6d ago</text>
+      <circle cx="6" cy="80" r="3" fill="#ffb86b"/>
+      <text x="20" y="84" fill="#a4abbb" font-size="11">New CTO joined from Stripe · 2w ago</text>
+    </g>
+  </g>
+
+  <!-- RIGHT col: AI ACCOUNT BRIEF -->
+  <g transform="translate(800,110)">
+    <text fill="#a4abbb" font-family="ui-monospace, monospace" font-size="11" letter-spacing="1">★ AI ACCOUNT BRIEF</text>
+    <rect y="14" width="360" height="206" rx="10" fill="#ffb86b" opacity="0.08" stroke="#ffb86b"/>
+    <text x="16" y="38" fill="#ffb86b" font-size="12" font-weight="600">★ Where this account stands</text>
+    <text x="16" y="60" fill="#e8eaef" font-size="11">Healthy expansion play. 3 deals open totalling</text>
+    <text x="16" y="76" fill="#e8eaef" font-size="11">$215K. Champion (Chen) strong; CFO (Park) is</text>
+    <text x="16" y="92" fill="#e8eaef" font-size="11">the gap blocking Q3 Expansion close.</text>
+    <text x="16" y="118" fill="#ffb86b" font-size="11">★ Risks</text>
+    <text x="16" y="136" fill="#a4abbb" font-size="11">• P1 SSO ticket breaching SLA — flag to CS</text>
+    <text x="16" y="152" fill="#a4abbb" font-size="11">• Renewal in 27d, no exec sponsor confirmed</text>
+    <text x="16" y="176" fill="#ffb86b" font-size="11">★ Recommended next step</text>
+    <text x="16" y="194" fill="#e8eaef" font-size="11">Multi‑thread to Park before Thu; pair with the</text>
+    <text x="16" y="210" fill="#e8eaef" font-size="11">Series D signal to justify Data Cloud upsell.</text>
+
+    <text y="252" fill="#a4abbb" font-family="ui-monospace, monospace" font-size="11" letter-spacing="1">WHITESPACE · PRODUCTS</text>
+    <g transform="translate(0,266)" font-size="11">
+      <rect width="360" height="30" rx="6" fill="#1c2030" stroke="#2a2f40"/>
+      <text x="14" y="20" fill="#e8eaef">Core Platform</text><text x="280" y="20" fill="#6ee7a1">Owned</text>
+      <rect y="38" width="360" height="30" rx="6" fill="#1c2030" stroke="#2a2f40"/>
+      <text x="14" y="58" fill="#e8eaef">Data Cloud</text><text x="270" y="58" fill="#ffb86b">In deal</text>
+      <rect y="76" width="360" height="30" rx="6" fill="#1c2030" stroke="#2a2f40"/>
+      <text x="14" y="96" fill="#e8eaef">Security add‑on</text><text x="266" y="96" fill="#6b7180">Whitespace</text>
+    </g>
+    <text y="392" fill="#a4abbb" font-family="ui-monospace, monospace" font-size="11" letter-spacing="1">RELATED</text>
+    <g transform="translate(0,404)" font-size="11">
+      <text fill="#a4abbb">• 4 docs in deal room ↗</text>
+      <text y="18" fill="#a4abbb">• 12 activities last 30d</text>
+      <text y="36" fill="#a4abbb">• Parent: none · 3 subsidiaries</text>
+    </g>
+  </g>
+
+  <!-- annotations -->
+  <g class="anno">
+    <circle cx="262" cy="148" r="3" class="note-anchor"/><text x="246" y="152" fill="#ffb86b" font-size="10">①</text>
+    <circle cx="306" cy="478" r="3" class="note-anchor"/><text x="290" y="482" fill="#ffb86b" font-size="10">②</text>
+    <circle cx="982" cy="124" r="3" class="note-anchor"/><text x="968" y="118" fill="#ffb86b" font-size="10">③</text>
+  </g>
+</svg>
+    <div class="caption">B2 · Account Record — ① org-hierarchy tree with per-unit ARR  ② news/signals feed wired to next-best-action  ③ ★AI account brief with risks + recommended step</div>
+  </div>
+</section>
+
+<!-- =================== B4 LEAD RECORD =================== -->
+<section class="screen" id="B4">
+  <h3>B4 — Lead Record</h3>
+  <p class="screen-meta">SDR · Pre-qualification — score dial, source, activity, BANT checklist, prominent Convert CTA · ref: Salesforce, HubSpot</p>
+  <div class="mockup">
+<svg viewBox="0 0 1180 540" xmlns="http://www.w3.org/2000/svg" font-family="Inter, sans-serif" font-size="12">
+  <rect width="1180" height="540" rx="8" fill="#161922"/>
+  <!-- Header -->
+  <rect width="1180" height="92" fill="#11141d"/>
+  <circle cx="46" cy="56" r="26" fill="#ff6b9d" opacity="0.28"/>
+  <text x="34" y="61" fill="#ff6b9d" font-weight="700" font-size="17">JT</text>
+  <text x="84" y="30" fill="#6b7180" font-size="11" font-family="ui-monospace, monospace">LEAD · LD-2026-04417 · Leads ›</text>
+  <text x="84" y="56" fill="#e8eaef" font-size="22" font-weight="700">Jordan Tran</text>
+  <rect x="266" y="42" width="74" height="22" rx="11" fill="#ff6b9d" opacity="0.15"/>
+  <text x="278" y="57" fill="#ff6b9d" font-size="11">🔥 Hot lead</text>
+  <text x="84" y="78" fill="#a4abbb" font-size="13">Head of RevOps · <tspan fill="#e8eaef" font-weight="600">Globex Inc</tspan> · MQL → working</text>
+  <!-- prominent Convert CTA -->
+  <rect x="864" y="38" width="192" height="40" rx="8" fill="#6ea8ff"/>
+  <text x="884" y="63" fill="#0f1115" font-weight="700" font-size="13">→ Convert to deal</text>
+  <text x="700" y="48" fill="#6b7180" font-size="11" font-family="ui-monospace, monospace">OWNER</text>
+  <text x="700" y="66" fill="#e8eaef" font-size="12">Sarah Kim (SDR)</text>
+
+  <!-- LEFT: score dial + source -->
+  <g transform="translate(20,110)">
+    <text fill="#a4abbb" font-family="ui-monospace, monospace" font-size="11" letter-spacing="1">LEAD SCORE</text>
+    <!-- gauge -->
+    <g transform="translate(130,118)">
+      <path d="M -88 0 A 88 88 0 0 1 88 0" fill="none" stroke="#2a2f40" stroke-width="14" stroke-linecap="round"/>
+      <path d="M -88 0 A 88 88 0 0 1 62 -62" fill="none" stroke="#6ee7a1" stroke-width="14" stroke-linecap="round"/>
+      <text x="0" y="-6" fill="#6ee7a1" font-size="34" font-weight="700" text-anchor="middle">82</text>
+      <text x="0" y="14" fill="#a4abbb" font-size="11" text-anchor="middle">/ 100 · Grade A</text>
+    </g>
+    <g transform="translate(0,158)" font-size="11">
+      <text fill="#6ee7a1">▲ Title match (RevOps)</text><text x="220" fill="#6ee7a1">+24</text>
+      <text y="20" fill="#6ee7a1">▲ Visited pricing 3×</text><text x="220" y="20" fill="#6ee7a1">+18</text>
+      <text y="40" fill="#6ee7a1">▲ Company &gt; 1k FTE</text><text x="220" y="40" fill="#6ee7a1">+16</text>
+      <text y="60" fill="#ff7a7a">▼ Personal email domain</text><text x="220" y="60" fill="#ff7a7a">−6</text>
+    </g>
+    <line x1="0" y1="320" x2="240" y2="320" stroke="#2a2f40"/>
+    <text y="342" fill="#a4abbb" font-family="ui-monospace, monospace" font-size="11" letter-spacing="1">SOURCE &amp; ATTRIBUTION</text>
+    <g transform="translate(0,358)" font-size="12">
+      <text fill="#6b7180">Source</text><text x="100" fill="#e8eaef">Demo request</text>
+      <text y="22" fill="#6b7180">Campaign</text><text x="100" y="22" fill="#e8eaef">Q2 Webinar</text>
+      <text y="44" fill="#6b7180">First touch</text><text x="100" y="44" fill="#e8eaef">Organic search</text>
+      <text y="66" fill="#6b7180">Created</text><text x="100" y="66" fill="#e8eaef">Apr 28, 2026</text>
+    </g>
+  </g>
+
+  <!-- CENTER: activity -->
+  <g transform="translate(300,110)">
+    <text fill="#a4abbb" font-family="ui-monospace, monospace" font-size="11" letter-spacing="1">ACTIVITY</text>
+    <line x1="14" y1="22" x2="14" y2="360" stroke="#2a2f40"/>
+    <g transform="translate(0,22)">
+      <circle cx="14" cy="10" r="6" fill="#ff6b9d"/>
+      <text x="34" y="14" fill="#e8eaef" font-weight="600">Today · 08:50</text>
+      <text x="34" y="32" fill="#a4abbb">🌐 Visited /pricing &amp; /security · 6 min</text>
+      <text x="34" y="50" fill="#ff6b9d" font-size="11">intent spike — third pricing visit this week</text>
+    </g>
+    <g transform="translate(0,90)">
+      <circle cx="14" cy="10" r="6" fill="#6ea8ff"/>
+      <text x="34" y="14" fill="#e8eaef" font-weight="600">Yesterday · 16:10</text>
+      <text x="34" y="32" fill="#a4abbb">✉ Opened "Thanks for joining the webinar" 3×</text>
+    </g>
+    <g transform="translate(0,150)">
+      <circle cx="14" cy="10" r="6" fill="#ffb86b"/>
+      <text x="34" y="14" fill="#e8eaef" font-weight="600">Apr 29 · 11:30</text>
+      <text x="34" y="32" fill="#a4abbb">📞 Connect call · 6 min · left voicemail</text>
+      <rect x="34" y="44" width="412" height="44" rx="6" fill="#1c2030" stroke="#2a2f40"/>
+      <text x="46" y="62" fill="#ffb86b" font-size="11">★ AI: discovery questions ready</text>
+      <text x="46" y="80" fill="#a4abbb" font-size="11">Ask about current RevOps stack &amp; renewal timing.</text>
+    </g>
+    <g transform="translate(0,258)">
+      <circle cx="14" cy="10" r="6" fill="#6b7180"/>
+      <text x="34" y="14" fill="#a4abbb">Apr 28 · form submit</text>
+      <text x="34" y="32" fill="#6b7180">Requested demo · "evaluating for 40-person team"</text>
+    </g>
+    <rect x="0" y="316" width="446" height="44" rx="8" fill="#1c2030" stroke="#2a2f40"/>
+    <text x="14" y="342" fill="#6b7180">+ Log call   + Email   + Note   /   ⌘K AI</text>
+  </g>
+
+  <!-- RIGHT: BANT checklist + convert -->
+  <g transform="translate(792,110)">
+    <text fill="#a4abbb" font-family="ui-monospace, monospace" font-size="11" letter-spacing="1">QUALIFICATION · BANT</text>
+    <text x="290" fill="#6ee7a1" font-family="ui-monospace, monospace" font-size="11">3 / 4</text>
+    <g transform="translate(0,22)">
+      <rect width="366" height="56" rx="8" fill="#1c2030" stroke="#2a2f40"/>
+      <rect width="4" height="56" rx="2" fill="#6ee7a1"/>
+      <circle cx="26" cy="28" r="9" fill="#6ee7a1"/><text x="22" y="32" fill="#0f1115" font-weight="700" font-size="11">✓</text>
+      <text x="46" y="24" fill="#e8eaef" font-weight="600">Budget</text>
+      <text x="46" y="42" fill="#a4abbb" font-size="11">$40k approved for RevOps tooling</text>
+    </g>
+    <g transform="translate(0,86)">
+      <rect width="366" height="56" rx="8" fill="#1c2030" stroke="#2a2f40"/>
+      <rect width="4" height="56" rx="2" fill="#6ee7a1"/>
+      <circle cx="26" cy="28" r="9" fill="#6ee7a1"/><text x="22" y="32" fill="#0f1115" font-weight="700" font-size="11">✓</text>
+      <text x="46" y="24" fill="#e8eaef" font-weight="600">Authority</text>
+      <text x="46" y="42" fill="#a4abbb" font-size="11">Head of RevOps — owns the decision</text>
+    </g>
+    <g transform="translate(0,150)">
+      <rect width="366" height="56" rx="8" fill="#1c2030" stroke="#2a2f40"/>
+      <rect width="4" height="56" rx="2" fill="#6ee7a1"/>
+      <circle cx="26" cy="28" r="9" fill="#6ee7a1"/><text x="22" y="32" fill="#0f1115" font-weight="700" font-size="11">✓</text>
+      <text x="46" y="24" fill="#e8eaef" font-weight="600">Need</text>
+      <text x="46" y="42" fill="#a4abbb" font-size="11">Manual pipeline reporting — clear pain</text>
+    </g>
+    <g transform="translate(0,214)">
+      <rect width="366" height="56" rx="8" fill="#1c2030" stroke="#2a2f40"/>
+      <rect width="4" height="56" rx="2" fill="#ffb86b"/>
+      <circle cx="26" cy="28" r="9" fill="none" stroke="#ffb86b" stroke-width="2"/>
+      <text x="46" y="24" fill="#e8eaef" font-weight="600">Timeline</text>
+      <text x="46" y="42" fill="#ffb86b" font-size="11">Not confirmed — ask on next call</text>
+    </g>
+    <rect y="290" width="366" height="56" rx="10" fill="#6ea8ff"/>
+    <text x="20" y="314" fill="#0f1115" font-weight="700" font-size="14">→ Convert to deal</text>
+    <text x="20" y="334" fill="#0f1115" font-size="11" opacity="0.8">Creates contact + account + opportunity</text>
+    <rect x="290" y="302" width="60" height="32" rx="6" fill="#0f1115" opacity="0.2"/>
+    <text x="306" y="322" fill="#0f1115" font-weight="700">↵</text>
+  </g>
+
+  <!-- annotations -->
+  <g class="anno">
+    <circle cx="150" cy="200" r="3" class="note-anchor"/><text x="162" y="204" fill="#ffb86b" font-size="10">①</text>
+    <circle cx="1086" cy="278" r="3" class="note-anchor"/><text x="1072" y="272" fill="#ffb86b" font-size="10">②</text>
+    <circle cx="1056" cy="380" r="3" class="note-anchor"/><text x="1062" y="396" fill="#ffb86b" font-size="10">③</text>
+  </g>
+</svg>
+    <div class="caption">B4 · Lead Record — ① scored dial with weighted +/− factors  ② BANT checklist, 3/4 met with the gap flagged  ③ prominent Convert-to-deal CTA spells out what it creates</div>
+  </div>
+</section>
+
+<!-- =================== B5 ACTIVITY TIMELINE (CROSS-RECORD) =================== -->
+<section class="screen" id="B5">
+  <h3>B5 — Activity Timeline (cross-record)</h3>
+  <p class="screen-meta">All · Full-screen unified reverse-chron feed with type filters and a left date rail — the spine as its own surface · ref: Attio, HubSpot</p>
+  <div class="mockup">
+<svg viewBox="0 0 1180 600" xmlns="http://www.w3.org/2000/svg" font-family="Inter, sans-serif" font-size="12">
+  <rect width="1180" height="600" rx="8" fill="#161922"/>
+  <!-- toolbar -->
+  <rect width="1180" height="56" fill="#11141d"/>
+  <text x="22" y="34" fill="#e8eaef" font-size="18" font-weight="700">Activity</text>
+  <text x="108" y="34" fill="#a4abbb" font-size="13">— everything, everywhere</text>
+  <!-- filter chips -->
+  <g font-size="12">
+    <rect x="330" y="18" width="56" height="22" rx="11" fill="#6ea8ff" opacity="0.18" stroke="#6ea8ff"/><text x="343" y="33" fill="#6ea8ff">All</text>
+    <rect x="394" y="18" width="68" height="22" rx="11" fill="#1c2030" stroke="#2a2f40"/><text x="406" y="33" fill="#a4abbb">✉ Email</text>
+    <rect x="470" y="18" width="62" height="22" rx="11" fill="#1c2030" stroke="#2a2f40"/><text x="482" y="33" fill="#a4abbb">📞 Call</text>
+    <rect x="540" y="18" width="80" height="22" rx="11" fill="#1c2030" stroke="#2a2f40"/><text x="552" y="33" fill="#a4abbb">📅 Meeting</text>
+    <rect x="628" y="18" width="62" height="22" rx="11" fill="#1c2030" stroke="#2a2f40"/><text x="640" y="33" fill="#a4abbb">📝 Note</text>
+    <rect x="698" y="18" width="92" height="22" rx="11" fill="#1c2030" stroke="#2a2f40"/><text x="710" y="33" fill="#a4abbb">⇄ Field change</text>
+  </g>
+  <rect x="1000" y="14" width="100" height="28" rx="6" fill="#1c2030" stroke="#2a2f40"/>
+  <text x="1014" y="33" fill="#a4abbb">Owner: You ▾</text>
+
+  <!-- LEFT date rail -->
+  <g transform="translate(20,76)" font-family="ui-monospace, monospace">
+    <rect width="120" height="500" rx="8" fill="#161922" stroke="#2a2f40"/>
+    <text x="16" y="28" fill="#6ea8ff" font-size="12" font-weight="600">TODAY</text>
+    <text x="16" y="46" fill="#6b7180" font-size="10">Tue Jun 3</text>
+    <line x1="12" y1="62" x2="108" y2="62" stroke="#232838"/>
+    <text x="16" y="86" fill="#a4abbb" font-size="12">Yesterday</text>
+    <text x="16" y="104" fill="#6b7180" font-size="10">Mon Jun 2</text>
+    <line x1="12" y1="120" x2="108" y2="120" stroke="#232838"/>
+    <text x="16" y="144" fill="#a4abbb" font-size="12">This week</text>
+    <text x="16" y="172" fill="#6b7180" font-size="10">Fri May 30</text>
+    <text x="16" y="196" fill="#6b7180" font-size="10">Wed May 28</text>
+    <line x1="12" y1="212" x2="108" y2="212" stroke="#232838"/>
+    <text x="16" y="236" fill="#a4abbb" font-size="12">Last week</text>
+    <text x="16" y="264" fill="#6b7180" font-size="10">May 23</text>
+    <text x="16" y="288" fill="#6b7180" font-size="10">May 21</text>
+    <line x1="12" y1="304" x2="108" y2="304" stroke="#232838"/>
+    <text x="16" y="328" fill="#a4abbb" font-size="12">May</text>
+    <text x="16" y="356" fill="#6b7180" font-size="10">May 15</text>
+    <text x="16" y="380" fill="#6b7180" font-size="10">May 12</text>
+    <text x="16" y="470" fill="#6b7180" font-size="10">↧ earlier</text>
+  </g>
+
+  <!-- spine surface -->
+  <g transform="translate(160,76)">
+    <rect width="1000" height="500" rx="10" fill="#1c2030" stroke="#2a2f40"/>
+    <!-- spine line -->
+    <line x1="56" y1="20" x2="56" y2="480" stroke="#2a2f40"/>
+
+    <!-- date heading TODAY -->
+    <text x="20" y="34" fill="#6b7180" font-family="ui-monospace, monospace" font-size="10">JUN 3</text>
+    <g transform="translate(0,46)">
+      <circle cx="56" cy="10" r="7" fill="#6ea8ff"/><text x="50" y="14" fill="#0f1115" font-size="10">✉</text>
+      <text x="80" y="8" fill="#e8eaef" font-weight="600" font-size="12">Email sent · 09:32</text>
+      <text x="80" y="26" fill="#a4abbb" font-size="11">You → Marcus Chen · "Re: Q3 expansion pricing"</text>
+      <text x="320" y="8" fill="#6ea8ff" font-size="11">Acme · Q3 Expansion ↗</text>
+      <text x="80" y="44" fill="#6b7180" font-size="10">opened 2× · clicked pricing link</text>
+    </g>
+    <g transform="translate(0,110)">
+      <circle cx="56" cy="10" r="7" fill="#ffb86b"/><text x="50" y="14" fill="#0f1115" font-size="10">📞</text>
+      <text x="80" y="8" fill="#e8eaef" font-weight="600" font-size="12">Call logged · 08:05</text>
+      <text x="80" y="26" fill="#a4abbb" font-size="11">Priya Sharma · Globex · 12 min</text>
+      <text x="320" y="8" fill="#6ea8ff" font-size="11">Globex · Renewal ↗</text>
+      <rect x="80" y="34" width="560" height="40" rx="6" fill="#161922" stroke="#2a2f40"/>
+      <text x="92" y="50" fill="#ffb86b" font-size="10">★ AI summary</text>
+      <text x="92" y="66" fill="#a4abbb" font-size="11">Agreed to a security review; sending SOC2 pack.</text>
+    </g>
+
+    <!-- YESTERDAY -->
+    <text x="20" y="208" fill="#6b7180" font-family="ui-monospace, monospace" font-size="10">JUN 2</text>
+    <g transform="translate(0,220)">
+      <circle cx="56" cy="10" r="7" fill="#6ee7a1"/><text x="50" y="14" fill="#0f1115" font-size="10">📅</text>
+      <text x="80" y="8" fill="#e8eaef" font-weight="600" font-size="12">Meeting · 14:00–14:45</text>
+      <text x="80" y="26" fill="#a4abbb" font-size="11">Demo · Initech · 4 attendees</text>
+      <text x="320" y="8" fill="#6ee7a1" font-size="11">Initech · New Biz 🔥</text>
+    </g>
+    <g transform="translate(0,272)">
+      <circle cx="56" cy="10" r="7" fill="#6b7180"/><text x="50" y="14" fill="#0f1115" font-size="10">⇄</text>
+      <text x="80" y="8" fill="#a4abbb" font-weight="600" font-size="12">Field change · 11:18</text>
+      <text x="80" y="26" fill="#6b7180" font-size="11">Stage: Qualified → Demo · Acme Q3 Expansion (you)</text>
+    </g>
+
+    <!-- THIS WEEK -->
+    <text x="20" y="346" fill="#6b7180" font-family="ui-monospace, monospace" font-size="10">MAY 30</text>
+    <g transform="translate(0,358)">
+      <circle cx="56" cy="10" r="7" fill="#6b7180"/><text x="50" y="14" fill="#0f1115" font-size="10">📝</text>
+      <text x="80" y="8" fill="#a4abbb" font-weight="600" font-size="12">Note · 16:40</text>
+      <text x="80" y="26" fill="#6b7180" font-size="11">"Champion wants CFO on next call — multi‑thread"</text>
+      <text x="320" y="8" fill="#6ea8ff" font-size="11">Acme · Q3 Expansion ↗</text>
+    </g>
+    <g transform="translate(0,410)">
+      <circle cx="56" cy="10" r="7" fill="#6ea8ff"/><text x="50" y="14" fill="#0f1115" font-size="10">✉</text>
+      <text x="80" y="8" fill="#e8eaef" font-weight="600" font-size="12">Email received · 09:55</text>
+      <text x="80" y="26" fill="#a4abbb" font-size="11">David Park → You · "Legal review scheduled Wed"</text>
+      <text x="320" y="8" fill="#ff6b9d" font-size="11">Initech · New Biz 🔥</text>
+    </g>
+    <text x="80" y="478" fill="#6b7180" font-size="11">Load 142 earlier activities…</text>
+  </g>
+
+  <!-- annotations -->
+  <g class="anno">
+    <circle cx="386" cy="29" r="3" class="note-anchor"/><text x="370" y="33" fill="#ffb86b" font-size="10">①</text>
+    <circle cx="82" cy="120" r="3" class="note-anchor"/><text x="68" y="124" fill="#ffb86b" font-size="10">②</text>
+    <circle cx="500" cy="160" r="3" class="note-anchor"/><text x="486" y="148" fill="#ffb86b" font-size="10">③</text>
+  </g>
+</svg>
+    <div class="caption">B5 · Activity Timeline — ① type-filter chips scope the feed  ② sticky left date rail jumps to any day  ③ every entry links back to its source record</div>
+  </div>
+</section>
+
+<!-- =================== B6 CALL / CONVERSATION DETAIL =================== -->
+<section class="screen" id="B6">
+  <h3>B6 — Call / Conversation Detail</h3>
+  <p class="screen-meta">Manager, AE · Recording player with waveform, transcript, ★AI summary, tracker tags, moments &amp; comments · ref: Gong, Chorus, Fathom</p>
+  <div class="mockup">
+<svg viewBox="0 0 1180 600" xmlns="http://www.w3.org/2000/svg" font-family="Inter, sans-serif" font-size="12">
+  <rect width="1180" height="600" rx="8" fill="#161922"/>
+  <!-- Header -->
+  <rect width="1180" height="84" fill="#11141d"/>
+  <text x="22" y="30" fill="#6b7180" font-size="11" font-family="ui-monospace, monospace">CALL · CALL-7782 · Acme Corp · Q3 Expansion ›</text>
+  <text x="22" y="56" fill="#e8eaef" font-size="20" font-weight="700">Discovery → Demo follow-up · Marcus Chen</text>
+  <text x="22" y="76" fill="#a4abbb" font-size="12">Jun 2, 14:02 · 28 min · You + Marcus Chen (Acme) · <tspan fill="#6ea8ff">share ↗</tspan></text>
+  <rect x="930" y="26" width="60" height="32" rx="6" fill="#1c2030" stroke="#2a2f40"/><text x="942" y="47" fill="#a4abbb">↧ Save</text>
+  <rect x="998" y="26" width="74" height="32" rx="6" fill="#6ea8ff"/><text x="1014" y="47" fill="#0f1115" font-weight="700">+ Coach</text>
+
+  <!-- LEFT/CENTER: player + waveform + transcript -->
+  <g transform="translate(20,98)">
+    <!-- player -->
+    <rect width="740" height="92" rx="10" fill="#1c2030" stroke="#2a2f40"/>
+    <circle cx="40" cy="46" r="20" fill="#6ea8ff"/><text x="33" y="52" fill="#0f1115" font-weight="700" font-size="16">▶</text>
+    <text x="72" y="34" fill="#6b7180" font-family="ui-monospace, monospace" font-size="11">11:48 / 28:13</text>
+    <!-- waveform with moment markers -->
+    <g transform="translate(72,44)">
+      <rect width="560" height="2" y="0" fill="#2a2f40"/>
+      <g fill="#6ea8ff" opacity="0.6">
+        <rect x="0" y="-10" width="3" height="20" rx="1"/><rect x="8" y="-6" width="3" height="12" rx="1"/><rect x="16" y="-14" width="3" height="28" rx="1"/><rect x="24" y="-4" width="3" height="8" rx="1"/><rect x="32" y="-12" width="3" height="24" rx="1"/><rect x="40" y="-16" width="3" height="32" rx="1"/><rect x="48" y="-7" width="3" height="14" rx="1"/><rect x="56" y="-11" width="3" height="22" rx="1"/><rect x="64" y="-5" width="3" height="10" rx="1"/><rect x="72" y="-13" width="3" height="26" rx="1"/><rect x="80" y="-9" width="3" height="18" rx="1"/><rect x="88" y="-15" width="3" height="30" rx="1"/><rect x="96" y="-6" width="3" height="12" rx="1"/><rect x="104" y="-12" width="3" height="24" rx="1"/><rect x="112" y="-8" width="3" height="16" rx="1"/><rect x="120" y="-14" width="3" height="28" rx="1"/><rect x="128" y="-5" width="3" height="10" rx="1"/><rect x="136" y="-11" width="3" height="22" rx="1"/><rect x="144" y="-16" width="3" height="32" rx="1"/><rect x="152" y="-7" width="3" height="14" rx="1"/>
+      </g>
+      <g fill="#6b7180" opacity="0.5">
+        <rect x="180" y="-9" width="3" height="18" rx="1"/><rect x="188" y="-13" width="3" height="26" rx="1"/><rect x="196" y="-5" width="3" height="10" rx="1"/><rect x="204" y="-11" width="3" height="22" rx="1"/><rect x="212" y="-15" width="3" height="30" rx="1"/><rect x="220" y="-6" width="3" height="12" rx="1"/><rect x="228" y="-12" width="3" height="24" rx="1"/><rect x="236" y="-8" width="3" height="16" rx="1"/><rect x="244" y="-14" width="3" height="28" rx="1"/><rect x="252" y="-5" width="3" height="10" rx="1"/><rect x="260" y="-10" width="3" height="20" rx="1"/><rect x="268" y="-13" width="3" height="26" rx="1"/><rect x="276" y="-7" width="3" height="14" rx="1"/><rect x="284" y="-12" width="3" height="24" rx="1"/><rect x="292" y="-9" width="3" height="18" rx="1"/><rect x="300" y="-15" width="3" height="30" rx="1"/><rect x="308" y="-6" width="3" height="12" rx="1"/><rect x="316" y="-11" width="3" height="22" rx="1"/><rect x="324" y="-14" width="3" height="28" rx="1"/><rect x="332" y="-7" width="3" height="14" rx="1"/><rect x="340" y="-12" width="3" height="24" rx="1"/><rect x="348" y="-8" width="3" height="16" rx="1"/><rect x="356" y="-13" width="3" height="26" rx="1"/><rect x="364" y="-5" width="3" height="10" rx="1"/><rect x="372" y="-11" width="3" height="22" rx="1"/><rect x="380" y="-15" width="3" height="30" rx="1"/><rect x="388" y="-6" width="3" height="12" rx="1"/><rect x="396" y="-12" width="3" height="24" rx="1"/><rect x="404" y="-9" width="3" height="18" rx="1"/><rect x="412" y="-14" width="3" height="28" rx="1"/><rect x="420" y="-7" width="3" height="14" rx="1"/><rect x="428" y="-11" width="3" height="22" rx="1"/><rect x="436" y="-13" width="3" height="26" rx="1"/><rect x="444" y="-6" width="3" height="12" rx="1"/><rect x="452" y="-12" width="3" height="24" rx="1"/><rect x="460" y="-9" width="3" height="18" rx="1"/><rect x="468" y="-15" width="3" height="30" rx="1"/><rect x="476" y="-7" width="3" height="14" rx="1"/><rect x="484" y="-11" width="3" height="22" rx="1"/><rect x="492" y="-13" width="3" height="26" rx="1"/><rect x="500" y="-6" width="3" height="12" rx="1"/><rect x="508" y="-12" width="3" height="24" rx="1"/><rect x="516" y="-8" width="3" height="16" rx="1"/><rect x="524" y="-13" width="3" height="26" rx="1"/><rect x="532" y="-5" width="3" height="10" rx="1"/><rect x="540" y="-11" width="3" height="22" rx="1"/><rect x="548" y="-14" width="3" height="28" rx="1"/><rect x="556" y="-7" width="3" height="14" rx="1"/>
+      </g>
+      <!-- playhead -->
+      <line x1="174" y1="-20" x2="174" y2="20" stroke="#e8eaef" stroke-width="1.5"/>
+      <!-- moment markers -->
+      <circle cx="120" cy="-24" r="5" fill="#ff6b9d"/><circle cx="300" cy="-24" r="5" fill="#ffb86b"/><circle cx="470" cy="-24" r="5" fill="#6ee7a1"/>
+    </g>
+    <text x="72" y="86" fill="#6b7180" font-size="10" font-family="ui-monospace, monospace">moments:</text>
+    <text x="128" y="86" fill="#ff6b9d" font-size="10">● pricing</text>
+    <text x="196" y="86" fill="#ffb86b" font-size="10">● competitor</text>
+    <text x="290" y="86" fill="#6ee7a1" font-size="10">● next steps</text>
+    <text x="620" y="86" fill="#6b7180" font-size="10" font-family="ui-monospace, monospace">1.0× ▾</text>
+
+    <!-- tracker tag chips -->
+    <text y="124" fill="#a4abbb" font-family="ui-monospace, monospace" font-size="11" letter-spacing="1">TRACKERS</text>
+    <g transform="translate(0,132)" font-size="11">
+      <rect width="74" height="24" rx="12" fill="#ff6b9d" opacity="0.15"/><text x="12" y="16" fill="#ff6b9d">Pricing · 4</text>
+      <rect x="82" width="98" height="24" rx="12" fill="#ffb86b" opacity="0.15"/><text x="94" y="16" fill="#ffb86b">Competitor · 2</text>
+      <rect x="188" width="100" height="24" rx="12" fill="#6ee7a1" opacity="0.15"/><text x="200" y="16" fill="#6ee7a1">Next steps · 3</text>
+      <rect x="296" width="80" height="24" rx="12" fill="#6ea8ff" opacity="0.15"/><text x="308" y="16" fill="#6ea8ff">Budget · 1</text>
+      <rect x="384" width="74" height="24" rx="12" fill="#1c2030" stroke="#2a2f40"/><text x="396" y="16" fill="#a4abbb">Timeline</text>
+    </g>
+
+    <!-- transcript -->
+    <text y="186" fill="#a4abbb" font-family="ui-monospace, monospace" font-size="11" letter-spacing="1">TRANSCRIPT</text>
+    <text x="640" y="186" fill="#6b7180" font-family="ui-monospace, monospace" font-size="11">🔍 search</text>
+    <rect y="196" width="740" height="290" rx="10" fill="#1c2030" stroke="#2a2f40"/>
+    <g transform="translate(16,196)" font-size="12">
+      <text x="0" y="26" fill="#6b7180" font-family="ui-monospace, monospace" font-size="10">10:42</text>
+      <text x="58" y="26" fill="#6ea8ff" font-weight="600">You</text>
+      <text x="58" y="44" fill="#a4abbb">"Walk me through how your team handles renewals today."</text>
+      <text x="0" y="78" fill="#6b7180" font-family="ui-monospace, monospace" font-size="10">11:05</text>
+      <text x="58" y="78" fill="#6ee7a1" font-weight="600">Marcus</text>
+      <text x="58" y="96" fill="#e8eaef">"Honestly it's spreadsheets. We looked at <tspan fill="#ffb86b">Competitor X</tspan></text>
+      <text x="58" y="114" fill="#e8eaef">but the pricing was opaque and onboarding was 6 weeks."</text>
+      <rect x="58" y="124" width="640" height="2" fill="#ff6b9d" opacity="0.4"/>
+      <text x="0" y="150" fill="#6b7180" font-family="ui-monospace, monospace" font-size="10">11:48</text>
+      <text x="58" y="150" fill="#6ea8ff" font-weight="600">You</text>
+      <text x="58" y="168" fill="#a4abbb">"On <tspan fill="#ff6b9d">pricing</tspan> — we'd land around $85k for 24 seats…"</text>
+      <text x="0" y="202" fill="#6b7180" font-family="ui-monospace, monospace" font-size="10">12:30</text>
+      <text x="58" y="202" fill="#6ee7a1" font-weight="600">Marcus</text>
+      <text x="58" y="220" fill="#e8eaef">"I'll need CFO sign‑off. Can we get Lisa on a call</text>
+      <text x="58" y="238" fill="#e8eaef">Thursday? That's our <tspan fill="#6ee7a1">next step</tspan>."</text>
+      <text x="0" y="270" fill="#6b7180" font-size="11">↧ 142 more lines</text>
+    </g>
+  </g>
+
+  <!-- RIGHT: AI summary + comments -->
+  <g transform="translate(780,98)">
+    <text fill="#a4abbb" font-family="ui-monospace, monospace" font-size="11" letter-spacing="1">★ AI SUMMARY</text>
+    <rect y="14" width="380" height="176" rx="10" fill="#ffb86b" opacity="0.08" stroke="#ffb86b"/>
+    <text x="16" y="36" fill="#ffb86b" font-size="12" font-weight="600">★ The gist</text>
+    <text x="16" y="56" fill="#e8eaef" font-size="11">Marcus is sold on value; blocker is CFO sign‑off.</text>
+    <text x="16" y="72" fill="#e8eaef" font-size="11">Evaluated Competitor X — lost on pricing clarity</text>
+    <text x="16" y="88" fill="#e8eaef" font-size="11">and slow onboarding (our wedge).</text>
+    <text x="16" y="112" fill="#ffb86b" font-size="11">★ Next steps</text>
+    <text x="16" y="130" fill="#a4abbb" font-size="11">□ Book Thu call with Lisa Park (CFO)</text>
+    <text x="16" y="146" fill="#a4abbb" font-size="11">□ Send pricing one‑pager + onboarding plan</text>
+    <text x="16" y="170" fill="#6ea8ff" font-size="11">→ Auto‑create 2 tasks</text>
+
+    <text y="218" fill="#a4abbb" font-family="ui-monospace, monospace" font-size="11" letter-spacing="1">KEY MOMENTS</text>
+    <g transform="translate(0,230)" font-size="11">
+      <rect width="380" height="26" rx="6" fill="#1c2030" stroke="#2a2f40"/><circle cx="14" cy="13" r="4" fill="#ff6b9d"/><text x="26" y="17" fill="#a4abbb">11:48 · Pricing discussed</text><text x="330" y="17" fill="#6ea8ff">▶ jump</text>
+      <rect y="34" width="380" height="26" rx="6" fill="#1c2030" stroke="#2a2f40"/><circle cx="14" cy="47" r="4" fill="#ffb86b"/><text x="26" y="51" fill="#a4abbb">11:05 · Competitor mention</text><text x="330" y="51" fill="#6ea8ff">▶ jump</text>
+      <rect y="68" width="380" height="26" rx="6" fill="#1c2030" stroke="#2a2f40"/><circle cx="14" cy="81" r="4" fill="#6ee7a1"/><text x="26" y="85" fill="#a4abbb">12:30 · Next step agreed</text><text x="330" y="85" fill="#6ea8ff">▶ jump</text>
+    </g>
+
+    <text y="348" fill="#a4abbb" font-family="ui-monospace, monospace" font-size="11" letter-spacing="1">COMMENTS · 2</text>
+    <g transform="translate(0,360)">
+      <circle cx="12" cy="12" r="11" fill="#6ee7a1" opacity="0.3"/><text x="6" y="16" fill="#6ee7a1" font-size="10" font-weight="700">DW</text>
+      <text x="32" y="10" fill="#e8eaef" font-size="11" font-weight="600">Dana W. <tspan fill="#6b7180" font-weight="400">· 11:48</tspan></text>
+      <text x="32" y="26" fill="#a4abbb" font-size="11">Great discovery — pin the CFO timing.</text>
+      <circle cx="12" cy="56" r="11" fill="#6ea8ff" opacity="0.3"/><text x="6" y="60" fill="#6ea8ff" font-size="10" font-weight="700">RP</text>
+      <text x="32" y="54" fill="#e8eaef" font-size="11" font-weight="600">You <tspan fill="#6b7180" font-weight="400">· replied</tspan></text>
+      <text x="32" y="70" fill="#a4abbb" font-size="11">Booked for Thu 3pm.</text>
+    </g>
+    <rect y="446" width="380" height="34" rx="8" fill="#1c2030" stroke="#2a2f40"/>
+    <text x="14" y="467" fill="#6b7180" font-size="11">Comment · @mention · timestamp ⌘↵</text>
+  </g>
+
+  <!-- annotations -->
+  <g class="anno">
+    <circle cx="212" cy="108" r="3" class="note-anchor"/><text x="224" y="112" fill="#ffb86b" font-size="10">①</text>
+    <circle cx="780" cy="60" r="3" class="note-anchor"/><text x="766" y="56" fill="#ffb86b" font-size="10">②</text>
+    <circle cx="438" cy="222" r="3" class="note-anchor"/><text x="424" y="226" fill="#ffb86b" font-size="10">③</text>
+  </g>
+</svg>
+    <div class="caption">B6 · Call Detail — ① waveform scrubber with colored moment markers + tracker chips  ② ★AI summary turns next-steps into auto-tasks  ③ transcript highlights trackers inline (pricing/competitor)</div>
+  </div>
+</section>
+
+<!-- =================== B7 EMAIL / MESSAGE DETAIL =================== -->
+<section class="screen" id="B7">
+  <h3>B7 — Email / Message Detail</h3>
+  <p class="screen-meta">All · Full thread, right-rail open/click tracking, ★AI summary, draft-reply composer · ref: Outreach, Apollo</p>
+  <div class="mockup">
+<svg viewBox="0 0 1180 580" xmlns="http://www.w3.org/2000/svg" font-family="Inter, sans-serif" font-size="12">
+  <rect width="1180" height="580" rx="8" fill="#161922"/>
+  <!-- Header -->
+  <rect width="1180" height="76" fill="#11141d"/>
+  <text x="22" y="28" fill="#6b7180" font-size="11" font-family="ui-monospace, monospace">THREAD · MSG-55120 · Acme Corp · Q3 Expansion ›</text>
+  <text x="22" y="54" fill="#e8eaef" font-size="19" font-weight="700">Re: Q3 expansion pricing &amp; next steps</text>
+  <rect x="540" y="30" width="58" height="20" rx="10" fill="#6ee7a1" opacity="0.15"/><text x="552" y="44" fill="#6ee7a1" font-size="10">5 msgs</text>
+  <rect x="958" y="22" width="100" height="32" rx="6" fill="#6ea8ff"/><text x="972" y="43" fill="#0f1115" font-weight="700">↩ Reply</text>
+  <rect x="906" y="22" width="44" height="32" rx="6" fill="#1c2030" stroke="#2a2f40"/><text x="922" y="43" fill="#a4abbb">⋮</text>
+
+  <!-- LEFT/CENTER: thread -->
+  <g transform="translate(20,90)">
+    <!-- message 1 (received, latest) -->
+    <rect width="780" height="150" rx="10" fill="#1c2030" stroke="#2a2f40"/>
+    <circle cx="32" cy="32" r="16" fill="#6ee7a1" opacity="0.3"/><text x="24" y="36" fill="#6ee7a1" font-weight="700" font-size="11">MC</text>
+    <text x="58" y="28" fill="#e8eaef" font-weight="600">Marcus Chen</text>
+    <text x="58" y="44" fill="#6b7180" font-size="11">marcus@acme.com → you · Today 09:32</text>
+    <rect x="700" y="20" width="64" height="20" rx="10" fill="#6ee7a1" opacity="0.15"/><text x="712" y="34" fill="#6ee7a1" font-size="10">Replied</text>
+    <line x1="16" y1="60" x2="764" y2="60" stroke="#232838"/>
+    <text x="20" y="84" fill="#e8eaef" font-size="12">Thanks for the breakdown. The $85k for 24 seats works on</text>
+    <text x="20" y="102" fill="#e8eaef" font-size="12">our side. I'm looping in Lisa (our CFO) for final sign-off —</text>
+    <text x="20" y="120" fill="#e8eaef" font-size="12">can we do a short call Thursday afternoon?</text>
+    <text x="20" y="140" fill="#6b7180" font-size="11">— Marcus, sent from mobile</text>
+
+    <!-- message 2 (sent, collapsed) -->
+    <g transform="translate(0,162)">
+      <rect width="780" height="64" rx="10" fill="#161922" stroke="#2a2f40"/>
+      <circle cx="32" cy="32" r="16" fill="#6ea8ff" opacity="0.3"/><text x="24" y="36" fill="#6ea8ff" font-weight="700" font-size="11">RP</text>
+      <text x="58" y="26" fill="#e8eaef" font-weight="600">You</text>
+      <text x="58" y="42" fill="#6b7180" font-size="11">→ Marcus Chen · Yesterday 17:10</text>
+      <text x="58" y="56" fill="#a4abbb" font-size="11">"Here's the pricing breakdown and onboarding timeline…"</text>
+      <text x="700" y="36" fill="#6b7180" font-size="11">▾ expand</text>
+    </g>
+
+    <!-- message 3 (collapsed) -->
+    <g transform="translate(0,238)">
+      <rect width="780" height="48" rx="10" fill="#161922" stroke="#2a2f40"/>
+      <text x="20" y="30" fill="#a4abbb" font-size="11">Marcus Chen · May 30 · "Could you send seat-based pricing?"</text>
+      <text x="700" y="30" fill="#6b7180" font-size="11">▾ expand</text>
+    </g>
+    <text x="20" y="312" fill="#6b7180" font-size="11">↥ 2 earlier messages</text>
+
+    <!-- composer CTA -->
+    <text y="346" fill="#a4abbb" font-family="ui-monospace, monospace" font-size="11" letter-spacing="1">DRAFT REPLY</text>
+    <rect y="358" width="780" height="108" rx="10" fill="#1c2030" stroke="#6ea8ff"/>
+    <text x="16" y="382" fill="#6b7180" font-size="11">To: Marcus Chen · Cc + Lisa Park</text>
+    <line x1="16" y1="392" x2="764" y2="392" stroke="#232838"/>
+    <text x="16" y="414" fill="#ffb86b" font-size="11">★ AI draft: "Thursday 3pm works — I'll send an invite and</text>
+    <text x="16" y="430" fill="#a4abbb" font-size="11">a one-pager Lisa can skim beforehand…"</text>
+    <rect x="588" y="430" width="76" height="26" rx="6" fill="#6ea8ff"/><text x="606" y="448" fill="#0f1115" font-weight="700">Send</text>
+    <rect x="672" y="430" width="92" height="26" rx="6" fill="#1c2030" stroke="#2a2f40"/><text x="684" y="448" fill="#ffb86b" font-size="11">★ Rewrite</text>
+  </g>
+
+  <!-- RIGHT: tracking events + AI summary -->
+  <g transform="translate(820,90)">
+    <text fill="#a4abbb" font-family="ui-monospace, monospace" font-size="11" letter-spacing="1">★ AI SUMMARY</text>
+    <rect y="14" width="340" height="92" rx="10" fill="#ffb86b" opacity="0.08" stroke="#ffb86b"/>
+    <text x="14" y="36" fill="#ffb86b" font-size="11">★ Where this stands</text>
+    <text x="14" y="56" fill="#e8eaef" font-size="11">Pricing accepted. CFO sign-off is the last</text>
+    <text x="14" y="72" fill="#e8eaef" font-size="11">gate. Marcus proposed a Thursday call.</text>
+    <text x="14" y="94" fill="#6ee7a1" font-size="11">Sentiment: positive · intent high</text>
+
+    <text y="138" fill="#a4abbb" font-family="ui-monospace, monospace" font-size="11" letter-spacing="1">TRACKING</text>
+    <g transform="translate(0,150)" font-family="ui-monospace, monospace" font-size="11">
+      <!-- rail -->
+      <line x1="8" y1="8" x2="8" y2="220" stroke="#2a2f40"/>
+      <circle cx="8" cy="12" r="5" fill="#6ee7a1"/>
+      <text x="24" y="10" fill="#e8eaef" font-size="11">Opened</text><text x="200" y="10" fill="#6b7180">09:34</text>
+      <text x="24" y="24" fill="#6b7180" font-size="10">San Francisco · iPhone</text>
+      <circle cx="8" cy="52" r="5" fill="#6ee7a1"/>
+      <text x="24" y="50" fill="#e8eaef" font-size="11">Opened (2×)</text><text x="200" y="50" fill="#6b7180">09:41</text>
+      <circle cx="8" cy="84" r="5" fill="#6ea8ff"/>
+      <text x="24" y="82" fill="#e8eaef" font-size="11">Clicked link</text><text x="200" y="82" fill="#6b7180">09:42</text>
+      <text x="24" y="96" fill="#6ea8ff" font-size="10">/pricing#enterprise</text>
+      <circle cx="8" cy="128" r="5" fill="#6ea8ff"/>
+      <text x="24" y="126" fill="#e8eaef" font-size="11">Clicked link</text><text x="200" y="126" fill="#6b7180">09:43</text>
+      <text x="24" y="140" fill="#6ea8ff" font-size="10">deck.pdf (viewed 4 pg)</text>
+      <circle cx="8" cy="172" r="5" fill="#ffb86b"/>
+      <text x="24" y="170" fill="#e8eaef" font-size="11">Forwarded</text><text x="200" y="170" fill="#6b7180">09:50</text>
+      <text x="24" y="184" fill="#ffb86b" font-size="10">→ lisa@acme.com (CFO)</text>
+      <circle cx="8" cy="212" r="5" fill="#6ee7a1"/>
+      <text x="24" y="210" fill="#e8eaef" font-size="11">Replied</text><text x="200" y="210" fill="#6b7180">09:32 +1d</text>
+    </g>
+    <line x1="0" y1="386" x2="340" y2="386" stroke="#2a2f40"/>
+    <g transform="translate(0,400)" font-size="11">
+      <text fill="#6b7180">Total opens</text><text x="200" fill="#e8eaef">6</text>
+      <text y="20" fill="#6b7180">Total clicks</text><text x="200" y="20" fill="#e8eaef">3</text>
+      <text y="40" fill="#6b7180">Best engaged</text><text x="200" y="40" fill="#6ee7a1">Marcus</text>
+    </g>
+  </g>
+
+  <!-- annotations -->
+  <g class="anno">
+    <circle cx="828" cy="170" r="3" class="note-anchor"/><text x="814" y="166" fill="#ffb86b" font-size="10">①</text>
+    <circle cx="836" cy="260" r="3" class="note-anchor"/><text x="822" y="276" fill="#ffb86b" font-size="10">②</text>
+    <circle cx="700" cy="520" r="3" class="note-anchor"/><text x="712" y="524" fill="#ffb86b" font-size="10">③</text>
+  </g>
+</svg>
+    <div class="caption">B7 · Email Detail — ① ★AI summary reads sentiment + status off the thread  ② open/click tracking rail with timestamps (incl. the forward to the CFO)  ③ AI-drafted reply with one-click Send / ★Rewrite</div>
+  </div>
+</section>
+
+<!-- =================== B8 TASK DETAIL =================== -->
+<section class="screen" id="B8">
+  <h3>B8 — Task Detail</h3>
+  <p class="screen-meta">All · Focused single task — due date, priority, linked-record context, snooze/reassign/complete, subtasks · ref: HubSpot</p>
+  <div class="mockup">
+<svg viewBox="0 0 1180 480" xmlns="http://www.w3.org/2000/svg" font-family="Inter, sans-serif" font-size="12">
+  <rect width="1180" height="480" rx="8" fill="#161922"/>
+  <!-- Header -->
+  <rect width="1180" height="80" fill="#11141d"/>
+  <rect x="22" y="28" width="24" height="24" rx="6" fill="none" stroke="#6ea8ff" stroke-width="2"/>
+  <text x="58" y="30" fill="#6b7180" font-size="11" font-family="ui-monospace, monospace">TASK · TSK-9043 · Acme Corp · Q3 Expansion ›</text>
+  <text x="58" y="56" fill="#e8eaef" font-size="20" font-weight="700">Send pricing case study + onboarding plan</text>
+  <rect x="640" y="30" width="78" height="22" rx="11" fill="#ff7a7a" opacity="0.15"/><text x="652" y="45" fill="#ff7a7a" font-size="11">● High</text>
+  <rect x="956" y="24" width="116" height="34" rx="6" fill="#6ee7a1"/><text x="972" y="46" fill="#0f1115" font-weight="700">✓ Complete</text>
+
+  <!-- LEFT: details + subtasks -->
+  <g transform="translate(20,100)">
+    <text fill="#a4abbb" font-family="ui-monospace, monospace" font-size="11" letter-spacing="1">DETAILS</text>
+    <g transform="translate(0,22)" font-size="12">
+      <text fill="#6b7180">Due</text><text x="110" fill="#ff7a7a" font-weight="600">Today · 5:00 PM</text>
+      <text y="24" fill="#6b7180">Priority</text><text x="110" y="24" fill="#e8eaef">High</text>
+      <text y="48" fill="#6b7180">Type</text><text x="110" y="48" fill="#e8eaef">✉ Email</text>
+      <text y="72" fill="#6b7180">Assignee</text><text x="110" y="72" fill="#e8eaef">You</text>
+      <text y="96" fill="#6b7180">Created by</text><text x="110" y="96" fill="#e8eaef">★ AI (from call)</text>
+      <text y="120" fill="#6b7180">Reminder</text><text x="110" y="120" fill="#e8eaef">1h before</text>
+    </g>
+    <line x1="0" y1="240" x2="360" y2="240" stroke="#2a2f40"/>
+    <text y="262" fill="#a4abbb" font-family="ui-monospace, monospace" font-size="11" letter-spacing="1">DESCRIPTION</text>
+    <text y="284" fill="#a4abbb" font-size="12">Marcus accepted $85k pricing. Send the SaaS pricing</text>
+    <text y="302" fill="#a4abbb" font-size="12">case study + a 90-day onboarding plan ahead of the</text>
+    <text y="320" fill="#a4abbb" font-size="12">CFO call Thursday. Personalize to ramp-timeline concern.</text>
+  </g>
+
+  <!-- CENTER: subtask checklist -->
+  <g transform="translate(420,100)">
+    <text fill="#a4abbb" font-family="ui-monospace, monospace" font-size="11" letter-spacing="1">SUBTASKS · 2 / 4</text>
+    <rect x="280" y="-12" width="80" height="6" rx="3" fill="#2a2f40"/>
+    <rect x="280" y="-12" width="40" height="6" rx="3" fill="#6ee7a1"/>
+    <g transform="translate(0,22)" font-size="12">
+      <rect width="360" height="34" rx="6" fill="#1c2030" stroke="#2a2f40"/>
+      <circle cx="20" cy="17" r="8" fill="#6ee7a1"/><text x="16" y="21" fill="#0f1115" font-weight="700" font-size="10">✓</text>
+      <text x="40" y="21" fill="#6b7180" text-decoration="line-through">Pull pricing case study PDF</text>
+      <rect y="42" width="360" height="34" rx="6" fill="#1c2030" stroke="#2a2f40"/>
+      <circle cx="20" cy="59" r="8" fill="#6ee7a1"/><text x="16" y="63" fill="#0f1115" font-weight="700" font-size="10">✓</text>
+      <text x="40" y="63" fill="#6b7180" text-decoration="line-through">Draft onboarding 90-day plan</text>
+      <rect y="84" width="360" height="34" rx="6" fill="#1c2030" stroke="#2a2f40"/>
+      <circle cx="20" cy="101" r="8" fill="none" stroke="#6b7180" stroke-width="2"/>
+      <text x="40" y="105" fill="#e8eaef">Personalize to ramp-timeline concern</text>
+      <rect y="126" width="360" height="34" rx="6" fill="#1c2030" stroke="#2a2f40"/>
+      <circle cx="20" cy="143" r="8" fill="none" stroke="#6b7180" stroke-width="2"/>
+      <text x="40" y="147" fill="#e8eaef">Send + log to deal timeline</text>
+    </g>
+    <text x="0" y="200" fill="#6ea8ff" font-size="11">+ Add subtask</text>
+
+    <line x1="0" y1="222" x2="360" y2="222" stroke="#2a2f40"/>
+    <text y="244" fill="#a4abbb" font-family="ui-monospace, monospace" font-size="11" letter-spacing="1">ACTIONS</text>
+    <g transform="translate(0,256)">
+      <rect width="110" height="34" rx="6" fill="#1c2030" stroke="#2a2f40"/><text x="14" y="22" fill="#a4abbb">🕓 Snooze ▾</text>
+      <rect x="122" width="120" height="34" rx="6" fill="#1c2030" stroke="#2a2f40"/><text x="136" y="22" fill="#a4abbb">⇄ Reassign ▾</text>
+      <rect x="254" width="106" height="34" rx="6" fill="#1c2030" stroke="#2a2f40"/><text x="268" y="22" fill="#ff7a7a">🗑 Delete</text>
+    </g>
+  </g>
+
+  <!-- RIGHT: linked-record context -->
+  <g transform="translate(820,100)">
+    <text fill="#a4abbb" font-family="ui-monospace, monospace" font-size="11" letter-spacing="1">LINKED RECORD</text>
+    <rect y="14" width="340" height="120" rx="10" fill="#1c2030" stroke="#2a2f40"/>
+    <rect y="14" width="4" height="120" rx="2" fill="#ffb86b"/>
+    <text x="16" y="36" fill="#6b7180" font-size="10" font-family="ui-monospace, monospace">DEAL · ACME-Q3-EXP-0084</text>
+    <text x="16" y="56" fill="#e8eaef" font-weight="600" font-size="13">Acme Corp · Q3 Expansion</text>
+    <text x="16" y="76" fill="#a4abbb" font-size="11">Stage 3 Demo · $85,000 · close May 31</text>
+    <text x="16" y="98" fill="#ffb86b" font-size="11">⚠ champion went dark 7d</text>
+    <text x="16" y="120" fill="#6ea8ff" font-size="11">Open deal record ↗</text>
+
+    <text y="172" fill="#a4abbb" font-family="ui-monospace, monospace" font-size="11" letter-spacing="1">CONTACT</text>
+    <rect y="184" width="340" height="60" rx="10" fill="#1c2030" stroke="#2a2f40"/>
+    <circle cx="28" cy="214" r="15" fill="#6ea8ff" opacity="0.3"/><text x="21" y="218" fill="#6ea8ff" font-weight="700" font-size="11">MC</text>
+    <text x="52" y="208" fill="#e8eaef" font-weight="600">Marcus Chen</text>
+    <text x="52" y="226" fill="#a4abbb" font-size="11">VP Eng · ●●●●○ engaged</text>
+    <text x="290" y="208" fill="#6ea8ff" font-size="11">↗</text>
+
+    <text y="282" fill="#a4abbb" font-family="ui-monospace, monospace" font-size="11" letter-spacing="1">ATTACHMENTS</text>
+    <g transform="translate(0,294)" font-size="11">
+      <rect width="340" height="28" rx="6" fill="#1c2030" stroke="#2a2f40"/><text x="12" y="18" fill="#6ea8ff">📎 pricing-case-study.pdf</text><text x="300" y="18" fill="#6b7180">2.1MB</text>
+    </g>
+  </g>
+
+  <!-- annotations -->
+  <g class="anno">
+    <circle cx="700" cy="156" r="3" class="note-anchor"/><text x="686" y="160" fill="#ffb86b" font-size="10">①</text>
+    <circle cx="500" cy="220" r="3" class="note-anchor"/><text x="486" y="224" fill="#ffb86b" font-size="10">②</text>
+    <circle cx="824" cy="124" r="3" class="note-anchor"/><text x="810" y="128" fill="#ffb86b" font-size="10">③</text>
+  </g>
+</svg>
+    <div class="caption">B8 · Task Detail — ① AI-authored task carries due/priority and a description tied to the call  ② subtask checklist with a progress bar  ③ linked deal + contact context, so the task never floats free</div>
+  </div>
+</section>
+
+<!-- =================== B9 NOTE / DOCUMENT EDITOR =================== -->
+<section class="screen" id="B9">
+  <h3>B9 — Note / Document Editor</h3>
+  <p class="screen-meta">All · Rich-text editor — formatting toolbar with ★AI-rewrite, @mention, slash-command hint, attached file chip · ref: Attio</p>
+  <div class="mockup">
+<svg viewBox="0 0 1180 540" xmlns="http://www.w3.org/2000/svg" font-family="Inter, sans-serif" font-size="12">
+  <rect width="1180" height="540" rx="8" fill="#161922"/>
+  <!-- Header -->
+  <rect width="1180" height="72" fill="#11141d"/>
+  <text x="22" y="28" fill="#6b7180" font-size="11" font-family="ui-monospace, monospace">NOTE · DOC-3310 · Acme Corp · Q3 Expansion ›</text>
+  <text x="22" y="54" fill="#e8eaef" font-size="19" font-weight="700">Discovery call recap — Acme Q3 Expansion</text>
+  <text x="640" y="44" fill="#6b7180" font-size="11" font-family="ui-monospace, monospace">Saved · just now · 3 collaborators</text>
+  <circle cx="930" cy="36" r="13" fill="#6ea8ff" opacity="0.3"/><text x="924" y="40" fill="#6ea8ff" font-size="10" font-weight="700">RP</text>
+  <circle cx="956" cy="36" r="13" fill="#6ee7a1" opacity="0.3"/><text x="950" y="40" fill="#6ee7a1" font-size="10" font-weight="700">DW</text>
+  <rect x="1000" y="20" width="72" height="32" rx="6" fill="#6ea8ff"/><text x="1014" y="41" fill="#0f1115" font-weight="700">Share</text>
+
+  <!-- formatting toolbar -->
+  <g transform="translate(20,88)">
+    <rect width="1140" height="40" rx="8" fill="#1c2030" stroke="#2a2f40"/>
+    <g font-size="13" fill="#a4abbb">
+      <text x="18" y="26" font-weight="700">H1</text>
+      <text x="52" y="26" font-weight="700">H2</text>
+      <line x1="78" y1="10" x2="78" y2="30" stroke="#2a2f40"/>
+      <text x="92" y="26" font-weight="700">B</text>
+      <text x="116" y="26" font-style="italic">I</text>
+      <text x="138" y="26" text-decoration="underline">U</text>
+      <text x="160" y="26" text-decoration="line-through">S</text>
+      <line x1="184" y1="10" x2="184" y2="30" stroke="#2a2f40"/>
+      <text x="198" y="26">• List</text>
+      <text x="248" y="26">1. List</text>
+      <text x="306" y="26">☐ To-do</text>
+      <text x="368" y="26">❝ Quote</text>
+      <text x="430" y="26">&lt;/&gt; Code</text>
+      <line x1="500" y1="10" x2="500" y2="30" stroke="#2a2f40"/>
+      <text x="514" y="26">🔗 Link</text>
+      <text x="568" y="26">📎 Attach</text>
+      <text x="636" y="26">@ Mention</text>
+      <text x="710" y="26">/ Command</text>
+    </g>
+    <!-- AI rewrite button -->
+    <rect x="980" y="6" width="148" height="28" rx="6" fill="#ffb86b" opacity="0.14" stroke="#ffb86b"/>
+    <text x="996" y="25" fill="#ffb86b" font-size="12" font-weight="600">★ AI rewrite ▾</text>
+  </g>
+
+  <!-- editor body -->
+  <g transform="translate(20,144)">
+    <rect width="1140" height="380" rx="10" fill="#1c2030" stroke="#2a2f40"/>
+    <g transform="translate(40,0)">
+      <text y="40" fill="#e8eaef" font-size="18" font-weight="700">Discovery call · Marcus Chen</text>
+      <text y="64" fill="#6b7180" font-size="11" font-family="ui-monospace, monospace">Jun 2, 2026 · 28 min</text>
+
+      <text y="100" fill="#e8eaef" font-size="14" font-weight="600">Key takeaways</text>
+      <text y="124" fill="#a4abbb" font-size="13">• Pricing of $85k for 24 seats is accepted on Marcus's side.</text>
+      <text y="146" fill="#a4abbb" font-size="13">• Blocker is CFO sign-off — looping in</text>
+      <!-- @mention highlight -->
+      <rect x="178" y="134" width="92" height="18" rx="4" fill="#6ea8ff" opacity="0.18"/>
+      <text x="184" y="147" fill="#6ea8ff" font-size="13">@Lisa Park</text>
+      <text x="274" y="146" fill="#a4abbb" font-size="13">(CFO).</text>
+      <text y="168" fill="#a4abbb" font-size="13">• Evaluated Competitor X — lost on opaque pricing &amp; slow onboarding.</text>
+
+      <text y="204" fill="#e8eaef" font-size="14" font-weight="600">Next steps</text>
+      <text y="228" fill="#a4abbb" font-size="13">☐ Book Thursday call with CFO</text>
+      <text y="250" fill="#a4abbb" font-size="13">☐ Send pricing case study + 90-day onboarding plan</text>
+
+      <!-- slash-command hint line -->
+      <rect x="0" y="268" width="6" height="18" fill="#6ea8ff"/>
+      <text x="14" y="282" fill="#6b7180" font-size="13" font-style="italic">Type</text>
+      <rect x="48" y="270" width="14" height="16" rx="3" fill="#161922" stroke="#2a2f40"/><text x="51" y="282" fill="#ffb86b" font-size="12" font-family="ui-monospace, monospace">/</text>
+      <text x="68" y="282" fill="#6b7180" font-size="13" font-style="italic">for commands — /summary, /action-items, /table, /date…</text>
+
+      <!-- attached file chip -->
+      <g transform="translate(0,304)">
+        <rect width="280" height="40" rx="8" fill="#161922" stroke="#2a2f40"/>
+        <rect x="12" y="10" width="20" height="20" rx="4" fill="#ff7a7a" opacity="0.3"/><text x="15" y="25" fill="#ff7a7a" font-size="9" font-weight="700">PDF</text>
+        <text x="42" y="24" fill="#e8eaef" font-size="12">pricing-case-study.pdf</text>
+        <text x="220" y="26" fill="#6b7180" font-size="11">2.1MB ✕</text>
+      </g>
+    </g>
+  </g>
+
+  <!-- annotations -->
+  <g class="anno">
+    <circle cx="980" cy="108" r="3" class="note-anchor"/><text x="966" y="104" fill="#ffb86b" font-size="10">①</text>
+    <circle cx="238" cy="278" r="3" class="note-anchor"/><text x="250" y="282" fill="#ffb86b" font-size="10">②</text>
+    <circle cx="108" cy="424" r="3" class="note-anchor"/><text x="120" y="428" fill="#ffb86b" font-size="10">③</text>
+  </g>
+</svg>
+    <div class="caption">B9 · Note Editor — ① ★AI-rewrite button anchors the formatting toolbar  ② live @mention chip + slash-command hint for blocks  ③ attached-file chip lives inline in the doc body</div>
+  </div>
+</section>
+
+<!-- =================== B10 QUOTE / PROPOSAL BUILDER (CPQ) =================== -->
+<section class="screen" id="B10">
+  <h3>B10 — Quote / Proposal Builder (CPQ)</h3>
+  <p class="screen-meta">AE · Line-item table, totals summary, discount-approval banner, e-signature block · ref: Salesforce CPQ, DealHub</p>
+  <div class="mockup">
+<svg viewBox="0 0 1180 600" xmlns="http://www.w3.org/2000/svg" font-family="Inter, sans-serif" font-size="12">
+  <rect width="1180" height="600" rx="8" fill="#161922"/>
+  <!-- Header -->
+  <rect width="1180" height="80" fill="#11141d"/>
+  <text x="22" y="28" fill="#6b7180" font-size="11" font-family="ui-monospace, monospace">QUOTE · Q-2026-0312 · Acme Corp · Q3 Expansion ›</text>
+  <text x="22" y="54" fill="#e8eaef" font-size="20" font-weight="700">Quote · Acme Corp — Q3 Expansion</text>
+  <rect x="500" y="32" width="92" height="22" rx="11" fill="#ffb86b" opacity="0.15"/><text x="512" y="47" fill="#ffb86b" font-size="11">Pending approval</text>
+  <text x="700" y="36" fill="#6b7180" font-size="11" font-family="ui-monospace, monospace">VALID UNTIL</text><text x="700" y="54" fill="#e8eaef" font-size="12">Jun 30, 2026</text>
+  <rect x="900" y="24" width="76" height="34" rx="6" fill="#1c2030" stroke="#2a2f40"/><text x="914" y="46" fill="#a4abbb">Preview</text>
+  <rect x="984" y="24" width="88" height="34" rx="6" fill="#6ea8ff"/><text x="998" y="46" fill="#0f1115" font-weight="700">Send quote</text>
+
+  <!-- discount-approval banner -->
+  <g transform="translate(20,96)">
+    <rect width="836" height="44" rx="8" fill="#ff7a7a" opacity="0.12" stroke="#ff7a7a"/>
+    <text x="16" y="22" fill="#ff7a7a" font-size="12" font-weight="600">⚠ Discount 18% exceeds your 15% limit — needs manager sign-off</text>
+    <text x="16" y="38" fill="#a4abbb" font-size="11">Routed to Dana Wu (Sales Mgr) · requested 2h ago</text>
+    <rect x="640" y="8" width="84" height="28" rx="6" fill="#6ea8ff"/><text x="652" y="26" fill="#0f1115" font-weight="700">Remind</text>
+    <rect x="732" y="8" width="92" height="28" rx="6" fill="#1c2030" stroke="#ff7a7a"/><text x="744" y="26" fill="#ff7a7a">Lower disc.</text>
+  </g>
+
+  <!-- line-item table -->
+  <g transform="translate(20,156)">
+    <!-- header row -->
+    <rect width="836" height="32" rx="6" fill="#1c2030"/>
+    <text x="14" y="21" fill="#a4abbb" font-size="11" font-family="ui-monospace, monospace">PRODUCT</text>
+    <text x="430" y="21" fill="#a4abbb" font-size="11" font-family="ui-monospace, monospace">QTY</text>
+    <text x="510" y="21" fill="#a4abbb" font-size="11" font-family="ui-monospace, monospace">UNIT PRICE</text>
+    <text x="630" y="21" fill="#a4abbb" font-size="11" font-family="ui-monospace, monospace">DISC %</text>
+    <text x="752" y="21" fill="#a4abbb" font-size="11" font-family="ui-monospace, monospace">TOTAL</text>
+    <!-- rows -->
+    <g font-size="12">
+      <line x1="0" y1="64" x2="836" y2="64" stroke="#232838"/>
+      <text x="14" y="56" fill="#e8eaef" font-weight="600">Pro Plan — annual</text>
+      <text x="14" y="74" fill="#6b7180" font-size="10">per-seat SaaS license</text>
+      <text x="430" y="56" fill="#e8eaef">24</text>
+      <text x="510" y="56" fill="#e8eaef">$3,000</text>
+      <text x="632" y="56" fill="#ffb86b">15%</text>
+      <text x="752" y="56" fill="#e8eaef" font-weight="600">$61,200</text>
+
+      <line x1="0" y1="106" x2="836" y2="106" stroke="#232838"/>
+      <text x="14" y="98" fill="#e8eaef" font-weight="600">Premium Support</text>
+      <text x="14" y="116" fill="#6b7180" font-size="10">24×7 · 1h SLA</text>
+      <text x="430" y="98" fill="#e8eaef">1</text>
+      <text x="510" y="98" fill="#e8eaef">$15,000</text>
+      <text x="632" y="98" fill="#ffb86b">20%</text>
+      <text x="752" y="98" fill="#e8eaef" font-weight="600">$12,000</text>
+
+      <line x1="0" y1="148" x2="836" y2="148" stroke="#232838"/>
+      <text x="14" y="140" fill="#e8eaef" font-weight="600">Onboarding (one-time)</text>
+      <text x="14" y="158" fill="#6b7180" font-size="10">90-day guided rollout</text>
+      <text x="430" y="140" fill="#e8eaef">1</text>
+      <text x="510" y="140" fill="#e8eaef">$8,000</text>
+      <text x="632" y="140" fill="#6ee7a1">0%</text>
+      <text x="752" y="140" fill="#e8eaef" font-weight="600">$8,000</text>
+
+      <line x1="0" y1="190" x2="836" y2="190" stroke="#232838"/>
+      <text x="14" y="182" fill="#e8eaef" font-weight="600">Data Cloud add-on</text>
+      <text x="14" y="200" fill="#6b7180" font-size="10">usage-based · est.</text>
+      <text x="430" y="182" fill="#e8eaef">1</text>
+      <text x="510" y="182" fill="#e8eaef">$12,000</text>
+      <text x="632" y="182" fill="#6ee7a1">0%</text>
+      <text x="752" y="182" fill="#e8eaef" font-weight="600">$12,000</text>
+    </g>
+    <text x="14" y="226" fill="#6ea8ff" font-size="12">+ Add line item</text>
+    <text x="180" y="226" fill="#6ea8ff" font-size="12">+ Add from catalog</text>
+    <text x="380" y="226" fill="#ffb86b" font-size="12">★ Suggest bundle</text>
+  </g>
+
+  <!-- RIGHT: totals summary -->
+  <g transform="translate(876,96)">
+    <text fill="#a4abbb" font-family="ui-monospace, monospace" font-size="11" letter-spacing="1">SUMMARY</text>
+    <rect y="14" width="284" height="176" rx="10" fill="#1c2030" stroke="#2a2f40"/>
+    <g transform="translate(16,14)" font-size="12">
+      <text y="28" fill="#a4abbb">List subtotal</text><text x="216" y="28" fill="#e8eaef" text-anchor="end">$107,000</text>
+      <text y="52" fill="#a4abbb">Discount (18%)</text><text x="216" y="52" fill="#ff7a7a" text-anchor="end">−$19,800</text>
+      <text y="76" fill="#a4abbb">One-time fees</text><text x="216" y="76" fill="#e8eaef" text-anchor="end">$8,000</text>
+      <line x1="0" y1="92" x2="252" y2="92" stroke="#2a2f40"/>
+      <text y="116" fill="#a4abbb">Net total (ARR)</text><text x="216" y="116" fill="#6ee7a1" font-weight="700" font-size="15" text-anchor="end">$93,200</text>
+      <text y="140" fill="#6b7180" font-size="11">Billed annually · MRR $7,767</text>
+      <text y="160" fill="#6b7180" font-size="11">Margin after disc.: <tspan fill="#ffb86b">62%</tspan></text>
+    </g>
+    <!-- e-signature block -->
+    <text y="216" fill="#a4abbb" font-family="ui-monospace, monospace" font-size="11" letter-spacing="1">E-SIGNATURE</text>
+    <rect y="228" width="284" height="180" rx="10" fill="#1c2030" stroke="#2a2f40"/>
+    <text x="16" y="252" fill="#6b7180" font-size="11">Signer</text>
+    <text x="16" y="270" fill="#e8eaef" font-size="12" font-weight="600">Lisa Park · CFO, Acme</text>
+    <text x="16" y="286" fill="#a4abbb" font-size="11">lisa@acme.com</text>
+    <rect x="16" y="298" width="252" height="56" rx="8" fill="#161922" stroke="#2a2f40" stroke-dasharray="4 4"/>
+    <text x="142" y="322" fill="#6b7180" font-size="11" text-anchor="middle">signature</text>
+    <text x="142" y="340" fill="#6b7180" font-size="10" text-anchor="middle" font-family="ui-monospace, monospace">awaiting signer</text>
+    <rect x="16" y="364" width="252" height="32" rx="6" fill="#6ea8ff"/>
+    <text x="142" y="385" fill="#0f1115" font-weight="700" text-anchor="middle">Request signature →</text>
+  </g>
+
+  <!-- annotations -->
+  <g class="anno">
+    <circle cx="436" cy="118" r="3" class="note-anchor"/><text x="448" y="122" fill="#ffb86b" font-size="10">①</text>
+    <circle cx="638" cy="318" r="3" class="note-anchor"/><text x="650" y="322" fill="#ffb86b" font-size="10">②</text>
+    <circle cx="1018" cy="324" r="3" class="note-anchor"/><text x="1004" y="320" fill="#ffb86b" font-size="10">③</text>
+  </g>
+</svg>
+    <div class="caption">B10 · Quote Builder — ① discount-approval banner fires when a line breaches the rep's limit, routed to a manager  ② per-line discount % rolls into the totals summary  ③ e-signature block awaiting the CFO</div>
+  </div>
+</section>
+
+<!-- =================== B11 DEAL ROOM (EXTERNAL) =================== -->
+<section class="screen" id="B11">
+  <h3>B11 — Deal Room (external)</h3>
+  <p class="screen-meta">AE + buyer · Buyer-facing shared space — mutual action plan, shared files, recap video · ref: Dock, DealHub</p>
+  <div class="mockup">
+<svg viewBox="0 0 1180 580" xmlns="http://www.w3.org/2000/svg" font-family="Inter, sans-serif" font-size="12">
+  <!-- lighter external chrome -->
+  <rect width="1180" height="580" rx="8" fill="#12151e"/>
+  <!-- co-branded header (lighter) -->
+  <rect width="1180" height="88" fill="#1c2030"/>
+  <rect width="1180" height="3" fill="#6ea8ff"/>
+  <circle cx="40" cy="48" r="14" fill="#6ea8ff"/><text x="33" y="52" fill="#0f1115" font-weight="700" font-size="11">F</text>
+  <text x="62" y="44" fill="#e8eaef" font-weight="700" font-size="14">FunnelOS</text>
+  <text x="62" y="60" fill="#6b7180" font-size="10" font-family="ui-monospace, monospace">×</text>
+  <rect x="76" y="40" width="28" height="20" rx="4" fill="#ff7a7a" opacity="0.3"/><text x="82" y="55" fill="#ff7a7a" font-size="10" font-weight="700">AC</text>
+  <text x="112" y="56" fill="#e8eaef" font-weight="700" font-size="14">Acme Corp</text>
+  <text x="260" y="38" fill="#6b7180" font-size="11" font-family="ui-monospace, monospace">SHARED DEAL ROOM · secure link</text>
+  <text x="260" y="58" fill="#a4abbb" font-size="13">Acme × FunnelOS — Q3 Expansion partnership</text>
+  <text x="900" y="40" fill="#6b7180" font-size="11" font-family="ui-monospace, monospace">YOUR CONTACTS</text>
+  <circle cx="912" cy="56" r="12" fill="#6ea8ff" opacity="0.4"/><text x="906" y="60" fill="#6ea8ff" font-size="9" font-weight="700">RP</text>
+  <text x="930" y="60" fill="#a4abbb" font-size="11">Ralph (FunnelOS) · reply ↩</text>
+
+  <!-- LEFT/CENTER: mutual action plan -->
+  <g transform="translate(20,108)">
+    <text fill="#a4abbb" font-family="ui-monospace, monospace" font-size="11" letter-spacing="1">MUTUAL ACTION PLAN · 3 / 6 DONE</text>
+    <rect x="320" y="-12" width="120" height="6" rx="3" fill="#2a2f40"/>
+    <rect x="320" y="-12" width="60" height="6" rx="3" fill="#6ee7a1"/>
+    <text x="700" y="-6" fill="#6b7180" font-family="ui-monospace, monospace" font-size="11">Target go-live: Jul 15</text>
+
+    <!-- table header -->
+    <g transform="translate(0,12)">
+      <rect width="740" height="28" rx="6" fill="#1c2030"/>
+      <text x="48" y="19" fill="#6b7180" font-size="10" font-family="ui-monospace, monospace">MILESTONE</text>
+      <text x="470" y="19" fill="#6b7180" font-size="10" font-family="ui-monospace, monospace">OWNER</text>
+      <text x="620" y="19" fill="#6b7180" font-size="10" font-family="ui-monospace, monospace">DUE</text>
+    </g>
+    <g transform="translate(0,48)" font-size="12">
+      <!-- done -->
+      <rect width="740" height="40" rx="6" fill="#161922" stroke="#2a2f40"/>
+      <circle cx="24" cy="20" r="9" fill="#6ee7a1"/><text x="20" y="24" fill="#0f1115" font-weight="700" font-size="10">✓</text>
+      <text x="48" y="24" fill="#6b7180" text-decoration="line-through">Discovery &amp; requirements</text>
+      <text x="470" y="24" fill="#a4abbb">Both</text>
+      <text x="620" y="24" fill="#6b7180">May 18</text>
+
+      <rect y="48" width="740" height="40" rx="6" fill="#161922" stroke="#2a2f40"/>
+      <circle cx="24" cy="68" r="9" fill="#6ee7a1"/><text x="20" y="72" fill="#0f1115" font-weight="700" font-size="10">✓</text>
+      <text x="48" y="72" fill="#6b7180" text-decoration="line-through">Technical demo</text>
+      <text x="470" y="72" fill="#a4abbb">FunnelOS</text>
+      <text x="620" y="72" fill="#6b7180">May 30</text>
+
+      <rect y="96" width="740" height="40" rx="6" fill="#161922" stroke="#2a2f40"/>
+      <circle cx="24" cy="116" r="9" fill="#6ee7a1"/><text x="20" y="120" fill="#0f1115" font-weight="700" font-size="10">✓</text>
+      <text x="48" y="120" fill="#6b7180" text-decoration="line-through">Security review (SOC2)</text>
+      <text x="470" y="120" fill="#a4abbb">Acme IT</text>
+      <text x="620" y="120" fill="#6b7180">Jun 2</text>
+
+      <!-- in progress / current -->
+      <rect y="144" width="740" height="40" rx="6" fill="#1c2030" stroke="#6ea8ff"/>
+      <circle cx="24" cy="164" r="9" fill="none" stroke="#6ea8ff" stroke-width="2"/><circle cx="24" cy="164" r="3" fill="#6ea8ff"/>
+      <text x="48" y="168" fill="#e8eaef" font-weight="600">CFO pricing review</text>
+      <text x="470" y="168" fill="#e8eaef">Lisa Park</text>
+      <text x="620" y="168" fill="#ffb86b">Jun 5 · soon</text>
+
+      <rect y="192" width="740" height="40" rx="6" fill="#161922" stroke="#2a2f40"/>
+      <circle cx="24" cy="212" r="9" fill="none" stroke="#6b7180" stroke-width="2"/>
+      <text x="48" y="216" fill="#e8eaef">Legal &amp; MSA sign-off</text>
+      <text x="470" y="216" fill="#a4abbb">Both</text>
+      <text x="620" y="216" fill="#a4abbb">Jun 20</text>
+
+      <rect y="240" width="740" height="40" rx="6" fill="#161922" stroke="#2a2f40"/>
+      <circle cx="24" cy="260" r="9" fill="none" stroke="#6b7180" stroke-width="2"/>
+      <text x="48" y="264" fill="#e8eaef">Kickoff &amp; onboarding</text>
+      <text x="470" y="264" fill="#a4abbb">FunnelOS</text>
+      <text x="620" y="264" fill="#a4abbb">Jul 1</text>
+    </g>
+    <text x="48" y="348" fill="#6b7180" font-size="11">Buyers can comment on any milestone — Acme &amp; FunnelOS both notified.</text>
+  </g>
+
+  <!-- RIGHT: recap video + shared files -->
+  <g transform="translate(800,108)">
+    <text fill="#a4abbb" font-family="ui-monospace, monospace" font-size="11" letter-spacing="1">RECAP VIDEO</text>
+    <rect y="14" width="360" height="150" rx="10" fill="#11141d" stroke="#2a2f40"/>
+    <!-- thumbnail -->
+    <rect x="10" y="24" width="340" height="100" rx="6" fill="#1c2030"/>
+    <circle cx="180" cy="74" r="22" fill="#6ea8ff"/><text x="173" y="80" fill="#0f1115" font-weight="700" font-size="16">▶</text>
+    <rect x="10" y="108" width="340" height="16" rx="3" fill="#0f1115" opacity="0.5"/>
+    <text x="20" y="120" fill="#a4abbb" font-size="10" font-family="ui-monospace, monospace">3:42</text>
+    <text x="16" y="142" fill="#e8eaef" font-size="12" font-weight="600">"Why Acme picked FunnelOS"</text>
+    <text x="16" y="158" fill="#6b7180" font-size="11">From Ralph · personalized walkthrough</text>
+
+    <text y="194" fill="#a4abbb" font-family="ui-monospace, monospace" font-size="11" letter-spacing="1">SHARED FILES · 5</text>
+    <g transform="translate(0,206)" font-size="11">
+      <rect width="360" height="34" rx="6" fill="#1c2030" stroke="#2a2f40"/>
+      <rect x="10" y="9" width="18" height="16" rx="3" fill="#ff7a7a" opacity="0.3"/><text x="13" y="22" fill="#ff7a7a" font-size="8" font-weight="700">PDF</text>
+      <text x="38" y="22" fill="#e8eaef">Proposal — Q3 Expansion.pdf</text>
+      <text x="320" y="22" fill="#6b7180">↧</text>
+
+      <rect y="42" width="360" height="34" rx="6" fill="#1c2030" stroke="#2a2f40"/>
+      <rect x="10" y="51" width="18" height="16" rx="3" fill="#6ee7a1" opacity="0.3"/><text x="13" y="64" fill="#6ee7a1" font-size="8" font-weight="700">XLS</text>
+      <text x="38" y="64" fill="#e8eaef">ROI calculator.xlsx</text>
+      <text x="320" y="64" fill="#6b7180">↧</text>
+
+      <rect y="84" width="360" height="34" rx="6" fill="#1c2030" stroke="#2a2f40"/>
+      <rect x="10" y="93" width="18" height="16" rx="3" fill="#6ea8ff" opacity="0.3"/><text x="13" y="106" fill="#6ea8ff" font-size="8" font-weight="700">DOC</text>
+      <text x="38" y="106" fill="#e8eaef">Master Services Agreement</text>
+      <text x="300" y="106" fill="#ffb86b" font-size="10">new</text>
+
+      <rect y="126" width="360" height="34" rx="6" fill="#1c2030" stroke="#2a2f40"/>
+      <rect x="10" y="135" width="18" height="16" rx="3" fill="#6b7180" opacity="0.4"/><text x="13" y="148" fill="#a4abbb" font-size="8" font-weight="700">PDF</text>
+      <text x="38" y="148" fill="#e8eaef">SOC2 Type II report</text>
+      <text x="320" y="148" fill="#6b7180">↧</text>
+    </g>
+    <text x="0" y="384" fill="#6ea8ff" font-size="11">+ Upload a file to share</text>
+  </g>
+
+  <!-- annotations -->
+  <g class="anno">
+    <circle cx="200" cy="100" r="3" class="note-anchor"/><text x="212" y="104" fill="#ffb86b" font-size="10">①</text>
+    <circle cx="548" cy="276" r="3" class="note-anchor"/><text x="534" y="280" fill="#ffb86b" font-size="10">②</text>
+    <circle cx="980" cy="84" r="3" class="note-anchor"/><text x="966" y="80" fill="#ffb86b" font-size="10">③</text>
+  </g>
+</svg>
+    <div class="caption">B11 · Deal Room — ① lighter external chrome + co-branded FunnelOS × Acme header  ② mutual action plan with owners, due dates &amp; the current step highlighted  ③ personalized recap-video thumbnail over the shared files</div>
+  </div>
+</section>
+
+<!-- =================== B12 CUSTOM OBJECT RECORD =================== -->
+<section class="screen" id="B12">
+  <h3>B12 — Custom Object Record</h3>
+  <p class="screen-meta">Varies · The B1–B3 record shell for an org-specific object (Property) — custom-fields panel, timeline, related lists, Custom-object badge · ref: Salesforce, Attio</p>
+  <div class="mockup">
+<svg viewBox="0 0 1180 580" xmlns="http://www.w3.org/2000/svg" font-family="Inter, sans-serif" font-size="12">
+  <rect width="1180" height="580" rx="8" fill="#161922"/>
+  <!-- Header -->
+  <rect width="1180" height="92" fill="#11141d"/>
+  <rect x="20" y="32" width="48" height="48" rx="10" fill="#6ee7a1" opacity="0.18"/>
+  <text x="32" y="62" fill="#6ee7a1" font-size="18">🏢</text>
+  <text x="84" y="30" fill="#6b7180" font-size="11" font-family="ui-monospace, monospace">PROPERTY · PROP-SF-0421 · Properties ›</text>
+  <text x="84" y="56" fill="#e8eaef" font-size="22" font-weight="700">350 Mission St · Floor 14</text>
+  <!-- custom-object badge -->
+  <rect x="430" y="40" width="120" height="22" rx="11" fill="#1c2030" stroke="#2a2f40" stroke-dasharray="3 3"/>
+  <text x="442" y="55" fill="#a4abbb" font-size="10" font-family="ui-monospace, monospace">⬡ Custom object</text>
+  <text x="84" y="78" fill="#a4abbb" font-size="13">Class A office · 18,400 sqft · <tspan fill="#6ee7a1">Available</tspan> · San Francisco, CA</text>
+  <rect x="896" y="40" width="92" height="34" rx="6" fill="#6ea8ff"/><text x="910" y="61" fill="#0f1115" font-weight="700">+ Tour</text>
+  <rect x="996" y="40" width="76" height="34" rx="6" fill="#1c2030" stroke="#2a2f40"/><text x="1012" y="61" fill="#a4abbb">Edit ⋮</text>
+
+  <!-- LEFT: custom fields -->
+  <g transform="translate(20,110)">
+    <text fill="#a4abbb" font-family="ui-monospace, monospace" font-size="11" letter-spacing="1">CUSTOM FIELDS</text>
+    <text x="180" fill="#6b7180" font-family="ui-monospace, monospace" font-size="10">⬡ defined by admin</text>
+    <g transform="translate(0,22)" font-size="12">
+      <text fill="#6b7180">Property type</text><text x="120" fill="#e8eaef">Office</text>
+      <text y="24" fill="#6b7180">Square feet</text><text x="120" y="24" fill="#e8eaef">18,400</text>
+      <text y="48" fill="#6b7180">Price / sqft</text><text x="120" y="48" fill="#e8eaef">$78 / yr</text>
+      <text y="72" fill="#6b7180">Asking rent</text><text x="120" y="72" fill="#6ee7a1" font-weight="600">$1.44M / yr</text>
+      <text y="96" fill="#6b7180">Status</text><text x="120" y="96" fill="#6ee7a1">Available</text>
+      <text y="120" fill="#6b7180">Lease type</text><text x="120" y="120" fill="#e8eaef">Triple-net</text>
+      <text y="144" fill="#6b7180">Floors</text><text x="120" y="144" fill="#e8eaef">14 of 22</text>
+      <text y="168" fill="#6b7180">Year built</text><text x="120" y="168" fill="#e8eaef">2016</text>
+      <text y="192" fill="#6b7180">Parking</text><text x="120" y="192" fill="#e8eaef">42 spaces</text>
+    </g>
+    <line x1="0" y1="328" x2="240" y2="328" stroke="#2a2f40"/>
+    <text y="350" fill="#a4abbb" font-family="ui-monospace, monospace" font-size="11" letter-spacing="1">AMENITIES</text>
+    <g transform="translate(0,360)" font-size="11">
+      <rect width="62" height="22" rx="11" fill="#1c2030" stroke="#2a2f40"/><text x="12" y="15" fill="#a4abbb">Gym</text>
+      <rect x="70" width="78" height="22" rx="11" fill="#1c2030" stroke="#2a2f40"/><text x="82" y="15" fill="#a4abbb">Roof deck</text>
+      <rect x="156" width="74" height="22" rx="11" fill="#1c2030" stroke="#2a2f40"/><text x="168" y="15" fill="#a4abbb">EV charge</text>
+      <rect y="30" width="92" height="22" rx="11" fill="#1c2030" stroke="#2a2f40"/><text x="12" y="45" fill="#a4abbb">Transit 2 min</text>
+    </g>
+    <line x1="0" y1="430" x2="240" y2="430" stroke="#2a2f40"/>
+    <text y="452" fill="#a4abbb" font-family="ui-monospace, monospace" font-size="11" letter-spacing="1">OWNER / AGENT</text>
+    <g transform="translate(0,464)" font-size="12">
+      <text fill="#6b7180">Listing agent</text><text x="120" fill="#e8eaef">You</text>
+      <text y="22" fill="#6b7180">Landlord</text><text x="120" y="22" fill="#e8eaef">Boston Props</text>
+    </g>
+  </g>
+
+  <!-- CENTER: timeline -->
+  <g transform="translate(280,110)">
+    <text fill="#a4abbb" font-family="ui-monospace, monospace" font-size="11" letter-spacing="1">ACTIVITY TIMELINE</text>
+    <line x1="14" y1="22" x2="14" y2="392" stroke="#2a2f40"/>
+    <g transform="translate(0,22)">
+      <circle cx="14" cy="10" r="6" fill="#6ea8ff"/>
+      <text x="34" y="14" fill="#e8eaef" font-weight="600">Today · 10:20</text>
+      <text x="34" y="32" fill="#a4abbb">📅 Tour scheduled · Northwind Capital</text>
+      <text x="34" y="50" fill="#6b7180" font-size="11">Thu 2pm · 6 attendees from prospect</text>
+    </g>
+    <g transform="translate(0,92)">
+      <circle cx="14" cy="10" r="6" fill="#ffb86b"/>
+      <text x="34" y="14" fill="#e8eaef" font-weight="600">Yesterday · 15:30</text>
+      <text x="34" y="32" fill="#a4abbb">✉ Sent floor plan + LOI template</text>
+      <rect x="34" y="44" width="446" height="44" rx="6" fill="#1c2030" stroke="#2a2f40"/>
+      <text x="46" y="62" fill="#ffb86b" font-size="11">★ AI: comparable listings priced 4% lower</text>
+      <text x="46" y="80" fill="#a4abbb" font-size="11">Consider a tenant-improvement allowance to win.</text>
+    </g>
+    <g transform="translate(0,202)">
+      <circle cx="14" cy="10" r="6" fill="#6ee7a1"/>
+      <text x="34" y="14" fill="#e8eaef" font-weight="600">May 28 · field change</text>
+      <text x="34" y="32" fill="#a4abbb">Status: Under offer → Available (LOI fell through)</text>
+    </g>
+    <g transform="translate(0,266)">
+      <circle cx="14" cy="10" r="6" fill="#6b7180"/>
+      <text x="34" y="14" fill="#a4abbb">May 20 · 09:00</text>
+      <text x="34" y="32" fill="#6b7180">📝 Note · "Northwind wants 14–16, open to whole-floor"</text>
+    </g>
+    <g transform="translate(0,318)">
+      <circle cx="14" cy="10" r="6" fill="#6b7180"/>
+      <text x="34" y="14" fill="#a4abbb">May 12 · listed</text>
+      <text x="34" y="32" fill="#6b7180">Property added to inventory by you</text>
+    </g>
+    <rect x="0" y="364" width="480" height="28" rx="8" fill="#1c2030" stroke="#2a2f40"/>
+    <text x="14" y="383" fill="#6b7180">+ Note   + Task   + Log tour   /   ⌘K AI</text>
+  </g>
+
+  <!-- RIGHT: related lists -->
+  <g transform="translate(792,110)">
+    <text fill="#a4abbb" font-family="ui-monospace, monospace" font-size="11" letter-spacing="1">RELATED DEALS · 2</text>
+    <g transform="translate(0,22)">
+      <rect width="366" height="54" rx="8" fill="#1c2030" stroke="#2a2f40"/>
+      <rect width="4" height="54" rx="2" fill="#ffb86b"/>
+      <text x="16" y="22" fill="#e8eaef" font-weight="600">Northwind Capital · Lease</text>
+      <text x="16" y="40" fill="#a4abbb" font-size="11">Stage 3 Tour · $1.44M/yr · close Jul 30</text>
+    </g>
+    <g transform="translate(0,84)">
+      <rect width="366" height="54" rx="8" fill="#1c2030" stroke="#2a2f40"/>
+      <rect width="4" height="54" rx="2" fill="#6b7180"/>
+      <text x="16" y="22" fill="#e8eaef" font-weight="600">Vertex Labs · Lease (lost)</text>
+      <text x="16" y="40" fill="#a4abbb" font-size="11">Closed lost · chose competitor · Apr 30</text>
+    </g>
+    <line x1="0" y1="152" x2="366" y2="152" stroke="#2a2f40"/>
+    <text y="174" fill="#a4abbb" font-family="ui-monospace, monospace" font-size="11" letter-spacing="1">RELATED CONTACTS · 3</text>
+    <g transform="translate(0,188)" font-size="11">
+      <rect width="366" height="40" rx="8" fill="#1c2030" stroke="#2a2f40"/>
+      <circle cx="22" cy="20" r="12" fill="#6ea8ff" opacity="0.3"/><text x="16" y="24" fill="#6ea8ff" font-weight="700">SN</text>
+      <text x="44" y="18" fill="#e8eaef" font-weight="600" font-size="12">Sofia Nguyen</text>
+      <text x="44" y="33" fill="#a4abbb">Head of RE · Northwind</text>
+      <rect y="48" width="366" height="40" rx="8" fill="#1c2030" stroke="#2a2f40"/>
+      <circle cx="22" cy="68" r="12" fill="#6ee7a1" opacity="0.3"/><text x="16" y="72" fill="#6ee7a1" font-weight="700">BP</text>
+      <text x="44" y="66" fill="#e8eaef" font-weight="600" font-size="12">Ben Porter</text>
+      <text x="44" y="81" fill="#a4abbb">Landlord rep · Boston Props</text>
+    </g>
+    <line x1="0" y1="296" x2="366" y2="296" stroke="#2a2f40"/>
+    <text y="318" fill="#a4abbb" font-family="ui-monospace, monospace" font-size="11" letter-spacing="1">DOCUMENTS</text>
+    <g transform="translate(0,330)" font-size="11">
+      <rect width="366" height="30" rx="6" fill="#1c2030" stroke="#2a2f40"/><text x="12" y="20" fill="#6ea8ff">📎 Floor-plan-L14.pdf</text><text x="320" y="20" fill="#6b7180">↧</text>
+      <rect y="38" width="366" height="30" rx="6" fill="#1c2030" stroke="#2a2f40"/><text x="12" y="58" fill="#6ea8ff">📎 LOI-template.docx</text><text x="320" y="58" fill="#6b7180">↧</text>
+    </g>
+  </g>
+
+  <!-- annotations -->
+  <g class="anno">
+    <circle cx="552" cy="51" r="3" class="note-anchor"/><text x="564" y="55" fill="#ffb86b" font-size="10">①</text>
+    <circle cx="262" cy="132" r="3" class="note-anchor"/><text x="246" y="136" fill="#ffb86b" font-size="10">②</text>
+    <circle cx="1160" cy="200" r="3" class="note-anchor"/><text x="1146" y="196" fill="#ffb86b" font-size="10">③</text>
+  </g>
+</svg>
+    <div class="caption">B12 · Custom Object Record — ① dashed "Custom object" badge marks an admin-defined type  ② identical 3-column record shell as B1–B3 (custom fields · timeline spine · related lists)  ③ related deals/contacts/docs adapt to the Property object</div>
+  </div>
+</section>

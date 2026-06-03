@@ -1,0 +1,12 @@
+import { chromium } from 'playwright';
+const b = await chromium.launch();
+const ctx = await b.newContext({ viewport: { width: 1440, height: 1200 } });
+const page = await ctx.newPage();
+await page.goto('http://localhost:3000/crm.html#view-overview', { waitUntil: 'networkidle' });
+await page.waitForTimeout(2000);
+const flight = await page.$('.fp-right');
+const out = '/Users/ralphlengler/OskarOS/oskar-prototype/public/2026-01-27-debug/cd-rail-now.png';
+if (flight) await flight.screenshot({ path: out });
+else await page.screenshot({ path: out });
+await b.close();
+console.log(out);

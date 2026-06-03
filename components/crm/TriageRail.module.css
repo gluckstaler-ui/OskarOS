@@ -1,0 +1,277 @@
+/* TriageRail — ported from public/crm.html .fp-rail / .fp-greet / .fp-headline
+   / .fp-triage / .fp-pipeline / .fp-rail-sep regions (Ralph 2026-05-26..29).
+   Tones use the same hardcoded hex the vanilla locks in (--fp-tone). */
+
+.rail {
+  background: var(--bg-app);
+  border: 1px solid var(--border-card);
+  border-radius: var(--radius-card, 12px);
+  padding: 18px 18px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+/* ── greeting header ── */
+.greet {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  font-family: var(--font-mono, 'JetBrains Mono', monospace);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+.greetHello {
+  color: var(--text-main);
+  white-space: nowrap;
+}
+.greetDate {
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+.greetClock {
+  color: #ffb84a;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── editorial pivot headline ── */
+.headline {
+  font-size: 18px;
+  font-weight: 600;
+  line-height: 1.3;
+  color: var(--text-main);
+  letter-spacing: -0.01em;
+  margin-bottom: 4px;
+  transition: font-size 220ms ease-out, opacity 220ms ease-out, max-height 220ms ease-out;
+}
+.headline .emOverdue {
+  color: #ff6a4d;
+  font-weight: 700;
+}
+
+/* ── triage bento ── */
+.triage {
+  position: relative;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 14px;
+  align-items: center;
+  padding: 14px 14px 14px 18px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-card);
+  border-radius: 0 10px 10px 0;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  text-align: left;
+  width: 100%;
+  font: inherit;
+  color: inherit;
+}
+.triage::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  background: var(--fp-tone, var(--text-dim));
+}
+.triage:hover {
+  background: var(--bg-card-hover);
+  transform: translateY(-1px);
+}
+
+/* tones — locked to the vanilla's warm severity gradient + channel/stage hues */
+.toneAll { --fp-tone: #c8b88c; }
+.toneOverdue { --fp-tone: #ef4444; }
+.toneToday { --fp-tone: #f97316; }
+.toneUpcoming { --fp-tone: #fdba74; }
+.toneEmail { --fp-tone: #f97316; }
+.toneWa { --fp-tone: #25d366; }
+.toneStage { --fp-tone: #52525b; }
+
+/* active — solid tone-fill, dark text */
+.isActive {
+  background: var(--fp-tone, var(--accent));
+  border-color: var(--fp-tone, var(--accent));
+  transform: translateY(-1px);
+}
+.isActive::before { width: 0; }
+.isActive .num,
+.isActive .lbl,
+.isActive .sub,
+.isActive .arr { color: #0a0a0a; }
+
+/* muted — zero-count rows fade back */
+.isMuted { opacity: 0.5; }
+.isMuted .num { color: var(--text-dim); }
+
+.num {
+  font-family: var(--font-mono, 'JetBrains Mono', monospace);
+  font-size: 28px;
+  font-weight: 700;
+  line-height: 1;
+  color: var(--fp-tone, var(--text-main));
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.02em;
+}
+.body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.lbl {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-main);
+  letter-spacing: -0.005em;
+}
+.sub {
+  font-family: var(--font-mono, 'JetBrains Mono', monospace);
+  font-size: 10px;
+  color: var(--text-dim);
+  letter-spacing: 0.04em;
+}
+.arr {
+  color: var(--text-dim);
+  font-size: 14px;
+  transition: transform 0.12s, color 0.12s;
+}
+.triage:hover .arr {
+  color: var(--fp-tone, var(--text-main));
+  transform: translateX(2px);
+}
+
+/* ── group separator ── */
+.sep {
+  height: 1px;
+  background: var(--border-card);
+  margin: 4px 0;
+  opacity: 0.6;
+}
+
+/* ── pipeline footer ── */
+.pipeline {
+  margin-top: auto;
+  padding-top: 14px;
+  border-top: 1px solid var(--border-card);
+  font-family: var(--font-mono, 'JetBrains Mono', monospace);
+  font-variant-numeric: tabular-nums;
+}
+.pipelineLine {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.pipelineSep {
+  color: var(--text-dim);
+  margin: 0 4px;
+}
+.pipelineK {
+  font-size: 9px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  font-weight: 700;
+}
+.pipelineV {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-main);
+  text-align: right;
+  letter-spacing: 0.02em;
+}
+
+/* ── polar (light) editorial register ──────────────────────────────────────
+   Ported 1:1 from crm.html's [data-theme="polar"] .fp-* rules. data-theme is a
+   global attribute on a parent element, so these use :global() combined with
+   the module-scoped class. Mirrors territoryxfathom's V3 Focus mockup: big
+   editorial headline, flat hairline-separated rows bled to the bento edge,
+   44px-ish weight-300 numbers, amber-wash active state. Onyx keeps the boxed
+   bento treatment above. */
+
+/* headline → editorial scale (30px / weight 500 / tight tracking). em uses the
+   polar brand-red, upright not italic. */
+:global([data-theme='polar']) .headline {
+  /* Ralph 2026-05-29 · 30 → 33px. A touch bigger per Ralph; kept in lockstep
+     with crm.html's [data-theme="polar"] .fp-headline so the two stay matched. */
+  font-size: 33px;
+  font-weight: 500;
+  line-height: 1.15;
+  letter-spacing: -0.025em;
+  margin: 12px 0 40px;
+}
+:global([data-theme='polar']) .headline .emOverdue {
+  color: var(--brand-red, #d62012);
+  font-weight: 600;
+  font-style: normal;
+}
+
+/* rows become DIRECT-child flat rows: rail gap 0, each row bleeds -18px
+   sideways so its bottom hairline runs flush to the bento's inner border. */
+:global([data-theme='polar']) .rail {
+  gap: 0;
+}
+:global([data-theme='polar']) .triage {
+  padding: 18px 18px 18px 22px;
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid var(--border-card);
+  border-radius: 0;
+  margin: 0 -18px;
+}
+:global([data-theme='polar']) .sep {
+  margin: 20px -18px;
+}
+:global([data-theme='polar']) .pipeline {
+  margin-top: auto;
+}
+:global([data-theme='polar']) .triage:hover {
+  background: var(--bg-card);
+  transform: none;
+}
+:global([data-theme='polar']) .triage.isActive {
+  transform: none;
+}
+:global([data-theme='polar']) .triage.isActive::before {
+  width: 3px;
+}
+:global([data-theme='polar']) .num {
+  font-size: 36px;
+  font-weight: 300;
+  letter-spacing: -0.04em;
+  line-height: 0.95;
+}
+:global([data-theme='polar']) .lbl {
+  font-size: 15px;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+}
+
+/* polar active = soft amber WASH (always amber, regardless of row tone — the
+   number itself carries the tone). num/label/sub keep their natural colors
+   rather than inverting to black-on-tone. */
+:global([data-theme='polar']) .triage.isActive {
+  background: color-mix(in srgb, var(--brand-amber) 14%, var(--bg-card));
+  border-color: color-mix(in srgb, var(--brand-amber) 55%, var(--border-card));
+}
+:global([data-theme='polar']) .triage.isActive .num {
+  color: var(--fp-tone, var(--text-main));
+}
+:global([data-theme='polar']) .triage.isActive .lbl {
+  color: var(--text-main);
+}
+:global([data-theme='polar']) .triage.isActive .sub {
+  color: var(--text-muted);
+}
+:global([data-theme='polar']) .triage.isActive .arr {
+  color: var(--fp-tone, var(--text-dim));
+}

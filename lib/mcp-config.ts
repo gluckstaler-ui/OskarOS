@@ -13,17 +13,19 @@
  * the per-session, per-role config and returns the path.
  *
  * The server name MUST match what's expected in `--allowed-tools` flags
- * (`mcp__oskar-orchestrator__*`). Do NOT rename in one place without
- * renaming all three.
+ * (`mcp__orch__*`). Do NOT rename in one place without renaming all three.
+ * Ralph 2026-05-12: shortened from `oskar-orchestrator` to `orch` to trim
+ * the wire-format prefix that appears on every tool name advertised to the
+ * LLM (~150 sticky tokens saved per session).
  */
 
 import { randomUUID } from 'crypto'
 import { writeFileSync, existsSync, mkdirSync } from 'fs'
 import { join } from 'path'
 
-export const MCP_SERVER_NAME = 'oskar-orchestrator' as const
+export const MCP_SERVER_NAME = 'orch' as const
 
-export type AgentRole = 'cd' | 'webdev' | 'sentinel' | 'jedi-code'
+export type AgentRole = 'cd' | 'webdev' | 'sentinel' | 'jedi-code' | 'consular'
 
 export interface McpConfigOptions {
   sessionId: string
@@ -121,9 +123,11 @@ const ORCHESTRATOR_BASIC_TOOLS = [
 
 export const CD_ALLOWED_TOOLS = [
   // Orchestration (Phase 1)
+  // Ralph 2026-05-18: build_all_vibes + build_final collapsed into
+  // array-based build_vibe([slugs]). Two build tools: wireframes (Phase 2)
+  // and vibe (Phase 4 + Phase 5 — orchestrator derives strictness).
   `mcp__${MCP_SERVER_NAME}__build_vibe`,
-  `mcp__${MCP_SERVER_NAME}__build_all_vibes`,
-  `mcp__${MCP_SERVER_NAME}__build_final`,
+  `mcp__${MCP_SERVER_NAME}__build_wireframes`,
   `mcp__${MCP_SERVER_NAME}__hotswap`,
   `mcp__${MCP_SERVER_NAME}__images_needed`,
   `mcp__${MCP_SERVER_NAME}__refresh_assets`,
@@ -155,12 +159,25 @@ export const CD_ALLOWED_TOOLS = [
   `mcp__${MCP_SERVER_NAME}__generate_image`,
   `mcp__${MCP_SERVER_NAME}__screenshot`,
   `mcp__${MCP_SERVER_NAME}__snackbar`,
-  `mcp__${MCP_SERVER_NAME}__ask_user`,
+  `mcp__${MCP_SERVER_NAME}__modal`,
   // Discovery flow (Ralph 2026-05-06) — tools were registered server-side
   // (mcp-server/tools-cd.ts:311, 334) but missing from CD's allowlist, so
   // only JD could fire the cards. CD now has direct access.
-  `mcp__${MCP_SERVER_NAME}__ask_discovery_questions`,
-  `mcp__${MCP_SERVER_NAME}__confirm_understanding`,
+  `mcp__${MCP_SERVER_NAME}__tc_discovery`,
+  `mcp__${MCP_SERVER_NAME}__tc_understanding`,
+  // WP-70 + WP-71 (Ralph 2026-05-10): Image Strategy Card — Phase 3/5
+  // slot plan with two layouts (webpage-vertical, keynote-multi-row).
+  `mcp__${MCP_SERVER_NAME}__tc_image_strategy`,
+  // WP-74 (Ralph 2026-05-10): Design Directions Card — closes Discovery Phase 1.
+  // Multi-select cap-2 from 6 candidate directions.
+  `mcp__${MCP_SERVER_NAME}__tc_design_directions`,
+  // WP-77 (Ralph 2026-05-10): Design System Card — Phase 4→5 sign-off.
+  // Interactive vibe-selector with live CSS var swap, full-width.
+  `mcp__${MCP_SERVER_NAME}__tc_design_system`,
+  // WP-75 (Ralph 2026-05-10): Descent Selection Card — Phase 2→3 wireframe
+  // pick (cap=2) and Phase 4→5 final pick (cap=1). Same chassis as Design
+  // Directions; phase discriminator drives cap + label.
+  `mcp__${MCP_SERVER_NAME}__tc_descent_selection`,
   // Capability tools (Phase 2 — Tier A)
   `mcp__${MCP_SERVER_NAME}__session_meta`,
   `mcp__${MCP_SERVER_NAME}__list_assets`,
@@ -177,9 +194,9 @@ export const CD_ALLOWED_TOOLS = [
   // Cross-agent tools Ralph verified CD can fire (2026-05-06 audit):
   // CD occasionally needs to report build state on WebDev's behalf or
   // file a critique. Server-side these are unrestricted — match the allowlist.
-  `mcp__${MCP_SERVER_NAME}__report_build_complete`,
-  `mcp__${MCP_SERVER_NAME}__report_build_failed`,
-  `mcp__${MCP_SERVER_NAME}__report_build_progress`,
+  `mcp__${MCP_SERVER_NAME}__build_done`,
+  `mcp__${MCP_SERVER_NAME}__build_fail`,
+  `mcp__${MCP_SERVER_NAME}__build_progress`,
   `mcp__${MCP_SERVER_NAME}__submit_critique`,
   // ── Claude Code built-in tools (Ralph 2026-05-06) ─────────────────────
   // Not MCP tools — Claude Code's own tool surface. Without these in the
@@ -209,7 +226,7 @@ export const CD_ALLOWED_TOOLS = [
   // the `claude` binary, but the allowlist is an additive filter so
   // unsupported entries are simply ignored at runtime (no spawn error).
   // Coexists with MCP equivalents where applicable: `AskUserQuestion`
-  // alongside `mcp__${MCP_SERVER_NAME}__ask_user`. Two surfaces by
+  // alongside `mcp__${MCP_SERVER_NAME}__modal`. Two surfaces by
   // intent — the built-in is the cleaner UX path; the MCP one is
   // server-validated and event-bus-backed.
   'AskUserQuestion',
@@ -224,17 +241,21 @@ export const CD_ALLOWED_TOOLS = [
 ].join(',')
 
 export const WEBDEV_ALLOWED_TOOLS = [
-  `mcp__${MCP_SERVER_NAME}__report_build_complete`,
-  `mcp__${MCP_SERVER_NAME}__report_build_failed`,
-  `mcp__${MCP_SERVER_NAME}__report_build_progress`,
+  `mcp__${MCP_SERVER_NAME}__build_done`,
+  `mcp__${MCP_SERVER_NAME}__build_fail`,
+  `mcp__${MCP_SERVER_NAME}__build_progress`,
   // WebDev can render its own work for self-verification + speak to user
   `mcp__${MCP_SERVER_NAME}__screenshot`,
   `mcp__${MCP_SERVER_NAME}__snackbar`,
-  `mcp__${MCP_SERVER_NAME}__ask_user`,
+  `mcp__${MCP_SERVER_NAME}__modal`,
   // Tier A: WebDev can read session state + assets + lint its own output
   `mcp__${MCP_SERVER_NAME}__session_meta`,
   `mcp__${MCP_SERVER_NAME}__list_assets`,
   `mcp__${MCP_SERVER_NAME}__lint_brand_compliance`,
+  // Ralph 2026-05-18 — WF-mode self-critique. Mirrors mcp-server/tools.ts
+  // WEBDEV_ALLOWED. Add to BOTH files in the same commit; the advertise
+  // filter and the spawn-flag allowlist are independent gates.
+  `mcp__${MCP_SERVER_NAME}__submit_critique`,
   // Bus tools — shared cross-agent comms (see ORCHESTRATOR_BASIC_TOOLS above).
   // Doctrine — WebDev notifies CD at start/verify/complete and drains its own
   // inbox at turn start. Without these, WebDev was a fire-and-forget subprocess.
@@ -255,7 +276,7 @@ export const SENTINEL_ALLOWED_TOOLS = [
   `mcp__${MCP_SERVER_NAME}__submit_critique`,
   // Ti can speak to the user (e.g. "your rendering blew the contrast budget")
   `mcp__${MCP_SERVER_NAME}__snackbar`,
-  `mcp__${MCP_SERVER_NAME}__ask_user`,
+  `mcp__${MCP_SERVER_NAME}__modal`,
   // Tier A: Ti needs session state + screenshots to render verifications
   `mcp__${MCP_SERVER_NAME}__session_meta`,
   `mcp__${MCP_SERVER_NAME}__screenshot`,
@@ -263,3 +284,22 @@ export const SENTINEL_ALLOWED_TOOLS = [
   // Ti pings CD when a critique lands and drains its inbox between audits.
   ...ORCHESTRATOR_BASIC_TOOLS,
 ].join(',')
+
+// WP-110 (Ralph 2026-05-29). SPAWN-TIME `--allowed-tools` gate for the Consular.
+// The `crm_query` SQL MCP tool was RETIRED 2026-05-29 — DB access is via the
+// HTTP route POST /api/admin/crm/consular/sql (event-logged), NOT an MCP tool;
+// a bridged agent already has shell + HTTP, so an advertised full-SQL MCP tool
+// was a redundant, wider attack surface. Commented out (not deleted); mirrors
+// the retire in mcp-server/tools.ts CONSULAR_ALLOWED. What remains is the
+// UI / research bus the Consular genuinely needs.
+// Ralph 2026-05-29: the Consular gets EXACTLY the same tools as CD — aliased,
+// not a hand-picked subset, so the two can never drift. Whatever CD can do, the
+// Consular can do, including the built-in `Read` it needs to open images the
+// rep pastes into the chat. Persona/behavior stays distinct via the agent file
+// (agents/CONSULAR-agent.md) — tools are capability, not character.
+//
+// (History: the `crm_query` SQL MCP was RETIRED 2026-05-29 — the Consular
+// reaches the CRM DB via the HTTP route POST /api/admin/crm/consular/sql, not an
+// MCP tool. The earlier minimal allowlist — submit_image_prompt, snackbar,
+// modal, WebSearch/Fetch, bus — is subsumed by CD's superset.)
+export const CONSULAR_ALLOWED_TOOLS = CD_ALLOWED_TOOLS

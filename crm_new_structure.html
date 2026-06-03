@@ -1,0 +1,73 @@
+                <div class="crm-layout flex-1 min-h-0">
+                    <!-- CRM Sidebar -->
+                    <div class="crm-sidebar">
+                        <div class="crm-sidebar-btn is-active" id="crm-btn-day" onclick="crmSetView('day')">
+                            <i data-lucide="sun" width="16"></i>
+                            Day
+                        </div>
+                        <div class="crm-sidebar-btn" id="crm-btn-pipeline" onclick="crmSetView('pipeline')">
+                            <i data-lucide="layout-kanban" width="16"></i>
+                            Pipeline
+                        </div>
+                        <div class="mt-auto border-t border-border pt-4 px-2">
+                            <div class="text-[9px] uppercase tracking-tighter text-dim font-bold mb-2">Filters</div>
+                            <button id="crm-today-pill" onclick="crmToggleToday()" class="flex items-center gap-1.5 w-full text-left px-2 py-1.5 rounded-lg text-[10px] font-bold border border-transparent hover:border-accent text-secondary hover:text-primary transition-colors" title="Filter: next-action ≤ today">
+                                <i data-lucide="calendar" width="12"></i>
+                                <span>Today</span>
+                                <span id="crm-today-count" class="hidden text-accent font-mono ml-auto"></span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- View Container -->
+                    <div class="crm-view-container">
+                        
+                        <!-- VIEW: DAY (Work Queue) -->
+                        <div id="crm-view-day" class="h-full">
+                            <div class="crm-day-grid">
+                                <div class="crm-task-list" id="crm-day-tasks">
+                                    <div class="text-center py-20 text-secondary">
+                                        <i data-lucide="loader-2" width="24" class="animate-spin mx-auto mb-4"></i>
+                                        <p class="text-xs italic">Compiling your day...</p>
+                                    </div>
+                                </div>
+                                <div class="crm-context-panel bento-card" id="crm-day-context">
+                                    <div class="flex-1 flex flex-col items-center justify-center text-center p-6 text-secondary">
+                                        <i data-lucide="mouse-pointer-2" width="20" class="mb-3 opacity-20"></i>
+                                        <p class="text-[11px]">Select a lead to see<br>context and talk tracks</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- VIEW: PIPELINE (Kanban) -->
+                        <div id="crm-view-pipeline" class="hidden flex flex-col gap-[var(--gap-app)] h-full">
+                            <!-- Filter bar -->
+                            <div class="flex items-center gap-3 shrink-0 px-1">
+                                <div class="relative flex-1 max-w-md">
+                                    <i data-lucide="search" width="14" class="absolute left-3 top-1/2 -translate-y-1/2 text-secondary"></i>
+                                    <input
+                                        id="crm-search-input"
+                                        type="text"
+                                        placeholder="Search company, contact, notes, tags…  ( / )"
+                                        oninput="crmSearchInput(event)"
+                                        class="w-full pl-9 pr-9 py-1.5 rounded-lg border border-border bg-background text-primary text-[12px] focus:outline-none focus:border-accent"
+                                    />
+                                    <button id="crm-search-clear" onclick="crmSearchClear()" class="hidden absolute right-2 top-1/2 -translate-y-1/2 text-secondary hover:text-primary" title="Clear search">
+                                        <i data-lucide="x" width="14"></i>
+                                    </button>
+                                </div>
+                                <button onclick="crmShortcutsOpen()" class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] text-secondary hover:text-primary border border-border hover:border-accent transition-colors" title="Keyboard shortcuts (?)">
+                                    <i data-lucide="keyboard" width="13"></i>
+                                    <span class="font-mono">?</span>
+                                </button>
+                            </div>
+
+                            <!-- Kanban board: 4 stage columns -->
+                            <div class="flex-1 min-h-0 grid grid-cols-4 gap-[var(--gap-app)] overflow-hidden" id="crm-board">
+                                <!-- Rendered by JS -->
+                            </div>
+                        </div>
+
+                    </div>
+                </div>

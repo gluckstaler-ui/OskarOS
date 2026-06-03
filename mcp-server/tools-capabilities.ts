@@ -11,7 +11,7 @@
  *
  * Per-agent permissions (tier S = mostly all agents; A/B = mostly CD-only):
  *   Tier S: generate_image (CD), screenshot (CD/WebDev),
- *           snackbar (all), ask_user (all)
+ *           snackbar (all), modal (all)
  *   Tier A: apply_patch (CD), list_assets (CD/WebDev),
  *           find_assets (CD), session_meta (all),
  *           lint_brand_compliance (CD/WebDev)
@@ -68,18 +68,25 @@ export const CAPABILITY_TOOL_DEFINITIONS = [
   {
     name: 'screenshot',
     description:
-      'Render a built vibe HTML and return the actual visual output as an image. ' +
+      'Render a page and return the actual visual output as an image. ' +
       'Replaces the "read HTML and pretend that\'s verification" failure mode. ' +
-      'Target is a vibe slug (e.g. "vibe-3" → resolves to vibe-3-*.html) or a ' +
-      'literal filename. Frame controls viewport (default desktop). ' +
-      'Screenshots accumulate in `public/{session}/screenshots/` and are ' +
-      'wiped by Order 66 on session close.',
+      'Target accepts THREE forms: ' +
+      '(1) vibe slug — "vibe-3" → resolves to vibe-3-*.html inside the session folder; ' +
+      '(2) vibe filename — "vibe-3-the-deployment.html"; ' +
+      '(3) root-relative path — "/admin.html" OR a Next.js route like "/crm" — for ' +
+      'global pages outside any session. Use "/crm" to audit the live React CRM ' +
+      '(deck, lead list, detail) — server-rendered routes work, not just public/* files. ' +
+      'Frame controls viewport (default desktop). Screenshots accumulate in ' +
+      '`public/{session}/screenshots/` and are wiped by Order 66 on session close.',
     inputSchema: {
       type: 'object',
       properties: {
         target: {
           type: 'string',
-          description: 'Vibe slug ("vibe-3") or filename ("vibe-3-the-deployment.html").',
+          description:
+            'Vibe slug ("vibe-3"), filename ("vibe-3-the-deployment.html"), or ' +
+            'root-relative path with a leading slash — a static file ("/admin.html") ' +
+            'OR a Next.js route ("/crm") for pages outside the session folder.',
         },
         frame: {
           type: 'string',
@@ -106,7 +113,7 @@ export const CAPABILITY_TOOL_DEFINITIONS = [
       '`sticky` is ORTHOGONAL to severity. Pass sticky:true to keep info/success ' +
       'visible; pass sticky:false to auto-dismiss warning/error/progress. Fire ' +
       'whenever you want — there is no penalty for snackbar volume. For questions, ' +
-      'use `ask_user`.',
+      'use `modal`.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -131,9 +138,9 @@ export const CAPABILITY_TOOL_DEFINITIONS = [
     },
   },
 
-  // ── Tier S: ask_user (synchronous question with options) ──────────────
+  // ── Tier S: modal (synchronous question with options) ──────────────
   {
-    name: 'ask_user',
+    name: 'modal',
     description:
       'Ask the user a question with discrete options. Synchronous from your POV: ' +
       'this tool blocks until the user picks (or 10 minutes pass, in which case ' +
@@ -351,43 +358,6 @@ export const CAPABILITY_TOOL_DEFINITIONS = [
       required: ['target'],
     },
   },
-
-  // ── Preview card (Ralph 2026-05-06): on-demand visual sample ───────────
-  {
-    name: 'preview_card',
-    description:
-      'Render a SAMPLE of a chat-surface card with given payload, marked as a ' +
-      'preview (no real backend writes). Use when the user asks to "show me [a ' +
-      'card]" — fire this tool instead of pasting source code. Supported kinds: ' +
-      'upload_eval, upload_eval_batch, screenshot, apply_patch, diagnostic_chip, ' +
-      'discovery_questions, confirm_understanding. Payload must match the matching ' +
-      'AssistantCardPayload shape minus `kind` (see lib/types.ts).',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        kind: {
-          type: 'string',
-          enum: [
-            'upload_eval',
-            'upload_eval_batch',
-            'screenshot',
-            'apply_patch',
-            'diagnostic_chip',
-            'discovery_questions',
-            'confirm_understanding',
-          ],
-          description: 'Which card to preview.',
-        },
-        payload: {
-          type: 'object',
-          description:
-            'Card-specific fields (omit `kind` — it is set from the top-level ' +
-            'param). Shape per lib/types.ts AssistantCardPayload.',
-        },
-      },
-      required: ['kind', 'payload'],
-    },
-  },
 ] as const
 
 export type CapabilityToolName = (typeof CAPABILITY_TOOL_DEFINITIONS)[number]['name']
@@ -457,21 +427,6 @@ export async function callCapabilityTool(
       return { text: `screenshot error: ${r.body?.error || 'unknown'}`, isError: true }
     }
 
-    case 'preview_card': {
-      const kind = String(args.kind || '').trim()
-      const payload = args.payload
-      if (!kind || !payload || typeof payload !== 'object') {
-        return { text: 'Error: kind + payload (object) required', isError: true }
-      }
-      const r = await postJson<{ ok: boolean }>('/api/mcp/preview-card', {
-        sessionId,
-        kind,
-        payload,
-      })
-      if (!r.ok) return { text: `preview_card failed: ${r.error}`, isError: true }
-      return { text: `preview_card published: kind=${kind}`, isError: false }
-    }
-
     case 'snackbar': {
       const text = String(args.text || '').trim()
       if (!text) return { text: 'Error: text is required', isError: true }
@@ -494,7 +449,7 @@ export async function callCapabilityTool(
       return { text: 'snackbar published', isError: false }
     }
 
-    case 'ask_user': {
+    case 'modal': {
       const question = String(args.question || '').trim()
       const options = Array.isArray(args.options)
         ? args.options.filter((o): o is string => typeof o === 'string')
@@ -505,9 +460,9 @@ export async function callCapabilityTool(
         '/api/mcp/ask-user',
         { sessionId, question, options },
       )
-      if (!r.ok) return { text: `ask_user failed: ${r.error}`, isError: true }
+      if (!r.ok) return { text: `modal failed: ${r.error}`, isError: true }
       const choice = r.body?.choice
-      if (!choice) return { text: `ask_user error: ${r.body?.error || 'no choice'}`, isError: true }
+      if (!choice) return { text: `modal error: ${r.body?.error || 'no choice'}`, isError: true }
       return { text: choice, isError: false }
     }
 

@@ -6,21 +6,30 @@ import { useState, memo, useEffect, useRef } from 'react'
 // RESPONSIVE FONT SIZES - Based on container width breakpoints
 // Container widths: 320px (min) → 480px (mid) → 640px (max)
 // ============================================================================
+// Updated 2026-05-10 (Ralph): bumped across the board — old values
+// rendered the cards as illegible thumbnails. Color sizes more than
+// doubled because the swatches now carry the friendly name as the
+// headline (e.g. "SADDLE BROWN") with hex demoted to a subhead.
 const FONT_SIZES = {
   // At 320px → 480px → 640px container width
-  vibeName: { min: 14, mid: 18, max: 24 },
-  vibeNameLabel: { min: 8, mid: 10, max: 12 },
-  whoItsFor: { min: 10, mid: 12, max: 15 },
-  whoItsForLabel: { min: 7, mid: 9, max: 11 },
-  moodLabel: { min: 8, mid: 10, max: 12 },
-  moodValue: { min: 10, mid: 12, max: 14 },
-  colorPrimary: { min: 6, mid: 8, max: 10 },
-  colorSecondary: { min: 5, mid: 7, max: 9 },
-  colorSmall: { min: 5, mid: 6, max: 8 },
-  selectedBadge: { min: 8, mid: 10, max: 12 },
-  headerTitle: { min: 12, mid: 14, max: 18 },
-  emptyState: { min: 11, mid: 13, max: 15 },
-  emptyStateSmall: { min: 9, mid: 11, max: 13 },
+  vibeName: { min: 18, mid: 22, max: 28 },
+  vibeNameLabel: { min: 10, mid: 12, max: 14 },
+  whoItsFor: { min: 12, mid: 14, max: 17 },
+  whoItsForLabel: { min: 9, mid: 11, max: 13 },
+  moodLabel: { min: 10, mid: 12, max: 14 },
+  moodValue: { min: 12, mid: 14, max: 16 },
+  // Color hex + name (Ralph 2026-05-10): name is just one px bigger
+  // than hex so they read as a balanced pair, not a headline + caption.
+  colorHex: { min: 8, mid: 10, max: 12 },
+  colorName: { min: 9, mid: 11, max: 13 },
+  // Legacy keys kept so any caller referencing them still resolves.
+  colorPrimary: { min: 10, mid: 13, max: 15 },
+  colorSecondary: { min: 9, mid: 11, max: 13 },
+  colorSmall: { min: 8, mid: 10, max: 12 },
+  selectedBadge: { min: 9, mid: 11, max: 13 },
+  headerTitle: { min: 14, mid: 16, max: 20 },
+  emptyState: { min: 12, mid: 14, max: 16 },
+  emptyStateSmall: { min: 10, mid: 12, max: 14 },
 }
 
 // ============================================================================
@@ -39,7 +48,14 @@ export interface VibeCardData {
   heroImage: string | null
   whoItsFor: string           // Target audience description (displayed on image)
   mood: string                // Mood/feeling description (displayed below image)
-  colors: string[]            // 4 hex color codes [primary, secondary, accent, text]
+  colors: string[]            // up to 4 hex color codes [primary, secondary, accent, text]
+  /**
+   * Friendly color names aligned by index with `colors`. `colorNames[i]`
+   * is the display name for `colors[i]`, or undefined when the sidecar
+   * provided only a hex value. Renders as the swatch headline with hex
+   * demoted to a subhead — much more useful than raw "#8B4513".
+   */
+  colorNames?: (string | undefined)[]
   fonts: {
     heading: string           // e.g., "Playfair Display"
     body: string              // e.g., "Inter"
@@ -116,14 +132,10 @@ const VibeCard = memo(function VibeCard({ vibe, isSelected, onSelect, onDelete, 
     whoItsForLabel: getResponsiveSize(containerWidth, FONT_SIZES.whoItsForLabel),
     moodLabel: getResponsiveSize(containerWidth, FONT_SIZES.moodLabel),
     moodValue: getResponsiveSize(containerWidth, FONT_SIZES.moodValue),
-    colorPrimary: getResponsiveSize(containerWidth, FONT_SIZES.colorPrimary),
-    colorSecondary: getResponsiveSize(containerWidth, FONT_SIZES.colorSecondary),
-    colorSmall: getResponsiveSize(containerWidth, FONT_SIZES.colorSmall),
+    colorName: getResponsiveSize(containerWidth, FONT_SIZES.colorName),
+    colorHex: getResponsiveSize(containerWidth, FONT_SIZES.colorHex),
     selectedBadge: getResponsiveSize(containerWidth, FONT_SIZES.selectedBadge),
   }
-
-  // Debug: Log font sizes when container width changes
-  console.log(`[VibeCard ${vibe.name}] containerWidth=${containerWidth}, vibeName fontSize=${fontSize.vibeName}px`)
 
   return (
     <div
@@ -190,6 +202,15 @@ const VibeCard = memo(function VibeCard({ vibe, isSelected, onSelect, onDelete, 
           <img
             src={vibe.heroImage}
             alt={vibe.name}
+            loading="lazy"
+            decoding="async"
+            // WP-80: a broken hero src used to render as alt text on a
+            // blank background, masquerading as "the chosen hero".
+            // Hide on load failure so the gradient placeholder behind
+            // it (the `:` branch below) can show through honestly.
+            onError={(e) => {
+              ;(e.currentTarget as HTMLImageElement).style.display = 'none'
+            }}
             style={{
               width: '100%',
               height: '100%',
@@ -257,180 +278,227 @@ const VibeCard = memo(function VibeCard({ vibe, isSelected, onSelect, onDelete, 
           left: '12px',
           right: '12px',
         }}>
-          {/* Vibe Name — rendered in heading font */}
+          {/* Vibe Name — rendered in heading font.
+              WP-80: when sidecar didn't supply a heading font, fall
+              back to system-ui (NOT a generic `serif` and NOT one of
+              the FalCaMel defaults like Crimson Text / Playfair
+              Display). The font-name annotation is hidden when the
+              fallback is in use, so the user doesn't read
+              `(system-ui)` as if it were the chosen typography. */}
           <div style={{
             fontSize: `${fontSize.vibeName}px`,
             fontWeight: 700,
-            fontFamily: vibe.fonts.heading ? `"${vibe.fonts.heading}", serif` : 'serif',
+            fontFamily: vibe.fonts.heading && vibe.fonts.heading !== 'system-ui'
+              ? `"${vibe.fonts.heading}", system-ui`
+              : 'system-ui',
             color: '#FFFFFF',
             textShadow: '0 2px 6px rgba(0,0,0,0.6)',
             marginBottom: '2px',
           }}>
             {vibe.name}
-            <span style={{
-              fontSize: `${fontSize.vibeNameLabel}px`,
-              fontWeight: 400,
-              color: 'rgba(255,255,255,0.6)',
-              marginLeft: '8px',
-            }}>
-              ({vibe.fonts.heading})
-            </span>
-          </div>
-
-          {/* Who It's For — rendered in body font */}
-          <div style={{
-            fontSize: `${fontSize.whoItsFor}px`,
-            fontFamily: vibe.fonts.body ? `"${vibe.fonts.body}", sans-serif` : 'sans-serif',
-            color: 'rgba(255,255,255,0.9)',
-            textShadow: '0 1px 4px rgba(0,0,0,0.5)',
-            lineHeight: 1.4,
-          }}>
-            {vibe.whoItsFor}
-            <span style={{
-              fontSize: `${fontSize.whoItsForLabel}px`,
-              color: 'rgba(255,255,255,0.5)',
-              marginLeft: '6px',
-            }}>
-              ({vibe.fonts.body})
-            </span>
-          </div>
-        </div>
-      </div>
-
-      {/* Mood - single line, label left, value right */}
-      <div style={{
-        padding: '10px 14px',
-        borderBottom: '1px solid var(--border-subtle)',
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-      }}>
-        <span style={{
-          fontSize: `${fontSize.moodLabel}px`,
-          fontWeight: 500,
-          color: 'var(--text-muted)',
-          textTransform: 'uppercase',
-          letterSpacing: '0.5px',
-        }}>
-          Mood
-        </span>
-        <span style={{
-          fontSize: `${fontSize.moodValue}px`,
-          color: 'var(--text-secondary)',
-          fontStyle: 'italic',
-        }}>
-          {vibe.mood}
-        </span>
-      </div>
-
-      {/* Colors - Bento Grid Style */}
-      <div style={{
-        padding: '10px',
-        borderBottom: '1px solid var(--border-subtle)',
-      }}>
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: '1fr 1fr',
-          gridTemplateRows: 'auto auto',
-          gap: '4px',
-          borderRadius: '8px',
-          overflow: 'hidden',
-        }}>
-          {/* Primary - larger, spans both columns on top or takes more space */}
-          <div
-            title={`Primary: ${vibe.colors[0]?.toUpperCase() || '#000'}`}
-            style={{
-              gridColumn: '1 / 2',
-              gridRow: '1 / 3',
-              backgroundColor: vibe.colors[0] || '#1C1C1E',
-              borderRadius: '8px',
-              minHeight: '64px',
-              display: 'flex',
-              alignItems: 'flex-end',
-              padding: '6px',
-            }}
-          >
-            <span style={{
-              fontSize: `${fontSize.colorPrimary}px`,
-              color: 'rgba(255,255,255,0.7)',
-              fontFamily: 'monospace',
-              textTransform: 'uppercase',
-              textShadow: '0 1px 2px rgba(0,0,0,0.3)',
-            }}>
-              {vibe.colors[0] || '#1C1C1E'}
-            </span>
-          </div>
-          {/* Secondary */}
-          <div
-            title={`Secondary: ${vibe.colors[1]?.toUpperCase() || '#F5F5F5'}`}
-            style={{
-              backgroundColor: vibe.colors[1] || '#F5F5F5',
-              borderRadius: '8px',
-              minHeight: '30px',
-              display: 'flex',
-              alignItems: 'flex-end',
-              padding: '4px',
-            }}
-          >
-            <span style={{
-              fontSize: `${fontSize.colorSecondary}px`,
-              color: 'rgba(0,0,0,0.5)',
-              fontFamily: 'monospace',
-              textTransform: 'uppercase',
-            }}>
-              {vibe.colors[1] || '#F5F5F5'}
-            </span>
-          </div>
-          {/* Accent + Text in bottom right */}
-          <div style={{
-            display: 'flex',
-            gap: '4px',
-          }}>
-            <div
-              title={`Accent: ${vibe.colors[2]?.toUpperCase() || '#C76B00'}`}
-              style={{
-                flex: 1,
-                backgroundColor: vibe.colors[2] || '#C76B00',
-                borderRadius: '8px',
-                minHeight: '30px',
-                display: 'flex',
-                alignItems: 'flex-end',
-                padding: '4px',
-              }}
-            >
+            {vibe.fonts.heading && vibe.fonts.heading !== 'system-ui' && (
               <span style={{
-                fontSize: `${fontSize.colorSmall}px`,
-                color: 'rgba(255,255,255,0.8)',
-                fontFamily: 'monospace',
-                textTransform: 'uppercase',
-              }}>
-                {vibe.colors[2] || '#C76B00'}
-              </span>
-            </div>
-            <div
-              title={`Text: ${vibe.colors[3]?.toUpperCase() || '#1A1A1A'}`}
-              style={{
-                flex: 1,
-                backgroundColor: vibe.colors[3] || '#1A1A1A',
-                borderRadius: '8px',
-                minHeight: '30px',
-                display: 'flex',
-                alignItems: 'flex-end',
-                padding: '4px',
-              }}
-            >
-              <span style={{
-                fontSize: `${fontSize.colorSmall}px`,
+                fontSize: `${fontSize.vibeNameLabel}px`,
+                fontWeight: 400,
                 color: 'rgba(255,255,255,0.6)',
-                fontFamily: 'monospace',
-                textTransform: 'uppercase',
+                marginLeft: '8px',
               }}>
-                {vibe.colors[3] || '#1A1A1A'}
+                ({vibe.fonts.heading})
               </span>
-            </div>
+            )}
           </div>
+
+          {/* Who It's For — rendered in body font (same WP-80 fallback
+              rule as the heading above). Whole row hidden when
+              `whoItsFor` is empty so the card doesn't render a blank
+              gap below the vibe name. */}
+          {vibe.whoItsFor && (
+            <div style={{
+              fontSize: `${fontSize.whoItsFor}px`,
+              fontFamily: vibe.fonts.body && vibe.fonts.body !== 'system-ui'
+                ? `"${vibe.fonts.body}", system-ui`
+                : 'system-ui',
+              color: 'rgba(255,255,255,0.9)',
+              textShadow: '0 1px 4px rgba(0,0,0,0.5)',
+              lineHeight: 1.4,
+            }}>
+              {vibe.whoItsFor}
+              {vibe.fonts.body && vibe.fonts.body !== 'system-ui' && (
+                <span style={{
+                  fontSize: `${fontSize.whoItsForLabel}px`,
+                  color: 'rgba(255,255,255,0.5)',
+                  marginLeft: '6px',
+                }}>
+                  ({vibe.fonts.body})
+                </span>
+              )}
+            </div>
+          )}
         </div>
       </div>
+
+      {/* Mood - single line, label left, value right.
+          WP-80: hide entirely when sidecar didn't supply a mood, so
+          the card doesn't render a label with empty space next to it. */}
+      {vibe.mood && (
+        <div style={{
+          padding: '10px 14px',
+          borderBottom: '1px solid var(--border-subtle)',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+        }}>
+          <span style={{
+            fontSize: `${fontSize.moodLabel}px`,
+            fontWeight: 500,
+            color: 'var(--text-muted)',
+            textTransform: 'uppercase',
+            letterSpacing: '0.5px',
+          }}>
+            Mood
+          </span>
+          <span style={{
+            fontSize: `${fontSize.moodValue}px`,
+            color: 'var(--text-secondary)',
+            fontStyle: 'italic',
+          }}>
+            {vibe.mood}
+          </span>
+        </div>
+      )}
+
+      {/* Colors - Bento Grid Style.
+          WP-80: hide the entire block when the vibe has no colors.
+          Previously the swatches fell back to a hardcoded `#1C1C1E /
+          #F5F5F5 / #C76B00 / #1A1A1A` palette per swatch (FalCaMel-
+          adjacent neutrals), which fabricated a brand identity for any
+          vibe whose sidecar didn't supply colors. Now: render nothing
+          when nothing is known. */}
+      {vibe.colors && vibe.colors.length > 0 && (() => {
+        // ────────────────────────────────────────────────────────────
+        // Color swatches.
+        //
+        // 2026-05-10 (Ralph): swatches now lead with the friendly
+        // color name (e.g. "SADDLE BROWN") and demote hex to a small
+        // subhead. Reading "#8B4513" tells you nothing; reading
+        // "Saddle Brown — #8B4513" reads like a brand spec.
+        //
+        // Text color picked per swatch using a relative-luminance check
+        // — light tokens (creams, paper) get dark text, everything else
+        // gets a light text-on-color. Avoids the prior bug where the
+        // secondary swatch (cream) had 50%-black text that disappeared
+        // against the light background.
+        // ────────────────────────────────────────────────────────────
+        const isLight = (hex: string): boolean => {
+          const m = hex.match(/^#?([A-Fa-f0-9]{6})$/)
+          if (!m) return false
+          const n = parseInt(m[1], 16)
+          const r = (n >> 16) & 0xff
+          const g = (n >> 8) & 0xff
+          const b = n & 0xff
+          // Standard relative-luminance approximation
+          const lum = (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255
+          return lum > 0.6
+        }
+        const labels = ['Primary', 'Secondary', 'Accent', 'Text'] as const
+
+        const Swatch = ({ idx, minHeight }: { idx: number; minHeight: number }) => {
+          const hex = vibe.colors[idx]
+          if (!hex) return null
+          const friendly = vibe.colorNames?.[idx]
+          const onLight = isLight(hex)
+          const textColor = onLight ? 'rgba(0,0,0,0.85)' : 'rgba(255,255,255,0.95)'
+          const subColor = onLight ? 'rgba(0,0,0,0.55)' : 'rgba(255,255,255,0.7)'
+          return (
+            <div
+              title={`${labels[idx]}: ${friendly ? `${friendly} — ` : ''}${hex.toUpperCase()}`}
+              style={{
+                flex: 1,
+                backgroundColor: hex,
+                borderRadius: '8px',
+                minHeight: `${minHeight}px`,
+                // height:100% lets the Primary swatch (which is wrapped
+                // in a `gridRow: 1 / 3` cell) actually FILL the spanned
+                // rows. Without this it sat at minHeight=72 while the
+                // right-column rows summed to ~88 when their content
+                // wrapped — leaving a fat colored gap below the swatch
+                // and making Primary look shorter than the bento.
+                height: '100%',
+                display: 'flex',
+                flexDirection: 'column',
+                justifyContent: 'flex-end',
+                padding: '6px 8px',
+                gap: '1px',
+              }}
+            >
+              {friendly && (
+                <span style={{
+                  fontSize: `${fontSize.colorName}px`,
+                  fontWeight: 600,
+                  color: textColor,
+                  letterSpacing: '0.04em',
+                  textTransform: 'uppercase',
+                  lineHeight: 1.1,
+                  textShadow: onLight ? 'none' : '0 1px 2px rgba(0,0,0,0.25)',
+                }}>
+                  {friendly}
+                </span>
+              )}
+              <span style={{
+                fontSize: `${fontSize.colorHex}px`,
+                color: subColor,
+                fontFamily: 'monospace',
+                textTransform: 'uppercase',
+                lineHeight: 1.2,
+              }}>
+                {hex}
+              </span>
+            </div>
+          )
+        }
+
+        // Bento with Primary on the LEFT spanning both rows, Secondary
+        // top-right, Accent + Text side-by-side bottom-right. Matches
+        // the screenshot Ralph signed off on.
+        return (
+          <div style={{
+            padding: '10px',
+            borderBottom: '1px solid var(--border-subtle)',
+          }}>
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: '1fr 1fr',
+              gridTemplateRows: 'auto auto',
+              gap: '4px',
+              borderRadius: '8px',
+              overflow: 'hidden',
+            }}>
+              {/* Primary — taller, spans both rows in left column.
+                  display:flex on the wrapper so the Swatch inside (with
+                  height:100%) actually stretches to the spanned-cell
+                  height, not just its minHeight. */}
+              {vibe.colors[0] && (
+                <div style={{ gridColumn: '1 / 2', gridRow: '1 / 3', display: 'flex' }}>
+                  <Swatch idx={0} minHeight={72} />
+                </div>
+              )}
+              {/* Secondary — top right */}
+              {vibe.colors[1] && (
+                <div style={{ gridColumn: '2 / 3', gridRow: '1 / 2', display: 'flex' }}>
+                  <Swatch idx={1} minHeight={34} />
+                </div>
+              )}
+              {/* Accent + Text — bottom right side-by-side */}
+              {(vibe.colors[2] || vibe.colors[3]) && (
+                <div style={{ gridColumn: '2 / 3', gridRow: '2 / 3', display: 'flex', gap: '4px' }}>
+                  {vibe.colors[2] && <Swatch idx={2} minHeight={34} />}
+                  {vibe.colors[3] && <Swatch idx={3} minHeight={34} />}
+                </div>
+              )}
+            </div>
+          </div>
+        )
+      })()}
 
     </div>
   )

@@ -105,7 +105,7 @@ function legacyInstanceId(sessionId: string, agentRole: AgentRole): string {
   return `legacy-${sessionId}-${agentRole}`
 }
 
-const VALID_ROLES = new Set<AgentRole>(['cd', 'webdev', 'sentinel', 'jedi-code'])
+const VALID_ROLES = new Set<AgentRole>(['cd', 'webdev', 'sentinel', 'jedi-code', 'consular'])
 
 function isValidRole(value: string): value is AgentRole {
   return VALID_ROLES.has(value as AgentRole)
@@ -280,6 +280,53 @@ async function handle(req: Request): Promise<Response> {
   // the cached Server so its transport accepts the initialize.
   const hasMcpSessionHeader = !!req.headers.get('mcp-session-id')
   const forceRebuild = req.method === 'POST' && !hasMcpSessionHeader
+
+  // Stale-session detection (Ralph 2026-05-10).
+  //
+  // When the Next dev process restarts, the in-memory `servers` Map is
+  // wiped but MCP clients keep their cached `mcp-session-id`. The next
+  // request from the client lands here with a session id we've never
+  // seen. The previous behavior was to silently create a fresh
+  // Transport (with a new UUID) and let `handleRequest` return 400
+  // "Server not initialized" — which the MCP client doesn't recover
+  // from, leaving the agent dead until a Claude Code restart.
+  //
+  // Per the MCP Streamable HTTP spec, an unknown session id should
+  // return 404 "session not found" so the client knows to re-initialize.
+  // Detecting it here (BEFORE getOrCreateServer creates a doomed fresh
+  // Transport) lets us reply with the correct status; the client drops
+  // its cached id and reconnects with a fresh `initialize` next call.
+  //
+  // Two detection paths:
+  //   (a) cache miss + client sent mcp-session-id   → server memory wiped
+  //   (b) cache hit  + transport.sessionId ≠ client → transport rebuilt
+  //                                                   (e.g., concurrent
+  //                                                   initialize from
+  //                                                   another client)
+  if (hasMcpSessionHeader) {
+    const cacheKeyForLookup = cacheKey(sessionId, agentRole, instanceId)
+    const existing = servers.get(cacheKeyForLookup)
+    const clientId = req.headers.get('mcp-session-id')
+    const reason = !existing
+      ? 'cache-miss-after-restart'
+      : existing.transport.sessionId !== clientId
+        ? `transport-id-mismatch (server=${existing.transport.sessionId} client=${clientId})`
+        : null
+    if (reason) {
+      console.warn(`[mcp-http] 404: stale mcp-session-id (${reason}). key=${cacheKeyForLookup} client-id=${clientId}. Telling client to re-initialize.`)
+      return Response.json(
+        {
+          jsonrpc: '2.0',
+          error: {
+            code: -32001,
+            message: 'Session not found — server-side state was reset. Re-initialize to continue.',
+          },
+          id: null,
+        },
+        { status: 404 },
+      )
+    }
+  }
 
   let entry: ServerEntry
   try {

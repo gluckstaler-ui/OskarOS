@@ -1,7 +1,9 @@
 'use client'
 
-import { useRef, useEffect } from 'react'
+import { useRef, useEffect, useState, useCallback } from 'react'
 import { MarkdownRenderer } from './MarkdownRenderer'
+import { PasteTextDialog } from './PasteTextDialog'
+import { useSnackbar } from './SnackbarProvider'
 import { QuestionFormView } from './chat/QuestionForm'
 import { DiscoveryQuestionsCard } from './chat/DiscoveryQuestionsCard'
 import { ConfirmUnderstandingCard } from './chat/ConfirmUnderstandingCard'
@@ -13,6 +15,17 @@ import { BuildJobCard } from './chat/BuildJobCard'
 import { ScreenshotCard } from './chat/ScreenshotCard'
 import { ApplyPatchCard } from './chat/ApplyPatchCard'
 import { DiagnosticChip } from './chat/DiagnosticChip'
+// WP-70 + WP-71 (Ralph 2026-05-10): Image Strategy Card
+import { ImageStrategyCard } from './chat/ImageStrategyCard'
+// WP-74 (Ralph 2026-05-10): Design Directions Card
+import { DesignDirectionsCard } from './chat/DesignDirectionsCard'
+// WP-77 (Ralph 2026-05-10): Design System Card
+import { DesignSystemCard } from './chat/DesignSystemCard'
+// WP-75 (Ralph 2026-05-10): Descent Selection Card
+import { DescentSelectionCard } from './chat/DescentSelectionCard'
+// Ralph 2026-05-18: Critique Card — WF-mode self-critique (WebDev). Fires from
+// the build-wireframes route's onToolCall when submit_critique lands. Read-only.
+import { CritiqueCard } from './chat/CritiqueCard'
 // WP-22 (Ralph 2026-05-06): top-right ambient overlay surface.
 import { LiveOverlay } from './chat/LiveOverlay'
 import {
@@ -20,7 +33,7 @@ import {
   type RecommendTodoEventDetail,
 } from './chat/UnfinishedTodosPanel'
 import { splitOnQuestionForms } from '@/lib/artifacts/question-form'
-import { ConversationMessage, MoodboardData, LayoutMode, StreamingProgress } from '@/lib/types'
+import { ConversationMessage, LayoutMode, StreamingProgress } from '@/lib/types'
 
 /**
  * Render a chat message that may contain inline <question-form> blocks.
@@ -66,9 +79,7 @@ function MessageContent({
 
 interface ConversationPanelProps {
   messages: ConversationMessage[]
-  moodboard?: MoodboardData
   onSendMessage: (message: string, images?: File[]) => void
-  onMoodboardSelect: (conceptName: string) => void
   isLoading: boolean
   layoutMode: LayoutMode
   streamingText?: string
@@ -79,13 +90,14 @@ interface ConversationPanelProps {
   /** Cancel a queued message before it dispatches. Index into queuedMessages. */
   onCancelQueued?: (index: number) => void
   /**
-   * Fires the existing build_all_vibes trigger path — wired by the
-   * parent to whatever path the user typing "build all" would take.
-   * Used by ConfirmUnderstandingCard's "Build it" button. Ralph 2026-05-04.
+   * Fires the array-based `build_vibe([...slugs])` trigger path — wired
+   * by the parent to whatever path the user typing "build all" would
+   * take. Used by ConfirmUnderstandingCard's "Build it" button.
+   * Ralph 2026-05-04 / collapsed shape 2026-05-18.
    */
   onTriggerBuildAll?: () => void
   /**
-   * The actual CD model on the wire (raw identifier — claude-opus-4-7,
+   * The actual CD model on the wire (raw identifier — claude-opus-4-8,
    * claude-sonnet-4-6, glm-4.6, etc.). Displayed read-only in the input
    * bar so the user can see at a glance which model is answering.
    * CLI mode populates from Claude CLI's system/init event (truth on
@@ -108,9 +120,7 @@ interface ConversationPanelProps {
 
 export function ConversationPanel({
   messages,
-  moodboard,
   onSendMessage,
-  onMoodboardSelect,
   isLoading,
   layoutMode,
   streamingText = '',
@@ -123,6 +133,73 @@ export function ConversationPanel({
 }: ConversationPanelProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
+  const snackbar = useSnackbar()
+  const [showPasteDialog, setShowPasteDialog] = useState(false)
+
+  // Paste an image from the clipboard into the chat (Ralph 2026-05-29) — same
+  // gesture you'd use pasting a screenshot to Claude. Self-contained in the
+  // shared composer so BOTH hosts (studio CD + CRM Consular) get it identically.
+  // The host's onSendMessage(text, images) uploads them to the session and
+  // points the agent at the files (see lib/chat-image-upload.ts).
+  const [stagedImages, setStagedImages] = useState<File[]>([])
+  const [previews, setPreviews] = useState<string[]>([])
+
+  // Object-URL thumbnails for the staged strip. Rebuilt whenever the staged
+  // set changes; the previous batch is revoked on cleanup so we don't leak.
+  useEffect(() => {
+    const urls = stagedImages.map((f) => URL.createObjectURL(f))
+    setPreviews(urls)
+    return () => urls.forEach((u) => URL.revokeObjectURL(u))
+  }, [stagedImages])
+
+  const removeStagedImage = useCallback((idx: number) => {
+    setStagedImages((prev) => prev.filter((_, i) => i !== idx))
+  }, [])
+
+  const handlePaste = useCallback((e: React.ClipboardEvent) => {
+    const items = e.clipboardData?.items
+    if (!items) return
+    // Accept images AND PDFs — both are file types the agent's Read tool can
+    // open directly. Anything else (Word docs, text, video, …) still falls
+    // through to the default text-paste behaviour. Ralph 2026-05-30.
+    const files: File[] = []
+    for (const item of Array.from(items)) {
+      if (item.kind !== 'file') continue
+      const t = item.type
+      const isImage = t.startsWith('image/')
+      const isPdf = t === 'application/pdf'
+      if (!isImage && !isPdf) continue
+      const f = item.getAsFile()
+      if (f) files.push(f)
+    }
+    if (files.length) {
+      // Captured a file → don't also let the textarea paste a filename/blob.
+      e.preventDefault()
+      setStagedImages((prev) => [...prev, ...files])
+    }
+    // No supported file items → let the default text paste happen.
+  }, [])
+
+  // Paste-as-file (FEATURE-X §1.4 WP-3.5): stage a chunk of pasted text as a
+  // .txt in the session via the generic upload route. Self-contained — needs
+  // only the sessionId prop (no studio coupling), so it works in any host that
+  // mounts ConversationPanel. NOT routed through the image-upload handler
+  // (that one runs CD image-eval, wrong for text).
+  const handlePasteSave = useCallback(async (name: string, content: string) => {
+    setShowPasteDialog(false)
+    try {
+      const file = new File([content], name, { type: 'text/plain' })
+      const fd = new FormData()
+      fd.append('file', file)
+      if (sessionId) fd.append('sessionId', sessionId)
+      const res = await fetch('/api/upload', { method: 'POST', body: fd })
+      const data = await res.json()
+      if (!res.ok || data.error) throw new Error(data.error || `HTTP ${res.status}`)
+      snackbar.show('success', `Staged ${data.filename} in the session`)
+    } catch (err) {
+      snackbar.show('error', `Couldn't stage pasted text: ${err instanceof Error ? err.message : String(err)}`)
+    }
+  }, [sessionId, snackbar])
 
   // Auto-scroll to bottom on new messages
   useEffect(() => {
@@ -161,12 +238,14 @@ export function ConversationPanel({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    const value = inputRef.current?.value.trim()
-    if (value) {
-      onSendMessage(value)
-      if (inputRef.current) {
-        inputRef.current.value = ''
-      }
+    const value = inputRef.current?.value.trim() ?? ''
+    const imgs = stagedImages
+    // Send when there's text OR at least one staged image (image-only is fine —
+    // "look at this" with no words).
+    if (value || imgs.length > 0) {
+      onSendMessage(value, imgs.length > 0 ? imgs : undefined)
+      if (inputRef.current) inputRef.current.value = ''
+      if (imgs.length > 0) setStagedImages([])
     }
   }
 
@@ -258,11 +337,6 @@ export function ConversationPanel({
           </ChatBubble>
         )}
 
-        {/* Moodboard Selection */}
-        {moodboard && !moodboard.selectedConcept && (
-          <MoodboardSelector moodboard={moodboard} onSelect={onMoodboardSelect} />
-        )}
-
         {/* Messages
             WP-15 (2026-04-17): hide [OSKAR-SYSTEM ...] turns from the
             Briefing display. They still live in the bridge's conversation
@@ -298,7 +372,10 @@ export function ConversationPanel({
                   <FormBubble key={msg.id} role={msg.role} preview={msg.__preview}>
                     <DiscoveryQuestionsCard
                       questions={msg.card.questions}
+                      preamble={msg.card.preamble}
                       context={msg.card.context}
+                      title={msg.card.title}
+                      progress={msg.card.progress}
                       onSubmit={(formattedAnswers) => onSendMessage(formattedAnswers)}
                     />
                   </FormBubble>,
@@ -310,7 +387,142 @@ export function ConversationPanel({
                     <ConfirmUnderstandingCard
                       summary={msg.card.summary}
                       readyToGenerate={msg.card.readyToGenerate}
-                      onBuild={onTriggerBuildAll}
+                      preamble={msg.card.preamble}
+                      distillation={msg.card.distillation}
+                      conversion={msg.card.conversion}
+                      weirdDetail={msg.card.weirdDetail}
+                      signatureMoment={msg.card.signatureMoment}
+                      discoveryProgress={msg.card.discoveryProgress}
+                      stillNeed={msg.card.stillNeed}
+                      phaseLabel={msg.card.phaseLabel}
+                      onSubmit={(response) => {
+                        // Ralph 2026-05-15: unified onSubmit. Card is no
+                        // longer split into READY vs CHECK-IN — single
+                        // editable-fields state, CTA gated on completeness.
+                        // When the user clicks, all 9 fields are guaranteed
+                        // filled (the card disables the button otherwise).
+                        // Post the consolidated inline state as a structured
+                        // message AND fire the build trigger.
+                        const lines: string[] = ['**Looks right — build wireframes.**', '']
+                        const labels: Record<string, string> = {
+                          business: 'Business',
+                          location: 'Location',
+                          whoWeAre: 'Who we are',
+                          howItWorks: 'How it works',
+                          customers: 'Customer(s)',
+                          voice: 'Voice',
+                        }
+                        for (const [key, label] of Object.entries(labels)) {
+                          const v = response.distillation[key]?.trim?.()
+                          if (v) lines.push(`- **${label}:** ${v}`)
+                        }
+                        if (response.mechanisms.length > 0) {
+                          lines.push(`- **Conversion mechanisms:** ${response.mechanisms.join(' · ')}`)
+                        }
+                        if (response.pricing) lines.push(`- **Pricing:** ${response.pricing}`)
+                        if (response.weirdDetail) lines.push(`- **Weird detail:** ${response.weirdDetail}`)
+                        if (response.signatureMoment) lines.push(`- **Signature moment:** ${response.signatureMoment}`)
+                        if (response.freeformText) {
+                          lines.push('')
+                          lines.push(response.freeformText)
+                        }
+                        onSendMessage(lines.join('\n'))
+                        if (onTriggerBuildAll) onTriggerBuildAll()
+                      }}
+                    />
+                  </FormBubble>,
+                ]
+              }
+              if (msg.card.kind === 'image_strategy') {
+                return [
+                  <FormBubble key={msg.id} role={msg.role} preview={msg.__preview}>
+                    <ImageStrategyCard
+                      vibeSlug={msg.card.vibeSlug}
+                      vibeName={msg.card.vibeName}
+                      layout={msg.card.layout}
+                      phaseLabel={msg.card.phaseLabel}
+                      preamble={msg.card.preamble}
+                      slots={msg.card.slots}
+                      sessionId={sessionId ?? ''}
+                      onSubmit={(response) => {
+                        const msg_text = `**Image Strategy Response:**\n\nAction: ${response.action}${
+                          response.generatedSlotName ? `\nSlot: ${response.generatedSlotName}` : ''
+                        }${
+                          response.freeformText ? `\n\n${response.freeformText}` : ''
+                        }`
+                        onSendMessage(msg_text)
+                      }}
+                    />
+                  </FormBubble>,
+                ]
+              }
+              if (msg.card.kind === 'design_directions') {
+                return [
+                  <FormBubble key={msg.id} role={msg.role} preview={msg.__preview}>
+                    <DesignDirectionsCard
+                      directions={msg.card.directions}
+                      preamble={msg.card.preamble}
+                      prompt={msg.card.prompt}
+                      onSubmit={(response) => {
+                        // New contract 2026-05-21 — enriched payload (survivors/killed
+                        // denorm so Phase 3 amplification reads axis_hook + audience
+                        // off the user message directly).
+                        const survivorLines = response.survivors
+                          .map((s) => `  • ${s.bet_name} — hook: ${s.axis_hook}, axis: ${s.axis_linear_position.toFixed(2)}, audience: ${s.audience}`)
+                          .join('\n')
+                        const killedLines = response.killed
+                          .map((k) => `  • ${k.bet_name}`)
+                          .join('\n')
+                        const msg_text =
+                          `**Strategic Bets — 4 survivors:**\n${survivorLines}\n\n` +
+                          `**Killed:**\n${killedLines}` +
+                          (response.kill_why ? `\n\n**Why killed:**\n${response.kill_why}` : '')
+                        onSendMessage(msg_text)
+                      }}
+                    />
+                  </FormBubble>,
+                ]
+              }
+              if (msg.card.kind === 'design_system') {
+                return [
+                  <FormBubble key={msg.id} role={msg.role} preview={msg.__preview}>
+                    <DesignSystemCard
+                      vibes={msg.card.vibes}
+                      onSubmit={(response) => {
+                        const msg_text = `**Design System Selection:** ${response.action === 'select' ? response.selectedVibeSlug : 'CREATE NEW'}${
+                          response.freeformText ? `\n\n${response.freeformText}` : ''
+                        }`
+                        onSendMessage(msg_text)
+                      }}
+                    />
+                  </FormBubble>,
+                ]
+              }
+              if (msg.card.kind === 'descent_selection') {
+                // WP-75 (Ralph 2026-05-10): Descent Selection Card. Variable-cap
+                // vibe picker. cap=1 → radio. cap>1 → multi-select. CD specifies
+                // ctaLabel verbatim. Picks → formatted text → onSendMessage; CD
+                // reads it as plain user message. Same pattern as DesignDirectionsCard.
+                // (COO test harness uses the orchestrator's structured
+                // {type:'descent_selection',picks} dispatch case at
+                // mcp-server/tools-orchestrator.ts:856 instead.)
+                const ctaLabel = msg.card.ctaLabel
+                return [
+                  <FormBubble key={msg.id} role={msg.role} preview={msg.__preview}>
+                    <DescentSelectionCard
+                      cap={msg.card.cap}
+                      ctaLabel={ctaLabel}
+                      contextLabel={msg.card.contextLabel}
+                      vibes={msg.card.vibes}
+                      sessionId={sessionId ?? ''}
+                      preamble={msg.card.preamble}
+                      prompt={msg.card.prompt}
+                      onSubmit={(response) => {
+                        const msg_text = `**Descent Selection (${ctaLabel}):** ${response.picks.join(', ')}${
+                          response.freeformText ? `\n\n${response.freeformText}` : ''
+                        }`
+                        onSendMessage(msg_text)
+                      }}
                     />
                   </FormBubble>,
                 ]
@@ -385,9 +597,9 @@ export function ConversationPanel({
                 ]
               }
               // (Ralph + CD 2026-05-06) Archetype 1 from the toolcards
-              // mockup — long-running build job (build_vibe / build_all_vibes).
+              // mockup — long-running build job (build_vibe / build_wireframes).
               // Live cards mount on `build_started` and update from
-              // `report_build_progress` / `vibe_built` / `vibe_failed`.
+              // `build_progress` / `vibe_built` / `vibe_failed`.
               // Preview cards mount via `preview_card({kind:'build', ...})`.
               if (msg.card.kind === 'build') {
                 return [
@@ -421,6 +633,25 @@ export function ConversationPanel({
                         if (!url) return
                         window.open(url, '_blank', 'noopener,noreferrer')
                       }}
+                    />
+                  </FormBubble>,
+                ]
+              }
+
+              // Ralph 2026-05-18: Critique card — WF-mode self-critique (WebDev)
+              // fires per-slug above each wireframe job row. Read-only: scores +
+              // summary + recommendations. Fires from build-wireframes route's
+              // onToolCall when submit_critique lands.
+              if (msg.card.kind === 'critique') {
+                return [
+                  <FormBubble key={msg.id} role={msg.role} preview={msg.__preview} fullWidth>
+                    <CritiqueCard
+                      target={msg.card.target}
+                      scores={msg.card.scores}
+                      summary={msg.card.summary}
+                      recommendations={msg.card.recommendations}
+                      agent={msg.card.agent}
+                      phase={msg.card.phase}
                     />
                   </FormBubble>,
                 ]
@@ -596,11 +827,72 @@ export function ConversationPanel({
           borderRadius: '12px',
           overflow: 'hidden'
         }}>
+          {/* Staged-image thumbnail strip — shown above the textarea when the
+              user has pasted/dropped/attached images. Each has an ✕ to remove
+              before sending. (Ralph 2026-05-29.) */}
+          {stagedImages.length > 0 && (
+            <div style={{
+              display: 'flex',
+              flexWrap: 'wrap',
+              gap: '8px',
+              padding: '10px 12px',
+              borderBottom: '1px solid var(--border-card)',
+            }}>
+              {stagedImages.map((file, i) => (
+                <div key={i} style={{ position: 'relative', width: 56, height: 56 }}>
+                  {previews[i] && (
+                    <img
+                      src={previews[i]}
+                      alt={file.name}
+                      title={file.name}
+                      style={{
+                        width: 56,
+                        height: 56,
+                        objectFit: 'cover',
+                        borderRadius: 8,
+                        border: '1px solid var(--border-card)',
+                        display: 'block',
+                      }}
+                    />
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => removeStagedImage(i)}
+                    title="Remove image"
+                    aria-label={`Remove ${file.name}`}
+                    style={{
+                      position: 'absolute',
+                      top: -6,
+                      right: -6,
+                      width: 18,
+                      height: 18,
+                      borderRadius: '50%',
+                      border: 'none',
+                      background: 'var(--text-main)',
+                      color: 'var(--bg-app)',
+                      cursor: 'pointer',
+                      fontSize: 11,
+                      lineHeight: '18px',
+                      padding: 0,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      boxShadow: '0 1px 3px rgba(0,0,0,0.3)',
+                    }}
+                  >
+                    ✕
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+
           {/* Textarea - 6 lines minimum, NOT disabled during loading so user can compose next message */}
           <textarea
             ref={inputRef}
             onKeyDown={handleKeyDown}
-            placeholder="Type a command or instruction..."
+            onPaste={handlePaste}
+            placeholder="Type a command or instruction…  (paste an image or PDF to attach it)"
             rows={6}
             style={{
               width: '100%',
@@ -626,11 +918,17 @@ export function ConversationPanel({
             padding: '8px 12px',
             borderTop: '1px solid var(--border-card)'
           }}>
-            {/* Left: attach + mic */}
+            {/* Left: paste-text */}
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              {/* Attach button */}
+              {/* Paste-as-file button (was a dead mic placeholder; repurposed
+                  2026-05-29 per Ralph — opens PasteTextDialog).
+                  Note: pasting an IMAGE needs no button — just ⌘V into the
+                  textarea (see handlePaste / the staged-thumbnail strip). */}
               <button
                 type="button"
+                onClick={() => setShowPasteDialog(true)}
+                title="Paste text as a file"
+                aria-label="Paste text as a file"
                 style={{
                   padding: '4px',
                   backgroundColor: 'transparent',
@@ -642,17 +940,19 @@ export function ConversationPanel({
                 }}
               >
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"></path>
-                  <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
-                  <line x1="12" x2="12" y1="19" y2="22"></line>
+                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                  <polyline points="14 2 14 8 20 8"></polyline>
+                  <line x1="16" x2="8" y1="13" y2="13"></line>
+                  <line x1="16" x2="8" y1="17" y2="17"></line>
+                  <line x1="10" x2="8" y1="9" y2="9"></line>
                 </svg>
               </button>
             </div>
 
             {/* Middle: Active Model badge (truth on the wire). Shows the model
                 that actually served the response — not the request alias.
-                SMPL→opus resolves to glm-5.1 on Z.ai, claude-opus-4-7 on
-                Anthropic. CLI→claude-opus-4-7[1m] resolves to glm-4.7 on
+                SMPL→opus resolves to glm-5.1 on Z.ai, claude-opus-4-8 on
+                Anthropic. CLI→claude-opus-4-8[1m] resolves to glm-4.7 on
                 Z.ai (the deception, surfaced). Ralph 2026-05-04. */}
             {currentModel ? (
               <span style={{
@@ -694,6 +994,12 @@ export function ConversationPanel({
           </div>
         </div>
       </form>
+
+      {/* Paste-as-file modal (FEATURE-X §1.4 WP-3.5) — mounted in ConversationPanel
+          scope, where showPasteDialog/handlePasteSave are defined. */}
+      {showPasteDialog && (
+        <PasteTextDialog onSave={handlePasteSave} onClose={() => setShowPasteDialog(false)} />
+      )}
     </div>
   )
 }
@@ -943,83 +1249,3 @@ function StreamingBubble({
   )
 }
 
-// ============================================================================
-// MOODBOARD SELECTOR COMPONENT
-// ============================================================================
-function MoodboardSelector({
-  moodboard,
-  onSelect
-}: {
-  moodboard: MoodboardData
-  onSelect: (conceptName: string) => void
-}) {
-  return (
-    <div style={{
-      backgroundColor: 'var(--bg-app)',
-      borderRadius: '12px',
-      padding: '16px',
-      marginBottom: '16px',
-      border: '1px solid var(--accent, #3B82F6)'
-    }}>
-      <h4 style={{ margin: '0 0 4px 0', color: 'var(--text-main)', fontSize: '14px' }}>
-        Choose Your Direction
-      </h4>
-      <p style={{ color: 'var(--text-muted)', fontSize: '12px', margin: '0 0 12px 0' }}>
-        Click on a quadrant to select your vibe
-      </p>
-      <div style={{
-        position: 'relative',
-        width: '100%',
-        aspectRatio: '1',
-        borderRadius: '8px',
-        overflow: 'hidden'
-      }}>
-        <img
-          src={moodboard.imagePath}
-          alt="Moodboard options"
-          style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-        />
-        <div style={{
-          position: 'absolute',
-          inset: 0,
-          display: 'grid',
-          gridTemplateColumns: '1fr 1fr',
-          gridTemplateRows: '1fr 1fr'
-        }}>
-          {moodboard.concepts.map((concept) => (
-            <button
-              key={concept.name}
-              onClick={() => onSelect(concept.name)}
-              title={`${concept.name}: ${concept.visualStyle}`}
-              style={{
-                background: 'transparent',
-                border: 'none',
-                cursor: 'pointer',
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                justifyContent: 'center'
-              }}
-            >
-              <span style={{
-                fontSize: '14px',
-                fontWeight: 600,
-                color: '#fff',
-                textShadow: '0 1px 3px rgba(0,0,0,0.8)'
-              }}>
-                {concept.name}
-              </span>
-              <span style={{
-                fontSize: '11px',
-                color: 'var(--accent, #3B82F6)',
-                textShadow: '0 1px 3px rgba(0,0,0,0.8)'
-              }}>
-                {concept.oneWord}
-              </span>
-            </button>
-          ))}
-        </div>
-      </div>
-    </div>
-  )
-}

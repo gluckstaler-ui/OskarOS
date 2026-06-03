@@ -28,6 +28,24 @@ const FRAMES: ReadonlyArray<{ id: 'desktop' | 'tablet' | 'mobile'; label: string
 ]
 
 export function ScreenshotCard({ savedPath, target, frame, dims, sessionId }: ScreenshotCardProps) {
+  // Ralph 2026-05-12 — defensive defaults. The live screenshot_taken
+  // event handler in page.tsx coerces all four fields, but the
+  // card_preview path forwards payload opaquely, AND the preview-card
+  // route's `screenshot` case currently validates `payload.path` (wrong
+  // field name) instead of `payload.savedPath` + dims. If CD fires
+  // preview_card({kind:'screenshot', payload:{savedPath:'/x.png'}})
+  // without dims, the card crashes at `dims.width`. Default at the
+  // component boundary so it never crashes regardless of upstream path.
+  const safeSavedPath = typeof savedPath === 'string' && savedPath ? savedPath : ''
+  const safeTarget = typeof target === 'string' && target ? target : 'untitled'
+  const safeFrame: 'desktop' | 'tablet' | 'mobile' =
+    frame === 'tablet' || frame === 'mobile' ? frame : 'desktop'
+  const safeDims = {
+    width: typeof dims?.width === 'number' && dims.width > 0 ? dims.width : 1280,
+    height: typeof dims?.height === 'number' && dims.height > 0 ? dims.height : 800,
+  }
+  if (!safeSavedPath) return null
+
   const [reshooting, setReshooting] = useState<string | null>(null)
 
   const reshoot = useCallback(async (newFrame: 'desktop' | 'tablet' | 'mobile') => {
@@ -37,7 +55,7 @@ export function ScreenshotCard({ savedPath, target, frame, dims, sessionId }: Sc
       await fetch('/api/mcp/screenshot', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ sessionId, target, frame: newFrame }),
+        body: JSON.stringify({ sessionId, target: safeTarget, frame: newFrame }),
       })
       // Server publishes screenshot_taken — page.tsx subscriber pushes a fresh
       // card. Nothing to do here.
@@ -46,31 +64,40 @@ export function ScreenshotCard({ savedPath, target, frame, dims, sessionId }: Sc
     } finally {
       setReshooting(null)
     }
-  }, [reshooting, sessionId, target])
+  }, [reshooting, sessionId, safeTarget])
 
   const aspect: '16-9' | '3-4' | '1-1' =
-    frame === 'mobile' ? '3-4' : frame === 'tablet' ? '3-4' : '16-9'
+    safeFrame === 'mobile' ? '3-4' : safeFrame === 'tablet' ? '3-4' : '16-9'
 
   return (
     <div
       className="tool-card screenshot-card"
       role="region"
-      aria-label={`Screenshot: ${target} / ${frame}`}
+      aria-label={`Screenshot: ${safeTarget} / ${safeFrame}`}
     >
       <div className="tool-card-head">
         <span className="tool-card-icon" data-accent="cyan" aria-hidden>📷</span>
-        <span className="tool-card-title">Screenshot: {target} / {frame}</span>
-        <span className="tool-card-meta">{dims.width}×{dims.height}</span>
+        <span className="tool-card-title">Screenshot: {safeTarget} / {safeFrame}</span>
+        <span className="tool-card-meta">{safeDims.width}×{safeDims.height}</span>
       </div>
       <div className="tool-card-body">
         <div className="tool-card-img-frame" data-aspect={aspect}>
           {/* The savedPath is rooted at /<session>/screenshots/<file>.png. */}
-          <img src={savedPath} alt={`Screenshot of ${target}`} />
+          <img
+            src={safeSavedPath}
+            alt={`Screenshot of ${safeTarget}`}
+            onError={(e) => {
+              // File missing (preview stub, deleted screenshot, race).
+              // Hide the broken-img glyph; frame stays as flat grey.
+              const t = e.currentTarget
+              t.style.visibility = 'hidden'
+            }}
+          />
         </div>
       </div>
       <div className="tool-card-foot">
         <a
-          href={savedPath}
+          href={safeSavedPath}
           target="_blank"
           rel="noopener noreferrer"
           className="tool-card-btn"
@@ -78,7 +105,7 @@ export function ScreenshotCard({ savedPath, target, frame, dims, sessionId }: Sc
         >
           Open full
         </a>
-        {FRAMES.filter((f) => f.id !== frame).map((f) => (
+        {FRAMES.filter((f) => f.id !== safeFrame).map((f) => (
           <button
             key={f.id}
             type="button"

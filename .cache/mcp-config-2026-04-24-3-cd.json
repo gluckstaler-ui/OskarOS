@@ -1,8 +1,0 @@
-{
-  "mcpServers": {
-    "oskar-orchestrator": {
-      "type": "http",
-      "url": "http://localhost:3000/api/mcp/server?session=2026-04-24-3&agent=cd&instance=227bc7bc-00b0-4bdd-b47d-59399373e596"
-    }
-  }
-}

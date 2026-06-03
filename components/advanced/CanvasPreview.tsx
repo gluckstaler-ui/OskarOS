@@ -160,8 +160,26 @@ function CanvasPreviewImpl({
                     container so the image-ops overlay (crop marquee, slice
                     grid) can sit `inset:0` exactly over the displayed image
                     — not over the whole canvas. inline-block + max 100%
-                    keeps the wrapper sized to the contained <img>. */}
-                <div style={{ position: 'relative', display: 'inline-block', maxWidth: '100%', maxHeight: '100%', lineHeight: 0 }}>
+                    keeps the wrapper sized to the contained <img>.
+
+                    Ralph 2026-05-31 · SVG carve-out. Many SVGs (Illustrator
+                    exports, the `logo-key.svg` family) declare viewBox only,
+                    no width/height attrs. In the inline-block + max:100%
+                    geometry above, Chrome can't resolve the circular layout
+                    (parent shrinks to child; child's max-width: 100% is of
+                    parent) and the SVG collapses to 0×0 — the preview goes
+                    blank even though the thumbnail renders. For SVGs we drop
+                    the shrink-wrap and use a flex-centered 100% container
+                    so the <img> has a definite max-width/height to compute
+                    against. Image-ops (crop/slice) is raster-only, so the
+                    overlay-alignment reason for shrink-wrap doesn't apply. */}
+                {(() => {
+                  const isSvg = /\.svg($|\?)/i.test(selectedImage.path || selectedImage.filename || '')
+                  const wrapperStyle: React.CSSProperties = isSvg
+                    ? { position: 'relative', width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', lineHeight: 0 }
+                    : { position: 'relative', display: 'inline-block', maxWidth: '100%', maxHeight: '100%', lineHeight: 0 }
+                  return (
+                <div style={wrapperStyle}>
                   <img
                     ref={imgRef}
                     onLoad={reportSize}
@@ -180,6 +198,8 @@ function CanvasPreviewImpl({
                     </div>
                   )}
                 </div>
+                  )
+                })()}
                 {/* Filename pill — top-right of the preview. The filename
                     is the image's identity downstream (used in HTML, CD
                     references it, version sidebar groups by it). Sits on

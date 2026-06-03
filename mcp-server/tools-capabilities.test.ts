@@ -36,7 +36,7 @@ describe('CAPABILITY_TOOL_DEFINITIONS', () => {
       'generate_image',
       'screenshot',
       'snackbar',
-      'ask_user',
+      'modal',
       // Tier A
       'session_meta',
       'list_assets',
@@ -207,11 +207,11 @@ describe('snackbar', () => {
   })
 })
 
-// ── ask_user ────────────────────────────────────────────────────────────────
+// ── modal ────────────────────────────────────────────────────────────────
 
-describe('ask_user', () => {
+describe('modal', () => {
   it('rejects missing question', async () => {
-    const r = await callCapabilityTool('ask_user', {
+    const r = await callCapabilityTool('modal', {
       question: '',
       options: ['Yes', 'No'],
     })
@@ -220,7 +220,7 @@ describe('ask_user', () => {
   })
 
   it('rejects fewer than 2 options', async () => {
-    const r = await callCapabilityTool('ask_user', {
+    const r = await callCapabilityTool('modal', {
       question: 'pick',
       options: ['only one'],
     })
@@ -233,7 +233,7 @@ describe('ask_user', () => {
       status: 200,
       body: { choice: 'Iterate' },
     })
-    const r = await callCapabilityTool('ask_user', {
+    const r = await callCapabilityTool('modal', {
       question: 'commit?',
       options: ['Commit', 'Iterate'],
     })
@@ -245,10 +245,10 @@ describe('ask_user', () => {
     mockPost.mockResolvedValue({
       ok: false,
       status: 409,
-      body: { error: 'Another ask_user is already open' },
+      body: { error: 'Another modal is already open' },
       error: 'HTTP 409',
     })
-    const r = await callCapabilityTool('ask_user', {
+    const r = await callCapabilityTool('modal', {
       question: 'q',
       options: ['A', 'B'],
     })

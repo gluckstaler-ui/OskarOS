@@ -478,7 +478,7 @@ export function SentinelTiPanel({
                         ? '#10b981'
                         : '#f87171',
                       flexShrink: 0,
-                      animation: isActive ? 'pulse 1.4s ease-in-out infinite' : 'none',
+                      animation: isActive ? 'ti-pulse 1.4s ease-in-out infinite' : 'none',
                     }}
                   />
                   <span
@@ -629,22 +629,6 @@ export function SentinelTiPanel({
         </div>
       )}
 
-      {/* Pulse keyframes + visible scrollbar override (the global scrollbar
-          is set to a very subtle border-card color that's easy to miss in the
-          panel column — Ti's reports are long enough that an obvious scrollbar
-          is part of the UX). */}
-      <style
-        dangerouslySetInnerHTML={{
-          __html: `
-            @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.35; } }
-            .ti-scroll { scrollbar-width: auto; scrollbar-color: rgba(99, 102, 241, 0.55) rgba(99, 102, 241, 0.08); }
-            .ti-scroll::-webkit-scrollbar { width: 10px; }
-            .ti-scroll::-webkit-scrollbar-track { background: rgba(99, 102, 241, 0.08); border-radius: 5px; }
-            .ti-scroll::-webkit-scrollbar-thumb { background: rgba(99, 102, 241, 0.55); border-radius: 5px; border: 2px solid var(--bg-card); }
-            .ti-scroll::-webkit-scrollbar-thumb:hover { background: rgba(99, 102, 241, 0.85); }
-          `,
-        }}
-      />
     </div>
   )
 }

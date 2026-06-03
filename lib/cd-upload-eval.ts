@@ -57,8 +57,15 @@ export async function runUploadEval(input: UploadEvalInput): Promise<UploadEvalO
     .join('\n')
 
   try {
+    // Ralph 2026-06-01 · useWorker:true routes through the per-session
+    // worker bridge pool. N parallel uploads = N parallel CLI subprocesses
+    // (capped at MAX_WORKERS_PER_SESSION=5). No withSessionLock, no
+    // stacking on the main bridge's single stdin/stdout. The eval is
+    // one-shot — no --resume context needed, the session ctx is already
+    // inlined in `tagged` above via buildCDContext.
     const result = await callCDBridge(input.sessionId, tagged, {
       expectedTools: ['submit_upload_eval'],
+      useWorker: true,
     })
     const args = (result.toolCalls.submit_upload_eval as UploadEvalToolArgs | undefined) || null
     if (!args) {

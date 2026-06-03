@@ -18,7 +18,7 @@
  * (`/api/mcp/update-image-metadata`).
  *
  * Card chassis: standard `.tool-card` with `.tool-card-body-tight` so the
- * row grid hugs the head/foot dividers (mirrors the build_all_vibes layout).
+ * row grid hugs the head/foot dividers (mirrors the BuildJobCard layout).
  */
 'use client'
 
@@ -119,11 +119,25 @@ export function UploadEvalBatchCard({ items, sessionId }: UploadEvalBatchCardPro
                 : null  // legacy / unknown value → no pill highlighted
             )
           const isWriting = writing.has(item.filename)
+          // Ralph 2026-05-12 — images live in `/{sessionId}/` by definition
+          // (Next.js serves `public/{sessionId}/` at the root). No `item.path`,
+          // no `/uploads/` fallback. Both lied. If sessionId is missing the
+          // URL fails loud upstream.
+          const itemSrc = `/${sessionId}/${item.filename}`
           return (
             <div className="upload-eval-row" key={`${item.filename}-${i}`}>
               {/* PICTURE — small thumbnail */}
               <div className="upload-eval-row-thumb">
-                <img src={item.path} alt={item.filename} />
+                <img
+                  src={itemSrc}
+                  alt={item.filename}
+                  onError={(e) => {
+                    // File missing (preview stubs, deleted assets). Hide the
+                    // broken-img glyph; thumb cell becomes a flat grey.
+                    const t = e.currentTarget
+                    t.style.visibility = 'hidden'
+                  }}
+                />
               </div>
 
               {/* IDENTIFIER — filename in mono */}

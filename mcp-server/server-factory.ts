@@ -48,7 +48,7 @@ export function createOskarServer(opts: CreateOskarServerOptions): Server {
 
   const server = new Server(
     {
-      name: 'oskar-orchestrator',
+      name: 'orch',
       version: '1.0.0',
     },
     {

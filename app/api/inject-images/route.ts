@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { readFile, readdir, access } from 'fs/promises'
+import { randomUUID } from 'crypto'
 import path from 'path'
 
 // Backdoor endpoint to inject test images into the app state
@@ -140,7 +141,12 @@ export async function GET(req: NextRequest) {
         await writeFile(destPath, imageBuffer)
 
         injectedImages.push({
-          id: `upload-${Date.now()}`,
+          // Ralph 2026-05-12 — was `upload-${Date.now()}`. THIS site was
+          // worse than the upload route: it runs in a FOR LOOP over N
+          // images within a SINGLE request. Iterations between awaits can
+          // resolve in the same millisecond → identical IDs → AssetGrid
+          // React duplicate-key warning. randomUUID() is collision-proof.
+          id: `upload-${Date.now()}-${randomUUID().slice(0, 8)}`,
           filename: newFilename,
           path: `/uploads/${newFilename}`,
           originalName: img.file,

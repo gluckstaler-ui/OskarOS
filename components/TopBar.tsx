@@ -18,7 +18,7 @@ import { useState, useEffect, useRef } from 'react'
 //   uses brand-green-bright → brand-teal-bright.
 // ============================================================================
 
-type WebDevModel = 'claude-opus-4-7' | 'claude-sonnet-4-6' | 'gemini-3.1-pro-preview'
+type WebDevModel = 'claude-opus-4-8' | 'claude-sonnet-4-6' | 'gemini-3.1-pro-preview'
 
 export type Order66Status = 'idle' | 'running' | 'complete'
 
@@ -336,7 +336,7 @@ export function TopBar({
 
         {/* Model Switch — always shows all 3, Gemini disabled in CLI mode */}
         <div style={pillGroupStyle}>
-          <button onClick={() => onModelChange('claude-opus-4-7')} style={getPillStyle(webDevModel === 'claude-opus-4-7')}>
+          <button onClick={() => onModelChange('claude-opus-4-8')} style={getPillStyle(webDevModel === 'claude-opus-4-8')}>
             OPUS
           </button>
           <button onClick={() => onModelChange('claude-sonnet-4-6')} style={getPillStyle(webDevModel === 'claude-sonnet-4-6')}>

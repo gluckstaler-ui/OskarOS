@@ -37,6 +37,90 @@ If Nano fails, that's YOUR failure. You were vague. You didn't name the files. F
 
 ---
 
+## ANATOMY BY FORM — A/B/C/D
+
+The Five Commandments are universal. This section is what's load-bearing PER FORM — what you must include, where each form's pitfalls hide, what shape a real prompt takes.
+
+**If your prompt is two sentences, you've under-prompted.** Real prompts are paragraphs. Named subjects. Named scenes. Lighting specified. Mood specified. Scale specified. Explicit DO NOT list. See the Successful Prompts archive at the bottom for the right length and texture — every archived prompt is 6–10 lines, not 2.
+
+---
+
+### A) GENERATE — text → new image
+
+Pure imagination call. Nano has nothing to anchor on except your words. Every absent detail becomes a training-data average — generic subject, generic cliff, generic warm light. The whole job is leaving Nano no room to default.
+
+**Anatomy of a strong GENERATE prompt:**
+
+1. **Subject** — named, specific, with adjectives that aren't "beautiful / dramatic / cinematic." A weathered hand, not "a hand." A 60-year-old Saudi man in white thobe, not "a man."
+2. **Scene / setting** — named location, named architecture, named cultural context. "Tuwaiq Escarpment, Saudi Arabia" not "a cliff." "Traditional majlis with kilim rugs and brass lanterns" not "a room."
+3. **Composition** — framing, angle, distance. "Cinematic close-up, eye-level." "Wide overhead shot." "Three-quarter portrait, shallow depth of field."
+4. **Lighting** — named time of day, named light source, named quality. "Golden hour rim light from camera-left." "Morning side-light through wooden latticework." "Brass lantern interior glow."
+5. **Mood / feeling** — the emotional register, not generic adjectives. "The moment before the ride begins." "Grandmother's spread, everyone reaching in at once."
+6. **Key details** — the load-bearing micro-details that make it specific to YOUR brand, not a stock photo. "Dust motes dancing in the light." "Steam rising from the dallah spout." "Cushion edges frayed from use."
+7. **DO NOT list** — negative constraints to fight Nano's drift toward training averages. "DO NOT modernize the setting." "DO NOT use Western tableware." "DO NOT make this look like a stock photo."
+
+**GENERATE-specific pitfalls:**
+
+- **Generic subject → generic output.** Nano fills the void with the AI house style. "A beautiful woman in a coffee shop" produces the same image every model produces today. Generic in, generic out.
+- **Vague location → Nano imagines "any cliff."** Wrong rocks, wrong vegetation, wrong continent.
+- **No mood → polished but emotionless.** Technically correct, narratively dead.
+- **No DO NOT → drift toward training averages.** Modern furniture creeps in. Lighting flattens. Cultural specifics blur.
+- **Two-sentence prompts.** The single biggest cause of bad GENERATE output is under-prompting. If you wrote it in 30 seconds, Nano will produce 30-seconds-of-thought results.
+
+---
+
+### B) EDIT IMAGE — 1 image → modified 1 image
+
+You're handing Nano an existing image and asking for a delta. The trap is that Nano interprets "edit this" liberally — it will gladly change things you wanted preserved unless you EXPLICITLY say what to keep.
+
+**Anatomy of a strong EDIT prompt:**
+
+1. **Operation prefix** — `EDIT [filename]:` Always. The UI badge depends on it.
+2. **What to change** — the specific delta in concrete terms. Not "improve the lighting" (Nano picks generic improvements). Be precise: "Deepen the shadows. Add Sultan the falcon as silhouette against the starry sky, circling above."
+3. **What to keep — explicit invariants** — the load-bearing list. "DO NOT change the man, the cushions, the kilim rugs, the brass lanterns, the string lights, the lighting on the man's face." Without this list, Nano drifts.
+4. **The new mood / new feeling** — the why, not just the what. "The feeling: 'The kingdom is down there. You're above it all.'"
+5. **Scale and position** for any added elements. "Sultan small in the frame, upper-left third, ~5% of canvas height."
+
+**EDIT-specific pitfalls:**
+
+- **No "DO NOT" list → face drift.** Edit a portrait without "preserve subject's identity, exact same face" and you get a different person. The classic failure.
+- **"Improve the X"** — Nano picks generic improvements that may not match the brand. Specify the improvement.
+- **Added elements without scale** — giant falcons, tiny camels, broken visual logic.
+- **Too many changes in one prompt** — Nano drifts under load. If you need lighting + atmosphere + added subject, chain two edits.
+
+---
+
+### C) COMPOSE IMAGE — N images → 1 image
+
+Subject from one source, scene from another. The trap is Nano needs to know WHICH file plays WHICH role — without explicit role assignment it averages the sources or picks one as primary at random.
+
+**Anatomy of a strong COMPOSE prompt:**
+
+1. **Operation prefix** — `COMPOSE [file1.jpg + file2.jpg]:` Always. Source files in brackets, plus-separated.
+2. **Role per file** — explicit. "Take Sultan from sultan.jpg and put him into the hero scene from hero.jpg." Subject vs scene, foreground vs background — name it.
+3. **Spatial placement** — where in the scene the subject lands. "On the man's gauntlet, head turned three-quarters." "At the edge of the cliff, silhouetted against the sunset."
+4. **Interaction** — what's happening between the elements. "The man looking down at Sultan, half-smile." "The cats lounge on cushions to either side."
+5. **Lighting reconciliation** — the seam between sources. "Match the warm afternoon light of hero.jpg — Sultan's plumage catches the same golden tone." Without this, the subject looks pasted in.
+6. **Scale** — explicit dimensions. "Sultan natural size, wingspan ~1 meter, head reaches the man's shoulder."
+7. **What to preserve from each source.** "Keep Sultan's plumage and eye color from sultan.jpg. Keep the entire majlis setup from hero.jpg unchanged."
+
+**COMPOSE-specific pitfalls:**
+
+- **No role assignment** — Nano averages the sources or picks at random which file is primary. Output looks confused.
+- **No lighting reconciliation** — the seam shows. Subject looks pasted in (different light direction, different color temperature, different shadow length).
+- **No scale** — subject too big or too small, breaks the scene's logic.
+- **More than 2 source files** — Nano struggles to reason about three or more sources. Either reduce to two, or stage the composition (compose A+B → save the result → compose result+C as a second pass).
+
+---
+
+### D) LAYOUT — multi-element composition in ONE Nano call
+
+See `## THE SHEET PATTERN` below for the full anatomy. When to reach for it, the IDENTICAL-keyword discipline that locks subject consistency across panels, the prompt template (2×2 / 2×3 grids with seamless background), and the post-Nano image-ops chain (slice → chroma-key → crop → tag) — all there. Don't reconstruct from memory.
+
+The one prompt-time tip worth repeating here: ALWAYS specify the seamless background color explicitly in the Layout prompt (e.g. "seamless `#f5f5f0` background, 16px gutters between panels"). This gives image-ops a clean color to chroma-key against in post.
+
+---
+
 ## COMMON FAILURES
 
 | Failure | Cause | Fix |

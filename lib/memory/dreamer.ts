@@ -319,32 +319,209 @@ const SAGE_SNAPSHOT_TTL_MS = parseInt(
 )
 // Tiered pass-count thresholds. SESSION.md tends to balloon when CD does
 // long stretches of edit-and-explain work without any natural pauses for
-// Order 65/66 to fire. The base 240KB rule produced two passes regardless
-// of how big the file got, so a 600KB session would only shed ~40KB per
-// run and stay above threshold forever. Ralph 2026-04-30: scale pass count
-// with starting size.
+// Order 65/66 to fire. Ralph 2026-05-18 — tier table with UPPER-bound
+// semantics (each value is the upper end of the band, not the lower).
+// Each tier sets N = pass-count applied uniformly across block-cuts,
+// compact-folds, and ledger-folds (compact + ledger are gated by
+// line-span thresholds — see schedule builder in `_runSage240_40Inner`).
 //
-//   ≥ 240 KB  → 2 passes  (1 cut + 1 cut OR 1 cut + 1 compact)
-//   ≥ 360 KB  → 4 passes
-//   ≥ 480 KB  → 6 passes
+//                size      N    band
+//   tier 1:    = 240 KB    1    {240}
+//   tier 2:    ≤ 320 KB    2    (240, 320]
+//   tier 3:    ≤ 400 KB    3    (320, 400]   ← 349.5 KB lives here
+//   tier 4:    ≤ 500 KB    4    (400, 500]
+//   tier 5:    ≤ 600 KB    5    (500, 600]
+//   tier 5:    > 600 KB    5    (600, ∞)     (capped)
 //
-// Per-pass behavior unchanged: if the in-file Block line count exceeds
-// `compactThreshold` (1000), the pass folds 3 Blocks → 1 Compact;
-// otherwise it cuts a fresh 200-line chunk of tissue. Test override via
-// SAGE_240_TRIGGER_BYTES sets the BASE threshold; tier multipliers are
-// derived from it (1.5× and 2.0×).
+// SAGE_240_TRIGGER_BYTES overrides the base (240 KB). Higher tiers scale
+// proportionally so tests can fire the full table from small files.
 const SAGE_240_40_TRIGGER_BYTES = parseInt(
   process.env.SAGE_240_TRIGGER_BYTES || String(240 * 1024),
   10,
 )
-const SAGE_360_TIER_BYTES = Math.round(SAGE_240_40_TRIGGER_BYTES * 1.5)
-const SAGE_480_TIER_BYTES = Math.round(SAGE_240_40_TRIGGER_BYTES * 2.0)
+const SAGE_KB_UNIT = SAGE_240_40_TRIGGER_BYTES / 240  // 1024 at default; scales for tests
 
 function decidePassCount(inputSize: number): number {
-  if (inputSize >= SAGE_480_TIER_BYTES) return 6
-  if (inputSize >= SAGE_360_TIER_BYTES) return 4
-  if (inputSize >= SAGE_240_40_TRIGGER_BYTES) return 2
-  return 0
+  if (inputSize < 240 * SAGE_KB_UNIT) return 0
+  if (inputSize <= 240 * SAGE_KB_UNIT) return 1
+  if (inputSize <= 320 * SAGE_KB_UNIT) return 2
+  if (inputSize <= 400 * SAGE_KB_UNIT) return 3
+  if (inputSize <= 500 * SAGE_KB_UNIT) return 4
+  return 5  // > 500 KB (i.e. tier 5 band or above) → capped at 5
+}
+
+// Line-span gate thresholds (Ralph 2026-05-18, replacing the older
+// single 300-line block-span gate). Both measured by scanning the
+// whole file in document order:
+//   block_span   = (last `**Block` entry line)  - (first `**Block` line)
+//   compact_span = (first `**Block` entry line) - (first `**Compact` line)
+// Compact pass-type queued iff block_span ≥ SAGE_BLOCK_SPAN_GATE.
+// Ledger  pass-type queued iff compact_span ≥ SAGE_COMPACT_SPAN_GATE.
+const SAGE_BLOCK_SPAN_GATE = parseInt(
+  process.env.SAGE_BLOCK_SPAN_GATE || '240', 10,
+)
+const SAGE_COMPACT_SPAN_GATE = parseInt(
+  process.env.SAGE_COMPACT_SPAN_GATE || '120', 10,
+)
+
+// ============================================================================
+// Section bootstrap + content-aware walker (Ralph 2026-05-18)
+// ============================================================================
+
+/**
+ * Ensure the three Sage sections (`## LEDGER`, `## COMPACTS`, `## BLOCKS`)
+ * exist, in that order, immediately before `## USER SESSION DATA`. Missing
+ * sections are inserted as empty stubs; existing sections are left in place.
+ * Content already inside the file (legacy Compacts under an older
+ * `## LEDGER`, legacy Blocks under `## USER SESSION DATA`) is NOT moved —
+ * the walker downstream is content-aware and finds entries wherever they
+ * physically sit, while new entries always land in these dedicated
+ * sections.
+ *
+ * Returns the new SESSION.md content. No-op if all three sections already
+ * exist (or if there's no USD marker to anchor against).
+ */
+function ensureSagesSections(sessionMd: string): string {
+  const lines = sessionMd.split('\n')
+  const usdIdx = lines.findIndex((l) => /^##\s+USER\s+SESSION\s+DATA/i.test(l))
+  if (usdIdx < 0) return sessionMd
+
+  const has = (re: RegExp) => lines.some((l) => re.test(l))
+  let hasLedger = has(/^##\s+LEDGER\b/i)
+  let hasCompacts = has(/^##\s+COMPACTS\b/i)
+  let hasBlocks = has(/^##\s+BLOCKS\b/i)
+
+  if (hasLedger && hasCompacts && hasBlocks) return sessionMd
+
+  // Insert in reverse-order so each new section lands just above USD
+  // and produces the final order: LEDGER → COMPACTS → BLOCKS → USD.
+  const findIdx = (re: RegExp) => lines.findIndex((l) => re.test(l))
+
+  if (!hasBlocks) {
+    const anchor = findIdx(/^##\s+USER\s+SESSION\s+DATA/i)
+    lines.splice(anchor, 0, '', '## BLOCKS', '')
+    hasBlocks = true
+  }
+  if (!hasCompacts) {
+    const anchor = findIdx(/^##\s+BLOCKS\b/i)
+    lines.splice(anchor, 0, '', '## COMPACTS', '')
+    hasCompacts = true
+  }
+  if (!hasLedger) {
+    const anchor = findIdx(/^##\s+COMPACTS\b/i)
+    lines.splice(anchor, 0, '', '## LEDGER', '')
+    hasLedger = true
+  }
+
+  return lines.join('\n')
+}
+
+/**
+ * Content-aware walker — scans the WHOLE file in document order looking
+ * for `**Compact …**` and `**Block …**` opening lines, regardless of
+ * which section they sit in. Returns the line indices used by the gate
+ * logic in Phase 2.
+ *
+ *   compact_start = first line matching `^**Compact …`  (or -1)
+ *   block_start   = first line matching `^**Block …`    (or -1)
+ *   block_end     = last  line matching `^**Block …`    (or -1)
+ *
+ * Spans (used by the schedule builder):
+ *   compactSpan = block_start - compact_start  (0 if either missing or
+ *                                                blocks come before compacts)
+ *   blockSpan   = block_end   - block_start    (0 if <2 blocks)
+ *
+ * Why content-aware: legacy SESSION.md files have Compacts under an old
+ * `## LEDGER` heading and Blocks under `## USER SESSION DATA`. The walker
+ * counts them wherever they live so the gate logic works on day-one
+ * without any disk migration.
+ */
+function measureSagesSpans(sessionMd: string): {
+  compactStart: number
+  blockStart: number
+  blockEnd: number
+  compactSpan: number
+  blockSpan: number
+} {
+  const lines = sessionMd.split('\n')
+  const compactRe = /^\*\*Compact\s+[A-Z0-9,\-\s]+\s+[—-]\s/i
+  const blockRe = /^\*\*Block\s+[A-Z]+\s+[—-]\s/i
+  let compactStart = -1
+  let blockStart = -1
+  let blockEnd = -1
+  for (let i = 0; i < lines.length; i++) {
+    const l = lines[i]
+    if (compactStart < 0 && compactRe.test(l)) compactStart = i
+    if (blockRe.test(l)) {
+      if (blockStart < 0) blockStart = i
+      blockEnd = i
+    }
+  }
+  const compactSpan =
+    compactStart >= 0 && blockStart > compactStart ? blockStart - compactStart : 0
+  const blockSpan =
+    blockStart >= 0 && blockEnd >= blockStart ? blockEnd - blockStart : 0
+  return { compactStart, blockStart, blockEnd, compactSpan, blockSpan }
+}
+
+// ============================================================================
+// Date formatting (Ralph 2026-05-18 — Ledger header `DD.MMM.YY HH:MM → …`)
+// ============================================================================
+
+const MONTH_ABBREV = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+
+/**
+ * Format a (date, time) pair as `DD.MMM.YY HH:MM` — e.g. 2026-05-18 14:32
+ * → `18.May.26 14:32`. Used in Ledger entry headers; never bold, never
+ * wrapped in a title.
+ */
+function formatLedgerStamp(date: string, time: string): string {
+  // date: 'YYYY-MM-DD'; time: 'HH:MM' or 'HH:MM:SS'
+  const m = date.match(/^(\d{4})-(\d{2})-(\d{2})$/)
+  if (!m) return `${date} ${time}`
+  const year = m[1].slice(2)
+  const month = MONTH_ABBREV[parseInt(m[2], 10) - 1] || m[2]
+  const day = m[3]
+  const hhmm = time.length > 5 ? time.slice(0, 5) : time
+  return `${day}.${month}.${year} ${hhmm}`
+}
+
+/**
+ * Format a date range as the Ledger header. Same-day collapses the right
+ * side to just `HH:MM`. Cross-day shows both dates.
+ *   same-day:  `18.May.26 14:32 → 16:45`
+ *   cross-day: `17.May.26 23:11 → 18.May.26 02:39`
+ */
+function formatLedgerRange(
+  startDate: string,
+  startTime: string,
+  endDate: string,
+  endTime: string,
+): string {
+  const left = formatLedgerStamp(startDate, startTime)
+  const sameDay = startDate === endDate
+  if (sameDay) {
+    const hhmm = endTime.length > 5 ? endTime.slice(0, 5) : endTime
+    return `${left} → ${hhmm}`
+  }
+  return `${left} → ${formatLedgerStamp(endDate, endTime)}`
+}
+
+// ============================================================================
+// Unified triage log (Ralph 2026-05-18 — one file per Sage run)
+// ============================================================================
+
+/**
+ * Build the triage log filename: `sage-240-MM-DD-HH.mm.log`.
+ * Zero-padded, 24h clock, dot between HH and mm. Year omitted.
+ */
+function makeTriageLogPath(logsDir: string, now: Date = new Date()): string {
+  const pad = (n: number) => String(n).padStart(2, '0')
+  const MM = pad(now.getMonth() + 1)
+  const DD = pad(now.getDate())
+  const HH = pad(now.getHours())
+  const mm = pad(now.getMinutes())
+  return path.join(logsDir, `sage-240-${MM}-${DD}-${HH}.${mm}.log`)
 }
 
 /**
@@ -433,6 +610,7 @@ export interface Sage240_40Result {
 export async function runSagePortrait(
   sessionId: string,
   onProgress?: ProgressCallback,
+  signal?: AbortSignal,
 ): Promise<DreamerResult> {
   const emit = onProgress || (() => {})
   const logsDir = getLogsDir(sessionId)
@@ -578,6 +756,7 @@ export async function runSagePortrait(
     // Phase 'stream' tells CompactionOverlay this is a live agent activity
     // line, not a state transition — it accumulates them in a scrolling feed.
     (evt) => emit({ agent: 'sage', phase: 'stream', stage: evt.type, detail: evt.detail }),
+    signal,
   )
 
   if (!response) {
@@ -765,13 +944,14 @@ export async function runSagePortrait(
 export async function runSage240_40(
   sessionId: string,
   onProgress?: ProgressCallback,
+  signal?: AbortSignal,
 ): Promise<Sage240_40Result> {
   // 2026-04-29: pauseLumberjack/resumeLumberjack wrapper removed — the
   // bracket logged misleadingly around only 240/40, making Order 66 look
   // sequential when both sages were genuinely in Promise.all parallel. The
   // legacy lumberjack 10-min cron was scrapped on 2026-04-21; the flag was
   // a leftover with no real consumer that mattered. Direct call from here.
-  return await _runSage240_40Inner(sessionId, onProgress)
+  return await _runSage240_40Inner(sessionId, onProgress, signal)
 }
 
 /**
@@ -792,16 +972,35 @@ type SageTrace = (event: string, payload?: Record<string, unknown>) => void
 async function _runSage240_40Inner(
   sessionId: string,
   onProgress?: ProgressCallback,
+  signal?: AbortSignal,
 ): Promise<Sage240_40Result> {
   const emit = onProgress || (() => {})
   const logsDir = getLogsDir(sessionId)
   await mkdir(logsDir, { recursive: true })
 
   const sessionMdPath = getSessionMdPath(sessionId)
-  const compressLogPath = path.join(logsDir, '.last-sage-240-40-log.md')
-  const cwd = path.resolve(process.cwd())
 
   const dreamTimestamp = new Date().toISOString()
+
+  // ── Unified triage log (Ralph 2026-05-18) ────────────────────────────────
+  // ONE log file per Sage run, name `sage-240-MM-DD-HH.mm.log`. All phases
+  // append to it (replaces the older `.last-sage-240-40-log.md` summary and
+  // every per-pass `_debug-sage-240-40-{stage}-{stamp}.log` audit file).
+  // Created here with a header; helper `appendLog()` is used everywhere
+  // downstream.
+  const triageLogPath = makeTriageLogPath(logsDir)
+  const { appendFile: appendFileAsync } = await import('fs/promises')
+  await writeFile(
+    triageLogPath,
+    `# Sage 240/40 — ${dreamTimestamp}\n` +
+      `# sessionId: ${sessionId}\n` +
+      `# sessionMdPath: ${sessionMdPath}\n\n`,
+    'utf-8',
+  ).catch(() => {})
+  const appendLog = async (text: string) => {
+    try { await appendFileAsync(triageLogPath, text.endsWith('\n') ? text : text + '\n', 'utf-8') }
+    catch {}
+  }
 
   // ── Trace-to-disk: TURNED OFF (Ralph 2026-05-03) ─────────────────────────
   // The decision-trace file (`_debug-sage-240-trace-{stamp}.log`) was useful
@@ -850,11 +1049,7 @@ async function _runSage240_40Inner(
     trace('skip-empty-file', {})
     await flushTrace()
     emit({ agent: 'lumberjack', phase: 'skipped', detail: 'SESSION.md empty' })
-    await writeFile(
-      compressLogPath,
-      `# Sage 240/40 — ${dreamTimestamp}\n## SESSION.md Size: 0 bytes\nNothing to compress.\n`,
-      'utf-8',
-    )
+    await appendLog(`## Result\nSESSION.md empty — nothing to compress.\n`)
     return {
       stats: {
         sessionMdSize: 0,
@@ -881,13 +1076,12 @@ async function _runSage240_40Inner(
       detail: `under trigger (${(inputSize / 1024).toFixed(1)}KB < 240KB)`,
     })
     const skipLog = `[240/40-SKIP] under trigger — file at ${inputSize} bytes (${(inputSize / 1024).toFixed(1)}KB), threshold ${SAGE_240_40_TRIGGER_BYTES} bytes (240KB)`
-    await writeFile(
-      compressLogPath,
-      `# Sage 240/40 — ${dreamTimestamp}\n` +
-        `## SESSION.md Size: ${inputSize} bytes\n` +
-        `## Triggered: false\n\n` +
-        `## Triage Log\n${skipLog}\n`,
-      'utf-8',
+    await appendLog(
+      `## Phase 0 · Trigger Check\n` +
+        `inputSize: ${inputSize} bytes (${(inputSize / 1024).toFixed(1)} KB)\n` +
+        `trigger:   ${SAGE_240_40_TRIGGER_BYTES} bytes (240 KB)\n` +
+        `result:    UNDER TRIGGER — skipped\n\n` +
+        `${skipLog}\n`,
     )
     return {
       stats: {
@@ -952,14 +1146,10 @@ async function _runSage240_40Inner(
     trace('skip-no-user-turns', {})
     await flushTrace()
     emit({ agent: 'lumberjack', phase: 'skipped', detail: 'no User turns to compress' })
-    await writeFile(
-      compressLogPath,
-      `# Sage 240/40 — ${dreamTimestamp}\n` +
-        `## SESSION.md Size: ${inputSize} bytes\n` +
-        `## Triggered: true\n` +
-        `## Applied: false\n\n` +
-        `## Triage Log\n[240/40-SKIP] no \`#### User | …\` turns found anywhere — no tissue to compress\n`,
-      'utf-8',
+    await appendLog(
+      `## Phase 0 · Self-heal\n` +
+        `no \`#### User | …\` turns found anywhere — cannot self-heal, refusing cut.\n\n` +
+        `[240/40-SKIP] no User turns found — nothing to compress\n`,
     )
     return {
       stats: {
@@ -993,107 +1183,127 @@ async function _runSage240_40Inner(
   // doesn't have to discover anything about the file itself.
   // ──────────────────────────────────────────────────────────────────────────
 
-  // Decide pass schedule (Ralph 2026-04-25):
-  //   - Block lines under USER SESSION DATA ≤ 1000 → 2 normal Block cuts
-  //   - Block lines under USD > 1000 → 1 Block cut + 1 Compact pass
-  //   The Compact pass folds the FIRST 3 Block entries (Blocks live under
-  //   USD now) into a single same-length Compact entry placed in LEDGER.
-  const blockLineCount = countBlockLinesInUserSection(workingSessionMd)
-  // Threshold: production = 1000. TEST OVERRIDE: env var SAGE_COMPACT_THRESHOLD
-  // (number of Block lines) lets a test force the Compact path on a session
-  // that hasn't accumulated 1000 lines yet.
-  const compactThreshold = parseInt(process.env.SAGE_COMPACT_THRESHOLD || '1000', 10)
-
-  // Tiered pass schedule (Ralph 2026-04-30):
-  //   ≥240 KB → 2 passes, ≥360 KB → 4, ≥480 KB → 6 (capped).
-  // Schedule is FIXED UP FRONT based on the file size + Block-line count at
-  // the moment Sage starts. We do NOT re-evaluate per pass — too much state
-  // churn, and the call from Order 65/66 is expected to leave at most one
-  // tier of headroom.
-  //
-  // Shape:
-  //   LEDGER under 1000 lines  → ALL cuts (evict fresh tissue every pass)
-  //   LEDGER ≥ 1000 lines      → first HALF cuts, second HALF compacts
-  //                               (2 passes → 1+1, 4 → 2+2, 6 → 3+3)
-  // Cuts always come first so we shed raw tissue before consolidating
-  // already-compressed Blocks.
-  const passCount = decidePassCount(inputSize)
-  const ledgerOverloaded = blockLineCount > compactThreshold
-  const schedule: Array<'cut' | 'compact'> = []
-  const cutCount = ledgerOverloaded ? Math.floor(passCount / 2) : passCount
-  for (let i = 0; i < passCount; i++) {
-    schedule.push(i < cutCount ? 'cut' : 'compact')
+  // ── Ensure the three Sage sections exist (Ralph 2026-05-18) ─────────────
+  // `## LEDGER` / `## COMPACTS` / `## BLOCKS` must be present before the
+  // schedule fires so new entries always have a home. Legacy entries that
+  // currently live in older locations stay put — the walker downstream is
+  // content-aware and finds them wherever they physically sit.
+  const sectionedMd = ensureSagesSections(workingSessionMd)
+  if (sectionedMd !== workingSessionMd) {
+    workingSessionMd = sectionedMd
+    await writeFile(sessionMdPath, workingSessionMd, 'utf-8')
+    console.log(`[sage-240-40] inserted missing ## LEDGER / ## COMPACTS / ## BLOCKS sections`)
+    await appendLog(`## Phase 0 · Section Bootstrap\ninserted missing Sage sections (LEDGER / COMPACTS / BLOCKS) before USD\n`)
   }
-  trace('schedule', { passCount, schedule, blockLineCount, compactThreshold, ledgerOverloaded, inputSize })
+
+  // ── Phase 1 · MEASURE ─────────────────────────────────────────────────────
+  // Content-aware walker scans the WHOLE file for `**Compact …**` and
+  // `**Block …**` openings. compact_span / block_span are the gates that
+  // decide whether the compact and ledger pass-types are queued.
+  const spans = measureSagesSpans(workingSessionMd)
+  const passCount = decidePassCount(inputSize)
+  const compactGateMet = spans.blockSpan >= SAGE_BLOCK_SPAN_GATE
+  const ledgerGateMet = spans.compactSpan >= SAGE_COMPACT_SPAN_GATE
+  trace('schedule.measure', { ...spans, passCount, compactGateMet, ledgerGateMet, inputSize })
+  await appendLog(
+    `## Phase 1 · Measure\n` +
+      `inputSize:      ${inputSize} bytes (${(inputSize / 1024).toFixed(1)} KB)\n` +
+      `compact_start:  line ${spans.compactStart}\n` +
+      `block_start:    line ${spans.blockStart}\n` +
+      `block_end:      line ${spans.blockEnd}\n` +
+      `compact_span:   ${spans.compactSpan} (gate ≥ ${SAGE_COMPACT_SPAN_GATE})\n` +
+      `block_span:     ${spans.blockSpan} (gate ≥ ${SAGE_BLOCK_SPAN_GATE})\n` +
+      `pass-count N:   ${passCount}\n`,
+  )
+
+  // ── Phase 2 · SCHEDULE ────────────────────────────────────────────────────
+  // Fixed up-front, no re-evaluation. Three pass-types stacked back-to-back:
+  //   N cuts  (always, if N>0)
+  //   N compacts  (only if block_span gate met)
+  //   N ledgers   (only if compact_span gate met)
+  // No early-break across types: a cut running out of tissue does NOT skip
+  // compacts/ledgers; a compact running out of blocks does NOT skip ledgers.
+  // Each pass-type drains its own material independently.
+  type PassKind = 'cut' | 'compact' | 'ledger'
+  const schedule: PassKind[] = []
+  for (let i = 0; i < passCount; i++) schedule.push('cut')
+  if (compactGateMet) for (let i = 0; i < passCount; i++) schedule.push('compact')
+  if (ledgerGateMet) for (let i = 0; i < passCount; i++) schedule.push('ledger')
+  trace('schedule.built', { schedule })
+  await appendLog(
+    `## Phase 2 · Schedule\n` +
+      `[${schedule.join(', ')}]\n` +
+      `cuts queued:    ${passCount}\n` +
+      `compacts queued:${compactGateMet ? passCount : 0}${compactGateMet ? '' : ' (gate not met)'}\n` +
+      `ledgers queued: ${ledgerGateMet ? passCount : 0}${ledgerGateMet ? '' : ' (gate not met)'}\n`,
+  )
   emit({
     agent: 'lumberjack',
     phase: 'compacting',
-    detail: `Schedule: ${passCount} pass${passCount === 1 ? '' : 'es'} (${schedule.join(' → ')}) — input ${(inputSize / 1024).toFixed(1)}KB, blocks ${blockLineCount} lines${ledgerOverloaded ? ' (over 1000)' : ''}`,
+    detail: `Schedule: ${schedule.length} pass${schedule.length === 1 ? '' : 'es'} (${schedule.join(' → ')}) — input ${(inputSize / 1024).toFixed(1)}KB`,
   })
   const streamFwd = (evt: { type: string; detail: string }) =>
     emit({ agent: 'lumberjack', phase: 'stream', stage: evt.type, detail: evt.detail })
 
   let triageLog = ''
 
+  // ── Phase 3 · EXECUTE ────────────────────────────────────────────────────
+  // No early-break across pass types. Each pass attempts independently.
   for (let i = 0; i < schedule.length; i++) {
+    // Abort check (Ralph 2026-05-13). Client disconnected (Order 66 Continue)
+    // → don't start another pass. Each pass spawns a fresh child and
+    // overwrites SESSION.md; starting a new one after abort is exactly the
+    // stale-overwrite that butchered the file. The in-flight pass already got
+    // SIGTERM'd via the signal threaded into callAnthropic and returned
+    // agent-fail (no write).
+    if (signal?.aborted) {
+      trace('aborted-mid-schedule', { atPass: i + 1, total: schedule.length })
+      await appendLog(`\n## ABORTED — client disconnected before pass ${i + 1}/${schedule.length}\n`)
+      break
+    }
     const passNum = i + 1
-    let kind = schedule[i]
+    const kind: PassKind = schedule[i]
 
     // Re-read working content before every pass so we pick chunks /
-    // Blocks against the freshest disk state (each cut/compact mutates
+    // Blocks / Compacts against the freshest disk state (each pass mutates
     // SESSION.md in place).
     const currentMd = await readFile(sessionMdPath, 'utf-8').catch(() => workingSessionMd)
-    // Ralph 2026-05-03: progress at the START of the pass = where the bar
-    // sits while the agent runs. Pass 1 starts at 25% (right where 'reading'
-    // left it), pass 2 at 55% (where pass 1's success advanced it), etc.
-    // Without this, the overlay falls through the phase-table and pins
-    // ljPct = 55 immediately on the first 'compacting' event.
     const passStartProgress = 25 + ((passNum - 1) / schedule.length) * 60
     emit({
       agent: 'lumberjack',
       phase: 'compacting',
-      detail: `Pass ${passNum}/${schedule.length}: ${kind === 'cut' ? 'Block cut' : 'Compact'}…`,
+      detail: `Pass ${passNum}/${schedule.length}: ${kind === 'cut' ? 'Block cut' : kind === 'compact' ? 'Compact fold' : 'Ledger fold'}…`,
       progress: passStartProgress,
     })
 
     trace(`pass-${passNum}-start`, { kind, passNum, total: schedule.length, currentBytes: currentMd.length })
+    await appendLog(`\n## Phase 3 · Pass ${passNum}/${schedule.length} · ${kind}\n`)
 
-    let result: SageCutResult | SageCompactResult
+    let result: SageCutResult | SageCompactResult | SageLedgerResult
     if (kind === 'cut') {
-      result = await performOneSageCut(sessionMdPath, currentMd, logsDir, `cut${passNum}`, streamFwd, trace)
-      // Ralph 2026-04-30 (3.b): on no-tissue mid-run, FALL BACK to a compact
-      // pass instead of skipping the slot. Useful late in a 6-pass run when
-      // we've consumed every eligible chunk but Blocks are stacking up.
-      if (result.kind === 'no-tissue') {
-        trace(`pass-${passNum}-cut-no-tissue-fallback-to-compact`, {})
-        emit({
-          agent: 'lumberjack',
-          phase: 'compacting',
-          detail: `Pass ${passNum}: cut had no tissue — falling back to compact`,
-        })
-        result = await performOneSageCompact(sessionMdPath, currentMd, logsDir, `compact${passNum}`, streamFwd, trace)
-        kind = 'compact'
-      }
+      result = await performOneSageCut(sessionMdPath, currentMd, logsDir, `cut${passNum}`, streamFwd, trace, triageLogPath, signal)
+    } else if (kind === 'compact') {
+      result = await performOneSageCompact(sessionMdPath, currentMd, logsDir, `compact${passNum}`, streamFwd, trace, triageLogPath, signal)
     } else {
-      result = await performOneSageCompact(sessionMdPath, currentMd, logsDir, `compact${passNum}`, streamFwd, trace)
+      result = await performOneSageLedger(sessionMdPath, currentMd, logsDir, `ledger${passNum}`, streamFwd, trace, triageLogPath, signal)
     }
     trace(`pass-${passNum}-result`, { kind: result.kind, passKind: kind })
 
     if (result.kind === 'ok') {
+      let logLine = ''
       if (kind === 'cut') {
         const r = result as Extract<SageCutResult, { kind: 'ok' }>
-        triageLog += (triageLog ? '\n' : '') +
-          `[240/40-CUT] Block ${r.blockLetter} — ${r.title} (${r.timeRange}), tissue lines ${r.startLine}–${r.endLine} deleted (~${(r.bytesCut / 1024).toFixed(1)}KB)`
-      } else {
+        logLine = `[240/40-CUT] Block ${r.blockLetter} — ${r.title} (${r.timeRange}), tissue lines ${r.startLine}–${r.endLine} deleted (~${(r.bytesCut / 1024).toFixed(1)}KB)`
+      } else if (kind === 'compact') {
         const r = result as Extract<SageCompactResult, { kind: 'ok' }>
-        triageLog += (triageLog ? '\n' : '') +
-          `[240/40-COMPACT] Compact ${r.compactLabel} — ${r.title} (${r.timeRange}), folded Blocks ${r.foldedLetters.join(', ')} (~${(r.bytesCut / 1024).toFixed(1)}KB saved)`
+        logLine = `[240/40-COMPACT] Compact ${r.compactLabel} — ${r.title} (${r.timeRange}), folded Blocks ${r.foldedLetters.join(', ')} (~${(r.bytesCut / 1024).toFixed(1)}KB saved)`
+      } else {
+        const r = result as Extract<SageLedgerResult, { kind: 'ok' }>
+        logLine = `[240/40-LEDGER] Ledger entry (${r.timeRange}), folded ${r.foldedCount} Compacts (~${(r.bytesCut / 1024).toFixed(1)}KB saved)`
       }
-      // ── Lumberjack-bar progress (Ralph 2026-05-03) ────────────────────
-      // After every successful pass (cut OR compact), advance the bar
-      // by exactly one slot of 60 / passCount within the 25-85% range.
-      // Three possibilities for passCount (per decidePassCount): 2, 4, 6.
-      // → 30 / 15 / 10 points per pass respectively.
+      triageLog += (triageLog ? '\n' : '') + logLine
+      await appendLog(`result: OK\n${logLine}\n`)
+
       const progress = 25 + (passNum / schedule.length) * 60
       trace(`pass-${passNum}-progress`, { progress, passNum, total: schedule.length })
       emit({
@@ -1103,21 +1313,23 @@ async function _runSage240_40Inner(
         progress,
       })
     } else if (result.kind === 'no-tissue') {
-      // We already tried the compact fallback for cuts; if still no-tissue,
-      // there's nothing left to do — break out, don't waste remaining passes.
-      const reason = kind === 'cut'
-        ? 'no eligible tissue past USER SESSION DATA marker'
-        : 'fewer than 3 normal Blocks available to fold'
-      triageLog += (triageLog ? '\n' : '') + `[240/40-SKIP] pass ${passNum}: ${reason}`
-      trace(`pass-${passNum}-aborted-no-tissue`, { reason })
-      emit({ agent: 'lumberjack', phase: 'skipped', detail: `Pass ${passNum} aborted: ${reason}; stopping schedule early` })
-      break
+      const reason =
+        kind === 'cut'    ? 'no eligible tissue past USER SESSION DATA marker' :
+        kind === 'compact'? 'fewer than 3 Blocks available to fold' :
+                            'fewer than 3 Compacts available to fold'
+      const logLine = `[240/40-SKIP] pass ${passNum} (${kind}): ${reason}`
+      triageLog += (triageLog ? '\n' : '') + logLine
+      trace(`pass-${passNum}-no-tissue-continue`, { reason, kind })
+      await appendLog(`result: NO-TISSUE\n${logLine}\n(continuing — does not block other pass types)\n`)
+      emit({ agent: 'lumberjack', phase: 'skipped', detail: `Pass ${passNum} (${kind}) skipped: ${reason}` })
+      // CONTINUE — do not break. Other pass types may still have material.
     } else {
-      // agent-fail — log it and stop the schedule (next pass would likely fail too).
-      triageLog += (triageLog ? '\n' : '') + `[240/40-ERROR] pass ${passNum}: agent call failed`
-      trace(`pass-${passNum}-aborted-agent-fail`, {})
-      emit({ agent: 'lumberjack', phase: 'failed', detail: `Pass ${passNum} agent call failed; stopping schedule early` })
-      break
+      // agent-fail — log it, continue (other pass types may still succeed).
+      const logLine = `[240/40-ERROR] pass ${passNum} (${kind}): agent call failed`
+      triageLog += (triageLog ? '\n' : '') + logLine
+      trace(`pass-${passNum}-agent-fail-continue`, { kind })
+      await appendLog(`result: AGENT-FAIL\n${logLine}\n(continuing — does not block other passes)\n`)
+      emit({ agent: 'lumberjack', phase: 'failed', detail: `Pass ${passNum} (${kind}) agent call failed` })
     }
   }
 
@@ -1139,31 +1351,49 @@ async function _runSage240_40Inner(
       : 'no cut applied',
   })
 
-  await writeFile(
-    compressLogPath,
-    `# Sage 240/40 — ${dreamTimestamp}\n` +
-      `## SESSION.md Size In: ${inputSize} bytes\n` +
-      `## SESSION.md Size Out: ${outputSize} bytes\n` +
-      `## Bytes Cut: ${bytesCut}\n` +
-      `## Triggered: true\n` +
-      `## Applied: ${applied}\n` +
-      `## Snapshot: ${snapshotPath} (kept for ${(SAGE_SNAPSHOT_TTL_MS / 3600_000).toFixed(0)}h, swept on next Sage run)\n\n` +
+  await appendLog(
+    `\n## Phase 4 · Final\n` +
+      `inputSize:   ${inputSize} bytes (${(inputSize / 1024).toFixed(1)} KB)\n` +
+      `outputSize:  ${outputSize} bytes (${(outputSize / 1024).toFixed(1)} KB)\n` +
+      `bytesCut:    ${bytesCut}\n` +
+      `applied:     ${applied}\n` +
+      `snapshot:    ${snapshotPath} (swept on success path)\n\n` +
       `## Triage Log\n${triageLog}\n`,
-    'utf-8',
   )
 
-  // 2026-04-30 (Ralph + CD): NEVER delete the snapshot here, even on
-  // successful cuts. The previous "auto-delete on success" policy
-  // looked sensible — clean up artifacts when the operation succeeds —
-  // but it eliminated the rollback path the moment a "successful" cut
-  // turned out to have destroyed content. Snapshots from successful
-  // cuts are the most valuable rollback targets when the bug isn't
-  // detected until after success was reported. Cleanup happens lazily
-  // at the start of the NEXT Sage run via sweepOldSnapshots() with a
-  // 24h TTL — see SAGE_SNAPSHOT_TTL_MS.
-  console.log(
-    `[sage-240-40] snapshot retained at ${snapshotPath} (will be swept after ${(SAGE_SNAPSHOT_TTL_MS / 3600_000).toFixed(0)}h)`,
-  )
+  // 2026-05-16 (Ralph reversal of 2026-04-30 doctrine): on successful
+  // completion, sweep ALL pre-prune snapshots for this session. The
+  // earlier "never delete on success — keep 24h for rollback" was
+  // adopted because a destructive cut bug (2026-04-30, 433KB→67KB)
+  // had silently passed as "success" and the snapshot was the only
+  // path back. Since then the safety net is stronger:
+  //   - seam-anchor fix (2026-05-12) eliminates mid-turn cuts
+  //   - header-validation gates refuse splice on letter/timestamp drift
+  //   - validation gates on cut window + post-write byte ranges
+  // If those passed, the snapshot is dead weight. Operator can re-run
+  // from git history if needed. Snapshots only persist on failure paths
+  // (those throw or return early before reaching this code).
+  try {
+    const { readdir, unlink } = await import('fs/promises')
+    const dir = path.dirname(sessionMdPath)
+    const baseName = path.basename(sessionMdPath)
+    const prefix = `${baseName}.pre-prune-`
+    const entries = await readdir(dir)
+    const swept: string[] = []
+    for (const name of entries) {
+      if (!name.startsWith(prefix)) continue
+      await unlink(path.join(dir, name)).catch(() => {})
+      swept.push(name)
+    }
+    if (swept.length > 0) {
+      console.log(
+        `[sage-240-40] swept ${swept.length} pre-prune snapshot(s) on successful completion: ${swept.join(', ')}`,
+      )
+      trace('snapshots-swept-on-success', { count: swept.length, files: swept })
+    }
+  } catch (err) {
+    console.warn(`[sage-240-40] snapshot cleanup failed (ignored): ${err}`)
+  }
 
   console.log(
     `[sage-240-40] Cycle complete — ${inputSize}B → ${outputSize}B (cut ${bytesCut}B, applied=${applied})`,
@@ -1281,6 +1511,8 @@ async function performOneSageCut(
   stageLabel?: string,
   onStreamEvent?: (e: { type: string; detail: string }) => void,
   trace?: SageTrace,
+  triageLogPath?: string,
+  signal?: AbortSignal,
 ): Promise<SageCutResult> {
   // Always-trace helper — degrades to no-op when caller didn't pass one.
   const tr: SageTrace = trace || (() => {})
@@ -1416,32 +1648,36 @@ async function performOneSageCut(
   //     protection now.
   //   - 30-line floor — small windows are fine. The file converges
   //     naturally when there's nothing more to cut.
-  let cutEnd = Math.min(cutStart + 200, sectionEnd)
-  const naiveCutEnd = cutEnd
-
-  // Snap-forward to next `---\n#### User|CD` boundary within +100 lines.
-  // The cut ends on the line BEFORE the `---` (so the trailing CD reply
-  // is included; the `---` and everything after stays).
+  // Walk forward from cutStart+200 until we hit a clean `---\n#### User|CD`
+  // seam. The seam IS cutEnd. No mid-turn fallback — if no seam exists in
+  // the cuttable region (cutStart+200 → sectionEnd), the file has converged
+  // or is corrupt; abort rather than cut mid-conversation.
+  //
+  // Ralph 2026-05-12: previous code capped the snap-search at +100 lines
+  // and fell through to `cutEnd = cutStart + 200` when no seam was found,
+  // producing mid-turn cuts whenever a User→CD exchange ran longer than
+  // ~100 lines (common for long audit/critique replies). The mid-turn
+  // chunks dribbled half-turns back into the file, polluting subsequent
+  // passes.
   const turnHeaderRe = /^####\s+(?:User|CD)\s*\|/i
-  const snapLimit = Math.min(cutEnd + 100, sectionEnd)
-  let snappedTo: number | null = null
-  for (let i = cutEnd; i < snapLimit - 1; i++) {
+  let cutEnd: number | null = null
+  for (let i = cutStart + 200; i < sectionEnd; i++) {
     if (lines[i].trim() === '---' && turnHeaderRe.test(lines[i + 1])) {
-      // Boundary found. cutEnd should be the `---` line itself (exclusive
-      // upper bound), so the splice removes everything strictly before
-      // the `---`.
       cutEnd = i
-      snappedTo = i
       break
     }
   }
   tr(`cut.${stageLabel || 'cut'}.snap-forward`, {
     cutStart,
-    naiveCutEnd,
-    snappedTo,
-    finalCutEnd: cutEnd,
-    snapLimit,
+    minCutEnd: cutStart + 200,
+    sectionEnd,
+    foundAt: cutEnd,
   })
+  if (cutEnd === null) {
+    tr(`cut.${stageLabel || 'cut'}.no-seam`, { cutStart, sectionEnd })
+    note('cut: no clean turn seam past cutStart+200 — file converged or corrupt')
+    return { kind: 'no-tissue' }
+  }
 
   tr(`cut.${stageLabel || 'cut'}.window-final`, {
     cutStart,
@@ -1515,12 +1751,12 @@ async function performOneSageCut(
     `## CHUNK TO COMPRESS\n\n` +
     chunk
 
-  const cutDebugLog = logsDir
-    ? path.join(
-        logsDir,
-        `_debug-sage-240-40-${stageLabel || 'cut'}-${new Date().toISOString().replace(/[:.]/g, '-')}.log`,
-      )
-    : undefined
+  // Ralph 2026-05-18: per-pass debug log deleted; the unified triage log
+  // (one per Sage run, `sage-240-MM-DD-HH.mm.log`) receives the prompt /
+  // response / result via dreamer.ts's appendLog after the call returns.
+  // callAnthropic's logPath stays undefined here so it doesn't open its
+  // own stream-json audit file. Live stream events still flow through
+  // onStreamEvent → CompactionOverlay (unchanged).
   // Sage 240/40 emits as 'lumberjack' agent (took the slot when legacy
   // Lumberjack was scrapped) so the overlay routes its stream to the
   // Lumberjack-track feed.
@@ -1533,13 +1769,40 @@ async function performOneSageCut(
     cutStart,
     cutEnd,
   })
+  // Append the prompt to the unified triage log BEFORE calling, so a
+  // hang/timeout leaves the prompt visible in disk state.
+  if (triageLogPath) {
+    try {
+      const { appendFile } = await import('fs/promises')
+      await appendFile(
+        triageLogPath,
+        `### CUT prompt — ${stageLabel || 'cut'}\n` +
+          `nextLetter=${nextLetter} chunkDate=${chunkDate} timeRange="${timeRange}" ` +
+          `chunkLines=${chunkLines.length} chunkBytes=${chunkBytes} window=${cutStart + 1}–${cutEnd}\n` +
+          '```\n' + userMessage + '\n```\n',
+        'utf-8',
+      )
+    } catch {}
+  }
   const response = await callAnthropic(
     DREAMER_MODEL,
     userMessage,
     agentFile,
-    cutDebugLog,
+    undefined,
     onStreamEvent,
+    signal,
   )
+  if (triageLogPath) {
+    try {
+      const { appendFile } = await import('fs/promises')
+      await appendFile(
+        triageLogPath,
+        `### CUT response — ${stageLabel || 'cut'}\n` +
+          '```\n' + (response || '<null>') + '\n```\n',
+        'utf-8',
+      )
+    } catch {}
+  }
   if (!response) {
     tr(`cut.${stageLabel || 'cut'}.agent-null`, {})
     console.error('[sage-240-40] Agent call returned null on cut')
@@ -1617,11 +1880,12 @@ async function performOneSageCut(
   const titleMatch = blockEntry.match(/\*\*Block\s+[A-Z]+\s+—\s+([^*(]+?)(?:\*\*|\()/)
   const title = (titleMatch ? titleMatch[1] : 'untitled').trim()
 
-  // ── JS does the actual edit (Ralph 2026-04-25 architecture):
-  //   1. Splice the chunk out of `lines`
-  //   2. Insert the Block entry under `## USER SESSION DATA` with a
-  //      `### ${chunkDate}` sub-header (create one if missing). Blocks live
-  //      in the user part now; LEDGER is reserved for Compacts.
+  // ── JS does the actual edit (Ralph 2026-05-18 architecture):
+  //   1. Splice the chunk out of USD (tissue zone)
+  //   2. Insert the Block entry under `## BLOCKS` with a `### ${chunkDate}`
+  //      sub-header (create one if missing, chronologically sorted).
+  //      `## USER SESSION DATA` now holds tissue ONLY; Blocks live in their
+  //      own dedicated section above USD.
   // ────────────────────────────────────────────────────────────────────────
 
   // Step 1: remove the chunk
@@ -1633,43 +1897,72 @@ async function performOneSageCut(
     afterLineCount: after.length,
   })
 
-  // Step 2: locate USER SESSION DATA section bounds in `after`
-  const usd = findSectionBounds(after, /^##\s+USER\s+SESSION\s+DATA/i)
-  if (!usd) {
-    console.error('[sage-240-40] No ## USER SESSION DATA marker — refusing edit')
+  // Step 2: locate `## BLOCKS` section bounds in `after`.
+  // ensureSagesSections in _runSage240_40Inner created it if missing.
+  //
+  // Ralph 2026-05-19: lastMatch:true defensive parity with the COMPACT and
+  // LEDGER passes — guards against a legacy template that leaves an empty
+  // `## BLOCKS` placeholder near the top of the file. The active section is
+  // always the last `## BLOCKS` header in document order.
+  const blocksSection = findSectionBounds(after, /^##\s+BLOCKS\b/i, { lastMatch: true })
+  if (!blocksSection) {
+    console.error('[sage-240-40] No ## BLOCKS section — refusing edit')
     return { kind: 'agent-fail' }
-  }
-
-  // Find existing date sub-headers (under USD) that already host Blocks
-  // and look for our chunk date. We only consider sub-headers that come
-  // BEFORE the first raw `#### User | …` turn — anything after that is
-  // tissue, not Block territory.
-  let blockRegionEnd = usd.end
-  for (let i = usd.start + 1; i < usd.end; i++) {
-    if (/^####\s+(?:User|CD)\s*\|/i.test(after[i])) { blockRegionEnd = i; break }
   }
 
   const dateHeader = `### ${chunkDate}`
   let dateHeaderIdx = -1
-  for (let i = usd.start + 1; i < blockRegionEnd; i++) {
+  for (let i = blocksSection.start + 1; i < blocksSection.end; i++) {
     if (after[i].trim() === dateHeader) { dateHeaderIdx = i; break }
   }
 
   if (dateHeaderIdx < 0) {
     // Insert in chronological order among existing date sub-headers in
-    // the Block region. Place ours so dates stay sorted.
-    let insertAt = blockRegionEnd
-    for (let i = usd.start + 1; i < blockRegionEnd; i++) {
+    // the BLOCKS section.
+    let insertAt = blocksSection.end
+    for (let i = blocksSection.start + 1; i < blocksSection.end; i++) {
       const m = after[i].match(/^###\s+(\d{4}-\d{2}-\d{2})/)
       if (m && m[1] > chunkDate) { insertAt = i; break }
     }
     after.splice(insertAt, 0, '', dateHeader, '', blockEntry, '')
   } else {
-    // Append under the existing date sub-header. Insert just before the
-    // next `### ` / `##` / raw `#### User|CD` boundary.
-    let insertAt = blockRegionEnd
-    for (let i = dateHeaderIdx + 1; i < blockRegionEnd; i++) {
-      if (/^###\s/.test(after[i]) || /^##\s/.test(after[i]) || /^####\s+(?:User|CD)\s*\|/i.test(after[i])) {
+    // Ralph 2026-05-19: insert chronologically by START TIME within the
+    // existing date sub-header. The previous behaviour was a blind append
+    // at the date sub-header's end, which produced doc-order ≠ time-order
+    // when the agent walked tissue out of chronological sequence (e.g.
+    // cut the 13:00 chunk before the 02:00 chunk that day). The downstream
+    // Compact fold then took the first-by-doc-order and last-by-doc-order
+    // blocks and emitted a `(13:00 → 02:00)` temporal-inversion title.
+    //
+    // Algorithm: walk every Block opening under this date sub-header until
+    // the next `### ` / `## ` boundary. Parse each existing Block's start
+    // time. Insert THIS Block immediately before the first existing Block
+    // whose start time is greater than this one's start time. If none is
+    // greater, insert at the sub-header's natural end.
+    const blockHeaderRe = /^\*\*Block\s+[A-Z]+\s+[—-]\s+/
+    // Parse the new Block's own start time so we know where to land.
+    const newTimeMatch = blockEntry.match(/^\*\*Block\s+[A-Z]+\s+[—-]\s+[^*]+\*\*\s*\(([^)]+)\)/)
+    const newStart = newTimeMatch ? parseBlockTimeRange(newTimeMatch[1]) : null
+    const newKey = newStart
+      ? `${newStart.startDate || chunkDate} ${newStart.startTime || '00:00'}`
+      : `${chunkDate} 00:00`
+
+    let subHeaderEnd = blocksSection.end
+    for (let i = dateHeaderIdx + 1; i < blocksSection.end; i++) {
+      if (/^###\s/.test(after[i]) || /^##\s/.test(after[i])) {
+        subHeaderEnd = i
+        break
+      }
+    }
+
+    let insertAt = subHeaderEnd
+    for (let i = dateHeaderIdx + 1; i < subHeaderEnd; i++) {
+      if (!blockHeaderRe.test(after[i])) continue
+      const m = after[i].match(/^\*\*Block\s+[A-Z]+\s+[—-]\s+[^*]+\*\*\s*\(([^)]+)\)/)
+      if (!m) continue
+      const existing = parseBlockTimeRange(m[1])
+      const existingKey = `${existing.startDate || chunkDate} ${existing.startTime || '00:00'}`
+      if (existingKey > newKey) {
         insertAt = i
         break
       }
@@ -1704,12 +1997,29 @@ async function performOneSageCut(
  * Find a top-level `## ` section's bounds. Returns the start index (the
  * `## ` header line) and the end index (the line index of the NEXT `## `
  * top-level header, or the end-of-file). Returns `null` if not found.
+ *
+ * `opts.lastMatch: true` walks BACKWARDS to find the rightmost section.
+ * Use this when the file may legitimately or accidentally have duplicate
+ * headers — e.g., `## LEDGER` appears twice in some session templates
+ * (a legacy `(empty)` placeholder near the top + the active LEDGER near
+ * USD). Compacts must land in the LATER LEDGER (the active one); the
+ * first-match default would dump them in the empty placeholder where
+ * they'd be invisible. Ralph 2026-05-16.
  */
 function findSectionBounds(
   lines: string[],
   headerRe: RegExp,
+  opts: { lastMatch?: boolean } = {},
 ): { start: number; end: number } | null {
-  const start = lines.findIndex((l) => headerRe.test(l))
+  let start: number
+  if (opts.lastMatch) {
+    start = -1
+    for (let i = lines.length - 1; i >= 0; i--) {
+      if (headerRe.test(lines[i])) { start = i; break }
+    }
+  } else {
+    start = lines.findIndex((l) => headerRe.test(l))
+  }
   if (start < 0) return null
   let end = lines.length
   for (let i = start + 1; i < lines.length; i++) {
@@ -1718,30 +2028,17 @@ function findSectionBounds(
   return { start, end }
 }
 
-/**
- * Count the LINES that belong to Block entries within `## USER SESSION DATA`
- * (since Ralph 2026-04-25: Blocks now live in the user part, not LEDGER).
- * Trigger: > 1000 → switch second Sage-240 pass to Compact.
- *
- * "Block lines" = the start of the first Block under USD through the end
- * of the last Block (just before raw tissue starts). If no Blocks exist
- * yet under USD, returns 0.
- */
-function countBlockLinesInUserSection(sessionMd: string): number {
-  const lines = sessionMd.split('\n')
-  const usd = findSectionBounds(lines, /^##\s+USER\s+SESSION\s+DATA/i)
-  if (!usd) return 0
-  const blocks = findBlockEntries(lines, usd.start, usd.end)
-  if (blocks.length === 0) return 0
-  return blocks[blocks.length - 1].endLine - blocks[0].startLine
-}
+// `countBlockLinesInUserSection` removed Ralph 2026-05-18 — superseded by
+// `measureSagesSpans` (content-aware whole-file walker) for the new
+// triple-tier schedule.
 
 // ───────────────────────────────────────────────────────────────────────────
 // Sage-240/40 — COMPACT pass (Ralph 2026-04-25)
 //
-// When the LEDGER section grows past 1000 lines, Order 66 switches the
-// second pass from "cut tissue → write Block" to "fold first 3 Blocks →
-// write 1 Compact." The Compact replaces the 3 Blocks in-place and is
+// When the LEDGER section grows past 400 lines (Ralph 2026-05-12, lowered
+// from 1000), Order 66 switches the second-half passes from "cut tissue →
+// write Block" to "fold first 3 Blocks → write 1 Compact." The Compact
+// replaces the 3 Blocks in-place and is
 // the same length as a single Block — so 3-to-1 size reduction (~30%
 // of the original three combined).
 //
@@ -1768,6 +2065,29 @@ type SageCompactResult =
       title: string
       timeRange: string
       foldedLetters: string[]
+      bytesCut: number
+    }
+
+// ─── Ledger pass (Ralph 2026-05-18) ────────────────────────────────────────
+// 3 OLDEST Compact entries → 1 Ledger entry. Ledger entry has NO title —
+// header is just `- DD.MMM.YY HH:MM → DD.MMM.YY HH:MM` followed by prose.
+interface CompactEntry {
+  label: string          // e.g. "A-C" or "BT-BX"
+  title: string
+  timeRange: string      // raw parens content from the **Compact …** opening
+  startLine: number      // index of the `**Compact …**` opening line
+  endLine: number        // index just AFTER the entry (exclusive)
+  text: string           // full entry text including blank-line gutter
+}
+
+type SageLedgerResult =
+  | { kind: 'no-tissue' }
+  | { kind: 'agent-fail' }
+  | {
+      kind: 'ok'
+      timeRange: string          // formatted as `DD.MMM.YY HH:MM → …`
+      foldedCount: number        // always 3 for current spec
+      foldedLabels: string[]     // the Compact labels we folded
       bytesCut: number
     }
 
@@ -1815,33 +2135,49 @@ async function performOneSageCompact(
   stageLabel?: string,
   onStreamEvent?: (e: { type: string; detail: string }) => void,
   trace?: SageTrace,
+  triageLogPath?: string,
+  signal?: AbortSignal,
 ): Promise<SageCompactResult> {
   const tr: SageTrace = trace || (() => {})
   tr(`compact.${stageLabel || 'compact'}.start`, { inputBytes: sessionMd.length })
-  // Synthesized stream-event helper — keeps the live feed observability
-  // identical for compact whether or not callAnthropic is reached. Without
-  // this, every early-return path goes to console.warn only and the user
-  // sees dead air in the COMPACTION LIVE FEED.
   const note = (detail: string) => {
     if (onStreamEvent) {
       try { onStreamEvent({ type: 'compact', detail }) } catch {}
     }
   }
-  note(`compact ${stageLabel || ''}: scanning USER SESSION DATA for Block entries…`)
+  note(`compact ${stageLabel || ''}: scanning whole file for Block entries…`)
 
+  // Ralph 2026-05-18: content-aware Block finder. Scan the WHOLE file for
+  // `**Block X — …**` openings — finds Blocks wherever they physically
+  // live (the new `## BLOCKS` section, or legacy locations under
+  // `## USER SESSION DATA`).
+  //
+  // Ralph 2026-05-19 (chronological-fold fix): the OLD logic picked the 3
+  // OLDEST Blocks by DOCUMENT ORDER. That sounds right but breaks when
+  // Block insertion under an existing `### YYYY-MM-DD` sub-header appends
+  // multiple Blocks in cut-order rather than tissue-time-order — e.g.
+  // the agent cuts the 13:00 tissue chunk before the 02:00 tissue chunk,
+  // and both land under the same date with [13:00, 02:00] in doc order.
+  // The Compact fold then took those 3 and produced a title with the
+  // first Block's START and the last Block's END — `(13:00 → 02:00)` —
+  // a temporal inversion. Downstream Ledger folds inherited the inversion.
+  //
+  // Fix: sort by parsed start-date+time BEFORE slicing the oldest 3.
+  // Doc order is no longer a load-bearing assumption.
   const lines = sessionMd.split('\n')
-  const usd = findSectionBounds(lines, /^##\s+USER\s+SESSION\s+DATA/i)
-  if (!usd) {
-    console.warn('[sage-240-40] compact: no USER SESSION DATA marker')
-    note('compact: no USER SESSION DATA marker — skipping')
+  const allBlocks = findBlockEntries(lines, 0, lines.length)
+  if (allBlocks.length < 3) {
+    console.warn(`[sage-240-40] compact: only ${allBlocks.length} Block entries found — need 3, skipping`)
+    note(`compact: only ${allBlocks.length} Block entries available — need 3 to fold, skipping`)
     return { kind: 'no-tissue' }
   }
-  const blocks = findBlockEntries(lines, usd.start, usd.end)
-  if (blocks.length < 3) {
-    console.warn(`[sage-240-40] compact: only ${blocks.length} Block entries under USD — need 3, skipping`)
-    note(`compact: only ${blocks.length} Block entries available — need 3 to fold, skipping`)
-    return { kind: 'no-tissue' }
-  }
+  const blocks = [...allBlocks].sort((a, b) => {
+    const ap = parseBlockTimeRange(a.timeRange)
+    const bp = parseBlockTimeRange(b.timeRange)
+    const aKey = `${ap.startDate || '0000-00-00'} ${ap.startTime || '00:00'}`
+    const bKey = `${bp.startDate || '0000-00-00'} ${bp.startTime || '00:00'}`
+    return aKey.localeCompare(bKey)
+  })
   note(`compact: folding Blocks ${blocks.slice(0, 3).map(b => b.letter).join(', ')} → 1 Compact entry`)
 
   const toFold = blocks.slice(0, 3)
@@ -1883,19 +2219,39 @@ async function performOneSageCompact(
     `## THREE BLOCKS TO FOLD\n\n` +
     combinedText
 
-  const compactDebugLog = logsDir
-    ? path.join(
-        logsDir,
-        `_debug-sage-240-40-${stageLabel || 'compact'}-${new Date().toISOString().replace(/[:.]/g, '-')}.log`,
+  // Ralph 2026-05-18: per-pass debug log deleted. Prompt + response are
+  // appended to the unified triage log (see triageLogPath).
+  if (triageLogPath) {
+    try {
+      const { appendFile } = await import('fs/promises')
+      await appendFile(
+        triageLogPath,
+        `### COMPACT prompt — ${stageLabel || 'compact'}\n` +
+          `compactLabel=${compactLabel} timeRange="${timeRange}" combinedBytes=${combinedBytes}\n` +
+          '```\n' + userMessage + '\n```\n',
+        'utf-8',
       )
-    : undefined
+    } catch {}
+  }
   const response = await callAnthropic(
     DREAMER_MODEL,
     userMessage,
     agentFile,
-    compactDebugLog,
+    undefined,
     onStreamEvent,
+    signal,
   )
+  if (triageLogPath) {
+    try {
+      const { appendFile } = await import('fs/promises')
+      await appendFile(
+        triageLogPath,
+        `### COMPACT response — ${stageLabel || 'compact'}\n` +
+          '```\n' + (response || '<null>') + '\n```\n',
+        'utf-8',
+      )
+    } catch {}
+  }
   if (!response) {
     console.error('[sage-240-40] compact: agent returned null')
     return { kind: 'agent-fail' }
@@ -1913,14 +2269,12 @@ async function performOneSageCompact(
   const titleMatch = compactEntry.match(/\*\*Compact\s+[A-Z0-9,\-\s]+\s+[—-]\s+([^*(]+?)(?:\*\*|\()/)
   const title = (titleMatch ? titleMatch[1] : 'untitled').trim()
 
-  // ── Two-stage edit (Ralph 2026-04-25):
-  //   1. Remove the 3 Block entries from USER SESSION DATA.
-  //   2. Insert the Compact under `## LEDGER` with a date sub-header
-  //      matching the chunk's start date.
+  // ── Two-stage edit (Ralph 2026-05-18):
+  //   1. Remove the 3 Block entries wherever they sit (new `## BLOCKS`
+  //      section or legacy under `## USER SESSION DATA`).
+  //   2. Insert the Compact under `## COMPACTS` with a `### date` sub-header
+  //      derived from the first folded Block's start date.
 
-  // Compute removal range: from first Block's start through last Block's end.
-  // Also sweep up an immediately-preceding `### YYYY-MM-DD` if it's now
-  // orphaned (no other Blocks under it). Same for trailing blank lines.
   const after = [...lines]
   const removeFrom = toFold[0].startLine
   let removeTo = toFold[toFold.length - 1].endLine
@@ -1928,16 +2282,6 @@ async function performOneSageCompact(
   while (removeTo < after.length && after[removeTo].trim() === '') removeTo++
   after.splice(removeFrom, removeTo - removeFrom)
 
-  // 2026-04-30 (Ralph): Derive LEDGER sub-header date from the first folded
-  // Block's title parens (now dated). Fall back to mining the Block's prose
-  // text (legacy Blocks without dated titles), then to today.
-  //
-  // The previous implementation regex-mined the Block's narrative paragraph
-  // for `YYYY-MM-DD HH:MM` — but the prose doesn't contain that pattern, so
-  // every Compact got dated `new Date()` (today) regardless of when the
-  // folded Blocks actually happened. Result: a Compact folding 3 January
-  // Blocks landed under the current date's LEDGER sub-header. Correct date
-  // propagation from Block titles fixes this at the root.
   const compactDate = (() => {
     if (firstParsed.startDate) return firstParsed.startDate
     // Legacy fallback: try to mine a `YYYY-MM-DD HH:MM` from the Block's prose
@@ -1946,29 +2290,31 @@ async function performOneSageCompact(
     return new Date().toISOString().slice(0, 10)
   })()
 
-  // Find LEDGER bounds in `after`
-  const ledger = findSectionBounds(after, /^##\s+LEDGER/i)
-  if (!ledger) {
-    console.error('[sage-240-40] compact: no ## LEDGER section to insert Compact into')
+  // Find `## COMPACTS` bounds in `after`. ensureSagesSections upstream
+  // guarantees this exists. Use lastMatch in case a legacy template has
+  // an empty-placeholder `## COMPACTS` near the top.
+  const compactsSection = findSectionBounds(after, /^##\s+COMPACTS\b/i, { lastMatch: true })
+  if (!compactsSection) {
+    console.error('[sage-240-40] compact: no ## COMPACTS section to insert Compact into')
     return { kind: 'agent-fail' }
   }
 
-  // Find or create date sub-header in LEDGER
+  // Find or create `### YYYY-MM-DD` date sub-header inside COMPACTS
   const dateHeader = `### ${compactDate}`
   let dateHeaderIdx = -1
-  for (let i = ledger.start + 1; i < ledger.end; i++) {
+  for (let i = compactsSection.start + 1; i < compactsSection.end; i++) {
     if (after[i].trim() === dateHeader) { dateHeaderIdx = i; break }
   }
   if (dateHeaderIdx < 0) {
-    let insertAt = ledger.end
-    for (let i = ledger.start + 1; i < ledger.end; i++) {
+    let insertAt = compactsSection.end
+    for (let i = compactsSection.start + 1; i < compactsSection.end; i++) {
       const m = after[i].match(/^###\s+(\d{4}-\d{2}-\d{2})/)
       if (m && m[1] > compactDate) { insertAt = i; break }
     }
     after.splice(insertAt, 0, '', dateHeader, '', compactEntry, '')
   } else {
-    let insertAt = ledger.end
-    for (let i = dateHeaderIdx + 1; i < ledger.end; i++) {
+    let insertAt = compactsSection.end
+    for (let i = dateHeaderIdx + 1; i < compactsSection.end; i++) {
       if (/^###\s/.test(after[i]) || /^##\s/.test(after[i])) { insertAt = i; break }
     }
     after.splice(insertAt, 0, '', compactEntry, '')
@@ -1984,6 +2330,246 @@ async function performOneSageCompact(
     timeRange,
     foldedLetters,
     bytesCut: combinedBytes - compactBytes,
+  }
+}
+
+// ───────────────────────────────────────────────────────────────────────────
+// Sage-240/40 — LEDGER pass (Ralph 2026-05-18)
+//
+// Triggered when compact_span ≥ SAGE_COMPACT_SPAN_GATE (120 lines by
+// default). Folds the THREE OLDEST `**Compact …**` entries (anywhere in
+// the file, content-aware) into ONE dash-bullet Ledger entry with NO
+// title — header is just `- DD.MMM.YY HH:MM → DD.MMM.YY HH:MM` (same-day
+// collapses the right side). Result is inserted at the end of `## LEDGER`.
+// ───────────────────────────────────────────────────────────────────────────
+
+/** Find every `**Compact X-Y — title** (HH:MM → HH:MM)` entry within a section
+ *  range [sectionStart, sectionEnd). The end of each entry is just before
+ *  the next opening (Compact / Block / `### date` / `## section`). */
+function findCompactEntries(
+  lines: string[],
+  sectionStart: number,
+  sectionEnd: number,
+): CompactEntry[] {
+  const openings: { idx: number; label: string; title: string; timeRange: string }[] = []
+  const headerRe = /^\*\*Compact\s+([A-Z0-9,\-\s]+?)\s+[—-]\s+(.+?)\*\*\s*\(([^)]+)\)\s*$/i
+  for (let i = sectionStart; i < sectionEnd; i++) {
+    const m = lines[i].match(headerRe)
+    if (m) openings.push({ idx: i, label: m[1].trim(), title: m[2].trim(), timeRange: m[3].trim() })
+  }
+  const stopRe = /^(?:\*\*Compact\s+|\*\*Block\s+[A-Z]+\s+[—-]|###\s|##\s|####\s+(?:User|CD)\s*\|)/i
+  return openings.map((op) => {
+    let end = sectionEnd
+    for (let j = op.idx + 1; j < sectionEnd; j++) {
+      if (stopRe.test(lines[j])) { end = j; break }
+    }
+    while (end > op.idx + 1 && lines[end - 1].trim() === '') end--
+    return {
+      label: op.label,
+      title: op.title,
+      timeRange: op.timeRange,
+      startLine: op.idx,
+      endLine: end,
+      text: lines.slice(op.idx, end).join('\n'),
+    }
+  })
+}
+
+async function performOneSageLedger(
+  sessionMdPath: string,
+  sessionMd: string,
+  logsDir?: string,
+  stageLabel?: string,
+  onStreamEvent?: (e: { type: string; detail: string }) => void,
+  trace?: SageTrace,
+  triageLogPath?: string,
+  signal?: AbortSignal,
+): Promise<SageLedgerResult> {
+  const tr: SageTrace = trace || (() => {})
+  tr(`ledger.${stageLabel || 'ledger'}.start`, { inputBytes: sessionMd.length })
+  const note = (detail: string) => {
+    if (onStreamEvent) {
+      try { onStreamEvent({ type: 'ledger', detail }) } catch {}
+    }
+  }
+  note(`ledger ${stageLabel || ''}: scanning whole file for Compact entries…`)
+
+  // Ralph 2026-05-19 (chronological-fold fix): same rationale as the
+  // Compact pass above — sort Compacts by parsed start-date+time BEFORE
+  // slicing the oldest 3. Doc order can be wrong if an upstream insertion
+  // landed Compacts out of order; this defensive sort keeps the fold
+  // chronologically coherent even on a file with prior pathology.
+  const lines = sessionMd.split('\n')
+  const allCompacts = findCompactEntries(lines, 0, lines.length)
+  if (allCompacts.length < 3) {
+    console.warn(`[sage-240-40] ledger: only ${allCompacts.length} Compact entries found — need 3, skipping`)
+    note(`ledger: only ${allCompacts.length} Compact entries available — need 3 to fold, skipping`)
+    return { kind: 'no-tissue' }
+  }
+  const compacts = [...allCompacts].sort((a, b) => {
+    const ap = parseBlockTimeRange(a.timeRange)
+    const bp = parseBlockTimeRange(b.timeRange)
+    const aKey = `${ap.startDate || '0000-00-00'} ${ap.startTime || '00:00'}`
+    const bKey = `${bp.startDate || '0000-00-00'} ${bp.startTime || '00:00'}`
+    return aKey.localeCompare(bKey)
+  })
+  note(`ledger: folding Compacts ${compacts.slice(0, 3).map(c => c.label).join(', ')} → 1 Ledger entry`)
+
+  const toFold = compacts.slice(0, 3)
+  const foldedLabels = toFold.map((c) => c.label)
+
+  // Time range — parse each Compact's parens content. Compact title parens
+  // can carry dates in two shapes: `YYYY-MM-DD HH:MM → YYYY-MM-DD HH:MM` or
+  // `YYYY-MM-DD HH:MM → HH:MM` (same-day). Fall back to today if undated.
+  const firstParsed = parseBlockTimeRange(toFold[0].timeRange)
+  const lastParsed = parseBlockTimeRange(toFold[toFold.length - 1].timeRange)
+  const startDate = firstParsed.startDate || new Date().toISOString().slice(0, 10)
+  const startTime = firstParsed.startTime || '00:00'
+  const endDate = lastParsed.endDate || lastParsed.startDate || startDate
+  const endTime = lastParsed.endTime || '00:00'
+  const ledgerHeaderRange = formatLedgerRange(startDate, startTime, endDate, endTime)
+
+  const combinedText = toFold.map((c) => c.text).join('\n\n')
+  const combinedBytes = Buffer.byteLength(combinedText, 'utf-8')
+
+  // Build agent prompt — no title, dash-prefix header, prose body only.
+  const agentFile = loadSage240_40()
+  const userMessage =
+    `## TASK — LEDGER PASS (3 COMPACTS → 1 LEDGER ENTRY)\n\n` +
+    `Below are the three OLDEST Compact entries from the file. Fold them ` +
+    `into a SINGLE Ledger entry. A Ledger entry has NO title — header is ` +
+    `just a dash-prefixed date/time line, followed by ONE or TWO prose ` +
+    `paragraphs (~30% the byte count of the three Compacts combined). ` +
+    `Preserve the arc across all three Compacts. User quotes inline in ` +
+    `italics. Timestamps woven into prose. No bullet lists. No bold. No ` +
+    `block-letter range. No title.\n\n` +
+    `**Ledger header (VERBATIM, dash-prefix included):** \`- ${ledgerHeaderRange}\`\n\n` +
+    `## OUTPUT — strictly this format, nothing else\n\n` +
+    `Line 1 MUST be exactly: \`- ${ledgerHeaderRange}\`\n` +
+    `Line 2: blank.\n` +
+    `Line 3 onward: ONE or TWO prose paragraphs synthesizing the three ` +
+    `Compacts. NO preamble. NO closing remarks. NO explanation. NO bold. ` +
+    `NO bullet lists.\n\n` +
+    `## THREE COMPACTS TO FOLD\n\n` +
+    combinedText
+
+  if (triageLogPath) {
+    try {
+      const { appendFile } = await import('fs/promises')
+      await appendFile(
+        triageLogPath,
+        `### LEDGER prompt — ${stageLabel || 'ledger'}\n` +
+          `foldedLabels=${foldedLabels.join(',')} headerRange="${ledgerHeaderRange}" combinedBytes=${combinedBytes}\n` +
+          '```\n' + userMessage + '\n```\n',
+        'utf-8',
+      )
+    } catch {}
+  }
+  const response = await callAnthropic(
+    DREAMER_MODEL,
+    userMessage,
+    agentFile,
+    undefined,
+    onStreamEvent,
+    signal,
+  )
+  if (triageLogPath) {
+    try {
+      const { appendFile } = await import('fs/promises')
+      await appendFile(
+        triageLogPath,
+        `### LEDGER response — ${stageLabel || 'ledger'}\n` +
+          '```\n' + (response || '<null>') + '\n```\n',
+        'utf-8',
+      )
+    } catch {}
+  }
+  if (!response) {
+    console.error('[sage-240-40] ledger: agent returned null')
+    return { kind: 'agent-fail' }
+  }
+
+  // Extract Ledger entry — Ralph 2026-05-18 bugfix:
+  //   Old regex used /m flag with `$` in the lookahead alternation. /m
+  //   makes `$` match end-of-LINE (not end-of-STRING), so the lazy
+  //   [\s\S]+? exited immediately after the dash-header — the prose
+  //   body was silently stripped. Result: file had header lines only,
+  //   zero real Ledger entries written.
+  //
+  //   New approach: find the FIRST dash-date header anywhere in the
+  //   response, then take the entire remainder as the ledger entry.
+  //   No lazy quantifier, no /m+$ interaction.
+  const cleaned = response.replace(/```(?:markdown|md)?\s*\n?/g, '').replace(/```\s*$/g, '').trim()
+  const ledgerStartRe = /^-\s+\d{2}\.[A-Z][a-z]{2}\.\d{2}\s+\d{2}:\d{2}\s+→/m
+  const startMatch = cleaned.match(ledgerStartRe)
+  if (!startMatch || startMatch.index === undefined) {
+    console.error('[sage-240-40] ledger: no dash-date header in agent response')
+    console.error('[sage-240-40] First 400 chars:', cleaned.slice(0, 400))
+    return { kind: 'agent-fail' }
+  }
+  const ledgerEntry = cleaned.slice(startMatch.index).trim()
+
+  // Verify header line matches what we sent — defensive against the agent
+  // editing the date/time.
+  const headerLine = ledgerEntry.split('\n')[0].trim()
+  const expectedHeader = `- ${ledgerHeaderRange}`
+  if (headerLine !== expectedHeader) {
+    console.error(
+      `[sage-240-40] ledger: header mismatch — agent emitted "${headerLine}", JS sent "${expectedHeader}". Refusing splice.`,
+    )
+    return { kind: 'agent-fail' }
+  }
+
+  // ── Two-stage edit:
+  //   1. Remove the 3 Compact entries wherever they sit
+  //   2. Insert the Ledger entry at the END of `## LEDGER` (flat list,
+  //      no date sub-headers in LEDGER).
+  const after = [...lines]
+  const removeFrom = toFold[0].startLine
+  let removeTo = toFold[toFold.length - 1].endLine
+  while (removeTo < after.length && after[removeTo].trim() === '') removeTo++
+  after.splice(removeFrom, removeTo - removeFrom)
+
+  // Sweep up an orphaned `### YYYY-MM-DD` sub-header directly above the
+  // removal point if it has no other entries left under it.
+  if (removeFrom > 0) {
+    const above = after[removeFrom - 1]
+    if (above && /^###\s+\d{4}-\d{2}-\d{2}/.test(above.trim())) {
+      // Check if anything else follows the sub-header before next sub/section
+      let onlyBlanks = true
+      for (let i = removeFrom; i < after.length; i++) {
+        const l = after[i].trim()
+        if (l === '') continue
+        if (/^###\s|^##\s/.test(l)) break
+        onlyBlanks = false
+        break
+      }
+      if (onlyBlanks) {
+        after.splice(removeFrom - 1, 1)
+      }
+    }
+  }
+
+  const ledgerSection = findSectionBounds(after, /^##\s+LEDGER\b/i, { lastMatch: true })
+  if (!ledgerSection) {
+    console.error('[sage-240-40] ledger: no ## LEDGER section to insert into')
+    return { kind: 'agent-fail' }
+  }
+
+  // Insert at END of LEDGER section (before the next `## ` boundary,
+  // chronological order maintained by oldest-first fold ordering).
+  const insertAt = ledgerSection.end
+  after.splice(insertAt, 0, '', ledgerEntry, '')
+
+  await writeFile(sessionMdPath, after.join('\n'), 'utf-8')
+
+  const ledgerBytes = Buffer.byteLength(ledgerEntry, 'utf-8')
+  return {
+    kind: 'ok',
+    timeRange: ledgerHeaderRange,
+    foldedCount: toFold.length,
+    foldedLabels,
+    bytesCut: combinedBytes - ledgerBytes,
   }
 }
 

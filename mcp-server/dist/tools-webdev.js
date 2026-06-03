@@ -6,7 +6,7 @@
  *   OLD: agent ends response with `{"filename":"vibe-3.html","vibeIndex":3,...}`;
  *        lib/vibe-verify.ts:parseTrailingJson scans last 20 lines + scrapes
  *        tool_use events + scans disk by mtime when manifest is missing.
- *   NEW: agent calls `report_build_complete({...})` after writing the file.
+ *   NEW: agent calls `build_done({...})` after writing the file.
  *        lib/webdev.ts captures the tool_use args via lib/mcp-tool-collector.
  *
  * The OLD parseTrailingJson stays as a defensive fallback for ALL backends
@@ -18,7 +18,7 @@
  */
 export const WEBDEV_TOOL_DEFINITIONS = [
     {
-        name: 'report_build_complete',
+        name: 'build_done',
         description: 'Call this AFTER writing the vibe HTML to disk. Reports the structured ' +
             'manifest the orchestrator needs (filename, vibeIndex, vibeName, sections ' +
             'built, images used). Replaces the old "end your response with a JSON ' +
@@ -57,7 +57,7 @@ export const WEBDEV_TOOL_DEFINITIONS = [
         },
     },
     {
-        name: 'report_build_failed',
+        name: 'build_fail',
         description: 'Call when the build cannot complete — e.g. the spec is incoherent, a ' +
             'required image is missing AND has no fallback, or a verification step ' +
             'fails. Stops the build; do NOT continue with FileWrite after this.',
@@ -73,29 +73,31 @@ export const WEBDEV_TOOL_DEFINITIONS = [
         },
     },
     {
-        name: 'report_build_progress',
+        name: 'build_progress',
         description: 'Emit a progress signal mid-build. Two shapes:\n' +
-            '  1. STAGE TRANSITION (required for live BuildJobCard timeline):\n' +
-            '       report_build_progress({stage: "html", milestone: "HTML written to disk"})\n' +
-            '       report_build_progress({stage: "verify", milestone: "Self-checking output"})\n' +
-            '     Call once per stage. The route flips the row\'s timeline dot from\n' +
-            '     queued → html → verify so the user sees progress in real time.\n' +
-            '  2. FREE-FORM MILESTONE (no stage): "Hero section built", "Menu wired".\n' +
-            '     Surfaces as a bullet under the row in single-vibe view. Optional.',
+            '  1. STAGE TRANSITION (BuildJobCard timeline):\n' +
+            '       build_progress({stage: "verify", milestone: "Screenshotting"})\n' +
+            '       build_progress({stage: "critique", milestone: "Filling surfaces"})\n' +
+            '     Note: "html" is route-fired at spawn; WebDev rarely fires it.\n' +
+            '     "critique" is wireframes only (build_wireframes — Phase 7 of\n' +
+            '     webdev-agent-rewrite.md).\n' +
+            '  2. FREE-FORM MILESTONE (no stage): "Hero section built", etc.\n' +
+            '     Surfaces as a bullet under the row. Optional.\n' +
+            'Routing is automatic — the route binds your target slug into the\n' +
+            'per-subprocess onToolCall handler at spawn. Every call you fire\n' +
+            'flows through THAT handler; the route auto-tags the published event\n' +
+            'with target=<your-slug>, which page.tsx matches to row.id. You do\n' +
+            'NOT carry slug/filename in this payload.',
         inputSchema: {
             type: 'object',
             properties: {
-                // Ralph 2026-05-06 fix: `stage` was missing from the schema even though
-                // the agent prompt told WebDev to call with it. The MCP validator dropped
-                // the arg silently → onToolCall forwarder never saw `stage` → live
-                // timeline never advanced past queued. Both contracts now agree.
                 stage: {
                     type: 'string',
-                    enum: ['html', 'verify'],
-                    description: 'Pipeline-stage transition signal. Call with "html" the moment ' +
-                        'you start writing the .html file; call with "verify" right ' +
-                        'after the file is on disk and you\'re self-checking. Omit for ' +
-                        'free-form milestones.',
+                    enum: ['html', 'verify', 'critique'],
+                    description: 'Pipeline-stage transition. Route auto-fires "html" at spawn. ' +
+                        'Fire "verify" before screenshotting (every build). Fire ' +
+                        '"critique" before filling in-page surfaces (wireframes only). ' +
+                        'Omit for free-form milestone bullets.',
                 },
                 milestone: {
                     type: 'string',
@@ -115,7 +117,7 @@ export async function callWebDevTool(name, args, ctx) {
     if (!sessionId)
         return { text: 'sessionId missing from tool context', isError: true };
     switch (name) {
-        case 'report_build_complete': {
+        case 'build_done': {
             const filename = String(args.filename || '');
             if (!filename || !filename.endsWith('.html')) {
                 return { text: 'Error: filename must be a .html path', isError: true };
@@ -123,14 +125,19 @@ export async function callWebDevTool(name, args, ctx) {
             if (typeof args.vibeIndex !== 'number') {
                 return { text: 'Error: vibeIndex must be a number', isError: true };
             }
-            return { text: `report_build_complete acked for ${filename}`, isError: false };
+            return { text: `build_done acked for ${filename}`, isError: false };
         }
-        case 'report_build_failed': {
+        case 'build_fail': {
             if (!args.error)
                 return { text: 'Error: error message required', isError: true };
-            return { text: 'report_build_failed acked', isError: false };
+            return { text: 'build_fail acked', isError: false };
         }
-        case 'report_build_progress':
+        case 'build_progress':
+            // Ralph 2026-05-18 (Job-Card Ladder Fix, revert): closure-based
+            // routing handles target tagging in the route's onToolCall. WebDev
+            // does NOT carry slug/filename in build_progress payloads — row.id
+            // is the SLUG (no .html), so a filename-based routing key would
+            // mismatch page.tsx:1083's `r.id === target` matcher.
             return { text: 'progress acked', isError: false };
         default:
             return { text: `Unknown WebDev tool: ${name}`, isError: true };

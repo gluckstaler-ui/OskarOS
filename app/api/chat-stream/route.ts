@@ -11,6 +11,18 @@ const MAIN_CHAT_AGENT: 'sage' | 'cd' = 'cd'
 import { type ExecutionMode, type Model } from '@/lib/run-webdev'
 import { appendUsage } from '@/lib/usage-tracker'
 import { bridgeManager } from '@/lib/bridge-process-manager'
+// 2026-05-27 (Ralph): card-vs-chat strip + feedback loop. See
+// lib/strip-feedback.ts for the full doctrine. Streaming path can't
+// un-send text that has already streamed to the client, so its strip
+// is twofold: (1) persist the collision at end-of-stream for next-turn
+// feedback injection (the learning signal); (2) emit a `strip_chat`
+// SSE event so the client can DOM-remove the displayed text.
+import {
+  isCardThatOwnsTheTurn,
+  persistStrippedChat,
+  consumeStrippedChat,
+  buildFeedbackSystemNote,
+} from '@/lib/strip-feedback'
 // Consolidator removed — Lumberjack runs on 10-minute timer instead.
 // All build/hotswap/asset-refresh actions moved to MCP tool calls
 // (mcp-server/) in the 2026-04-29 cutover; this route no longer parses
@@ -38,7 +50,7 @@ interface ImagePrompt {
 
 // Legacy prose-parsing of CD's response was deleted in the 2026-04-29 MCP
 // cutover. CD now signals build/hotswap/refresh actions through typed MCP
-// tool calls (`build_vibe`, `build_all_vibes`, `build_final`, `hotswap`,
+// tool calls (`build_vibe`, `build_wireframes`, `hotswap`,
 // `images_needed`, `refresh_assets`) — see `mcp-server/`. Nothing in CD's
 // text response can fire any of those actions any more. IMAGES.md is the
 // file-based source of truth for prompts; we re-parse it after every
@@ -197,7 +209,7 @@ export async function POST(req: NextRequest) {
       'cdModel',
       cdModel as any,
       effectiveSessionId,
-      'opus',  // SMPL default — Claude Code resolves via ANTHROPIC_DEFAULT_OPUS_MODEL
+      'claude-opus-4-8[1m]',  // CLI default — 1M context on Anthropic, never silently demotes to SMPL/API. Ralph 2026-05-27.
     )
     // Touch the unused destructured vars so TS doesn't complain — they're
     // still accepted in the body for forward-compat (page.tsx sends them).
@@ -275,10 +287,23 @@ export async function POST(req: NextRequest) {
     //      every queued message except the latest. Ralph 2026-05-02.
     //   2. Fallback: pick the last user-role message in history. Covers
     //      legacy callers and the no-queue-no-mid-stream-message case.
-    const currentMessage = (typeof body.currentMessage === 'string' && body.currentMessage.length > 0)
+    let currentMessage = (typeof body.currentMessage === 'string' && body.currentMessage.length > 0)
       ? body.currentMessage
       : (messages.filter(m => m.role === 'user').pop()?.content
         || 'Hello! I want to create a booking page for my business.')
+
+    // 2026-05-27 (Ralph): strip-feedback injection (streaming path).
+    // The CLI bridge keeps its system-prompt cache from first-spawn; new
+    // system-prompt edits don't reach the model mid-conversation. So the
+    // feedback note rides in on the user message instead, prepended in
+    // an obvious system-marker block. The model sees it as preamble to
+    // whatever the user actually typed.
+    const strippedRecord = consumeStrippedChat(effectiveSessionId)
+    if (strippedRecord) {
+      const note = buildFeedbackSystemNote(strippedRecord)
+      currentMessage = note + currentMessage
+      console.log(`[${requestId}] Strip-feedback injected (streaming): ${strippedRecord.cardNames.join('+')} stripped ${strippedRecord.stripped.length}ch`)
+    }
 
     console.log(`[${requestId}] System prompt: ${fullSystemPrompt.length} chars, User prompt: ${currentMessage.length} chars`)
 
@@ -322,6 +347,14 @@ export async function POST(req: NextRequest) {
 
           let fullOutput = ''
           let vibeCount = 0
+          // 2026-05-27 (Ralph): track chat-vs-card collision across the
+          // stream. `streamedText` = the text the user actually saw
+          // streaming. `tcCardsFiredThisTurn` = the tc_* tool names that
+          // own the user's response. At end-of-stream (result event), if
+          // both are non-empty, we have a collision — persist + emit a
+          // strip_chat event so the client can clear the displayed text.
+          let streamedText = ''
+          const tcCardsFiredThisTurn: string[] = []
 
           // Bridge respawn on CD model change (Ralph 2026-05-04). CLI
           // subprocesses are model-locked at spawn — if the user toggled
@@ -350,7 +383,11 @@ export async function POST(req: NextRequest) {
           for await (const event of bridgeManager.sendMessage(effectiveSessionId, currentMessage, {
             model: resolvedCdModel,
             systemPrompt: fullSystemPrompt,
-            cwd: process.cwd()
+            cwd: process.cwd(),
+            // CLI-route fence (Ralph 2026-05-28): ONLY this interactive CD
+            // chat opts into the 1M re-roll loop. The one-shot CD helpers
+            // (cd-bridge-call) leave this unset and never re-roll.
+            ensure1M: true,
           })) {
             // Bug M (Ralph 2026-05-04): forward Claude CLI's system/init
             // model field to the client so the input-bar badge shows the
@@ -373,7 +410,7 @@ export async function POST(req: NextRequest) {
               // 2026-05-05 (Ralph): truth-on-wire. Init reports what Claude
               // Code THINKS it's using (post-tier-resolution); message.model
               // reports what the upstream actually served. Different when
-              // Z.ai reroutes claude-opus-4-7 → glm-4.7. source:'wire'
+              // Z.ai reroutes claude-opus-4-8 → glm-4.7. source:'wire'
               // outranks source:'init' in the frontend trust ladder.
               if (typeof (event as any).message?.model === 'string' && (event as any).message.model.length > 0) {
                 sendEvent({ type: 'model_info', model: (event as any).message.model, source: 'wire' })
@@ -381,17 +418,27 @@ export async function POST(req: NextRequest) {
               for (const block of event.message.content) {
                 if (block.type === 'text') {
                   fullOutput += block.text
+                  streamedText += block.text
                   sendEvent({ type: 'text', content: block.text })
                 }
                 if (block.type === 'tool_use') {
                   sendEvent({ type: 'tool_use', tool: block.name, input: block.input })
-                  // Include tool-input content in fullOutput for downstream
-                  // analytics/debugging (vibe progress counter still scans
-                  // it). No regex triggers fire on this content any more —
-                  // builds/hotswaps/refreshes are all explicit MCP tool calls.
-                  if (block.input?.content && typeof block.input.content === 'string') {
-                    fullOutput += '\n' + block.input.content
+                  // 2026-05-27 (Ralph): track tc_* cards that own the
+                  // user's response — collision check fires at result.
+                  if (typeof block.name === 'string' && isCardThatOwnsTheTurn(block.name)) {
+                    tcCardsFiredThisTurn.push(block.name)
                   }
+                  // 2026-05-28 (Ralph): tool-input content is NOT injected
+                  // into fullOutput. The previous code appended `block.input.content`
+                  // (entire Write-tool file bodies, etc.) into the agent's
+                  // text buffer for a vibe-progress regex that's been dead
+                  // since the MCP cutover. Side-effect: 600-line HTML files
+                  // were leaking into mcp_chat_echo.assistantText → chat
+                  // messages → MarkdownRenderer (where they got mangled).
+                  // fullOutput must stay a clean record of what the agent
+                  // SAID, never what the agent DID. Tool effects are
+                  // surfaced via the tool_use event above, not echoed as
+                  // assistant speech.
                 }
               }
             }
@@ -404,17 +451,31 @@ export async function POST(req: NextRequest) {
               })
             }
 
-            // Detect vibe generation progress
-            const vibeMatches = fullOutput.match(/## VIBE \d+:/gi)
-            if (vibeMatches && vibeMatches.length > vibeCount) {
-              vibeCount = vibeMatches.length
-              sendEvent({ type: 'progress', phase: 'vibe', current: vibeCount, message: `Generating vibe ${vibeCount}...` })
-            }
+            // 2026-05-28 (Ralph): vibe-progress regex counter REMOVED.
+            // Since the MCP cutover, vibes are built via explicit
+            // build_vibe / build_wireframes tool calls (not CD narrating
+            // "## VIBE N: ..." inline). The counter was the sole reason
+            // tool-input content was being injected into fullOutput
+            // above — which leaked file bodies into chat. Counter is
+            // dead; progress signals come from the MCP build routes'
+            // own SSE events now.
 
             // Result event = response complete
             if (event.type === 'result') {
               console.log(`[${requestId}] Bridge response complete: turns=${event.num_turns}, cost=$${event.total_cost_usd?.toFixed(4)}, stop=${event.stop_reason}`)
               console.log(`[${requestId}] RAW usage:`, JSON.stringify(event.usage))
+
+              // 2026-05-27 (Ralph): card-vs-chat strip + persist (streaming).
+              // If this turn fired a tc_* card AND streamed chat text, we
+              // have a collision. Persist for next-turn feedback (the
+              // learning signal); emit a strip_chat event so the client
+              // can clear the visible text (the enforcement layer).
+              // Doctrine alone bends the curve; this closes the loop.
+              if (tcCardsFiredThisTurn.length > 0 && streamedText.trim()) {
+                persistStrippedChat(effectiveSessionId, streamedText, tcCardsFiredThisTurn)
+                sendEvent({ type: 'strip_chat', reason: 'tc_card_collision', cards: tcCardsFiredThisTurn })
+                console.log(`[${requestId}] Strip-feedback armed (streaming): stripped ${streamedText.length}ch alongside ${tcCardsFiredThisTurn.join('+')}`)
+              }
 
               // Extract ACTUAL context window fill (not cumulative billing tokens).
               // cache_read_input_tokens is counted once PER TURN — a 14-turn interaction
@@ -434,7 +495,7 @@ export async function POST(req: NextRequest) {
               const { getContextWindow } = await import('@/lib/providers/model-context')
               // Trust wire truth, not the request. event.modelUsage keys are
               // the actual model that served the response (e.g. 'glm-4.7' on
-              // Z.ai, not 'claude-opus-4-7[1m]' from our config). Fall back
+              // Z.ai, not 'claude-opus-4-8[1m]' from our config). Fall back
               // to the request identifier only when modelUsage is absent.
               const wireModelKey = event.modelUsage && Object.keys(event.modelUsage).length > 0
                 ? Object.keys(event.modelUsage)[0]
@@ -513,6 +574,18 @@ export async function POST(req: NextRequest) {
               // Lumberjack handles session cleanup on 10-minute timer — no per-turn consolidation
 
               sendEvent({ type: 'done', vibeCount: 0, cliSessionId: bridgeCliSessionId, manifestCount: manifests.length, contextPct, cachedInputTokens, realInputTokens, contextWindow })
+
+              // mcp_chat_echo is NOT published here. The MCP-injection path
+              // (orchestrator send_user_input → /api/mcp/echo-chat, see
+              // mcp-server/tools-orchestrator.ts:777) is the sole publisher,
+              // and it fires only for server-injected turns the browser can't
+              // see on its own. The always-publish that used to live here also
+              // fired for browser-typed turns — which the streaming path
+              // already renders AND persists to SESSION.md — so every typed
+              // turn got appended a second time by the page's mcp_chat_echo
+              // handler, multiplied per open tab (the content-dedup is
+              // per-tab). That was the SESSION.md butchering. Removed
+              // 2026-05-13 (Ralph): one publisher, correctly scoped.
               break
             }
           }

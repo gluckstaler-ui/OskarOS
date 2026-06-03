@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "orch": {
+      "type": "http",
+      "url": "http://localhost:3000/api/mcp/server?session=2026-05-23-ristorante-la-pergola&agent=cd&instance=495e1e76-7e64-4d49-a890-6d8f279aa390"
+    }
+  }
+}

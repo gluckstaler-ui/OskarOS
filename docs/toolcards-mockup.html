@@ -5,20 +5,10 @@
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>OskarOS — ToolCard mockup</title>
 <style>
-  /* ---------- ONYX tokens (lifted from app/globals.css) ---------- */
+  /* ---------- Theme-invariant tokens (radius, fonts, brand colors) ---------- */
   :root {
-    --bg-page: #0d0d0f;
-    --bg-card: #1e1e22;
-    --bg-card-hover: #2a2a2e;
-    --bg-input: #16161a;
-    --border-card: #2e2e33;
-    --text-main: #f4f4f5;
-    --text-muted: #a1a1aa;
-    --text-faint: #6b6b73;
     --radius-card: 12px;
     --radius-pill: 999px;
-    --shadow-card: 0 1px 3px 0 rgba(0,0,0,0.4), 0 1px 2px -1px rgba(0,0,0,0.2);
-    --shadow-blocker: 0 0 0 1px var(--brand-green-bright), 0 12px 32px rgba(0,0,0,0.5);
     --font-mono: 'JetBrains Mono','SF Mono',Monaco,Consolas,monospace;
     --font-body: -apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
 
@@ -30,6 +20,206 @@
     --brand-yellow:       #eab308;
     --brand-violet:       #a78bfa;
     --brand-cyan:         #22d3ee;
+  }
+
+  /* ---------- ONYX (dark) ---------- */
+  [data-theme="onyx"] {
+    --bg-page: #0d0d0f;
+    --bg-card: #1e1e22;
+    --bg-card-hover: #2a2a2e;
+    --bg-input: #16161a;
+    --border-card: #2e2e33;
+    --text-main: #f4f4f5;
+    --text-muted: #a1a1aa;
+    --text-faint: #6b6b73;
+    --shadow-card: 0 1px 3px 0 rgba(0,0,0,0.4), 0 1px 2px -1px rgba(0,0,0,0.2);
+    --shadow-blocker: 0 0 0 1px var(--brand-green-bright), 0 12px 32px rgba(0,0,0,0.5);
+  }
+
+  /* ---------- POLAR (light) ---------- */
+  [data-theme="polar"] {
+    --bg-page: #f4f4f3;          /* slightly warmer off-white than #fafafa */
+    --bg-card: #ffffff;
+    --bg-card-hover: #f4f4f5;
+    --bg-input: #f4f4f5;
+    --border-card: #d4d4d8;       /* darker than #e4e4e7 — more visible on white */
+    --text-main: #18181b;
+    --text-muted: #3f3f46;        /* darker for legibility on white */
+    --text-faint: #71717a;        /* darker than #a1a1aa — used for labels */
+    --shadow-card: 0 1px 3px 0 rgba(0,0,0,0.08), 0 1px 2px -1px rgba(0,0,0,0.04);
+    --shadow-blocker: 0 0 0 1px var(--brand-green-bright), 0 12px 32px rgba(0,0,0,0.12);
+  }
+
+  /* ---------- POLAR overrides for hardcoded dark-mode elevation overlays ----------
+     The mockup uses inline `background:rgba(255,255,255,0.02)` for subtle elevation
+     on cards/panels — invisible on a light bg. These rules flip the overlay polarity
+     for polar mode. Attribute selectors + !important are needed because the offending
+     values are inline styles set by the markup (and in two places by JS). */
+  [data-theme="polar"] [style*="rgba(255,255,255,0.01)"] {
+    background: rgba(0,0,0,0.015) !important;
+  }
+  [data-theme="polar"] [style*="rgba(255,255,255,0.02)"] {
+    background: rgba(0,0,0,0.025) !important;
+  }
+  [data-theme="polar"] [style*="rgba(255,255,255,0.03)"] {
+    background: rgba(0,0,0,0.04) !important;
+  }
+  [data-theme="polar"] [style*="rgba(255,255,255,0.04)"] {
+    background: rgba(0,0,0,0.05) !important;
+  }
+
+  /* Brand-tint backgrounds are slightly too pale on light bg — bump opacity. */
+  [data-theme="polar"] [style*="rgba(21,185,129,0.04)"] {
+    background: rgba(21,185,129,0.08) !important;
+  }
+  [data-theme="polar"] [style*="rgba(34,211,238,0.04)"] {
+    background: rgba(34,211,238,0.08) !important;
+  }
+  [data-theme="polar"] [style*="rgba(167,139,250,0.04)"] {
+    background: rgba(167,139,250,0.08) !important;
+  }
+  [data-theme="polar"] [style*="rgba(21,185,129,0.02)"] {
+    background: rgba(21,185,129,0.05) !important;
+  }
+  [data-theme="polar"] [style*="rgba(167,139,250,0.02)"] {
+    background: rgba(167,139,250,0.05) !important;
+  }
+  [data-theme="polar"] [style*="rgba(245,158,11,0.04)"] {
+    background: rgba(245,158,11,0.08) !important;
+  }
+  [data-theme="polar"] [style*="rgba(245,158,11,0.08)"] {
+    background: rgba(245,158,11,0.14) !important;
+  }
+  [data-theme="polar"] [style*="rgba(167,139,250,0.12)"] {
+    background: rgba(167,139,250,0.18) !important;
+  }
+  [data-theme="polar"] [style*="rgba(167,139,250,0.08)"] {
+    background: rgba(167,139,250,0.12) !important;
+  }
+  [data-theme="polar"] [style*="rgba(34,211,238,0.10)"] {
+    background: rgba(34,211,238,0.16) !important;
+  }
+  [data-theme="polar"] [style*="rgba(34,211,238,0.14)"] {
+    background: rgba(34,211,238,0.20) !important;
+  }
+  [data-theme="polar"] [style*="rgba(21,185,129,0.10)"] {
+    background: rgba(21,185,129,0.16) !important;
+  }
+  [data-theme="polar"] [style*="rgba(21,185,129,0.14)"] {
+    background: rgba(21,185,129,0.20) !important;
+  }
+  [data-theme="polar"] [style*="rgba(21,185,129,0.12)"] {
+    background: rgba(21,185,129,0.18) !important;
+  }
+  [data-theme="polar"] [style*="rgba(167,139,250,0.14)"] {
+    background: rgba(167,139,250,0.20) !important;
+  }
+  [data-theme="polar"] [style*="rgba(245,158,11,0.12)"] {
+    background: rgba(245,158,11,0.18) !important;
+  }
+  [data-theme="polar"] [style*="rgba(34,211,238,0.08)"] {
+    background: rgba(34,211,238,0.14) !important;
+  }
+  [data-theme="polar"] [style*="rgba(239,68,68,0.12)"] {
+    background: rgba(239,68,68,0.16) !important;
+  }
+  [data-theme="polar"] [style*="rgba(239,68,68,0.10)"] {
+    background: rgba(239,68,68,0.14) !important;
+  }
+
+  /* ---------- Editable callout chrome (check-in variant) ----------
+     Used inside cd-input-callout wrappers around unfilled fields in the
+     readyToGenerate=false card. Makes input affordances obvious in both
+     themes — the textarea has its own dashed border + bg-card inset,
+     so it doesn't blend into the parent callout chrome. Chips get
+     hover + active states. */
+  .cd-input-callout textarea.cd-edit {
+    display: block;
+    width: 100%;
+    background: var(--bg-card) !important;
+    border: 1px dashed var(--border-card) !important;
+    border-radius: 6px !important;
+    padding: 8px 10px !important;
+    min-height: 52px !important;
+    font-family: var(--font-body);
+    font-size: 13px;
+    color: var(--text-main);
+    line-height: 1.55;
+    resize: vertical;
+    outline: none;
+    transition: border-color 120ms, background 120ms, box-shadow 120ms;
+    cursor: text;
+  }
+  .cd-input-callout textarea.cd-edit:hover {
+    border-color: var(--text-muted) !important;
+    background: var(--bg-card-hover) !important;
+  }
+  .cd-input-callout textarea.cd-edit:focus {
+    border-style: solid !important;
+    border-color: var(--brand-cyan) !important;
+    box-shadow: 0 0 0 2px rgba(34,211,238,0.12);
+  }
+  .cd-input-callout textarea.cd-edit::placeholder {
+    color: var(--text-faint);
+    font-style: italic;
+    opacity: 1;
+  }
+  .cd-edit-hint {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 9px;
+    color: var(--text-faint);
+    font-family: var(--font-mono);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-left: 6px;
+    font-weight: 700;
+  }
+  .cd-edit-hint::before { content: "✎"; font-size: 10px; }
+
+  .cd-toggle-chip {
+    cursor: pointer;
+    transition: background 120ms, border-color 120ms, color 120ms;
+  }
+  .cd-toggle-chip:hover {
+    border-color: var(--text-muted) !important;
+    color: var(--text-main) !important;
+    background: var(--bg-card-hover) !important;
+    opacity: 1 !important;
+  }
+
+  /* ---------- Theme switch ---------- */
+  .theme-switch {
+    position: fixed;
+    top: 16px;
+    right: 16px;
+    z-index: 1000;
+    display: flex;
+    gap: 2px;
+    background: var(--bg-card);
+    border: 1px solid var(--border-card);
+    border-radius: var(--radius-pill);
+    padding: 3px;
+    box-shadow: var(--shadow-card);
+  }
+  .theme-btn {
+    padding: 6px 14px;
+    border: none;
+    background: transparent;
+    color: var(--text-muted);
+    font-family: var(--font-mono);
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    border-radius: var(--radius-pill);
+    cursor: pointer;
+    transition: background 120ms, color 120ms;
+  }
+  .theme-btn.is-active {
+    background: var(--text-main);
+    color: var(--bg-page);
   }
 
   * { box-sizing: border-box; }
@@ -1268,13 +1458,29 @@
     text-transform: uppercase;
     letter-spacing: 0.08em;
   }
+  /* CD preamble — "what I'm probing for / why I'm asking / what to weigh".
+     Cyan border-left is the universal "CD speaking" channel (consistent with
+     confirm_understanding's preamble). Use .preamble-label inside for the
+     mono-caps role tag, .context-body for the prose. */
   .discovery-card .context {
     font-size: 13px;
-    color: var(--text-muted);
+    color: var(--text-main);
     line-height: 1.55;
     margin-bottom: 16px;
-    padding-left: 12px;
-    border-left: 2px solid var(--brand-teal-bright);
+    padding: 12px 14px;
+    border-left: 2px solid var(--brand-cyan);
+    background: rgba(34,211,238,0.04);
+    border-radius: 0 8px 8px 0;
+  }
+  .discovery-card .context .preamble-label {
+    display: block;
+    font-size: 10px;
+    color: var(--brand-cyan);
+    font-family: var(--font-mono);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-bottom: 4px;
+    font-weight: 700;
   }
   .field {
     display: flex; flex-direction: column;
@@ -1405,6 +1611,27 @@
 </style>
 </head>
 <body>
+<!-- ============================================================ -->
+<!-- Theme switch — fixed top-right. Toggles data-theme on <html>. -->
+<!-- ============================================================ -->
+<div class="theme-switch">
+  <button class="theme-btn is-active" data-theme-set="onyx">Onyx</button>
+  <button class="theme-btn" data-theme-set="polar">Polar</button>
+</div>
+<script>
+  (function () {
+    function setTheme(theme) {
+      document.documentElement.setAttribute('data-theme', theme);
+      document.querySelectorAll('[data-theme-set]').forEach(function (btn) {
+        btn.classList.toggle('is-active', btn.getAttribute('data-theme-set') === theme);
+      });
+    }
+    document.querySelectorAll('[data-theme-set]').forEach(function (btn) {
+      btn.addEventListener('click', function () { setTheme(btn.getAttribute('data-theme-set')); });
+    });
+  })();
+</script>
+
 <div class="stage">
 
   <h1 class="stage-title">ToolCard mockup — what JC would build</h1>
@@ -1447,7 +1674,7 @@
 
       <!-- VERIFY active, no WF -->
       <div class="build-row">
-        <div class="thumb"><img src="../public/2026-01-27-debug/cd-direct-hero-v1.jpg" alt=""/></div>
+        <div class="thumb"><img src="../public/2026-01-27-debug/all-vibes-sultan-flight-v1-3.jpg" alt=""/></div>
         <div class="name">
           <span class="id">vibe-2</span>
           <span class="label">Heritage</span>
@@ -1543,7 +1770,7 @@
   <div class="card">
     <div class="card-head">
       <span class="icon" style="color:var(--brand-green-bright);border-color:var(--brand-green-bright)">✶</span>
-      <span class="title">Generated cd-direct-hero-v1.jpg — vibe-3 hero</span>
+      <span class="title">Generated all-vibes-sultan-flight-v1-3.jpg — vibe-3 hero</span>
       <span class="meta">23s</span>
     </div>
     <div class="card-body">
@@ -1600,20 +1827,20 @@
   <div class="card">
     <div class="card-head">
       <span class="icon" style="color:var(--brand-cyan-bright,#22d3ee);border-color:var(--brand-cyan-bright,#22d3ee)">⬆</span>
-      <span class="title">Evaluated upload: tags-polar.jpg</span>
+      <span class="title">Evaluated upload: onyx.jpg</span>
       <span class="meta">just now</span>
     </div>
     <div class="card-body">
       <div class="img-frame aspect-16-9">
-        <img src="../public/2026-01-27-debug/tags-polar.jpg" alt="" />
+        <img src="../public/2026-01-27-debug/onyx.jpg" alt="" />
         <span class="ratio-badge">JPG</span>
       </div>
       <!-- WHAT IT IS — CD's read of the image content. -->
       <div class="prompt-preview">
         <span style="color:var(--text-faint);font-size:9px;text-transform:uppercase;
                      letter-spacing:0.08em;margin-right:6px;">What it is</span>
-        Bug-report screenshot showing the View-tab tag overlay rendered in
-        POLAR theme — dark backdrop on light bg, B-ROLL chip blending into white…
+        Reference screenshot of OskarOS in ONYX theme — bento grid, neon-green status pills,
+        JetBrains Mono HUD labels, deep onyx surface lifted from the page background…
       </div>
       <!-- VERDICT — one-line take, same field that flowed to the snackbar. -->
       <div style="font-family:var(--font-mono);font-size:11px;color:var(--text-main);
@@ -1669,9 +1896,9 @@
         <div class="swap-arrow">→</div>
         <div>
           <div class="img-frame aspect-16-9">
-            <img src="../public/2026-01-27-debug/cd-direct-hero-v1.jpg" alt="" />
+            <img src="../public/2026-01-27-debug/all-vibes-sultan-flight-v1-3.jpg" alt="" />
           </div>
-          <div class="swap-caption" style="color:var(--brand-green-bright)">cd-direct-hero-v1.jpg</div>
+          <div class="swap-caption" style="color:var(--brand-green-bright)">all-vibes-sultan-flight-v1-3.jpg</div>
         </div>
       </div>
     </div>
@@ -2025,7 +2252,8 @@
       <span class="progress">step 1 / 3</span>
     </div>
     <div class="context">
-      Tell me what makes the place specific. The weirder the detail, the better — generic answers make generic vibes.
+      <span class="preamble-label">Why I'm asking</span>
+      I'm probing for specific over generic — the weirder the detail, the better. The four anchors here (name, customer, room-type, price ceiling) seed the brand. If "everyone" is the customer, we'll write for no one. Push back on anything that feels off; the textarea below catches what the radios don't.
     </div>
 
     <div class="field">
@@ -2059,8 +2287,7 @@
     </div>
 
     <div style="display:flex;justify-content:flex-end;gap:8px">
-      <button class="btn ghost">Skip step</button>
-      <button class="btn primary">Next →</button>
+      <button class="btn primary">Submit →</button>
     </div>
   </div>
 
@@ -2072,7 +2299,8 @@
       <span class="progress">step 3 / 3</span>
     </div>
     <div class="context">
-      These aren't final — they're seeds for the 4 vibes I'll write. The further apart your two picks are, the more interesting the spread.
+      <span class="preamble-label">Why six, not three</span>
+      Six directions across three axes — warm vs cool · classic vs modern · image-led vs typography-led. Pick up to 2. Your two picks reveal which axes pull and which don't; the unchosen four are as informative as the chosen two. Three cards would force a middle; ten would drown the signal. Six is the minimum form that lets all three axes pivot independently.
     </div>
 
     <div class="direction-grid">
@@ -2237,7 +2465,7 @@
         <span class="os-snackbar-state-code">ITER 3/5</span>
       </div>
       <div class="os-snackbar-body">
-        <span class="os-snackbar-heading">Generating cd-direct-hero-v1.jpg</span>
+        <span class="os-snackbar-heading">Generating all-vibes-sultan-flight-v1-3.jpg</span>
         <span class="os-snackbar-message">Nano Banana — 16:9 — eta ~12s</span>
       </div>
       <div class="os-snackbar-actions">
@@ -2571,6 +2799,245 @@
   </div>
 
   <!-- ============================================================ -->
+  <!-- §3.5 — Confirm Understanding card (Phase 1 → Phase 2 gate)    -->
+  <!-- Added 2026-05-08 (Ralph + CD). The handshake that closes      -->
+  <!-- Discovery and opens the door to Wireframe. Was previously     -->
+  <!-- name-dropped in the universal-input doctrine (line ~3306) but -->
+  <!-- never actually visualized — this is the missing mockup.       -->
+  <!-- ============================================================ -->
+
+  <h2 class="archetype">§3.5 — Confirm Understanding (Discovery → Wireframe gate)</h2>
+  <p class="archetype-sub">The handshake at the end of Phase 1. <strong>Nine substance-fields distilled on one screen</strong> — six chips (Business / Location / Who we are / How it works / Customer(s) / Voice), one Conversion + Pricing band carrying the operational specifics, two load-bearing pull-quotes (the green <em>weird detail</em> and the violet <em>signature moment</em>) — plus a 9/9 Discovery completeness signal and one primary CTA. Two states: <code>readyToGenerate=true</code> (green, Build CTA) and <code>readyToGenerate=false</code> (cyan, summary-only check-in). <strong>This card is the ONLY surface where the brand lives on one screen</strong> — without it the CD dumps the whole brief as chat-prose and the user loses the thread. ANTI-DUMP DOCTRINE: when this card carries the brand, the chat carries one line. Never both.</p>
+
+  <!-- CONFIRM UNDERSTANDING — readyToGenerate=true -->
+  <div class="card" id="confirm-card-ready" style="margin-top:24px;border-color:rgba(21,185,129,0.35);box-shadow:0 1px 3px rgba(0,0,0,0.4),0 0 0 1px rgba(21,185,129,0.12) inset">
+    <div class="card-body" style="padding:0">
+
+      <!-- HEAD with phase progression -->
+      <div style="display:flex;align-items:center;gap:10px;padding:14px 18px 10px;border-bottom:1px solid var(--border-card)">
+        <span style="display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:8px;background:rgba(21,185,129,0.14);color:var(--brand-green-bright);font-family:var(--font-mono);font-weight:700;font-size:14px;flex-shrink:0">✓</span>
+        <div style="flex:1;display:flex;flex-direction:column;gap:2px;min-width:0">
+          <div style="font-size:13px;font-weight:600;color:var(--text-main)">Ready to build</div>
+          <div style="font-size:10px;color:var(--text-faint);font-family:var(--font-mono);text-transform:uppercase;letter-spacing:0.08em">Phase 1 → Phase 2 · Discovery complete</div>
+        </div>
+        <span style="display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:var(--radius-pill);background:rgba(21,185,129,0.10);color:var(--brand-green-bright);font-family:var(--font-mono);font-weight:700;font-size:10px;letter-spacing:0.1em">GATE</span>
+      </div>
+
+      <!-- DISCOVERY DOTS — 9 sub-fields, all green -->
+      <div style="display:flex;align-items:center;gap:6px;padding:14px 18px 8px">
+        <span style="font-size:10px;color:var(--text-faint);font-family:var(--font-mono);text-transform:uppercase;letter-spacing:0.08em;margin-right:4px">Discovery</span>
+        <span style="display:inline-flex;align-items:center;gap:3px">
+          <span title="Business" style="width:8px;height:8px;border-radius:50%;background:var(--brand-green-bright)"></span>
+          <span title="Location" style="width:8px;height:8px;border-radius:50%;background:var(--brand-green-bright)"></span>
+          <span title="Who we are" style="width:8px;height:8px;border-radius:50%;background:var(--brand-green-bright)"></span>
+          <span title="How it works" style="width:8px;height:8px;border-radius:50%;background:var(--brand-green-bright)"></span>
+          <span title="Customer(s)" style="width:8px;height:8px;border-radius:50%;background:var(--brand-green-bright)"></span>
+          <span title="Conversion + Pricing" style="width:8px;height:8px;border-radius:50%;background:var(--brand-green-bright)"></span>
+          <span title="Weird detail" style="width:8px;height:8px;border-radius:50%;background:var(--brand-green-bright)"></span>
+          <span title="Signature moment" style="width:8px;height:8px;border-radius:50%;background:var(--brand-green-bright)"></span>
+          <span title="Voice" style="width:8px;height:8px;border-radius:50%;background:var(--brand-green-bright)"></span>
+        </span>
+        <span style="margin-left:auto;font-size:10px;color:var(--brand-green-bright);font-family:var(--font-mono);font-weight:700;text-transform:uppercase;letter-spacing:0.08em">9/9</span>
+      </div>
+
+      <!-- PREAMBLE — CD writes his reasoning. Cyan-bordered = "CD speaking" channel,
+           distinct from green (gate/weird) and violet (signature). Present in BOTH ready
+           and check-in variants. -->
+      <div style="margin:0 18px 14px;padding:12px 14px;border-left:2px solid var(--brand-cyan);background:rgba(34,211,238,0.04);border-radius:0 8px 8px 0">
+        <div style="font-size:10px;color:var(--brand-cyan);font-family:var(--font-mono);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:4px">What I heard</div>
+        <div style="font-size:13px;color:var(--text-main);line-height:1.55">A third-wave Vienna coffee bar where a Yemeni-Austrian roaster carries his two homelands — and the brand sits in the bridge itself, not in fusion or cultural decoration. Strongest signal: the falcon/camel pair. Weakest signal you should push back on: the price ceiling — I read €7 as the top, but locals might cap lower. If this reads right, click below; if I misheard anywhere, tell me which line.</div>
+      </div>
+
+      <!-- BRAND DISTILLATION — 6 chips in 2×3 grid -->
+      <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px;padding:0 18px 12px">
+        <div style="background:var(--bg-input);border:1px solid var(--border-card);border-radius:8px;padding:10px 12px">
+          <div style="font-size:10px;color:var(--text-faint);font-family:var(--font-mono);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:4px">Business</div>
+          <div style="font-size:13px;color:var(--text-main);line-height:1.4">Third-wave coffee bar — neighborhood regulars by day, late-night tourists.</div>
+        </div>
+        <div style="background:var(--bg-input);border:1px solid var(--border-card);border-radius:8px;padding:10px 12px">
+          <div style="font-size:10px;color:var(--text-faint);font-family:var(--font-mono);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:4px">Location</div>
+          <div style="font-size:13px;color:var(--text-main);line-height:1.4">Vienna's 7th. Drift-up from MuseumsQuartier after dark.</div>
+        </div>
+        <div style="background:var(--bg-input);border:1px solid var(--border-card);border-radius:8px;padding:10px 12px">
+          <div style="font-size:10px;color:var(--text-faint);font-family:var(--font-mono);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:4px">Who we are</div>
+          <div style="font-size:13px;color:var(--text-main);line-height:1.4">Yemeni-Austrian roaster, third generation coffee man. Solo operator, no franchise.</div>
+        </div>
+        <div style="background:var(--bg-input);border:1px solid var(--border-card);border-radius:8px;padding:10px 12px">
+          <div style="font-size:10px;color:var(--text-faint);font-family:var(--font-mono);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:4px">How it works</div>
+          <div style="font-size:13px;color:var(--text-main);line-height:1.4">Counter walk-in by day. Reservations-only after 21:00. No app, no loyalty card.</div>
+        </div>
+        <div style="background:var(--bg-input);border:1px solid var(--border-card);border-radius:8px;padding:10px 12px">
+          <div style="font-size:10px;color:var(--text-faint);font-family:var(--font-mono);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:4px">Customer(s)</div>
+          <div style="font-size:13px;color:var(--text-main);line-height:1.4">Locals first, tourists second. Price ceiling €7.</div>
+        </div>
+        <div style="background:var(--bg-input);border:1px solid var(--border-card);border-radius:8px;padding:10px 12px">
+          <div style="font-size:10px;color:var(--text-faint);font-family:var(--font-mono);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:4px">Voice</div>
+          <div style="font-size:13px;color:var(--text-main);line-height:1.4">Spare, confident, no kitsch. No fusion-speak.</div>
+        </div>
+      </div>
+
+      <!-- CONVERSION + PRICING BAND — chips top (Phone / Form / Book / Shop, applicable
+           ones highlighted in brand-green, inapplicable dimmed), pricing prose below as a
+           filled-textarea-style block. Pricing is multi-line because real-world pricing
+           rarely fits one value (e.g. tier per item, payment terms, special-cases). -->
+      <div style="margin:0 18px 12px;padding:10px 12px;background:var(--bg-input);border:1px solid var(--border-card);border-radius:8px">
+        <div style="font-size:10px;color:var(--text-faint);font-family:var(--font-mono);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:6px">Conversion Mechanisms</div>
+        <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:10px">
+          <span style="padding:3px 8px;border-radius:var(--radius-pill);background:rgba(21,185,129,0.10);color:var(--brand-green-bright);font-family:var(--font-mono);font-weight:700;font-size:10px;letter-spacing:0.06em">PHONE</span>
+          <span style="padding:3px 8px;border-radius:var(--radius-pill);background:var(--bg-input);border:1px solid var(--border-card);color:var(--text-faint);font-family:var(--font-mono);font-weight:700;font-size:10px;letter-spacing:0.06em;opacity:0.4">FORM</span>
+          <span style="padding:3px 8px;border-radius:var(--radius-pill);background:var(--bg-input);border:1px solid var(--border-card);color:var(--text-faint);font-family:var(--font-mono);font-weight:700;font-size:10px;letter-spacing:0.06em;opacity:0.4">BOOK</span>
+          <span style="padding:3px 8px;border-radius:var(--radius-pill);background:rgba(21,185,129,0.10);color:var(--brand-green-bright);font-family:var(--font-mono);font-weight:700;font-size:10px;letter-spacing:0.06em">SHOP</span>
+        </div>
+        <div style="font-size:10px;color:var(--text-faint);font-family:var(--font-mono);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:4px">Pricing</div>
+        <div style="font-size:13px;color:var(--text-main);line-height:1.55;font-variant-numeric:tabular-nums">€4 espresso · €5 cortado · €6 cappuccino · €7 specialty pour-over.<br>Beans by the bag €18–€32.<br>Cash, card. Tip jar at the counter.</div>
+      </div>
+
+      <!-- WEIRD-DETAIL CALLOUT — the load-bearing line (what makes this brand unrepeatable) -->
+      <div style="margin:0 18px 10px;padding:12px 14px;border-left:2px solid var(--brand-green-bright);background:rgba(21,185,129,0.04);border-radius:0 8px 8px 0">
+        <div style="font-size:10px;color:var(--brand-green-bright);font-family:var(--font-mono);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:4px">The weird detail</div>
+        <div style="font-size:14px;color:var(--text-main);line-height:1.5;font-style:italic">"Falcon and camel" — Yemeni-Austrian roaster's two homelands. Not a logo flourish; the brand IS the bridge.</div>
+      </div>
+
+      <!-- SIGNATURE MOMENT CALLOUT — the scene that PROVES the brand (distinct from weirdDetail: a scene, not a line) -->
+      <div style="margin:0 18px 14px;padding:12px 14px;border-left:2px solid var(--brand-violet);background:rgba(167,139,250,0.04);border-radius:0 8px 8px 0">
+        <div style="font-size:10px;color:var(--brand-violet);font-family:var(--font-mono);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:4px">The signature moment</div>
+        <div style="font-size:13px;color:var(--text-main);line-height:1.55;font-style:italic">Late-night tourist orders "cappuccino" at 23:30. He brings out Sanaani-style mocha with cardamom and watches their face. They love it or they leave — both fine.</div>
+      </div>
+
+      <!-- Universal user-input textarea -->
+      <div style="border-top:1px solid var(--border-card);padding:12px 18px">
+        <div style="font-size:11px;color:var(--text-faint);font-family:var(--font-mono);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:6px">Thoughts, comments, anything else?</div>
+        <textarea placeholder="e.g. nail the Austria/Yemen tension in the headline. Avoid 'fusion'. Want a Stamen-cluster vibe in the set." style="width:100%;min-height:64px;background:var(--bg-input);border:1px solid var(--border-card);border-radius:8px;padding:10px 12px;font-family:var(--font-body);font-size:13px;color:var(--text-main);resize:vertical;outline:none"></textarea>
+      </div>
+
+      <!-- Action row — single primary CTA, no Cancel (it's a card) -->
+      <div style="display:flex;gap:8px;padding:0 18px 16px">
+        <button style="flex:1;padding:12px 18px;border-radius:8px;border:1px solid var(--brand-green-bright);background:var(--brand-green-bright);color:#0a0a0a;font-family:var(--font-mono);font-weight:700;font-size:11px;letter-spacing:0.1em;text-transform:uppercase;cursor:pointer">Looks right — build wireframes →</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="annotation"><strong>confirm_understanding — readyToGenerate=true</strong> · the green-light variant. Nine substance-fields on one screen: <strong>6 chips</strong> (Business / Location / Who-we-are / How-it-works / Customer / Voice), <strong>1 Conversion + Pricing band</strong> with mechanism tokens (applicable highlighted green, inapplicable dimmed) + the price value tabular-mono, and <strong>2 pull-quotes</strong> — the green WEIRD DETAIL (the un-repeatable line) and the violet SIGNATURE MOMENT (the scene that proves the brand, distinct from weirdDetail by being a scene not a line). 9/9 Discovery dots signal completeness. One primary CTA: this card is the ONLY place that fires <code>build_wireframes</code> / <code>build_all_vibes(keynote-junior)</code> / <code>build_card_matrix</code> — single auditable gate.</div>
+
+  <!-- CONFIRM UNDERSTANDING — readyToGenerate=false -->
+  <!-- Same 9-field structure as the green ready=true variant — but every NOT-YET-LANDED
+       field renders as a writable input (textarea / pill-toggle / inline text input) so
+       the user can fill missing pieces directly on the card. CD writes the preamble
+       (top cyan callout) explaining what's still needed and why. No bottom textarea,
+       no CTA — the inputs themselves are the affordance. -->
+  <div class="card" id="confirm-card-thinking" style="margin-top:24px;border-color:rgba(34,211,238,0.30);box-shadow:0 1px 3px rgba(0,0,0,0.4),0 0 0 1px rgba(34,211,238,0.08) inset">
+    <div class="card-body" style="padding:0">
+      <!-- HEAD -->
+      <div style="display:flex;align-items:center;gap:10px;padding:14px 18px 10px;border-bottom:1px solid var(--border-card)">
+        <span style="display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:8px;background:rgba(34,211,238,0.14);color:var(--brand-cyan);font-family:var(--font-mono);font-weight:700;font-size:14px;flex-shrink:0">◐</span>
+        <div style="flex:1;display:flex;flex-direction:column;gap:2px;min-width:0">
+          <div style="font-size:13px;font-weight:600;color:var(--text-main)">Where I am so far</div>
+          <div style="font-size:10px;color:var(--text-faint);font-family:var(--font-mono);text-transform:uppercase;letter-spacing:0.08em">Phase 1 in progress · 6/9 Discovery items</div>
+        </div>
+        <span style="display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:var(--radius-pill);background:rgba(34,211,238,0.10);color:var(--brand-cyan);font-family:var(--font-mono);font-weight:700;font-size:10px;letter-spacing:0.1em">CHECK-IN</span>
+      </div>
+
+      <!-- DISCOVERY DOTS — 9 dots, 6 green (landed), 3 RED (missing) -->
+      <div style="display:flex;align-items:center;gap:6px;padding:14px 18px 8px">
+        <span style="font-size:10px;color:var(--text-faint);font-family:var(--font-mono);text-transform:uppercase;letter-spacing:0.08em;margin-right:4px">Discovery</span>
+        <span style="display:inline-flex;align-items:center;gap:3px">
+          <span title="Business" style="width:8px;height:8px;border-radius:50%;background:var(--brand-green-bright)"></span>
+          <span title="Location" style="width:8px;height:8px;border-radius:50%;background:var(--brand-green-bright)"></span>
+          <span title="Who we are" style="width:8px;height:8px;border-radius:50%;background:var(--brand-green-bright)"></span>
+          <span title="How it works" style="width:8px;height:8px;border-radius:50%;background:var(--brand-green-bright)"></span>
+          <span title="Customer(s)" style="width:8px;height:8px;border-radius:50%;background:var(--brand-green-bright)"></span>
+          <span title="Voice" style="width:8px;height:8px;border-radius:50%;background:var(--brand-green-bright)"></span>
+          <span title="Conversion + Pricing (missing)" style="width:8px;height:8px;border-radius:50%;background:var(--brand-red)"></span>
+          <span title="Weird detail (missing)" style="width:8px;height:8px;border-radius:50%;background:var(--brand-red)"></span>
+          <span title="Signature moment (missing)" style="width:8px;height:8px;border-radius:50%;background:var(--brand-red)"></span>
+        </span>
+        <span style="margin-left:auto;font-size:10px;color:var(--text-muted);font-family:var(--font-mono);font-weight:700;text-transform:uppercase;letter-spacing:0.08em">6/9</span>
+      </div>
+
+      <!-- PREAMBLE — CD writes what's still needed, addressed to the user. -->
+      <div style="margin:0 18px 14px;padding:12px 14px;border-left:2px solid var(--brand-cyan);background:rgba(34,211,238,0.04);border-radius:0 8px 8px 0">
+        <div style="font-size:10px;color:var(--brand-cyan);font-family:var(--font-mono);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:4px">What's still needed</div>
+        <div style="font-size:13px;color:var(--text-main);line-height:1.55">I have your business, location, who-you-are, how-it-works, customer, and voice. Three pieces to lock before I fire wireframes: which conversion mechanisms actually run (and the price band), the weird detail that makes this brand un-repeatable, and the signature moment that proves it. Fill them inline below — or keep talking and I'll capture from there.</div>
+      </div>
+
+      <!-- BRAND DISTILLATION — 6 chips filled, identical to ready=true state -->
+      <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px;padding:0 18px 12px">
+        <div style="background:var(--bg-input);border:1px solid var(--border-card);border-radius:8px;padding:10px 12px">
+          <div style="font-size:10px;color:var(--text-faint);font-family:var(--font-mono);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:4px">Business</div>
+          <div style="font-size:13px;color:var(--text-main);line-height:1.4">Third-wave coffee bar — neighborhood regulars by day, late-night tourists.</div>
+        </div>
+        <div style="background:var(--bg-input);border:1px solid var(--border-card);border-radius:8px;padding:10px 12px">
+          <div style="font-size:10px;color:var(--text-faint);font-family:var(--font-mono);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:4px">Location</div>
+          <div style="font-size:13px;color:var(--text-main);line-height:1.4">Vienna's 7th. Drift-up from MuseumsQuartier after dark.</div>
+        </div>
+        <div style="background:var(--bg-input);border:1px solid var(--border-card);border-radius:8px;padding:10px 12px">
+          <div style="font-size:10px;color:var(--text-faint);font-family:var(--font-mono);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:4px">Who we are</div>
+          <div style="font-size:13px;color:var(--text-main);line-height:1.4">Yemeni-Austrian roaster, third generation coffee man. Solo operator, no franchise.</div>
+        </div>
+        <div style="background:var(--bg-input);border:1px solid var(--border-card);border-radius:8px;padding:10px 12px">
+          <div style="font-size:10px;color:var(--text-faint);font-family:var(--font-mono);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:4px">How it works</div>
+          <div style="font-size:13px;color:var(--text-main);line-height:1.4">Counter walk-in by day. Reservations-only after 21:00. No app, no loyalty card.</div>
+        </div>
+        <div style="background:var(--bg-input);border:1px solid var(--border-card);border-radius:8px;padding:10px 12px">
+          <div style="font-size:10px;color:var(--text-faint);font-family:var(--font-mono);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:4px">Customer(s)</div>
+          <div style="font-size:13px;color:var(--text-main);line-height:1.4">Locals first, tourists second. Price ceiling €7.</div>
+        </div>
+        <div style="background:var(--bg-input);border:1px solid var(--border-card);border-radius:8px;padding:10px 12px">
+          <div style="font-size:10px;color:var(--text-faint);font-family:var(--font-mono);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:4px">Voice</div>
+          <div style="font-size:13px;color:var(--text-main);line-height:1.4">Spare, confident, no kitsch. No fusion-speak.</div>
+        </div>
+      </div>
+
+      <!-- CONVERSION + PRICING — UNFILLED, in input mode. Mechanism pills are
+           click-to-toggle (all ghost = none selected). Pricing is a multi-line textarea
+           because real pricing rarely fits one value. Dashed cyan border signals "fill me."
+           cd-toggle-chip class adds hover affordance; cd-edit class makes the textarea
+           visibly an input. -->
+      <div class="cd-input-callout" style="margin:0 18px 12px;padding:10px 12px;background:var(--bg-input);border:1px dashed var(--brand-cyan);border-radius:8px">
+        <div style="display:flex;align-items:center;margin-bottom:6px">
+          <div style="font-size:10px;color:var(--brand-cyan);font-family:var(--font-mono);text-transform:uppercase;letter-spacing:0.08em">Conversion Mechanisms</div>
+          <span class="cd-edit-hint">click to select</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:10px">
+          <span class="cd-toggle-chip" style="padding:3px 8px;border-radius:var(--radius-pill);background:var(--bg-input);border:1px solid var(--border-card);color:var(--text-faint);font-family:var(--font-mono);font-weight:700;font-size:10px;letter-spacing:0.06em">PHONE</span>
+          <span class="cd-toggle-chip" style="padding:3px 8px;border-radius:var(--radius-pill);background:var(--bg-input);border:1px solid var(--border-card);color:var(--text-faint);font-family:var(--font-mono);font-weight:700;font-size:10px;letter-spacing:0.06em">FORM</span>
+          <span class="cd-toggle-chip" style="padding:3px 8px;border-radius:var(--radius-pill);background:var(--bg-input);border:1px solid var(--border-card);color:var(--text-faint);font-family:var(--font-mono);font-weight:700;font-size:10px;letter-spacing:0.06em">BOOK</span>
+          <span class="cd-toggle-chip" style="padding:3px 8px;border-radius:var(--radius-pill);background:var(--bg-input);border:1px solid var(--border-card);color:var(--text-faint);font-family:var(--font-mono);font-weight:700;font-size:10px;letter-spacing:0.06em">SHOP</span>
+        </div>
+        <div style="display:flex;align-items:center;margin-bottom:4px">
+          <div style="font-size:10px;color:var(--brand-cyan);font-family:var(--font-mono);text-transform:uppercase;letter-spacing:0.08em">Pricing</div>
+          <span class="cd-edit-hint">click to type</span>
+        </div>
+        <textarea class="cd-edit" placeholder="e.g. €4 espresso · €6 cappuccino · €7 pour-over. Beans €18–€32 / bag. Cash, card." style="font-variant-numeric:tabular-nums"></textarea>
+      </div>
+
+      <!-- WEIRD DETAIL — UNFILLED. Dashed green border + visible-input textarea inside.
+           cd-input-callout wrapper + cd-edit class give the textarea its own dashed
+           border, hover/focus states, and a "click to type" hint. -->
+      <div class="cd-input-callout" style="margin:0 18px 10px;padding:12px 14px;border-left:2px dashed var(--brand-green-bright);background:rgba(21,185,129,0.02);border-radius:0 8px 8px 0">
+        <div style="display:flex;align-items:center;margin-bottom:6px">
+          <div style="font-size:10px;color:var(--brand-green-bright);font-family:var(--font-mono);text-transform:uppercase;letter-spacing:0.08em">The weird detail</div>
+          <span class="cd-edit-hint">click to type</span>
+        </div>
+        <textarea class="cd-edit" placeholder="The un-repeatable line that makes this brand sit apart. Not a feature — a quirk. (e.g. &quot;Falcon and camel — Yemeni-Austrian roaster's two homelands.&quot;)"></textarea>
+      </div>
+
+      <!-- SIGNATURE MOMENT — UNFILLED. Dashed violet border + visible-input textarea. -->
+      <div class="cd-input-callout" style="margin:0 18px 14px;padding:12px 14px;border-left:2px dashed var(--brand-violet);background:rgba(167,139,250,0.02);border-radius:0 8px 8px 0">
+        <div style="display:flex;align-items:center;margin-bottom:6px">
+          <div style="font-size:10px;color:var(--brand-violet);font-family:var(--font-mono);text-transform:uppercase;letter-spacing:0.08em">The signature moment</div>
+          <span class="cd-edit-hint">click to type</span>
+        </div>
+        <textarea class="cd-edit" placeholder="The scene that PROVES the brand, not describes it. Two or three sentences. (e.g. &quot;Late-night tourist orders cappuccino at 23:30. He serves Sanaani-style mocha with cardamom...&quot;)"></textarea>
+      </div>
+
+      <!-- No bottom textarea, no CTA — the unfilled fields ARE the affordance. -->
+    </div>
+  </div>
+
+  <div class="annotation"><strong>confirm_understanding — readyToGenerate=false</strong> · the mid-Discovery check-in. Same 9-field structure as the green ready-state, but every UNLANDED field is rendered as a writable input — dashed-border callout containing a transparent textarea (for weird detail / signature moment), or a click-to-toggle pill row + price input (for conversion + pricing). CD writes the cyan preamble at the top explaining what's still needed and why. The filled fields (the 6 green-dotted chips) render identically to their landed-state form, so the user reads what's known without re-parsing prose. No bottom textarea, no CTA — the unfilled fields ARE the affordance. User fills inline, the next CD turn parses what was typed and (when 9/9) re-fires the card as the green build-gate variant.</div>
+
+  <!-- ============================================================ -->
   <!-- §4 — 4-Phase Junior Pass model: Moodboard + Descent cards    -->
   <!-- Added 2026-05-07 (CD).                                        -->
   <!-- ============================================================ -->
@@ -2578,56 +3045,132 @@
   <h2 class="archetype">§4 — 4-Phase Junior Pass cards (Moodboard + Descent)</h2>
   <p class="archetype-sub">Two new Tier-3 specialty panels for the Discovery → Junior Pass → Vibes → Final Build workflow. Both carry the universal user-input textarea at the bottom (locked 2026-05-07 — applies to every discovery-phase card).</p>
 
-  <!-- MOODBOARD -->
-  <div class="card" style="margin-top:24px">
+  <!-- DESCENT SELECTION · FINAL BUILD — pick ONE of N vibes for the Final -->
+  <div class="card" id="descent-final-card" style="margin-top:24px">
     <div class="card-body">
       <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
-        <span style="display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:8px;background:rgba(94,234,212,0.12);color:var(--brand-teal-bright);font-family:var(--font-mono);font-weight:700;font-size:11px;letter-spacing:0.04em">MB</span>
+        <span style="display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:8px;background:rgba(167,139,250,0.12);color:var(--brand-violet);font-family:var(--font-mono);font-weight:700;font-size:11px;letter-spacing:0.04em">DS</span>
         <div style="flex:1;display:flex;flex-direction:column;gap:2px">
-          <div style="font-size:13px;font-weight:600;color:var(--text-main)">Moodboard · Junior Pass complete</div>
-          <div style="font-size:11px;color:var(--text-faint);font-family:var(--font-mono);text-transform:uppercase;letter-spacing:0.08em">Phase 2 → Phase 3 · Track: webpage</div>
+          <div style="font-size:13px;font-weight:600;color:var(--text-main)">Descent Selection · FINAL BUILD</div>
+          <div style="font-size:11px;color:var(--text-faint);font-family:var(--font-mono);text-transform:uppercase;letter-spacing:0.08em">Phase 4 → Phase 5 · Track: webpage · 5 vibes</div>
         </div>
-        <span style="display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:var(--radius-pill);background:rgba(94,234,212,0.08);color:var(--brand-teal-bright);font-family:var(--font-mono);font-weight:700;font-size:10px;letter-spacing:0.1em">REVIEW</span>
+        <span style="display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:var(--radius-pill);background:rgba(167,139,250,0.08);color:var(--brand-violet);font-family:var(--font-mono);font-weight:700;font-size:10px;letter-spacing:0.1em">PICK ONE</span>
       </div>
-      <div style="font-size:12px;color:var(--text-muted);margin-bottom:14px;line-height:1.55">
-        Three wireframes built from Discovery alone. No school anchors yet — that comes in Phase 3. Pick a direction, or tell CD what to take from each.
+      <!-- CD preamble — "what to weigh" — cyan border-left, the universal CD-speaking channel. -->
+      <div style="margin:0 0 14px;padding:12px 14px;border-left:2px solid var(--brand-cyan);background:rgba(34,211,238,0.04);border-radius:0 8px 8px 0">
+        <div style="font-size:10px;color:var(--brand-cyan);font-family:var(--font-mono);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:4px;font-weight:700">What to weigh</div>
+        <div style="font-size:13px;color:var(--text-main);line-height:1.55">Five vibes built, each anchored to a distinct school. Pick the one that ships — the others archive as alternates. Two things to weigh: which one matches the CUSTOMER you described in Discovery (not the one that looks coolest), and which one a designer-stranger could not mistake for any other on the page. If two feel interchangeable, neither is the one.</div>
       </div>
 
-      <!-- 3 wireframe thumbs -->
-      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px">
-        <div style="border:1px solid var(--border-card);border-radius:8px;overflow:hidden;background:rgba(255,255,255,0.02)">
-          <div style="height:120px;background:linear-gradient(135deg,#3a2820 0%,#7a5c3a 100%);position:relative">
-            <div style="position:absolute;left:10px;top:10px;font-family:var(--font-mono);font-size:9px;color:rgba(255,255,255,0.7);letter-spacing:0.1em;text-transform:uppercase">A · Warm-editorial</div>
-            <div style="position:absolute;left:10px;bottom:10px;color:#f4ede0;font-size:18px;font-weight:700;line-height:1">Grandma's<br/>waiting.</div>
+      <!-- 5 vibe thumbs -->
+      <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:16px" id="descent-final-grid">
+        <!-- Vibe-1 The Sultan's Library -->
+        <label class="descent-vibe" data-slug="vibe-1" style="border:2px solid var(--border-card);border-radius:8px;overflow:hidden;background:rgba(255,255,255,0.02);cursor:pointer;display:flex;flex-direction:column;transition:border-color 120ms ease">
+          <input type="radio" name="descent-vibe" value="vibe-1" style="display:none">
+          <div style="height:100px;background:#FAF7F2;position:relative;border-bottom:1px solid var(--border-card)">
+            <div style="position:absolute;left:8px;top:6px;font-family:var(--font-mono);font-size:8px;color:#6B6B6B;letter-spacing:0.08em;text-transform:uppercase">Vibe-1</div>
+            <div style="position:absolute;inset:24px 8px 8px 8px;color:#1A1A1A;font-family:'IBM Plex Serif',Georgia,serif;font-weight:600;font-size:13px;line-height:1.2">The Sultan's Library</div>
+            <div style="position:absolute;left:8px;bottom:6px;font-family:'IBM Plex Sans',sans-serif;font-size:8px;color:#A03434;font-weight:600">Reading room</div>
           </div>
-          <div style="padding:8px 10px;font-size:11px;color:var(--text-muted);line-height:1.4">Long-form copy, generous whitespace, food-as-hero.</div>
-        </div>
-        <div style="border:1px solid var(--border-card);border-radius:8px;overflow:hidden;background:rgba(255,255,255,0.02)">
-          <div style="height:120px;background:linear-gradient(135deg,#0a0a0a 0%,#1a1a1a 100%);position:relative">
-            <div style="position:absolute;left:10px;top:10px;font-family:var(--font-mono);font-size:9px;color:rgba(255,255,255,0.7);letter-spacing:0.1em;text-transform:uppercase">B · Brutalist</div>
-            <div style="position:absolute;left:10px;bottom:10px;color:#15B981;font-size:22px;font-weight:800;line-height:0.95;font-family:var(--font-mono);text-transform:uppercase">CLIFF<br/>MAJLIS<br/>200M</div>
+          <div style="padding:8px 10px;display:flex;flex-direction:column;gap:4px;position:relative">
+            <span class="descent-check" style="display:none;position:absolute;top:6px;right:6px;padding:2px 6px;border-radius:var(--radius-pill);background:var(--brand-green-bright);color:#0a0a0a;font-family:var(--font-mono);font-weight:700;font-size:8px;letter-spacing:0.1em">✓</span>
+            <div style="font-family:var(--font-body);font-weight:600;font-size:11px;color:var(--text-main)">Sultan's Library</div>
+            <div style="display:flex;gap:2px">
+              <span style="width:10px;height:10px;background:#FAF7F2;border:1px solid var(--border-card);border-radius:2px"></span>
+              <span style="width:10px;height:10px;background:#1A1A1A;border-radius:2px"></span>
+              <span style="width:10px;height:10px;background:#A03434;border-radius:2px"></span>
+            </div>
+            <div style="font-family:var(--font-mono);font-size:8px;color:var(--text-faint);text-transform:uppercase;letter-spacing:0.06em">Reichenstein</div>
           </div>
-          <div style="padding:8px 10px;font-size:11px;color:var(--text-muted);line-height:1.4">Mono type, raw grid, geographic specificity as anchor.</div>
-        </div>
-        <div style="border:1px solid var(--border-card);border-radius:8px;overflow:hidden;background:rgba(255,255,255,0.02)">
-          <div style="height:120px;background:linear-gradient(135deg,#1a1a2e 0%,#0f0f1f 100%);position:relative">
-            <div style="position:absolute;left:10px;top:10px;font-family:var(--font-mono);font-size:9px;color:rgba(255,255,255,0.7);letter-spacing:0.1em;text-transform:uppercase">C · Motion-led</div>
-            <div style="position:absolute;left:10px;bottom:10px;color:#5EEAD4;font-size:14px;font-weight:600;line-height:1.1;letter-spacing:-0.01em">Scroll past the cliff.<br/><span style="color:#a1a1aa;font-weight:400">↓</span></div>
+        </label>
+
+        <!-- Vibe-2 Stamen Tides -->
+        <label class="descent-vibe" data-slug="vibe-2" style="border:2px solid var(--border-card);border-radius:8px;overflow:hidden;background:rgba(255,255,255,0.02);cursor:pointer;display:flex;flex-direction:column;transition:border-color 120ms ease">
+          <input type="radio" name="descent-vibe" value="vibe-2" style="display:none">
+          <div style="height:100px;background:linear-gradient(180deg,#0E2030 0%,#1A3349 100%);position:relative;border-bottom:1px solid var(--border-card)">
+            <div style="position:absolute;left:8px;top:6px;font-family:var(--font-mono);font-size:8px;color:#7A95AB;letter-spacing:0.08em;text-transform:uppercase">Vibe-2</div>
+            <div style="position:absolute;inset:24px 8px 8px 8px;color:#5BC0DE;font-family:'Source Serif Pro',serif;font-weight:600;font-size:13px;line-height:1.2">Stamen Tides</div>
+            <div style="position:absolute;left:8px;bottom:6px;font-family:'Source Sans Pro',sans-serif;font-size:8px;color:#F4A261;font-weight:600">Tide drops 4:13</div>
           </div>
-          <div style="padding:8px 10px;font-size:11px;color:var(--text-muted);line-height:1.4">Damped scroll-coupled motion, parallax cliff drop.</div>
-        </div>
+          <div style="padding:8px 10px;display:flex;flex-direction:column;gap:4px;position:relative">
+            <span class="descent-check" style="display:none;position:absolute;top:6px;right:6px;padding:2px 6px;border-radius:var(--radius-pill);background:var(--brand-green-bright);color:#0a0a0a;font-family:var(--font-mono);font-weight:700;font-size:8px;letter-spacing:0.1em">✓</span>
+            <div style="font-family:var(--font-body);font-weight:600;font-size:11px;color:var(--text-main)">Stamen Tides</div>
+            <div style="display:flex;gap:2px">
+              <span style="width:10px;height:10px;background:#0E2030;border:1px solid var(--border-card);border-radius:2px"></span>
+              <span style="width:10px;height:10px;background:#5BC0DE;border-radius:2px"></span>
+              <span style="width:10px;height:10px;background:#F4A261;border-radius:2px"></span>
+            </div>
+            <div style="font-family:var(--font-mono);font-size:8px;color:var(--text-faint);text-transform:uppercase;letter-spacing:0.06em">Stamen</div>
+          </div>
+        </label>
+
+        <!-- Vibe-3 Grandma's Cliff -->
+        <label class="descent-vibe" data-slug="vibe-3" style="border:2px solid var(--border-card);border-radius:8px;overflow:hidden;background:rgba(255,255,255,0.02);cursor:pointer;display:flex;flex-direction:column;transition:border-color 120ms ease">
+          <input type="radio" name="descent-vibe" value="vibe-3" style="display:none">
+          <div style="height:100px;background:linear-gradient(135deg,#3A2820 0%,#5A3A28 100%);position:relative;border-bottom:1px solid var(--border-card)">
+            <div style="position:absolute;left:8px;top:6px;font-family:var(--font-mono);font-size:8px;color:#A39080;letter-spacing:0.08em;text-transform:uppercase">Vibe-3</div>
+            <div style="position:absolute;inset:24px 8px 8px 8px;color:#D4A574;font-family:'Inter Tight',Inter,sans-serif;font-weight:800;font-size:14px;line-height:1.05;text-transform:uppercase">Grandma's<br>waiting.</div>
+          </div>
+          <div style="padding:8px 10px;display:flex;flex-direction:column;gap:4px;position:relative">
+            <span class="descent-check" style="display:none;position:absolute;top:6px;right:6px;padding:2px 6px;border-radius:var(--radius-pill);background:var(--brand-green-bright);color:#0a0a0a;font-family:var(--font-mono);font-weight:700;font-size:8px;letter-spacing:0.1em">✓</span>
+            <div style="font-family:var(--font-body);font-weight:600;font-size:11px;color:var(--text-main)">Grandma's Cliff</div>
+            <div style="display:flex;gap:2px">
+              <span style="width:10px;height:10px;background:#3A2820;border:1px solid var(--border-card);border-radius:2px"></span>
+              <span style="width:10px;height:10px;background:#D4A574;border-radius:2px"></span>
+              <span style="width:10px;height:10px;background:#C44536;border-radius:2px"></span>
+            </div>
+            <div style="font-family:var(--font-mono);font-size:8px;color:var(--text-faint);text-transform:uppercase;letter-spacing:0.06em">Soho House</div>
+          </div>
+        </label>
+
+        <!-- Vibe-4 Field.io Particles -->
+        <label class="descent-vibe" data-slug="vibe-4" style="border:2px solid var(--border-card);border-radius:8px;overflow:hidden;background:rgba(255,255,255,0.02);cursor:pointer;display:flex;flex-direction:column;transition:border-color 120ms ease">
+          <input type="radio" name="descent-vibe" value="vibe-4" style="display:none">
+          <div style="height:100px;background:radial-gradient(circle at 30% 40%,#FF3366 0%,#08080C 70%);position:relative;border-bottom:1px solid var(--border-card)">
+            <div style="position:absolute;left:8px;top:6px;font-family:var(--font-mono);font-size:8px;color:#6A6A78;letter-spacing:0.08em;text-transform:uppercase">Vibe-4</div>
+            <div style="position:absolute;inset:24px 8px 8px 8px;color:#7DF9FF;font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:13px;line-height:1.1">Enter the field.</div>
+          </div>
+          <div style="padding:8px 10px;display:flex;flex-direction:column;gap:4px;position:relative">
+            <span class="descent-check" style="display:none;position:absolute;top:6px;right:6px;padding:2px 6px;border-radius:var(--radius-pill);background:var(--brand-green-bright);color:#0a0a0a;font-family:var(--font-mono);font-weight:700;font-size:8px;letter-spacing:0.1em">✓</span>
+            <div style="font-family:var(--font-body);font-weight:600;font-size:11px;color:var(--text-main)">Field.io Particles</div>
+            <div style="display:flex;gap:2px">
+              <span style="width:10px;height:10px;background:#08080C;border:1px solid var(--border-card);border-radius:2px"></span>
+              <span style="width:10px;height:10px;background:#7DF9FF;border-radius:2px"></span>
+              <span style="width:10px;height:10px;background:#FF3366;border-radius:2px"></span>
+            </div>
+            <div style="font-family:var(--font-mono);font-size:8px;color:var(--text-faint);text-transform:uppercase;letter-spacing:0.06em">Field.io</div>
+          </div>
+        </label>
+
+        <!-- Vibe-5 Jetset Brutalist -->
+        <label class="descent-vibe" data-slug="vibe-5" style="border:2px solid var(--border-card);border-radius:8px;overflow:hidden;background:rgba(255,255,255,0.02);cursor:pointer;display:flex;flex-direction:column;transition:border-color 120ms ease">
+          <input type="radio" name="descent-vibe" value="vibe-5" style="display:none">
+          <div style="height:100px;background:#FFFFFF;position:relative;border-bottom:1px solid var(--border-card)">
+            <div style="position:absolute;left:8px;top:6px;font-family:var(--font-mono);font-size:8px;color:#888;letter-spacing:0.08em;text-transform:uppercase">Vibe-5</div>
+            <div style="position:absolute;inset:24px 8px 8px 8px;color:#000;font-family:'Helvetica Neue',Helvetica,sans-serif;font-weight:700;font-size:14px;line-height:1.05">By appointment.</div>
+          </div>
+          <div style="padding:8px 10px;display:flex;flex-direction:column;gap:4px;position:relative">
+            <span class="descent-check" style="display:none;position:absolute;top:6px;right:6px;padding:2px 6px;border-radius:var(--radius-pill);background:var(--brand-green-bright);color:#0a0a0a;font-family:var(--font-mono);font-weight:700;font-size:8px;letter-spacing:0.1em">✓</span>
+            <div style="font-family:var(--font-body);font-weight:600;font-size:11px;color:var(--text-main)">Jetset Brutalist</div>
+            <div style="display:flex;gap:2px">
+              <span style="width:10px;height:10px;background:#FFFFFF;border:1px solid var(--border-card);border-radius:2px"></span>
+              <span style="width:10px;height:10px;background:#000;border-radius:2px"></span>
+              <span style="width:10px;height:10px;background:#FF0000;border-radius:2px"></span>
+            </div>
+            <div style="font-family:var(--font-mono);font-size:8px;color:var(--text-faint);text-transform:uppercase;letter-spacing:0.06em">Jetset</div>
+          </div>
+        </label>
       </div>
 
       <!-- Universal user-input textarea -->
       <div style="border-top:1px solid var(--border-card);padding-top:12px;margin-top:4px">
         <div style="font-size:11px;color:var(--text-faint);font-family:var(--font-mono);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:6px">Thoughts, comments, anything else?</div>
-        <textarea placeholder="e.g. love B's headline mass, but want A's warmth in the body copy. C feels too techy for grandma." style="width:100%;min-height:64px;background:var(--bg-input);border:1px solid var(--border-card);border-radius:8px;padding:10px 12px;font-family:var(--font-body);font-size:13px;color:var(--text-main);resize:vertical;outline:none"></textarea>
+        <textarea placeholder="e.g. ship Vibe-3 — but pull the Vibe-1 hook copy into it. Vibe-5 reads too cold for the brand." style="width:100%;min-height:64px;background:var(--bg-input);border:1px solid var(--border-card);border-radius:8px;padding:10px 12px;font-family:var(--font-body);font-size:13px;color:var(--text-main);resize:vertical;outline:none"></textarea>
       </div>
 
-      <!-- Action row -->
+      <!-- Action row — single CTA, no Cancel (it's a card) -->
       <div style="display:flex;gap:8px;margin-top:12px">
-        <button style="flex:1;padding:10px 16px;border-radius:8px;border:1px solid var(--brand-green-bright);background:var(--brand-green-bright);color:#0a0a0a;font-family:var(--font-mono);font-weight:700;font-size:11px;letter-spacing:0.1em;text-transform:uppercase;cursor:pointer">Send to CD</button>
-        <button style="padding:10px 16px;border-radius:8px;border:1px solid var(--border-card);background:transparent;color:var(--text-muted);font-family:var(--font-mono);font-weight:600;font-size:11px;letter-spacing:0.1em;text-transform:uppercase;cursor:pointer">Skip</button>
+        <button id="descent-final-commit" disabled style="flex:1;padding:11px 18px;border-radius:8px;border:1px solid var(--brand-green-bright);background:var(--brand-green-bright);color:#0a0a0a;font-family:var(--font-mono);font-weight:700;font-size:11px;letter-spacing:0.1em;text-transform:uppercase;cursor:pointer;opacity:0.45;transition:opacity 120ms ease">Ship This Vibe</button>
       </div>
     </div>
   </div>
@@ -2643,8 +3186,10 @@
         </div>
         <span style="display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:var(--radius-pill);background:rgba(167,139,250,0.08);color:var(--brand-violet);font-family:var(--font-mono);font-weight:700;font-size:10px;letter-spacing:0.1em">PICK</span>
       </div>
-      <div style="font-size:12px;color:var(--text-muted);margin-bottom:14px;line-height:1.55">
-        20 designer cards plus 5 CD intuition cards. Star the ones that fit the brand. CD curates the starred set into Phase 3.
+      <!-- CD preamble — "what to weigh" — cyan border-left, the universal CD-speaking channel. -->
+      <div style="margin:0 0 14px;padding:12px 14px;border-left:2px solid var(--brand-cyan);background:rgba(34,211,238,0.04);border-radius:0 8px 8px 0">
+        <div style="font-size:10px;color:var(--brand-cyan);font-family:var(--font-mono);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:4px;font-weight:700">What to weigh</div>
+        <div style="font-size:13px;color:var(--text-main);line-height:1.55">25 candidates — 20 designer-anchored cards across the five clusters, plus 5 of my own intuition picks. Star the ones that fit the brand; cap is 7. I'll curate the starred set into Phase 3 by killing duplicates and grouping by attack-vector. If two starred cards make the same argument, only one survives.</div>
       </div>
 
       <!-- Card grid (5×5) -->
@@ -2690,128 +3235,532 @@
         <textarea placeholder="e.g. starred Pentagram + Hara — keep them rigorous. Sagmeister is a stretch but I want to try the rubber-stamp logo back." style="width:100%;min-height:64px;background:var(--bg-input);border:1px solid var(--border-card);border-radius:8px;padding:10px 12px;font-family:var(--font-body);font-size:13px;color:var(--text-main);resize:vertical;outline:none"></textarea>
       </div>
 
-      <!-- Action row -->
+      <!-- Action row — single CTA, no Cancel (it's a card) -->
       <div style="display:flex;gap:8px;margin-top:12px">
         <button style="flex:1;padding:10px 16px;border-radius:8px;border:1px solid var(--brand-green-bright);background:var(--brand-green-bright);color:#0a0a0a;font-family:var(--font-mono);font-weight:700;font-size:11px;letter-spacing:0.1em;text-transform:uppercase;cursor:pointer">Commit selection</button>
-        <button style="padding:10px 16px;border-radius:8px;border:1px solid var(--border-card);background:transparent;color:var(--text-muted);font-family:var(--font-mono);font-weight:600;font-size:11px;letter-spacing:0.1em;text-transform:uppercase;cursor:pointer">Cancel</button>
       </div>
     </div>
   </div>
 
-  <!-- DESIGN SYSTEM (MOODBOARD-SINGLE) -->
-  <div class="card" style="margin-top:24px">
-    <div class="card-body" style="padding:20px 22px">
-      <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px">
-        <span style="display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;border-radius:8px;background:rgba(21,185,129,0.12);color:var(--brand-green-bright);font-family:var(--font-mono);font-weight:700;font-size:11px;letter-spacing:0.04em">DS</span>
-        <div style="flex:1;display:flex;flex-direction:column;gap:2px">
-          <div style="font-size:14px;font-weight:600;color:var(--text-main)">Design System · Vibe-3 Grandma's Cliff</div>
-          <div style="font-size:11px;color:var(--text-faint);font-family:var(--font-mono);text-transform:uppercase;letter-spacing:0.08em">MOODBOARD-SINGLE · Phase 3 → Phase 4 sign-off · Track: webpage</div>
+  <!-- DESIGN SYSTEM — compact: vibe-selector + palette + typography sample + components inline -->
+  <!-- Interactive: vibe selector swaps every section client-side via CSS vars + textContent. -->
+  <div class="card" id="ds-card" style="margin-top:24px;
+       --ds-bg:#3a2820; --ds-surface:#5a3a28; --ds-surface-border:#6a4a38;
+       --ds-primary:#d4a574; --ds-ink:#f4ede0; --ds-muted-ink:#a39080;
+       --ds-accent:#c44536; --ds-display-font:'Inter Tight',Inter,sans-serif;
+       --ds-body-font:'Inter',sans-serif">
+    <div class="card-body" style="padding:18px 20px">
+      <!-- Header + vibe selector inline -->
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
+        <span style="display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:8px;background:rgba(21,185,129,0.12);color:var(--brand-green-bright);font-family:var(--font-mono);font-weight:700;font-size:11px;letter-spacing:0.04em;flex-shrink:0">DS</span>
+        <div style="flex:1;display:flex;flex-direction:column;gap:2px;min-width:0">
+          <div style="font-size:13px;font-weight:600;color:var(--text-main)">Design System</div>
+          <div style="font-size:10px;color:var(--text-faint);font-family:var(--font-mono);text-transform:uppercase;letter-spacing:0.08em">Phase 4 → 5 sign-off · Track: webpage</div>
         </div>
-        <span style="display:inline-flex;align-items:center;gap:6px;padding:5px 11px;border-radius:var(--radius-pill);background:rgba(21,185,129,0.08);color:var(--brand-green-bright);font-family:var(--font-mono);font-weight:700;font-size:10px;letter-spacing:0.1em">REVIEW</span>
+        <select id="ds-vibe-select" style="background:var(--bg-input);border:1px solid var(--border-card);border-radius:6px;padding:6px 10px;font-family:var(--font-body);font-size:12px;color:var(--text-main);cursor:pointer;outline:none">
+          <option value="vibe-1">Vibe-1 — The Sultan's Library</option>
+          <option value="vibe-2">Vibe-2 — Stamen Tides</option>
+          <option value="vibe-3" selected>Vibe-3 — Grandma's Cliff</option>
+          <option value="vibe-4">Vibe-4 — Field.io Particles</option>
+          <option value="vibe-5">Vibe-5 — Jetset Brutalist</option>
+        </select>
       </div>
 
-      <div style="font-size:13px;color:var(--text-main);line-height:1.55;margin-bottom:18px;font-style:italic;border-left:2px solid var(--brand-green-bright);padding-left:12px">
-        Warm, oracular, restrained. One bright accent against a deep neutral field. Grandma's living room reframed as a cliff-edge majlis — domestic warmth holding the void.
+      <!-- Vibe sample — display name + atmosphere on the vibe's own background, rendered in vibe's typefaces -->
+      <div style="margin-bottom:12px;padding:14px 16px;background:var(--ds-bg);border-radius:8px;border:1px solid var(--ds-surface);position:relative">
+        <div id="ds-display-name" style="font-family:var(--ds-display-font);font-weight:800;font-size:28px;line-height:1.05;color:var(--ds-primary);text-transform:uppercase;letter-spacing:-0.01em;margin-bottom:6px">Grandma's Waiting</div>
+        <div id="ds-h2-sample" style="font-family:var(--ds-display-font);font-weight:800;font-size:18px;line-height:1.2;color:var(--ds-ink);margin-bottom:8px">She's already made too much food</div>
+        <div id="ds-body-sample" style="font-family:var(--ds-body-font);font-weight:400;font-size:12px;line-height:1.55;color:var(--ds-ink);margin-bottom:12px">The man in white isn't performing heritage. He IS heritage. The roller coasters are an accident of geography — we were here first.</div>
+        <!-- Component samples inline -->
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+          <button id="ds-btn-primary" style="padding:10px 18px;border-radius:6px;border:none;background:var(--ds-primary);color:var(--ds-bg);font-family:var(--ds-body-font);font-weight:700;font-size:12px;letter-spacing:0.02em;cursor:pointer">Reserve a seat</button>
+          <button id="ds-btn-secondary" style="padding:10px 18px;border-radius:6px;border:1px solid var(--ds-primary);background:transparent;color:var(--ds-primary);font-family:var(--ds-body-font);font-weight:600;font-size:12px;letter-spacing:0.02em;cursor:pointer">Read more</button>
+        </div>
       </div>
 
-      <!-- Color palette -->
-      <div style="margin-bottom:20px">
-        <div style="font-size:11px;color:var(--text-faint);font-family:var(--font-mono);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:10px">Color palette &amp; roles</div>
-        <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:8px">
-          <div>
-            <div style="height:60px;background:#3a2820;border:1px solid var(--border-card);border-radius:6px;margin-bottom:6px"></div>
-            <div style="font-size:11px;font-family:var(--font-mono);color:var(--text-main)">#3A2820</div>
-            <div style="font-size:10px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em;margin-top:2px">Background</div>
+      <!-- Palette + Typography spec — single horizontal row -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">
+        <!-- Palette -->
+        <div style="padding:10px 12px;background:rgba(255,255,255,0.02);border:1px solid var(--border-card);border-radius:6px">
+          <div style="font-size:9px;color:var(--text-faint);font-family:var(--font-mono);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:6px">Palette</div>
+          <div style="display:flex;gap:4px;margin-bottom:4px">
+            <div style="flex:1;height:24px;background:var(--ds-bg);border-radius:3px;border:1px solid var(--border-card)"></div>
+            <div style="flex:1;height:24px;background:var(--ds-surface);border-radius:3px"></div>
+            <div style="flex:1;height:24px;background:var(--ds-primary);border-radius:3px"></div>
+            <div style="flex:1;height:24px;background:var(--ds-ink);border-radius:3px;border:1px solid var(--border-card)"></div>
+            <div style="flex:1;height:24px;background:var(--ds-accent);border-radius:3px"></div>
           </div>
-          <div>
-            <div style="height:60px;background:#5a3a28;border:1px solid var(--border-card);border-radius:6px;margin-bottom:6px"></div>
-            <div style="font-size:11px;font-family:var(--font-mono);color:var(--text-main)">#5A3A28</div>
-            <div style="font-size:10px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em;margin-top:2px">Surface</div>
+          <div style="display:flex;gap:4px;font-family:var(--font-mono);font-size:8px;color:var(--text-muted)">
+            <span id="ds-hex-bg" style="flex:1;text-align:center">#3A2820</span>
+            <span id="ds-hex-surface" style="flex:1;text-align:center">#5A3A28</span>
+            <span id="ds-hex-primary" style="flex:1;text-align:center">#D4A574</span>
+            <span id="ds-hex-ink" style="flex:1;text-align:center">#F4EDE0</span>
+            <span id="ds-hex-accent" style="flex:1;text-align:center">#C44536</span>
           </div>
-          <div>
-            <div style="height:60px;background:#d4a574;border:1px solid var(--border-card);border-radius:6px;margin-bottom:6px"></div>
-            <div style="font-size:11px;font-family:var(--font-mono);color:var(--text-main)">#D4A574</div>
-            <div style="font-size:10px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em;margin-top:2px">Primary</div>
-          </div>
-          <div>
-            <div style="height:60px;background:#f4ede0;border:1px solid var(--border-card);border-radius:6px;margin-bottom:6px"></div>
-            <div style="font-size:11px;font-family:var(--font-mono);color:var(--text-main)">#F4EDE0</div>
-            <div style="font-size:10px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em;margin-top:2px">Ink</div>
-          </div>
-          <div>
-            <div style="height:60px;background:#c44536;border:1px solid var(--border-card);border-radius:6px;margin-bottom:6px"></div>
-            <div style="font-size:11px;font-family:var(--font-mono);color:var(--text-main)">#C44536</div>
-            <div style="font-size:10px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em;margin-top:2px">Accent</div>
+        </div>
+        <!-- Typography spec -->
+        <div style="padding:10px 12px;background:rgba(255,255,255,0.02);border:1px solid var(--border-card);border-radius:6px">
+          <div style="font-size:9px;color:var(--text-faint);font-family:var(--font-mono);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:6px">Typography</div>
+          <div id="ds-typo-header" style="font-size:11px;color:var(--text-main);font-family:var(--font-mono);line-height:1.5">Inter Tight · Inter</div>
+          <div style="font-size:9px;color:var(--text-faint);font-family:var(--font-mono);line-height:1.6;margin-top:4px">
+            <div id="ds-h1-caption">H1 · 48px 800 UPPER</div>
+            <div id="ds-body-caption">Body · 16px 400 · 1.6</div>
           </div>
         </div>
       </div>
 
-      <!-- Typography -->
-      <div style="margin-bottom:20px;padding:16px;background:#3a2820;border-radius:8px;border:1px solid #5a3a28">
-        <div style="font-size:11px;color:#a39080;font-family:var(--font-mono);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:14px">Typography · Inter Tight (display) · Inter (body)</div>
-        <div style="font-family:'Inter Tight',Inter,sans-serif;font-weight:800;font-size:42px;line-height:1.05;color:#d4a574;text-transform:uppercase;letter-spacing:-0.01em;margin-bottom:6px">Grandma's Waiting</div>
-        <div style="font-size:10px;color:#a39080;font-family:var(--font-mono);margin-bottom:14px">H1 · 48px Inter Tight 800 UPPERCASE</div>
-        <div style="font-family:'Inter Tight',Inter,sans-serif;font-weight:800;font-size:30px;line-height:1.1;color:#f4ede0;margin-bottom:6px">She's already made too much food</div>
-        <div style="font-size:10px;color:#a39080;font-family:var(--font-mono);margin-bottom:14px">H2 · 36px Inter Tight 800 sentence case</div>
-        <div style="font-family:'Inter',sans-serif;font-weight:400;font-size:14px;line-height:1.6;color:#f4ede0;margin-bottom:6px">The man in white isn't performing heritage. He IS heritage. The roller coasters are an accident of geography — we were here first.</div>
-        <div style="font-size:10px;color:#a39080;font-family:var(--font-mono)">Body · 16px Inter 400 · 1.6 line-height</div>
-      </div>
-
-      <!-- Components -->
-      <div style="margin-bottom:20px">
-        <div style="font-size:11px;color:var(--text-faint);font-family:var(--font-mono);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:10px">Components</div>
-        <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
-          <button style="padding:14px 28px;border-radius:6px;border:none;background:#d4a574;color:#3a2820;font-family:'Inter',sans-serif;font-weight:700;font-size:14px;letter-spacing:0.02em;cursor:pointer">Reserve a seat</button>
-          <button style="padding:14px 28px;border-radius:6px;border:1px solid #d4a574;background:transparent;color:#d4a574;font-family:'Inter',sans-serif;font-weight:600;font-size:14px;letter-spacing:0.02em;cursor:pointer">Read more</button>
-          <div style="padding:16px 20px;background:#5a3a28;border:1px solid #6a4a38;border-radius:8px;color:#f4ede0;font-family:'Inter',sans-serif;font-size:13px">Card chassis · 24px padding</div>
+      <!-- Image treatment + Animation — compact inline -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">
+        <div style="padding:8px 10px;background:rgba(255,255,255,0.02);border:1px solid var(--border-card);border-radius:6px">
+          <div style="font-size:9px;color:var(--text-faint);font-family:var(--font-mono);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:4px">Image treatment</div>
+          <div id="ds-image-treatment" style="font-size:11px;color:var(--text-muted);line-height:1.45">Full-bleed, object-fit:contain. No overlay rectangles.</div>
         </div>
-      </div>
-
-      <!-- Image treatment + animation -->
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:20px">
-        <div style="padding:12px;background:rgba(255,255,255,0.02);border:1px solid var(--border-card);border-radius:6px">
-          <div style="font-size:10px;color:var(--text-faint);font-family:var(--font-mono);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:6px">Image treatment</div>
-          <div style="font-size:12px;color:var(--text-main);line-height:1.5">Hero: full-bleed, <code style="font-size:11px">object-fit: contain</code>. No overlay rectangles. Text-shadow only on overlaid type.</div>
-        </div>
-        <div style="padding:12px;background:rgba(255,255,255,0.02);border:1px solid var(--border-card);border-radius:6px">
-          <div style="font-size:10px;color:var(--text-faint);font-family:var(--font-mono);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:6px">Animation</div>
-          <div style="font-size:12px;color:var(--text-main);line-height:1.5">Static. No scroll-coupled motion. Restrained: only entrance fade on hero, expoOut 600ms.</div>
-        </div>
-      </div>
-
-      <!-- Do's and Don'ts -->
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:20px">
-        <div style="padding:12px;background:rgba(21,185,129,0.05);border:1px solid rgba(21,185,129,0.2);border-radius:6px">
-          <div style="font-size:10px;color:var(--brand-green-bright);font-family:var(--font-mono);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:8px">DO</div>
-          <ul style="margin:0;padding-left:18px;font-size:12px;color:var(--text-main);line-height:1.7">
-            <li>Use Primary <code style="font-size:11px">#D4A574</code> only for CTAs + links</li>
-            <li>Use the spacing scale (4/8/16/24/32/48/64/96)</li>
-            <li>Maintain 4.5:1 body / 3:1 large text contrast</li>
-            <li>Animate transform + opacity only</li>
-          </ul>
-        </div>
-        <div style="padding:12px;background:rgba(239,68,68,0.05);border:1px solid rgba(239,68,68,0.2);border-radius:6px">
-          <div style="font-size:10px;color:var(--brand-red);font-family:var(--font-mono);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:8px">DON'T</div>
-          <ul style="margin:0;padding-left:18px;font-size:12px;color:var(--text-main);line-height:1.7">
-            <li>Introduce colors outside this palette</li>
-            <li>Drop shadows above 8px offset</li>
-            <li>Animate width/height/top/left</li>
-            <li>Add a second accent color for emphasis</li>
-          </ul>
+        <div style="padding:8px 10px;background:rgba(255,255,255,0.02);border:1px solid var(--border-card);border-radius:6px">
+          <div style="font-size:9px;color:var(--text-faint);font-family:var(--font-mono);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:4px">Animation</div>
+          <div id="ds-animation" style="font-size:11px;color:var(--text-muted);line-height:1.45">Static. Hero entrance fade only, expoOut 600ms.</div>
         </div>
       </div>
 
       <!-- Universal user-input textarea -->
-      <div style="border-top:1px solid var(--border-card);padding-top:14px">
-        <div style="font-size:11px;color:var(--text-faint);font-family:var(--font-mono);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:6px">Thoughts, comments, anything else?</div>
-        <textarea placeholder="e.g. love the palette, but bump Accent saturation 5%. Body line-height feels tight at 1.6 — try 1.7." style="width:100%;min-height:64px;background:var(--bg-input);border:1px solid var(--border-card);border-radius:8px;padding:10px 12px;font-family:var(--font-body);font-size:13px;color:var(--text-main);resize:vertical;outline:none"></textarea>
+      <div style="border-top:1px solid var(--border-card);padding-top:12px">
+        <div style="font-size:10px;color:var(--text-faint);font-family:var(--font-mono);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:6px">Thoughts, comments, anything else?</div>
+        <textarea placeholder="e.g. lock Vibe-3, but bump Accent saturation 5%." style="width:100%;min-height:56px;background:var(--bg-input);border:1px solid var(--border-card);border-radius:8px;padding:9px 11px;font-family:var(--font-body);font-size:12px;color:var(--text-main);resize:vertical;outline:none"></textarea>
       </div>
 
-      <!-- Action row -->
-      <div style="display:flex;gap:8px;margin-top:14px">
-        <button style="flex:1;padding:11px 18px;border-radius:8px;border:1px solid var(--brand-green-bright);background:var(--brand-green-bright);color:#0a0a0a;font-family:var(--font-mono);font-weight:700;font-size:11px;letter-spacing:0.1em;text-transform:uppercase;cursor:pointer">Approve &amp; lock</button>
-        <button style="padding:11px 18px;border-radius:8px;border:1px solid var(--brand-yellow);background:transparent;color:var(--brand-yellow);font-family:var(--font-mono);font-weight:700;font-size:11px;letter-spacing:0.1em;text-transform:uppercase;cursor:pointer">Tweak</button>
-        <button style="padding:11px 18px;border-radius:8px;border:1px solid var(--border-card);background:transparent;color:var(--text-muted);font-family:var(--font-mono);font-weight:600;font-size:11px;letter-spacing:0.1em;text-transform:uppercase;cursor:pointer">Cancel</button>
+      <!-- Action row — TWO buttons: SELECT (CTA) + CREATE NEW (cancel-styled). NO Cancel, NO Tweak. -->
+      <div style="display:flex;gap:8px;margin-top:12px">
+        <button style="flex:1;padding:11px 18px;border-radius:8px;border:1px solid var(--brand-green-bright);background:var(--brand-green-bright);color:#0a0a0a;font-family:var(--font-mono);font-weight:700;font-size:11px;letter-spacing:0.1em;text-transform:uppercase;cursor:pointer">Select Design System</button>
+        <button style="padding:11px 18px;border-radius:8px;border:1px solid var(--border-card);background:transparent;color:var(--text-muted);font-family:var(--font-mono);font-weight:600;font-size:11px;letter-spacing:0.1em;text-transform:uppercase;cursor:pointer">Create New</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- DESIGN DIRECTIONS — closes Discovery, pick up to 2 mood seeds for the 5 vibes -->
+  <!-- Density matches mood.jpg: 2×3 grid, horizontal palette strip, mono · separator font tags. -->
+  <div class="card" id="dd-card" style="margin-top:24px">
+    <div class="card-body" style="padding:18px 20px">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+        <span style="display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:8px;background:rgba(245,158,11,0.12);color:var(--brand-yellow);font-family:var(--font-mono);font-weight:700;font-size:11px;letter-spacing:0.04em;flex-shrink:0">DD</span>
+        <div style="flex:1;display:flex;flex-direction:column;gap:2px;min-width:0">
+          <div style="font-size:13px;font-weight:600;color:var(--text-main)">Design Directions</div>
+          <div style="font-size:10px;color:var(--text-faint);font-family:var(--font-mono);text-transform:uppercase;letter-spacing:0.08em">Closes Discovery · Track: webpage</div>
+        </div>
+        <span style="display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:var(--radius-pill);background:rgba(245,158,11,0.08);color:var(--brand-yellow);font-family:var(--font-mono);font-weight:700;font-size:10px;letter-spacing:0.1em">PICK ≤2</span>
+      </div>
+      <!-- CD preamble — "why six, not three" — cyan border-left, the universal CD-speaking channel. -->
+      <div style="margin:0 0 14px;padding:12px 14px;border-left:2px solid var(--brand-cyan);background:rgba(34,211,238,0.04);border-radius:0 8px 8px 0">
+        <div style="font-size:10px;color:var(--brand-cyan);font-family:var(--font-mono);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:4px;font-weight:700">Why six, not three</div>
+        <div style="font-size:13px;color:var(--text-main);line-height:1.55">Six directions across three axes — warm vs cool · classic vs modern · image-led vs typography-led. Pick up to 2. Your two picks reveal which axes pull and which don't; the unchosen four are as informative as the chosen two. Three would force a middle, ten would drown the signal. Six is the minimum form that lets all three axes pivot independently — and these six become the seeds for the 5 vibes I'll write.</div>
+      </div>
+
+      <!-- 2×3 grid of 6 mood directions, mood.jpg density -->
+      <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:14px" id="dd-grid">
+        <!-- Direction 1: Luxury — Hermès / Aman -->
+        <label class="dd-direction-card" data-slug="dir-luxury" style="border:2px solid var(--border-card);border-radius:8px;background:rgba(255,255,255,0.02);cursor:pointer;padding:12px 14px;display:flex;flex-direction:column;gap:8px;position:relative;transition:border-color 120ms ease">
+          <input type="checkbox" name="dd-pick" value="dir-luxury" style="display:none">
+          <span class="dd-check" style="display:none;position:absolute;top:8px;right:8px;padding:2px 7px;border-radius:var(--radius-pill);background:var(--brand-green-bright);color:#0a0a0a;font-family:var(--font-mono);font-weight:700;font-size:9px;letter-spacing:0.1em">✓</span>
+          <div style="font-family:var(--font-body);font-weight:700;font-size:14px;color:var(--text-main);padding-right:24px">Luxury — Hermès / Aman</div>
+          <div style="font-style:italic;font-size:11.5px;color:var(--text-muted);line-height:1.45">Hushed, exclusive, every detail considered.</div>
+          <div style="display:flex;height:14px;border-radius:3px;overflow:hidden">
+            <div style="flex:1;background:#1a1a1a"></div>
+            <div style="flex:1;background:#d4af37"></div>
+            <div style="flex:1;background:#f5f5f0"></div>
+            <div style="flex:1;background:#8b7355"></div>
+          </div>
+          <div style="font-family:var(--font-mono);font-size:9.5px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.08em">Didot · Inter</div>
+          <div style="font-size:11.5px;color:var(--text-muted);font-family:var(--font-body)">Hermès · Aman · The Carlyle</div>
+        </label>
+
+        <!-- Direction 2: Warm — Soho House / Nopa -->
+        <label class="dd-direction-card" data-slug="dir-warm" style="border:2px solid var(--border-card);border-radius:8px;background:rgba(255,255,255,0.02);cursor:pointer;padding:12px 14px;display:flex;flex-direction:column;gap:8px;position:relative;transition:border-color 120ms ease">
+          <input type="checkbox" name="dd-pick" value="dir-warm" style="display:none">
+          <span class="dd-check" style="display:none;position:absolute;top:8px;right:8px;padding:2px 7px;border-radius:var(--radius-pill);background:var(--brand-green-bright);color:#0a0a0a;font-family:var(--font-mono);font-weight:700;font-size:9px;letter-spacing:0.1em">✓</span>
+          <div style="font-family:var(--font-body);font-weight:700;font-size:14px;color:var(--text-main);padding-right:24px">Warm — Soho House / Nopa</div>
+          <div style="font-style:italic;font-size:11.5px;color:var(--text-muted);line-height:1.45">Familiar, generous, like grandma's kitchen.</div>
+          <div style="display:flex;height:14px;border-radius:3px;overflow:hidden">
+            <div style="flex:1;background:#3a2820"></div>
+            <div style="flex:1;background:#d4a574"></div>
+            <div style="flex:1;background:#f4ede0"></div>
+            <div style="flex:1;background:#7a5c3a"></div>
+          </div>
+          <div style="font-family:var(--font-mono);font-size:9.5px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.08em">Inter Tight · Inter</div>
+          <div style="font-size:11.5px;color:var(--text-muted);font-family:var(--font-body)">Soho House · Nopa · Joe &amp; The Juice</div>
+        </label>
+
+        <!-- Direction 3: Bold — Off-White / Supreme -->
+        <label class="dd-direction-card" data-slug="dir-bold" style="border:2px solid var(--border-card);border-radius:8px;background:rgba(255,255,255,0.02);cursor:pointer;padding:12px 14px;display:flex;flex-direction:column;gap:8px;position:relative;transition:border-color 120ms ease">
+          <input type="checkbox" name="dd-pick" value="dir-bold" style="display:none">
+          <span class="dd-check" style="display:none;position:absolute;top:8px;right:8px;padding:2px 7px;border-radius:var(--radius-pill);background:var(--brand-green-bright);color:#0a0a0a;font-family:var(--font-mono);font-weight:700;font-size:9px;letter-spacing:0.1em">✓</span>
+          <div style="font-family:var(--font-body);font-weight:700;font-size:14px;color:var(--text-main);padding-right:24px">Bold — Off-White / Supreme</div>
+          <div style="font-style:italic;font-size:11.5px;color:var(--text-muted);line-height:1.45">Loud, unmistakable, branded to within an inch.</div>
+          <div style="display:flex;height:14px;border-radius:3px;overflow:hidden">
+            <div style="flex:1;background:#dc2626"></div>
+            <div style="flex:1;background:#0a0a0a"></div>
+            <div style="flex:1;background:#fafafa"></div>
+            <div style="flex:1;background:#fbbf24"></div>
+          </div>
+          <div style="font-family:var(--font-mono);font-size:9.5px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.08em">Helvetica Bold · Mono</div>
+          <div style="font-size:11.5px;color:var(--text-muted);font-family:var(--font-body)">Off-White · Supreme · Palace</div>
+        </label>
+
+        <!-- Direction 4: Eastern — Hara / Takram -->
+        <label class="dd-direction-card" data-slug="dir-eastern" style="border:2px solid var(--border-card);border-radius:8px;background:rgba(255,255,255,0.02);cursor:pointer;padding:12px 14px;display:flex;flex-direction:column;gap:8px;position:relative;transition:border-color 120ms ease">
+          <input type="checkbox" name="dd-pick" value="dir-eastern" style="display:none">
+          <span class="dd-check" style="display:none;position:absolute;top:8px;right:8px;padding:2px 7px;border-radius:var(--radius-pill);background:var(--brand-green-bright);color:#0a0a0a;font-family:var(--font-mono);font-weight:700;font-size:9px;letter-spacing:0.1em">✓</span>
+          <div style="font-family:var(--font-body);font-weight:700;font-size:14px;color:var(--text-main);padding-right:24px">Eastern — Hara / Takram</div>
+          <div style="font-style:italic;font-size:11.5px;color:var(--text-muted);line-height:1.45">Whitespace is content. Restraint as posture.</div>
+          <div style="display:flex;height:14px;border-radius:3px;overflow:hidden">
+            <div style="flex:1;background:#fafaf5"></div>
+            <div style="flex:1;background:#a39885"></div>
+            <div style="flex:1;background:#5a5040"></div>
+            <div style="flex:1;background:#e8e0d0"></div>
+          </div>
+          <div style="font-family:var(--font-mono);font-size:9.5px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.08em">Tsukushi Mincho · Inter</div>
+          <div style="font-size:11.5px;color:var(--text-muted);font-family:var(--font-body)">Kenya Hara · Takram · MUJI</div>
+        </label>
+
+        <!-- Direction 5: Editorial — Pentagram / Reichenstein -->
+        <label class="dd-direction-card" data-slug="dir-editorial" style="border:2px solid var(--border-card);border-radius:8px;background:rgba(255,255,255,0.02);cursor:pointer;padding:12px 14px;display:flex;flex-direction:column;gap:8px;position:relative;transition:border-color 120ms ease">
+          <input type="checkbox" name="dd-pick" value="dir-editorial" style="display:none">
+          <span class="dd-check" style="display:none;position:absolute;top:8px;right:8px;padding:2px 7px;border-radius:var(--radius-pill);background:var(--brand-green-bright);color:#0a0a0a;font-family:var(--font-mono);font-weight:700;font-size:9px;letter-spacing:0.1em">✓</span>
+          <div style="font-family:var(--font-body);font-weight:700;font-size:14px;color:var(--text-main);padding-right:24px">Editorial — Pentagram / Reichenstein</div>
+          <div style="font-style:italic;font-size:11.5px;color:var(--text-muted);line-height:1.45">Type does the work. The screen is a serious page.</div>
+          <div style="display:flex;height:14px;border-radius:3px;overflow:hidden">
+            <div style="flex:1;background:#FAF7F2"></div>
+            <div style="flex:1;background:#1A1A1A"></div>
+            <div style="flex:1;background:#A03434"></div>
+            <div style="flex:1;background:#6B6B6B"></div>
+          </div>
+          <div style="font-family:var(--font-mono);font-size:9.5px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.08em">IBM Plex Serif · Inter</div>
+          <div style="font-size:11.5px;color:var(--text-muted);font-family:var(--font-body)">Pentagram · Reichenstein · The New York Times</div>
+        </label>
+
+        <!-- Direction 6: Motion — Field.io / Active Theory -->
+        <label class="dd-direction-card" data-slug="dir-motion" style="border:2px solid var(--border-card);border-radius:8px;background:rgba(255,255,255,0.02);cursor:pointer;padding:12px 14px;display:flex;flex-direction:column;gap:8px;position:relative;transition:border-color 120ms ease">
+          <input type="checkbox" name="dd-pick" value="dir-motion" style="display:none">
+          <span class="dd-check" style="display:none;position:absolute;top:8px;right:8px;padding:2px 7px;border-radius:var(--radius-pill);background:var(--brand-green-bright);color:#0a0a0a;font-family:var(--font-mono);font-weight:700;font-size:9px;letter-spacing:0.1em">✓</span>
+          <div style="font-family:var(--font-body);font-weight:700;font-size:14px;color:var(--text-main);padding-right:24px">Motion — Field.io / Active Theory</div>
+          <div style="font-style:italic;font-size:11.5px;color:var(--text-muted);line-height:1.45">The brand is a particle system. Motion IS the substrate.</div>
+          <div style="display:flex;height:14px;border-radius:3px;overflow:hidden">
+            <div style="flex:1;background:#08080C"></div>
+            <div style="flex:1;background:#7DF9FF"></div>
+            <div style="flex:1;background:#FF3366"></div>
+            <div style="flex:1;background:#a78bfa"></div>
+          </div>
+          <div style="font-family:var(--font-mono);font-size:9.5px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.08em">Space Grotesk · Inter</div>
+          <div style="font-size:11.5px;color:var(--text-muted);font-family:var(--font-body)">Field.io · Active Theory · Resn</div>
+        </label>
+      </div>
+
+      <!-- Selection counter -->
+      <div style="display:flex;justify-content:space-between;align-items:center;font-size:10.5px;font-family:var(--font-mono);text-transform:uppercase;letter-spacing:0.08em;color:var(--text-muted);margin-bottom:12px">
+        <span>Selected: <span id="dd-counter" style="color:var(--brand-yellow)">0</span> / 2</span>
+        <span id="dd-cap-warning" style="display:none;color:var(--brand-yellow)">Deselect one to swap</span>
+      </div>
+
+      <!-- Universal textarea -->
+      <div style="border-top:1px solid var(--border-card);padding-top:12px">
+        <div style="font-size:10px;color:var(--text-faint);font-family:var(--font-mono);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:6px">Thoughts, comments, anything else?</div>
+        <textarea placeholder="e.g. Warm + Eastern, but pull the Editorial typography discipline into both." style="width:100%;min-height:56px;background:var(--bg-input);border:1px solid var(--border-card);border-radius:8px;padding:9px 11px;font-family:var(--font-body);font-size:12px;color:var(--text-main);resize:vertical;outline:none"></textarea>
+      </div>
+
+      <!-- Action row — single CTA, no Cancel (it's a card) -->
+      <div style="display:flex;gap:8px;margin-top:12px">
+        <button id="dd-commit" disabled style="flex:1;padding:11px 18px;border-radius:8px;border:1px solid var(--brand-green-bright);background:var(--brand-green-bright);color:#0a0a0a;font-family:var(--font-mono);font-weight:700;font-size:11px;letter-spacing:0.1em;text-transform:uppercase;cursor:pointer;opacity:0.45;transition:opacity 120ms ease">Commit Directions</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- IMAGE STRATEGY (descent_selection) — WEBPAGE VERTICAL -->
+  <div class="card" style="margin-top:24px">
+    <div class="card-body" style="padding:20px 22px">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
+        <span style="display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;border-radius:8px;background:rgba(167,139,250,0.12);color:var(--brand-violet);font-family:var(--font-mono);font-weight:700;font-size:11px;letter-spacing:0.04em">IS</span>
+        <div style="flex:1;display:flex;flex-direction:column;gap:2px">
+          <div style="font-size:14px;font-weight:600;color:var(--text-main)">Image Strategy · Vibe-3 — Grandma's Cliff</div>
+          <div style="font-size:11px;color:var(--text-faint);font-family:var(--font-mono);text-transform:uppercase;letter-spacing:0.08em">Layout: webpage-vertical · Phase 3 / Phase 4→5 review</div>
+        </div>
+        <span style="display:inline-flex;align-items:center;gap:6px;padding:5px 11px;border-radius:var(--radius-pill);background:rgba(167,139,250,0.08);color:var(--brand-violet);font-family:var(--font-mono);font-weight:700;font-size:10px;letter-spacing:0.1em">REVIEW</span>
+      </div>
+      <!-- CD preamble — "how the image plan fits" — cyan border-left, the universal CD-speaking channel. -->
+      <div style="margin:0 0 14px;padding:12px 14px;border-left:2px solid var(--brand-cyan);background:rgba(34,211,238,0.04);border-radius:0 8px 8px 0">
+        <div style="font-size:10px;color:var(--brand-cyan);font-family:var(--font-mono);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:4px;font-weight:700">How the image plan fits</div>
+        <div style="font-size:13px;color:var(--text-main);line-height:1.55">Every section of this vibe gets one slot. Filled slots show what's already assigned; empty slots are GENERATE IMAGE placeholders — click one to fire from the Assets panel, or use "Generate All" below to fire them in parallel. Optional sections are dimmed; they don't need an image. The complete image canon for this vibe lives on this card — when you approve, the assigned set becomes the build's source-of-truth.</div>
+      </div>
+
+      <!-- Vertical slot list -->
+      <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:14px">
+        <!-- HERO — assigned -->
+        <div style="display:flex;align-items:center;gap:14px;padding:10px 12px;border:1px solid var(--border-card);border-radius:8px;background:rgba(255,255,255,0.02)">
+          <div style="width:96px;height:54px;border-radius:6px;overflow:hidden;background:linear-gradient(135deg,#3a2820 0%,#7a5c3a 100%);position:relative;flex-shrink:0">
+            <div style="position:absolute;inset:0;display:flex;align-items:flex-end;padding:6px;color:#f4ede0;font-family:'Inter Tight',Inter,sans-serif;font-weight:800;font-size:10px;line-height:1">Grandma's<br>waiting</div>
+          </div>
+          <div style="flex:1;min-width:0">
+            <div style="font-size:13px;font-weight:600;color:var(--text-main)">Hero</div>
+            <div style="font-size:10px;color:var(--text-faint);font-family:var(--font-mono);text-transform:uppercase;letter-spacing:0.08em">16:9 · hero · hero-grandma-cliff.jpg</div>
+          </div>
+        </div>
+
+        <!-- HOOK — generate image -->
+        <div style="display:flex;align-items:center;gap:14px;padding:10px 12px;border:1px dashed var(--brand-yellow);border-radius:8px;background:rgba(245,158,11,0.04);cursor:pointer">
+          <div style="width:96px;height:54px;border-radius:6px;background:rgba(245,158,11,0.08);display:flex;align-items:center;justify-content:center;flex-shrink:0">
+            <span style="font-family:var(--font-mono);font-size:9px;color:var(--brand-yellow);text-transform:uppercase;letter-spacing:0.08em;text-align:center;line-height:1.2">GENERATE<br>IMAGE</span>
+          </div>
+          <div style="flex:1;min-width:0">
+            <div style="font-size:13px;font-weight:600;color:var(--text-main)">Hook</div>
+            <div style="font-size:10px;color:var(--text-faint);font-family:var(--font-mono);text-transform:uppercase;letter-spacing:0.08em">3:4 · portrait</div>
+            <div style="font-size:11px;color:var(--text-muted);margin-top:4px;font-style:italic;line-height:1.4">"Weathered grandmother in white thobe, holding a brass dallah, golden-hour rim light from a cliff-edge majlis…"</div>
+          </div>
+        </div>
+
+        <!-- HOW IT WORKS — optional empty -->
+        <div style="display:flex;align-items:center;gap:14px;padding:10px 12px;border:1px solid var(--border-card);border-radius:8px;background:rgba(255,255,255,0.01);opacity:0.55">
+          <div style="width:96px;height:54px;border-radius:6px;background:rgba(255,255,255,0.03);display:flex;align-items:center;justify-content:center;flex-shrink:0">
+            <span style="font-family:var(--font-mono);font-size:9px;color:var(--text-faint);text-transform:uppercase;letter-spacing:0.08em">—</span>
+          </div>
+          <div style="flex:1;min-width:0">
+            <div style="font-size:13px;font-weight:600;color:var(--text-muted)">How It Works</div>
+            <div style="font-size:10px;color:var(--text-faint);font-family:var(--font-mono);text-transform:uppercase;letter-spacing:0.08em">no image needed · type-only section</div>
+          </div>
+        </div>
+
+        <!-- MENU BG — assigned -->
+        <div style="display:flex;align-items:center;gap:14px;padding:10px 12px;border:1px solid var(--border-card);border-radius:8px;background:rgba(255,255,255,0.02)">
+          <div style="width:96px;height:54px;border-radius:6px;overflow:hidden;background:linear-gradient(45deg,#5a3a28 0%,#3a2820 50%,#1a1410 100%);flex-shrink:0"></div>
+          <div style="flex:1;min-width:0">
+            <div style="font-size:13px;font-weight:600;color:var(--text-main)">Menu Background</div>
+            <div style="font-size:10px;color:var(--text-faint);font-family:var(--font-mono);text-transform:uppercase;letter-spacing:0.08em">16:9 · section-bg · majlis-cushions-still.jpg</div>
+          </div>
+        </div>
+
+        <!-- LOCATION — generate image -->
+        <div style="display:flex;align-items:center;gap:14px;padding:10px 12px;border:1px dashed var(--brand-yellow);border-radius:8px;background:rgba(245,158,11,0.04);cursor:pointer">
+          <div style="width:96px;height:54px;border-radius:6px;background:rgba(245,158,11,0.08);display:flex;align-items:center;justify-content:center;flex-shrink:0">
+            <span style="font-family:var(--font-mono);font-size:9px;color:var(--brand-yellow);text-transform:uppercase;letter-spacing:0.08em;text-align:center;line-height:1.2">GENERATE<br>IMAGE</span>
+          </div>
+          <div style="flex:1;min-width:0">
+            <div style="font-size:13px;font-weight:600;color:var(--text-main)">Location</div>
+            <div style="font-size:10px;color:var(--text-faint);font-family:var(--font-mono);text-transform:uppercase;letter-spacing:0.08em">21:9 · banner</div>
+            <div style="font-size:11px;color:var(--text-muted);margin-top:4px;font-style:italic;line-height:1.4">"Aerial wide of Tuwaiq Escarpment sandstone cliffs at blue hour, 200m vertical drop, single warm window of the majlis visible at edge…"</div>
+          </div>
+        </div>
+
+        <!-- FOOTER — optional empty -->
+        <div style="display:flex;align-items:center;gap:14px;padding:10px 12px;border:1px solid var(--border-card);border-radius:8px;background:rgba(255,255,255,0.01);opacity:0.55">
+          <div style="width:96px;height:54px;border-radius:6px;background:rgba(255,255,255,0.03);display:flex;align-items:center;justify-content:center;flex-shrink:0">
+            <span style="font-family:var(--font-mono);font-size:9px;color:var(--text-faint);text-transform:uppercase;letter-spacing:0.08em">—</span>
+          </div>
+          <div style="flex:1;min-width:0">
+            <div style="font-size:13px;font-weight:600;color:var(--text-muted)">Footer</div>
+            <div style="font-size:10px;color:var(--text-faint);font-family:var(--font-mono);text-transform:uppercase;letter-spacing:0.08em">no image needed · brand mark only</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Stats -->
+      <div style="display:flex;gap:14px;font-size:11px;font-family:var(--font-mono);text-transform:uppercase;letter-spacing:0.08em;color:var(--text-muted);margin-bottom:12px">
+        <span><span style="color:var(--brand-green-bright)">✓ Assigned: 2</span></span>
+        <span><span style="color:var(--brand-yellow)">⚠ Generate: 2</span></span>
+        <span>Optional: 2</span>
+      </div>
+
+      <!-- Universal textarea -->
+      <div style="border-top:1px solid var(--border-card);padding-top:12px">
+        <div style="font-size:11px;color:var(--text-faint);font-family:var(--font-mono);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:6px">Thoughts, comments, anything else?</div>
+        <textarea placeholder="e.g. hero is good, but the location prompt reads too dramatic — soften blue-hour to dawn." style="width:100%;min-height:64px;background:var(--bg-input);border:1px solid var(--border-card);border-radius:8px;padding:10px 12px;font-family:var(--font-body);font-size:13px;color:var(--text-main);resize:vertical;outline:none"></textarea>
+      </div>
+
+      <!-- Action row — when placeholders exist: GENERATE ALL is primary CTA, Approve Images is secondary. -->
+      <!-- When no placeholders: only Approve Images shown as primary CTA. NO Cancel — it's a card. -->
+      <div style="display:flex;gap:8px;margin-top:12px">
+        <button style="flex:1;padding:11px 18px;border-radius:8px;border:1px solid var(--brand-green-bright);background:var(--brand-green-bright);color:#0a0a0a;font-family:var(--font-mono);font-weight:700;font-size:11px;letter-spacing:0.1em;text-transform:uppercase;cursor:pointer">Generate All Images (2)</button>
+        <button style="padding:11px 18px;border-radius:8px;border:1px solid var(--border-card);background:transparent;color:var(--text-muted);font-family:var(--font-mono);font-weight:600;font-size:11px;letter-spacing:0.1em;text-transform:uppercase;cursor:pointer">Approve Images</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- IMAGE STRATEGY (descent_selection) — KEYNOTE MULTI-ROW -->
+  <div class="card" style="margin-top:24px">
+    <div class="card-body" style="padding:20px 22px">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
+        <span style="display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;border-radius:8px;background:rgba(167,139,250,0.12);color:var(--brand-violet);font-family:var(--font-mono);font-weight:700;font-size:11px;letter-spacing:0.04em">IS</span>
+        <div style="flex:1;display:flex;flex-direction:column;gap:2px">
+          <div style="font-size:14px;font-weight:600;color:var(--text-main)">Image Strategy · Vibe-1 — Editorial</div>
+          <div style="font-size:11px;color:var(--text-faint);font-family:var(--font-mono);text-transform:uppercase;letter-spacing:0.08em">Layout: keynote-multi-row · 20 slides · 4 rows × 5</div>
+        </div>
+        <span style="display:inline-flex;align-items:center;gap:6px;padding:5px 11px;border-radius:var(--radius-pill);background:rgba(167,139,250,0.08);color:var(--brand-violet);font-family:var(--font-mono);font-weight:700;font-size:10px;letter-spacing:0.1em">REVIEW</span>
+      </div>
+      <!-- CD preamble — "how the image plan fits" — cyan border-left, the universal CD-speaking channel. -->
+      <div style="margin:0 0 14px;padding:12px 14px;border-left:2px solid var(--brand-cyan);background:rgba(34,211,238,0.04);border-radius:0 8px 8px 0">
+        <div style="font-size:10px;color:var(--brand-cyan);font-family:var(--font-mono);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:4px;font-weight:700">How the image plan fits</div>
+        <div style="font-size:13px;color:var(--text-main);line-height:1.55">20 slides, one image-plan per slide, laid out in 4 rows × 5. Filled cells show what's already assigned; empty cells are placeholders — click to swap in an asset, or fire "Generate All" to batch. The whole keynote's image canon lives on this card. When you approve, the assignments become the deck's source-of-truth.</div>
+      </div>
+
+      <!-- 4 rows × 5 slides grid -->
+      <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-bottom:14px">
+        <!-- Generate 20 slide cells via repeated structure. Mix of states. -->
+        <!-- Row 1 -->
+        <div style="display:flex;flex-direction:column;gap:4px">
+          <div style="font-size:9px;font-family:var(--font-mono);color:var(--text-faint);text-transform:uppercase;letter-spacing:0.08em">Slide 1</div>
+          <div style="aspect-ratio:16/9;border-radius:6px;overflow:hidden;background:linear-gradient(135deg,#1a1a1a 0%,#2a2a2a 100%);position:relative">
+            <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#f5f5f5;font-family:'IBM Plex Serif',serif;font-weight:600;font-size:11px;text-align:center;padding:6px;line-height:1.2">Title Slide</div>
+            <span style="position:absolute;top:3px;right:3px;padding:1px 5px;border-radius:3px;background:var(--brand-green-bright);color:#0a0a0a;font-family:var(--font-mono);font-weight:700;font-size:7px;letter-spacing:0.05em">✓</span>
+          </div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:4px">
+          <div style="font-size:9px;font-family:var(--font-mono);color:var(--text-faint);text-transform:uppercase;letter-spacing:0.08em">Slide 2</div>
+          <div style="aspect-ratio:16/9;border-radius:6px;background:rgba(245,158,11,0.08);border:1px dashed var(--brand-yellow);display:flex;align-items:center;justify-content:center;cursor:pointer;text-align:center;padding:4px">
+            <span style="font-family:var(--font-mono);font-size:7px;color:var(--brand-yellow);text-transform:uppercase;letter-spacing:0.08em;line-height:1.2">Generate<br>image</span>
+          </div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:4px">
+          <div style="font-size:9px;font-family:var(--font-mono);color:var(--text-faint);text-transform:uppercase;letter-spacing:0.08em">Slide 3</div>
+          <div style="aspect-ratio:16/9;border-radius:6px;overflow:hidden;background:#fafafa;position:relative;border:1px solid var(--border-card)">
+            <div style="position:absolute;inset:0;padding:6px;color:#0a0a0a;font-family:'IBM Plex Sans',sans-serif;font-size:7px;line-height:1.3">
+              <div style="font-weight:700;margin-bottom:2px">Q3 results</div>
+              <div style="display:flex;gap:2px;align-items:flex-end;height:24px">
+                <div style="width:6px;height:30%;background:#dc2626"></div>
+                <div style="width:6px;height:60%;background:#dc2626"></div>
+                <div style="width:6px;height:50%;background:#dc2626"></div>
+                <div style="width:6px;height:80%;background:#dc2626"></div>
+              </div>
+            </div>
+            <span style="position:absolute;top:3px;right:3px;padding:1px 5px;border-radius:3px;background:var(--brand-green-bright);color:#0a0a0a;font-family:var(--font-mono);font-weight:700;font-size:7px;letter-spacing:0.05em">✓</span>
+          </div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:4px">
+          <div style="font-size:9px;font-family:var(--font-mono);color:var(--text-faint);text-transform:uppercase;letter-spacing:0.08em">Slide 4</div>
+          <div style="aspect-ratio:16/9;border-radius:6px;background:rgba(255,255,255,0.02);border:1px solid var(--border-card);display:flex;align-items:center;justify-content:center;opacity:0.55">
+            <span style="font-family:var(--font-mono);font-size:8px;color:var(--text-faint);text-transform:uppercase;letter-spacing:0.08em">Type only</span>
+          </div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:4px">
+          <div style="font-size:9px;font-family:var(--font-mono);color:var(--text-faint);text-transform:uppercase;letter-spacing:0.08em">Slide 5</div>
+          <div style="aspect-ratio:16/9;border-radius:6px;overflow:hidden;background:linear-gradient(135deg,#3a2820 0%,#7a5c3a 100%);position:relative">
+            <span style="position:absolute;top:3px;right:3px;padding:1px 5px;border-radius:3px;background:var(--brand-green-bright);color:#0a0a0a;font-family:var(--font-mono);font-weight:700;font-size:7px;letter-spacing:0.05em">✓</span>
+          </div>
+        </div>
+        <!-- Row 2 -->
+        <div style="display:flex;flex-direction:column;gap:4px">
+          <div style="font-size:9px;font-family:var(--font-mono);color:var(--text-faint);text-transform:uppercase;letter-spacing:0.08em">Slide 6</div>
+          <div style="aspect-ratio:16/9;border-radius:6px;background:rgba(245,158,11,0.08);border:1px dashed var(--brand-yellow);display:flex;align-items:center;justify-content:center;cursor:pointer;text-align:center;padding:4px">
+            <span style="font-family:var(--font-mono);font-size:7px;color:var(--brand-yellow);text-transform:uppercase;letter-spacing:0.08em;line-height:1.2">Generate<br>image</span>
+          </div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:4px">
+          <div style="font-size:9px;font-family:var(--font-mono);color:var(--text-faint);text-transform:uppercase;letter-spacing:0.08em">Slide 7</div>
+          <div style="aspect-ratio:16/9;border-radius:6px;overflow:hidden;background:#5BC0DE;position:relative">
+            <div style="position:absolute;inset:0;padding:6px;color:#0E2030;font-family:'Source Sans Pro',sans-serif;font-size:7px;line-height:1.2;font-weight:700">Q3 Pipeline</div>
+            <span style="position:absolute;top:3px;right:3px;padding:1px 5px;border-radius:3px;background:var(--brand-green-bright);color:#0a0a0a;font-family:var(--font-mono);font-weight:700;font-size:7px;letter-spacing:0.05em">✓</span>
+          </div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:4px">
+          <div style="font-size:9px;font-family:var(--font-mono);color:var(--text-faint);text-transform:uppercase;letter-spacing:0.08em">Slide 8</div>
+          <div style="aspect-ratio:16/9;border-radius:6px;background:rgba(245,158,11,0.08);border:1px dashed var(--brand-yellow);display:flex;align-items:center;justify-content:center;cursor:pointer;text-align:center;padding:4px">
+            <span style="font-family:var(--font-mono);font-size:7px;color:var(--brand-yellow);text-transform:uppercase;letter-spacing:0.08em;line-height:1.2">Generate<br>image</span>
+          </div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:4px">
+          <div style="font-size:9px;font-family:var(--font-mono);color:var(--text-faint);text-transform:uppercase;letter-spacing:0.08em">Slide 9</div>
+          <div style="aspect-ratio:16/9;border-radius:6px;background:rgba(255,255,255,0.02);border:1px solid var(--border-card);display:flex;align-items:center;justify-content:center;opacity:0.55">
+            <span style="font-family:var(--font-mono);font-size:8px;color:var(--text-faint);text-transform:uppercase;letter-spacing:0.08em">Type only</span>
+          </div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:4px">
+          <div style="font-size:9px;font-family:var(--font-mono);color:var(--text-faint);text-transform:uppercase;letter-spacing:0.08em">Slide 10</div>
+          <div style="aspect-ratio:16/9;border-radius:6px;overflow:hidden;background:linear-gradient(45deg,#5a3a28 0%,#3a2820 50%,#1a1410 100%);position:relative">
+            <span style="position:absolute;top:3px;right:3px;padding:1px 5px;border-radius:3px;background:var(--brand-green-bright);color:#0a0a0a;font-family:var(--font-mono);font-weight:700;font-size:7px;letter-spacing:0.05em">✓</span>
+          </div>
+        </div>
+        <!-- Row 3 -->
+        <div style="display:flex;flex-direction:column;gap:4px">
+          <div style="font-size:9px;font-family:var(--font-mono);color:var(--text-faint);text-transform:uppercase;letter-spacing:0.08em">Slide 11</div>
+          <div style="aspect-ratio:16/9;border-radius:6px;background:rgba(245,158,11,0.08);border:1px dashed var(--brand-yellow);display:flex;align-items:center;justify-content:center;cursor:pointer;text-align:center;padding:4px">
+            <span style="font-family:var(--font-mono);font-size:7px;color:var(--brand-yellow);text-transform:uppercase;letter-spacing:0.08em;line-height:1.2">Generate<br>image</span>
+          </div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:4px">
+          <div style="font-size:9px;font-family:var(--font-mono);color:var(--text-faint);text-transform:uppercase;letter-spacing:0.08em">Slide 12</div>
+          <div style="aspect-ratio:16/9;border-radius:6px;overflow:hidden;background:#0E2030;position:relative">
+            <div style="position:absolute;inset:0;padding:6px;color:#5BC0DE;font-family:'Source Serif Pro',serif;font-size:8px;line-height:1.2;font-weight:600">Tide Drops 2m at 4:13</div>
+            <span style="position:absolute;top:3px;right:3px;padding:1px 5px;border-radius:3px;background:var(--brand-green-bright);color:#0a0a0a;font-family:var(--font-mono);font-weight:700;font-size:7px;letter-spacing:0.05em">✓</span>
+          </div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:4px">
+          <div style="font-size:9px;font-family:var(--font-mono);color:var(--text-faint);text-transform:uppercase;letter-spacing:0.08em">Slide 13</div>
+          <div style="aspect-ratio:16/9;border-radius:6px;overflow:hidden;background:#fafafa;position:relative;border:1px solid var(--border-card)">
+            <div style="position:absolute;inset:0;padding:6px;color:#0a0a0a;font-family:'IBM Plex Mono',monospace;font-size:6px">
+              <div>tide_height(t)</div>
+              <div style="margin-top:2px">= 2.1·sin(0.5t)</div>
+            </div>
+            <span style="position:absolute;top:3px;right:3px;padding:1px 5px;border-radius:3px;background:var(--brand-green-bright);color:#0a0a0a;font-family:var(--font-mono);font-weight:700;font-size:7px;letter-spacing:0.05em">✓</span>
+          </div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:4px">
+          <div style="font-size:9px;font-family:var(--font-mono);color:var(--text-faint);text-transform:uppercase;letter-spacing:0.08em">Slide 14</div>
+          <div style="aspect-ratio:16/9;border-radius:6px;background:rgba(255,255,255,0.02);border:1px solid var(--border-card);display:flex;align-items:center;justify-content:center;opacity:0.55">
+            <span style="font-family:var(--font-mono);font-size:8px;color:var(--text-faint);text-transform:uppercase;letter-spacing:0.08em">Type only</span>
+          </div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:4px">
+          <div style="font-size:9px;font-family:var(--font-mono);color:var(--text-faint);text-transform:uppercase;letter-spacing:0.08em">Slide 15</div>
+          <div style="aspect-ratio:16/9;border-radius:6px;background:rgba(245,158,11,0.08);border:1px dashed var(--brand-yellow);display:flex;align-items:center;justify-content:center;cursor:pointer;text-align:center;padding:4px">
+            <span style="font-family:var(--font-mono);font-size:7px;color:var(--brand-yellow);text-transform:uppercase;letter-spacing:0.08em;line-height:1.2">Generate<br>image</span>
+          </div>
+        </div>
+        <!-- Row 4 -->
+        <div style="display:flex;flex-direction:column;gap:4px">
+          <div style="font-size:9px;font-family:var(--font-mono);color:var(--text-faint);text-transform:uppercase;letter-spacing:0.08em">Slide 16</div>
+          <div style="aspect-ratio:16/9;border-radius:6px;overflow:hidden;background:linear-gradient(135deg,#3a2820 0%,#7a5c3a 100%);position:relative">
+            <span style="position:absolute;top:3px;right:3px;padding:1px 5px;border-radius:3px;background:var(--brand-green-bright);color:#0a0a0a;font-family:var(--font-mono);font-weight:700;font-size:7px;letter-spacing:0.05em">✓</span>
+          </div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:4px">
+          <div style="font-size:9px;font-family:var(--font-mono);color:var(--text-faint);text-transform:uppercase;letter-spacing:0.08em">Slide 17</div>
+          <div style="aspect-ratio:16/9;border-radius:6px;background:rgba(245,158,11,0.08);border:1px dashed var(--brand-yellow);display:flex;align-items:center;justify-content:center;cursor:pointer;text-align:center;padding:4px">
+            <span style="font-family:var(--font-mono);font-size:7px;color:var(--brand-yellow);text-transform:uppercase;letter-spacing:0.08em;line-height:1.2">Generate<br>image</span>
+          </div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:4px">
+          <div style="font-size:9px;font-family:var(--font-mono);color:var(--text-faint);text-transform:uppercase;letter-spacing:0.08em">Slide 18</div>
+          <div style="aspect-ratio:16/9;border-radius:6px;overflow:hidden;background:#1a1a1a;position:relative">
+            <div style="position:absolute;inset:0;padding:6px;color:#15B981;font-family:var(--font-mono);font-size:6px;font-weight:700">$ team --thanks</div>
+            <span style="position:absolute;top:3px;right:3px;padding:1px 5px;border-radius:3px;background:var(--brand-green-bright);color:#0a0a0a;font-family:var(--font-mono);font-weight:700;font-size:7px;letter-spacing:0.05em">✓</span>
+          </div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:4px">
+          <div style="font-size:9px;font-family:var(--font-mono);color:var(--text-faint);text-transform:uppercase;letter-spacing:0.08em">Slide 19</div>
+          <div style="aspect-ratio:16/9;border-radius:6px;background:rgba(255,255,255,0.02);border:1px solid var(--border-card);display:flex;align-items:center;justify-content:center;opacity:0.55">
+            <span style="font-family:var(--font-mono);font-size:8px;color:var(--text-faint);text-transform:uppercase;letter-spacing:0.08em">Type only</span>
+          </div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:4px">
+          <div style="font-size:9px;font-family:var(--font-mono);color:var(--text-faint);text-transform:uppercase;letter-spacing:0.08em">Slide 20</div>
+          <div style="aspect-ratio:16/9;border-radius:6px;overflow:hidden;background:linear-gradient(135deg,#0E2030 0%,#1A3349 100%);position:relative">
+            <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#F4A261;font-family:'Source Serif Pro',serif;font-size:9px;font-weight:600">Q&amp;A</div>
+            <span style="position:absolute;top:3px;right:3px;padding:1px 5px;border-radius:3px;background:var(--brand-green-bright);color:#0a0a0a;font-family:var(--font-mono);font-weight:700;font-size:7px;letter-spacing:0.05em">✓</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Stats -->
+      <div style="display:flex;gap:14px;font-size:11px;font-family:var(--font-mono);text-transform:uppercase;letter-spacing:0.08em;color:var(--text-muted);margin-bottom:12px">
+        <span><span style="color:var(--brand-green-bright)">✓ Assigned: 10</span></span>
+        <span><span style="color:var(--brand-yellow)">⚠ Generate: 6</span></span>
+        <span>Type-only: 4</span>
+      </div>
+
+      <!-- Universal textarea -->
+      <div style="border-top:1px solid var(--border-card);padding-top:12px">
+        <div style="font-size:11px;color:var(--text-faint);font-family:var(--font-mono);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:6px">Thoughts, comments, anything else?</div>
+        <textarea placeholder="e.g. slide 7 chart fine but cyan too corporate. slide 17 prompt should be a Tuwaiq aerial, not a stock cliff." style="width:100%;min-height:64px;background:var(--bg-input);border:1px solid var(--border-card);border-radius:8px;padding:10px 12px;font-family:var(--font-body);font-size:13px;color:var(--text-main);resize:vertical;outline:none"></textarea>
+      </div>
+
+      <!-- Action row — when placeholders exist: GENERATE ALL is primary CTA, Approve Images is secondary. -->
+      <!-- When no placeholders: only Approve Images shown as primary CTA. NO Cancel — it's a card. -->
+      <div style="display:flex;gap:8px;margin-top:12px">
+        <button style="flex:1;padding:11px 18px;border-radius:8px;border:1px solid var(--brand-green-bright);background:var(--brand-green-bright);color:#0a0a0a;font-family:var(--font-mono);font-weight:700;font-size:11px;letter-spacing:0.1em;text-transform:uppercase;cursor:pointer">Generate All Images (6)</button>
+        <button style="padding:11px 18px;border-radius:8px;border:1px solid var(--border-card);background:transparent;color:var(--text-muted);font-family:var(--font-mono);font-weight:600;font-size:11px;letter-spacing:0.1em;text-transform:uppercase;cursor:pointer">Approve Images</button>
       </div>
     </div>
   </div>
@@ -2838,5 +3787,279 @@
   </div>
 
 </div>
+
+<!-- Interactive wiring for the redesigned card set (2026-05-07) -->
+<script id="card-interactivity-script">
+(function () {
+  // ==========================================================================
+  // DESIGN SYSTEM (MOODBOARD-SINGLE) — vibe-selector dropdown swaps every
+  // section client-side via CSS custom-property writes + textContent updates.
+  // Five Phase-4 vibe payloads pre-loaded; no server round-trip on switch.
+  // ==========================================================================
+  var VIBES = {
+    'vibe-1': {
+      label: "The Sultan's Library",
+      forWho: "Saudi 30-45, dual-income, 1-3 kids. Successful but spiritually untethered.",
+      mood: "Editorial, archival, hushed, deliberate, scholarly",
+      atmosphere: "Information Architects via Reichenstein. Type IS the interface. Generous measure, ink-on-paper restraint, the screen as a serious reading surface.",
+      bg: "#FAF7F2", surface: "#F0EBE2", surfaceBorder: "#E0D9CC",
+      primary: "#1A1A1A", ink: "#2B2B2B", mutedInk: "#6B6B6B", accent: "#A03434",
+      displayFont: "'IBM Plex Serif', 'Times New Roman', serif",
+      bodyFont: "'IBM Plex Sans', 'Inter', sans-serif",
+      hexBg: "#FAF7F2", hexSurface: "#F0EBE2", hexPrimary: "#1A1A1A", hexInk: "#2B2B2B", hexAccent: "#A03434",
+      typoHeader: "Typography · IBM Plex Serif (display) · IBM Plex Sans (body)",
+      h1Sample: "The Sultan's Library",
+      h1Caption: "H1 · 48px IBM Plex Serif 700 sentence case",
+      h2Sample: "A reading room for the second life of objects",
+      h2Caption: "H2 · 32px IBM Plex Serif 600 sentence case",
+      bodySample: "We do not perform expertise. We do the work and the work is on the shelf. Walk the corridor; the catalog is honest.",
+      bodyCaption: "Body · 16px IBM Plex Sans 400 · 1.7 line-height",
+      btnPrimary: "Reserve a reading room",
+      btnSecondary: "Browse the catalog",
+      imageTreatment: "Hero: contained, framed by 32px margin. Captions below, mono small caps. No overlay text on images — type is sovereign.",
+      animation: "None. Page is static, motion would betray the editorial register. Hover states are 1px underline shifts only."
+    },
+    'vibe-2': {
+      label: "Stamen Tides",
+      forWho: "Coastal-region Saudis, 28-45. Read maps for fun. Suspicious of luxury that hides the data.",
+      mood: "Cartographic, oceanic, data-honest, technical, patient",
+      atmosphere: "Stamen Design lineage. Data is not decoration. The map IS the menu. Tide tables, depth gradients, geographic truth as the visual substrate.",
+      bg: "#0E2030", surface: "#1A3349", surfaceBorder: "#2A4A65",
+      primary: "#5BC0DE", ink: "#E8F1F7", mutedInk: "#7A95AB", accent: "#F4A261",
+      displayFont: "'Source Serif Pro', Georgia, serif",
+      bodyFont: "'Source Sans Pro', 'Inter', sans-serif",
+      hexBg: "#0E2030", hexSurface: "#1A3349", hexPrimary: "#5BC0DE", hexInk: "#E8F1F7", hexAccent: "#F4A261",
+      typoHeader: "Typography · Source Serif Pro (display) · Source Sans Pro (body)",
+      h1Sample: "The Tide Knows the Hour",
+      h1Caption: "H1 · 44px Source Serif Pro 600 sentence case",
+      h2Sample: "A menu indexed to depth, not to season",
+      h2Caption: "H2 · 28px Source Serif Pro 600 sentence case",
+      bodySample: "When the tide drops two metres at 4:13, the urchins are exposed for forty minutes. We open at 4:30. The menu is the chart.",
+      bodyCaption: "Body · 15px Source Sans Pro 400 · 1.65 line-height",
+      btnPrimary: "Check the chart",
+      btnSecondary: "Tide tables",
+      imageTreatment: "Hero: bathymetric overlay tinted with Primary. Photos quarter-tone, never full color. Captions carry coordinates.",
+      animation: "Slow tide-cycle on hero (8s loop, expoInOut). Number counters tick at 1Hz to feel like instruments. Otherwise still."
+    },
+    'vibe-3': {
+      label: "Grandma's Cliff",
+      forWho: "Saudi 35-55, highland lineage. Answers \"where are you from?\" with a village, not a city.",
+      mood: "Warm, oracular, nostalgic, restrained, guilt-inducing",
+      atmosphere: "Warm, oracular, restrained. One bright accent against a deep neutral field. Grandma's living room reframed as a cliff-edge majlis — domestic warmth holding the void.",
+      bg: "#3A2820", surface: "#5A3A28", surfaceBorder: "#6A4A38",
+      primary: "#D4A574", ink: "#F4EDE0", mutedInk: "#A39080", accent: "#C44536",
+      displayFont: "'Inter Tight', Inter, sans-serif",
+      bodyFont: "'Inter', sans-serif",
+      hexBg: "#3A2820", hexSurface: "#5A3A28", hexPrimary: "#D4A574", hexInk: "#F4EDE0", hexAccent: "#C44536",
+      typoHeader: "Typography · Inter Tight (display) · Inter (body)",
+      h1Sample: "Grandma's Waiting",
+      h1Caption: "H1 · 48px Inter Tight 800 UPPERCASE",
+      h2Sample: "She's already made too much food",
+      h2Caption: "H2 · 36px Inter Tight 800 sentence case",
+      bodySample: "The man in white isn't performing heritage. He IS heritage. The roller coasters are an accident of geography — we were here first.",
+      bodyCaption: "Body · 16px Inter 400 · 1.6 line-height",
+      btnPrimary: "Reserve a seat",
+      btnSecondary: "Read more",
+      imageTreatment: "Hero: full-bleed, object-fit: contain. No overlay rectangles. Text-shadow only on overlaid type.",
+      animation: "Static. No scroll-coupled motion. Restrained: only entrance fade on hero, expoOut 600ms."
+    },
+    'vibe-4': {
+      label: "Field.io Particles",
+      forWho: "22-40, high-performers post-event. Needs intensity without output.",
+      mood: "Generative, kinetic, technical, immersive, ambient",
+      atmosphere: "Field.io / Active Theory lineage. The brand is a particle system. Motion is the substrate; the screen breathes. WebGL as voice.",
+      bg: "#08080C", surface: "#14141C", surfaceBorder: "#24242E",
+      primary: "#7DF9FF", ink: "#E8E8F0", mutedInk: "#6A6A78", accent: "#FF3366",
+      displayFont: "'Space Grotesk', 'Inter', sans-serif",
+      bodyFont: "'Inter', sans-serif",
+      hexBg: "#08080C", hexSurface: "#14141C", hexPrimary: "#7DF9FF", hexInk: "#E8E8F0", hexAccent: "#FF3366",
+      typoHeader: "Typography · Space Grotesk (display) · Inter (body)",
+      h1Sample: "Enter the Field",
+      h1Caption: "H1 · 56px Space Grotesk 700 sentence case",
+      h2Sample: "A room that responds to your pulse",
+      h2Caption: "H2 · 32px Space Grotesk 600 sentence case",
+      bodySample: "Twenty thousand particles, each one tracking your gaze. The longer you stand still, the more the system reveals. There's no menu. There's the field.",
+      bodyCaption: "Body · 15px Inter 400 · 1.6 line-height",
+      btnPrimary: "Enter the field",
+      btnSecondary: "Watch the demo",
+      imageTreatment: "No photographic hero. WebGL canvas full-bleed. Photos appear only as masked particle clusters in section transitions.",
+      animation: "Persistent particle simulation throughout. Scroll-coupled camera dolly. 60fps WebGL. Mouse-cursor attractor field. Page never sits still."
+    },
+    'vibe-5': {
+      label: "Jetset Brutalist",
+      forWho: "UHNW, public figures, protection principals. Privacy is operational.",
+      mood: "Severe, declarative, white-cube, expensive, anti-marketing",
+      atmosphere: "Experimental Jetset / late Müller-Brockmann. Whitespace is the luxury. One typeface, one weight, one column. Everything else is a marketing anxiety they've outgrown.",
+      bg: "#FFFFFF", surface: "#F5F5F5", surfaceBorder: "#E0E0E0",
+      primary: "#000000", ink: "#000000", mutedInk: "#888888", accent: "#FF0000",
+      displayFont: "'Helvetica Neue', Helvetica, Arial, sans-serif",
+      bodyFont: "'Helvetica Neue', Helvetica, Arial, sans-serif",
+      hexBg: "#FFFFFF", hexSurface: "#F5F5F5", hexPrimary: "#000000", hexInk: "#000000", hexAccent: "#FF0000",
+      typoHeader: "Typography · Helvetica Neue (display + body, single family)",
+      h1Sample: "By appointment.",
+      h1Caption: "H1 · 96px Helvetica Neue 700 sentence case",
+      h2Sample: "There is no menu page.",
+      h2Caption: "H2 · 32px Helvetica Neue 700 sentence case",
+      bodySample: "The address is sent twenty-four hours in advance. The kitchen does not photograph. The booking number is a phone number. That is everything you need.",
+      bodyCaption: "Body · 14px Helvetica Neue 400 · 1.5 line-height",
+      btnPrimary: "Request",
+      btnSecondary: "About",
+      imageTreatment: "No images. Anywhere. Whitespace is the only photography. Grid lines visible at 8px in dev mode only.",
+      animation: "None. Hover is a 1px shift. Click is instant. The page does not move."
+    }
+  };
+
+  function applyVibe(slug) {
+    var v = VIBES[slug];
+    if (!v) return;
+    var card = document.getElementById('ds-card');
+    if (!card) return;
+    card.style.setProperty('--ds-bg', v.bg);
+    card.style.setProperty('--ds-surface', v.surface);
+    card.style.setProperty('--ds-surface-border', v.surfaceBorder);
+    card.style.setProperty('--ds-primary', v.primary);
+    card.style.setProperty('--ds-ink', v.ink);
+    card.style.setProperty('--ds-muted-ink', v.mutedInk);
+    card.style.setProperty('--ds-accent', v.accent);
+    card.style.setProperty('--ds-display-font', v.displayFont);
+    card.style.setProperty('--ds-body-font', v.bodyFont);
+    var setText = function (id, text) {
+      var el = document.getElementById(id);
+      if (el) el.textContent = text;
+    };
+    // Compact card: display-name field holds the H1 sample (prominent headline)
+    setText('ds-display-name', v.h1Sample);
+    setText('ds-h2-sample', v.h2Sample);
+    setText('ds-body-sample', v.bodySample);
+    setText('ds-btn-primary', v.btnPrimary);
+    setText('ds-btn-secondary', v.btnSecondary);
+    setText('ds-hex-bg', v.hexBg);
+    setText('ds-hex-surface', v.hexSurface);
+    setText('ds-hex-primary', v.hexPrimary);
+    setText('ds-hex-ink', v.hexInk);
+    setText('ds-hex-accent', v.hexAccent);
+    // Tighter typo header in compact card: "{display} · {body}"
+    var df = v.displayFont.replace(/'/g, '').replace(/,.*/, '').trim();
+    var bf = v.bodyFont.replace(/'/g, '').replace(/,.*/, '').trim();
+    setText('ds-typo-header', df + ' · ' + bf);
+    setText('ds-h1-caption', v.h1Caption);
+    setText('ds-body-caption', v.bodyCaption);
+    setText('ds-image-treatment', v.imageTreatment);
+    setText('ds-animation', v.animation);
+  }
+
+  function initDsCard() {
+    var sel = document.getElementById('ds-vibe-select');
+    if (!sel) return;
+    sel.addEventListener('change', function (e) { applyVibe(e.target.value); });
+    applyVibe(sel.value);
+  }
+
+  // ==========================================================================
+  // DESIGN DIRECTIONS — multi-select with cap-2, COMMIT enables when ≥1 picked
+  // ==========================================================================
+  // The cards are <label> elements with a hidden <input type="checkbox"> inside.
+  // Browser-native label-click synthesizes a click on the input, which bubbles
+  // back up to the label — so the click handler fires TWICE per user click,
+  // net effect zero. Skip the synthesized event by ignoring clicks where the
+  // target is the inner <input>.
+  function initDesignDirections() {
+    var cards = document.querySelectorAll('#dd-card .dd-direction-card');
+    var commitBtn = document.getElementById('dd-commit');
+    var counter = document.getElementById('dd-counter');
+    var capWarning = document.getElementById('dd-cap-warning');
+    if (!cards.length || !commitBtn) return;
+
+    var MAX = 2;
+    var selected = new Set();
+
+    function refresh() {
+      counter.textContent = String(selected.size);
+      capWarning.style.display = selected.size >= MAX ? 'inline' : 'none';
+      commitBtn.disabled = selected.size === 0;
+      commitBtn.style.opacity = selected.size === 0 ? '0.45' : '1';
+    }
+
+    cards.forEach(function (card) {
+      card.addEventListener('click', function (e) {
+        // Skip the synthesized click that bubbles up from the inner <input>
+        if (e.target && e.target.tagName === 'INPUT') return;
+        var slug = card.dataset.slug;
+        var input = card.querySelector('input[type="checkbox"]');
+        var check = card.querySelector('.dd-check');
+        if (selected.has(slug)) {
+          selected.delete(slug);
+          card.style.borderColor = 'var(--border-card)';
+          card.style.background = 'rgba(255,255,255,0.02)';
+          if (input) input.checked = false;
+          if (check) check.style.display = 'none';
+        } else {
+          if (selected.size >= MAX) {
+            capWarning.style.color = '#dc2626';
+            setTimeout(function () {
+              capWarning.style.color = 'var(--brand-yellow)';
+            }, 600);
+            return;
+          }
+          selected.add(slug);
+          card.style.borderColor = 'var(--brand-green-bright)';
+          card.style.background = 'rgba(21,185,129,0.06)';
+          if (input) input.checked = true;
+          if (check) check.style.display = 'inline-block';
+        }
+        refresh();
+      });
+    });
+
+    refresh();
+  }
+
+  // ==========================================================================
+  // DESCENT SELECTION · FINAL BUILD — radio (single-select) across N vibes,
+  // CTA ("Ship This Vibe") enables once a vibe is picked.
+  // ==========================================================================
+  function initDescentFinal() {
+    var cards = document.querySelectorAll('#descent-final-card .descent-vibe');
+    var commitBtn = document.getElementById('descent-final-commit');
+    if (!cards.length || !commitBtn) return;
+
+    cards.forEach(function (card) {
+      card.addEventListener('click', function (e) {
+        // Skip the synthesized click that bubbles up from the inner <input>
+        if (e.target && e.target.tagName === 'INPUT') return;
+        cards.forEach(function (c) {
+          c.style.borderColor = 'var(--border-card)';
+          c.style.background = 'rgba(255,255,255,0.02)';
+          var check = c.querySelector('.descent-check');
+          if (check) check.style.display = 'none';
+          var input = c.querySelector('input[type="radio"]');
+          if (input) input.checked = false;
+        });
+        card.style.borderColor = 'var(--brand-green-bright)';
+        card.style.background = 'rgba(21,185,129,0.06)';
+        var check = card.querySelector('.descent-check');
+        if (check) check.style.display = 'inline-block';
+        var input = card.querySelector('input[type="radio"]');
+        if (input) input.checked = true;
+        commitBtn.disabled = false;
+        commitBtn.style.opacity = '1';
+      });
+    });
+  }
+
+  function init() {
+    initDsCard();
+    initDesignDirections();
+    initDescentFinal();
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
+  }
+})();
+</script>
+
 </body>
 </html>

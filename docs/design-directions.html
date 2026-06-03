@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Design Directions — Three Visual Upgrades</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Lora:wght@400;600;700&family=Cormorant+SC:wght@500;700&family=Source+Sans+Pro:wght@400;600&family=Inter:wght@400;500;600;700&family=Space+Mono:wght@400;700&family=Anton&family=Barlow:wght@400;600;700&family=PT+Serif:wght@400;700&family=JetBrains+Mono:wght@400;700&family=Press+Start+2P&family=Orbitron:wght@500;700&display=swap" rel="stylesheet">
+<style>
+,::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{background:#0a0a0e;color:#e0e0e0;font-family:'Inter',system-ui,sans-serif;padding:48px;line-height:1.5;-webkit-font-smoothing:antialiased}
+h1{font-size:28px;font-weight:600;margin-bottom:8px}
+.subtitle{color:#7a7a85;font-size:14px;margin-bottom:48px;max-width:760px}
+.proposal{margin-bottom:64px;padding-top:32px;border-top:1px solid #2a2a35}
+.proposal-header{margin-bottom:24px}
+.proposal-num{font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.1em;color:#22d3ee;text-transform:uppercase;margin-bottom:6px}
+.proposal-title{font-size:24px;font-weight:600;margin-bottom:6px}
+.proposal-lever{color:#a0a0aa;font-size:13px;max-width:680px}
+.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+.card{background:#1a1a22;border:1px solid #2a2a35;border-radius:10px;overflow:hidden}
+
+/ PROPOSAL A — TYPOGRAPHIC SPECIMEN /
+.card-a .specimen{padding:24px 20px 16px}
+.card-a .h1-sample{font-size:38px;line-height:1.0;margin-bottom:12px;letter-spacing:-.01em}
+.card-a .body-sample{font-size:13px;line-height:1.55;color:#c0c0ca;margin-bottom:6px}
+.card-a .foot{display:flex;align-items:center;justify-content:space-between;padding:12px 20px;border-top:1px solid #25252e}
+.card-a .palette{display:flex;gap:4px}
+.card-a .chip{width:16px;height:16px;border-radius:3px}
+.card-a .refs{font-family:'JetBrains Mono',monospace;font-size:9px;color:#6a6a75;letter-spacing:.04em}
+
+/ PROPOSAL B — MOODBOARD CARD /
+.card-b .mood{width:100%;aspect-ratio:16/9;background-size:cover;background-position:center;background-color:#15151b}
+.card-b .meta{padding:14px 18px 16px}
+.card-b .title{font-size:16px;font-weight:600;margin-bottom:6px}
+.card-b .moodwords{font-style:italic;font-size:12px;color:#a0a0aa;margin-bottom:10px}
+.card-b .palette{display:flex;gap:3px;margin-bottom:10px}
+.card-b .chip{flex:1;height:6px}
+.card-b .caption{display:flex;justify-content:space-between;gap:12px;font-family:'JetBrains Mono',monospace;font-size:9px;color:#6a6a75;letter-spacing:.05em;line-height:1.4}
+
+/ PROPOSAL C — REFERENCE SHOWCASE /
+.card-c{padding:14px 16px 14px}
+.card-c .refs-row{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:12px}
+.card-c .ref-tile{aspect-ratio:1/1;border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:10px;text-align:center;padding:4px;line-height:1.1}
+.card-c .title{font-size:14px;font-weight:600;margin-bottom:4px}
+.card-c .moodwords{font-style:italic;font-size:11px;color:#a0a0aa;margin-bottom:8px}
+.card-c .palette{display:flex;gap:3px;margin-bottom:8px}
+.card-c .chip{flex:1;height:5px}
+.card-c .caption{font-family:'JetBrains Mono',monospace;font-size:9px;color:#6a6a75;letter-spacing:.05em}
+
+footer{margin-top:64px;padding-top:24px;border-top:1px solid #2a2a35;color:#6a6a75;font-size:12px}
+</style>
+</head>
+<body>
+
+<h1>Design Directions — Three Visual Upgrades</h1>
+<p class="subtitle">Same six FalCaMel directions, three different visual approaches. The current card is a spec sheet — italic prose, mono font-names, thin palette strip. Reading mode. These three move the card to feeling mode.</p>
+
+<!-- PROPOSAL A: Typographic Specimen -->
+<section class="proposal">
+<div class="proposal-header">
+<div class="proposal-num">PROPOSAL A</div>
+<h2 class="proposal-title">The Typographic Specimen</h2>
+<p class="proposal-lever">Lever: amplify TYPE. Real fonts at real sizes. The user SEES Press Start 2P vs Sangbleu vs Playfair, not just the names. The font IS the founder (user.md).</p>
+</div>
+<div class="grid">
+<!-- Grandma Warm -->
+<div class="card card-a">
+<div class="specimen" style="background:linear-gradient(to bottom,rgba(212,165,116,.10),transparent)">
+<div class="h1-sample" style="font-family:'Playfair Display',serif;font-weight:700;color:#f5e6d3">Grandma's Cliff.</div>
+<div class="body-sample" style="font-family:'Source Sans Pro',sans-serif">200 meters up. She's already made too much food. Don't keep her waiting.</div>
+</div>
+<div class="foot">
+<div class="palette">
+<span class="chip" style="background:#8B4513"></span>
+<span class="chip" style="background:#F5E6D3"></span>
+<span class="chip" style="background:#D4A574"></span>
+<span class="chip" style="background:#3E2723"></span>
+</div>
+<div class="refs">SCHOOL OF LIFE · CEREAL · MAST</div>
+</div>
+</div>
+<!-- Cliff Editorial -->
+<div class="card card-a">
+<div class="specimen" style="background:linear-gradient(to bottom,rgba(199,168,122,.12),transparent)">
+<div class="h1-sample" style="font-family:'Lora',serif;font-weight:700;color:#f5f1ec">Tuwaiq.</div>
+<div class="body-sample" style="font-family:'Inter',sans-serif">A cliff edge no other café in the kingdom can claim. 600 meters of open air between two ridges.</div>
+</div>
+<div class="foot">
+<div class="palette">
+<span class="chip" style="background:#1C1410"></span>
+<span class="chip" style="background:#C7A87A"></span>
+<span class="chip" style="background:#8B4513"></span>
+<span class="chip" style="background:#F5F1EC"></span>
+</div>
+<div class="refs">PENTAGRAM · WALLPAPER · AESOP</div>
+</div>
+</div>
+<!-- Race Electric -->
+<div class="card card-a">
+<div class="specimen" style="background:linear-gradient(to bottom,rgba(0,230,118,.10),transparent)">
+<div class="h1-sample" style="font-family:'Orbitron',sans-serif;font-weight:700;color:#00E676">47-0.</div>
+<div class="body-sample" style="font-family:'Space Mono',monospace">Sultan vs Falcon's Flight at sunset. Every night since the coaster opened. Bring binoculars.</div>
+</div>
+<div class="foot">
+<div class="palette">
+<span class="chip" style="background:#0D0D1A"></span>
+<span class="chip" style="background:#00E676"></span>
+<span class="chip" style="background:#7C4DFF"></span>
+<span class="chip" style="background:#FFFFFF"></span>
+</div>
+<div class="refs">RIOT WORLDS · RED BULL · DRL</div>
+</div>
+</div>
+<!-- Royal Deployment -->
+<div class="card card-a">
+<div class="specimen" style="background:linear-gradient(to bottom,rgba(255,215,0,.10),transparent)">
+<div class="h1-sample" style="font-family:'Anton',sans-serif;font-weight:400;color:#FFD700;text-transform:uppercase;letter-spacing:.02em">Deployment.</div>
+<div class="body-sample" style="font-family:'Barlow',sans-serif">Six animals, six call signs. The café closes. The cliff is yours. SAR 7,500.</div>
+</div>
+<div class="foot">
+<div class="palette">
+<span class="chip" style="background:#0A0A0A"></span>
+<span class="chip" style="background:#1A1A2E"></span>
+<span class="chip" style="background:#FFD700"></span>
+<span class="chip" style="background:#E0E0E0"></span>
+</div>
+<div class="refs">TERRITORY · MI:6 · NETJETS</div>
+</div>
+</div>
+<!-- Highland Craft -->
+<div class="card card-a">
+<div class="specimen" style="background:linear-gradient(to bottom,rgba(140,36,36,.08),transparent);background-color:#FAF7F2">
+<div class="h1-sample" style="font-family:'Cormorant SC',serif;font-weight:500;color:#1A1612">Jaddah.</div>
+<div class="body-sample" style="font-family:'PT Serif',serif;color:#3E2723">From Qassim. Thirty years of majlis spreads. No recipe on paper. Five articles carved into brass.</div>
+</div>
+<div class="foot" style="background:#F0EBE2;border-top-color:#B8A992">
+<div class="palette">
+<span class="chip" style="background:#FAF7F2;border:1px solid #B8A992"></span>
+<span class="chip" style="background:#1A1612"></span>
+<span class="chip" style="background:#8C2424"></span>
+<span class="chip" style="background:#B8A992"></span>
+</div>
+<div class="refs" style="color:#5C3A1C">SUHRKAMP · DIAPHANES · PERSEPHONE</div>
+</div>
+</div>
+<!-- Respawn -->
+<div class="card card-a">
+<div class="specimen" style="background:linear-gradient(to bottom,rgba(124,77,255,.10),transparent)">
+<div class="h1-sample" style="font-family:'Press Start 2P',monospace;font-size:22px;line-height:1.2;color:#00E676">RESPAWN.</div>
+<div class="body-sample" style="font-family:'Inter',sans-serif">You got wrecked. Respawn here. The WiFi is terrible. That's a feature.</div>
+</div>
+<div class="foot">
+<div class="palette">
+<span class="chip" style="background:#0D0D1A"></span>
+<span class="chip" style="background:#00E676"></span>
+<span class="chip" style="background:#7C4DFF"></span>
+<span class="chip" style="background:#E0E0E0"></span>
+</div>
+<div class="refs">RIOT · TWITCH · CAPCOM</div>
+</div>
+</div>
+</div>
+</section>
+
+<!-- PROPOSAL B: Moodboard Card -->
+<section class="proposal">
+<div class="proposal-header">
+<div class="proposal-num">PROPOSAL B</div>
+<h2 class="proposal-title">The Moodboard Card</h2>
+<p class="proposal-lever">Lever: amplify IMAGE. 16:9 photo at top — the direction's visual world at a glance. Highest diagnostic power per square pixel. People sell, empty rooms don't (user.md) — the same principle applies to direction cards.</p>
+</div>
+<div class="grid">
+<div class="card card-b">
+<div class="mood" style="background-image:url('/2026-01-27-debug/luqaimat.jpg')"></div>
+<div class="meta">
+<div class="title">Grandma's Warm</div>
+<div class="moodwords">Warm · Nostalgic · Guilt-inducing</div>
+<div class="palette">
+<span class="chip" style="background:#8B4513"></span>
+<span class="chip" style="background:#F5E6D3"></span>
+<span class="chip" style="background:#D4A574"></span>
+<span class="chip" style="background:#3E2723"></span>
+</div>
+<div class="caption">
+<span>PLAYFAIR · SOURCE&nbsp;SANS</span>
+<span style="text-align:right">school of life · cereal</span>
+</div>
+</div>
+</div>
+<div class="card card-b">
+<div class="mood" style="background-image:url('/2026-01-27-debug/cliff-majlis.jpg')"></div>
+<div class="meta">
+<div class="title">Cliff Editorial</div>
+<div class="moodwords">NatGeo meets Wallpaper*</div>
+<div class="palette">
+<span class="chip" style="background:#1C1410"></span>
+<span class="chip" style="background:#C7A87A"></span>
+<span class="chip" style="background:#8B4513"></span>
+<span class="chip" style="background:#F5F1EC"></span>
+</div>
+<div class="caption">
+<span>GT&nbsp;SECTRA · SÖHNE</span>
+<span style="text-align:right">pentagram · wallpaper</span>
+</div>
+</div>
+</div>
+<div class="card card-b">
+<div class="mood" style="background-image:url('/2026-01-27-debug/all-vibes-sultan-flight-v1.jpg')"></div>
+<div class="meta">
+<div class="title">The Race · Electric</div>
+<div class="moodwords">Esports broadcast meets falconry</div>
+<div class="palette">
+<span class="chip" style="background:#0D0D1A"></span>
+<span class="chip" style="background:#00E676"></span>
+<span class="chip" style="background:#7C4DFF"></span>
+<span class="chip" style="background:#FFFFFF"></span>
+</div>
+<div class="caption">
+<span>ORBITRON · SPACE&nbsp;MONO</span>
+<span style="text-align:right">riot · red bull · DRL</span>
+</div>
+</div>
+</div>
+<div class="card card-b">
+<div class="mood" style="background-image:url('/2026-01-27-debug/mbs-vs-MBZ-10.png')"></div>
+<div class="meta">
+<div class="title">Royal Deployment</div>
+<div class="moodwords">Security detail as hospitality</div>
+<div class="palette">
+<span class="chip" style="background:#0A0A0A"></span>
+<span class="chip" style="background:#1A1A2E"></span>
+<span class="chip" style="background:#FFD700"></span>
+<span class="chip" style="background:#E0E0E0"></span>
+</div>
+<div class="caption">
+<span>ANTON · BARLOW</span>
+<span style="text-align:right">territory · mi · netjets</span>
+</div>
+</div>
+</div>
+<div class="card card-b">
+<div class="mood" style="background-image:url('/2026-01-27-debug/hero.jpg')"></div>
+<div class="meta">
+<div class="title">Highland Craft</div>
+<div class="moodwords">Qassim matriarch letterpress</div>
+<div class="palette">
+<span class="chip" style="background:#FAF7F2"></span>
+<span class="chip" style="background:#1A1612"></span>
+<span class="chip" style="background:#8C2424"></span>
+<span class="chip" style="background:#B8A992"></span>
+</div>
+<div class="caption">
+<span>SANGBLEU · LYON</span>
+<span style="text-align:right">suhrkamp · diaphanes</span>
+</div>
+</div>
+</div>
+<div class="card card-b">
+<div class="mood" style="background-image:url('/2026-01-27-debug/hero-night.jpeg')"></div>
+<div class="meta">
+<div class="title">Respawn · Arcade</div>
+<div class="moodwords">Post-arena decompression</div>
+<div class="palette">
+<span class="chip" style="background:#0D0D1A"></span>
+<span class="chip" style="background:#00E676"></span>
+<span class="chip" style="background:#7C4DFF"></span>
+<span class="chip" style="background:#E0E0E0"></span>
+</div>
+<div class="caption">
+<span>PRESS&nbsp;START · INTER</span>
+<span style="text-align:right">riot · twitch · capcom</span>
+</div>
+</div>
+</div>
+</div>
+</section>
+
+<!-- PROPOSAL C: Reference Showcase -->
+<section class="proposal">
+<div class="proposal-header">
+<div class="proposal-num">PROPOSAL C</div>
+<h2 class="proposal-title">The Reference Showcase</h2>
+<p class="proposal-lever">Lever: amplify LINEAGE. Three reference tiles at top — see the school's family. Solves the "I don't know what Mevis & Van Deursen looks like" problem.</p>
+</div>
+<div class="grid">
+<div class="card card-c">
+<div class="refs-row">
+<div class="ref-tile" style="background:#F5E6D3;color:#5C3A1C;font-family:'Playfair Display',serif">School of<br>Life</div>
+<div class="ref-tile" style="background:#E8D8B8;color:#3E2723;font-family:'Lora',serif;font-style:italic">Cereal</div>
+<div class="ref-tile" style="background:#D4A574;color:#3E2723;font-family:'Source Sans Pro',sans-serif;font-weight:600">Mast<br>Books</div>
+</div>
+<div class="title">Grandma's Warm</div>
+<div class="moodwords">Warm · Nostalgic · Guilt-inducing</div>
+<div class="palette">
+<span class="chip" style="background:#8B4513"></span>
+<span class="chip" style="background:#F5E6D3"></span>
+<span class="chip" style="background:#D4A574"></span>
+<span class="chip" style="background:#3E2723"></span>
+</div>
+<div class="caption">PLAYFAIR DISPLAY · SOURCE SANS PRO</div>
+</div>
+<div class="card card-c">
+<div class="refs-row">
+<div class="ref-tile" style="background:#1C1410;color:#C7A87A;font-family:'Lora',serif;font-weight:700">Penta<br>gram</div>
+<div class="ref-tile" style="background:#F5F1EC;color:#1C1410;font-family:'Cormorant SC',serif">Wallpaper*</div>
+<div class="ref-tile" style="background:#8B4513;color:#F5F1EC;font-family:'Inter',sans-serif;font-weight:600">Aesop</div>
+</div>
+<div class="title">Cliff Editorial</div>
+<div class="moodwords">NatGeo meets Wallpaper*</div>
+<div class="palette">
+<span class="chip" style="background:#1C1410"></span>
+<span class="chip" style="background:#C7A87A"></span>
+<span class="chip" style="background:#8B4513"></span>
+<span class="chip" style="background:#F5F1EC"></span>
+</div>
+<div class="caption">GT SECTRA · SÖHNE</div>
+</div>
+<div class="card card-c">
+<div class="refs-row">
+<div class="ref-tile" style="background:#00E676;color:#0D0D1A;font-family:'Orbitron',sans-serif;font-weight:700">RIOT</div>
+<div class="ref-tile" style="background:#0D0D1A;color:#00E676;font-family:'Space Mono',monospace;font-size:8px">red<br>bull</div>
+<div class="ref-tile" style="background:#7C4DFF;color:#FFFFFF;font-family:'Inter',sans-serif;font-weight:700">DRL</div>
+</div>
+<div class="title">The Race · Electric</div>
+<div class="moodwords">Esports broadcast meets falconry</div>
+<div class="palette">
+<span class="chip" style="background:#0D0D1A"></span>
+<span class="chip" style="background:#00E676"></span>
+<span class="chip" style="background:#7C4DFF"></span>
+<span class="chip" style="background:#FFFFFF"></span>
+</div>
+<div class="caption">ORBITRON · SPACE MONO</div>
+</div>
+<div class="card card-c">
+<div class="refs-row">
+<div class="ref-tile" style="background:#0A0A0A;color:#FFD700;font-family:'Anton',sans-serif;font-size:8px">TERRI<br>TORY</div>
+<div class="ref-tile" style="background:#1A1A2E;color:#FFD700;font-family:'Barlow',sans-serif;font-weight:700">MI:6</div>
+<div class="ref-tile" style="background:#FFD700;color:#0A0A0A;font-family:'Inter',sans-serif;font-weight:700;font-size:9px">NETJETS</div>
+</div>
+<div class="title">Royal Deployment</div>
+<div class="moodwords">Security detail as hospitality</div>
+<div class="palette">
+<span class="chip" style="background:#0A0A0A"></span>
+<span class="chip" style="background:#1A1A2E"></span>
+<span class="chip" style="background:#FFD700"></span>
+<span class="chip" style="background:#E0E0E0"></span>
+</div>
+<div class="caption">ANTON · BARLOW</div>
+</div>
+<div class="card card-c">
+<div class="refs-row">
+<div class="ref-tile" style="background:#FAF7F2;color:#1A1612;font-family:'Cormorant SC',serif;font-size:9px">Suhr<br>kamp</div>
+<div class="ref-tile" style="background:#8C2424;color:#FAF7F2;font-family:'PT Serif',serif;font-weight:700;font-size:9px">Dia<br>phanes</div>
+<div class="ref-tile" style="background:#B8A992;color:#1A1612;font-family:'Lora',serif;font-style:italic;font-size:9px">Persephone</div>
+</div>
+<div class="title">Highland Craft</div>
+<div class="moodwords">Qassim matriarch letterpress</div>
+<div class="palette">
+<span class="chip" style="background:#FAF7F2"></span>
+<span class="chip" style="background:#1A1612"></span>
+<span class="chip" style="background:#8C2424"></span>
+<span class="chip" style="background:#B8A992"></span>
+</div>
+<div class="caption">SANGBLEU KINGDOM · LYON TEXT</div>
+</div>
+<div class="card card-c">
+<div class="refs-row">
+<div class="ref-tile" style="background:#0D0D1A;color:#00E676;font-family:'Press Start 2P',monospace;font-size:6px">RIOT</div>
+<div class="ref-tile" style="background:#7C4DFF;color:#FFFFFF;font-family:'Inter',sans-serif;font-weight:700">TWITCH</div>
+<div class="ref-tile" style="background:#00E676;color:#0D0D1A;font-family:'Press Start 2P',monospace;font-size:6px">CAPCOM</div>
+</div>
+<div class="title">Respawn · Arcade</div>
+<div class="moodwords">Post-arena decompression</div>
+<div class="palette">
+<span class="chip" style="background:#0D0D1A"></span>
+<span class="chip" style="background:#00E676"></span>
+<span class="chip" style="background:#7C4DFF"></span>
+<span class="chip" style="background:#E0E0E0"></span>
+</div>
+<div class="caption">PRESS START 2P · INTER</div>
+</div>
+</div>
+</section>
+
+<footer>
+Three approaches, same six directions. Pick the one that lets the user feel the difference fastest.<br>
+My pick: <strong style="color:#22d3ee">Proposal B</strong> (Moodboard). Image-led beats type-led beats lineage-led for a measurement instrument — image is the fastest path to reflex (vs evaluation). Cost is real but the 6 images become reusable wireframe assets, so the budget is shared.
+</footer>
+
+</body>
+</html>

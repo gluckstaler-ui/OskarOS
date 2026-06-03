@@ -1,0 +1,487 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Oppliger-Recherche — 05 · Server-Administration mit Oskar</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+</head>
+<body>
+  <header class="page-header">
+    <a href="index.html" class="brand">Oppliger · Pitch-Recherche</a>
+    <nav class="page-nav">
+      <span class="chapter">Kapitel 05</span>
+      <a href="04-creative-directions.html">← Zurück</a>
+      <a href="06-arzt-assistent.html">Weiter →</a>
+    </nav>
+  </header>
+
+  <main class="content wide">
+    <div class="kicker">Kapitel 05 — Server-Administration</div>
+    <h1>Wie Oskar den Server betreibt &mdash; Setup, Funktionsumfang, reale Grenzen</h1>
+    <p class="dek">Oskar läuft auf dem Mac mini im Keller <em>und</em> sitzt als leichter MCP-Agent auf jedem Praxis-Laptop. Der Server trägt Admin, 24/7-Jobs und die Audit-Spur. Die Laptops bringen den Assistenten dorthin, wo gearbeitet wird &mdash; an Mail.app, Finder, Calendar, das lokale OneDoc-Tab.</p>
+
+    <p class="lead">Niemand sitzt am Keller-Mac &mdash; er ist headless, im Untergeschoss, hinter einer Tür. Die vier Laptops (Robert, Gabriela, Bettina, vierte Kollegin) plus die Empfangsstation sind die Arbeitsstellen. Oskars Aufgabe ist zweiteilig: den Keller-Mac <strong>unsichtbar-aber-administriert</strong> zu machen (Backups, Updates, FileMaker, Zertifikate) <em>und gleichzeitig</em> an den Arbeitsplätzen <strong>in den Apps zu sitzen, in denen die Praxis tatsächlich arbeitet</strong>. Das eine ohne das andere wäre eine halbe Antwort.</p>
+
+    <h2 class="no-rule">Setup &mdash; Server <em>plus</em> Laptop-MCP-Agent</h2>
+
+    <table class="rubric" style="font-size: 0.9rem;">
+      <thead>
+        <tr><th>Option</th><th>Wo Oskar läuft</th><th>Verdikt</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>B &middot; Server + lokaler Agent auf jedem Laptop</strong></td>
+          <td>Ein kanonischer Oskar-Dienst auf dem Keller-Mac (UI, Zustand, Scheduling, Audit, FileMaker, Admin-Werkzeuge). Auf jedem Laptop ein leichter MCP-Agent, der die laptop-seitigen Werkzeuge bereitstellt: Mail.app via AppleScript, Finder + Spotlight, Calendar, das lokale OneDoc-Tab, lokale PDFs. <em>Eine</em> Audit-Spur, <em>eine</em> Werkzeugversion, verteilte Werkzeug-Reichweite.</td>
+          <td><span style="color: var(--sage); font-weight: 600;">Empfohlen.</span> Beat 1 (Admin) ruht auf dem Server. Beat 2 (Workflow) ruht auf den Laptops &mdash; nur dort liegen Mail.app, das HIN-Drop-PDF, Frau Müllers Calendar-Eintrag. Bettina sieht morgens Roberts gestrige Aktionen im selben Log; die MPA zieht das Lab-PDF auf das Chat-Fenster an ihrem Laptop und Oskar erreicht es lokal.</td>
+        </tr>
+        <tr>
+          <td>A &middot; Nur auf dem Server</td>
+          <td>Ein Oskar-Dienst auf dem Keller-Mac. Praxis-Laptops greifen nur via Browser zu. Keine Software auf den Laptops.</td>
+          <td>Reicht für Beat 1 (Admin, Backups, 24/7-Jobs) &mdash; <strong>verliert aber Beat 2.</strong> Mail.app auf jedem Laptop ist vom Server aus unerreichbar. Drag-and-drop eines HIN-PDFs ans Chat-Fenster funktioniert nicht. AppleScript-Hooks in Roberts Mail.app und Bettinas Calendar fallen weg. Halbe Lösung.</td>
+        </tr>
+        <tr>
+          <td>C &middot; Nur lokal auf jedem Laptop</td>
+          <td>Kein serverseitiger Oskar. Jeder Laptop fährt seinen eigenen.</td>
+          <td>Spiegelbild von A &mdash; reicht für Beat 2, verliert Beat 1. Niemand ist auf dem Keller-Mac eingeloggt, um die 24/7-Schicht laufen zu lassen; die Audit-Spur zerfasert auf vier Geräte; Bettina sieht Roberts Aktionen vom Vortag nicht. Hebelt den "Server aus der Ferne administrieren"-Pitch aus.</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <p>Der Keller-Mac läuft sowieso 24/7, hat die feste IP, hostet FileMaker Server. Er trägt den kanonischen Oskar &mdash; Zustand, Audit, Scheduling, Admin-Werkzeuge, alles, was niemand erreichen kann, wenn ein einzelner Laptop zugeklappt ist. Auf jedem Laptop sitzt zusätzlich ein leichter <strong>MCP-Agent</strong> (LaunchAgent, ~50 MB, autostart): derselbe Werkzeugkatalog wie auf dem Server, aber mit laptop-seitigen Aufrufen &mdash; <code>mail.search</code> via Mail.app-AppleScript, <code>finder.read_dropped</code> für das gerade abgelegte PDF, <code>calendar.events_for</code> für Roberts Kalender, <code>onedoc.bookings_for</code> aus dem geöffneten Tab. Die vier Laptops setzen ein Lesezeichen auf <code>https://oskar.oppliger.ch/</code>, der Server orchestriert, ruft bei Bedarf in den jeweiligen Laptop-Agent hinein. Eine Werkzeug-Definition, zwei Aufrufzonen.</p>
+
+    <h2>Architektur</h2>
+
+    <div class="arch-stack">
+      <div class="arch-node existing">
+        <span class="label">Vier Praxis-Laptops + Empfangsstation · Safari/Chrome-Lesezeichen</span>
+        <span class="tag">Wo gearbeitet wird</span>
+      </div>
+      <div class="arch-arrow">↓ HTTPS</div>
+      <div class="arch-node new">
+        <span class="label">Caddy Reverse-Proxy · Auto-HTTPS via Let's Encrypt</span>
+        <span class="tag">Öffentliche Ebene (Website + Oskar-UI)</span>
+      </div>
+      <div class="arch-arrow">↓ :3000</div>
+      <div class="arch-node new">
+        <span class="label">Oskar-Dienst (LaunchDaemon, läuft permanent)</span>
+        <span class="tag">Anwendung</span>
+      </div>
+      <div class="arch-arrow">↓ in-process</div>
+      <div class="arch-node new">
+        <span class="label">MCP-Server · ~150 typisierte Admin-Werkzeuge · audit-geloggt</span>
+        <span class="tag">Werkzeugfläche</span>
+      </div>
+      <div class="arch-arrow">↕ JSON-RPC über HTTPS · Touch-ID-bestätigt am Browser</div>
+      <div class="arch-node existing">
+        <span class="label">Claude · leitet die natürlichsprachliche Anfrage ans richtige Werkzeug</span>
+        <span class="tag">Reasoning</span>
+      </div>
+      <div class="arch-arrow">↓ Ausführung via MCP</div>
+      <div class="arch-node shell">
+        <span class="label">macOS — FileMaker Server, Time Machine, Netz, Mail, Prozesse, das Ganze</span>
+        <span class="tag">Der Server selbst</span>
+      </div>
+    </div>
+
+    <h2>Was Oskar administrieren kann &mdash; die volle Werkzeugfläche</h2>
+
+    <p>Eine Vier-Ärzt:innen-Praxis hat dieselben administrativen Bedürfnisse wie jeder andere KMU-Server: Dienste müssen neu gestartet werden, Zertifikate erneuert, Backups gefahren und verifiziert, Benutzer:innen angelegt wenn neues Personal kommt und gesperrt wenn jemand geht, Software aktualisiert, Logs überwacht, Festplatten füllen sich, Mail-Queues stauen sich, SSH-Schlüssel altern. Oskar bietet einen umfassenden typisierten Katalog &mdash; keine kuratierte 25-Werkzeug-Auswahl, sondern die tatsächliche Breite, mit der ein Systemadministrator täglich arbeitet.</p>
+
+    <h3>FileMaker Server</h3>
+    <table class="rubric" style="font-size: 0.86rem;">
+      <thead><tr><th>Werkzeug</th><th>Was es macht</th></tr></thead>
+      <tbody>
+        <tr><td><code>fmaker.status</code> &middot; <code>list_files</code> &middot; <code>list_clients</code></td><td>Zustand des Servers, gehostete Datenbanken, verbundene Benutzer:innen</td></tr>
+        <tr><td><code>fmaker.broadcast</code> &middot; <code>disconnect</code></td><td>Nachricht an alle Clients; festsitzende Session trennen</td></tr>
+        <tr><td><code>fmaker.backup</code> &middot; <code>verify</code> &middot; <code>run_schedule</code></td><td>Ad-hoc-Backup, Integritätsprüfung, benannten Zeitplan auslösen</td></tr>
+        <tr><td><code>fmaker.pause</code> &middot; <code>resume</code> &middot; <code>stop</code> &middot; <code>start</code></td><td>Datenbank-spezifische Pause, voller Server-Lifecycle</td></tr>
+        <tr><td><code>fmaker.logs</code> &middot; <code>top_calls</code></td><td>Event-, Access-, Stats-Logs plus Slow-Query-Log</td></tr>
+        <tr><td><code>fmaker.certificate</code></td><td>FMS-SSL-Zertifikat importieren, rotieren, Ablauf anzeigen</td></tr>
+      </tbody>
+    </table>
+
+    <h3>Backups &mdash; Time Machine plus Offsite</h3>
+    <table class="rubric" style="font-size: 0.86rem;">
+      <thead><tr><th>Werkzeug</th><th>Was es macht</th></tr></thead>
+      <tbody>
+        <tr><td><code>tm.status</code> &middot; <code>latest</code> &middot; <code>destinations</code></td><td>Backup-Status, letztes erfolgreiches, freier Platz am Ziel</td></tr>
+        <tr><td><code>tm.start</code> &middot; <code>stop</code> &middot; <code>verify</code></td><td>Ad-hoc-Lauf, abbrechen, Snapshot-Integrität prüfen</td></tr>
+        <tr><td><code>tm.restore_file</code> &middot; <code>list_snapshots</code> &middot; <code>compare</code></td><td>Einzelne Datei aus einem bestimmten Snapshot wiederherstellen, zwei Snapshots vergleichen</td></tr>
+        <tr><td><code>tm.exclusions</code></td><td>Pfade zum/vom Backup-Set hinzufügen/entfernen</td></tr>
+        <tr><td><code>restic.status</code> &middot; <code>backup</code> &middot; <code>verify</code> &middot; <code>restore</code></td><td>Verschlüsseltes Offsite-Backup in einen Backblaze-B2-EU-Bucket</td></tr>
+      </tbody>
+    </table>
+
+    <h3>Zertifikate &amp; Sicherheit</h3>
+    <table class="rubric" style="font-size: 0.86rem;">
+      <thead><tr><th>Werkzeug</th><th>Was es macht</th></tr></thead>
+      <tbody>
+        <tr><td><code>cert.list</code> &middot; <code>expiry</code></td><td>Alle Zertifikate (Caddy ACME, FMS, Mail), verbleibende Tage, Alarm bei &lt;14 Tagen</td></tr>
+        <tr><td><code>cert.rotate</code></td><td>ACME-Erneuerung erzwingen, an alle nutzenden Dienste verteilen</td></tr>
+        <tr><td><code>cert.import</code> &middot; <code>export_public</code></td><td>CA-signierte Zertifikatsworkflows (private Schlüssel werden nie exportiert)</td></tr>
+        <tr><td><code>ssh.list_keys</code> &middot; <code>rotate_key</code> &middot; <code>audit_authorized</code></td><td>SSH-Schlüssel-Inventar, Rotation, wer wo autorisiert ist</td></tr>
+        <tr><td><code>firewall.status</code> &middot; <code>add_rule</code> &middot; <code>remove_rule</code></td><td>pf-Regeln, aktuell offene Ports, Default-Deny-Haltung</td></tr>
+        <tr><td><code>audit.tail</code> &middot; <code>search</code></td><td>Jeder Oskar-Werkzeugaufruf, suchbar nach Nutzer:in / Zeit / Werkzeug</td></tr>
+      </tbody>
+    </table>
+
+    <h3>Benutzer &amp; Zugriff</h3>
+    <table class="rubric" style="font-size: 0.86rem;">
+      <thead><tr><th>Werkzeug</th><th>Was es macht</th></tr></thead>
+      <tbody>
+        <tr><td><code>user.list</code> &middot; <code>create</code> &middot; <code>disable</code> &middot; <code>delete</code></td><td>macOS-Benutzerkonten (MPA tritt ein/aus)</td></tr>
+        <tr><td><code>user.reset_password</code> &middot; <code>group_membership</code></td><td>Passwort-Reset, Gruppenzugehörigkeit ändern</td></tr>
+        <tr><td><code>user.audit_login</code></td><td>Letzter Login je Benutzer:in, IP, fehlgeschlagene Versuche</td></tr>
+        <tr><td><code>oskar.users</code> &middot; <code>oskar.add_role</code></td><td>Oskar-App-Nutzer:innen, rollenspezifische Berechtigungen (Robert/Bettina/MPAs sehen Unterschiedliches)</td></tr>
+      </tbody>
+    </table>
+
+    <h3>Dateisystem &amp; Speicher</h3>
+    <table class="rubric" style="font-size: 0.86rem;">
+      <thead><tr><th>Werkzeug</th><th>Was es macht</th></tr></thead>
+      <tbody>
+        <tr><td><code>fs.list</code> &middot; <code>read</code> &middot; <code>write</code></td><td>Durchsuchen, lesen, Konfig-Dateien editieren (mit Snapshot vor dem Schreiben)</td></tr>
+        <tr><td><code>fs.du</code> &middot; <code>find</code></td><td>Festplattenverbrauch nach Verzeichnis, Dateisuche nach Muster/Alter/Grösse</td></tr>
+        <tr><td><code>fs.chmod</code> &middot; <code>chown</code></td><td>Berechtigungen, Besitz</td></tr>
+        <tr><td><code>fs.archive</code> &middot; <code>extract</code></td><td>tar/zip, in beide Richtungen</td></tr>
+        <tr><td><code>fs.mount</code> &middot; <code>unmount</code></td><td>Externe Laufwerke, Netzwerkfreigaben (SMB/AFP)</td></tr>
+        <tr><td><code>disk.smart</code> &middot; <code>verify</code> &middot; <code>repair</code></td><td>SMART-Gesundheit, fsck, diskutil-Reparaturen</td></tr>
+      </tbody>
+    </table>
+
+    <h3>Netzwerk</h3>
+    <table class="rubric" style="font-size: 0.86rem;">
+      <thead><tr><th>Werkzeug</th><th>Was es macht</th></tr></thead>
+      <tbody>
+        <tr><td><code>net.interfaces</code> &middot; <code>routes</code> &middot; <code>dns_lookup</code></td><td>Interface-Zustand, Routing-Tabelle, DNS-Auflösung</td></tr>
+        <tr><td><code>net.port_open</code> &middot; <code>port_check</code></td><td>Ports öffnen/schliessen, Verbindung testen</td></tr>
+        <tr><td><code>net.speed_test</code> &middot; <code>traceroute</code> &middot; <code>ping</code></td><td>Konnektivitäts-Diagnostik</td></tr>
+        <tr><td><code>dns.list_records</code> &middot; <code>update_record</code></td><td>Falls lokales DNS / DDNS läuft</td></tr>
+        <tr><td><code>caddy.config</code> &middot; <code>reload</code></td><td>Reverse-Proxy-Routen anpassen, ohne offene Verbindungen abzubrechen neu laden</td></tr>
+      </tbody>
+    </table>
+
+    <h3>Software, Dienste, Prozesse</h3>
+    <table class="rubric" style="font-size: 0.86rem;">
+      <thead><tr><th>Werkzeug</th><th>Was es macht</th></tr></thead>
+      <tbody>
+        <tr><td><code>service.status</code> &middot; <code>start</code> &middot; <code>stop</code> &middot; <code>restart</code></td><td>Jeder launchd-Dienst (Caddy, FMS, Oskar selbst, Mail-Relay usw.)</td></tr>
+        <tr><td><code>service.list_failed</code></td><td>Dienste, die abgestürzt sind und sich nicht selbst neu gestartet haben</td></tr>
+        <tr><td><code>process.top</code> &middot; <code>kill</code> &middot; <code>resource_hog</code></td><td>Was CPU/RAM verbraucht, ausser Kontrolle geratene Prozesse finden</td></tr>
+        <tr><td><code>pkg.list_installed</code> &middot; <code>updates_available</code></td><td>brew + mas + .app-Inventar, was aktualisiert werden muss</td></tr>
+        <tr><td><code>pkg.install</code> &middot; <code>uninstall</code> &middot; <code>upgrade</code></td><td>Pakete aus der Allowlist verwalten</td></tr>
+        <tr><td><code>system.update_check</code> &middot; <code>update_deploy</code></td><td>macOS-Updates, Sicherheits-Filter, Deployment mit Neustart</td></tr>
+      </tbody>
+    </table>
+
+    <h3>Logs, Monitoring, Hardware</h3>
+    <table class="rubric" style="font-size: 0.86rem;">
+      <thead><tr><th>Werkzeug</th><th>Was es macht</th></tr></thead>
+      <tbody>
+        <tr><td><code>logs.tail</code> &middot; <code>search</code> &middot; <code>rotate</code></td><td>Jede Log-Datei unter <code>/var/log/</code>, <code>/Library/Logs/</code>, App-Logs. PHI-Felder in FMS-Logs maskiert.</td></tr>
+        <tr><td><code>logs.unified</code></td><td>macOS Unified-Log-Stream (Konsole.app-Äquivalent)</td></tr>
+        <tr><td><code>system.health</code></td><td>Strukturierter Schnappschuss: CPU, RAM, Swap, Temperatur, Lüfter, Uptime, Load</td></tr>
+        <tr><td><code>hw.info</code> &middot; <code>smart</code> &middot; <code>temperature</code></td><td>Mac-Modell, SSD-Gesundheit, thermische Lage, Lüfter</td></tr>
+        <tr><td><code>hw.usb_devices</code></td><td>Angeschlossene Peripherie (Drucker, Backup-Laufwerk, Scanner)</td></tr>
+      </tbody>
+    </table>
+
+    <h3>Mail, Zeit, Kalender, Druck</h3>
+    <table class="rubric" style="font-size: 0.86rem;">
+      <thead><tr><th>Werkzeug</th><th>Was es macht</th></tr></thead>
+      <tbody>
+        <tr><td><code>mail.queue_status</code> &middot; <code>flush</code></td><td>Falls ein Relay (postfix) läuft, Queue prüfen, Versand erzwingen</td></tr>
+        <tr><td><code>hin.account_status</code> &middot; <code>cert_expiry</code></td><td>HIN-Client-Gesundheit, Zertifikatsgültigkeit</td></tr>
+        <tr><td><code>ntp.status</code> &middot; <code>sync</code></td><td>Zeitsynchronisation</td></tr>
+        <tr><td><code>calendar.list</code> &middot; <code>event</code></td><td>CalDAV-Server-Admin, falls die Praxis gemeinsame Kalender nutzt</td></tr>
+        <tr><td><code>print.queue</code> &middot; <code>flush</code> &middot; <code>printer_status</code></td><td>CUPS-Druckwarteschlangen</td></tr>
+        <tr><td><code>share.list</code> &middot; <code>add_share</code></td><td>SMB/AFP-Dateifreigaben für die Praxis</td></tr>
+      </tbody>
+    </table>
+
+    <h3>Strom, Zeitsteuerung, Notfälle</h3>
+    <table class="rubric" style="font-size: 0.86rem;">
+      <thead><tr><th>Werkzeug</th><th>Was es macht</th></tr></thead>
+      <tbody>
+        <tr><td><code>pmset.get</code> &middot; <code>set</code></td><td>Sleep-/Wake-Plan, Wake-on-LAN</td></tr>
+        <tr><td><code>cron.list</code> &middot; <code>add</code> &middot; <code>remove</code></td><td>launchd-Timer (das macOS-Cron-Äquivalent)</td></tr>
+      </tbody>
+    </table>
+
+    <p>Das sind etwa 80 Werkzeuge über neun Domänen. Der tatsächliche Katalog umfasst rund 150, sobald die spezifischen FileMaker-Schedules, die Praxis-Software-Integrationen und die Workflow-Werkzeuge dazukommen, die Robert braucht. Jedes Werkzeug ist ein dünner, auditierter Wrapper um eine bekannte macOS-Funktion. Eines hinzufügen heisst eine Werkzeug-Definition schreiben; das Modell kann keinen Seitenkanal einschmuggeln, weil es keinen Seitenkanal gibt.</p>
+
+    <h2>Was Claude tatsächlich nicht kann &mdash; ehrlich, ohne Ausschlussliste</h2>
+
+    <p>Sieben echte Begrenzungen. <strong>Keine Datei-Pfad-Ausschlüsse.</strong> Oskar hat dieselbe administrative Reichweite, die ein Systemadministrator auf diesem Mac hätte &mdash; einschliesslich der FileMaker-Patientendatenbanken, des HIN-Mail-Stores, des Schlüsselbunds, der Backup-Volumes. Backup-Verwaltung <em>bedeutet</em>, die <code>.fmp12</code>-Dateien anzufassen; Restore <em>bedeutet</em> sie zu schreiben; Integritätsprüfung <em>bedeutet</em> sie zu lesen; Performance-Analyse <em>bedeutet</em> hineinzuschauen. Oskar dort auszusperren würde den Sinn eines Admin-Assistenten zunichtemachen. Die Grenze liegt in der Werkzeug-Semantik (was jedes Werkzeug tut, was es auditiert) &mdash; nicht in den Dateien, die es sehen kann.</p>
+
+    <table class="rubric" style="font-size: 0.92rem;">
+      <thead><tr><th>Grenze</th><th>Warum</th><th>Abhilfe</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><strong>Hardware-Physik</strong></td>
+          <td>Kernel-Aufhänger, Boot-Fehler, Hardware-Defekte, FileVault-Boot-Screen, Stromausfälle &mdash; keine Software <em>innerhalb</em> des Macs kann den Mac retten, wenn der Mac selbst tot ist.</td>
+          <td>Robert wohnt an derselben Adresse wie die Praxis (Hardturmstrasse 202). Eine Treppe runter, Stecker ziehen, Stecker rein &mdash; das ist die physische Recovery-Operation. M-Series Mac mini auf APFS verkraftet Stromausfälle problemlos (transaktionales Filesystem, SSD braucht kein Spin-down). Dokumentierte physische Recovery-Anleitung in <code>practice-context.md</code>.</td>
+        </tr>
+        <tr>
+          <td><strong>Kontinuierliches Monitoring</strong></td>
+          <td>Claude sitzt nicht stundenlang vor den Logs und wartet auf Anomalien. Aufruf-Latenz ist 2&ndash;15 Sekunden &mdash; nicht "mein Log endlos tailen."</td>
+          <td>Prometheus + Alertmanager (oder Better Stack / Datadog) läuft lokal auf dem Mac, schickt Alarme an Oskar. Claude reagiert auf Alarme, generiert sie nicht.</td>
+        </tr>
+        <tr>
+          <td><strong>Sub-Sekunden-Incident-Response</strong></td>
+          <td>Wenn ein Brute-Force-Angriff SSH mit 100 Anfragen pro Sekunde trifft, muss die Blockade in Millisekunden passieren. Claude ist zu langsam.</td>
+          <td>pf-Regeln + fail2ban übernehmen die autonome Reaktion. Claude prüft die resultierende Blocklist und aktualisiert die Policy im Nachhinein.</td>
+        </tr>
+        <tr>
+          <td><strong>Rollback eigener Fehler</strong></td>
+          <td>Wenn Claude <code>caddy.json</code> falsch bearbeitet und neu lädt, kann Caddy abstürzen. Wenn er eine schlechte Migration auf eine FileMaker-DB fährt, können Daten beschädigt werden. Das Modell kennt die vorherige Version nicht automatisch.</td>
+          <td>Schreibende Werkzeuge legen für ihre eigenen Config-Edits eine <code>.bak</code>-Datei daneben (fünf Zeilen Code, kein eigenes Snapshot-System). Für alles andere ist APFS&nbsp;+ Time Machine die Rollback-Schicht &mdash; macOS macht stündliche Snapshots ohne Zutun, Time Machine konserviert die letzten 24 Stunden. <code>fmaker.*</code>-destruktive Operationen lösen vorher ein frisches <code>fmaker.backup</code> aus. Destruktive Operationen werden im Browser per Touch ID bestätigt.</td>
+        </tr>
+        <tr>
+          <td><strong>Übergreifende Orchestrierung ohne expliziten Zustand</strong></td>
+          <td>Mehrstufige Workflows über mehrere Systeme (Registrar + DNS + Zertifikat + Caddy + Verifikation) brauchen Zustand, um Teilausfälle sauber zu behandeln. LLM-Gedankenketten sind keine Zustandsmaschinen.</td>
+          <td>Lange Workflows werden in explizite Job-Definitionen auf der Festplatte kompiliert. Oskar führt den Job aus; Claude komponiert ihn, führt ihn aber nicht aus dem Gedächtnis Schritt für Schritt aus.</td>
+        </tr>
+        <tr>
+          <td><strong>Praxisspezifische Intuition ohne Memory-Schicht</strong></td>
+          <td>Out-of-the-box erinnert sich Claude zwischen Sitzungen nicht, dass "der Keller im Juli feucht wird" oder "Bettina möchte Backups um 22:00, nicht um Mitternacht" oder "der Netzwerk-Switch fällt manchmal montags aus, nachdem die Putzkraft da war." Jede Sitzung startet bei null.</td>
+          <td>Pro Deployment eine Datei <code>~/oskar/practice-context.md</code>, die Claude beim Sitzungsstart liest. Wird von Robert / Bettina / Ralph gepflegt, wenn die Eigenheiten der Praxis sich ansammeln.</td>
+        </tr>
+        <tr>
+          <td><strong>Hardware-Arbeit</strong></td>
+          <td>SSD wechseln, RAM tauschen, Netzteil ersetzen, Lüfter reparieren, Kabel einstecken, Mac mini umstellen.</td>
+          <td>AppleCare + Kurier; Kalt-Reserve-Strategie, wenn Verfügbarkeit wirklich kritisch ist. Dokumentierte Wen-anrufen-Liste in <code>practice-context.md</code>.</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <p>Das ist die Liste. Keine Pfad-Ausschlüsse, kein "der Schlüsselbund ist tabu," kein "wir haben den Mail-Store eingemauert." Ein arbeitender Admin hat Reichweite über die ganze Maschine; Oskar bekommt dieselbe Reichweite, mit jeder Aktion im macOS Unified Log audit-geloggt und jeder destruktiven Operation per Touch ID am Browser bestätigt.</p>
+
+    <h3>Was Oskar speziell macht, was andere Admin-Werkzeuge nicht machen</h3>
+
+    <ul style="font-size: 0.92rem;">
+      <li><strong>Natürlichsprachliche Komposition</strong> &mdash; Robert tippt <em>"FMS scheint langsam, alle Backups ok?"</em> auf Deutsch, Oskar wählt die richtigen Werkzeuge aus (<code>fmaker.top_calls</code> + <code>tm.latest</code> + <code>restic.status</code> + <code>system.health</code>), führt sie aus, fasst auf Deutsch zusammen.</li>
+      <li><strong>Workflow-Komposition über Domänen</strong> &mdash; das 11-Schritte-macOS-Update unten kreuzt FileMaker, Time Machine, Software-Updates, Dienste und Benachrichtigung in einer einzigen Chat-Anfrage.</li>
+      <li><strong>Audit-Spur sichtbar für den Arzt</strong> &mdash; kein undurchsichtiges Server-Log, das nur Ralph lesen kann. Robert öffnet "Letzte Aktionen" und sieht, was Claude wann mit welchem Ergebnis gemacht hat.</li>
+      <li><strong>Snapshots vor Änderungen</strong> &mdash; jede Konfig-Bearbeitung erzeugt eine wiederherstellbare Vorher-Version. Niedrigere Einsätze für "Claude soll's mal probieren", weil Rollback ein Befehl ist.</li>
+      <li><strong>Mehrsprachiges Reporting</strong> &mdash; Status-Meldungen in der Sprache, in der getippt wurde. Robert auf Deutsch, Ralph auf Englisch, Bettina in beidem.</li>
+    </ul>
+
+    <h2>Das 11-Schritte-orchestrierte macOS-Update &mdash; eine Chat-Anfrage</h2>
+
+    <p>Das Beispiel, das seinen Platz verdient. Robert tippt mittags in den Chat: <em>"Update macOS heute Nacht 22:30, vorher Backup, FileMaker nicht abschiessen."</em></p>
+
+    <div class="callout accent">
+      <h4>Was Oskar ausführt &mdash; benannte Werkzeugaufrufe, jeder audit-geloggt</h4>
+      <ol style="margin-top: 0.75rem; font-size: 0.92rem;">
+        <li>22:25 &mdash; <code>fmaker.broadcast("Praxis-Server wird in 5 Minuten für Updates neugestartet. Bitte speichern und ausloggen.")</code></li>
+        <li>22:28 &mdash; <code>fmaker.list_clients()</code> &rarr; verifizieren, dass alle ausgeloggt sind</li>
+        <li>22:30 &mdash; <code>fmaker.backup(dest="/Volumes/Backup/pre-update-2026-05-20/")</code></li>
+        <li>22:32 &mdash; <code>fmaker.verify(file)</code> für jede gehostete DB</li>
+        <li>22:33 &mdash; <code>tm.start(blocking=true)</code> &rarr; ~6 Min. abwarten</li>
+        <li>22:40 &mdash; <code>fmaker.stop()</code></li>
+        <li>22:41 &mdash; <code>system.update_deploy(label)</code> &mdash; <strong>Touch-ID-Bestätigung, Robert legt am iPad den Finger auf den Power-Button</strong></li>
+        <li>~22:55 (nach Reboot, launchd fährt alles wieder hoch) &mdash; <code>fmaker.start()</code></li>
+        <li>23:00 &mdash; <code>fmaker.status()</code> + <code>fmaker.list_files()</code> &rarr; Hosting verifizieren</li>
+        <li>23:01 &mdash; <code>logs.tail(service="fms", lines=50)</code> &rarr; auf Fehler prüfen</li>
+        <li>23:02 &mdash; Claude postet in Roberts Chat: <em>"Server aktualisiert auf 15.4.1, FileMaker grün, alle 3 Datenbanken gehostet, letztes Backup 22:32 verifiziert, keine Fehler im Event-Log seit Neustart."</em></li>
+      </ol>
+      <p>Elf typisierte Aufrufe, ~30 Minuten verstrichen, Robert sieht die grüne Meldung von der Küche aus und geht ins Bett.</p>
+    </div>
+
+    <h2>Implementations-Fahrplan &mdash; was wir bauen, was bei Ihnen installiert wird</h2>
+
+    <p class="lead">Die Auftrennung ist nicht akademisch. <strong>Oskar-Seite</strong> ist alles, was wir bei uns vorbereiten, codieren und Ihnen als laufenden Dienst übergeben &mdash; einmal aufgesetzt, fährt es zwischen Ralphs Besuchen autonom weiter. <strong>Oppliger-Seite</strong> ist alles, was einmalig auf dem Mac mini installiert und konfiguriert wird, plus die Hardware, die Sie kaufen. Nach dem Setup-Tag sieht Robert weder das eine noch das andere &mdash; er sieht nur den Chat.</p>
+
+    <div class="callout sage">
+      <h4>Das Paradigma in einem Satz</h4>
+      <p>Das hier ist <strong>macOS Unix mit FileMaker im Zentrum, nicht x86 Linux mit Postgres im Zentrum</strong>. Die ganze Linux-Sysadmin-Liturgie &mdash; Prometheus-Dashboards, MDM-Enrollment, fail2ban-Regeln, OpenTelemetry-Pipelines, Docker-Compose-Stacks, dedizierte Service-User, VPN-Mesh, Hardware-Token-Rituale &mdash; ist hier Ballast. Sie löst Probleme, die diese Praxis nicht hat, mit Werkzeugen, die niemand in einer Vier-Personen-Praxis pflegen kann. Stattdessen: launchd, Caddy als einziger öffentlicher Listener, FileMaker als Datenbank, Touch ID am Browser, macOS Unified Log als Audit-Spur. Jedes Stück ist <em>schon im macOS</em> oder ein einzelnes Binary mit einer einzigen Konfigdatei &mdash; <em>kein</em> Cluster, <em>keine</em> Helm-Charts, <em>kein</em> Service-User-Zoo, <em>keine</em> Mesh-VPN-Enrollment-Tabelle. Heavy-Duty-FileMaker im Kern, leichtgewichtige Peripherie aussenrum &mdash; servicierbar durch einen einzigen Menschen, der gelegentlich vorbeischaut. Das ist das Designziel und der gesamte TCO-Vorteil.</p>
+    </div>
+
+    <h3>WP-S1 &middot; Oskar-Deployment-Bundle &mdash; ein Skript, ein Reboot</h3>
+    <table class="rubric" style="font-size: 0.88rem;">
+      <thead><tr><th style="width: 50%;">Oskar-Seite (wir liefern)</th><th>Oppliger-Seite (einmalig installiert)</th></tr></thead>
+      <tbody>
+        <tr>
+          <td>Ein einziges <code>oskar-deploy.sh</code>. Idempotent. Erkennt vorhandenes Setup, ergänzt nur das Fehlende. Schreibt die LaunchDaemon-plist nach <code>/Library/LaunchDaemons/ch.oskar.app.plist</code> (läuft als Root, wie jeder andere macOS-Systemdienst &mdash; kein dedizierter Service-User-Zoo), holt Code aus dem Git-Repo, baut, startet. Plus ein <code>oskar self-update</code>-Befehl: ab dann zieht Oskar Updates selbst, ohne dass jemand auf den Mac mini muss.</td>
+          <td>Mac mini mit aktuellem macOS, Homebrew einmal installiert, ein <code>git clone</code>, dann <code>sudo ./oskar-deploy.sh</code>. SMS an Ralph für die Einrichtungs-Bestätigung. Fertig. Updates passieren danach autonom &mdash; weder Robert noch Bettina müssen je wieder ein Terminal öffnen.</td>
+        </tr>
+      </tbody>
+    </table>
+    <p style="font-size: 0.85rem; color: var(--ink-soft); margin-top: -0.5rem;"><em>Aufwand: ~2h Claude &middot; ~15 Min Robert am Setup-Tag &middot; 0.5 Tag wall-clock</em></p>
+
+    <h3>WP-S2 &middot; Webserver &mdash; Caddy als einziges Frontend, plus eine Tunnel-Alternative</h3>
+    <table class="rubric" style="font-size: 0.88rem;">
+      <thead><tr><th style="width: 50%;">Oskar-Seite</th><th>Oppliger-Seite</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><strong>Caddy</strong> &mdash; ein einziges Go-Binary, eine Caddyfile, automatische ACME-Erneuerung, ein launchd-Eintrag. Zwei öffentliche Routen (<code>oppliger.ch</code> &rarr; Live-Next.js auf :3000, <code>stage.oppliger.ch</code> &rarr; Stage-Next.js auf :3001) plus der Admin-Endpoint auf derselben Caddy-Instanz, geschützt durch Touch ID am Browser. Kein nginx, kein Apache, kein Apache-vs-PHP-FPM-Konfigurationszoo, kein separater Admin-VPN &mdash; das gehört in die Linux-Welt und hat hier nichts zu suchen.</td>
+          <td><code>brew install caddy</code>. Eine Caddyfile-Kopie an den Standardort. Domain-A-Record auf die feste IP des Anschlusses zeigen lassen (ist bereits konfiguriert für FileMaker-Fernzugriff). Eine Port-Forwarding-Regel im Router (80, 443) &mdash; oder die Alternative weiter unten.</td>
+        </tr>
+        <tr>
+          <td><em>Alternative falls die feste IP wegfällt oder Port-Forwarding ungewünscht ist:</em> <code>cloudflared</code> als Tunnel-Daemon, ebenfalls launchd-managed. Keine offenen Ports am Router, kein Zertifikatsmanagement, kein DDNS, keine öffentliche IP nötig. Cloudflare terminiert TLS am Edge, der Mac mini bleibt aus dem öffentlichen Internet schlicht unsichtbar. <strong>Empfohlen für den Fall, dass die Internet-Verbindung gewechselt wird.</strong></td>
+          <td>Cloudflare-Account (kostenlos für diesen Use-Case), eine Tunnel-ID, ein Zugangstoken, ein <code>brew install cloudflared</code>. Das war's. DNS wird automatisch konfiguriert.</td>
+        </tr>
+      </tbody>
+    </table>
+    <p style="font-size: 0.85rem; color: var(--ink-soft); margin-top: -0.5rem;"><em>Aufwand: ~1h Claude &middot; DNS-Konfig vorab via Registrar &middot; 0.5 Tag wall-clock</em></p>
+
+    <h3>WP-S3 &middot; Auto-Start beim Server-Neustart &mdash; launchd, nichts sonst</h3>
+    <table class="rubric" style="font-size: 0.88rem;">
+      <thead><tr><th style="width: 50%;">Oskar-Seite</th><th>Oppliger-Seite</th></tr></thead>
+      <tbody>
+        <tr>
+          <td>LaunchDaemon-plist pro Dienst mit <code>RunAtLoad=true</code> und <code>KeepAlive=true</code> (Oskar selbst, Caddy, FileMaker Server). Das ist macOS-natives Cron + Init in einer Datei pro Dienst. Crash &rarr; launchd startet neu. Reboot &rarr; alles fährt selbst hoch. Kein systemd, kein supervisord, keine docker-compose.yml. Drei plists insgesamt, alle aus dem Setup-Skript installiert.</td>
+          <td>Keiner. plists werden vom Setup-Skript an die Standardpfade geschrieben. Auch wenn der Strom über Nacht ausfällt und der Mac mini neu hochfährt, ist eine Minute später alles wieder online &mdash; bevor Robert um 07:30 das Praxistor öffnet.</td>
+        </tr>
+      </tbody>
+    </table>
+    <p style="font-size: 0.85rem; color: var(--ink-soft); margin-top: -0.5rem;"><em>Aufwand: ~0.5h Claude &middot; inkl. in WP-S1-Deploy &middot; keine Wall-Clock</em></p>
+
+    <h3>WP-S4 &middot; Notfall-Doppelklick &mdash; ein <code>.app</code>-Bundle für den Fall der Fälle</h3>
+    <table class="rubric" style="font-size: 0.88rem;">
+      <thead><tr><th style="width: 50%;">Oskar-Seite</th><th>Oppliger-Seite</th></tr></thead>
+      <tbody>
+        <tr>
+          <td>Ein <code>Oskar-Rettung.app</code>-Bundle (eigentlich ein Apple Shortcut, doppelklickbar von jedem Laptop und vom Empfangs-iPad). Ablauf: <code>launchctl kickstart -k system/ch.oskar.app</code> &rarr; 10 Sekunden warten &rarr; HTTP-Check auf <code>https://oppliger.ch/_health</code>. Erfolg &rarr; macOS-Benachrichtigung &laquo;Oskar wieder online&raquo;. Misserfolg &rarr; Dialog mit zwei Buttons: <em>Robert (im Haus) anrufen, Stecker ziehen</em> / <em>Ralph anrufen</em>. Beide öffnen Telefon.app mit der entsprechenden Nummer vorgewählt.</td>
+          <td>Keiner. <code>.app</code>-Bundle wird durch das Setup-Skript in <code>/Applications/</code> abgelegt, automatisch auf jeden Laptop via iCloud-Sync verteilt. Robert lernt eine Sache: <em>Wenn etwas nicht geht, Oskar-Rettung doppelklicken.</em> Kein Konzept dahinter zu verstehen.</td>
+        </tr>
+      </tbody>
+    </table>
+    <p style="font-size: 0.85rem; color: var(--ink-soft); margin-top: -0.5rem;"><em>Aufwand: ~1h Claude &middot; 0.5 Tag wall-clock</em></p>
+
+    <h3>WP-S5 &middot; macOS- und Paket-Updates &mdash; Oskar erledigt sie selbst</h3>
+    <table class="rubric" style="font-size: 0.88rem;">
+      <thead><tr><th style="width: 50%;">Oskar-Seite</th><th>Oppliger-Seite</th></tr></thead>
+      <tbody>
+        <tr>
+          <td>Drei Befehlswege (<code>softwareupdate -i -a</code> für macOS, <code>brew update &amp;&amp; brew upgrade</code> für Homebrew, <code>mas upgrade</code> für Mac-App-Store-Apps) unter einem MCP-Werkzeug <code>system.update_deploy()</code> gebündelt. Das Werkzeug fragt zuerst <code>fmaker.list_clients()</code> ab, wartet auf das Idle-Fenster, fährt das 11-Schritte-Update aus dem Beispiel oben. Robert tippt <em>&laquo;update heute Nacht&raquo;</em> in den Chat; Oskar tut den Rest. Automatischer Wartungs-Cron via launchd timer &mdash; einmal pro Woche, dienstags 23:00, mit Opt-out-Befehl.</td>
+          <td>Keiner. Robert sieht nur die grüne Bestätigungs-Nachricht am nächsten Morgen. Keine WSUS, keine MDM-Policy, keine Apple-Configurator-Profile.</td>
+        </tr>
+      </tbody>
+    </table>
+    <p style="font-size: 0.85rem; color: var(--ink-soft); margin-top: -0.5rem;"><em>Aufwand: ~1h Claude &middot; 0.5 Tag wall-clock</em></p>
+
+    <h3>WP-S6 &middot; Domain &amp; Server-side E-Mail &mdash; <code>praxis-oppliger.ch</code> einrichten</h3>
+    <table class="rubric" style="font-size: 0.88rem;">
+      <thead><tr><th style="width: 50%;">Oskar-Seite</th><th>Oppliger-Seite</th></tr></thead>
+      <tbody>
+        <tr>
+          <td>DNS-Konfig-Templates (A-Record auf die Praxis-Festnetz-IP, MX-Records für den Mail-Hoster, SPF / DKIM / DMARC-Records für saubere Deliverability), Caddyfile-Eintrag für <code>praxis-oppliger.ch</code> + <code>www.praxis-oppliger.ch</code> + <code>stage.praxis-oppliger.ch</code>. Resend-Account-Setup (oder anderer Transaktional-Mailer), API-Key im macOS-Schlüsselbund. Forwarder-Konfig im Schweizer Mail-Hoster: <code>info@</code> &rarr; gemeinsamer Inbox-Pool, <code>robert@</code> &rarr; Roberts aktuelle Adresse, <code>bettina@</code> &rarr; Bettinas, <code>gabriela@</code> &rarr; Gabrielas.</td>
+          <td>Domain <code>praxis-oppliger.ch</code> bei Schweizer Registrar (Cyon, Hostpoint, Infomaniak) kaufen &mdash; ~CHF 12/Jahr. Mailbox-Hosting beim selben Provider &mdash; ~CHF 5/Monat für eine Mailbox plus Forwarder. Robert/Bettina nennen Ralph ihre Wunsch-Forwarder-Adressen. Ralph erledigt den DNS- und Registrar-Teil aus der Ferne.</td>
+        </tr>
+        <tr>
+          <td>Transaktional-Mail via Resend (für Booking-Confirmations und System-Notifications) &mdash; getrennt vom menschlichen Mailbox, damit Booking-E-Mails nicht in Roberts normalem Inbox stranden.</td>
+          <td>Resend-Account-Anmeldung mit Praxis-Kreditkarte &mdash; ~CHF 20/Monat ab ~3'000 E-Mails/Monat. Free-Tier (3'000 E-Mails/Monat) reicht für den Anfang.</td>
+        </tr>
+      </tbody>
+    </table>
+    <p style="font-size: 0.85rem; color: var(--ink-soft); margin-top: -0.5rem;"><em>Aufwand: ~2h Claude (DNS + Caddyfile + Resend-Wrapper-Tool) &middot; ~30 Min Ralph remote &middot; ~CHF 12/Jahr Domain + ~CHF 60/Jahr Mailbox + ~CHF 240/Jahr Resend (falls Volumen) &middot; 1 Tag wall-clock</em></p>
+
+    <h3>WP-S7 &middot; Admin-Panel-UI &mdash; Glance-First, Chat-Second</h3>
+    <table class="rubric" style="font-size: 0.88rem;">
+      <thead><tr><th style="width: 50%;">Oskar-Seite</th><th>Oppliger-Seite</th></tr></thead>
+      <tbody>
+        <tr>
+          <td>Route <code>/admin</code> (Touch-ID-gated). Default-View: 4-Karten-Statuspanel.
+            <ul style="margin-top: 0.5rem; font-size: 0.9rem;">
+              <li><strong>FileMaker</strong> &mdash; läuft / steht; gehostete DBs; verbundene Clients; letztes Backup (vor &lt;t&gt;); Slow-Query-Count heute</li>
+              <li><strong>System</strong> &mdash; CPU %, Disk frei, Uptime, letztes macOS-Update, ausstehende Updates</li>
+              <li><strong>Heute</strong> &mdash; geplante Termine über alle Ärzt:innen, davon bestätigt / no-show / verschoben; Buchungs-Conversion-Statistik der Woche</li>
+              <li><strong>Audit</strong> &mdash; Werkzeugaufrufe heute (alle / mit Touch-ID-Step-up / Fehlversuche); klickbar auf den Unified-Log-Filter</li>
+            </ul>
+            Karten klickbar &rarr; Detail-View je Karte. One-Click-Action-Buttons unter den Karten: <em>Backup jetzt</em> &middot; <em>FMS neu starten</em> (Touch-ID-Step-up) &middot; <em>Logs ansehen</em> &middot; <em>macOS-Update planen</em>. Chat-Eingabe bleibt unten verfügbar &mdash; Glance-First, Chat-Second.</td>
+          <td>Keiner. Admin-Panel ist Teil der Oskar-Web-UI.</td>
+        </tr>
+      </tbody>
+    </table>
+    <p style="font-size: 0.85rem; color: var(--ink-soft); margin-top: -0.5rem;"><em>Aufwand: ~3h Claude &middot; ~30 Min Ralph-Review pro Karte &middot; 1 Tag wall-clock</em></p>
+
+    <h3>WP-S8 &middot; Analytics-Datenquelle &mdash; CD baut das Dashboard, Oskar liefert die Zahlen</h3>
+    <table class="rubric" style="font-size: 0.88rem;">
+      <thead><tr><th style="width: 50%;">Oskar-Seite</th><th>Oppliger-Seite</th></tr></thead>
+      <tbody>
+        <tr>
+          <td>MCP-Werkzeug <code>analytics.read_caddy_logs(period)</code>. Parst die strukturierten Caddy-JSON-Access-Logs der letzten N Tage und liefert aggregierte Daten: Pageviews pro Pfad, Top-Referrer, Status-Verteilung, Sprach-Verteilung (per <code>Accept-Language</code>-Header oder <code>/lang/</code>-URL-Prefix), Buchungs-Conversion (<code>/termin</code>-Views gegen <code>/termin/erfolg</code>-Hits), Response-Time-Perzentile. Output als JSON. <strong>CD-Agent schreibt das eigentliche Dashboard als Vibe-Build on-demand</strong> &mdash; Robert: <em>&laquo;CD, gib mir die Analytics-Sicht für diese Woche&raquo;</em>, CD ruft das Werkzeug, baut das Dashboard im Praxis-Markenstil, speichert es als HTML in <code>/admin/analytics</code>. Dashboard ist regenerierbar mit anderem Fokus, ohne neuen Build durch Ralph.</td>
+          <td>Keiner. Keine Cookies, kein JS-Tracker, kein Consent-Banner, keine Plausible-Lizenz, keine Google-Analytics-Property. Caddy-Logs sind sowieso da; CD baut die Sicht, wenn Robert sie braucht.</td>
+        </tr>
+      </tbody>
+    </table>
+    <p style="font-size: 0.85rem; color: var(--ink-soft); margin-top: -0.5rem;"><em>Aufwand: ~1h Claude (Log-Parser + MCP-Tool) &middot; CD-Sitzung für jedes neue Dashboard ~20 Min &middot; 0.5 Tag wall-clock</em></p>
+
+    <h2>Auth-Schicht &mdash; ein Satz</h2>
+
+    <p><strong>Touch ID am Browser bestätigt sowohl den Login als auch jede destruktive Operation</strong> &mdash; die einzige Auth-Schicht, die Oskar braucht. macOS Platform Authenticator ist schon auf jedem Mac und iPad eingebaut, phishing-resistent, null Extra-Hardware. <code>sudo</code> spielt keine Rolle, weil Oskar als LaunchDaemon ohnehin unter Root läuft &mdash; der menschliche Bestätigungsschritt sitzt im UI, nicht in der Shell. Pro-User-ACL: Robert und Bettina haben volle Rechte, Gabriela schreibt nur in ihren TCM-Bereich, MPAs sehen nur Buchung und Recall. Audit-Trail im macOS Unified Log (Subsystem <code>ch.oskar</code>) &mdash; jeder Werkzeugaufruf vom OS signiert, durch Time Machine konserviert, abfragbar via <code>log show</code>.</p>
+
+    <h2>UX-erhaltende Sicherheitshärtung &mdash; sieben Massnahmen, alle macOS-nativ</h2>
+
+    <p class="lead">Die Linux-Sysadmin-Tradition produziert lange Checklisten, die kollektiv eine Praxis lahmlegen: erzwungene Passwort-Rotation, MDM-Enrollment, OpenTelemetry-Pipelines, fail2ban mit IP-Reputation-Listen, dedizierte Service-User, Hardware-Token-Rituale, VPN-Meshes mit Enrollment-Tabellen, USV-Wartung. Das alles kostet UX und löst Probleme, die diese Praxis nicht hat. Diese Liste ist anders: jede Massnahme ist entweder <strong>schon in macOS eingebaut</strong> oder ein einzelner Konfigschritt. Jede ist entweder <strong>unsichtbar oder UX-verbessernd</strong>. Wenn sie das nicht ist, steht sie nicht hier.</p>
+
+    <table class="rubric" style="font-size: 0.88rem;">
+      <thead><tr><th>Massnahme</th><th>Wirkung</th><th>UX-Impact</th></tr></thead>
+      <tbody>
+        <tr>
+          <td>Caddy als einziger öffentlich erreichbarer Dienst; alles andere blockiert durch Router-NAT + macOS Application Firewall (System Settings &rarr; Network &rarr; Firewall, &laquo;Allow specific apps&raquo;-Modus)</td>
+          <td>Eine Angriffsfläche, ein Patch-Punkt. Router-NAT ist der primäre Perimeter, der ist schon da.</td>
+          <td><span style="color: var(--sage); font-weight: 600;">Unsichtbar</span></td>
+        </tr>
+        <tr>
+          <td>Time Machine (lokal, externe SSD) + restic (Backblaze B2 EU, verschlüsselt) &mdash; Verschlüsselungsschlüssel im macOS-Schlüsselbund</td>
+          <td>Zwei Backup-Linien, eine off-site, beide encrypted at rest. Time Machine erlaubt einzelne Datei-Restores aus dem Finder.</td>
+          <td><span style="color: var(--sage); font-weight: 600;">Unsichtbar</span></td>
+        </tr>
+        <tr>
+          <td><code>.bak</code>-Datei neben Oskars eigenen Config-Edits, plus APFS-stündliche-Snapshots und Time-Machine-stündliche-Snapshots für alles andere</td>
+          <td>Rollback einer Config-Änderung ist <em>copy back from .bak</em>. Rollback eines unbeabsichtigten Dateischreibens geht via Finder &rarr; Time Machine zur stündlich-vorigen Version.</td>
+          <td><span style="color: var(--sage); font-weight: 600;">UX-verbessernd</span> &mdash; null Risiko-Aversion, der OS macht die Snapshots ohnehin</td>
+        </tr>
+        <tr>
+          <td>macOS Screen Sharing offen lassen (nicht deaktivieren) &mdash; via iCloud erreichbar, end-to-end-encrypted</td>
+          <td>Ralph kann remote screensharen, wenn Robert in der Oskar-UI festsitzt. macOS verlangt explizite Auth pro Session; keine Anonym-Angriffsfläche.</td>
+          <td><span style="color: var(--sage); font-weight: 600;">UX-verbessernd</span> für Service-Calls</td>
+        </tr>
+        <tr>
+          <td><code>~/oskar/practice-context.md</code> &mdash; Eigenheiten der Praxis (Backup-Fenster, Lieferanten-Kontakte, Rufbereitschaft, der Montagsproblem-Switch nach Putzkraft-Einsatz)</td>
+          <td>Sitzungsstart-Kontext für Claude. Erinnert sich an Bettinas Backup-Zeit, ohne dass jemand es ständig neu erklären muss.</td>
+          <td><span style="color: var(--sage); font-weight: 600;">UX-verbessernd</span> &mdash; Robert/Bettina pflegen die Datei, Claude liest sie automatisch beim Sessionstart</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="callout warn">
+      <h4>Bewusst <em>nicht</em> auf der Liste &mdash; was wir gestrichen haben und warum</h4>
+      <ul style="margin-top: 0.5rem; font-size: 0.92rem;">
+        <li><strong>Dediziertes <code>oskar</code>-Servicekonto.</strong> Linux-Tradition aus Multi-Tenant-Serverumgebungen. Auf einem Mac mini mit zwei Usern Theater &mdash; isoliert Oskar von nichts, was er für seine Aufgabe ohnehin anfassen muss. Oskar läuft als LaunchDaemon unter Root, wie jeder andere macOS-Systemdienst.</li>
+        <li><strong>Tailscale / Admin-VPN-Mesh.</strong> Die Praxis hat schon eine feste IP für FileMaker-Fernzugriff &mdash; das ist das bewährte Muster. Caddy serviert die Admin-UI öffentlich; Touch ID schützt sie. Wer die Login-Seite sieht, hat nichts gewonnen. Für Ralphs Service-Calls reicht macOS Screen Sharing via iCloud, eingebaut, end-to-end-encrypted.</li>
+        <li><strong>YubiKey für destruktive Ops.</strong> Vier Hardware-Schlüssel zu verwalten, lost-key-Recovery zu pflegen, MPA-anruft-Ralph-weil-sie-ihren-nicht-findet-Ritual &mdash; gegen einen Nutzen, den Touch ID am Browser kostenlos liefert. macOS Platform Authenticator (Touch ID / Face ID) ist phishing-resistent und schon auf jedem Gerät.</li>
+        <li><strong>Apple Remote Desktop deaktivieren.</strong> ARD/Screen Sharing hat macOS-managed Auth pro Session. Deaktivierung kostet Ralphs Fähigkeit, Robert remote über die Schulter zu schauen, und schützt vor nichts Realem.</li>
+        <li><strong>Eigene Snapshot-Schicht in <code>/var/oskar/snapshots/</code>.</strong> APFS macht stündliche Snapshots automatisch. Time Machine konserviert die letzten 24 Stunden. FileMaker hat eigene Backups. Eine vierte parallele Backup-Schicht ist Linux-Hausmeisterei.</li>
+        <li><strong>Lokale Audit-Logs + nächtliches Backblaze-Upload.</strong> macOS Unified Log existiert schon, ist OS-signiert, durch Time Machine konserviert. Eine separate Log-Rotation-Pipeline mit B2-Upload pflegt sich nicht selbst.</li>
+        <li><strong>5-Min-Heartbeat via Pushover.</strong> Wenn Oskar tot ist, merkt Robert das beim ersten Chat-Versuch. 288 Pings pro Tag mit 99,9 % grünem Punkt sind Aufmerksamkeitsmüll &mdash; und liefern False Positives um 3 Uhr morgens.</li>
+        <li><strong>USV.</strong> M-Series Mac mini auf APFS verkraftet Stromausfälle problemlos. Switzerland hat &lt; 30 Minuten Haushalts-Stromausfall pro Jahr. CHF 150&ndash;300 Hardware + Batteriewechsel alle drei Jahre + ein neuer Monitoring-Punkt für ein Problem, das hier nicht existiert. CHF 30 Steckdose mit Überspannungsschutz reicht.</li>
+        <li><strong>Shelly Plug S für Remote-Power-Cycle.</strong> Robert wohnt an derselben Adresse wie die Praxis. Eine Treppe runter, Stecker ziehen &mdash; das ist die Recovery-Operation, die einmal alle paar Jahre nötig wird. Smart-Home-Hardware löst hier ein Distanzproblem, das nicht existiert.</li>
+        <li><strong>Mosyle/Jamf MDM-Enrollment, Prometheus + Grafana, OpenTelemetry-Pipelines, fail2ban, Docker / Kubernetes, SIEM / EDR.</strong> Linux-Serverraum-Folklore. Eine Vier-Personen-Praxis pflegt keine dieser Werkzeuge; die Probleme, die sie lösen, existieren in dieser Umgebung nicht.</li>
+      </ul>
+    </div>
+
+    <h2>Der Rahmen</h2>
+
+    <p>Die richtige Lesart von "was Claude kann / nicht kann" ist nicht <em>"wie sperren wir es aus allem Gefährlichen aus"</em>; sondern <em>"wie geben wir ihm die echte Breite eines Admin-Jobs, mit jeder Aktion im macOS Unified Log audit-geloggt und jeder destruktiven Op am Browser per Touch ID bestätigt."</em> Kein Datei-Pfad-Quarantänelager. Kein Sicherheits-Theater. Keine Hardware-Token-Rituale. Die Grenze liegt in der Werkzeug-Semantik und im Audit &mdash; nicht in den Verzeichnissen, die Oskar sehen kann.</p>
+
+    <p>Das Erlebnis aus Roberts Sicht: <em>"Ich gehe nicht mehr in den Keller. Bettina loggt sich morgen ein und sieht, was passiert ist. Das Team hat einen einzigen Weg, dem Server eine Aufgabe zu geben, und der Server antwortet auf Deutsch."</em></p>
+  </main>
+
+  <footer class="page-footer">
+    <nav>
+      <a href="04-creative-directions.html" class="prev">← Kapitel 04: Kreative Richtungen</a>
+      <a href="index.html" class="home">Index</a>
+      <a href="06-arzt-assistent.html" class="next">Kapitel 06: Arzt-Assistent →</a>
+    </nav>
+    <p class="meta">Oskar-Recherche-Deliverable · 20. Mai 2026</p>
+  </footer>
+</body>
+</html>

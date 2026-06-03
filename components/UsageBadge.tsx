@@ -149,7 +149,14 @@ export function UsageBadge({ sessionId, refreshTrigger, theme = 'onyx', contextP
     // reflects whatever happened on the OTHER mode while we weren't
     // looking. Without this, switching CLI→API right after a CLI turn
     // would show stale 0% until the next API call completes.
+    // Ralph 2026-05-30: also poll every 15s so cost/context % stay
+    // fresh without a manual reload. The render is guarded by
+    // `loading && !usage`, so after the first successful fetch the
+    // poll-induced loading flicker is invisible — only the values
+    // update in place.
     fetchUsage()
+    const id = setInterval(fetchUsage, 15_000)
+    return () => clearInterval(id)
   }, [fetchUsage, refreshTrigger, billingMode])
 
   const handleResetClick = useCallback(async () => {

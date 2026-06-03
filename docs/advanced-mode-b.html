@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Advanced Mode B — Inline Assignment</title>
+<style>
+  *,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+  :root{
+    --bg:#0f0f0f;--panel:#151515;--surface:#1a1a1a;--input:#222;
+    --border:#252525;--bh:#444;--text:#e0e0e0;--muted:#888;--dim:#555;
+    --blue:#3B82F6;--purple:#8B5CF6;--green:#10B981;--orange:#F59E0B;--red:#EF4444;
+    --r:8px;--active:var(--blue)
+  }
+  html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);
+    font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
+    font-size:14px;-webkit-font-smoothing:antialiased}
+  .vp{display:flex;height:100vh}
+
+  /* === ASSETS === */
+  .assets{flex:0 0 260px;background:var(--panel);border-right:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden}
+  .a-head{flex:0 0 42px;display:flex;align-items:center;padding:0 12px;border-bottom:1px solid var(--border);font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);gap:6px}
+
+  .summary{display:none;flex-direction:column;gap:4px;padding:8px 10px;border-bottom:1px solid var(--border);background:rgba(139,92,246,.04)}
+  .summary.vis{display:flex}
+  .summary.lay{background:rgba(16,185,129,.04)}
+  .sum-head{display:flex;align-items:center;gap:6px}
+  .sum-title{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--purple)}
+  .summary.lay .sum-title{color:var(--green)}
+  .sum-clear{margin-left:auto;font-size:9px;color:var(--dim);cursor:pointer;border:none;background:none;padding:2px 5px;border-radius:3px;transition:all .15s}
+  .sum-clear:hover{color:var(--red);background:rgba(239,68,68,.08)}
+  .sum-tags{display:flex;gap:3px;flex-wrap:wrap}
+  .stag{height:18px;padding:0 6px;border-radius:3px;font-size:8px;font-weight:700;color:#fff;display:flex;align-items:center;gap:2px;text-transform:uppercase}
+  .stag.sc{background:var(--purple)}.stag.su{background:var(--orange)}.stag.gr{background:var(--green)}
+
+  .hint{display:none;padding:5px 10px 6px;font-size:10px;color:var(--muted);line-height:1.4;border-bottom:1px solid var(--border)}
+  .hint.vis{display:block}
+  .hint em{color:var(--purple);font-style:normal;font-weight:600}
+  .hint.lay em{color:var(--green)}
+
+  .a-label{padding:8px 10px 4px;font-size:9px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--dim)}
+  .a-grid{flex:1;overflow-y:auto;padding:0 6px 6px;display:grid;grid-template-columns:1fr 1fr;gap:5px;align-content:start}
+  .a-grid::-webkit-scrollbar{width:3px}
+  .a-grid::-webkit-scrollbar-thumb{background:#2a2a2a;border-radius:2px}
+  .tile{cursor:pointer;display:flex;flex-direction:column;gap:2px;position:relative}
+  .tbox{width:100%;aspect-ratio:1;border-radius:5px;position:relative;border:2px solid transparent;overflow:hidden;transition:all .15s;background-size:cover;background-position:center}
+  .tbox:hover{border-color:#444}
+  .tbox[data-s="scene"]{border-color:var(--purple);box-shadow:0 0 0 1px var(--purple)}
+  .tbox[data-s="subject"]{border-color:var(--orange);box-shadow:0 0 0 1px var(--orange)}
+  .tbox[data-s="hero"]{border-color:var(--green);box-shadow:0 0 0 1px var(--green)}
+  .tbox[data-s="cell"]{border-color:var(--green);box-shadow:0 0 0 1px var(--green)}
+  .tbadge{position:absolute;top:3px;left:3px;height:15px;padding:0 5px;border-radius:3px;font-size:8px;font-weight:700;color:#fff;display:none;align-items:center;z-index:2;text-transform:uppercase}
+  .tbox[data-s="scene"] .tbadge{display:flex;background:var(--purple)}
+  .tbox[data-s="subject"] .tbadge{display:flex;background:var(--orange)}
+  .tbox[data-s="hero"] .tbadge{display:flex;background:var(--green)}
+  .tbox[data-s="cell"] .tbadge{display:flex;background:var(--green)}
+  .tnum{position:absolute;top:3px;right:3px;width:15px;height:15px;border-radius:50%;background:var(--green);color:#fff;font-size:8px;font-weight:700;display:none;align-items:center;justify-content:center}
+  .tbox[data-s="hero"] .tnum,.tbox[data-s="cell"] .tnum{display:flex}
+  .tname{font-size:8px;color:var(--dim);text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+  /* === WORKSPACE === */
+  .ws{flex:1;display:flex;flex-direction:column;overflow:hidden;background:var(--bg)}
+  .tbar{flex:0 0 42px;background:var(--surface);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 8px 0 12px}
+  .tabs{display:flex;gap:3px}
+  .tab{height:26px;padding:0 12px;border-radius:5px;border:1px solid transparent;background:transparent;color:var(--dim);font-size:12px;font-weight:600;cursor:pointer;transition:all .15s}
+  .tab:hover{color:var(--muted);background:rgba(255,255,255,.04)}
+  .tab.on{color:var(--text);background:rgba(255,255,255,.08);border-color:#333}
+  .closex{margin-left:auto;width:34px;height:26px;border-radius:5px;border:1px solid rgba(239,68,68,.3);background:rgba(239,68,68,.1);color:var(--red);font-size:15px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s}
+  .closex:hover{background:rgba(239,68,68,.2);border-color:rgba(239,68,68,.6)}
+
+  /* Canvas area */
+  .canvas-area{flex:0 0 45%;display:flex;overflow:hidden;position:relative;min-height:0}
+  .canvas{flex:1;position:relative;overflow:hidden;background:#0a0a0a;display:flex;align-items:center;justify-content:center;padding:12px}
+  .canvas img.hero{max-width:100%;max-height:100%;object-fit:contain;border-radius:4px}
+
+  .canvas-actions{position:absolute;top:10px;right:10px;display:flex;gap:6px;z-index:5}
+  .btn-approve{height:30px;padding:0 14px;border-radius:5px;border:none;background:var(--green);color:#fff;font-size:11px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:5px;transition:all .15s;text-transform:uppercase;letter-spacing:.04em}
+  .btn-approve:hover{filter:brightness(1.15);box-shadow:0 2px 10px rgba(16,185,129,.3)}
+  .btn-discard{width:30px;height:30px;border-radius:5px;border:none;background:var(--red);color:#fff;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s}
+  .btn-discard:hover{filter:brightness(1.15);box-shadow:0 2px 10px rgba(239,68,68,.3)}
+
+  .desc-bar{position:absolute;bottom:0;left:0;right:0;background:linear-gradient(transparent,rgba(0,0,0,.92) 40%);padding:32px 16px 10px;display:flex;align-items:flex-end;gap:8px}
+  .desc-i{font-size:10px;opacity:.4;flex-shrink:0}
+  .desc-t{flex:1;font-size:11px;line-height:1.5;color:rgba(255,255,255,.42)}
+  .desc-c{flex-shrink:0;height:20px;padding:0 7px;border-radius:3px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.05);color:rgba(255,255,255,.4);font-size:9px;cursor:pointer;transition:all .15s;display:flex;align-items:center;gap:3px}
+  .desc-c:hover{border-color:rgba(255,255,255,.25);color:rgba(255,255,255,.7)}
+
+  .versions{flex:0 0 120px;border-left:1px solid var(--border);background:var(--panel);display:flex;flex-direction:column;overflow:hidden}
+  .ver-head{flex:0 0 auto;padding:8px 10px 6px;font-size:9px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--dim)}
+  .ver-strip{flex:1;overflow-y:auto;padding:0 8px 8px;display:flex;flex-direction:column;gap:6px}
+  .ver-strip::-webkit-scrollbar{width:3px}
+  .ver-strip::-webkit-scrollbar-thumb{background:#2a2a2a;border-radius:2px}
+  .ver-card{width:100%;aspect-ratio:4/3;border-radius:5px;position:relative;cursor:pointer;border:2px solid transparent;overflow:hidden;transition:all .15s;flex-shrink:0;background-size:cover;background-position:center}
+  .ver-card:hover{border-color:#444}
+  .ver-card.on{border-color:var(--green)}
+  .ver-label{position:absolute;bottom:0;left:0;right:0;padding:3px 6px;background:linear-gradient(transparent,rgba(0,0,0,.8));font-size:9px;color:rgba(255,255,255,.6);display:flex;justify-content:space-between;align-items:center}
+  .ver-tag{font-size:8px;padding:1px 4px;border-radius:2px;background:rgba(16,185,129,.2);color:var(--green)}
+
+  .sep{flex:0 0 34px;background:var(--surface);border-top:1px solid var(--border);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 14px;gap:14px}
+  .cg{display:flex;align-items:center;gap:3px}
+  .cl{font-size:9px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--dim);margin-right:3px}
+  .pill{height:20px;padding:0 7px;border-radius:3px;border:1px solid var(--border);background:transparent;color:var(--dim);font-size:10px;font-weight:500;cursor:pointer;transition:all .15s}
+  .pill:hover{border-color:var(--bh);color:var(--muted)}
+  .pill.on{background:rgba(255,255,255,.08);border-color:#555;color:var(--text)}
+
+  .bot{flex:1;background:var(--surface);display:flex;flex-direction:column;overflow:hidden;min-height:0}
+  .tpls{display:flex;gap:4px;padding:8px 14px 4px;flex-wrap:wrap;flex-shrink:0}
+  .tp{height:22px;padding:0 9px;border-radius:11px;border:1px solid var(--border);background:rgba(255,255,255,.02);color:var(--dim);font-size:10px;cursor:pointer;transition:all .15s;white-space:nowrap}
+  .tp:hover{border-color:var(--bh);color:var(--muted)}
+  .tp.on{border-color:var(--active);color:var(--text);background:rgba(59,130,246,.06)}
+
+  .prompts{display:flex;gap:10px;padding:6px 14px;flex:1;min-height:0}
+  .prompt-col{flex:1;display:flex;flex-direction:column;gap:4px;min-width:0;min-height:0}
+  .plabel{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--dim);display:flex;align-items:center;gap:4px;flex-shrink:0}
+  .pinput{flex:1;background:var(--input);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:inherit;font-size:13px;line-height:1.6;padding:10px 12px;resize:none;outline:none;transition:border-color .2s,box-shadow .2s;min-height:120px}
+  .pinput::placeholder{color:#3a3a3a}
+  .pinput:focus{border-color:var(--active);box-shadow:0 0 0 2px rgba(59,130,246,.08)}
+  .pinput.cdi:focus{border-color:var(--orange);box-shadow:0 0 0 2px rgba(245,158,11,.08)}
+
+  .pbtn-row{display:flex;gap:6px;flex-shrink:0}
+  .cdc{flex:1;height:32px;border-radius:5px;border:1px solid rgba(245,158,11,.2);background:rgba(245,158,11,.06);color:var(--orange);font-size:11px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:4px;transition:all .15s}
+  .cdc:hover{border-color:rgba(245,158,11,.4);background:rgba(245,158,11,.1)}
+  .gen{flex:1;height:32px;border-radius:5px;border:none;background:var(--active);color:#fff;font-size:12px;font-weight:600;cursor:pointer;transition:all .15s}
+  .gen:hover{filter:brightness(1.12);transform:translateY(-1px);box-shadow:0 3px 10px rgba(0,0,0,.3)}
+  .gen:active{transform:translateY(0)}
+  .pad-b{padding-bottom:10px}
+</style>
+</head>
+<body>
+<div class="vp">
+
+  <div class="assets">
+    <div class="a-head">📷 Assets</div>
+    <div class="summary" id="summary">
+      <div class="sum-head">
+        <span class="sum-title" id="sumTitle">Compose</span>
+        <button class="sum-clear" id="clearAll">✕ Clear</button>
+      </div>
+      <div class="sum-tags" id="sumTags"></div>
+    </div>
+    <div class="hint" id="hint"><em>1st click</em> = Scene. <em>Next clicks</em> = Subjects.</div>
+    <div class="a-label">Image Library</div>
+    <div class="a-grid" id="grid"></div>
+  </div>
+
+  <div class="ws">
+    <div class="tbar">
+      <div class="tabs">
+        <button class="tab" data-tab="view">View</button>
+        <button class="tab on" data-tab="edit">Edit</button>
+        <button class="tab" data-tab="compose">Compose</button>
+        <button class="tab" data-tab="layout">Layout</button>
+      </div>
+      <button class="closex">&times;</button>
+    </div>
+
+    <div class="canvas-area">
+      <div class="canvas">
+        <img class="hero" id="heroImg" src="cliff-majlis.jpg" alt="Source" />
+        <div class="canvas-actions">
+          <button class="btn-approve" id="approveBtn">✓ APPROVE</button>
+          <button class="btn-discard">&times;</button>
+        </div>
+        <div class="desc-bar">
+          <span class="desc-i">🦅</span>
+          <span class="desc-t" id="descT">Cliff-top majlis at golden hour. Man in white thobe on traditional cushions, falcon on perch, camel tethered nearby. Two cats lounging. Tuwaiq Escarpment sandstone. Theme park lights in the valley.</span>
+          <button class="desc-c" id="descC">📋 Copy</button>
+        </div>
+      </div>
+
+      <div class="versions">
+        <div class="ver-head">Generated</div>
+        <div class="ver-strip" id="verStrip"></div>
+      </div>
+    </div>
+
+    <div class="sep">
+      <div class="cg">
+        <span class="cl">Ratio</span>
+        <button class="pill on" data-g="r">1:1</button>
+        <button class="pill" data-g="r">16:9</button>
+        <button class="pill" data-g="r">9:16</button>
+        <button class="pill" data-g="r">3:4</button>
+        <button class="pill" data-g="r">4:3</button>
+      </div>
+      <div class="cg">
+        <span class="cl">Res</span>
+        <button class="pill" data-g="x">1K</button>
+        <button class="pill on" data-g="x">2K</button>
+        <button class="pill" data-g="x">4K</button>
+      </div>
+    </div>
+
+    <div class="bot pad-b">
+      <div class="tpls" id="tpls"></div>
+      <div class="prompts">
+        <div class="prompt-col">
+          <div class="plabel">🦅 Ask CD</div>
+          <textarea class="pinput cdi" id="askCD" placeholder="Ask CD for help: lighting advice, composition suggestions, prompt improvement..."></textarea>
+          <div class="pbtn-row"><button class="cdc">🦅 CD Check</button></div>
+        </div>
+        <div class="prompt-col">
+          <div class="plabel">✏️ Prompt</div>
+          <textarea class="pinput" id="mainP" placeholder="What do you want to change?"></textarea>
+          <div class="pbtn-row"><button class="gen" id="genBtn">Generate</button></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  const IMGS = [
+    {name:'cliff-majlis.jpg',src:'cliff-majlis.jpg'},
+    {name:'sultan.jpg',src:'sultan.jpg'},
+    {name:'haboob.jpg',src:'haboob.jpg'},
+    {name:'shams.jpg',src:'shams.jpg'},
+    {name:'qamar.jpg',src:'qamar.jpg'},
+    {name:'shabby-2.jpeg',src:'shabby-2.jpeg'},
+    {name:'hero.jpg',src:'hero.jpg'},
+    {name:'hero-night.jpeg',src:'hero-night.jpeg'},
+    {name:'falcon-diving.jpg',src:'falcon-diving.jpg'},
+    {name:'bento.jpeg',src:'bento.jpeg'},
+    {name:'cliff-steve.jpeg',src:'cliff-majlis-steve.jpeg'},
+    {name:'luqaimat.jpg',src:'luqaimat.jpg'},
+    {name:'magazine-cover.jpg',src:'magazine-cover.jpg'},
+    {name:'Haus-D-E.jpg',src:'Haus-D-E.jpg'},
+    {name:'blueprint.jpg',src:'blueprint.jpg'},
+  ];
+
+  const VERSIONS = [
+    {src:'magazine-cover.jpg',label:'v4 — magazine',latest:true},
+    {src:'all-vibes-qahwa-service-v1.jpg',label:'v2 — compose'},
+    {src:'bento.jpeg',label:'v1 — bento'},
+  ];
+
+  const TEMPLATES = {
+    edit: [
+      {label:'Ultra-HD Realism', prompt:'Generate an ultra-high-definition, hyper-photorealistic version. Sharpen every texture: cushion weave, weathered wood grain, sandstone cliff layers. Increase clarity in distant canyon floor.'},
+      {label:'God Rays Sunset', prompt:'Dramatically enhanced sunset. Deeper golden hour light, long shadows. Add distinct god rays streaming through canyon haze. Lanterns glow with intense warmth.'},
+      {label:'Atmospheric Mist', prompt:'Deep, multi-layered desert mist giving profound sense of scale. Horizon disappears into golden-violet sunset gradient. Foreground sandstone hyper-detailed.'},
+      {label:'Weathered Texture', prompt:'Hyper-detail all textures. Sandstone erosion layers raw and weathered. Cushions show thread-level detail. Camel fur sharply defined. Visible dust motes.'},
+      {label:'Canyon Drama', prompt:'Exceptionally deep imposing cliff face. Exaggerate erosion layer complexity. Contrast sharp detailed furniture with vast dark-shadowed canyon depths.'},
+      {label:'Coffee & Dates', prompt:'Enhance life on the cliff top. Detailed coffee service with intricate brass dallah and finjaan cups. Platter of dates. Rich, inhabited setting.'},
+      {label:'Blueprint', prompt:'Create a detailed architectural blueprint of this building. Include west elevation, ground floor plan, section detail. Cyan-on-dark-blue technical drawing with dimensions and callouts.'},
+      {label:'Infographic', prompt:'Create an illustrated infographic explanation. Dark UI with teal/gold accents. Diagrams, flowcharts, terminology definitions, visual breakdowns of core concepts.'},
+    ],
+    compose: [
+      {label:'Magazine Cover', prompt:'Combine these ingredients creatively to create a stylish magazine cover photoshoot. Editorial lighting, cinematic composition, luxury lifestyle aesthetic.'},
+      {label:'Triptych Inset', prompt:'Modern bento triptych. Scene as hero background. Three square inset frames overlapping the haze. 10px white gutters, sophisticated lighting.'},
+      {label:'Editorial Stack', prompt:'Curated editorial layout. Scene as background. Stacked inset frames on right side. 8px white borders. Balanced and detailed.'},
+      {label:'Narrative Place', prompt:'Seamless integration. Place subjects naturally into the scene — matching lighting and shadow. As if they were always there.'},
+      {label:'Filmstrip', prompt:'Horizontal storyboard filmstrip. Frame 1: scene. Frame 2-4: each subject in detail. Unified cinematic aesthetic.'},
+      {label:'Foreground Hero', prompt:'Subject as massive foreground centerpiece. Other elements distant mid-ground. Dramatic scale contrast.'},
+      {label:'Scrapbook', prompt:'Dynamic composite. Large foreground centerpiece. Mid-ground anchor. Overlapping inset details. Curated depth.'},
+    ],
+    layout: [
+      {label:'Bento 2×2', prompt:'Bento grid: hero left (tall), two small top-right, wide bottom-right. Warm grade, 12px gutters, rounded corners.'},
+      {label:'Bento Asymmetric', prompt:'Asymmetric bento: large hero left third. Three smaller cells right. Clean gutters, unified lighting.'},
+      {label:'Filmstrip', prompt:'Horizontal filmstrip: 4 equal panels. Each subject on matching backdrop. Consistent lighting. 8px gutters.'},
+      {label:'Editorial', prompt:'Magazine spread: large hero left, detail crops asymmetric right with negative space. Minimal, editorial.'},
+      {label:'Side by Side', prompt:'Two panels, 50/50 split. Left: portrait. Right: environmental. Matched grade.'},
+      {label:'Portfolio 3×2', prompt:'3×2 grid: six equal cells. 10px white gutters. Soft studio lighting, muted palette.'},
+    ],
+    view: [],
+  };
+
+  const grid=document.getElementById('grid');
+  const summaryEl=document.getElementById('summary');
+  const sumTags=document.getElementById('sumTags');
+  const sumTitle=document.getElementById('sumTitle');
+  const hintEl=document.getElementById('hint');
+  const tplsEl=document.getElementById('tpls');
+  const mainP=document.getElementById('mainP');
+  const heroImg=document.getElementById('heroImg');
+  const verStrip=document.getElementById('verStrip');
+
+  let activeTab='edit';let selections=[];const boxes=[];
+
+  IMGS.forEach((img,i)=>{
+    const t=document.createElement('div');t.className='tile';
+    const b=document.createElement('div');b.className='tbox';
+    b.style.backgroundImage=`url(${img.src})`;b.dataset.idx=i;b.dataset.s='';
+    const badge=document.createElement('div');badge.className='tbadge';b.appendChild(badge);
+    const num=document.createElement('div');num.className='tnum';b.appendChild(num);
+    const n=document.createElement('div');n.className='tname';n.textContent=img.name;
+    t.appendChild(b);t.appendChild(n);
+    b.addEventListener('click',()=>handleClick(i,b,img));
+    grid.appendChild(t);boxes.push(b);
+  });
+
+  VERSIONS.forEach(v=>{
+    const card=document.createElement('div');
+    card.className='ver-card'+(v.latest?' on':'');
+    card.style.backgroundImage=`url(${v.src})`;
+    const label=document.createElement('div');label.className='ver-label';
+    const text=document.createElement('span');text.textContent=v.label;label.appendChild(text);
+    if(v.latest){const tag=document.createElement('span');tag.className='ver-tag';tag.textContent='latest';label.appendChild(tag)}
+    card.appendChild(label);
+    card.addEventListener('click',()=>{
+      verStrip.querySelectorAll('.ver-card').forEach(c=>c.classList.remove('on'));
+      card.classList.add('on');heroImg.src=v.src;
+    });
+    verStrip.appendChild(card);
+  });
+
+  function handleClick(idx,box,img){
+    if(activeTab==='compose')composeClick(idx,box,img);
+    else if(activeTab==='layout')layoutClick(idx,box,img);
+    else{heroImg.src=img.src}
+  }
+
+  function composeClick(idx,box,img){
+    const ex=selections.findIndex(s=>s.idx===idx);
+    if(ex!==-1){selections.splice(ex,1);box.dataset.s='';box.querySelector('.tbadge').textContent='';
+      if(ex===0&&selections.length>0){selections[0].role='scene';const b=boxes[selections[0].idx];b.dataset.s='scene';b.querySelector('.tbadge').textContent='Scene'}
+      updateSummary();return}
+    const role=selections.length===0?'scene':'subject';
+    selections.push({idx,role,name:img.name});
+    box.dataset.s=role;box.querySelector('.tbadge').textContent=role==='scene'?'Scene':'Subj';
+    updateSummary();
+  }
+
+  function layoutClick(idx,box,img){
+    const ex=selections.findIndex(s=>s.idx===idx);
+    if(ex!==-1){selections.splice(ex,1);box.dataset.s='';box.querySelector('.tbadge').textContent='';box.querySelector('.tnum').textContent='';
+      selections.forEach((s,i)=>{const b=boxes[s.idx];s.role=i===0?'hero':'cell';b.dataset.s=s.role;b.querySelector('.tbadge').textContent=i===0?'Hero':'';b.querySelector('.tnum').textContent=i===0?'H':String(i+1)});
+      updateSummary();return}
+    const role=selections.length===0?'hero':'cell';
+    selections.push({idx,role,name:img.name});
+    box.dataset.s=role;box.querySelector('.tbadge').textContent=role==='hero'?'Hero':'';
+    box.querySelector('.tnum').textContent=selections.length===1?'H':String(selections.length);
+    updateSummary();
+  }
+
+  function updateSummary(){
+    if(!selections.length){summaryEl.classList.remove('vis');return}
+    summaryEl.classList.add('vis');summaryEl.classList.toggle('lay',activeTab==='layout');
+    sumTitle.textContent=activeTab==='layout'?'Layout':'Compose';
+    sumTags.innerHTML='';
+    selections.forEach((s,i)=>{
+      const t=document.createElement('span');
+      const c=activeTab==='layout'?'gr':s.role==='scene'?'sc':'su';
+      t.className='stag '+c;
+      t.textContent=activeTab==='layout'?(i===0?'🏔️ Hero: ':'#'+(i+1)+': ')+s.name:(s.role==='scene'?'🏔️ ':'📌 ')+s.name;
+      sumTags.appendChild(t);
+    });
+  }
+
+  document.getElementById('clearAll').addEventListener('click',()=>{
+    selections=[];boxes.forEach(b=>{b.dataset.s='';b.querySelector('.tbadge').textContent='';b.querySelector('.tnum').textContent=''});
+    summaryEl.classList.remove('vis');
+  });
+
+  document.querySelectorAll('.tab').forEach(t=>t.addEventListener('click',()=>{
+    activeTab=t.dataset.tab;
+    document.querySelectorAll('.tab').forEach(b=>b.classList.toggle('on',b.dataset.tab===activeTab));
+    selections=[];boxes.forEach(b=>{b.dataset.s='';b.querySelector('.tbadge').textContent='';b.querySelector('.tnum').textContent=''});
+    summaryEl.classList.remove('vis');
+    const isCL=activeTab==='compose'||activeTab==='layout';
+    hintEl.classList.toggle('vis',isCL);hintEl.classList.toggle('lay',activeTab==='layout');
+    if(activeTab==='compose')hintEl.innerHTML='<em>1st click</em> = Scene (background). <em>Next clicks</em> = Subjects to place in scene.';
+    else if(activeTab==='layout')hintEl.innerHTML='<em>1st click</em> = Hero (main cell). <em>Next clicks</em> = fill grid cells in order.';
+    const ph={view:'Notes...',edit:'What do you want to change?',compose:'Describe the scene — placement, mood, lighting...',layout:'Style notes — lighting, color palette...'};
+    mainP.placeholder=ph[activeTab]||'';
+    const c={view:'#666',edit:'#3B82F6',compose:'#8B5CF6',layout:'#10B981'};
+    document.documentElement.style.setProperty('--active',c[activeTab]||'#3B82F6');
+    document.getElementById('genBtn').style.background=c[activeTab]||'#3B82F6';
+    buildTemplates();
+  }));
+
+  function buildTemplates(){
+    tplsEl.innerHTML='';
+    (TEMPLATES[activeTab]||[]).forEach(t=>{
+      const p=document.createElement('button');p.className='tp';p.textContent=t.label;
+      p.addEventListener('click',()=>{tplsEl.querySelectorAll('.tp').forEach(x=>x.classList.remove('on'));
+        p.classList.add('on');mainP.value=t.prompt;mainP.focus()});
+      tplsEl.appendChild(p);
+    });
+  }
+  buildTemplates();
+
+  document.querySelectorAll('.pill').forEach(p=>p.addEventListener('click',()=>{
+    document.querySelectorAll(`.pill[data-g="${p.dataset.g}"]`).forEach(x=>x.classList.remove('on'));p.classList.add('on');
+  }));
+
+  document.getElementById('descC').addEventListener('click',()=>{mainP.value=document.getElementById('descT').textContent.trim()});
+  document.getElementById('genBtn').addEventListener('click',()=>{const b=document.getElementById('genBtn');b.textContent='Generating…';b.style.opacity='.7';setTimeout(()=>{b.textContent='Generate';b.style.opacity=''},1500)});
+  document.getElementById('approveBtn').addEventListener('click',()=>{const b=document.getElementById('approveBtn');b.textContent='✓ APPROVED';setTimeout(()=>{b.textContent='✓ APPROVE'},1200)});
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,474 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="onyx">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Jedi Scout — Pre-Kanban funnel (interactive)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0;}
+  :root{
+    --bg-app:#0a0907;--bg-card:#171410;--bg-sunken:#13110d;--bg-hover:#1f1a14;
+    --border:#1a160f;--border-active:#2a2519;--text:#ece1c5;--muted:#7a6f5a;--dim:#42392a;
+    --amber:#ffb84a;--phosphor:#c8ee7a;--red:#ff6a4d;--green:#10b981;--blue:#60a5fa;
+    --mono:'JetBrains Mono',monospace;
+  }
+  body{font-family:'Inter',system-ui,sans-serif;background:var(--bg-app);color:var(--text);-webkit-font-smoothing:antialiased;min-height:100vh;}
+  .mono{font-family:var(--mono);}
+
+  /* top bar */
+  .top{height:50px;display:flex;align-items:center;gap:16px;padding:0 18px;border-bottom:1px solid var(--border);position:sticky;top:0;background:var(--bg-app);z-index:30;}
+  .logo{width:21px;height:21px;border-radius:6px;background:linear-gradient(135deg,#10b981,#0a8f6a);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:11px;font-family:var(--mono);}
+  .brand b{font-size:13.5px;font-weight:600;}.brand .sub{font-size:11px;color:var(--muted);border-left:1px solid var(--border-active);padding-left:8px;margin-left:8px;}
+  .nav{display:flex;gap:2px;margin-left:6px;}
+  .nav a{font-size:12px;color:var(--muted);padding:5px 10px;border-radius:7px;cursor:pointer;text-decoration:none;}
+  .nav a.active{color:#fff;background:var(--green);font-weight:600;}
+  .nav a:not(.active):hover{color:var(--text);background:var(--bg-card);}
+  .spacer{flex:1;}
+  .vtoggle{display:flex;gap:2px;background:var(--bg-card);border:1px solid var(--border);border-radius:8px;padding:3px;}
+  .vtoggle button{font-family:var(--mono);font-size:11px;font-weight:600;color:var(--muted);background:transparent;border:0;border-radius:6px;padding:5px 11px;cursor:pointer;letter-spacing:.04em;}
+  .vtoggle button.on{background:var(--bg-hover);color:var(--text);}
+
+  /* progress rail */
+  .rail{display:flex;align-items:center;gap:14px;padding:12px 22px 0;}
+  .rail .counts{font-family:var(--mono);font-size:12px;color:var(--muted);display:flex;gap:14px;}
+  .rail .counts b{color:var(--text);}
+  .rail .counts .pro b{color:var(--phosphor);}.rail .counts .kil b{color:var(--red);}
+  .rail .track{flex:1;height:5px;border-radius:3px;background:var(--border-active);overflow:hidden;display:flex;}
+  .rail .track i{height:100%;}.rail .track .ip{background:var(--phosphor);}.rail .track .ik{background:var(--red);}
+
+  /* ===== QUEUE VIEW ===== */
+  .stage{display:flex;gap:22px;padding:18px 22px 40px;align-items:flex-start;}
+  .deck{flex:1;min-width:0;position:relative;max-width:760px;}
+  .deckhint{position:absolute;inset:14px -6px -10px 6px;background:var(--bg-card);border:1px solid var(--border);border-radius:14px;z-index:0;opacity:.5;}
+  .deckhint.two{inset:8px -3px -5px 3px;opacity:.75;}
+
+  .card{position:relative;z-index:2;background:var(--bg-card);border:1px solid var(--border-active);border-radius:14px;overflow:hidden;transition:transform .28s cubic-bezier(.4,0,.2,1),opacity .28s;}
+  .card.fly-right{transform:translateX(120%) rotate(6deg);opacity:0;}
+  .card.fly-left{transform:translateX(-120%) rotate(-6deg);opacity:0;}
+  .card.fly-down{transform:translateY(40px);opacity:0;}
+  .card.enter{animation:enter .3s cubic-bezier(.4,0,.2,1);}
+  @keyframes enter{from{transform:translateY(14px) scale(.985);opacity:0;}to{transform:none;opacity:1;}}
+
+  .chead{display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:1px solid var(--border);}
+  .chead .co{font-size:17px;font-weight:600;}
+  .chead .meta{font-size:11px;color:var(--muted);margin-top:3px;display:flex;gap:8px;align-items:center;}
+  .prov{font-family:var(--mono);font-size:10px;color:var(--dim);border:1px solid var(--border-active);border-radius:999px;padding:2px 8px;}
+  .web{font-family:var(--mono);font-size:12px;color:var(--muted);text-decoration:none;border-bottom:1px dotted var(--border-active);}
+
+  .cbody{display:grid;grid-template-columns:1fr 1fr;}
+  .half{padding:16px 18px;}
+  .half.taste{border-right:1px solid var(--border);}
+  .hlabel{font-family:var(--mono);font-size:9px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--dim);margin-bottom:11px;}
+
+  .shot{height:118px;border-radius:9px;border:1px solid var(--border);background:linear-gradient(135deg,#211b13,#14110c);display:flex;align-items:center;justify-content:center;color:var(--dim);font-family:var(--mono);font-size:10px;margin-bottom:13px;overflow:hidden;position:relative;}
+  .shot .fakesite{position:absolute;inset:0;opacity:.5;}
+
+  .verdict{font-size:13.5px;line-height:1.4;color:var(--text);margin-bottom:13px;}
+  .verdict .lead-q{color:var(--amber);font-weight:600;}
+
+  .lampline{display:flex;align-items:center;gap:10px;margin-bottom:9px;}
+  .lampname{font-family:var(--mono);font-size:10px;color:var(--muted);width:74px;flex-shrink:0;text-transform:uppercase;letter-spacing:.06em;}
+  .segs{display:flex;gap:3px;}.seg{width:13px;height:7px;border-radius:2px;background:var(--border-active);}
+  .segs.pal .on{background:var(--phosphor);}.segs.exe .on{background:var(--amber);}
+  .lampn{font-family:var(--mono);font-size:11px;font-weight:600;color:var(--text);}.lampn .mx{color:var(--dim);font-weight:400;}
+
+  .choice{font-size:12px;color:var(--text);line-height:1.4;margin-top:11px;padding:9px 11px;background:var(--bg-sunken);border-radius:8px;border-left:2px solid var(--phosphor);}
+  .choice .cl{font-family:var(--mono);font-size:9px;color:var(--dim);text-transform:uppercase;letter-spacing:.1em;display:block;margin-bottom:3px;}
+
+  .heatbox{margin-top:14px;display:flex;align-items:center;gap:12px;}
+  .gapnum{font-family:var(--mono);font-size:26px;font-weight:700;line-height:1;}
+  .gapnum.hot{color:var(--red);}.gapnum.warm{color:var(--amber);}.gapnum.cold{color:var(--dim);}
+  .gaplbl{font-family:var(--mono);font-size:9px;color:var(--dim);text-transform:uppercase;letter-spacing:.1em;}
+  .heatpill{font-family:var(--mono);font-size:11px;font-weight:700;padding:4px 11px;border-radius:999px;letter-spacing:.04em;}
+  .heatpill.hot{background:rgba(255,106,77,.16);color:var(--red);}
+  .heatpill.warm{background:rgba(245,158,11,.16);color:var(--amber);}
+  .heatpill.cold{background:rgba(96,165,250,.15);color:var(--blue);}
+
+  /* research half */
+  .ilamp{display:flex;align-items:center;gap:9px;padding:6px 0;border-bottom:1px solid var(--border);}
+  .ilamp:last-child{border-bottom:0;}
+  .idot{width:8px;height:8px;border-radius:999px;flex-shrink:0;}
+  .idot.good{background:var(--phosphor);}.idot.mid{background:var(--amber);}.idot.bad{background:var(--red);}.idot.info{background:var(--muted);}
+  .iname{font-family:var(--mono);font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;width:74px;flex-shrink:0;}
+  .ival{font-size:12px;color:var(--text);}
+  .kws{margin-top:12px;display:flex;flex-wrap:wrap;gap:5px;}
+  .kw{font-family:var(--mono);font-size:10px;color:var(--muted);background:var(--bg-sunken);border:1px solid var(--border);padding:2px 7px;border-radius:5px;}
+  .qual{margin-top:10px;display:flex;gap:6px;flex-wrap:wrap;}
+  .qchip{font-family:var(--mono);font-size:10px;color:var(--muted);background:var(--bg-sunken);padding:3px 8px;border-radius:999px;}
+  /* merge polish: slice sources + displacement legend + continuity */
+  .slegend{font-family:var(--mono);font-size:9px;color:var(--dim);margin:-3px 0 10px;}
+  .slegend .o{color:var(--phosphor);}
+  .ilamp .isrc{margin-left:auto;font-family:var(--mono);font-size:8.5px;color:var(--dim);letter-spacing:.03em;flex-shrink:0;}
+  .ilamp.dim{opacity:.4;}
+  .dispread{margin-top:12px;font-size:11.5px;color:var(--muted);line-height:1.45;padding:8px 10px;background:var(--bg-sunken);border-radius:8px;border-left:2px solid var(--amber);}
+  .dispread b{color:var(--text);font-weight:600;}
+  .photonote{margin-top:8px;font-size:10px;color:var(--dim);font-family:var(--mono);}
+  .shot .wf{position:absolute;inset:0;padding:9px;display:flex;flex-direction:column;gap:5px;opacity:.6;}
+  .shot .wf .b{background:var(--border-active);border-radius:2px;}
+  .shot .wf .nav{height:7px;width:55%;} .shot .wf .hero{flex:1;border-radius:3px;} .shot .wf .l{height:4px;} .shot .wf .l.s{width:62%;}
+  .shot .shotlbl{position:absolute;bottom:5px;right:7px;font-family:var(--mono);font-size:8.5px;color:var(--dim);}
+  .kchip.intel{background:rgba(96,165,250,.14);color:var(--blue);margin-left:3px;}
+
+  /* tasting skeleton */
+  .tasting{padding:46px 18px;text-align:center;}
+  .tasting .spin{width:20px;height:20px;border-radius:999px;border:2.5px solid var(--amber);border-right-color:transparent;animation:spin .7s linear infinite;margin:0 auto 14px;}
+  .tasting .t{font-family:var(--mono);font-size:12px;color:var(--amber);}
+  .tasting .s{font-size:11px;color:var(--dim);margin-top:6px;}
+  .shimmer{height:9px;border-radius:4px;background:linear-gradient(90deg,var(--bg-sunken),var(--bg-hover),var(--bg-sunken));background-size:200% 100%;animation:shim 1.2s linear infinite;margin:8px auto;}
+  @keyframes shim{to{background-position:-200% 0;}}@keyframes spin{to{transform:rotate(360deg);}}
+
+  /* triage actions */
+  .actions{display:flex;gap:10px;padding:14px 18px;border-top:1px solid var(--border);align-items:center;}
+  .act{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;padding:10px;border-radius:10px;border:1px solid var(--border-active);background:var(--bg-sunken);cursor:pointer;transition:.12s;}
+  .act:hover{background:var(--bg-hover);}
+  .act .v{font-family:var(--mono);font-size:12px;font-weight:700;}
+  .act .k{font-family:var(--mono);font-size:9px;color:var(--dim);}
+  .act.kill .v{color:var(--red);}.act.skip .v{color:var(--muted);}.act.promo{border-color:var(--green);background:rgba(16,185,129,.1);}.act.promo .v{color:var(--green);}
+
+  /* kanban rail */
+  .kan{width:280px;flex-shrink:0;}
+  .kanhead{font-family:var(--mono);font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:10px;display:flex;align-items:center;gap:8px;}
+  .kanhead .live{width:6px;height:6px;border-radius:999px;background:var(--green);}
+  .kcol{background:var(--bg-sunken);border:1px solid var(--border);border-radius:11px;padding:8px;min-height:380px;}
+  .kcoltop{display:flex;align-items:center;justify-content:space-between;font-family:var(--mono);font-size:11px;color:var(--text);padding:4px 6px 9px;border-bottom:1px solid var(--border);margin-bottom:8px;}
+  .kcoltop .n{color:var(--muted);}
+  .kcard{background:var(--bg-card);border:1px solid var(--border-active);border-radius:9px;border-top:3px solid var(--phosphor);padding:9px 11px;margin-bottom:7px;}
+  .kcard .kco{font-size:12.5px;font-weight:600;}
+  .kcard .kmeta{font-size:10px;color:var(--muted);margin-top:3px;display:flex;gap:6px;align-items:center;}
+  .kchip{font-family:var(--mono);font-size:8.5px;font-weight:700;padding:1px 6px;border-radius:999px;}
+  .kchip.scout{background:rgba(200,238,122,.14);color:var(--phosphor);}
+  .kcard.land{animation:land 1.3s ease;}
+  @keyframes land{0%{transform:translateX(30px) scale(.96);opacity:0;box-shadow:0 0 0 2px var(--green);}30%{transform:none;opacity:1;}100%{box-shadow:0 0 0 0 transparent;}}
+  .kempty{color:var(--dim);font-size:11px;text-align:center;padding:30px 10px;font-family:var(--mono);}
+
+  /* toast */
+  .toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(80px);background:var(--bg-card);border:1px solid var(--green);border-radius:10px;padding:11px 16px;display:flex;align-items:center;gap:12px;font-size:13px;z-index:50;opacity:0;transition:.3s;box-shadow:0 8px 30px rgba(0,0,0,.5);}
+  .toast.show{transform:translateX(-50%);opacity:1;}
+  .toast b{color:var(--phosphor);}.toast .arrow{color:var(--green);font-family:var(--mono);}
+  .toast a{color:var(--blue);font-size:12px;text-decoration:none;border-bottom:1px dotted var(--blue);cursor:pointer;}
+  .toast.kill{border-color:var(--red);}.toast.kill b{color:var(--red);}
+
+  /* kill reason popover */
+  .reasons{position:absolute;z-index:40;background:var(--bg-card);border:1px solid var(--border-active);border-radius:10px;padding:8px;display:none;gap:6px;flex-wrap:wrap;width:230px;box-shadow:0 8px 30px rgba(0,0,0,.5);}
+  .reasons.show{display:flex;}
+  .reasons .rl{width:100%;font-family:var(--mono);font-size:9px;color:var(--dim);text-transform:uppercase;letter-spacing:.1em;margin-bottom:2px;}
+  .reasons button{font-family:var(--mono);font-size:11px;color:var(--text);background:var(--bg-sunken);border:1px solid var(--border);border-radius:7px;padding:5px 10px;cursor:pointer;}
+  .reasons button:hover{border-color:var(--red);color:var(--red);}
+
+  /* empty state */
+  .empty{text-align:center;padding:80px 20px;color:var(--muted);}
+  .empty .big{font-size:22px;color:var(--text);font-weight:600;margin-bottom:8px;}
+  .empty .rs{margin-top:16px;font-family:var(--mono);font-size:12px;color:var(--blue);cursor:pointer;border-bottom:1px dotted var(--blue);display:inline-block;}
+
+  /* ===== POOL TABLE VIEW ===== */
+  .pool{padding:18px 22px 40px;display:none;}
+  .poolbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;}
+  .poolbar .t{font-family:var(--mono);font-size:13px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;}
+  .sortnote{font-family:var(--mono);font-size:10px;color:var(--dim);margin-left:10px;}
+  .ptools{display:flex;gap:8px;}
+  .btn{font-family:var(--mono);font-size:11px;font-weight:600;border-radius:8px;padding:7px 13px;cursor:pointer;border:1px solid var(--border-active);background:var(--bg-card);color:var(--muted);}
+  .btn:hover{color:var(--text);}
+  .btn.green{background:var(--green);color:#fff;border-color:transparent;}
+  .btn.amber{background:var(--bg-card);border-color:var(--amber);color:var(--amber);}
+  .ptable{border:1px solid var(--border);border-radius:12px;overflow:hidden;background:var(--bg-card);}
+  table{width:100%;border-collapse:collapse;}
+  thead th{font-family:var(--mono);font-size:9px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);text-align:left;padding:9px 11px;border-bottom:1px solid var(--border-active);background:var(--bg-sunken);}
+  tbody td{padding:9px 11px;border-bottom:1px solid var(--border);font-size:12.5px;vertical-align:middle;}
+  tbody tr{transition:transform .4s cubic-bezier(.4,0,.2,1),background .2s;}
+  tbody tr:hover{background:var(--bg-hover);}
+  tbody tr.sel{background:rgba(16,185,129,.06);}
+  tbody tr.leap{background:rgba(255,106,77,.10);}
+  tbody tr.gone{transform:translateX(40px);opacity:0;}
+  .chk{width:16px;height:16px;border-radius:5px;border:1.5px solid var(--border-active);display:inline-flex;align-items:center;justify-content:center;cursor:pointer;background:var(--bg-app);}
+  .chk.on{background:var(--green);border-color:var(--green);color:#fff;font-size:10px;}
+  .tgap{font-family:var(--mono);font-weight:700;font-size:15px;}
+  .tgap.hot{color:var(--red);}.tgap.warm{color:var(--amber);}.tgap.cold{color:var(--dim);}
+  .dash{color:var(--dim);font-family:var(--mono);}
+  .stickybar{position:sticky;bottom:0;margin-top:12px;background:var(--bg-card);border:1px solid var(--border-active);border-radius:10px;padding:10px 14px;display:flex;align-items:center;gap:10px;}
+  .stickybar .sum{font-family:var(--mono);font-size:11px;color:var(--muted);flex:1;}
+  .stickybar .sum b{color:var(--text);}
+
+  .hint{font-family:var(--mono);font-size:10px;color:var(--dim);text-align:center;padding:8px;}
+  .badge{position:fixed;bottom:10px;right:12px;font-family:var(--mono);font-size:9px;color:var(--dim);background:var(--bg-card);border:1px solid var(--border);border-radius:6px;padding:3px 7px;z-index:60;}
+</style>
+</head>
+<body>
+  <div class="top">
+    <div class="logo">O</div>
+    <div class="brand"><b>OskarOS</b><span class="sub">Admin Dashboard</span></div>
+    <nav class="nav"><a>Overview</a><a>Kanban</a><a class="active">Scout</a><a>Analytics</a></nav>
+    <span class="spacer"></span>
+    <div class="vtoggle">
+      <button id="tQueue" class="on" onclick="setView('queue')">◉ Tasting Queue</button>
+      <button id="tPool" onclick="setView('pool')">▦ Pool</button>
+    </div>
+  </div>
+
+  <div class="rail">
+    <div class="counts">
+      <span class="left"><b id="cLeft">0</b> in pool</span>
+      <span class="pro">→ <b id="cPro">0</b> promoted</span>
+      <span class="kil">✕ <b id="cKil">0</b> killed</span>
+    </div>
+    <div class="track"><i class="ip" id="barP"></i><i class="ik" id="barK"></i></div>
+  </div>
+
+  <!-- QUEUE -->
+  <div class="stage" id="queueView">
+    <div class="deck" id="deck">
+      <div class="deckhint two"></div><div class="deckhint"></div>
+      <div id="cardSlot"></div>
+      <div class="reasons" id="reasons">
+        <span class="rl">Killed because…</span>
+        <button onclick="confirmKill('plonk')">plonk</button>
+        <button onclick="confirmKill('no gap')">no gap</button>
+        <button onclick="confirmKill('unreachable')">unreachable</button>
+        <button onclick="confirmKill('duplicate')">duplicate</button>
+      </div>
+      <div class="hint">← Kill&nbsp;&nbsp;·&nbsp;&nbsp;↓ Skip&nbsp;&nbsp;·&nbsp;&nbsp;→ Promote&nbsp;&nbsp;·&nbsp;&nbsp;⌫ Undo</div>
+    </div>
+    <div class="kan">
+      <div class="kanhead"><span class="live"></span> Kanban · Incoming <span style="color:var(--dim)">(live)</span></div>
+      <div class="kcol">
+        <div class="kcoltop"><span>Incoming</span><span class="n" id="kanN">0</span></div>
+        <div id="kanList"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- POOL TABLE -->
+  <div class="pool" id="poolView">
+    <div class="poolbar">
+      <div><span class="t">Raw Pool</span><span class="sortnote" id="poolCount">— leads · sorted by gap ↓ (🔥 on top)</span></div>
+      <div class="ptools">
+        <button class="btn amber" onclick="prescreenSelected()">◐ Prescreen selected</button>
+      </div>
+    </div>
+    <div class="ptable">
+      <table><thead><tr>
+        <th style="width:34px"></th><th>Lead</th><th style="width:96px">Palate</th><th>The eye saw</th>
+        <th style="width:96px">Execution</th><th style="width:46px">Gap</th><th style="width:150px">Verdict</th><th style="width:150px">Cheap intel</th>
+      </tr></thead><tbody id="poolBody"></tbody></table>
+    </div>
+    <div class="stickybar">
+      <span class="sum"><b id="selN">0</b> selected · <b id="poolHot">0</b> 🔥 hot in pool</span>
+      <button class="btn green" onclick="promoteSelected()">→ Promote selected to Kanban</button>
+      <button class="btn" onclick="killSelected()">✕ Kill selected</button>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+  <div class="badge">MOCKUP · §17 reframe · interactive · not wired</div>
+
+<script>
+/* ───────── fake raw_prospects pool ───────── */
+const HEAT = g => g>=2?'hot':(g===1?'warm':'cold');
+function L(id,company,contact,web,src,scr,ind,ctry,sc){
+  return {id,company,contact,web,src,scr,ind,ctry,scout:sc,promoted:false,killed:false,reason:null};
+}
+// sc = {palate,choice,execution,verdict,lamps:{age,stack,hosting,perf,seo},kws:[],done:bool}  (gap/heat derived)
+let POOL = [
+ L('R013','Müller Weinbau','Hans Müller','muellerweinbau.ch','maps · vintners CH','3h ago','Winery','CH',null),
+ L('R014','Käserei Stalden','Ruth Stalden','kaeserei-stalden.ch','maps · artisan food','3h ago','Dairy','CH',null),
+ L('R001','Atelier Bellucci','Marta Bellucci','atelierbellucci.ch','maps · ateliers','2d ago','Atelier','CH',
+   {palate:5,choice:'hand-set serif masthead, zero stock photos',execution:2,verdict:'Taste outruns the site — already wants what we sell.',lamps:{age:'~2014 · stale',stack:'custom · rotting',hosting:'Infomaniak · CH',perf:'mobile 41',seo:'72'},kws:['atelier','bespoke','korčula'],done:true}),
+ L('R002','Boutique Aurora','Giulia Ferrari','boutique-aurora.com','import · b.csv','1d ago','Retail','IT',
+   {palate:4,choice:'one brave duotone hero, real photography',execution:3,verdict:'Promising eye, half-built — worth a touch.',lamps:{age:'~2019 · ok',stack:'Shopify',hosting:'Shopify · US',perf:'mobile 63',seo:'88'},kws:['boutique','milano','seta'],done:true}),
+ L('R015','Goldschmiede Vogel','Tomas Vogel','goldschmiede-vogel.ch','maps · jewellers','4h ago','Jeweller','CH',null),
+ L('R005','Studio Lindenberg','Anna Lindenberg','studiolindenberg.de','import · b.csv','2d ago','Studio','DE',
+   {palate:5,choice:'every type & grid decision deliberate, bespoke top to bottom',execution:5,verdict:'The connoisseur — already affords the bottle.',lamps:{age:'~2023 · fresh',stack:'Next.js · custom',hosting:'Vercel',perf:'mobile 96',seo:'100'},kws:['studio','branding','berlin'],done:true}),
+ L('R016','Weingut Bachtobel','Paul Kern','bachtobel.ch','maps · vintners CH','3h ago','Winery','CH',null),
+ L('R004','Fricker Füllemann','Matthias Fricker','fricker-recht.ch','maps · law CH','5h ago','Legal','CH',
+   {palate:2,choice:'default Bootstrap, review-badge first — borrowed trust',execution:3,verdict:'Competent template, no felt lack — teach desire first.',lamps:{age:'~2020 · ok',stack:'Bootstrap',hosting:'Hostpoint · CH',perf:'mobile 70',seo:'91'},kws:['anwalt','recht','zürich'],done:true}),
+ L('R017','Bäckerei Hofer','Lena Hofer','baeckerei-hofer.at','maps · bakeries','4h ago','Bakery','AT',null),
+ L('R006','Pension Edelweiss','—','pension-edelweiss.at','maps · hotels','1d ago','Hospitality','AT',
+   {fail:true,verdict:'Site unreachable — couldn’t taste.',lamps:{},kws:[],done:true}),
+ L('R018','Coiffure Lumière','Sophie Blanc','coiffure-lumiere.ch','maps · salons','5h ago','Salon','CH',null),
+ L('R019','Trattoria Sole','Marco Conti','trattoria-sole.it','import · b.csv','1d ago','Hospitality','IT',null),
+];
+let promotedCount=3, killedCount=2;            // seeded so the funnel reads as already-depleting
+let KAN=[ {company:'Vinarija Barbazza',sub:'1530'}, {company:'Schreinerei Aebi',sub:'fresh'} ]; // pre-promoted in Kanban
+let qi=0, history=[], pendingKill=null;
+
+/* derive a fake scout result for an unscanned lead (palate/exec by name hash so it's stable) */
+function fakeTaste(lead){
+  const seeds={R013:[4,1,'a real winemaker’s photo of his own cellar, not a stock glass',{age:'~2016 · aging',stack:'WordPress · old theme',hosting:'Hostpoint · CH',perf:'mobile 38',seo:'64'},['weinbau','riesling','thurgau']],
+    R014:[3,1,'one honest hand-lettered logo over a tired layout',{age:'~2012 · stale',stack:'static · table layout',hosting:'Cyon · CH',perf:'mobile 29',seo:'58'},['käse','alpkäse','emmental']],
+    R015:[4,2,'a single macro shot that actually shows the metal',{age:'~2017 · aging',stack:'Jimdo',hosting:'Jimdo · DE',perf:'mobile 47',seo:'70'},['goldschmiede','ring','gravur']],
+    R016:[5,3,'a wax-seal motif carried into the nav — a point of view',{age:'~2021 · ok',stack:'Squarespace',hosting:'Squarespace',perf:'mobile 66',seo:'89'},['weingut','pinot','bachtobel']],
+    R017:[1,2,'nothing chosen — clip-art bread, default everything',{age:'~2018 · ok',stack:'Wix',hosting:'Wix · US',perf:'mobile 55',seo:'80'},['bäckerei','brot','wien']],
+    R018:[3,4,'a clean editorial grid, but it’s a polished template',{age:'~2022 · fresh',stack:'Webflow',hosting:'Webflow',perf:'mobile 84',seo:'95'},['coiffure','balayage','genève']],
+    R019:[2,2,'warm food photos let down by a clip-art map',{age:'~2019 · ok',stack:'WordPress',hosting:'Aruba · IT',perf:'mobile 52',seo:'77'},['trattoria','pasta','roma']] };
+  const s=seeds[lead.id]||[3,3,'a passable but unmemorable layout',{age:'~2020 · ok',stack:'WordPress',hosting:'—',perf:'mobile 60',seo:'85'},['—']];
+  return {palate:s[0],execution:s[1],choice:s[2],verdict:s[0]-s[1]>=2?'Taste outruns the site — strong displacement pain.':(s[0]-s[1]>=1?'Some eye, mostly built — marginal.':'No felt lack — would have to teach desire.'),lamps:s[3],kws:s[4],done:true};
+}
+const lampTone=(name,v)=>{ if(name==='age')return /stale/.test(v)?'good':(/aging/.test(v)?'mid':'bad'); if(name==='stack')return /rotting|old|table|static/.test(v)?'good':(/WordPress|Wix|Jimdo/.test(v)?'mid':'info'); if(name==='perf'){const n=parseInt(v.replace(/\D/g,''));return n<50?'good':(n<75?'mid':'bad');} if(name==='seo'){const n=parseInt(v);return n<70?'good':'info';} return 'info'; };
+// for displacement: a STALE site + low perf = good (KEEP) signal; fresh/fast = info/bad (skip)
+
+const livePool = () => POOL.filter(p=>!p.promoted&&!p.killed);
+const $=id=>document.getElementById(id);
+
+function renderRail(){
+  const left=livePool().length;
+  $('cLeft').textContent=left; $('cPro').textContent=promotedCount; $('cKil').textContent=killedCount;
+  const tot=left+promotedCount+killedCount;
+  $('barP').style.width=(promotedCount/tot*100)+'%'; $('barK').style.width=(killedCount/tot*100)+'%';
+}
+
+/* ───────── QUEUE ───────── */
+function currentLead(){ const lp=livePool(); if(!lp.length)return null; if(qi>=lp.length)qi=0; return lp[qi]; }
+
+function cardHTML(lead){
+  if(!lead.scout || !lead.scout.done){
+    return `<div class="card enter"><div class="chead"><div><div class="co">${lead.company}</div>
+      <div class="meta"><span class="prov">${lead.src} · ${lead.scr}</span><a class="web">${lead.web} ↗</a></div></div></div>
+      <div class="tasting"><div class="spin"></div><div class="t">tasting ${lead.web}…</div>
+      <div class="s">Sip 1 — opening · Sip 2 — below the fold · Sip 3 — the gap</div>
+      <div class="shimmer" style="width:70%"></div><div class="shimmer" style="width:52%"></div><div class="shimmer" style="width:61%"></div></div></div>`;
+  }
+  const sc=lead.scout;
+  if(sc.fail){
+    return `<div class="card enter"><div class="chead"><div><div class="co">${lead.company}</div>
+      <div class="meta"><span class="prov">${lead.src} · ${lead.scr}</span><a class="web">${lead.web} ↗</a></div></div>
+      <span class="heatpill cold">⚠ FAILED</span></div>
+      <div class="half" style="padding:30px 18px;color:var(--red);font-family:var(--mono);font-size:13px;">⚠ ${sc.verdict}<div style="color:var(--muted);font-size:11px;margin-top:8px">Kill it, or skip to retry later.</div></div>
+      ${actionsHTML()}</div>`;
+  }
+  const gap=sc.palate-sc.execution, heat=HEAT(gap);
+  const segs=(cls,n)=>`<div class="segs ${cls}">`+[1,2,3,4,5].map(i=>`<i class="seg${i<=n?' on':''}"></i>`).join('')+`</div>`;
+  const SRC={age:'Wayback',stack:'HTML',hosting:'DNS·ASN',perf:'PageSpeed',seo:'PageSpeed'};
+  const lamp=(name,v,row='')=>`<div class="ilamp ${row}"><span class="idot ${lampTone(name,v)}"></span><span class="iname">${name}</span><span class="ival">${v}</span><span class="isrc">${SRC[name]||''}</span></div>`;
+  const seoN=parseInt(sc.lamps.seo)||0;
+  const seoLamp=lamp('seo', seoN<70? sc.lamps.seo+' · low → signal' : sc.lamps.seo+' · ok', seoN>=70?'dim':'');
+  return `<div class="card enter"><div class="chead"><div><div class="co">${lead.company}</div>
+      <div class="meta"><span class="prov">${lead.src} · ${lead.scr}</span><a class="web">${lead.web} ↗</a></div></div>
+      <span class="heatpill ${heat}">${heat==='hot'?'🔥 HOT':(heat==='warm'?'Warm':'Cold')}</span></div>
+    <div class="cbody">
+      <div class="half taste">
+        <div class="hlabel">Website taste</div>
+        <div class="shot"><div class="wf"><div class="b nav"></div><div class="b hero" style="background:linear-gradient(${(sc.palate*53)%360}deg,#2a2014,#171410)"></div><div class="b l"></div><div class="b l s"></div></div><span class="shotlbl">screenshot · captured (puppeteer)</span></div>
+        <div class="verdict">${sc.verdict}</div>
+        <div class="lampline"><span class="lampname">Palate</span>${segs('pal',sc.palate)}<span class="lampn">${sc.palate}<span class="mx">/5</span></span></div>
+        <div class="lampline"><span class="lampname">Execution</span>${segs('exe',sc.execution)}<span class="lampn">${sc.execution}<span class="mx">/5</span></span></div>
+        <div class="heatbox"><div><div class="gapnum ${heat}">${gap>0?'+':''}${gap}</div><div class="gaplbl">gap = palate − exec</div></div></div>
+        <div class="choice"><span class="cl">the deliberate choice it saw</span>${sc.choice}</div>
+      </div>
+      <div class="half">
+        <div class="hlabel">Displacement read · cheap signals · no LLM</div>
+        <div class="slegend"><span class="o">●</span> greener = bigger displacement gap (a tired site is a hotter lead)</div>
+        ${lamp('age',sc.lamps.age)}${lamp('stack',sc.lamps.stack)}${lamp('hosting',sc.lamps.hosting)}${lamp('perf',sc.lamps.perf)}${seoLamp}
+        <div class="kws">${sc.kws.map(k=>`<span class="kw">${k}</span>`).join('')}</div>
+        <div class="qual"><span class="qchip">${lead.ind}</span><span class="qchip">${lead.ctry}</span><span class="qchip">☎ ok</span></div>
+        <div class="dispread">Why pursue · <b>${/stale|aging/.test(sc.lamps.age)?'stale design + rotting stack → strong displacement pain':'fresh build → already affords it, likely skip'}</b></div>
+        <div class="photonote">↳ Photos lamp seeds from the taste's hero read (left) on promote</div>
+      </div>
+    </div>
+    ${actionsHTML()}</div>`;
+}
+function actionsHTML(){
+  return `<div class="actions">
+    <div class="act kill" onclick="askKill()"><span class="v">✕ Kill</span><span class="k">← / K</span></div>
+    <div class="act skip" onclick="doSkip()"><span class="v">↓ Skip</span><span class="k">↓ / S</span></div>
+    <div class="act promo" onclick="doPromote()"><span class="v">→ Promote to Kanban</span><span class="k">→ / P</span></div>
+  </div>`;
+}
+
+function renderQueue(){
+  const lead=currentLead();
+  if(!lead){ $('cardSlot').innerHTML=`<div class="empty"><div class="big">Pool clear.</div>${promotedCount} promoted to Kanban · ${killedCount} killed.<br><span class="rs" onclick="resetAll()">↻ Reset the pool</span></div>`; renderRail(); return; }
+  $('cardSlot').innerHTML=cardHTML(lead);
+  renderRail();
+  if(!lead.scout || !lead.scout.done){
+    setTimeout(()=>{ lead.scout=fakeTaste(lead); if(currentLead()===lead) renderQueue(); }, 900+Math.random()*500);
+  }
+}
+function flyAndNext(dir){
+  const card=document.querySelector('#cardSlot .card');
+  if(card){ card.classList.add(dir); }
+  setTimeout(()=>{ renderQueue(); }, 270);
+}
+function askKill(){ const r=$('reasons'); r.style.left='18px'; r.style.bottom='52px'; r.classList.add('show'); }
+function confirmKill(reason){ $('reasons').classList.remove('show'); const lead=currentLead(); if(!lead)return; history.push({type:'kill',id:lead.id}); lead.killed=true; lead.reason=reason; killedCount++; toast('✕ '+lead.company+' killed · '+reason,'kill'); flyAndNext('fly-left'); }
+function doSkip(){ const lp=livePool(); if(lp.length<2){return;} qi=(qi+1)%lp.length; flyAndNext('fly-down'); }
+function doPromote(){ const lead=currentLead(); if(!lead||(lead.scout&&lead.scout.fail))return; if(lead.scout&&!lead.scout.done)return;
+  history.push({type:'promote',id:lead.id}); lead.promoted=true; promotedCount++;
+  const heat = lead.scout?HEAT(lead.scout.palate-lead.scout.execution):'';
+  KAN.unshift({company:lead.company,sub:heat,fresh:true,intel:true});
+  renderKanban(); toastPromote(lead.company); flyAndNext('fly-right');
+}
+function renderKanban(){
+  $('kanN').textContent=KAN.length;
+  $('kanList').innerHTML = KAN.length? KAN.map((c,i)=>`<div class="kcard${c.fresh&&i===0?' land':''}">
+     <div class="kco">${c.company}</div>
+     <div class="kmeta">${c.sub==='hot'?'<span class="kchip scout">🔥 SCOUT</span>':(c.sub?'<span class="kchip scout">scout</span>':'')}${c.intel?'<span class="kchip intel">intel ✓</span>':''} <span>To do · 0%</span></div></div>`).join('')
+     : `<div class="kempty">promoted leads land here</div>`;
+  KAN.forEach(c=>c.fresh=false);
+}
+
+/* ───────── POOL TABLE ───────── */
+function renderPool(){
+  const rows=[...POOL.filter(p=>!p.promoted&&!p.killed)].sort((a,b)=>{
+    const ga=a.scout&&a.scout.done&&!a.scout.fail?a.scout.palate-a.scout.execution:-99;
+    const gb=b.scout&&b.scout.done&&!b.scout.fail?b.scout.palate-b.scout.execution:-99;
+    return gb-ga;
+  });
+  $('poolCount').textContent=` ${rows.length} leads · sorted by gap ↓ (🔥 on top)`;
+  $('poolHot').textContent=rows.filter(r=>r.scout&&r.scout.done&&!r.scout.fail&&(r.scout.palate-r.scout.execution)>=2).length;
+  const segs=(cls,n)=>`<div class="segs ${cls}" style="display:inline-flex">`+[1,2,3,4,5].map(i=>`<i class="seg${i<=n?' on':''}" style="width:7px;height:6px"></i>`).join('')+`</div>`;
+  $('poolBody').innerHTML=rows.map(p=>{
+    const sel=SEL.has(p.id);
+    if(!p.scout||!p.scout.done) return `<tr data-id="${p.id}" class="${sel?'sel':''}"><td><span class="chk ${sel?'on':''}" onclick="togSel('${p.id}')">${sel?'✓':''}</span></td>
+      <td><b>${p.company}</b><div style="font-size:10px;color:var(--muted)">${p.web}</div></td>
+      <td colspan="5"><span class="dash">— not tasted yet —</span></td><td><span class="dash">—</span></td></tr>`;
+    if(p.scout.fail) return `<tr data-id="${p.id}" class="${sel?'sel':''}"><td><span class="chk ${sel?'on':''}" onclick="togSel('${p.id}')">${sel?'✓':''}</span></td>
+      <td><b>${p.company}</b><div style="font-size:10px;color:var(--muted)">${p.web}</div></td><td colspan="5" style="color:var(--red)">⚠ scan failed · unreachable</td><td></td></tr>`;
+    const g=p.scout.palate-p.scout.execution,h=HEAT(g);
+    return `<tr data-id="${p.id}" class="${sel?'sel':''}"><td><span class="chk ${sel?'on':''}" onclick="togSel('${p.id}')">${sel?'✓':''}</span></td>
+      <td><b>${p.company}</b><div style="font-size:10px;color:var(--muted)">${p.web} · ${p.ind}</div></td>
+      <td>${segs('pal',p.scout.palate)} ${p.scout.palate}</td>
+      <td style="max-width:200px;font-size:11.5px">${p.scout.choice}</td>
+      <td>${segs('exe',p.scout.execution)} ${p.scout.execution}</td>
+      <td><span class="tgap ${h}">${g>0?'+':''}${g}</span></td>
+      <td><span class="heatpill ${h}" style="font-size:9px;padding:2px 8px">${h==='hot'?'🔥 HOT':(h==='warm'?'Warm':'Cold')}</span></td>
+      <td style="font-size:10px;color:var(--muted)" class="mono">${(p.scout.lamps.age||'').replace(/ · .*/,'')} · ${p.scout.lamps.perf||''}</td></tr>`;
+  }).join('');
+  $('selN').textContent=SEL.size;
+}
+let SEL=new Set();
+function togSel(id){ SEL.has(id)?SEL.delete(id):SEL.add(id); renderPool(); }
+function prescreenSelected(){
+  const targets=(SEL.size?[...SEL]:POOL.filter(p=>!p.promoted&&!p.killed&&(!p.scout||!p.scout.done)).map(p=>p.id));
+  targets.forEach((id,k)=>{ const p=POOL.find(x=>x.id===id); if(p&&(!p.scout||!p.scout.done)){ setTimeout(()=>{ p.scout=fakeTaste(p);
+    if(view==='pool'){ const tr=document.querySelector(`tr[data-id="${id}"]`); renderPool(); const ntr=document.querySelector(`tr[data-id="${id}"]`); if(ntr&&(p.scout.palate-p.scout.execution)>=2){ ntr.classList.add('leap'); setTimeout(()=>ntr.classList.remove('leap'),700);} } }, 350*(k+1)); }});
+}
+function promoteSelected(){ const ids=[...SEL]; if(!ids.length)return; let n=0;
+  ids.forEach(id=>{ const p=POOL.find(x=>x.id===id); if(p&&!p.promoted&&!p.killed&&p.scout&&p.scout.done&&!p.scout.fail){ p.promoted=true; promotedCount++; n++; KAN.unshift({company:p.company,sub:HEAT(p.scout.palate-p.scout.execution),fresh:true,intel:true}); }});
+  SEL.clear(); renderKanban(); renderPool(); renderRail(); toast('→ '+n+' promoted to Kanban · Incoming','');
+}
+function killSelected(){ const ids=[...SEL]; let n=0; ids.forEach(id=>{const p=POOL.find(x=>x.id===id); if(p&&!p.promoted&&!p.killed){p.killed=true;p.reason='batch';killedCount++;n++;}}); SEL.clear(); renderPool(); renderRail(); toast('✕ '+n+' killed','kill'); }
+
+/* ───────── shared ───────── */
+let view='queue';
+function setView(v){ view=v; $('tQueue').classList.toggle('on',v==='queue'); $('tPool').classList.toggle('on',v==='pool');
+  $('queueView').style.display=v==='queue'?'flex':'none'; $('poolView').style.display=v==='pool'?'block':'none';
+  if(v==='queue')renderQueue(); else renderPool(); }
+function toast(msg,cls){ const t=$('toast'); t.className='toast '+(cls||''); t.innerHTML=msg; t.classList.add('show'); clearTimeout(t._t); t._t=setTimeout(()=>t.classList.remove('show'),2600); }
+function toastPromote(co){ const t=$('toast'); t.className='toast show'; t.innerHTML=`<span class="arrow">→</span> <b>${co}</b> promoted to <b>Incoming</b> · <span style="color:var(--blue)">intel seeded</span> <a onclick="setView('queue')">it landed ↗</a>`; clearTimeout(t._t); t._t=setTimeout(()=>t.classList.remove('show'),3200); }
+function undo(){ const h=history.pop(); if(!h)return; const p=POOL.find(x=>x.id===h.id); if(!p)return; if(h.type==='promote'){p.promoted=false;promotedCount--;KAN.shift();renderKanban();} if(h.type==='kill'){p.killed=false;killedCount--;} toast('↶ undo','' ); renderQueue(); }
+function resetAll(){ location.reload(); }
+
+document.addEventListener('keydown',e=>{
+  if(view!=='queue')return;
+  if(e.key==='ArrowRight'||e.key==='p'||e.key==='P'){doPromote();}
+  else if(e.key==='ArrowLeft'||e.key==='k'||e.key==='K'){askKill();}
+  else if(e.key==='ArrowDown'||e.key==='s'||e.key==='S'){doSkip();}
+  else if(e.key==='Backspace'){e.preventDefault();undo();}
+  else if(e.key==='Escape'){$('reasons').classList.remove('show');}
+});
+
+renderKanban(); renderQueue(); renderRail();
+</script>
+</body>
+</html>

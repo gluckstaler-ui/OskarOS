@@ -1,0 +1,604 @@
+# Oskar × Dr. Robert Oppliger — Pitch Research Dossier
+
+Below is the complete deliverable as a single self-contained HTML document with embedded CSS. Save as `oskar-oppliger-pitch.html` and open in any modern browser.
+
+```html
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Oskar × Dr. Robert Oppliger — Pitch Research Dossier</title>
+<style>
+  :root{
+    --ink:#0e0f12;
+    --paper:#fafaf7;
+    --line:#1a1c20;
+    --accent:#c4452e;     /* Bordeaux-leaning red, on-brand for OskarOS */
+    --accent2:#1d4a3a;    /* deep forest */
+    --muted:#5b5e66;
+    --soft:#efece4;
+    --good:#1d4a3a;
+    --bad:#c4452e;
+    --warn:#a96a00;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0;background:var(--paper);color:var(--ink);font:16px/1.55 "Inter","Helvetica Neue",Arial,sans-serif;-webkit-font-smoothing:antialiased}
+  a{color:var(--accent);text-decoration:none;border-bottom:1px solid rgba(196,69,46,.35)}
+  a:hover{border-bottom-color:var(--accent)}
+  code,pre{font-family:"JetBrains Mono","SFMono-Regular",ui-monospace,Menlo,Consolas,monospace;font-size:.92em}
+  pre{background:#0e0f12;color:#f6f3ea;padding:18px 22px;border-radius:6px;overflow-x:auto;line-height:1.5}
+  header.hero{
+    background:var(--ink);color:var(--paper);padding:64px 6vw 56px;border-bottom:6px solid var(--accent);
+  }
+  header.hero .eyebrow{font-size:13px;letter-spacing:.18em;text-transform:uppercase;color:#c9c9bd;margin-bottom:18px}
+  header.hero h1{font-family:"Playfair Display",Georgia,serif;font-weight:700;font-size:clamp(34px,5vw,58px);line-height:1.05;margin:0 0 18px;max-width:18ch}
+  header.hero p.lede{font-size:clamp(17px,1.6vw,21px);color:#dcdcd1;max-width:62ch;margin:0}
+  header.hero .meta{margin-top:36px;display:flex;flex-wrap:wrap;gap:24px 40px;color:#c9c9bd;font-size:14px}
+  header.hero .meta b{color:#fff;font-weight:600}
+  nav.toc{
+    position:sticky;top:0;background:rgba(250,250,247,.97);backdrop-filter:saturate(180%) blur(10px);
+    border-bottom:1px solid #e3dfd2;padding:10px 6vw;font-size:13px;z-index:10;
+  }
+  nav.toc ol{margin:0;padding:0;list-style:none;display:flex;flex-wrap:wrap;gap:6px 22px}
+  nav.toc a{color:var(--ink);border-bottom:none;font-weight:500}
+  nav.toc a:hover{color:var(--accent)}
+  main{padding:0 6vw 80px;max-width:1280px;margin:0 auto}
+  section{padding:64px 0;border-bottom:1px solid #e3dfd2}
+  section:last-child{border-bottom:0}
+  h2{font-family:"Playfair Display",Georgia,serif;font-weight:700;font-size:clamp(26px,3vw,40px);margin:0 0 6px;line-height:1.1}
+  h2 .num{color:var(--accent);font-family:"JetBrains Mono",ui-monospace,monospace;font-size:.55em;letter-spacing:.1em;vertical-align:8px;margin-right:14px}
+  h2 + .deck{color:var(--muted);font-size:17px;margin:0 0 28px;max-width:70ch}
+  h3{font-size:20px;margin:36px 0 12px;font-weight:600}
+  h4{font-size:15px;text-transform:uppercase;letter-spacing:.1em;color:var(--accent2);margin:28px 0 10px}
+  table{width:100%;border-collapse:collapse;font-size:14px;margin:18px 0 28px;background:#fff;border:1px solid #e3dfd2}
+  thead th{background:var(--ink);color:#fff;text-align:left;padding:11px 12px;font-size:12px;letter-spacing:.06em;text-transform:uppercase;font-weight:600;vertical-align:top}
+  tbody td{padding:11px 12px;border-top:1px solid #ece8da;vertical-align:top}
+  tbody tr:nth-child(even){background:#fbfaf3}
+  tbody td:first-child{font-weight:600;white-space:nowrap}
+  .tldr{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;margin-top:18px}
+  .tldr .card{background:#fff;border:1px solid #e3dfd2;border-left:4px solid var(--accent);padding:18px 20px;border-radius:2px}
+  .tldr .card b{display:block;font-size:11px;text-transform:uppercase;letter-spacing:.14em;color:var(--accent);margin-bottom:8px}
+  @media (max-width:780px){.tldr{grid-template-columns:1fr}}
+  .callout{background:var(--soft);border-left:4px solid var(--accent2);padding:18px 22px;margin:20px 0;font-size:15px;border-radius:2px}
+  .callout b{color:var(--accent2)}
+  .danger{background:#fff5f1;border-left-color:var(--bad)}
+  .danger b{color:var(--bad)}
+  ul.tight li{margin-bottom:6px}
+  .pill{display:inline-block;padding:2px 10px;border-radius:999px;font-size:11px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;background:var(--soft);color:var(--ink);border:1px solid #e3dfd2;margin-right:4px}
+  .pill.good{background:#e7efe8;color:var(--good);border-color:#cddfd0}
+  .pill.bad{background:#fbeae3;color:var(--bad);border-color:#f1c6b5}
+  .pill.warn{background:#fbf2dc;color:var(--warn);border-color:#eed9ab}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:36px}
+  @media (max-width:780px){.grid2{grid-template-columns:1fr}}
+  .arch{
+    background:#0e0f12;color:#f6f3ea;border-radius:6px;padding:28px;margin:24px 0;
+    font-family:"JetBrains Mono",ui-monospace,monospace;font-size:13px;line-height:1.55;white-space:pre;overflow-x:auto;
+  }
+  .arch .lbl{color:#f0b66c}
+  .anatomy{
+    display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin:24px 0
+  }
+  .anatomy .block{
+    background:#fff;border:1px solid #e3dfd2;border-top:4px solid var(--accent);
+    padding:14px 16px;border-radius:2px;font-size:13px
+  }
+  .anatomy .block h5{margin:0 0 6px;font-size:13px;color:var(--accent);text-transform:uppercase;letter-spacing:.08em}
+  .anatomy .block p{margin:0;color:var(--muted)}
+  @media (max-width:900px){.anatomy{grid-template-columns:repeat(2,1fr)}}
+  .checklist{counter-reset:step;list-style:none;padding:0}
+  .checklist li{position:relative;padding:12px 12px 12px 56px;margin:0 0 4px;border-bottom:1px dashed #e3dfd2;font-size:15px}
+  .checklist li::before{
+    counter-increment:step;content:counter(step,decimal-leading-zero);
+    position:absolute;left:0;top:11px;width:42px;text-align:right;
+    font-family:"JetBrains Mono",monospace;color:var(--accent);font-weight:600;font-size:13px
+  }
+  footer{padding:32px 6vw;color:var(--muted);font-size:13px;border-top:1px solid #e3dfd2;background:#f3f0e6}
+  cite{color:var(--muted);font-style:normal;font-size:12px}
+  .ribbon{
+    display:inline-block;background:var(--accent);color:#fff;font-size:11px;letter-spacing:.16em;
+    text-transform:uppercase;padding:4px 10px;border-radius:2px;font-weight:600;margin-bottom:14px
+  }
+  blockquote{margin:18px 0;padding:14px 22px;border-left:3px solid var(--accent);color:var(--muted);font-style:italic}
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="eyebrow">Internal pitch artifact · OskarOS · 20 May 2026</div>
+  <h1>Oskar × Dr. Robert Oppliger — Research Dossier</h1>
+  <p class="lede">A decision-ready brief on the Swiss GP website landscape, where Dr. Oppliger sits in it, and how OskarOS can credibly run as an AI-administered service on his hardened Mac mini — without ever touching patient data.</p>
+  <div class="meta">
+    <div><b>Prepared for</b><br/>Ralph (OskarOS)</div>
+    <div><b>Target</b><br/>Dr. med. Robert Oppliger, FMH allg. Medizin<br/>Hardturmstrasse 202, 8005 Zürich</div>
+    <div><b>Status quo</b><br/>local.ch listing + localsearch placeholder</div>
+    <div><b>Opportunity</b><br/>Owner-controlled, multilingual, AI-administered</div>
+  </div>
+</header>
+
+<nav class="toc">
+  <ol>
+    <li><a href="#tldr">TL;DR</a></li>
+    <li><a href="#s1">1 · 10 Best Swiss GP Sites</a></li>
+    <li><a href="#s2">2 · Same 10, Web-Design Lens</a></li>
+    <li><a href="#s3">3 · Top-Tier vs Mediocre</a></li>
+    <li><a href="#s4">4 · Dr. Oppliger Today</a></li>
+    <li><a href="#s5">5 · Mac mini + Claude Architecture</a></li>
+    <li><a href="#recs">Recommendations</a></li>
+    <li><a href="#caveats">Caveats</a></li>
+  </ol>
+</nav>
+
+<main>
+
+<section id="tldr">
+  <span class="ribbon">Bottom line up front</span>
+  <h2><span class="num">00</span>TL;DR</h2>
+  <p class="deck">Three sentences that should anchor the entire pitch.</p>
+  <div class="tldr">
+    <div class="card">
+      <b>Landscape</b>
+      Swiss GP web is a barbell: a small modern cohort (MyPermanence, MüllerPraxis, Praxis Riesbach, Medbase, Hausarztpraxis am Bahnhof Oerlikon) and a long tail of templated or local.ch-generated micro-sites. Dr. Oppliger is in the tail.
+    </div>
+    <div class="card">
+      <b>Booking</b>
+      OneDoc dominates after acquiring Medicosearch on 19 May 2025 — the combined entity now has “more than 13,000 registered healthcare professionals and 350,000 consultations booked online every month” (OneDoc/BioAlps press release, May 2025). Doctena and the German-origin Arzt-direkt are challengers. Almost every modern Swiss GP embeds one of these rather than building bespoke.
+    </div>
+    <div class="card">
+      <b>Mac mini + Claude</b>
+      Technically feasible and architecturally clean — but only with an allowlisted MCP tool surface, Tailscale/mTLS admin plane, denied Full Disk Access, narrow sudoers, and a hard wall between Oskar and any patient data (Berufsgeheimnis StGB Art. 321 exposure).
+    </div>
+  </div>
+</section>
+
+<section id="s1">
+  <h2><span class="num">01</span>The 10 Best Swiss GP Websites — Best-of-Class</h2>
+  <p class="deck">Holistic ranking: design + UX + booking + multilingual + Swiss-context trust signals (FMH, KVG, nDSG/FADP, Notfall).</p>
+
+  <table>
+    <thead>
+      <tr>
+        <th>#</th><th>Practice / URL</th><th>Region · Languages</th><th>Booking</th><th>CMS</th><th>Why it makes the list</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr><td>1</td>
+        <td><b>MyPermanence</b><br/><a href="https://mypermanence.ch/de">mypermanence.ch</a></td>
+        <td>Zürich-Oerlikon (DE-CH)<br/><span class="pill good">DE</span><span class="pill good">FR</span><span class="pill good">EN</span></td>
+        <td>Walk-in model; phone for GP booking; 144 emergency banner</td>
+        <td>Craft CMS + SEOmatic</td>
+        <td>Best-in-class. Rebranded June 2025. Real patient photography, emergency-first UX, hreflang done right, careers, Instagram/Reels embedded. 25 doctors, 30 MPAs.</td>
+      </tr>
+      <tr><td>2</td>
+        <td><b>MüllerPraxis</b><br/><a href="https://muellerpraxis.zuerich">muellerpraxis.zuerich</a></td>
+        <td>Zürich Kreis 4 (DE-CH)<br/><span class="pill good">DE</span><span class="pill good">EN</span></td>
+        <td><b>Arzt-direkt</b> app + on-site self-check-in via insurance card / QR</td>
+        <td>YOOtheme (Joomla)</td>
+        <td>Personality-forward copy (“weakness for ultrasound and the color Bordeaux”). Reads like a 2025 consumer brand, not a doctor’s office. EQUAM seal, mediX network.</td>
+      </tr>
+      <tr><td>3</td>
+        <td><b>Praxis Riesbach</b><br/><a href="https://praxisriesbach.com/">praxisriesbach.com</a></td>
+        <td>Zürich-Seefeld (DE-CH)<br/><span class="pill good">DE</span></td>
+        <td>Custom widget (online-termine.app) + medication ordering</td>
+        <td>Squarespace</td>
+        <td>Best photography in the entire benchmark. Editorial typography. Three-pillar “Modern / Integrativ / Präventiv” positioning. Wellness-grade brand polish.</td>
+      </tr>
+      <tr><td>4</td>
+        <td><b>Hausarztpraxis am Bahnhof Oerlikon AG</b><br/><a href="https://www.hausarztpraxisoerlikon.ch/">hausarztpraxisoerlikon.ch</a></td>
+        <td>Zürich-Oerlikon<br/><span class="pill good">DE</span> + 10 consultation languages (incl. CZ/NL/PT/AL/TR/PL)</td>
+        <td><b>OneDoc</b> embedded; accepts new patients online</td>
+        <td>Custom</td>
+        <td>Polyglot consultation languages signal Zürich-international positioning.</td>
+      </tr>
+      <tr><td>5</td>
+        <td><b>Medbase Zürich Oerlikon</b><br/><a href="https://www.medbase.ch/en/centers/detail/medbase-zurich-oerlikon/">medbase.ch</a></td>
+        <td>National chain (Migros Group)<br/><span class="pill good">DE</span><span class="pill good">FR</span><span class="pill good">EN</span></td>
+        <td><b>OneDoc</b> widget embedded</td>
+        <td>TYPO3</td>
+        <td>Chain-clinic scale. FMH titles + languages per doctor. Compassana ecosystem, in-house physio/osteo/TCM, downloadable CVs.</td>
+      </tr>
+      <tr><td>6</td>
+        <td><b>Cabinet Gare 10</b><br/><a href="https://gare10.ch/accueil/">gare10.ch</a></td>
+        <td>Lausanne (Romandie)<br/><span class="pill good">FR</span></td>
+        <td>Phone for GP + <b>OneDoc</b> for infectiology specialist</td>
+        <td>WordPress + WPBakery</td>
+        <td>Specialist (HIV/PrEP/hep) embedded inside a family practice. Doctor CVs with FMH credentials. Visually dated, information-rich.</td>
+      </tr>
+      <tr><td>7</td>
+        <td><b>Amiia Médical</b><br/><a href="https://www.amiia-medical.ch/">amiia-medical.ch</a></td>
+        <td>Lausanne (Romandie)<br/><span class="pill good">FR</span><span class="pill good">EN</span><span class="pill good">DE</span><span class="pill good">IT</span><span class="pill good">ES</span></td>
+        <td><b>OneDoc</b> + video consultations</td>
+        <td>WordPress (inferred)</td>
+        <td>Hybrid medico-chirurgical positioning with aesthetic-medicine cross-sell (sister site amiiaclinique.ch). LAMal + complémentaires explicit.</td>
+      </tr>
+      <tr><td>8</td>
+        <td><b>Hausärzte Zentrum Witikon</b><br/><a href="https://www.hausaerzte-witikon.ch/de/">hausaerzte-witikon.ch</a></td>
+        <td>Zürich-Witikon (DE-CH)<br/><span class="pill good">DE</span></td>
+        <td>Embedded booking widget + medication refill</td>
+        <td>WordPress (custom “hzw” theme)</td>
+        <td>Best-in-class Swiss-specific transparency: TARDOC tariff, Hausarztmodell, KVG rebate up to 20 % via zmed, DSG/data-protection notice, Notfall workflow page. Visually dated.</td>
+      </tr>
+      <tr><td>9</td>
+        <td><b>Gesundheitszentrum Hottingen</b><br/><a href="https://gesundheitszentrum-hottingen.ch/">gesundheitszentrum-hottingen.ch</a></td>
+        <td>Zürich-Hottingen (DE-CH)<br/><span class="pill good">DE</span><span class="pill good">EN</span></td>
+        <td>Custom embedded “/book/” page</td>
+        <td>WordPress (WP Rocket, GTM)</td>
+        <td>Hospital-network credibility (Spital Zollikerberg co-brand). In-house pharmacy robot novelty. FMH titles explicit, partner blog.</td>
+      </tr>
+      <tr><td>10</td>
+        <td><b>Praxis Seefeld</b><br/><a href="https://praxis-seefeld.ch/">praxis-seefeld.ch</a></td>
+        <td>Zürich-Seefeld (DE-CH)<br/><span class="pill good">DE</span></td>
+        <td><b>Arzt-direkt</b></td>
+        <td>Custom (Jerumed network template)</td>
+        <td>Aesthetic-medicine upsell (med-esthec.ch) inside a Hausarztpraxis — clearest commercial cross-sell strategy of the set. Templatey but executes a clear model.</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="callout">
+    <b>Honourable mentions worth knowing:</b> Centromedico (Ticino, Swiss Medical Network), Arzthaus (a Zurich-Bern-St.Gallen chain founded in 2011 that operates 9 medical practices and an asynchronous text-based platform Arzthaus Online), ST-Med Oerlikon, MediX-Zürich network, and zmed — “Zmed Zürcher Ärzte Gemeinschaft AG, Grütlistrasse 36, CH-8002 Zürich,” described on its own site as “Ärztenetz zmed [in which] über 220 engagierte Hausärzte und Spezialistinnen in der Stadt Zürich zusammengeschlossen” are organised.
+  </div>
+</section>
+
+<section id="s2">
+  <h2><span class="num">02</span>The Same 10, Ranked on Pure Web-Design Craft</h2>
+  <p class="deck">Re-ordered to score typography, color, layout, photography, micro-interactions, brand cohesion, originality vs template fatigue.</p>
+
+  <table>
+    <thead>
+      <tr><th>Rank</th><th>Practice</th><th>Design highlights</th><th>What makes it visually distinctive</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>1</td><td><b>MyPermanence</b></td><td>Warm real-patient photography, neutral palette + brand accent, embedded Reels, proper hreflang</td><td>Reads like a Swiss B-corp, not a doctor's office. June 2025 rebrand is the freshest in the cohort.</td></tr>
+      <tr><td>2</td><td><b>Praxis Riesbach</b></td><td>Editorial typography, custom 2025 photoshoot, “Modern / Integrativ / Präventiv” three-column anchor</td><td>Squarespace executed at agency level. Best photography in the benchmark.</td></tr>
+      <tr><td>3</td><td><b>MüllerPraxis</b></td><td>Bordeaux/earth-tone palette, real team portraits with personality blurbs, app + check-in flow</td><td>Personality-forward copy is unique in Swiss GP web.</td></tr>
+      <tr><td>4</td><td><b>Medbase Oerlikon</b></td><td>Uniform corporate brand across hundreds of practitioners, clean nav, lifestyle imagery</td><td>The “Audi” of Swiss GP web — consistent, premium, slightly cold.</td></tr>
+      <tr><td>5</td><td><b>Amiia Médical</b></td><td>Lifestyle-clinic French-design aesthetic; sister-site brand consistency</td><td>Strongest Romandie design.</td></tr>
+      <tr><td>6</td><td><b>Gesundheitszentrum Hottingen</b></td><td>Clean SVG service icons, restrained palette, Spital Zollikerberg co-brand</td><td>Professional but conservative.</td></tr>
+      <tr><td>7</td><td><b>Hausarztpraxis am Bahnhof Oerlikon</b></td><td>Restrained typography, multilingual signal</td><td>Clean if minimal.</td></tr>
+      <tr><td>8</td><td><b>Cabinet Gare 10</b></td><td>Teal/grey palette, square portraits, news cards</td><td>Dated WPBakery feel but disciplined IA.</td></tr>
+      <tr><td>9</td><td><b>Praxis Seefeld</b></td><td>Emoji service icons (🩺🔬💊), mix of stock + real</td><td>Functional, template-bound.</td></tr>
+      <tr><td>10</td><td><b>Hausärzte Zentrum Witikon</b></td><td>Long single-scroll, navy/white, small portrait thumbnails</td><td>Most information-complete; most visually dated.</td></tr>
+    </tbody>
+  </table>
+
+  <div class="callout">
+    <b>On awards & recognition:</b> Switzerland has no sector-level “best medical practice website” award. The FMH's only public award is the <a href="https://planetary-health.fmh.ch/planetary-health-award.cfm">Planetary Health Award</a>, given every two years for healthcare sustainability projects — not web design. The SIWF-Award for postgraduate-training engagement is currently paused; per SIWF's own statement (siwf.ch): “Der SIWF-Award kann im Jahr 2025 und 2026 nicht stattfinden. Grund dafür ist der von der Ärztekammer beschlossene Auftrag, die Ressourcen ausschliesslich auf die Bearbeitung der Titelgesuche zu konzentrieren.” The rankings above are an opinionated design read, not a recognition list.
+  </div>
+</section>
+
+<section id="s3">
+  <h2><span class="num">03</span>What Separates the Top Tier From the Mediocre Long Tail</h2>
+  <p class="deck">Concrete, comparative, and Swiss-specific. This is the heart of the pitch — the gap Oskar closes.</p>
+
+  <h3>The mediocre baseline — what roughly 9 in 10 Swiss GP sites look like</h3>
+  <ul class="tight">
+    <li><b>No website at all</b> — only a local.ch listing (Dr. Oppliger's category, see Section 4).</li>
+    <li><b>Generator-built micro-pages</b> — local.ch's “MyWEBSITE” or <code>digitalone.site</code> subdomains. Single page, no real CMS, no booking, no SEO depth. This is exactly Dr. Oppliger's current state.</li>
+    <li><b>Abandoned WordPress + WPBakery sites from 2014–2018</b> — never redesigned. Square headshots, stock photos, theme-default responsiveness.</li>
+    <li><b>Phone-only booking</b>, hidden contact info, no after-hours guidance, no “accepting new patients” status.</li>
+    <li><b>Compliance silence</b> — no nDSG/FADP notice or a copy-pasted boilerplate; no cookie consent; no Impressum meeting cantonal requirements; no FMH membership badge.</li>
+    <li><b>No team page</b>, or one with placeholder text and inconsistent photography.</li>
+    <li><b>No services architecture</b> — a flat “Leistungen” bullet list rather than navigable service pages.</li>
+    <li><b>No insurance clarity</b> — patients can't tell whether the practice works with their Krankenkasse, accepts the Hausarztmodell, or is on TARDOC.</li>
+  </ul>
+
+  <h3>The contrast table</h3>
+  <table>
+    <thead><tr><th>Dimension</th><th>Mediocre Swiss GP site</th><th>Top-tier Swiss GP site</th></tr></thead>
+    <tbody>
+      <tr><td>Booking</td><td><span class="pill bad">Phone only</span> Or “call to book”</td><td><span class="pill good">Embedded</span> OneDoc / Doctena / Arzt-direkt with synced calendar and SMS reminders</td></tr>
+      <tr><td>No-show effect of SMS reminders</td><td>Not measured</td><td>An Imperial College London study (Department of Primary Care and Social Medicine), cited by Klara, reports: “no-show rates were 38 % lower among patients who received a text message appointment reminder.” That's the credible academic benchmark, not the vendor headline.</td></tr>
+      <tr><td>Admin time saved</td><td>—</td><td>OneDoc's own published figure: “save up to 30 % of the time you normally spend on administrative tasks” (info.onedoc.ch/en/our-solutions). This is admin time, not no-shows — keep the two claims separate.</td></tr>
+      <tr><td>Photography</td><td>Generic stock or no team photos</td><td>Custom photoshoot, real doctors and MPAs, consistent treatment</td></tr>
+      <tr><td>Trust signals</td><td>None or just an FMH bullet</td><td>FMH titles per doctor, languages spoken, sub-specialties, EQUAM seal, network affiliations (mediX, zmed, Compassana)</td></tr>
+      <tr><td>Languages</td><td>DE-only (DE-CH) or FR-only (Romandie)</td><td>At minimum DE+EN (or FR+EN); Medbase and MyPermanence run DE/FR/EN with proper hreflang</td></tr>
+      <tr><td>Emergency info</td><td>Buried in footer or absent</td><td>Prominent Notfall block with 144 link, after-hours instructions, on-call rotation</td></tr>
+      <tr><td>Insurance transparency</td><td>Silent</td><td>TARDOC mention, KVG/Hausarztmodell clarity, accepted complementary insurances, “new patients” status</td></tr>
+      <tr><td>nDSG/FADP signaling</td><td>Boilerplate or missing</td><td>Real privacy policy naming data, location (Switzerland), sub-processors. OneDoc explicitly: “ISO 27001 and DPCO certified … labeled ‘Swiss made software, hosted in Switzerland’” (info.onedoc.ch).</td></tr>
+      <tr><td>Patient education</td><td>None</td><td>FAQ, prevention content, blog (Hottingen leverages Spital Zollikerberg; Medbase has a partner news feed)</td></tr>
+      <tr><td>Cross-sell</td><td>None</td><td>Aesthetic medicine (Seefeld → med-esthec, Amiia → amiiaclinique), in-house pharmacy, in-house physio (Medbase)</td></tr>
+      <tr><td>Mobile</td><td>Theme-default responsive</td><td>Genuinely mobile-first (MyPermanence) with thumb-reachable CTAs</td></tr>
+      <tr><td>CMS</td><td>local.ch generator / abandoned WP</td><td>Squarespace (Riesbach), Craft (MyPermanence), TYPO3 (Medbase), modern Joomla/YOOtheme (Müller), Webflow / Framer in newer entrants</td></tr>
+    </tbody>
+  </table>
+
+  <h3>The “ideal Swiss GP website anatomy” (infographic)</h3>
+  <div class="anatomy">
+    <div class="block"><h5>1 · Hero</h5><p>Practice name, FMH credential, one sentence value-prop, “Book now” CTA, language switcher (DE / FR / EN minimum).</p></div>
+    <div class="block"><h5>2 · Notfall</h5><p>144 emergency number, Ärztefon, after-hours rotation. Always above the fold.</p></div>
+    <div class="block"><h5>3 · Accepting new patients?</h5><p>Yes / No / Waitlist. Single answer visible without scrolling.</p></div>
+    <div class="block"><h5>4 · Team</h5><p>Real photo, FMH title, sub-specialties, languages spoken, Lehrarzt status. One per doctor.</p></div>
+    <div class="block"><h5>5 · Services</h5><p>Navigable architecture, not bullet list. Each service its own page (Vorsorge, Impfungen, Labor, Praxisapotheke, …).</p></div>
+    <div class="block"><h5>6 · Booking</h5><p>Embedded vendor widget (OneDoc / Arzt-direkt / Doctena) or native; calendar synced; SMS reminders.</p></div>
+    <div class="block"><h5>7 · Insurance</h5><p>KVG model (Hausarztmodell), TARDOC mention, accepted complementaries, ZSR number.</p></div>
+    <div class="block"><h5>8 · Practice info</h5><p>Address, opening hours per weekday, transit + parking, accessibility, HIN email.</p></div>
+    <div class="block"><h5>9 · Trust seals</h5><p>FMH, EQUAM, network logos (mediX / zmed), Swiss Made Software, hosted-in-Switzerland badge.</p></div>
+    <div class="block"><h5>10 · Datenschutz</h5><p>nDSG-compliant privacy policy. Names data categories, sub-processors, retention. No copy-paste boilerplate.</p></div>
+    <div class="block"><h5>11 · Patient education</h5><p>FAQ, prevention content, optional blog. Reduces inbound calls.</p></div>
+    <div class="block"><h5>12 · Impressum</h5><p>Cantonal requirements + commercial register entry if AG/GmbH.</p></div>
+  </div>
+
+  <h3>Healthcare-specific UX patterns that matter in Switzerland</h3>
+  <ul class="tight">
+    <li><b>“Accepting new patients?” on the homepage.</b> OneDoc's interface explicitly supports the toggle; on its info site OneDoc states: “When setting up your account, you can choose to restrict online booking to your existing patients … on OneDoc.ch, patients can filter their search to see only general practitioners who are accepting new patients—your profile will not appear in those results.” Mediocre sites force a phone call.</li>
+    <li><b>Notfall hierarchy</b> — 144 (national), the cantonal Ärztefon (in Zürich: AERZTEFON AG), and the practice's own after-hours rotation must be visually distinct from regular booking.</li>
+    <li><b>Berufsgeheimnis-aware communication</b> — booking flows must avoid collecting diagnostic data in plain text. Vendors like OneDoc, Arzt-direkt and Doctena limit free-text fields and encrypt clinical data end-to-end; many bespoke sites leak this through unencrypted contact forms.</li>
+    <li><b>HIN email</b> — Swiss doctors run professional email through hin.ch (Health Info Net AG). Dr. Oppliger correctly uses <code>robert.oppliger@hin.ch</code>. Top sites expose this rather than @gmail.com.</li>
+    <li><b>Hausarztmodell visibility</b> — patients on this insurance model pay reduced premiums but must use their assigned GP first. MüllerPraxis explains it cleanly: “If you are insured under the mediX family doctor model, we are your primary care provider. We handle referrals to specialists online, so you do not need a paper referral. … your insurer may issue violation notices if you visit another doctor directly (except for eye care and gynecology) without discussing it with us in advance.” That's the gold standard for plain-language insurance UX.</li>
+  </ul>
+
+  <h3>Swiss-specific compliance signaling</h3>
+  <div class="callout">
+    <b>nDSG / revDSG</b> — in force 1 September 2023. Fines up to CHF 250,000, personally chargeable to the responsible natural person (the doctor as managing director), not the company. The site's privacy policy must list data categories, retention, recipients, and any cross-border transfer.
+  </div>
+  <div class="callout">
+    <b>Berufsgeheimnis (StGB Art. 321)</b> — per the Kanton St. Gallen guidance (sg.ch/gesundheit-soziales/gesundheit): “Nach Art. 321 des Schweizerischen Strafgesetzbuches … werden Ärzte, Zahnärzte, Chiropraktoren, Apotheker, Hebammen, Psychologen, Pflegefachpersonen, Physiotherapeuten, Ergotherapeuten, Ernährungsberater, Optometristen, Osteopathen sowie ihre Hilfspersonen, die ein Geheimnis offenbaren, das ihnen infolge ihres Berufes anvertraut worden ist oder das sie in dessen Ausübung wahrgenommen haben, auf Antrag mit Freiheitsstrafe bis zu drei Jahren oder Geldstrafe bestraft.” The dominant academic reading (Wohlers, 2016, “Auslagerung einer Datenbearbeitung und Berufsgeheimnis (Art. 321 StGB)”; Rosenthal, “Mit Berufsgeheimnissen in die Cloud”, <i>Jusletter</i> 10 August 2020) extends “Hilfsperson” to IT and cloud providers when objectively necessary to the practice. This is the legal hook for OneDoc, Arzt-direkt — and a future Oskar deployment.
+  </div>
+  <div class="callout">
+    <b>Cantonal requirements</b> — Kanton Zürich publishes a “Merkblatt Berufsgeheimnis und Datenschutz” for medical practices (zh.ch). Any production site should align with it.
+  </div>
+  <div class="callout">
+    <b>Swiss data residency</b> — top-tier vendors lean on this hard. It's a defensible differentiator vs US-hosted alternatives subject to the CLOUD Act.
+  </div>
+</section>
+
+<section id="s4">
+  <h2><span class="num">04</span>Dr. Oppliger Today — Baseline & Gap</h2>
+  <p class="deck">An honest read of what's there now, and what's missing relative to the Section-1 benchmarks.</p>
+
+  <h3>What he has today</h3>
+  <ul class="tight">
+    <li><b>local.ch listing</b> — <a href="https://www.local.ch/de/d/zuerich/8005/arzt/dr-med-oppliger-robert-7n1tQYCoCsL9Jy-mPRA2og">/zuerich/8005/arzt/dr-med-oppliger-robert</a>. Booking goes through local.ch's embedded <code>#open-booking</code> widget. Listing is clean — opening hours, languages (DE, EN, FR, IT, ES), HIN email, services blurb.</li>
+    <li><b>A localsearch-generated placeholder</b> at <a href="https://oppliger.digitalone.site">oppliger.digitalone.site</a> — a single-page “Powered by localsearch MyWEBSITE” template. The page essentially mirrors the local.ch listing. The “Jetzt Termin vereinbaren” CTA deep-links back to local.ch. The hero image references <code>&lt;&gt;</code> (broken). No team page, no services page, no Notfall block, no privacy policy beyond a stock <code>privacy.html</code>, no FMH or KVG signaling beyond the “Facharzt FMH allg. Medizin” line. Visible top-of-page text on first load: “Tut uns leid, wir haben geschlossen!”</li>
+    <li><b>Practice profile (verbatim from his current page)</b>: “Neben klassischer Hausarzttätigkeit -inklusive Hausbesuchen - bieten wir individuelle und kontinuierliche Betreuung und Beratung. Auch haben wir viel Erfahrung in Psychiatrie, insbesondere Abhängigkeitserkrankungen. Zudem bietet Dr. Gabriela Oppliger (ASA/FMH), von der Krankenkasse vergütet, Akupunktur und Traditionelle Chinesische Medizin an. Unsere Praxis ist zugleich unser Wohnort, was eine gewisse Flexibilität bei der Terminvergabe ermöglicht.”</li>
+    <li><b>The practice doubles as the residence</b> at Hardturmstrasse 202, 8005 Zürich. Small in-house lab, ECG, lung-function, basic ultrasound, Praxisapotheke. Languages served: DE / EN / FR / IT / ES.</li>
+  </ul>
+
+  <h3>The gap, framed honestly</h3>
+  <table>
+    <thead><tr><th>Top-tier benchmark</th><th>Dr. Oppliger today</th></tr></thead>
+    <tbody>
+      <tr><td>Custom domain (e.g. praxisoppliger.ch)</td><td><span class="pill bad">No</span> Listing on local.ch + a localsearch sub-subdomain</td></tr>
+      <tr><td>Real CMS with content</td><td><span class="pill bad">No</span> Generator-locked single page</td></tr>
+      <tr><td>Embedded booking with calendar sync</td><td><span class="pill bad">No</span> Booking handed off to local.ch's widget</td></tr>
+      <tr><td>Team page with FMH credentials, languages, photo</td><td><span class="pill bad">No</span> One paragraph of self-description</td></tr>
+      <tr><td>Services architecture</td><td><span class="pill bad">No</span></td></tr>
+      <tr><td>Notfall / after-hours block</td><td><span class="pill bad">No</span></td></tr>
+      <tr><td>Privacy policy meeting nDSG</td><td><span class="pill warn">Stock boilerplate</span></td></tr>
+      <tr><td>Trust signals (FMH badge, KVG/Hausarztmodell, accepted insurances)</td><td><span class="pill warn">Partial</span> only the “Facharzt FMH allg. Medizin” line</td></tr>
+      <tr><td>Multilingual</td><td><span class="pill bad">DE only landing</span> despite 5-language consultation</td></tr>
+      <tr><td>Mobile-optimized</td><td><span class="pill warn">Template-bound</span></td></tr>
+      <tr><td>Owner-controlled</td><td><span class="pill bad">No</span> Locked to localsearch's roadmap</td></tr>
+    </tbody>
+  </table>
+
+  <h3>The Oskar pitch in one sentence</h3>
+  <blockquote>
+    Dr. Oppliger is paying for visibility he doesn't own, on a generator page he can't extend, with no booking he controls and no compliance signaling — Oskar replaces all of that with an AI-generated, owner-controlled landing page + native booking, running on hardware he already owns.
+  </blockquote>
+</section>
+
+<section id="s5">
+  <h2><span class="num">05</span>Remote Mac mini Administration via Oskar — Technical Feasibility</h2>
+  <p class="deck">Architecture, hardening, sandboxing, and a concrete switch-on checklist. The boundary that matters: Oskar administers infrastructure; it never touches patient data.</p>
+
+  <h3>Architecture (described so Ralph can render it visually)</h3>
+  <div class="arch">                    <span class="lbl">PATIENT (public internet)</span>
+                              │
+                              ▼  HTTPS 443
+                  ┌───────────────────────────┐
+                  │  CLOUDFLARE / FRONT EDGE  │  (optional WAF, DDoS, anti-bot)
+                  └───────────────────────────┘
+                              │
+                              ▼
+                ┌─────────────────────────────────┐
+                │  MAC MINI · Hardturmstrasse 202 │
+                │  ─────────────────────────────  │
+                │  CADDY (LaunchDaemon, root)     │ → auto-HTTPS via Let's Encrypt
+                │   ├─ public hostnames (Oskar)   │
+                │   └─ admin.* (mTLS-gated)       │
+                │                                 │
+                │  OSKAR APP (LaunchDaemon,       │
+                │  unprivileged service account)  │
+                │   ├─ landing-page renderer      │
+                │   ├─ booking engine             │
+                │   └─ MCP "admin tools" server   │ ← exposes typed,
+                │                                 │   allowlisted ops only
+                │                                 │
+                │  AUDIT LOG (append-only)        │
+                │   → syslog + OpenTelemetry      │
+                │   → off-Mac sink (Grafana EU /  │
+                │     Axiom EU / self-host Loki)  │
+                └─────────────────────────────────┘
+                              │
+                              │  Tailscale (WireGuard) — admin plane only
+                              ▼
+                ┌─────────────────────────────────┐
+                │  CLAUDE (via OskarOS console)   │
+                │  Auth: passkey + YubiKey +      │
+                │        Tailscale device ID +    │
+                │        mTLS client cert         │
+                │  Calls MCP tool endpoints ONLY  │
+                └─────────────────────────────────┘
+  </div>
+
+  <h3>The five architectural decisions</h3>
+
+  <h4>1 · Oskar runs as an unprivileged LaunchDaemon, not root</h4>
+  <p>Apple's official launchd documentation states the distinction directly: “The main difference is that an agent is run on behalf of the logged in user while a daemon runs on behalf of the root user or any user you specify with the UserName key. Only agents have access to the macOS GUI.” (developer.apple.com / launchd.info.) A server process should be a LaunchDaemon under a dedicated <code>_oskar</code> service account specified via the <code>UserName</code> key, never as <code>root</code>. Privilege escalation happens through a tightly scoped sudoers rule (see #4).</p>
+
+  <h4>2 · Public traffic and admin traffic segregated at the reverse proxy</h4>
+  <p>Caddy as the front handles auto-HTTPS for public hostnames. Per Caddy's official documentation (caddyserver.com): “Caddy uses HTTPS for all sites by default, as long as a host name is provided in the config … Caddy will attempt to get a publicly-trusted certificate; make sure your DNS records point to your machine and that ports 80 and 443 are open to the public and directed toward Caddy.” The admin plane is exposed only over Tailscale's <code>100.x.x.x</code> mesh address with mTLS on top — public internet cannot reach <code>admin.oskar.local</code> at all.</p>
+  <pre>example.com {
+    reverse_proxy localhost:9000      # public Oskar app
+}
+
+admin.oskar.local {
+    bind 100.x.x.x                    # Tailscale interface only
+    tls /etc/oskar/mtls/cert.pem /etc/oskar/mtls/key.pem {
+        client_auth {
+            mode require_and_verify
+            trusted_ca_cert_file /etc/oskar/mtls/ca.pem
+        }
+    }
+    reverse_proxy localhost:9001      # MCP admin server
+}</pre>
+
+  <h4>3 · Claude never gets a shell — it calls a typed MCP tool surface</h4>
+  <p>The Model Context Protocol was launched by Anthropic in November 2024. Per Anthropic's launch announcement (anthropic.com/news/model-context-protocol): “Today, we're open-sourcing the Model Context Protocol (MCP), a new standard for connecting AI assistants to the systems where data lives, including content repositories, business tools, and development environments.” The protocol then saw industry-wide adoption: per OpenAI CEO Sam Altman in March 2025, “People love MCP and we are excited to add support across our products”; Google DeepMind CEO Demis Hassabis confirmed support in April 2025, calling MCP “a good protocol and it's rapidly becoming an open standard for the AI agentic era.” The MCP server should expose only a finite allowlist of typed operations:</p>
+  <ul class="tight">
+    <li><code>service.restart(name)</code> — restart Oskar, Caddy, or the database</li>
+    <li><code>disk.usage()</code> — return df output</li>
+    <li><code>logs.tail(service, lines)</code> — recent log lines (patient-data fields redacted)</li>
+    <li><code>certificate.expiry()</code> — TLS certs and renewal dates</li>
+    <li><code>update.deploy(version)</code> — signed Oskar update from a release channel</li>
+    <li><code>backup.run()</code> — trigger Time Machine snapshot</li>
+    <li><code>health.summary()</code> — uptime, CPU, memory, request rates</li>
+    <li><code>firewall.status()</code> — currently open ports</li>
+  </ul>
+  <p>What is <b>not</b> exposed: arbitrary shell, filesystem reads outside <code>/Library/Logs/Oskar/</code>, any access to <code>/Users/</code>, any access to a patient database, any ability to disable the firewall or SIP. Per GitHub's MCP security analysis: “Exposing internal tools and infrastructure to AI systems, even through structured protocols, introduces new cyberthreat surfaces … MCP deployments typically rely on strong authentication, authorization, auditing, and execution boundaries implemented by the client or host environment.”</p>
+
+  <h4>4 · macOS hardening required before go-live</h4>
+  <table>
+    <thead><tr><th>Control</th><th>Setting</th><th>Source</th></tr></thead>
+    <tbody>
+      <tr><td>System Integrity Protection (SIP)</td><td><span class="pill good">Enabled</span> default; verify <code>csrutil status</code></td><td>Apple Platform Security Guide</td></tr>
+      <tr><td>Full Disk Access for <code>_oskar</code></td><td><span class="pill bad">Denied</span></td><td>macOS TCC profile</td></tr>
+      <tr><td>Screen Recording, Accessibility for agent</td><td><span class="pill bad">Denied</span></td><td>TCC profile</td></tr>
+      <tr><td>Apple Remote Desktop (ARD)</td><td><span class="pill bad">Disabled</span> <code>sudo /System/Library/CoreServices/RemoteManagement/ARDAgent.app/Contents/Resources/kickstart -deactivate -stop</code></td><td>Per ernw/hardening macOS 26 Tahoe guide: “Remote Management … MUST be deactivated to prevent unauthorized deep system access.”</td></tr>
+      <tr><td>Public SSH</td><td><span class="pill bad">Off</span> on en0; allowed only on tailscale0</td><td>Same hardening guide: “Remote Login MUST be disabled unless explicitly required for administrative or developer access.”</td></tr>
+      <tr><td>Application Firewall (pf)</td><td><span class="pill good">On</span> 80, 443 public; specific ports on tailscale0</td><td>pf.conf</td></tr>
+      <tr><td>sudoers</td><td><span class="pill warn">Narrow</span> Explicit allowlist per binary; <code>NOPASSWD:</code> with full paths and explicit args; <code>Defaults timestamp_timeout=0, tty_tickets</code></td><td>Per ernw/hardening: “To check for these mandatory values, use the following command … the settings must be visible in the output exactly as shown above.”</td></tr>
+      <tr><td>Patch level</td><td>macOS 26.1+ (post CVE-2025-32462 / CVE-2025-32463)</td><td>Addigy advisory, July 2025: “This sudo vulnerability was publicly disclosed on June 30, 2025 and is rated as high severity. It affects sudo versions 1.9.0 – 1.9.17 and 1.8.8 – 1.8.32.”</td></tr>
+      <tr><td>MDM</td><td>Mosyle Business FREE for a single-doctor practice</td><td>Per Mosyle's own product page (mosyle.com): “Mosyle Business FREE provides Apple enterprise customers with the complete Mobile Device Management (MDM) feature set of Mosyle Business PREMIUM for up to 30 devices at no charge.”</td></tr>
+    </tbody>
+  </table>
+
+  <h4>5 · Every Claude action is logged immutably</h4>
+  <p>The MCP tool dispatcher writes an append-only audit record before every call: timestamp, authenticated identity, tool name, parameters (sensitive args redacted), result hash, exit code. Logs ship via OpenTelemetry to an external EU-hosted sink (Grafana Cloud EU, Axiom EU, or self-hosted Loki) so that even if the Mac mini is compromised, the audit trail survives. This satisfies the nDSG Art. 8/9 data-security obligation. Per the Kiteworks Swiss healthcare compliance guide: “FADP Article 8 requires special safeguards for health data, while Article 9 mandates data security preventing unauthorized access, with violations creating financial penalties up to CHF 250,000.”</p>
+
+  <h3>Authentication: how the remote operator proves authorization</h3>
+  <table>
+    <thead><tr><th>Layer</th><th>Mechanism</th><th>Purpose</th></tr></thead>
+    <tbody>
+      <tr><td>Network</td><td>Tailscale device key (WireGuard mesh)</td><td>Only enrolled devices reach <code>admin.*</code> at all</td></tr>
+      <tr><td>Transport</td><td>mTLS via Caddy</td><td>Client cert pinned to Ralph's hardware key</td></tr>
+      <tr><td>User</td><td>Passkey / WebAuthn</td><td>Phishing-resistant primary factor</td></tr>
+      <tr><td>Step-up</td><td>YubiKey touch</td><td>Required for <code>update.deploy</code> or <code>service.restart</code></td></tr>
+      <tr><td>Tool-level</td><td>Per-tool ACL</td><td>Deploys and backups require fresh auth</td></tr>
+      <tr><td>Audit</td><td>Signed, append-only log</td><td>Non-repudiation</td></tr>
+    </tbody>
+  </table>
+
+  <h3>Sandboxing options ranked</h3>
+  <ol>
+    <li><b>Best</b> — Oskar runs as a non-root LaunchDaemon under <code>_oskar</code>, with TCC permissions denied, sudoers narrowly allowlisted, and the MCP admin surface bound to <code>tailscale0</code> only.</li>
+    <li><b>Acceptable</b> — Oskar runs inside OrbStack or Lima (lightweight Linux VMs on macOS) — adds a kernel boundary but adds ARM/Linux compatibility surface.</li>
+    <li><b>Not recommended</b> — Docker Desktop with bind mounts into <code>/Users/</code> — too easy to misconfigure and accidentally expose patient-adjacent paths.</li>
+  </ol>
+
+  <div class="callout danger">
+    <b>What must NEVER be exposed to Claude</b>
+    <ul class="tight" style="margin-top:8px">
+      <li>Any directory under <code>/Users/</code> (especially <code>~/Documents</code>, <code>~/Desktop</code>, <code>~/Downloads</code>)</li>
+      <li>The practice management software's database files. Per OneDoc's compatibility documentation: “As a general practitioner, you may already use software like MediOnline, Mediway, or Axenita to manage your practice.” These contain patient health data protected by Berufsgeheimnis Art. 321 StGB.</li>
+      <li>The HIN email client and its local cache</li>
+      <li>The Keychain (passwords, certificates)</li>
+      <li>The Time Machine backup volume contents</li>
+      <li>Anything matching <code>*.dcm</code> (DICOM imaging), <code>*.hl7</code>, or <code>*.pdf</code> in user home directories</li>
+      <li>Disable-or-modify operations on XProtect, Gatekeeper, FileVault, the firewall, SIP, MDM enrollment</li>
+    </ul>
+  </div>
+
+  <h3>The compliance angle, plain-stated</h3>
+  <p>Swiss medical-practice data sits under <b>two parallel regimes</b>:</p>
+  <ol>
+    <li><b>nDSG / revDSG</b> (federal data protection, in force 1 September 2023). Per Härting Rechtsanwälte's commentary: “With the new Data Protection Act, fines of up to CHF 250,000.00 can be imposed for violations pursuant to Art. 60-66 FADP.” These are personally chargeable to the responsible natural person, not the company.</li>
+    <li><b>Berufsgeheimnis (StGB Art. 321)</b> — criminal liability (up to three years' imprisonment or monetary penalty) for unauthorized disclosure of patient information by doctors AND their “Hilfspersonen.” Per Rosenthal (2020), the test is: “Damit es durch den Beizug des Dritten nicht zum tatbestandlichen Offenbaren eines Geheimnisses kommt, muss der Beizug … erstens zur Erbringung der Dienstleistung erforderlich sein und zweitens für den Geheimnisherrn … voraussehbar sein.” IT and cloud providers fall within this when objectively necessary to the practice.</li>
+  </ol>
+  <p>The architecture above keeps Oskar firmly outside the patient-data perimeter. Oskar handles website + booking only, and the booking data it does collect (name, contact, requested slot) is the same minimum set OneDoc / Doctena / Arzt-direkt collect — hosted on the Mac mini in Switzerland, with end-to-end TLS and audit logging. The Claude-administered admin plane only ever touches infrastructure — never the booking database content, never patient communications — and this boundary is enforced architecturally, not just by policy.</p>
+
+  <h3>The concrete switch-on checklist</h3>
+  <ol class="checklist">
+    <li>Create a dedicated <code>_oskar</code> service account on the Mac mini; no GUI login.</li>
+    <li>Install Caddy via Homebrew; configure as LaunchDaemon with the Caddyfile pinned to public hostnames + Tailscale-only admin.</li>
+    <li>Install Tailscale; enrol the Mac mini; tag <code>tag:oskar-prod</code>. Issue machine-scoped auth keys for CI.</li>
+    <li>Configure pf to permit only 80 / 443 on the public interface and only specific ports on tailscale0.</li>
+    <li>Disable Apple Remote Management (ARD); disable public SSH; enable SSH only on tailscale0.</li>
+    <li>Deny Full Disk Access, Screen Recording, Accessibility for <code>_oskar</code> via TCC profile (Mosyle or manual System Settings).</li>
+    <li>Install the Oskar LaunchDaemon plist at <code>/Library/LaunchDaemons/site.oskaros.oskar.plist</code>; verify it runs as <code>_oskar</code>, not root.</li>
+    <li>Edit sudoers via <code>visudo</code> — explicit allowlist with full paths and <code>NOPASSWD:</code>; enforce <code>Defaults timestamp_timeout=0, tty_tickets</code>.</li>
+    <li>Enrol the Mac mini in Mosyle (or Jamf / Kandji) for ongoing policy enforcement.</li>
+    <li>Verify Time Machine backs up to an encrypted local + offsite target (encrypted external SSD + Backblaze B2 EU bucket).</li>
+    <li>Ship audit logs via OpenTelemetry to an EU-hosted sink (Grafana Cloud EU, Axiom EU, self-hosted Loki).</li>
+    <li>Run a tabletop exercise: simulate a Claude misbehaviour (attempt a non-allowlisted tool) and verify it fails, gets logged, and surfaces an alert.</li>
+    <li>Document the nDSG record of processing for the Swiss FDPIC: data categories, purposes, sub-processors (Tailscale Inc., Cloudflare if used, the audit-log sink), retention periods.</li>
+    <li>Publish a Datenschutzerklärung on the live Oskar site naming what's collected and where it's hosted.</li>
+    <li>Annual penetration test (FADP Art. 9 “data security measures” interpretation by the FDPIC requires periodic verification for sensitive-data processors).</li>
+  </ol>
+</section>
+
+<section id="recs">
+  <h2><span class="num">06</span>Recommendations — Staged, with Trigger Thresholds</h2>
+  <p class="deck">What to do, in what order, and what observable signal moves you to the next stage.</p>
+
+  <h3>Stage 1 — Pitch posture for the first meeting</h3>
+  <ul class="tight">
+    <li><b>Lead with the gap.</b> Show Dr. Oppliger his current <code>oppliger.digitalone.site</code> on a phone next to MyPermanence and MüllerPraxis on the same phone. The visual delta is the pitch.</li>
+    <li><b>Emphasize ownership.</b> Oskar runs on hardware he already owns and pays for. No SaaS lock-in, no per-month fee scaling with bookings.</li>
+    <li><b>Frame the Berufsgeheimnis story.</b> Oskar is architected so patient data never leaves the practice — a stronger story than any cloud booking provider can tell, even a Swiss-hosted one.</li>
+    <li><b>Don't lead with the AI admin angle.</b> Lead with the product. The AI ops story is a closer, not an opener.</li>
+  </ul>
+
+  <h3>Stage 2 — What to demo</h3>
+  <ul class="tight">
+    <li>Side-by-side: his current site → 60-second AI-generated Oskar landing page (his 5 languages, real services from local.ch, FMH credentials, Notfall block, embedded booking).</li>
+    <li>The booking flow on mobile, end-to-end, in DE and EN.</li>
+    <li>Optional, if rapport is good: the Claude admin panel. Show that asking “what's our disk usage and certificate expiry?” returns a typed response, while asking “show me patient X's notes” returns a typed <i>refusal</i> with an audit-log entry.</li>
+  </ul>
+
+  <h3>Stage 3 — Pricing and benchmarks for negotiation</h3>
+  <ul class="tight">
+    <li><b>Threshold to switch from “no” to “yes”</b>: if Oskar costs less than the equivalent of two no-shows per month avoided — using the Imperial College London peer-reviewed benchmark of a 38 % reduction in no-shows from SMS reminders, not the OneDoc admin-time figure — and gives him owner-controlled multilingual presence, the ROI math is straightforward.</li>
+    <li><b>Threshold to ask for the AI-admin tier</b>: when he understands updates, certs, and backups will happen without him ever opening Terminal. This is the senior-Hausarzt pain point.</li>
+    <li><b>Walk-away signal</b>: if he asks Oskar to also store patient health records, decline. That's a different product with different compliance and Berufsgeheimnis architecture, and selling it as part of Oskar dilutes the clean “infrastructure, not health data” boundary.</li>
+  </ul>
+
+  <h3>Stage 4 — The follow-up artifact</h3>
+  <p>After the meeting, send him a one-pager screenshot of his prospective Oskar site with his real data populated. Don't send a proposal PDF. The screenshot does the work.</p>
+</section>
+
+<section id="caveats">
+  <h2><span class="num">07</span>Caveats</h2>
+  <ul class="tight">
+    <li><b>Two of the ten benchmark sites (Amiia, Cabinet Georgette) could not be fetched directly</b> — Amiia returned a permissions error, Cabinet Georgette is robots-blocked. Their inclusion relies on search-snippet evidence and the OneDoc directory. CMS attributions for these two are inferred.</li>
+    <li><b>The OneDoc–Medicosearch merger</b> completed on 19 May 2025 in a deal reported by MergerLinks and Crunchbase at approximately $14.9 million. Older Medicosearch-branded widgets you may still see in the wild are being migrated. Treat Medicosearch as a deprecated brand for new pitches.</li>
+    <li><b>No public award exists</b> to anchor the “design ranking” in Section 2 — the FMH Planetary Health Award is sustainability-themed and the SIWF-Award is paused for 2025–2026. The rankings are an opinionated read by an experienced design eye, not a recognition list.</li>
+    <li><b>The Berufsgeheimnis-extends-to-IT-providers reading</b> is the dominant academic position (Wohlers 2016; Rosenthal 2020) but has not been definitively tested in a Federal Supreme Court ruling specific to cloud SaaS for GP practices. Treat as the safe-by-default assumption.</li>
+    <li><b>macOS server hardening guidance</b> evolves rapidly; the ernw/hardening repo cited for macOS 26 Tahoe is community-maintained, not Apple-official. Cross-check against Apple's Platform Security Guide before production deployment.</li>
+    <li><b>CVE-2025-32462 and CVE-2025-32463</b> (sudo vulnerabilities disclosed in June/July 2025) are patched in current macOS; Dr. Oppliger's Mac mini should be on the latest minor before Oskar deployment.</li>
+    <li><b>The two efficiency figures must be kept distinct.</b> OneDoc's own published number is admin-time related (“save up to 30 % of the time you normally spend on administrative tasks” — info.onedoc.ch). The peer-reviewed no-show benchmark is the Imperial College London 38 % figure (Department of Primary Care and Social Medicine, cited by Klara). Don't conflate the two in the pitch.</li>
+    <li><b>The “zmed network of more than 220 Hausärzte”</b> figure is taken verbatim from zmed.ch's own self-description; no third-party verification was located, but the source is the network itself.</li>
+    <li><b>This dossier is decision support, not legal advice.</b> Final compliance posture should be reviewed by a Swiss data-protection counsel and the Ärztegesellschaft Kanton Zürich (AGZ).</li>
+  </ul>
+</section>
+
+</main>
+
+<footer>
+  <b>Sources & verification.</b> All cited claims have a named source in the body text. Direct fetches were performed on: mypermanence.ch, muellerpraxis.zuerich, praxisriesbach.com, praxis-seefeld.ch, gesundheitszentrum-hottingen.ch, gare10.ch, medbase.ch, hausaerzte-witikon.ch, local.ch/de/d/zuerich/8005/arzt/dr-med-oppliger-robert, and oppliger.digitalone.site. Secondary sources include: onedoc.ch / info.onedoc.ch (booking platform documentation), bioalps.org and svc.swiss (OneDoc–Medicosearch merger press), anthropic.com/news/model-context-protocol and the MCP Wikipedia entry (MCP origin and adoption), Apple Developer documentation and launchd.info (LaunchDaemon vs LaunchAgent), caddyserver.com (auto-HTTPS), the ernw/hardening macOS 26 Tahoe guide on GitHub (macOS hardening), addigy.com (CVE-2025-32462/32463), mosyle.com (Mosyle Business FREE), the Swiss FDPIC, kmu.admin.ch, kiteworks.com, iclg.com (Digital Health Laws Switzerland 2026), the Kanton Zürich Merkblatt Berufsgeheimnis und Datenschutz, Wohlers 2016 and Rosenthal's Jusletter 2020 paper on professional secrecy and cloud, and the Imperial College London SMS-reminder benchmark (via Klara). 
+  <br/><br/>
+  © OskarOS internal — not for external distribution without Ralph's sign-off.
+</footer>
+
+</body>
+</html>
+```
+
+**How to use this artifact**
+
+1. Save as `oskar-oppliger-pitch.html` and open locally — it has zero external dependencies (system fonts only), so it travels.
+2. The TOC sticky-bar lets you jump straight to Section 4 (Oppliger baseline) and Section 5 (Mac mini architecture) — those are the two sections that will land hardest in the meeting.
+3. For the demo screenshot mentioned in Stage 4: shoot `oppliger.digitalone.site` and `mypermanence.ch/de` side-by-side on the same phone, then a third frame with an Oskar-generated mock for Dr. Oppliger using his real local.ch data. That three-frame still is the pitch.
+4. If Ralph wants the architecture box as a true SVG instead of monospace ASCII art, the four labelled regions (Patient → Caddy → Oskar+MCP → Claude over Tailscale) map cleanly to a four-column diagram with an "audit log" exhaust arrow sideways — any designer can render it in 20 minutes from the ASCII.

@@ -23,37 +23,29 @@ export const CD_TOOL_DEFINITIONS = [
   {
     name: 'build_vibe',
     description:
-      'Rebuild ONE vibe from its VIBE-N.md spec. Use after editing copy/structure ' +
-      'in CREATIVE-BRIEF.md or VIBE-N.md. Replaces the old `## BUILD: vibe-N` magic ' +
-      'word — call this tool, never write trigger strings into chat.',
+      'Build N vibes from their `vibe-N-{slug}.md` specs. Array-based: pass ' +
+      'one slug for a single rebuild, or the full set for a batch. Phase 4 ' +
+      'commit-build AND Phase 5 final-build both use this tool — the ' +
+      'orchestrator derives strictness from session state. Replaces the old ' +
+      '`build_all_vibes` and `build_final` tools (collapsed 2026-05-18). ' +
+      'Each slug enqueues one job; jobs run serially under the per-session ' +
+      'WebDev mutex; the live BuildJobCard renders one row per slug.',
     inputSchema: {
       type: 'object',
       properties: {
-        name: {
-          type: 'string',
+        slugs: {
+          type: 'array',
+          items: { type: 'string' },
           description:
-            'Vibe target. Either `vibe-N` (e.g. `vibe-3`) or the slug ' +
-            '(e.g. `the-deployment`). The server resolves it against VIBE-*.md.',
+            'Non-empty list of vibe slugs to build. Each entry is either ' +
+            '`vibe-N` (e.g. `vibe-3`) or the full `vibe-N-{name}` form ' +
+            '(e.g. `vibe-3-grandmas-cliff`). Single slug = single rebuild; ' +
+            'full set = batch build. The server resolves each against ' +
+            'vibe-*.md on disk.',
         },
       },
-      required: ['name'],
+      required: ['slugs'],
     },
-  },
-  {
-    name: 'build_all_vibes',
-    description:
-      'Build EVERY VIBE-N.md file in the session sequentially. Replaces ' +
-      'the old `## VIBES READY` magic word. Use after writing the full vibe ' +
-      'set; do NOT use to rebuild a single vibe (use `build_vibe`).',
-    inputSchema: { type: 'object', properties: {} },
-  },
-  {
-    name: 'build_final',
-    description:
-      'Build the final landing page (and booking flow if applicable) from ' +
-      'CREATIVE-BRIEF.md. Replaces the old `## BUILD READY` magic word. Use ' +
-      'after the user picks a vibe.',
-    inputSchema: { type: 'object', properties: {} },
   },
   {
     name: 'hotswap',
@@ -205,8 +197,8 @@ export const CD_TOOL_DEFINITIONS = [
   {
     name: 'job_status',
     description:
-      'Poll the status of a long-running job (build_vibe / build_all_vibes / ' +
-      'build_final / generate_image). Returns a `job` object with the ' +
+      'Poll the status of a long-running job (build_vibe / build_wireframes / ' +
+      'generate_image). Returns a `job` object with the ' +
       'authoritative status: "running" | "complete" | "failed" | "cancelled" ' +
       '| "stuck" (server-derived when running > 15 min). On "complete", read ' +
       'job.result.filename — that is your next action.\n\n' +
@@ -222,7 +214,7 @@ export const CD_TOOL_DEFINITIONS = [
       properties: {
         jobId: {
           type: 'string',
-          description: 'The jobId returned by build_vibe / build_all_vibes / build_final / generate_image. Omit to list all session jobs.',
+          description: 'The jobId returned by build_vibe / build_wireframes / generate_image. Omit to list all session jobs.',
         },
       },
     },
@@ -308,48 +300,394 @@ export const CD_TOOL_DEFINITIONS = [
   // renders <DiscoveryQuestionsCard> / <ConfirmUnderstandingCard> in the
   // chat surface — same render slot as UnfinishedTodosPanel (WP-2.8).
   {
-    name: 'ask_discovery_questions',
+    name: 'tc_discovery',
     description:
       'Ask the user N structured questions during initial brand discovery. ' +
-      'Use when ≥3 things still need clarification. Renders as a card with ' +
-      'one input per question; user answers come back as a regular user ' +
-      'message in the next turn.',
+      'Use when ≥3 things still need clarification, or for ANY multiple-choice ' +
+      'question (≥1 MCQ → card, never prose-numbered). Each question is either ' +
+      'a bare string (text input) OR a typed object — kind: text · textarea · ' +
+      'radio · checkbox · select. Radio/checkbox/select REQUIRE `options[]`. ' +
+      'User answers return as a regular user message in the next turn.',
     inputSchema: {
       type: 'object',
       properties: {
         questions: {
           type: 'array',
-          items: { type: 'string' },
-          description: 'List of questions to ask. Non-empty.',
+          description: 'Non-empty list. Each entry is a string (text input) or a typed-question object {kind, prompt, options?, required?, help?, placeholder?, defaultValue?}.',
+          items: {
+            oneOf: [
+              {
+                type: 'string',
+                description: 'Shorthand for a plain text question. Equivalent to {kind:"text", prompt:<string>}.',
+              },
+              {
+                type: 'object',
+                description: 'Typed question. `prompt` is the user-facing label. Radio/checkbox/select REQUIRE non-empty `options[]`.',
+                properties: {
+                  kind: {
+                    type: 'string',
+                    enum: ['text', 'textarea', 'radio', 'checkbox', 'select'],
+                  },
+                  prompt: { type: 'string', description: 'User-facing label.' },
+                  id: { type: 'string', description: 'Stable form-field id. Defaults to position index.' },
+                  required: { type: 'boolean', description: 'Render red * indicator and block submit when empty.' },
+                  help: { type: 'string', description: 'Small grey helper line under the label.' },
+                  placeholder: { type: 'string', description: 'Placeholder for text / textarea kinds only.' },
+                  options: {
+                    type: 'array',
+                    items: { type: 'string' },
+                    description: 'Required for radio / checkbox / select. Ignored for text / textarea.',
+                  },
+                  defaultValue: {
+                    description: 'Pre-filled answer. String for text/textarea/radio/select; string[] for checkbox.',
+                  },
+                },
+                required: ['kind', 'prompt'],
+              },
+            ],
+          },
+        },
+        preamble: {
+          type: 'object',
+          description: 'CD-speaking preamble — the cyan-bordered "Why I\'m asking" callout above the questions. Universal "CD speaking" channel across all tc_* cards per docs/toolcards-mockup.html. Distinct from `title` (head-bar) and `context` (deprecated flat string).',
+          properties: {
+            label: {
+              type: 'string',
+              description: 'Mono-caps role tag — "Why I\'m asking" / "Why six, not three" / etc. Short, declarative.',
+            },
+            body: {
+              type: 'string',
+              description: 'Prose explanation of CD\'s reasoning — what you\'re probing for and why. 2-4 sentences max.',
+            },
+          },
+          required: ['label', 'body'],
         },
         context: {
           type: 'string',
-          description: 'Optional one-line preamble shown above the questions.',
+          description: '@deprecated — flat-string preamble. Use `preamble: {label, body}` instead. Kept for back-compat with older CD calls.',
+        },
+        title: {
+          type: 'string',
+          description: 'Optional head-bar title (mockup: "Discovery — about FalCaMel"). Defaults to "A few quick questions".',
+        },
+        progress: {
+          type: 'object',
+          description: 'Optional progress chip in head (mockup: "step 1 / 3"). Pure cosmetic; the renderer does not enforce multi-step flow yet.',
+          properties: {
+            current: { type: 'number' },
+            total: { type: 'number' },
+          },
         },
       },
       required: ['questions'],
     },
   },
   {
-    name: 'confirm_understanding',
+    name: 'tc_understanding',
     description:
-      'Show the user a summary of what you understand about their business + ' +
-      'a build-readiness flag. Renders as a card; if readyToGenerate=true, ' +
-      'the card includes a "Build it" button that fires build_all_vibes. Use ' +
-      'right before recommending a build.',
+      'Phase 1 → Phase 2 gate. Surface the brand on one screen: ' +
+      'CD-speaking preamble (cyan callout), 6-chip distillation grid (Business / ' +
+      'Location / Who-we-are / How-it-works / Customer(s) / Voice), Conversion + ' +
+      'Pricing band (mechanism pills + pricing prose), two pull-quotes (green ' +
+      'weirdDetail + violet signatureMoment), 9-dot Discovery completeness signal, ' +
+      'and a build CTA gated on completeness (auto-enables when all 9 fields filled, ' +
+      'click fires the track-appropriate junior pass). UNIFIED single-state ' +
+      '(Ralph 2026-05-15): all 9 fields render as inline-editable inputs always. ' +
+      'Fire any time after the first Discovery round — same card serves as the ' +
+      'in-progress workbench AND the handoff gate.',
     inputSchema: {
       type: 'object',
       properties: {
         summary: {
           type: 'string',
-          description: 'Your summary: one-sentence description, target customer, unique details, tone.',
+          description: 'Fallback prose used only when literally nothing structured (preamble, chips, callouts) is provided.',
         },
         readyToGenerate: {
           type: 'boolean',
-          description: 'true = enough info to build now; false = still learning.',
+          description: 'DEPRECATED (Ralph 2026-05-15). Accepted for back-compat with old call sites; no longer branches behavior. The component derives readiness from inline-input state.',
+        },
+        preamble: {
+          type: 'object',
+          description: 'CD-speaking preamble — the cyan-bordered callout above the chips. READY: "What I heard". CHECK-IN: "What\'s still needed". Universal "CD speaking" channel.',
+          properties: {
+            label: { type: 'string', description: 'Mono-caps role tag — "What I heard" / "What\'s still needed" / etc.' },
+            body: { type: 'string', description: 'Prose explanation — what CD interpreted and where they\'re uncertain. 2-4 sentences.' },
+          },
+          required: ['label', 'body'],
+        },
+        distillation: {
+          type: 'object',
+          description: 'The brand distilled into 6 chips per mockup §3.5. Each chip is a 1-2 sentence punch line.',
+          properties: {
+            business: { type: 'string', description: 'What it is, in one line. e.g. "Third-wave coffee bar — neighborhood regulars by day, late-night tourists."' },
+            location: { type: 'string', description: 'Geography + context. e.g. "Vienna\'s 7th. Drift-up from MuseumsQuartier after dark."' },
+            whoWeAre: { type: 'string', description: 'The proprietors/operators. e.g. "Yemeni-Austrian roaster, third generation coffee man. Solo operator, no franchise."' },
+            howItWorks: { type: 'string', description: 'The operational model. e.g. "Counter walk-in by day. Reservations-only after 21:00. No app, no loyalty card."' },
+            customers: { type: 'string', description: 'The target customer in one line. Price ceiling welcome. e.g. "Locals first, tourists second. Price ceiling €7."' },
+            voice: { type: 'string', description: 'Voice/tone in one line. e.g. "Spare, confident, no kitsch. No fusion-speak."' },
+          },
+        },
+        conversion: {
+          type: 'object',
+          description: 'Operational specifics — conversion paths + pricing prose. Mechanism pills (PHONE/FORM/BOOK/SHOP); applicable ones highlight green, others render dimmed. Pricing is multi-line because real pricing rarely fits one value.',
+          properties: {
+            mechanisms: {
+              type: 'array',
+              items: { type: 'string', enum: ['PHONE', 'FORM', 'BOOK', 'SHOP'] },
+              description: 'Which conversion mechanisms apply for this brand. Empty array = none specified.',
+            },
+            pricing: {
+              type: 'string',
+              description: 'Pricing prose. Multi-line. Numbers render tabular-mono. e.g. "€4 espresso · €5 cortado · €6 cappuccino · €7 specialty pour-over. Beans by the bag €18–€32. Cash, card. Tip jar at the counter."',
+            },
+          },
+        },
+        weirdDetail: {
+          type: 'string',
+          description: 'The load-bearing line — what makes this brand unrepeatable. Renders as a green left-bordered italic pull-quote. If this feels generic, Discovery wasn\'t done.',
+        },
+        signatureMoment: {
+          type: 'string',
+          description: 'The scene that PROVES the brand (distinct from weirdDetail: a SCENE, not a line). Renders as a violet left-bordered italic pull-quote. e.g. "Late-night tourist orders cappuccino at 23:30. He brings out Sanaani-style mocha with cardamom and watches their face."',
+        },
+        discoveryProgress: {
+          type: 'object',
+          description: 'Defaults to derived state from filled fields. Drives the 9-dot completeness signal (green=filled, red=missing).',
+          properties: {
+            done: { type: 'number' },
+            total: { type: 'number' },
+          },
+        },
+        stillNeed: {
+          type: 'array',
+          items: { type: 'string' },
+          description: 'DEPRECATED (Ralph 2026-05-15). The component no longer renders this — the inline-editable inputs themselves signal what is still needed via dashed borders + placeholder text.',
+        },
+        phaseLabel: {
+          type: 'string',
+          description: 'Sub-line in the header. Defaults to "Phase 1 · N/9 Discovery items".',
         },
       },
-      required: ['summary', 'readyToGenerate'],
+      required: ['summary'],
+    },
+  },
+
+  // ── WP-70 + WP-71 (Ralph 2026-05-10): Image Strategy Card ──────────
+  // Phase 3/5 slot plan. Shows every slot for one vibe with assigned/generate/
+  // optional-empty states. Two layouts: webpage-vertical and keynote-multi-row.
+  {
+    name: 'tc_image_strategy',
+    description:
+      'Present a vibe\'s complete image plan as a card with slot states. ' +
+      'Use at Phase 3 (image-strategy review) or Phase 4→5 (pre-build canon lock). ' +
+      'Two layouts: "webpage-vertical" (vertical slot list, 6-10 slots) or ' +
+      '"keynote-multi-row" (M×5 slide grid, 15-40 slots). User can generate ' +
+      'individual slots, batch-generate all, or approve the canon. Response ' +
+      'arrives as a regular user message with { action, generatedSlotName?, freeformText }.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        slug: {
+          type: 'string',
+          description: 'Session slug identifying the webpage project.',
+        },
+        vibeSlug: {
+          type: 'string',
+          description: 'Vibe identifier, e.g. "vibe-3-grandmas-cliff".',
+        },
+        vibeName: {
+          type: 'string',
+          description: 'Display name from the Gallery Card.',
+        },
+        layout: {
+          type: 'string',
+          enum: ['webpage-vertical', 'keynote-multi-row'],
+          description: 'Layout variant. webpage-vertical = vertical slot list; keynote-multi-row = M×5 slide grid.',
+        },
+        phaseLabel: {
+          type: 'string',
+          description: 'Free-form phase context, e.g. "Phase 3 / Phase 4→5 review".',
+        },
+        preamble: {
+          type: 'object',
+          description: 'CD-speaking preamble — the cyan-bordered "How the image plan fits" callout above the slot list. Universal "CD speaking" channel per docs/toolcards-mockup.html.',
+          properties: {
+            label: { type: 'string', description: 'Mono-caps role tag — "How the image plan fits" / "What\'s missing" / etc.' },
+            body: { type: 'string', description: 'Prose explanation of the image canon — what\'s assigned, what to generate, what\'s optional. 2-4 sentences.' },
+          },
+          required: ['label', 'body'],
+        },
+        slots: {
+          type: 'array',
+          items: {
+            type: 'object',
+            properties: {
+              slotName: { type: 'string', description: 'e.g. "Hero", "Slide 7"' },
+              slotKind: { type: 'string', description: 'e.g. "hero", "portrait", "section-bg", "type-only"' },
+              aspectRatio: { type: 'string', description: 'e.g. "16:9", "3:4"' },
+              state: { type: 'string', enum: ['assigned', 'generate', 'optional-empty'] },
+              filename: { type: 'string', description: 'Present when state=assigned.' },
+              promptPreview: { type: 'string', description: 'Present when state=generate. First 2 lines of Nano prompt.' },
+              promptId: { type: 'string', description: 'Present when state=generate. References IMAGES.md block.' },
+            },
+            required: ['slotName', 'slotKind', 'aspectRatio', 'state'],
+          },
+          description: 'Ordered list of image slots for this vibe.',
+        },
+      },
+      required: ['slug', 'vibeSlug', 'vibeName', 'layout', 'phaseLabel', 'slots'],
+    },
+  },
+
+  // ── WP-77 (Ralph 2026-05-10): Design System Card ────────────────────
+  // Phase 4→5 sign-off. CD pre-loads N vibes' design-system payloads;
+  // user toggles between them via dropdown and picks one (or creates new).
+  {
+    name: 'tc_design_system',
+    description:
+      'Present N candidate design systems for the user to pick one. ' +
+      'Phase 4→5 sign-off: user toggles between vibes via dropdown, CSS vars ' +
+      'swap live. Response arrives as a user message with ' +
+      '{ action: "select"|"create-new", selectedVibeSlug?, freeformText }.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        slug: {
+          type: 'string',
+          description: 'Session slug identifying the project.',
+        },
+        vibes: {
+          type: 'array',
+          items: {
+            type: 'object',
+            properties: {
+              vibeSlug: { type: 'string', description: 'e.g. "vibe-3-grandmas-cliff"' },
+              label: { type: 'string', description: 'Display name for the dropdown.' },
+              system: {
+                type: 'object',
+                properties: {
+                  displayName: { type: 'string' },
+                  h2Sample: { type: 'string' },
+                  bodySample: { type: 'string' },
+                  palette: {
+                    type: 'object',
+                    properties: {
+                      bg: { type: 'string' },
+                      surface: { type: 'string' },
+                      primary: { type: 'string' },
+                      ink: { type: 'string' },
+                      accent: { type: 'string' },
+                    },
+                  },
+                  typography: {
+                    type: 'object',
+                    properties: {
+                      displayFont: { type: 'string' },
+                      bodyFont: { type: 'string' },
+                      h1Caption: { type: 'string' },
+                      bodyCaption: { type: 'string' },
+                    },
+                  },
+                  buttons: {
+                    type: 'object',
+                    properties: {
+                      primaryLabel: { type: 'string' },
+                      secondaryLabel: { type: 'string' },
+                    },
+                  },
+                  imageTreatment: { type: 'string' },
+                  animationPosture: { type: 'string' },
+                },
+              },
+            },
+            required: ['vibeSlug', 'label', 'system'],
+          },
+          description: 'Array of vibe design systems to present.',
+        },
+        prompt: {
+          type: 'string',
+          description: 'Optional CD commentary shown above the card.',
+        },
+      },
+      required: ['slug', 'vibes'],
+    },
+  },
+
+  // ── WP-75 (Ralph 2026-05-10): Descent Selection Card ────────────────
+  // Variable-cap vibe picker. CD specifies how many picks the user must
+  // make (cap=1 for final-pick, cap=2 for wireframe pick-2, cap=3 for
+  // top-3 narrow, etc.). Same yellow chassis as Design Directions.
+  {
+    name: 'tc_descent_selection',
+    description:
+      'Surface the descent-selection card for vibe picking. CD specifies the ' +
+      'pick cap (cap=1 for final-pick "Ship This Vibe", cap=2 for wireframe ' +
+      'pick "Advance These 2", cap=N for any narrow). Response arrives as ' +
+      'a user message with { picks: string[] }. cap=1 renders as radio ' +
+      '(single pick); cap>1 renders as multi-select with that maximum.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        slug: {
+          type: 'string',
+          description: 'Card identity slug, e.g. "wireframe-pick" or "descent-final".',
+        },
+        cap: {
+          type: 'number',
+          description:
+            'Maximum number of vibes the user can pick. Must be ≥1 and ' +
+            '≤vibes.length. cap=1 → radio (single pick). cap>1 → multi-select ' +
+            'with that maximum (clicking a (cap+1)th deselects warning).',
+        },
+        ctaLabel: {
+          type: 'string',
+          description:
+            'Primary CTA button label, e.g. "Ship This Vibe" (cap=1), ' +
+            '"Advance These 2" (cap=2), "Narrow to Top 3" (cap=3). CD writes ' +
+            'this verbatim — pick a label that reads cleanly for the chosen cap.',
+        },
+        contextLabel: {
+          type: 'string',
+          description:
+            'Optional sub-line shown in the card header below "Descent Selection". ' +
+            'Use to give phase context, e.g. "Phase 2→3 wireframe pick" or ' +
+            '"Phase 4→5 final pick". Free-form; CD writes verbatim.',
+        },
+        vibes: {
+          type: 'array',
+          description: 'Candidate vibes (1-6 items typical; cap must be ≤length).',
+          items: {
+            type: 'object',
+            properties: {
+              slug: { type: 'string', description: 'Vibe slug (matches vibe-{n}-{slug}.html).' },
+              name: { type: 'string', description: 'Display name (Title Case).' },
+              heroImage: { type: 'string', description: 'Hero image URL or filename.' },
+              tagline: { type: 'string', description: 'Optional one-line summary (~10 words).' },
+              palette: {
+                type: 'array',
+                items: { type: 'string' },
+                description: 'Optional 3-color palette swatch (hex strings).',
+              },
+              displayFont: { type: 'string', description: 'Optional display-font sample name.' },
+            },
+            required: ['slug', 'name', 'heroImage'],
+          },
+        },
+        preamble: {
+          type: 'object',
+          description: 'CD-speaking preamble — the cyan-bordered "What to weigh" callout above the candidates. Universal "CD speaking" channel per docs/toolcards-mockup.html.',
+          properties: {
+            label: { type: 'string', description: 'Mono-caps role tag — "What to weigh" / "How to choose" / etc.' },
+            body: { type: 'string', description: 'Prose explanation — what dimensions matter, what trade-offs to consider. 2-4 sentences.' },
+          },
+          required: ['label', 'body'],
+        },
+        prompt: {
+          type: 'string',
+          description: '@deprecated — flat-string preamble. Use `preamble: {label, body}` instead.',
+        },
+      },
+      required: ['slug', 'cap', 'ctaLabel', 'vibes'],
     },
   },
 
@@ -380,9 +718,22 @@ export const CD_TOOL_DEFINITIONS = [
             'diagnostic_chip',
             // Ralph + CD 2026-05-06: build job card (Archetype 1).
             // payload = { title: string, jobId?: string, rows: BuildCardRow[] }.
-            // Each row carries { id, label, state, juniorDev?, eta?, thumb?,
-            // milestones?, error? }. state ∈ queued|wf|html|verify|done|failed.
+            // Each row carries { id, label, state, hasCritique?, juniorDev?,
+            // eta?, thumb?, milestones?, error? }.
+            // state ∈ queued|html|verify|critique|done|failed|cancelled.
+            // (Ralph 2026-05-18: 'wf' alias renamed to 'critique'; ladder is
+            // 5-stage when hasCritique:true, 4-stage otherwise.)
             'build',
+            // WP-70 + WP-71 (Ralph 2026-05-10): Image Strategy Card.
+            'image_strategy',
+            // WP-74 (Ralph 2026-05-10): Design Directions Card.
+            'design_directions',
+            // WP-77 (Ralph 2026-05-10): Design System Card.
+            'design_system',
+            // WP-75 (Ralph 2026-05-14): Descent Selection Card. Route at
+            // /api/mcp/preview-card line 217 already handles this kind;
+            // schema enum was missing it (source-to-route drift).
+            'descent_selection',
           ],
           description: 'The card kind to render. Match a discriminator in lib/types.ts.',
         },
@@ -511,73 +862,51 @@ export async function callCDTool(
     // "build_vibe error: unknown" — the running build was real, the
     // error was a lie. Logged in docs/INSTITUTIONAL-MEMORY.md.
     case 'build_vibe': {
-      const target = String(args.name || '').trim()
-      if (!target) return { text: 'Error: `name` is required', isError: true }
-      const r = await postJson<{
-        status: string
-        jobId?: string
-        target?: string
-        deduped?: boolean
-        originalStartedAt?: string
-        error?: string
-      }>('/api/mcp/build-vibe', { sessionId, target })
-      if (!r.ok) return { text: r.error || 'build_vibe failed', isError: true }
-      if (r.body?.status === 'running' && r.body.jobId) {
-        const dedupNote = r.body.deduped
-          ? ` (deduped — already running since ${r.body.originalStartedAt})`
-          : ''
+      // Array-based shape (Ralph 2026-05-18 — collapsed build API).
+      // Old `{name}` callers are accepted as fallback (auto-wrapped into
+      // `{slugs: [name]}`) so in-flight CD turns don't break mid-session.
+      // New canonical shape: `{slugs: string[]}`.
+      let slugs: string[] = []
+      if (Array.isArray(args.slugs)) {
+        slugs = (args.slugs as unknown[])
+          .filter((s): s is string => typeof s === 'string')
+          .map((s) => s.trim())
+          .filter(Boolean)
+      } else if (typeof args.name === 'string' && args.name.trim()) {
+        // Back-compat for old single-slug callers
+        slugs = [args.name.trim()]
+      } else if (typeof args.slug === 'string' && (args.slug as string).trim()) {
+        slugs = [(args.slug as string).trim()]
+      }
+      if (slugs.length === 0) {
         return {
           text:
-            `build_vibe enqueued: jobId=${r.body.jobId}, target=${r.body.target || target}${dedupNote}. ` +
-            `Poll via job_status; do 1–2 turns of other work between polls.`,
-          isError: false,
+            'Error: `slugs` (non-empty array of strings) is required. ' +
+            'Example: build_vibe({slugs: ["vibe-3"]}) or build_vibe({slugs: ["vibe-1","vibe-2","vibe-3","vibe-4"]}).',
+          isError: true,
         }
       }
-      return { text: `build_vibe error: ${r.body?.error || 'unknown'}`, isError: true }
-    }
-    case 'build_all_vibes': {
       const r = await postJson<{
-        vibeCount: number
+        slugCount?: number
         jobs?: { jobId: string; target: string; status: string; deduped?: boolean; originalStartedAt?: string }[]
         error?: string
-      }>('/api/mcp/build-all-vibes', { sessionId })
-      if (!r.ok) return { text: r.error || 'build_all_vibes failed', isError: true }
+      }>('/api/mcp/build-vibe', { sessionId, slugs })
+      if (!r.ok) return { text: r.error || 'build_vibe failed', isError: true }
       if (Array.isArray(r.body?.jobs) && r.body.jobs.length > 0) {
         const lines = r.body.jobs.map((j) => {
           const dedupNote = j.deduped ? ` (deduped, since ${j.originalStartedAt})` : ''
           return `  - ${j.target}: jobId=${j.jobId}${dedupNote}`
         })
+        const wording =
+          r.body.jobs.length === 1
+            ? `build_vibe enqueued: ${r.body.jobs[0].target} (jobId=${r.body.jobs[0].jobId})`
+            : `build_vibe enqueued ${r.body.slugCount ?? r.body.jobs.length} vibe(s):\n${lines.join('\n')}`
         return {
-          text:
-            `build_all_vibes enqueued ${r.body.vibeCount} vibe(s). Per-vibe jobIds:\n` +
-            lines.join('\n') +
-            `\nPoll job_status(jobId) for each; do other work between polls.`,
+          text: `${wording}\nPoll job_status(jobId) for each; do other work between polls.`,
           isError: false,
         }
       }
-      return { text: `build_all_vibes error: ${r.body?.error || 'unknown'}`, isError: true }
-    }
-    case 'build_final': {
-      const r = await postJson<{
-        status: string
-        jobId?: string
-        deduped?: boolean
-        originalStartedAt?: string
-        error?: string
-      }>('/api/mcp/build-final', { sessionId })
-      if (!r.ok) return { text: r.error || 'build_final failed', isError: true }
-      if (r.body?.status === 'running' && r.body.jobId) {
-        const dedupNote = r.body.deduped
-          ? ` (deduped — already running since ${r.body.originalStartedAt})`
-          : ''
-        return {
-          text:
-            `build_final enqueued: jobId=${r.body.jobId}${dedupNote}. ` +
-            `Poll via job_status; do other work between polls.`,
-          isError: false,
-        }
-      }
-      return { text: `build_final error: ${r.body?.error || 'unknown'}`, isError: true }
+      return { text: `build_vibe error: ${r.body?.error || 'unknown'}`, isError: true }
     }
     case 'hotswap': {
       const vibe = String(args.vibe || '').trim()
@@ -696,18 +1025,27 @@ export async function callCDTool(
     }
 
     // ── Phase 2 discovery flow (Ralph 2026-05-04) ────────────────────────
-    case 'ask_discovery_questions': {
-      const questions = Array.isArray(args.questions) ? args.questions.map((q) => String(q ?? '').trim()).filter(Boolean) : []
+    // Ralph 2026-05-12 — schema widened to accept typed-question objects
+    // (text/textarea/radio/checkbox/select). The string-coerce that lived
+    // here used to fold an MCQ object into "[object Object]"; now we
+    // pass-through and let the route validate per-kind. Pre-2026-05-12
+    // string[] callers still work — the route flattens bare strings to
+    // {kind:'text', prompt}.
+    case 'tc_discovery': {
+      const questions = Array.isArray(args.questions) ? args.questions : []
       if (questions.length === 0) {
-        return { text: 'Error: questions must be a non-empty array of strings', isError: true }
+        return { text: 'Error: questions must be a non-empty array', isError: true }
       }
       const context = typeof args.context === 'string' ? args.context : undefined
+      const title = typeof args.title === 'string' ? args.title : undefined
+      const progress = args.progress && typeof args.progress === 'object' ? args.progress : undefined
+      const preamble = args.preamble && typeof args.preamble === 'object' ? args.preamble : undefined
       const r = await postJson<{ ok: boolean; questionCount?: number; error?: string }>(
         '/api/mcp/ask-discovery-questions',
-        { sessionId, questions, context },
+        { sessionId, questions, context, title, progress, preamble },
       )
-      if (!r.ok) return { text: `ask_discovery_questions failed: ${r.error}`, isError: true }
-      if (r.body?.error) return { text: `ask_discovery_questions error: ${r.body.error}`, isError: true }
+      if (!r.ok) return { text: `tc_discovery failed: ${r.error}`, isError: true }
+      if (r.body?.error) return { text: `tc_discovery error: ${r.body.error}`, isError: true }
       return {
         text:
           `Discovery questions surfaced (${r.body?.questionCount ?? questions.length}). ` +
@@ -715,20 +1053,153 @@ export async function callCDTool(
         isError: false,
       }
     }
-    case 'confirm_understanding': {
+    case 'tc_understanding': {
       const summary = String(args.summary || '').trim()
       if (!summary) return { text: 'Error: summary is required', isError: true }
       const readyToGenerate = args.readyToGenerate === true
+      // Bug fix (Ralph 2026-05-14): dispatcher was forwarding only
+      // {sessionId, summary, readyToGenerate} and silently dropping the
+      // structured fields (distillation / weirdDetail / discoveryProgress
+      // / stillNeed / phaseLabel). Result: same CD payload rendered as
+      // chips+pull-quote via preview_card and as prose-fallback via the
+      // live tc_understanding path. Same-shape drift as the build_vibe
+      // wrapper from 2026-04-30 — protocol on one end, contract on the
+      // other, no shared schema enforcing the pass-through. Forward
+      // everything CD sent; the route's own validator + the component's
+      // own defensive coerce handle shape policing downstream.
+      //
+      // Bug fix #2 (Ralph 2026-05-14): some MCP transports deliver
+      // object/array tool args as JSON-encoded STRINGS instead of native
+      // objects (depends on the harness's JSON Schema coercion behavior).
+      // The route's `typeof body.X === 'object'` checks then silently drop
+      // these fields. Defensive parse here: if an arg looks like a JSON
+      // object/array string, parse it. Native objects pass through unchanged.
+      const coerceObj = (raw: unknown): unknown => {
+        if (raw === null || raw === undefined) return undefined
+        if (typeof raw === 'object') return raw
+        if (typeof raw === 'string') {
+          const s = raw.trim()
+          if (s.startsWith('{') || s.startsWith('[')) {
+            try { return JSON.parse(s) } catch { return undefined }
+          }
+        }
+        return undefined
+      }
       const r = await postJson<{ ok: boolean; readyToGenerate?: boolean; error?: string }>(
         '/api/mcp/confirm-understanding',
-        { sessionId, summary, readyToGenerate },
+        {
+          sessionId,
+          summary,
+          readyToGenerate,
+          preamble: coerceObj(args.preamble),
+          distillation: coerceObj(args.distillation),
+          conversion: coerceObj(args.conversion),
+          weirdDetail: args.weirdDetail,
+          signatureMoment: args.signatureMoment,
+          discoveryProgress: coerceObj(args.discoveryProgress),
+          stillNeed: coerceObj(args.stillNeed),
+          phaseLabel: args.phaseLabel,
+        },
       )
-      if (!r.ok) return { text: `confirm_understanding failed: ${r.error}`, isError: true }
-      if (r.body?.error) return { text: `confirm_understanding error: ${r.body.error}`, isError: true }
+      if (!r.ok) return { text: `tc_understanding failed: ${r.error}`, isError: true }
+      if (r.body?.error) return { text: `tc_understanding error: ${r.body.error}`, isError: true }
       return {
         text: readyToGenerate
           ? 'Understanding confirmed; user will trigger build via UI button.'
           : 'Understanding summarized; user will continue clarifying or steer.',
+        isError: false,
+      }
+    }
+
+    // ── WP-70 + WP-71 (Ralph 2026-05-10): tc_image_strategy ─────
+    case 'tc_image_strategy': {
+      const slug = String(args.slug || '').trim()
+      const vibeSlug = String(args.vibeSlug || '').trim()
+      const vibeName = String(args.vibeName || '').trim()
+      const layout = String(args.layout || '').trim()
+      const phaseLabel = String(args.phaseLabel || '').trim()
+      const slots = Array.isArray(args.slots) ? args.slots : []
+      if (!slug || !vibeSlug || !vibeName || !layout || slots.length === 0) {
+        return { text: 'Error: slug, vibeSlug, vibeName, layout, and non-empty slots are required', isError: true }
+      }
+      if (!['webpage-vertical', 'keynote-multi-row'].includes(layout)) {
+        return { text: 'Error: layout must be webpage-vertical or keynote-multi-row', isError: true }
+      }
+      const r = await postJson<{ ok: boolean; slotCount?: number; error?: string }>(
+        '/api/mcp/present-image-strategy',
+        { sessionId, slug, vibeSlug, vibeName, layout, phaseLabel, slots, preamble: args.preamble },
+      )
+      if (!r.ok) return { text: `tc_image_strategy failed: ${r.error}`, isError: true }
+      if (r.body?.error) return { text: `tc_image_strategy error: ${r.body.error}`, isError: true }
+      return {
+        text:
+          `Image Strategy card surfaced for ${vibeName} (${layout}, ${r.body?.slotCount ?? slots.length} slots). ` +
+          `Wait for the user's response — it arrives as a regular user message with { action, freeformText }.`,
+        isError: false,
+      }
+    }
+
+    // ── WP-77 (Ralph 2026-05-10): tc_design_system ──────────────
+    case 'tc_design_system': {
+      const dsSlug = String(args.slug || '').trim()
+      const dsVibes = Array.isArray(args.vibes) ? args.vibes : []
+      if (!dsSlug || dsVibes.length === 0) {
+        return { text: 'Error: slug and non-empty vibes array are required', isError: true }
+      }
+      const r = await postJson<{ ok: boolean; vibeCount?: number; error?: string }>(
+        '/api/mcp/present-design-system',
+        { sessionId, slug: dsSlug, vibes: dsVibes, prompt: args.prompt },
+      )
+      if (!r.ok) return { text: `tc_design_system failed: ${r.error}`, isError: true }
+      if (r.body?.error) return { text: `tc_design_system error: ${r.body.error}`, isError: true }
+      return {
+        text:
+          `Design System card surfaced (${r.body?.vibeCount ?? dsVibes.length} vibes). ` +
+          `Wait for the user's response — it arrives as a regular user message with { action, selectedVibeSlug?, freeformText }.`,
+        isError: false,
+      }
+    }
+
+    // ── WP-75 (Ralph 2026-05-10): tc_descent_selection ──────────
+    // Variable-cap vibe picker. CD passes cap (1..vibes.length) + ctaLabel
+    // verbatim. cap=1 → radio (final-pick). cap>1 → multi-select.
+    case 'tc_descent_selection': {
+      const dscSlug = String(args.slug || '').trim()
+      const dscCap = typeof args.cap === 'number' ? Math.floor(args.cap) : NaN
+      const dscCtaLabel = String(args.ctaLabel || '').trim()
+      const dscContextLabel = typeof args.contextLabel === 'string' ? args.contextLabel.trim() : undefined
+      const dscVibes = Array.isArray(args.vibes) ? args.vibes : []
+      if (!dscSlug || dscVibes.length === 0) {
+        return { text: 'Error: slug and non-empty vibes array are required', isError: true }
+      }
+      if (!Number.isFinite(dscCap) || dscCap < 1 || dscCap > dscVibes.length) {
+        return {
+          text: `Error: cap must be an integer between 1 and vibes.length (=${dscVibes.length}); got ${args.cap}`,
+          isError: true,
+        }
+      }
+      if (!dscCtaLabel) {
+        return { text: 'Error: ctaLabel is required (e.g. "Ship This Vibe", "Advance These 2", "Narrow to Top 3")', isError: true }
+      }
+      const r = await postJson<{ ok: boolean; vibeCount?: number; error?: string }>(
+        '/api/mcp/present-descent-selection',
+        {
+          sessionId,
+          slug: dscSlug,
+          cap: dscCap,
+          ctaLabel: dscCtaLabel,
+          contextLabel: dscContextLabel,
+          vibes: dscVibes,
+          prompt: args.prompt,
+          preamble: args.preamble,
+        },
+      )
+      if (!r.ok) return { text: `tc_descent_selection failed: ${r.error}`, isError: true }
+      if (r.body?.error) return { text: `tc_descent_selection error: ${r.body.error}`, isError: true }
+      return {
+        text:
+          `Descent selection card surfaced (${r.body?.vibeCount ?? dscVibes.length} candidates, cap=${dscCap}). ` +
+          `Wait for the user's response — it arrives as a regular user message with { picks: string[] }.`,
         isError: false,
       }
     }

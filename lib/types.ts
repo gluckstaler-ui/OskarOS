@@ -202,15 +202,98 @@ export interface VibePreview {
 
 // Conversation message
 /**
+ * Typed discovery question (Ralph 2026-05-12).
+ *
+ * Mockup §discovery-card (docs/toolcards-mockup.html:2015-2058) specs
+ * mixed input types — text · textarea · radio · checkbox · select. v1
+ * shipped string-only; v2 carries the full `kind` discriminator so a
+ * multiple-choice question doesn't collapse into a single text input.
+ *
+ * CD doctrine line 277 + 485 already commits to this shape — the schema
+ * just caught up. Legacy `string` is still accepted (DiscoveryCardPayload
+ * union below) and treated as `{kind:'text', prompt}` at the boundary.
+ */
+export type DiscoveryQuestion =
+  | {
+      kind: 'text'
+      prompt: string
+      id?: string
+      required?: boolean
+      help?: string
+      placeholder?: string
+      defaultValue?: string
+    }
+  | {
+      kind: 'textarea'
+      prompt: string
+      id?: string
+      required?: boolean
+      help?: string
+      placeholder?: string
+      defaultValue?: string
+    }
+  | {
+      kind: 'radio'
+      prompt: string
+      id?: string
+      required?: boolean
+      help?: string
+      options: string[]
+      defaultValue?: string
+    }
+  | {
+      kind: 'checkbox'
+      prompt: string
+      id?: string
+      required?: boolean
+      help?: string
+      options: string[]
+      defaultValue?: string[]
+    }
+  | {
+      kind: 'select'
+      prompt: string
+      id?: string
+      required?: boolean
+      help?: string
+      options: string[]
+      defaultValue?: string
+    }
+
+/**
  * Discovery card payload — populated when CD calls
  * `ask_discovery_questions` MCP tool. The conversation panel renders
  * <DiscoveryQuestionsCard> instead of plain markdown when this is set.
- * Ralph 2026-05-04.
+ * Ralph 2026-05-04. Extended 2026-05-12 for mixed-input form support.
+ *
+ * `questions` accepts either bare strings (legacy text-only) or typed
+ * `DiscoveryQuestion` objects. The component normalises both at render
+ * time; the route + preview-card gate also accept both.
  */
+/**
+ * Universal "CD speaking" preamble shape — present on every tc_* toolcard
+ * that asks the user something. Renders as a cyan-bordered callout above
+ * the body. The label is the mono-caps role tag ("Why I'm asking" / "What
+ * I heard" / "What to weigh" / "How the image plan fits"); the body is the
+ * prose explanation. Both required when preamble is set. Per
+ * docs/toolcards-mockup.html (Ralph 2026-05-14).
+ */
+export interface Preamble {
+  label: string
+  body: string
+}
+
 export interface DiscoveryCardPayload {
   kind: 'discovery_questions'
-  questions: string[]
+  questions: Array<string | DiscoveryQuestion>
+  /** CD-speaking preamble — the "Why I'm asking" cyan callout above the questions. */
+  preamble?: Preamble
+  /** @deprecated — flat-string preamble. Use `preamble: {label, body}` instead. */
   context?: string
+  /** Optional head-bar title (mockup: "Discovery — about FalCaMel"). */
+  title?: string
+  /** Optional progress chip in head (mockup: "step 1 / 3"). */
+  progress?: { current: number; total: number }
 }
 
 /**
@@ -218,10 +301,58 @@ export interface DiscoveryCardPayload {
  * The conversation panel renders <ConfirmUnderstandingCard> instead of
  * plain markdown when this is set. Ralph 2026-05-04.
  */
+/** Conversion mechanism token — the four-way pill row on the confirm card. */
+export type ConversionMechanism = 'PHONE' | 'FORM' | 'BOOK' | 'SHOP'
+
 export interface ConfirmCardPayload {
   kind: 'confirm_understanding'
+  /** Fallback prose — only used by CHECK-IN variant when chips are absent. */
   summary: string
   readyToGenerate: boolean
+  /**
+   * CD-speaking preamble per mockup §3.5 — the cyan callout at the top of
+   * both variants. READY: "What I heard". CHECK-IN: "What's still needed".
+   * Distinct from the green weirdDetail and violet signatureMoment pull-quotes.
+   */
+  preamble?: Preamble
+  /**
+   * Ralph 2026-05-14 — match mockup §3.5 6-chip spec.
+   * Old 4-chip shape ({business, where, who, tone}) is renamed:
+   *   where → location, who → whoWeAre (plus new `customers`), tone → voice
+   * NEW chips added: howItWorks, customers, signatureMoment (as pull-quote)
+   */
+  distillation?: {
+    /** "Third-wave coffee bar — neighborhood regulars by day, late-night tourists." */
+    business?: string
+    /** "Vienna's 7th. Drift-up from MuseumsQuartier after dark." */
+    location?: string
+    /** "Yemeni-Austrian roaster, third generation coffee man. Solo operator." */
+    whoWeAre?: string
+    /** "Counter walk-in by day. Reservations-only after 21:00. No app." */
+    howItWorks?: string
+    /** "Locals first, tourists second. Price ceiling €7." */
+    customers?: string
+    /** "Spare, confident, no kitsch. No fusion-speak." */
+    voice?: string
+  }
+  /** Operational specifics — conversion paths + pricing prose, multi-line. */
+  conversion?: {
+    /** Which mechanisms apply — highlighted in brand-green. Others rendered dimmed. */
+    mechanisms?: ConversionMechanism[]
+    /** Pricing prose — typically multi-line. Numbers should render tabular-mono. */
+    pricing?: string
+  }
+  /** The un-repeatable line — green left-bordered italic pull-quote. */
+  weirdDetail?: string
+  /** The scene that PROVES the brand — violet left-bordered italic pull-quote.
+   *  Distinct from weirdDetail: a scene, not a line. */
+  signatureMoment?: string
+  /** 9-dot Discovery completeness signal. Defaults to {done: 9, total: 9} when ready. */
+  discoveryProgress?: { done: number; total: number }
+  /** CHECK-IN variant: bullet list of items CD still needs to nail. */
+  stillNeed?: string[]
+  /** Track context for the chrome sub-line (defaults to "Phase 1 → Phase 2"). */
+  phaseLabel?: string
 }
 
 /**
@@ -347,10 +478,11 @@ export interface DiagnosticChipPayload {
 /**
  * Build-job card payload — Archetype 1 in toolcards-mockup.html.
  *
- * Single shape backs both `build_vibe` (one row) and `build_all_vibes`
- * (N rows). Updates from `build_started` / `report_build_progress` /
- * `vibe_built` / `build_failed` / `vibe_failed` events as the job moves
- * through the pipeline. Each row owns its own cancel/open button.
+ * Single shape backs `build_vibe` (1..N rows, array-based since
+ * 2026-05-18) and `build_wireframes` (N rows). Updates from
+ * `build_started` / `build_progress` / `vibe_built` / `build_failed` /
+ * `vibe_failed` events as the job moves through the pipeline. Each row
+ * owns its own cancel/open button.
  *
  * (Ralph + CD 2026-05-06: build_progress / build_complete / build_failed
  * preview kinds collapse into this single payload — the row.state field
@@ -358,9 +490,9 @@ export interface DiagnosticChipPayload {
  */
 export type BuildRowState =
   | 'queued'
-  | 'wf'        // legacy alias — treated as queued
   | 'html'
   | 'verify'
+  | 'critique'   // Phase 7 — wireframes only (was: 'wf' legacy alias, renamed 2026-05-18)
   | 'done'
   | 'failed'
   | 'cancelled' // user cancelled mid-build via cancel_job
@@ -372,17 +504,23 @@ export interface BuildCardRow {
   label: string
   /** Optional thumb path for the leftmost cell. Empty cell renders an em-dash placeholder. */
   thumb?: string
-  /** Active step. Drives the timeline rendering — `state === 'wf'` shows WF as active,
-   *  later states render WF as done IF `juniorDev === true`. */
+  /** Active step. Drives the timeline rendering. Five-stage ladder for
+   *  wireframes (`hasCritique: true`), four-stage for vibes. */
   state: BuildRowState
+  /** When true, this row's ladder includes the `critique` stage between
+   *  `verify` and `done`. Set by `build_wireframes` route at row creation
+   *  (Phase 7 of webdev-agent-rewrite.md). Omitted/false for `build_vibe`
+   *  rows — they go verify → done directly. */
+  hasCritique?: boolean
   /** True when JuniorDev produced this vibe (worktree-fork path). Shows the WF step in the timeline. */
   juniorDev?: boolean
   /** Display-formatted ETA, e.g. "~2:14" or "1:42" once done. */
   eta?: string
   /** Job id from the escrow layer — used when CANCEL is clicked. */
   jobId?: string
-  /** Optional milestone bullets shown under the row in single-vibe mode (build_vibe).
-   *  Sourced from `report_build_progress` events. Hidden in build_all_vibes view. */
+  /** Optional milestone bullets shown under the row in single-vibe mode
+   *  (build_vibe with a single-slug array). Sourced from `build_progress`
+   *  events. Hidden in multi-slug views (batch build_vibe / build_wireframes). */
   milestones?: string[]
   /** Free-form failure reason when state === 'failed'. Renders inline below the row. */
   error?: string
@@ -407,8 +545,186 @@ export interface BuildCardPayload {
   title: string
   /** Job-family id shown right-aligned in the head meta. */
   jobId?: string
-  /** Rows in display order (top → bottom). build_vibe = single row; build_all_vibes = N. */
+  /** Rows in display order (top → bottom). One row per slug for build_vibe / build_wireframes. */
   rows: BuildCardRow[]
+}
+
+// WP-70 + WP-71 (Ralph 2026-05-10): Image Strategy Card — Phase 3/5 slot plan.
+// Two layouts: webpage-vertical (vertical slot list) and keynote-multi-row (M×5 grid).
+export interface ImageStrategySlot {
+  slotName: string
+  slotKind: string
+  aspectRatio: string
+  state: 'assigned' | 'generate' | 'optional-empty'
+  filename?: string
+  promptPreview?: string
+  promptId?: string
+}
+
+export interface ImageStrategyCardPayload {
+  kind: 'image_strategy'
+  vibeSlug: string
+  vibeName: string
+  layout: 'webpage-vertical' | 'keynote-multi-row'
+  phaseLabel: string
+  /** CD-speaking preamble — "How the image plan fits" cyan callout. */
+  preamble?: Preamble
+  slots: ImageStrategySlot[]
+}
+
+// WP-74 (Ralph 2026-05-10): Design Directions Card — closes Discovery / opens Phase 2.
+// Multi-select cap 4 from 6 strategic bets. Schema replaced 2026-05-21 to match
+// docs/tc-design-directions-mockup.html — see agents/creative-director-agent.md
+// § "Strategic Bet" block for the per-bet field contract.
+export interface PaletteSwatch {
+  hex: string
+  role: string
+}
+
+export interface AxisLinear {
+  /** Convention-pole label, Disruption-pole label. */
+  poles: [string, string]
+  /** 0..1 — marker position along the spectrum. 0 = pure Convention, 1 = pure Disruption. */
+  position: number
+}
+
+export interface BetFonts {
+  /** CSS font-family value, e.g. 'Playfair Display' or '"Space Mono", monospace'. */
+  display: string
+  /** Short display label, e.g. 'Playfair Display' or 'Manrope (Söhne-like)'. */
+  display_label: string
+  body: string
+  body_label: string
+}
+
+export interface DesignDirection {
+  slug: string
+  /** vibe-x.md filename this bet seeds, e.g. 'vibe-1-hospitality.md'. */
+  filename: string
+  /** The wager's name, e.g. "The Hospitality Play" — NOT the school. */
+  bet_name: string
+  /** One-sentence description of the audience this bet filters for. */
+  bet_audience: string
+  /** Convention↔Disruption spectrum with a 0..1 marker. */
+  axis_linear: AxisLinear
+  /** Emotional hook — Warmth | Pride | Nostalgia | Exclusivity | Humor. Model-only; not rendered after 2026-05-17. */
+  axis_hook: string
+  /** What becomes true if this wager wins — body description in the body font. */
+  the_bet: string
+  /** What UNIQUELY differentiates this bet from the others. */
+  mutex: string
+  palette: [PaletteSwatch, PaletteSwatch, PaletteSwatch, PaletteSwatch]
+  fonts: BetFonts
+}
+
+export interface DesignDirectionsCardPayload {
+  kind: 'design_directions'
+  directions: DesignDirection[]
+  /** CD-speaking preamble — "Why six, not three" cyan callout. */
+  preamble?: Preamble
+  /** @deprecated — flat-string preamble. Use `preamble: {label, body}` instead. */
+  prompt?: string
+  // Doctrine: track is TRACK-AGNOSTIC for design_directions. Never re-add.
+  // See INSTITUTIONAL-MEMORY.md "Doctrine drift: track grafted onto
+  // tc_design_directions (2nd time)" 2026-05-14.
+}
+
+// WP-77 (Ralph 2026-05-10): Design System Card — Phase 4→5 sign-off.
+// Interactive vibe-selector that swaps CSS vars + textContent client-side.
+export interface DesignSystemVibe {
+  vibeSlug: string
+  label: string
+  system: {
+    displayName: string
+    h2Sample: string
+    bodySample: string
+    palette: {
+      bg: string
+      surface: string
+      primary: string
+      ink: string
+      accent: string
+    }
+    typography: {
+      displayFont: string
+      bodyFont: string
+      h1Caption: string
+      bodyCaption: string
+    }
+    buttons: { primaryLabel: string; secondaryLabel: string }
+    imageTreatment: string
+    animationPosture: string
+  }
+}
+
+export interface DesignSystemCardPayload {
+  kind: 'design_system'
+  /** Session slug — passed to CD's downstream `build_vibe([selectedSlug])` call. */
+  slug?: string
+  vibes: DesignSystemVibe[]
+  initialVibeIndex?: number
+  /** Optional CD commentary shown above the card. */
+  prompt?: string
+}
+
+// WP-75 (Ralph 2026-05-10): Descent Selection Card — variable-cap vibe picker.
+// CD specifies cap (1..vibes.length) + ctaLabel verbatim. cap=1 → radio
+// (Phase 4→5 "Ship This Vibe"). cap=2 → multi-select max-2 (Phase 2→3
+// "Advance These 2"). cap=N for any other narrow ("Narrow to Top 3", etc.).
+// Same yellow chassis as Design Directions.
+export interface DescentSelectionVibe {
+  slug: string
+  name: string
+  heroImage: string
+  tagline?: string
+  /** Optional 3-color palette swatch. */
+  palette?: [string, string, string]
+  displayFont?: string
+}
+
+export interface DescentSelectionCardPayload {
+  kind: 'descent_selection'
+  slug?: string
+  /** Maximum number of vibes the user can pick. 1 = radio. 2+ = multi-select. */
+  cap: number
+  /** Primary CTA button label, e.g. "Ship This Vibe", "Advance These 2", "Narrow to Top 3". */
+  ctaLabel: string
+  /** Optional sub-line in the card header for phase context. */
+  contextLabel?: string
+  vibes: DescentSelectionVibe[]
+  /** CD-speaking preamble — "What to weigh" cyan callout. */
+  preamble?: Preamble
+  /** @deprecated — flat-string preamble. Use `preamble: {label, body}` instead. */
+  prompt?: string
+}
+
+// Ralph 2026-05-18: Critique card payload. Fires from build-wireframes route's
+// onToolCall when WebDev/Sentinel calls submit_critique. Read-only — no user
+// input. Mirrors the submit_critique MCP tool schema
+// (mcp-server/tools-sentinel.ts:23-74) plus two transport-side fields.
+export interface CritiqueScorePayload {
+  dimension: string
+  score: number
+  note: string
+}
+
+export interface CritiqueCardPayload {
+  kind: 'critique'
+  /** What was critiqued — e.g. "vibe-3.html", "CREATIVE-BRIEF.md". */
+  target: string
+  /** Per-dimension scores (0-10) with one-line notes. */
+  scores: CritiqueScorePayload[]
+  /** Headline / summary paragraph. */
+  summary: string
+  /** Specific, actionable recommendations. Each a single sentence. */
+  recommendations: string[]
+  /** Which agent fired the critique — colors the icon + pill. */
+  agent?: 'webdev' | 'sentinel'
+  /** Phase context — adjusts the header label. Post-2026-05-18 build-API
+   *  collapse: two values only ('wireframes' from build-wireframes route,
+   *  'vibe' from build-vibe route — same tool for Phase 4 and Phase 5,
+   *  so 'final' is no longer distinguishable at the route layer). */
+  phase?: 'wireframes' | 'vibe'
 }
 
 export type AssistantCardPayload =
@@ -420,6 +736,11 @@ export type AssistantCardPayload =
   | ApplyPatchCardPayload
   | DiagnosticChipPayload
   | BuildCardPayload
+  | ImageStrategyCardPayload
+  | DesignDirectionsCardPayload
+  | DesignSystemCardPayload
+  | DescentSelectionCardPayload
+  | CritiqueCardPayload
 
 export interface ConversationMessage {
   id: string
@@ -446,7 +767,7 @@ export interface ConversationMessage {
 }
 
 // Workflow phases (legacy - kept for compatibility)
-export type WorkflowPhase = 'discovery' | 'moodboard' | 'selection' | 'generation' | 'preview'
+export type WorkflowPhase = 'discovery' | 'selection' | 'generation' | 'preview'
 
 // ==========================================
 // OskarOS Phase System (Simple 4-Phase Flow)
@@ -486,28 +807,6 @@ export interface WorkflowProgress {
 // Layout modes
 export type LayoutMode = '2-panel' | '3-panel' | 'image' | 'gallery'
 
-// Moodboard quadrant position
-export type QuadrantPosition = 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right'
-
-// Moodboard vibe concept
-export interface MoodboardConcept {
-  name: string
-  visualStyle: string
-  colorPalette: string[]
-  headline: string
-  oneWord: string
-  position: QuadrantPosition
-}
-
-// Moodboard data
-export interface MoodboardData {
-  id: string
-  imagePath: string            // /generated-images/moodboard-{timestamp}.jpg
-  concepts: MoodboardConcept[]
-  selectedConcept?: string     // name of selected concept
-  generatedAt: string
-}
-
 // Image generation queue item
 export interface ImageQueueItem {
   id: string
@@ -529,7 +828,6 @@ export interface OskarSession {
   conversation: ConversationMessage[]
   workflowPhase: WorkflowPhase
   layoutMode: LayoutMode
-  moodboard?: MoodboardData
   imageQueue: ImageQueueItem[]
 }
 

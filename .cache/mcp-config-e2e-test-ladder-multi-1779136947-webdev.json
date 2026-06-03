@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "orch": {
+      "type": "http",
+      "url": "http://localhost:3000/api/mcp/server?session=e2e-test-ladder-multi-1779136947&agent=webdev&instance=e0832ec2-4cf4-4ce9-b7a0-379d1cc8c906"
+    }
+  }
+}

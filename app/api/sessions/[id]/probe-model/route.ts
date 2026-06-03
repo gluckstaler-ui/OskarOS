@@ -45,6 +45,7 @@ import { spawn } from 'child_process'
 import { existsSync } from 'fs'
 import { resolveConfig } from '@/lib/session-config'
 import { bridgeManager } from '@/lib/bridge-process-manager'
+import { findBinary } from '@/lib/cli-paths'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -52,15 +53,13 @@ export const dynamic = 'force-dynamic'
 const NO_CACHE = { 'Cache-Control': 'no-store, no-cache, must-revalidate' }
 
 function findClaudeBinary(): string | null {
-  const paths = [
-    '/opt/homebrew/bin/claude',
-    '/usr/local/bin/claude',
-    '/usr/bin/claude',
-  ]
-  for (const p of paths) {
-    if (existsSync(p)) return p
-  }
-  return null
+  // Resolve via the shared candidate list (lib/cli-paths.ts, WP-40). Preserve
+  // the null contract: findBinary falls back to the bare name 'claude' when
+  // nothing resolves — treat that as "not found" so the caller's explicit
+  // error fires instead of spawning a guaranteed-ENOENT process. Operators on
+  // an unusual layout (e.g. nvm-only) can set CLAUDE_BIN to pin the path.
+  const p = findBinary('claude')
+  return existsSync(p) ? p : null
 }
 
 interface InitEventShape {
@@ -80,7 +79,7 @@ interface InitEventShape {
  */
 async function probeCliModel(): Promise<string> {
   const claudePath = findClaudeBinary()
-  if (!claudePath) throw new Error('claude binary not found in /opt/homebrew/bin /usr/local/bin /usr/bin')
+  if (!claudePath) throw new Error('claude binary not found — set CLAUDE_BIN or install claude on PATH (see lib/cli-paths.ts candidates)')
 
   return new Promise<string>((resolve, reject) => {
     const child = spawn(
@@ -182,8 +181,8 @@ export async function GET(
       // We control the wire for API mode — resolve, translate the 'auto'
       // sentinel, return. No probe necessary because there's no separate
       // process to query.
-      const raw = resolveConfig('cdModel', null, sessionId, 'claude-opus-4-7')
-      const model = raw === 'auto' ? 'claude-opus-4-7' : raw
+      const raw = resolveConfig('cdModel', null, sessionId, 'claude-opus-4-8')
+      const model = raw === 'auto' ? 'claude-opus-4-8' : raw
       return NextResponse.json({ model, source: 'api-config' }, { headers: NO_CACHE })
     }
 

@@ -18,8 +18,8 @@ import { collectFromStdout } from './mcp-tool-collector'
 function readReportBuildCompleteFromStdout(
   stdout: string,
 ): { filename: string; vibeIndex: number; vibeName: string } | null {
-  const calls = collectFromStdout(stdout, ['report_build_complete'])
-  const args = calls.report_build_complete as
+  const calls = collectFromStdout(stdout, ['build_done'])
+  const args = calls.build_done as
     | { filename?: unknown; vibeIndex?: unknown; vibeName?: unknown }
     | undefined
   if (!args) return null
@@ -29,12 +29,12 @@ function readReportBuildCompleteFromStdout(
   return { filename: args.filename, vibeIndex: args.vibeIndex, vibeName: args.vibeName }
 }
 
-describe('WebDev report_build_complete capture', () => {
+describe('WebDev build_done capture', () => {
   it('extracts the manifest from a typed tool_use event', () => {
     const stdout = [
       '{"type":"system","subtype":"init"}',
       '{"type":"assistant","message":{"content":[{"type":"text","text":"Building vibe-3..."}]}}',
-      '{"type":"assistant","message":{"content":[{"type":"tool_use","name":"report_build_complete","input":{"filename":"vibe-3-the-deployment.html","vibeIndex":3,"vibeName":"The Deployment","sectionsBuilt":["hero","menu"],"imagesUsed":["hero.jpg"]}}]}}',
+      '{"type":"assistant","message":{"content":[{"type":"tool_use","name":"build_done","input":{"filename":"vibe-3-the-deployment.html","vibeIndex":3,"vibeName":"The Deployment","sectionsBuilt":["hero","menu"],"imagesUsed":["hero.jpg"]}}]}}',
       '{"type":"result","subtype":"success"}',
     ].join('\n')
     const m = readReportBuildCompleteFromStdout(stdout)
@@ -55,22 +55,22 @@ describe('WebDev report_build_complete capture', () => {
   })
 
   it('returns null when filename is missing or non-html', () => {
-    const stdoutNoFilename = `{"type":"assistant","message":{"content":[{"type":"tool_use","name":"report_build_complete","input":{"vibeIndex":3,"vibeName":"X"}}]}}`
+    const stdoutNoFilename = `{"type":"assistant","message":{"content":[{"type":"tool_use","name":"build_done","input":{"vibeIndex":3,"vibeName":"X"}}]}}`
     expect(readReportBuildCompleteFromStdout(stdoutNoFilename)).toBeNull()
 
-    const stdoutBadExt = `{"type":"assistant","message":{"content":[{"type":"tool_use","name":"report_build_complete","input":{"filename":"vibe-3.txt","vibeIndex":3,"vibeName":"X"}}]}}`
+    const stdoutBadExt = `{"type":"assistant","message":{"content":[{"type":"tool_use","name":"build_done","input":{"filename":"vibe-3.txt","vibeIndex":3,"vibeName":"X"}}]}}`
     expect(readReportBuildCompleteFromStdout(stdoutBadExt)).toBeNull()
   })
 
   it('returns null when vibeIndex is not a number', () => {
-    const stdout = `{"type":"assistant","message":{"content":[{"type":"tool_use","name":"report_build_complete","input":{"filename":"vibe-3.html","vibeIndex":"three","vibeName":"X"}}]}}`
+    const stdout = `{"type":"assistant","message":{"content":[{"type":"tool_use","name":"build_done","input":{"filename":"vibe-3.html","vibeIndex":"three","vibeName":"X"}}]}}`
     expect(readReportBuildCompleteFromStdout(stdout)).toBeNull()
   })
 
   it('does NOT extract from text-only output mentioning the tool', () => {
     // Phase 2 doctrine: tool effects only fire from typed events. Mentions
-    // of `report_build_complete({...})` in chat are inert.
-    const stdout = `{"type":"assistant","message":{"content":[{"type":"text","text":"I will call report_build_complete({\\"filename\\":\\"x.html\\"}) now."}]}}`
+    // of `build_done({...})` in chat are inert.
+    const stdout = `{"type":"assistant","message":{"content":[{"type":"text","text":"I will call build_done({\\"filename\\":\\"x.html\\"}) now."}]}}`
     expect(readReportBuildCompleteFromStdout(stdout)).toBeNull()
   })
 
@@ -81,8 +81,8 @@ describe('WebDev report_build_complete capture', () => {
     expect(readReportBuildCompleteFromStdout(stdout)).toBeNull()
   })
 
-  it('handles the prefixed CLI form (mcp__oskar-orchestrator__report_build_complete)', () => {
-    const stdout = `{"type":"assistant","message":{"content":[{"type":"tool_use","name":"mcp__oskar-orchestrator__report_build_complete","input":{"filename":"vibe-9.html","vibeIndex":9,"vibeName":"Y","sectionsBuilt":[],"imagesUsed":[]}}]}}`
+  it('handles the prefixed CLI form (mcp__orch__build_done)', () => {
+    const stdout = `{"type":"assistant","message":{"content":[{"type":"tool_use","name":"mcp__orch__build_done","input":{"filename":"vibe-9.html","vibeIndex":9,"vibeName":"Y","sectionsBuilt":[],"imagesUsed":[]}}]}}`
     const m = readReportBuildCompleteFromStdout(stdout)
     expect(m?.filename).toBe('vibe-9.html')
     expect(m?.vibeIndex).toBe(9)

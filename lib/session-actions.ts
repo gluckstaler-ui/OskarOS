@@ -832,6 +832,7 @@ export async function getImageEntriesAction(
     entriesMap.forEach((value, key) => {
       entries[key] = value
     })
+    console.log(`📂 [DEBUG getImageEntriesAction] sessionId=${sessionId} entryCount=${entries ? Object.keys(entries).length : 0}`)
     return { success: true, entries }
   } catch (error) {
     return { success: false, error: `${error}` }

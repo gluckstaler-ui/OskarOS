@@ -21,6 +21,7 @@ import { readdir, mkdir, writeFile } from 'fs/promises'
 import { existsSync } from 'fs'
 import path from 'path'
 import { publish } from '@/lib/event-bus'
+import { findBinary } from '@/lib/cli-paths'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -46,44 +47,74 @@ export async function POST(req: NextRequest) {
   const frame = body.frame && FRAME_DIMS[body.frame] ? body.frame : 'desktop'
   const dims = FRAME_DIMS[frame]
   const sessionDir = path.join(process.cwd(), 'public', body.sessionId)
+  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'
 
-  // Resolve target → HTML file. If it already ends in .html, use as-is.
-  // Otherwise treat as slug, scan the folder for `{slug}*.html` or
-  // `{slug}-*.html` matches.
+  // Ralph 2026-05-25 · target resolution has TWO modes:
+  //
+  //  1. Root-relative path ("/admin.html", "/whatever.html") — for global
+  //     pages that live outside any session folder. This is what CD needs
+  //     to audit the CRM (admin.html). Previously the only way for CD to
+  //     screenshot admin.html was to bail out to a raw Playwright script —
+  //     the MCP tool flat-out refused. Now we treat any target starting
+  //     with `/` as public-root-relative.
+  //
+  //  2. Vibe slug / filename — for session artifacts ("vibe-3" or
+  //     "vibe-3-the-deployment.html"). Resolved inside `public/{session}/`
+  //     as before.
+  //
+  // The session screenshots dir is still used for output in both modes —
+  // sessionId is the audit-scope, regardless of what was screenshotted.
   let htmlFilename: string | null = null
-  if (body.target.endsWith('.html')) {
-    if (existsSync(path.join(sessionDir, body.target))) {
-      htmlFilename = body.target
-    }
-  } else {
-    try {
-      const files = await readdir(sessionDir)
-      const candidate =
-        files.find((f) => f === `${body.target}.html`) ||
-        files.find((f) => f.startsWith(`${body.target}-`) && f.endsWith('.html'))
-      htmlFilename = candidate || null
-    } catch {
-      // sessionDir missing — fall through to error below
-    }
-  }
+  let targetUrl: string
+  let outputSlug: string
 
-  if (!htmlFilename) {
-    return NextResponse.json(
-      { error: `Target not found: no HTML file matched "${body.target}" in session folder` },
-      { status: 404 },
-    )
+  if (body.target.startsWith('/')) {
+    // Root-relative target. Works for BOTH a static file in public/ ("/admin.html")
+    // AND a Next.js route with no file on disk ("/crm"). Ralph 2026-05-30 — the old
+    // `existsSync(public/<target>)` gate 404'd every Next route (the live CRM is at
+    // /crm, server-rendered, no public/crm.* file), which is why the Consular's
+    // screenshot tool "only reached static public/* files." We navigate the real
+    // URL instead; a genuinely-missing target is caught by the HTTP status check
+    // after page.goto below.
+    htmlFilename = body.target
+    targetUrl = `${baseUrl}${body.target}`
+    // "/admin.html" → "admin"; "/crm" → "crm"; "/foo/bar.html" → "foo-bar"
+    outputSlug = body.target.replace(/^\//, '').replace(/\//g, '-').replace(/\.html?$/, '') || 'root'
+  } else {
+    // Session-scoped resolution: if already .html, use as-is; otherwise
+    // treat as slug and scan the folder for `{slug}*.html` matches.
+    if (body.target.endsWith('.html')) {
+      if (existsSync(path.join(sessionDir, body.target))) {
+        htmlFilename = body.target
+      }
+    } else {
+      try {
+        const files = await readdir(sessionDir)
+        const candidate =
+          files.find((f) => f === `${body.target}.html`) ||
+          files.find((f) => f.startsWith(`${body.target}-`) && f.endsWith('.html'))
+        htmlFilename = candidate || null
+      } catch {
+        // sessionDir missing — fall through to error below
+      }
+    }
+    if (!htmlFilename) {
+      return NextResponse.json(
+        { error: `Target not found: no HTML file matched "${body.target}" in session folder. For global pages outside the session (e.g. admin.html), use a leading slash: "/admin.html".` },
+        { status: 404 },
+      )
+    }
+    targetUrl = `${baseUrl}/${body.sessionId}/${htmlFilename}`
+    outputSlug = htmlFilename.replace(/\.html$/, '')
   }
 
   const screenshotsDir = path.join(sessionDir, 'screenshots')
   await mkdir(screenshotsDir, { recursive: true })
 
   const ts = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19)
-  const slug = htmlFilename.replace(/\.html$/, '')
-  const outputName = `${slug}-${frame}-${ts}.png`
+  const outputName = `${outputSlug}-${frame}-${ts}.png`
   const outputPath = path.join(screenshotsDir, outputName)
   const publicSavedPath = `/${body.sessionId}/screenshots/${outputName}`
-  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'
-  const targetUrl = `${baseUrl}/${body.sessionId}/${htmlFilename}`
 
   // Lazy-load Playwright so the route doesn't try to import a 500MB
   // browser bundle during the test suite. `playwright` is in devDependencies;
@@ -114,14 +145,29 @@ export async function POST(req: NextRequest) {
   }
   log('launch')
   let browser
+  // WP-128 (2026-06-02): resolve via the shared chromium candidate list
+  // (lib/cli-paths.ts) — same source as lib/thumbnail-generator.ts — so this
+  // works on Linux/WSL. CHROMIUM_BIN overrides; macOS /Applications and the
+  // apt/snap paths are candidates. We still pass an explicit executablePath so
+  // Playwright never falls back to its (uninstalled) bundled-browser cache.
+  const installedChromium = findBinary('chromium')
+  if (!existsSync(installedChromium)) {
+    return NextResponse.json(
+      {
+        error: `Chromium not found (resolved "${installedChromium}")`,
+        hint: 'macOS: drop Chromium.app in /Applications. Linux/WSL: `apt install chromium-browser`, or set CHROMIUM_BIN. See windows/README.md.',
+      },
+      { status: 500 },
+    )
+  }
   try {
-    browser = await chromium.launch({ headless: true })
+    browser = await chromium.launch({ headless: true, executablePath: installedChromium })
   } catch (err) {
-    console.error(`[/api/mcp/screenshot] chromium.launch failed:`, err)
+    console.error(`[/api/mcp/screenshot] chromium.launch failed at ${installedChromium}:`, err)
     return NextResponse.json(
       {
         error: `Playwright launch failed: ${err instanceof Error ? err.message : String(err)}`,
-        hint: 'Run `npx playwright install chromium` if browsers are not yet installed.',
+        executablePath: installedChromium,
       },
       { status: 500 },
     )
@@ -132,7 +178,16 @@ export async function POST(req: NextRequest) {
     log('newPage')
     const page = await ctx.newPage()
     log(`goto:${targetUrl}`)
-    await page.goto(targetUrl, { waitUntil: 'networkidle', timeout: 30_000 })
+    const resp = await page.goto(targetUrl, { waitUntil: 'networkidle', timeout: 30_000 })
+    // Catch a genuinely-missing target (typo'd file, dead route) via the real
+    // HTTP status — replaces the old public/* file-existence gate, and works
+    // uniformly for static files AND Next routes.
+    if (resp && resp.status() >= 400) {
+      return NextResponse.json(
+        { error: `Target "${body.target}" returned HTTP ${resp.status()} (${targetUrl})` },
+        { status: 404 },
+      )
+    }
     log('screenshot')
     const buffer = await page.screenshot({ fullPage: true, type: 'png' })
     log('writeFile')

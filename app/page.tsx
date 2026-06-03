@@ -27,8 +27,9 @@ import { AskUserModal } from '@/components/AskUserModal'
 // snackbar in the app uses). The parallel CDSnackbar component never
 // rendered properly. See components/SnackbarProvider.tsx case 'cd.snackbar'.
 import { ConversationPanel } from '@/components/ConversationPanel'
+import { uploadChatImages } from '@/lib/chat-image-upload'
+import { subscribeApiEvents } from '@/lib/api-events-bus'
 import { useImagePipeline } from '@/lib/hooks/useImagePipeline'
-import { resolveVibes } from '@/lib/vibe-resolver'
 import { TopBar, type Order66Status } from '@/components/TopBar'
 import { CompactionOverlay } from '@/components/CompactionOverlay'
 import { FinalApprovalModal } from '@/components/PhaseGate'
@@ -51,7 +52,6 @@ import {
   ConversationMessage,
   WorkflowPhase,
   LayoutMode,
-  MoodboardData,
   ImageQueueItem,
   SelectedElement,
   VibeEdits,
@@ -60,6 +60,7 @@ import {
   OskarPhase,
   WorkflowProgress,
   UploadEvalCardPayload,
+  DiscoveryCardPayload,
 } from '@/lib/types'
 
 export default function Home() {
@@ -67,11 +68,18 @@ export default function Home() {
   const [sessionId, setSessionIdState] = useState<string | null>(null)
   const [businessName, setBusinessName] = useState<string>('')
 
-  // Sentinel Ti — manual critique trigger from TopBar 🛡 button.
-  // Switches AssetsPanel to FEEDBACK view and seeds the panel with a target;
-  // the panel auto-runs the critique then clears pendingCritiqueTarget.
-  const [assetsView, setAssetsView] = useState<'assets' | 'feedback'>('assets')
-  const [pendingCritiqueTarget, setPendingCritiqueTarget] = useState<string | null>(null)
+  // [Sentinel Ti — commented out of studio 2026-05-29] manual critique trigger.
+  // Revive by uncommenting pendingCritiqueTarget below + the AssetsPanel props
+  // + the FEEDBACK tab in AssetsPanel.tsx. ('feedback' stays in the assetsView
+  // union for type compat; it's just no longer selectable from the UI.)
+  // WP-CRM-C1: subtab choice is restored per-session from localStorage
+  // (key `crm-subtab-active::<sessionId>`) in an effect once sessionId is
+  // known; defaults to 'assets' for fresh sessions.
+  const [assetsView, setAssetsViewState] = useState<'assets' | 'feedback' | 'crm'>('assets')
+  // [Sentinel Ti — out of studio 2026-05-29] const [pendingCritiqueTarget, setPendingCritiqueTarget] = useState<string | null>(null)
+  // WP-CRM-C1: prospect_id derived from this session's _session-config.json
+  // via the existing /api/admin/crm/sessions endpoint (filesystem scan).
+  const [prospectId, setProspectId] = useState<string | null>(null)
 
   // Persist sessionId so refresh reloads the same session
   const setSessionId = useCallback((id: string | null) => {
@@ -101,10 +109,91 @@ export default function Home() {
       // until the next successful write. Not user-visible.
     })
   }, [sessionId])
+
+  // WP-CRM-C1 (Ralph 2026-05-22): derive prospect_id for the current
+  // session via the existing /api/admin/crm/sessions endpoint, which
+  // returns the LinksMap from the file-system scan (A11). When this is
+  // null the CRM subtab in AssetsPanel renders the "Link to CRM lead"
+  // picker instead of the lead detail panel.
+  useEffect(() => {
+    if (!sessionId) {
+      setProspectId(null)
+      return
+    }
+    let cancelled = false
+    void fetch('/api/admin/crm/sessions')
+      .then(r => r.json())
+      .then((data: { links?: Record<string, Array<{ sessionId: string }>> }) => {
+        if (cancelled) return
+        const links = data.links ?? {}
+        for (const [pid, sessions] of Object.entries(links)) {
+          if (sessions.some(s => s.sessionId === sessionId)) {
+            setProspectId(pid)
+            return
+          }
+        }
+        setProspectId(null)
+      })
+      .catch(() => { if (!cancelled) setProspectId(null) })
+    return () => { cancelled = true }
+  }, [sessionId])
+
+  // WP-CRM-C1 (Ralph 2026-05-22): persist the AssetsPanel subtab choice
+  // per-session. Returning to the same session restores Filippo's last
+  // subtab (ASSETS / FEEDBACK / CRM); switching sessions resets to that
+  // session's last choice, or 'assets' for a fresh session.
+  const setAssetsView = useCallback((view: 'assets' | 'feedback' | 'crm') => {
+    setAssetsViewState(view)
+    if (sessionId) {
+      try { localStorage.setItem(`crm-subtab-active::${sessionId}`, view) } catch { /* ignore quota */ }
+    }
+  }, [sessionId])
+
+  useEffect(() => {
+    if (!sessionId) {
+      setAssetsViewState('assets')
+      return
+    }
+    try {
+      const saved = localStorage.getItem(`crm-subtab-active::${sessionId}`)
+      // [Sentinel Ti out of studio] 'feedback' intentionally excluded — a stale
+      // saved 'feedback' tab now falls through to 'assets'.
+      if (saved === 'assets' || saved === 'crm') {
+        setAssetsViewState(saved)
+      } else {
+        setAssetsViewState('assets')
+      }
+    } catch {
+      setAssetsViewState('assets')
+    }
+  }, [sessionId])
+
   // Session management now handled via Admin page
 
   // Workflow state (legacy - kept for layout transitions)
   const [workflowPhase, setWorkflowPhase] = useState<WorkflowPhase>('discovery')
+
+  // Gallery card shape — mirrors GET /api/sessions/[id]/gallery response.
+  // Defined locally instead of imported from the route to keep the route
+  // a leaf module (lib code can ship without dragging Next.js handlers
+  // into the bundle).
+  type GalleryCard = {
+    filename: string
+    htmlPath: string
+    vibeIndex: number
+    version: number
+    slug: string
+    name: string
+    heroImage: string | null
+    oneLiner?: string
+    audience?: string
+    mood?: string
+    voice?: string
+    colors?: { primary?: string; secondary?: string; accent?: string; text?: string }
+    colorNames?: { primary?: string; secondary?: string; accent?: string; text?: string }
+    fonts?: { heading?: string; body?: string }
+    mtime: string
+  }
 
   // Layout mode — user's choice, persisted, NOTHING overrides it
   const [layoutMode, setLayoutModeState] = useState<LayoutMode>('2-panel')
@@ -128,9 +217,6 @@ export default function Home() {
     finalApproved: false
   })
   const [showFinalApproval, setShowFinalApproval] = useState(false)
-
-  // Moodboard
-  const [moodboard, setMoodboard] = useState<MoodboardData | undefined>(undefined)
 
   // Source images (uploaded by user)
   const [sourceImages, setSourceImages] = useState<SourceImage[]>([])
@@ -189,6 +275,13 @@ export default function Home() {
 
   // Conversation
   const [messages, setMessages] = useState<ConversationMessage[]>([])
+  // Ralph 2026-05-12 — Option A persistence fix for `mcp_chat_echo`.
+  // The SSE handler in useEffect([sessionId]) captures `messages` at
+  // subscribe time, so its closure is permanently stale. A ref mirrors
+  // the latest messages so the echo handler's dedupe sees fresh state
+  // when deciding whether to persist to SESSION.md.
+  const messagesRef = useRef<ConversationMessage[]>([])
+  useEffect(() => { messagesRef.current = messages }, [messages])
   const [isLoading, setIsLoading] = useState(false)
 
   // Director Mode state
@@ -204,8 +297,8 @@ export default function Home() {
     message: ''
   })
   const [useStreaming, setUseStreaming] = useState(true) // Toggle streaming mode
-  const [billingMode, setBillingMode] = useState<'smpl' | 'cli' | 'api'>('smpl') // Execution mode: SMPL (tier alias), CLI (Claude ID), API (Anthropic direct)
-  const [webDevModel, setWebDevModel] = useState<'claude-opus-4-7' | 'claude-sonnet-4-6' | 'gemini-3.1-pro-preview'>('claude-sonnet-4-6') // WebDev model
+  const [billingMode, setBillingMode] = useState<'smpl' | 'cli' | 'api'>('cli') // Execution mode: SMPL (tier alias), CLI (Claude ID), API (Anthropic direct). Default = CLI (1M context, Claude Code subscription). SMPL/API are opt-in only — API in particular is real out-of-pocket spend and must NEVER be entered silently. Ralph 2026-05-27.
+  const [webDevModel, setWebDevModel] = useState<'claude-opus-4-8' | 'claude-sonnet-4-6' | 'gemini-3.1-pro-preview'>('claude-sonnet-4-6') // WebDev model
   const [theme, setThemeState] = useState<'onyx' | 'polar'>('onyx') // Theme: ONYX (dark) or POLAR (light)
 
   // Apply theme synchronously at click time (before React commits). Without
@@ -275,79 +368,106 @@ export default function Home() {
   // Ref to hold the message handler for session events (allows effect to access latest handler)
   const messageHandlerRef = useRef<((content: string) => void) | null>(null)
 
-  // Transform vibes into VibeCardData format for the gallery
-  // Uses actual vibe data - colors, fonts, voice samples from the vibe itself
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // Gallery v2 state (WP-79). Lazy-loaded — only fetched when the user
+  // switches to gallery layout. `galleryFetchRef` caches the latest fetch
+  // (per sessionId) for 30s to avoid re-fetching on rapid layout toggles.
+  // `galleryDirtyRef` is set when an SSE event invalidates the cache
+  // (e.g., `vibe_built`); next gallery render forces a refetch.
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  const [galleryCards, setGalleryCards] = useState<GalleryCard[] | null>(null)
+  const galleryFetchRef = useRef<{ sessionId: string; ts: number } | null>(null)
+  const galleryDirtyRef = useRef<boolean>(false)
+
+  // Transform vibes into VibeCardData format for the gallery.
+  //
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // WP-79 (2026-05-10): two source modes.
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  //
+  // 1. **Gallery layout + galleryCards loaded** → map directly from
+  //    galleryCards (server-built, HTML-driven, sidecar-enriched).
+  //    Each HTML on disk becomes a card. No FalCaMel fallback colors,
+  //    no FalCaMel fallback fonts, no `index % 4` Potemkin cycle.
+  //    Fields the sidecar didn't supply stay undefined; downstream
+  //    VibesGallery hides swatches / falls back to system-ui.
+  //
+  // 2. **Other layouts (2-panel / 3-panel / image)** → fall back to
+  //    the in-memory `vibes` state as before. These layouts don't
+  //    render the full Gallery, so the cheaper in-memory mapping is
+  //    fine. The build-event handlers (vibe_built SSE etc.) keep
+  //    pushing into `vibes` and the cards update synchronously.
+  //
+  // The deleted FalCaMel-themed fallbackColors / fallbackFonts arrays
+  // (4 hardcoded palettes cycled by `index % 4`) used to fabricate
+  // brand identity for ANY non-FalCaMel session. Gone for good.
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   const vibeCards = useMemo((): VibeCardData[] => {
+    // Path 1: gallery layout, server cards available
+    if (layoutMode === 'gallery' && galleryCards) {
+      return galleryCards.map((card): VibeCardData => {
+        // Colors come from the sidecar — already keyed primary/secondary/
+        // accent/text. Map to the array shape VibesGallery expects, plus
+        // a parallel colorNames[] aligned by index. When sidecar didn't
+        // supply colors, leave both arrays empty so VibesGallery's
+        // degraded path (WP-80) can hide the swatch row entirely.
+        const slots = ['primary', 'secondary', 'accent', 'text'] as const
+        const colors: string[] = []
+        const colorNames: (string | undefined)[] = []
+        if (card.colors) {
+          for (const slot of slots) {
+            const hex = card.colors[slot]
+            if (typeof hex === 'string') {
+              colors.push(hex)
+              colorNames.push(card.colorNames?.[slot])
+            }
+          }
+        }
+
+        const fonts = card.fonts && (card.fonts.heading || card.fonts.body)
+          ? { heading: card.fonts.heading || 'system-ui', body: card.fonts.body || 'system-ui' }
+          : { heading: 'system-ui', body: 'system-ui' }
+
+        return {
+          id: `vibe-${card.vibeIndex}-${card.version}-${card.filename}`,
+          name: card.name,
+          heroImage: card.heroImage,
+          // VibesGallery expects whoItsFor + mood as strings. When the
+          // sidecar didn't supply audience/mood, return empty string and
+          // let VibesGallery render a tasteful empty slot rather than a
+          // fabricated "For those who appreciate authentic experiences".
+          whoItsFor: card.audience || '',
+          mood: card.mood || '',
+          colors,
+          colorNames,
+          fonts,
+          filename: card.filename,
+        }
+      })
+    }
+
+    // Path 2: non-gallery layouts → use in-memory `vibes` state
     if (!vibes || vibes.length === 0) return []
 
-    // Fallback colors matching the actual FalCaMel vibes from CREATIVE-BRIEF.md
-    const fallbackColors = [
-      ['#8B4513', '#F5F5DC', '#722F37', '#2C1810'],  // QAHWA - warm browns, beige, burgundy
-      ['#2F4F4F', '#DEB887', '#006400', '#1A1A1A'],  // JAREEN - slate, burlywood, green
-      ['#1C1C1C', '#FFD700', '#DC143C', '#FFFFFF'],  // THE RACE - black, gold, crimson
-      ['#1A1A2E', '#C9A227', '#4A0E0E', '#F5F5F0'],  // MAJLIS - deep navy, gold, burgundy
-    ]
-
-    return vibes.map((vibe, index) => {
-      // Hero image = whatever the CD set. No fallbacks, no heuristics.
-      //
-      // Previously this had 6 "strategies" (keyword match, slug match, HERO
-      // tag, index rotation, any-HERO, numbered placeholder) that combined
-      // to produce *a* hero even when the CD hadn't picked one. The first
-      // two were FalCaMel-specific heuristics (hardcoded qahwa/jareen/race/
-      // majlis keyword map) — useless for any other brand. The last three
-      // were pure facade (index math, arbitrary pick). An agent reading
-      // this couldn't tell real signal from fallback.
-      //
-      // New rule: `vibe.heroImage` or null. When null, VibesGallery renders
-      // a gradient-colored placeholder using the vibe's own palette so the
-      // user sees "no hero assigned yet" clearly instead of a random image
-      // pretending to be the chosen one.
+    return vibes.map((vibe): VibeCardData => {
       const heroImage: string | null = vibe.heroImage || null
 
-      // Use actual vibe colors - handle both array and object formats
-      // vibe.colors can be: string[] (from API) or { primary, secondary, accent, text } (from parser)
-      let colors: string[]
-      if (Array.isArray(vibe.colors) && vibe.colors.length >= 4) {
-        // Already an array with 4+ colors
+      // vibe.colors can be: string[] (from API) or { primary, secondary, accent, text }
+      let colors: string[] = []
+      if (Array.isArray(vibe.colors) && vibe.colors.length > 0) {
         colors = vibe.colors.slice(0, 4)
-      } else if (vibe.colors && typeof vibe.colors === 'object' && !Array.isArray(vibe.colors)) {
-        // Object format from parser: { primary, secondary, accent, text }
+      } else if (vibe.colors && typeof vibe.colors === 'object') {
         const colorObj = vibe.colors as { primary?: string; secondary?: string; accent?: string; text?: string }
-        colors = [
-          colorObj.primary || '#1C1C1E',
-          colorObj.secondary || '#F5F5F5',
-          colorObj.accent || '#C76B00',
-          colorObj.text || '#1A1A1A'
-        ]
-      } else {
-        // Fallback colors
-        colors = fallbackColors[index % fallbackColors.length]
+        colors = [colorObj.primary, colorObj.secondary, colorObj.accent, colorObj.text]
+          .filter((c): c is string => typeof c === 'string')
       }
 
-      // Use actual vibe typography - with meaningful fallbacks per vibe
-      const fallbackFonts = [
-        { heading: 'Playfair Display', body: 'Source Sans Pro' },   // QAHWA
-        { heading: 'Crimson Text', body: 'Open Sans' },             // JAREEN
-        { heading: 'Oswald', body: 'Roboto' },                       // THE RACE
-        { heading: 'Cormorant Garamond', body: 'Libre Baskerville' } // MAJLIS
-      ]
       const fonts = vibe.typography?.heading && vibe.typography?.body
         ? vibe.typography
-        : fallbackFonts[index % fallbackFonts.length]
+        : { heading: 'system-ui', body: 'system-ui' }
 
-      // Use NEW audience/mood fields if available, fallback to voiceSamples for backward compat
-      // vibe.audience = short brand persona (e.g., "Saudi 30-45, dual-income, 1-3 kids. Successful but spiritually untethered.")
-      // vibe.mood = 3-5 adjectives (e.g., "Warm, Nostalgic, Guilt-Inducing")
-      // Fallback: voiceSamples[1] = whoFor (detailed), voiceSamples[0] = voice (detailed)
-      const whoItsFor = vibe.audience
-        || vibe.voiceSamples?.[1]
-        || 'For those who appreciate authentic experiences'
-      const mood = vibe.mood
-        || vibe.voiceSamples?.[0]
-        || 'Distinctive, memorable, impactful'
-
-      // Extract filename from htmlPath (e.g., "/2026-01-27-31/vibe-1-grandmas-cliff.html" → "vibe-1-grandmas-cliff.html")
+      const whoItsFor = vibe.audience || vibe.voiceSamples?.[1] || ''
+      const mood = vibe.mood || vibe.voiceSamples?.[0] || ''
       const filename = vibe.htmlPath?.split('/').pop() || ''
 
       return {
@@ -358,10 +478,10 @@ export default function Home() {
         mood,
         colors,
         fonts,
-        filename
+        filename,
       }
     })
-  }, [vibes, sourceImages, sessionId])
+  }, [vibes, layoutMode, galleryCards])
 
   // Scroll to top on mount to ensure vibe bar is visible below top bar
   useEffect(() => {
@@ -424,74 +544,28 @@ export default function Home() {
 
       // Note: Images are loaded later with their CD analysis from IMAGES.md
 
-      // Load vibes from htmlFiles - show ALL vibe files (no deduplication).
-      // Filename parsing, sorting (by index, then version), and joining against
-      // parsed CREATIVE-BRIEF / VIBE-N.md data all live in lib/vibe-resolver.ts
-      // as a pure function. Previously this was ~150 lines inline here.
+      // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+      // WP-79 (2026-05-10): the htmlFiles → resolveVibes → availableVibes
+      // chain that used to live here is gone. The Gallery layout now
+      // lazy-fetches `/api/sessions/[id]/gallery` only when the user opens
+      // it. Brief / 2-panel / 3-panel / image layouts don't need eager
+      // vibe data — they're either chat-only or driven by build SSE
+      // events (vibe_built etc.) that push into `vibes` directly.
+      //
+      // What we still set here: `sessionHtmlFiles` for the Director Mode
+      // picker, which needs to enumerate ALL HTML files in the session
+      // folder (mockups, prototypes) not just the ones that resolve to
+      // vibe-N-slug.html.
+      // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
       const htmlFiles = data.htmlFiles || []
-      const parsedVibes = data.vibes || []
-      // Stash the raw htmlFiles list for the Director Mode picker so it can
-      // surface non-vibe HTML files (mockups, prototypes) too — not just the
-      // ones that resolve to vibe-N-slug.html.
       setSessionHtmlFiles(htmlFiles)
-      // Exposed for the availableVibes block below — kept as a local so the
-      // existing VibePreview construction logic still has the htmlFiles list
-      // to iterate without re-fetching.
-      const allVibeFiles = htmlFiles
       if (htmlFiles.length > 0) {
-        const loadedVibes = resolveVibes({
-          htmlFiles,
-          parsedVibes,
-          // Toggle debug tracing when something is off. Leaving off by default
-          // so normal loads stay quiet in the console.
-          debug: false,
-        })
-        console.log(
-          `📁 Loaded ${loadedVibes.length} vibe(s) from ${htmlFiles.length} HTML file(s):`,
-          loadedVibes.map((v) => v.name).join(', ')
-        )
-        setVibes(loadedVibes)
-        if (loadedVibes.length > 0) {
-          setSelectedVibe(loadedVibes[0])
-          setWorkflowPhase('generation')
-        }
-
-        // Also populate availableVibes for the vibe switcher (use parsed vibe names)
-        const vibePreviewsLoaded: VibePreview[] = allVibeFiles.map((h: any, idx: number) => {
-          const filename = h.name || ''
-
-          // Parse vibe index from filename
-          let vibeIndex = idx + 1
-          const vibeIdxMatch = filename.match(/vibe-(\d+)-/)
-          if (vibeIdxMatch) {
-            vibeIndex = parseInt(vibeIdxMatch[1])
-          }
-
-          // Find matching parsed vibe for the real name
-          const matchedParsed = parsedVibes.find((pv: any) => pv.index === vibeIndex)
-          // Extract the slug portion from filename (after vibe-N-)
-          const slugFromFile = filename.replace('.html', '').replace(/^vibe-\d+-/, '')
-          // Use parsed name if available, otherwise title-case the slug
-          const name = matchedParsed?.name || slugFromFile.replace(/-/g, ' ').replace(/\b\w/g, (c: string) => c.toUpperCase())
-          const slug = matchedParsed?.slug || filename.replace('.html', '')
-
-          return {
-            index: vibeIndex,
-            name: name,
-            slug: slug,
-            filename: filename,
-            status: 'ready' as const,
-            htmlPath: h.path
-          }
-        })
-        // Sort by index so vibes appear in order
-        vibePreviewsLoaded.sort((a, b) => a.index - b.index)
-        console.log('📦 Setting availableVibes:', vibePreviewsLoaded.length, vibePreviewsLoaded.map(v => `${v.name}(${v.index})`))
-        setAvailableVibes(vibePreviewsLoaded)
-        if (vibePreviewsLoaded.length > 0) {
-          setSelectedVibeFile(vibePreviewsLoaded[0].filename)
-        }
+        setWorkflowPhase('generation')
       }
+      // Mark gallery cache stale so the next Gallery render forces a
+      // fresh fetch instead of reusing a stale snapshot from a prior
+      // session.
+      galleryDirtyRef.current = true
 
       // Parse conversation from SESSION.md
       if (data.rawFiles?.session) {
@@ -706,8 +780,16 @@ export default function Home() {
     sessionRestored.current = true
     const params = new URLSearchParams(window.location.search)
 
-    // ?new=true means admin requested a fresh session — don't restore
-    if (params.get('new') === 'true') {
+    // ?new=true means admin requested a fresh session — don't restore.
+    // EXCEPTION (Ralph 2026-05-23): when a `session` ID was ALSO passed
+    // alongside `new=true`, that means the caller (the CRM, currently)
+    // pre-created the session folder for us — e.g. with `prospect_id`
+    // already stamped into `_session-config.json` as the back-link.
+    // Wiping localStorage + stripping the URL here would orphan that
+    // pre-created session and force Oskar to mint a fresh, unlinked one
+    // when the user types into chat. So if a session ID is present, fall
+    // through and adopt it as the active session.
+    if (params.get('new') === 'true' && !params.get('session')) {
       console.log('📁 New session requested — starting fresh')
       localStorage.removeItem('oskar-session-id')
       // Clean the URL without reloading
@@ -715,14 +797,105 @@ export default function Home() {
       return
     }
 
+    // `new=true` arrived alongside a pre-created session ID (CRM flow).
+    // Strip the `new=true` and `prospect=` query params from the URL but
+    // keep `session=` and `tab=` so the session loads correctly and the
+    // URL is stable for reload/bookmark. The prospect_id lives in the
+    // session's _session-config.json (written by the CRM POST handler).
+    if (params.get('new') === 'true' && params.get('session')) {
+      const keep = new URLSearchParams()
+      const sid = params.get('session')
+      const tab = params.get('tab')
+      if (sid) keep.set('session', sid)
+      if (tab) keep.set('tab', tab)
+      const qs = keep.toString()
+      window.history.replaceState({}, '', qs ? `/?${qs}` : '/')
+    }
+
     const urlSession = params.get('session')
     const savedSession = localStorage.getItem('oskar-session-id')
     const resumeId = urlSession || savedSession
+
+    // WP-CRM-C3: when admin.html's "click card → open session" path lands
+    // here, it appends `?tab=crm`. Seed the per-session localStorage key
+    // BEFORE loadSession fires setSessionId so the restore effect (which
+    // reads that key on sessionId change) opens the CRM subtab directly
+    // instead of flashing ASSETS first. Also force BRIEF (2-panel) layout
+    // since gallery / image-editor modes don't even show AssetsPanel.
+    const urlTab = params.get('tab')
+    // [Sentinel Ti out of studio] 'feedback' intentionally excluded here too.
+    if (resumeId && (urlTab === 'assets' || urlTab === 'crm')) {
+      try { localStorage.setItem(`crm-subtab-active::${resumeId}`, urlTab) } catch { /* ignore */ }
+      if (urlTab === 'crm') {
+        // Imperative override — the layout-restore effect at the top of
+        // this component has already fired by now, so writing to the
+        // layout localStorage key alone wouldn't change anything.
+        setLayoutMode('2-panel')
+      }
+    }
+
     if (resumeId) {
       console.log('📁 Restoring session:', resumeId, urlSession ? '(from URL)' : '(from localStorage)')
       loadSession(resumeId)
     }
-  }, [loadSession])
+  }, [loadSession, setLayoutMode])
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // WP-79 (2026-05-10): Gallery lazy-load. Fires only when the user is
+  // actually looking at the Gallery layout. 30s in-flight cache + dirty
+  // flag from `vibe_built` SSE means rapid layout toggles don't hammer
+  // the API and a fresh build always shows.
+  //
+  // Replaces the eager `/api/admin/sessions/[id]` fetch in loadSession,
+  // which used to fire `parseVibesFromFiles` (100+ noise log lines per
+  // reload) on every session boot regardless of which tab the user
+  // opened. Brief / 2-panel / 3-panel users no longer pay that cost.
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  useEffect(() => {
+    if (layoutMode !== 'gallery' || !sessionId) return
+    const cached = galleryFetchRef.current
+    const fresh =
+      cached &&
+      cached.sessionId === sessionId &&
+      Date.now() - cached.ts < 30_000 &&
+      !galleryDirtyRef.current
+    if (fresh) return
+
+    let cancelled = false
+    fetch(`/api/sessions/${sessionId}/gallery`)
+      .then((r) => {
+        if (!r.ok) throw new Error(`gallery fetch ${r.status}`)
+        return r.json() as Promise<{ sessionId: string; cards: GalleryCard[]; generatedAt: string }>
+      })
+      .then((data) => {
+        if (cancelled) return
+        setGalleryCards(data.cards)
+        // Mirror cards into availableVibes so the picker has the same
+        // list the Gallery is rendering. Status='ready' since these are
+        // all on-disk HTMLs.
+        setAvailableVibes(
+          data.cards.map(
+            (c): VibePreview => ({
+              index: c.vibeIndex,
+              name: c.name,
+              slug: c.slug,
+              filename: c.filename,
+              status: 'ready',
+              htmlPath: c.htmlPath,
+            }),
+          ),
+        )
+        galleryFetchRef.current = { sessionId, ts: Date.now() }
+        galleryDirtyRef.current = false
+      })
+      .catch((err) => {
+        if (!cancelled) console.error('[gallery] fetch failed:', err)
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [layoutMode, sessionId])
 
   // Load billing preference from localStorage. localStorage is the
   // pre-Phase-2 persistence layer; we keep it as a hot-cache so the pill
@@ -737,7 +910,7 @@ export default function Home() {
     }
     const savedModel = localStorage.getItem('oskar_webdev_model')
     if (
-      savedModel === 'claude-opus-4-7' ||
+      savedModel === 'claude-opus-4-8' ||
       savedModel === 'claude-sonnet-4-6' ||
       savedModel === 'gemini-3.1-pro-preview'
     ) {
@@ -761,7 +934,7 @@ export default function Home() {
         if (!cfg) return
         if (cfg.billingMode === 'smpl' || cfg.billingMode === 'cli' || cfg.billingMode === 'api') setBillingMode(cfg.billingMode)
         if (
-          cfg.webDevModel === 'claude-opus-4-7' ||
+          cfg.webDevModel === 'claude-opus-4-8' ||
           cfg.webDevModel === 'claude-sonnet-4-6' ||
           cfg.webDevModel === 'gemini-3.1-pro-preview'
         ) setWebDevModel(cfg.webDevModel)
@@ -769,7 +942,7 @@ export default function Home() {
         // session config. CLI mode will override this when Claude CLI's
         // Badge is NOT seeded from config. The badge displays truth-on-wire
         // only — cfg.cdModel is the request, not the receipt. On Z.ai,
-        // seeding 'claude-opus-4-7[1m]' would show a lie until the first
+        // seeding 'claude-opus-4-8[1m]' would show a lie until the first
         // init event flips it to 'glm-4.7'. Leave null until wire truth
         // arrives. Ralph 2026-05-04.
       })
@@ -782,13 +955,13 @@ export default function Home() {
   // (the file is sub-ms to write/read; the next agent action runs after
   // the click so there's no race). Ralph 2026-05-04.
   // Save billing mode AND cdModel to session config. When mode changes,
-  // cdModel is set to the mode default (SMPL→'opus', CLI→'claude-opus-4-7[1m]',
-  // API→'claude-opus-4-7'). Ralph 2026-05-04.
+  // cdModel is set to the mode default (SMPL→'opus', CLI→'claude-opus-4-8[1m]',
+  // API→'claude-opus-4-8'). Ralph 2026-05-04.
   useEffect(() => {
     localStorage.setItem('oskar_billing_mode', billingMode)
     if (!sessionId) return
     if (!hydratedFromConfigRef.current) return  // skip the write that would race the hydration GET
-    const modeCdModels = { smpl: 'opus', cli: 'claude-opus-4-7[1m]', api: 'claude-opus-4-7' } as const
+    const modeCdModels = { smpl: 'opus', cli: 'claude-opus-4-8[1m]', api: 'claude-opus-4-8' } as const
     fetch(`/api/sessions/${encodeURIComponent(sessionId)}/config`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -896,8 +1069,12 @@ export default function Home() {
   // hyphenated `sessionEvents` shape the legacy handler above expects.
   useEffect(() => {
     if (!sessionId) return
-    const es = new EventSource(`/api/events?session=${encodeURIComponent(sessionId)}`)
-    es.onmessage = (evt) => {
+    // Shared single /api/events socket (lib/api-events-bus.ts). page.tsx and
+    // LiveOverlay used to each open their OWN EventSource to the same stream;
+    // on HTTP/1.1 dev (~6 conns/origin) that + HMR + chat-stream starved
+    // chunk/API loads (Failed to fetch / ChunkLoadError). One shared socket,
+    // fanned out to all subscribers; the returned fn unsubscribes. Ralph 2026-06-02.
+    return subscribeApiEvents(sessionId, (evt) => {
       // 2026-04-30 (Ralph): defend against non-JSON SSE payloads. The
       // server's heartbeat now uses SSE-comments which the EventSource
       // drops before onmessage fires, so this branch protects against
@@ -910,6 +1087,18 @@ export default function Home() {
       try {
         const payload = JSON.parse(evt.data)
         if (!payload || typeof payload !== 'object') return
+        // Helper — coerces a payload.preamble field to the typed {label,body}
+        // shape or undefined. Same shape as lib/preamble.ts but kept inline
+        // here because the preview_card synthetic-message path forwards
+        // payloads opaquely (no route hits, no server-side parse).
+        const extractPreamble = (raw: unknown): { label: string; body: string } | undefined => {
+          if (!raw || typeof raw !== 'object') return undefined
+          const p = raw as { label?: unknown; body?: unknown }
+          const label = typeof p.label === 'string' ? p.label.trim() : ''
+          const body = typeof p.body === 'string' ? p.body.trim() : ''
+          if (!label || !body) return undefined
+          return { label, body }
+        }
         switch (payload.type) {
           case 'build_started': {
             // Ralph 2026-05-06: live build job card — Archetype 1 from
@@ -918,54 +1107,69 @@ export default function Home() {
             // events. Matches the mockup's "long-running, mounts at
             // tool-fire, keeps updating from the event bus" pattern.
             //
-            // Three modes:
-            //   - mode:'all'  — N rows, one per vibe (vibeCount carries N).
-            //                   Labels fill in as vibes land (vibe_built
-            //                   carries vibeName + vibeIndex).
-            //   - mode:'final' — 1 row for the final landing page build.
-            //   - mode:'vibe' (default) — 1 row for the explicit `target`.
-            const mode = payload.mode === 'all' || payload.mode === 'final' ? payload.mode : 'vibe'
+            // Modes (Ralph 2026-05-18 — build API collapsed to 2 tools):
+            //   - mode:'wireframes' — N rows, one per wireframe slug
+            //                         (Phase 2, build-wireframes/route.ts).
+            //   - mode:'vibes'      — 1..N rows, one per slug (Phase 4 +
+            //                         Phase 5, build-vibe/route.ts —
+            //                         array-based; single slug = single
+            //                         rebuild, full set = batch, selected
+            //                         slug = final ship).
+            //   - mode:'vibe' / mode:'all' / mode:'final' — legacy aliases
+            //                         from pre-collapse routes; treated
+            //                         the same as 'vibes' for back-compat
+            //                         with any in-flight CD turns.
+            const m = payload.mode
+            const mode =
+              m === 'wireframes' ? 'wireframes' :
+              m === 'vibes' || m === 'all' || m === 'final' || m === 'vibe' ? 'vibes' :
+              'vibes'
             const vibeCount = typeof payload.vibeCount === 'number' ? Math.max(1, payload.vibeCount) : 1
             const target = typeof payload.target === 'string' ? payload.target : ''
-            // Phase 2 fix (CD 2026-05-06): the build_all_vibes route now ships
-            // `rows: [{id, label, thumb?}]` so the card mounts with real
-            // names + thumbs. Fall back to id-only stubs if the route is old
-            // (legacy clients) or for single-vibe / final builds.
+            // Phase 2 fix (CD 2026-05-06): the build-vibe / build-wireframes
+            // routes ship `rows: [{id, label, thumb?}]` so the card mounts
+            // with real names + thumbs. Fall back to id-only stubs if the
+            // payload is malformed.
             const enrichedRows = Array.isArray(payload.rows)
               ? payload.rows.filter((r: { id?: unknown }) => typeof r?.id === 'string')
               : null
-            // CD 2026-05-06: build-vibe/route.ts now also ships
-            // rows[] (single-element) so single-vibe builds mount
-            // with the hero thumb + label, matching build-all-vibes.
-            const singleRow = enrichedRows && enrichedRows.length === 1
-              ? (enrichedRows[0] as { id: string; label?: string; thumb?: string })
-              : null
-            const rows = mode === 'all'
-              ? (enrichedRows && enrichedRows.length > 0
-                  ? enrichedRows.map((r: { id: string; label?: string; thumb?: string }) => ({
-                      id: r.id,
-                      label: typeof r.label === 'string' ? r.label : '',
-                      thumb: typeof r.thumb === 'string' ? r.thumb : undefined,
-                      state: 'queued' as const,
-                    }))
-                  : Array.from({ length: vibeCount }, (_, i) => ({
-                      id: `vibe-${i + 1}`,
-                      label: '',
-                      state: 'queued' as const,
-                    })))
-              : [{
-                  id: singleRow?.id ?? (mode === 'final' ? 'final' : (target || 'vibe')),
-                  label: typeof singleRow?.label === 'string' && singleRow.label
-                    ? singleRow.label
-                    : (mode === 'final' ? 'Final landing page' : ''),
-                  thumb: typeof singleRow?.thumb === 'string' ? singleRow.thumb : undefined,
+            // All builds are now array-based (Ralph 2026-05-18):
+            // build_vibe([slugs]) and build_wireframes([slugs]) both ship
+            // rows[] — single-slug callers get a 1-element array which
+            // still renders as a single row in the BuildJobCard. Legacy
+            // single-target events (no rows[]) fall back to id-only stubs.
+            //
+            // Ralph 2026-05-18 (Job-Card Ladder Fix — UI propagation):
+            // `hasCritique` flows through too. The build-wireframes route
+            // tags every row with `hasCritique: true`; build-vibe tags
+            // every row with `false` (or omits it). BuildJobCard.buildSteps()
+            // picks the 5-stage vs 4-stage ladder from this flag. Previously
+            // the mapper here only carried id/label/thumb — the flag got
+            // silently dropped and every build rendered the 4-stage ladder.
+            const wireframeMode = mode === 'wireframes'
+            const rows = enrichedRows && enrichedRows.length > 0
+              ? enrichedRows.map((r: { id: string; label?: string; thumb?: string; hasCritique?: boolean }) => ({
+                  id: r.id,
+                  label: typeof r.label === 'string' ? r.label : '',
+                  thumb: typeof r.thumb === 'string' ? r.thumb : undefined,
                   state: 'queued' as const,
-                }]
-            const title = mode === 'all'
-              ? `Building ${vibeCount} vibes`
-              : mode === 'final'
-                ? 'Building final landing page'
-                : `Building ${target || 'vibe'}`
+                  // Per-row flag wins if the route set it (wireframes route
+                  // does; vibe route currently omits). Otherwise fall back
+                  // to the mode tag.
+                  hasCritique: typeof r.hasCritique === 'boolean' ? r.hasCritique : wireframeMode,
+                }))
+              : target
+                ? [{ id: target, label: '', state: 'queued' as const, hasCritique: wireframeMode }]
+                : Array.from({ length: vibeCount }, (_, i) => ({
+                    id: `vibe-${i + 1}`,
+                    label: '',
+                    state: 'queued' as const,
+                    hasCritique: wireframeMode,
+                  }))
+            const noun = mode === 'wireframes' ? 'wireframe' : 'vibe'
+            const title = rows.length === 1
+              ? `Building ${rows[0].label || rows[0].id}`
+              : `Building ${rows.length} ${noun}${rows.length === 1 ? '' : 's'}`
             const cardMessage: ConversationMessage = {
               id: `msg-${Date.now()}-build-${mode}`,
               role: 'assistant',
@@ -982,12 +1186,15 @@ export default function Home() {
             break
           }
           case 'build_progress': {
-            // CD 2026-05-06: flip the matched row to html / verify mid-build
-            // OR append a milestone bullet (single-vibe view). Match by
-            // `target` (e.g. 'vibe-3'). No-op if no card or no row found.
+            // CD 2026-05-06: flip the matched row to html / verify / critique
+            // mid-build OR append a milestone bullet (any row count). Match
+            // by `target` (the filename or slug the route routed by). No-op
+            // if no card or no row found.
+            // Ralph 2026-05-18 (Job-Card Ladder Fix): 'critique' added —
+            // wireframes flip verify → critique → done.
             const target = typeof payload.target === 'string' ? payload.target : ''
-            const stage = payload.stage === 'html' || payload.stage === 'verify'
-              ? payload.stage as 'html' | 'verify'
+            const stage = payload.stage === 'html' || payload.stage === 'verify' || payload.stage === 'critique'
+              ? payload.stage as 'html' | 'verify' | 'critique'
               : null
             const milestone = typeof payload.milestone === 'string' ? payload.milestone : null
             if (!target || (!stage && !milestone)) break
@@ -1035,13 +1242,17 @@ export default function Home() {
                 const m = next[i]
                 if (m.card?.kind !== 'build') continue
                 const rows = m.card.rows
-                const idx = rows.findIndex((r) =>
+                const idx = rows.findIndex((r, rowIdx) =>
                   r.id === `vibe-${payload.vibeIndex}` ||
                   r.label === payload.vibeName ||
                   // Empty-label row case: first un-started row claims this
                   // vibe_built event so we don't lose it on a vibeIndex
                   // mismatch (e.g. when the row count was approximated).
-                  (r.state === 'queued' && !r.label && rows.findIndex((rr) => rr.state === 'queued') === idx)
+                  // Ralph 2026-05-10: was `=== idx` — `idx` is the result of
+                  // THIS findIndex, in the temporal dead zone during the
+                  // callback. ReferenceError on the first queued+unlabeled
+                  // row hit. Use the callback's own index parameter.
+                  (r.state === 'queued' && !r.label && rows.findIndex((rr) => rr.state === 'queued') === rowIdx)
                 )
                 if (idx === -1) continue
                 const updatedRows = [...rows]
@@ -1082,6 +1293,10 @@ export default function Home() {
               sessionId,
               data: { vibeName: payload.vibeName, vibeFile: payload.filename },
             })
+            // WP-79: Gallery cache is now stale — a new HTML hit disk.
+            // Next time the user opens Gallery, the lazy-load effect
+            // will refetch instead of reusing the cached snapshot.
+            galleryDirtyRef.current = true
             break
           case 'image_ready':
             sessionEvents.emit({
@@ -1093,24 +1308,51 @@ export default function Home() {
                 geminiText: payload.geminiText || payload.nanoText,
               },
             })
-            // 2026-05-04 (Ralph): also refresh AssetsPanel state. The
-            // image_ready event ONLY drove a snackbar before — it never
-            // updated imageManifests, so the user saw "image ready" toast
-            // but the panel showed stale data until the next chat
-            // round-trip. /api/generate-image + /api/edit-image don't
-            // publish assets_updated either, so we have to do the refresh
-            // here. Same wrapper as the assets_updated case.
-            ;(async () => {
-              try {
-                const manifestResult = await getImageManifestsAction(sessionId)
-                if (manifestResult.success && manifestResult.manifests) {
-                  setImageManifests(manifestResult.manifests)
-                }
-                await refreshSourceImageTags()
-              } catch (err) {
-                console.error('[/api/events] image_ready refresh failed:', err)
-              }
-            })()
+            // 2026-05-04 (Ralph): refresh AssetsPanel state. The image_ready
+            // event ONLY drove a snackbar before — it never updated
+            // imageManifests, so the user saw "image ready" toast but the
+            // panel showed stale data until the next chat round-trip.
+            // /api/generate-image + /api/edit-image don't publish
+            // assets_updated either, so we do the refresh here.
+            //
+            // Ralph 2026-05-12: was an inline IIFE that fired 2 server
+            // actions per event. 20 parallel `generate_image` calls = 40
+            // concurrent server-action workers, IMAGES.md parses 40 times,
+            // server stalls. Replaced with the debounced
+            // `scheduleAssetRefresh()` — bursts collapse to one refresh
+            // after 800ms of quiet. See the callback definition near the
+            // upload-eval debouncer.
+            scheduleAssetRefresh()
+            // Ralph 2026-05-12 — surface the generated image as a chat-
+            // surface card. Pre-2026-05-12 the only feedback was a transient
+            // snackbar + a silent AssetsPanel refresh, so a user generating
+            // 4 vibe images saw 4 toasts disappear and had to scroll the
+            // panel to confirm the work landed. Doctrine: generated images
+            // are imports from the model — they get the SAME chat surface
+            // (UploadEvalCard / UploadEvalBatchCard) as manual uploads and
+            // site-imports (WP-90). enqueueUploadEval buffers with a 1500ms
+            // trailing-edge debouncer so N≥3 generations within the window
+            // consolidate into ONE batch card.
+            //
+            // Source-of-image flags: verdict=≈ (neutral — CD hasn't reviewed),
+            // status=INGESTED (system fallback, per canonical-payload spec),
+            // note carries the model's geminiText if any so the user sees
+            // what Nano actually produced. CD can later override via
+            // submit_image_verdict on demand.
+            if (typeof payload.filename === 'string' && payload.filename.trim()) {
+              const geminiText = typeof payload.geminiText === 'string'
+                ? payload.geminiText
+                : (typeof payload.nanoText === 'string' ? payload.nanoText : '')
+              enqueueUploadEval({
+                filename: payload.filename,
+                path: typeof payload.htmlPath === 'string' ? payload.htmlPath : undefined,
+                verdict: '≈',
+                note: geminiText.trim() || 'Generated by Nano Banana — pending review',
+                description: geminiText.trim() || undefined,
+                suggestedUses: [],
+                status: 'INGESTED',
+              })
+            }
             break
           case 'hotswap_complete':
             sessionEvents.emit({
@@ -1205,10 +1447,24 @@ export default function Home() {
           // path for both CLI and API mode (the MCP server is the
           // single source).
           case 'discovery_questions': {
-            const questions = Array.isArray(payload.questions)
-              ? payload.questions.map((q: unknown) => String(q ?? '').trim()).filter(Boolean)
-              : []
+            // Ralph 2026-05-12 — schema widened to accept typed-question
+            // objects (text/textarea/radio/checkbox/select). The route
+            // validates per-kind shape before publishing; the renderer
+            // also coerces defensively because the `card_preview` path
+            // forwards the payload opaquely. Bare strings collapse to
+            // {kind:'text', prompt}; objects pass through.
+            const rawQuestions = Array.isArray(payload.questions) ? payload.questions : []
+            const questions = rawQuestions.filter((q: unknown) => {
+              if (typeof q === 'string') return q.trim().length > 0
+              if (q && typeof q === 'object') return true
+              return false
+            })
             if (questions.length === 0) break
+            const progressRaw = payload.progress as { current?: unknown; total?: unknown } | undefined
+            const progress =
+              progressRaw && typeof progressRaw.current === 'number' && typeof progressRaw.total === 'number'
+                ? { current: progressRaw.current, total: progressRaw.total }
+                : undefined
             const cardMessage: ConversationMessage = {
               id: `msg-${Date.now()}-discovery`,
               role: 'assistant',
@@ -1216,8 +1472,11 @@ export default function Home() {
               timestamp: new Date().toISOString(),
               card: {
                 kind: 'discovery_questions',
-                questions,
+                questions: questions as DiscoveryCardPayload['questions'],
+                preamble: extractPreamble(payload.preamble),
                 context: typeof payload.context === 'string' ? payload.context : undefined,
+                title: typeof payload.title === 'string' ? payload.title : undefined,
+                progress,
               },
             }
             setMessages((prev) => [...prev, cardMessage])
@@ -1225,6 +1484,51 @@ export default function Home() {
           }
           case 'confirm_understanding': {
             if (typeof payload.summary !== 'string' || !payload.summary.trim()) break
+            // Ralph 2026-05-14 — 6-chip distillation per mockup §3.5. Old
+            // 4-chip aliases (where/who/tone) accepted as fallbacks.
+            const distillationRaw = (payload.distillation && typeof payload.distillation === 'object'
+              ? payload.distillation
+              : null) as Record<string, unknown> | null
+            const distGet = (k: string) =>
+              distillationRaw && typeof distillationRaw[k] === 'string' && (distillationRaw[k] as string).trim()
+                ? (distillationRaw[k] as string)
+                : undefined
+            const distillation = distillationRaw
+              ? {
+                  business: distGet('business'),
+                  location: distGet('location') ?? distGet('where'),
+                  whoWeAre: distGet('whoWeAre') ?? distGet('who'),
+                  howItWorks: distGet('howItWorks'),
+                  customers: distGet('customers'),
+                  voice: distGet('voice') ?? distGet('tone'),
+                }
+              : undefined
+            const conversionRaw = (payload.conversion && typeof payload.conversion === 'object'
+              ? payload.conversion
+              : null) as { mechanisms?: unknown; pricing?: unknown } | null
+            const conversion = conversionRaw
+              ? {
+                  mechanisms: Array.isArray(conversionRaw.mechanisms)
+                    ? (conversionRaw.mechanisms as unknown[])
+                        .map((m) => String(m ?? '').trim().toUpperCase())
+                        .filter((m): m is 'PHONE' | 'FORM' | 'BOOK' | 'SHOP' =>
+                          ['PHONE', 'FORM', 'BOOK', 'SHOP'].includes(m),
+                        )
+                    : undefined,
+                  pricing:
+                    typeof conversionRaw.pricing === 'string' && conversionRaw.pricing.trim()
+                      ? conversionRaw.pricing.trim()
+                      : undefined,
+                }
+              : undefined
+            const dpRaw = payload.discoveryProgress as { done?: unknown; total?: unknown } | undefined
+            const discoveryProgress =
+              dpRaw && typeof dpRaw.done === 'number' && typeof dpRaw.total === 'number'
+                ? { done: dpRaw.done, total: dpRaw.total }
+                : undefined
+            const stillNeed = Array.isArray(payload.stillNeed)
+              ? (payload.stillNeed as unknown[]).filter((s): s is string => typeof s === 'string')
+              : undefined
             const cardMessage: ConversationMessage = {
               id: `msg-${Date.now()}-confirm`,
               role: 'assistant',
@@ -1234,6 +1538,151 @@ export default function Home() {
                 kind: 'confirm_understanding',
                 summary: payload.summary,
                 readyToGenerate: payload.readyToGenerate === true,
+                preamble: extractPreamble(payload.preamble),
+                distillation,
+                conversion,
+                weirdDetail: typeof payload.weirdDetail === 'string' ? payload.weirdDetail : undefined,
+                signatureMoment: typeof payload.signatureMoment === 'string' ? payload.signatureMoment : undefined,
+                discoveryProgress,
+                stillNeed: stillNeed && stillNeed.length > 0 ? stillNeed : undefined,
+                phaseLabel: typeof payload.phaseLabel === 'string' ? payload.phaseLabel : undefined,
+              },
+            }
+            setMessages((prev) => [...prev, cardMessage])
+            break
+          }
+          // WP-70 + WP-71 (Ralph 2026-05-10): Image Strategy Card — Phase
+          // 3/5 slot plan with two layouts (webpage-vertical, keynote-multi-row).
+          case 'image_strategy': {
+            const isSlots = Array.isArray(payload.slots)
+              ? payload.slots.filter((s: unknown) => s && typeof s === 'object')
+              : []
+            if (isSlots.length === 0) break
+            const cardMessage: ConversationMessage = {
+              id: `msg-${Date.now()}-is`,
+              role: 'assistant',
+              content: '',
+              timestamp: new Date().toISOString(),
+              card: {
+                kind: 'image_strategy',
+                vibeSlug: String(payload.vibeSlug || ''),
+                vibeName: String(payload.vibeName || ''),
+                layout: payload.layout === 'keynote-multi-row' ? 'keynote-multi-row' : 'webpage-vertical',
+                phaseLabel: String(payload.phaseLabel || ''),
+                preamble: extractPreamble(payload.preamble),
+                slots: isSlots,
+              },
+            }
+            setMessages((prev) => [...prev, cardMessage])
+            break
+          }
+          // WP-74 (Ralph 2026-05-10): Design Directions Card — closes
+          // Discovery Phase 1. 6 candidates, multi-select cap 2.
+          case 'design_directions': {
+            const ddDirs = Array.isArray(payload.directions)
+              ? payload.directions.filter((d: unknown) => d && typeof d === 'object')
+              : []
+            if (ddDirs.length === 0) break
+            const cardMessage: ConversationMessage = {
+              id: `msg-${Date.now()}-dd`,
+              role: 'assistant',
+              content: '',
+              timestamp: new Date().toISOString(),
+              card: {
+                kind: 'design_directions',
+                // Doctrine: TRACK-AGNOSTIC. Never re-add track here.
+                // See INSTITUTIONAL-MEMORY.md 2026-05-14.
+                directions: ddDirs,
+                preamble: extractPreamble(payload.preamble),
+                prompt: typeof payload.prompt === 'string' ? payload.prompt : undefined,
+              },
+            }
+            setMessages((prev) => [...prev, cardMessage])
+            break
+          }
+          // WP-77 (Ralph 2026-05-10): Design System Card — Phase 4→5 sign-off.
+          // Interactive vibe-selector with live CSS var swap, full-width.
+          case 'design_system': {
+            const dsVibes = Array.isArray(payload.vibes)
+              ? payload.vibes.filter((v: unknown) => v && typeof v === 'object')
+              : []
+            if (dsVibes.length === 0) break
+            const cardMessage: ConversationMessage = {
+              id: `msg-${Date.now()}-ds`,
+              role: 'assistant',
+              content: '',
+              timestamp: new Date().toISOString(),
+              card: {
+                kind: 'design_system',
+                slug: typeof payload.slug === 'string' ? payload.slug : '',
+                vibes: dsVibes,
+                prompt: typeof payload.prompt === 'string' ? payload.prompt : undefined,
+              },
+            }
+            setMessages((prev) => [...prev, cardMessage])
+            break
+          }
+          // WP-75 (Ralph 2026-05-10) — Descent Selection card. Variable-cap
+          // vibe picker. CD passes cap (1..vibes.length) + ctaLabel verbatim.
+          // cap=1 → radio (Phase 4→5 final-pick). cap=2 → multi-select
+          // (Phase 2→3 wireframe pick). cap=N for any other narrow.
+          case 'descent_selection': {
+            const dscVibes = Array.isArray(payload.vibes)
+              ? payload.vibes.filter((v: unknown) => v && typeof v === 'object')
+              : []
+            if (dscVibes.length === 0) break
+            const dscCap = typeof payload.cap === 'number' && payload.cap >= 1
+              ? Math.min(Math.floor(payload.cap), dscVibes.length)
+              : 1
+            const dscCtaLabel = typeof payload.ctaLabel === 'string' && payload.ctaLabel.trim()
+              ? String(payload.ctaLabel).trim()
+              : (dscCap === 1 ? 'Pick this' : `Pick ${dscCap}`)
+            const cardMessage: ConversationMessage = {
+              id: `msg-${Date.now()}-dsc`,
+              role: 'assistant',
+              content: '',
+              timestamp: new Date().toISOString(),
+              card: {
+                kind: 'descent_selection',
+                slug: typeof payload.slug === 'string' ? payload.slug : '',
+                cap: dscCap,
+                ctaLabel: dscCtaLabel,
+                contextLabel: typeof payload.contextLabel === 'string' ? payload.contextLabel : undefined,
+                vibes: dscVibes,
+                preamble: extractPreamble(payload.preamble),
+                prompt: typeof payload.prompt === 'string' ? payload.prompt : undefined,
+              },
+            }
+            setMessages((prev) => [...prev, cardMessage])
+            break
+          }
+          // Ralph 2026-05-18 — Critique card. Fires from
+          // build-wireframes/route.ts onToolCall when WebDev calls
+          // submit_critique (WF mode). Future: similar publish from
+          // build-vibe / sentinel-ti runners for Phase 4.
+          case 'critique_submitted': {
+            const cqScores = Array.isArray(payload.scores)
+              ? payload.scores.filter((s: unknown) => s && typeof s === 'object')
+              : []
+            const cardMessage: ConversationMessage = {
+              id: `msg-${Date.now()}-cq`,
+              role: 'assistant',
+              content: '',
+              timestamp: new Date().toISOString(),
+              card: {
+                kind: 'critique',
+                target: typeof payload.target === 'string' ? payload.target : '',
+                scores: cqScores,
+                summary: typeof payload.summary === 'string' ? payload.summary : '',
+                recommendations: Array.isArray(payload.recommendations) ? payload.recommendations : [],
+                agent: payload.agent === 'sentinel' ? 'sentinel' : 'webdev',
+                // Phase metadata for critique header label. Post-2026-05-18
+                // build-API collapse there is no separate 'final' phase —
+                // Phase 5 builds fire the same build_vibe([slugs]) tool as
+                // Phase 4, so critiques tag as 'vibe' for both. Two values
+                // remain: 'wireframes' (from build-wireframes route) and
+                // 'vibe' (from build-vibe route).
+                phase: payload.phase === 'vibe' ? 'vibe' : 'wireframes',
               },
             }
             setMessages((prev) => [...prev, cardMessage])
@@ -1244,6 +1693,49 @@ export default function Home() {
           // its primary work; we push a synthetic assistant message with a
           // `card` payload, ConversationPanel routes by kind to the right
           // component. Mockup: docs/toolcards-mockup.html § Archetypes 2 + 4.
+          // Ralph 2026-05-10 (COO test harness): MCP-injected chat turn
+          // mirrored back so the browser sees what the test agent sent
+          // and how CD replied. See app/api/mcp/echo-chat/route.ts and
+          // mcp-server/tools-orchestrator.ts (send_user_input case).
+          case 'mcp_chat_echo': {
+            const userText = typeof payload.userText === 'string' ? payload.userText : ''
+            const assistantText = typeof payload.assistantText === 'string' ? payload.assistantText : ''
+            if (!userText && !assistantText) break
+            const ts = new Date().toISOString()
+            const baseId = Date.now()
+            // chat-stream publishes this on EVERY turn (typed + MCP).
+            // For typed turns, page's local handler (handleSend ~line 1970,
+            // handleSendMessage ~line 2504) already appended the user
+            // message + streamed assistant chunks AND persisted both sides
+            // to SESSION.md, so we'd double-render and double-persist.
+            // Dedupe by content using `messagesRef.current` (fresh state;
+            // closure's `messages` is permanently stale because the SSE
+            // useEffect deps are [sessionId] only). Same check gates both
+            // the render and the SESSION.md write.
+            // Ralph 2026-05-12 (Option A): persist MCP-driven turns to
+            // disk so COO test runs leave a SESSION.md trail. Works only
+            // while the browser is open and listening on /api/events.
+            const tail = messagesRef.current.slice(-4)
+            const userIsNew = !!userText && !tail.some((m) => m.role === 'user' && m.content === userText)
+            const assistantIsNew = !!assistantText && !tail.some((m) => m.role === 'assistant' && m.content === assistantText)
+            setMessages((prev) => {
+              const additions: ConversationMessage[] = []
+              if (userIsNew) {
+                additions.push({ id: `msg-${baseId}-mcp-u`, role: 'user', content: userText, timestamp: ts })
+              }
+              if (assistantIsNew) {
+                additions.push({ id: `msg-${baseId}-mcp-a`, role: 'assistant', content: assistantText, timestamp: ts })
+              }
+              return additions.length > 0 ? [...prev, ...additions] : prev
+            })
+            if (userIsNew) {
+              void appendToSessionLogAction(sessionId, 'User', userText)
+            }
+            if (assistantIsNew) {
+              void appendToSessionLogAction(sessionId, 'CD', assistantText)
+            }
+            break
+          }
           case 'screenshot_taken': {
             const savedPath = typeof payload.savedPath === 'string' ? payload.savedPath : ''
             if (!savedPath) break
@@ -1352,32 +1844,26 @@ export default function Home() {
               `[/api/events] 📥 assets_updated received (reason=${payload.reason || 'unknown'}, ` +
               `route-counted manifestCount=${payload.manifestCount ?? '?'}, promptCount=${payload.promptCount ?? '?'})`,
             )
-            ;(async () => {
-              try {
-                const manifestResult = await getImageManifestsAction(sessionId)
-                if (manifestResult.success && manifestResult.manifests) {
-                  setImageManifests(manifestResult.manifests)
-                  if (manifestResult.manifests.length === 0) {
-                    console.warn(
-                      `[/api/events] ⚠️ assets_updated fired but parser returned 0 manifests. ` +
-                      `Most common cause: CD wrote prompts to a section other than ` +
-                      `\`## Image Prompts + Generated\` (e.g. \`## What's Missing\` or a ` +
-                      `numbered list elsewhere). Check IMAGES.md format vs lib/session-actions.ts:503.`,
-                    )
-                  } else {
-                    console.log(
-                      `[/api/events] ✅ refreshed ${manifestResult.manifests.length} manifest(s) ` +
-                      `with ${manifestResult.manifests.reduce((n, m) => n + m.assets.length, 0)} asset(s) total`,
-                    )
-                  }
-                } else {
-                  console.error('[/api/events] getImageManifestsAction failed:', manifestResult.error)
-                }
-                await refreshSourceImageTags()
-              } catch (err) {
-                console.error('[/api/events] assets_updated refresh failed:', err)
-              }
-            })()
+            // Ralph 2026-05-12: was an inline IIFE running 2 server actions
+            // per event. Same stall-class bug as the image_ready handler
+            // above — N rapid CD calls to `refresh_assets` / `images_needed`
+            // produced N concurrent server-action workers. Debounced via
+            // `scheduleAssetRefresh` so bursts coalesce. The diagnostic
+            // logging that lived in the old IIFE (0-manifest warning + asset-
+            // count log) moves to one place — log here on receipt, and the
+            // refresh result surfaces via subsequent setImageManifests
+            // re-renders. The 0-manifest warning was load-bearing for
+            // CD-doctrine debugging; preserve it as a console.log on the
+            // route-side `manifestCount` payload field instead.
+            if (typeof payload.manifestCount === 'number' && payload.manifestCount === 0) {
+              console.warn(
+                `[/api/events] ⚠️ assets_updated fired but route reports 0 manifests. ` +
+                `Most common cause: CD wrote prompts to a section other than ` +
+                `\`## Image Prompts + Generated\` (e.g. \`## What's Missing\` or a ` +
+                `numbered list elsewhere). Check IMAGES.md format vs lib/session-actions.ts:503.`,
+              )
+            }
+            scheduleAssetRefresh()
             break
           }
           // build_started / connected / heartbeat — still silent.
@@ -1385,12 +1871,7 @@ export default function Home() {
       } catch (err) {
         console.error('[/api/events] parse error', err)
       }
-    }
-    es.onerror = (err) => {
-      // EventSource auto-reconnects; just log.
-      console.warn('[/api/events] connection error (auto-retrying):', err)
-    }
-    return () => { es.close() }
+    })
   }, [sessionId])
 
   // Upload a new image
@@ -1420,6 +1901,16 @@ export default function Home() {
    */
   const uploadEvalBufferRef = useRef<Array<Omit<UploadEvalCardPayload, 'kind'>>>([])
   const uploadEvalFlushTimerRef = useRef<NodeJS.Timeout | null>(null)
+
+  // Ralph 2026-05-12 — debounce timer for the AssetsPanel refresh that
+  // fires off each image_ready / assets_updated event. The unguarded
+  // per-event refresh blew up the Next.js dev server on 20-parallel image
+  // generation: 20 events × 2 server actions per event = 40 concurrent
+  // server-action calls. Each server action reads 4-5 files + parses
+  // IMAGES.md, which grows with every emit. The debouncer collapses a
+  // burst of N events into ONE trailing-edge refresh after 800ms of
+  // quiet. See `scheduleAssetRefresh` below.
+  const assetRefreshTimerRef = useRef<NodeJS.Timeout | null>(null)
 
   const flushUploadEvalBuffer = useCallback(() => {
     const buffer = uploadEvalBufferRef.current
@@ -1492,6 +1983,51 @@ export default function Home() {
       }
     }))
   }, [sessionId])
+
+  // Ralph 2026-05-12 — coalesced asset-state refresh.
+  //
+  // Pre-2026-05-12 the SSE `image_ready` handler ran the manifest +
+  // tag refresh INLINE per event:
+  //   ;(async () => {
+  //     const r = await getImageManifestsAction(sessionId)
+  //     setImageManifests(r.manifests)
+  //     await refreshSourceImageTags()
+  //   })()
+  // For 20 parallel `generate_image` calls, 20 `image_ready` events
+  // arrived in a burst → 20 concurrent `getImageManifestsAction` calls
+  // (each: 4 file reads + IMAGES.md regex parse) + 20 concurrent
+  // `refreshSourceImageTags` calls (each: another IMAGES.md read+parse)
+  // → 40 concurrent server-action workers on the same Next dev process.
+  // IMAGES.md grows with every image, so the parse cost grows with the
+  // burst. Server stalls; UI freezes from 20× setImageManifests
+  // re-renders.
+  //
+  // Fix: 800ms trailing-edge debounce. Each event clears the prior timer
+  // and schedules a new one. A burst of 20 events within ~3s collapses
+  // into ONE refresh after the burst settles. Server load drops from 40
+  // server actions to 2.
+  //
+  // Same pattern as `enqueueUploadEval` above (1500ms for chat-card
+  // consolidation; this one is shorter because asset-panel feedback
+  // wants to be more responsive when bursts ARE short).
+  const scheduleAssetRefresh = useCallback(() => {
+    if (!sessionId) return
+    if (assetRefreshTimerRef.current) {
+      clearTimeout(assetRefreshTimerRef.current)
+    }
+    assetRefreshTimerRef.current = setTimeout(async () => {
+      assetRefreshTimerRef.current = null
+      try {
+        const manifestResult = await getImageManifestsAction(sessionId)
+        if (manifestResult.success && manifestResult.manifests) {
+          setImageManifests(manifestResult.manifests)
+        }
+        await refreshSourceImageTags()
+      } catch (err) {
+        console.error('[/api/events] scheduled asset refresh failed:', err)
+      }
+    }, 800)
+  }, [sessionId, refreshSourceImageTags])
 
   const handleUpload = useCallback(async (file: File) => {
     try {
@@ -1657,30 +2193,31 @@ export default function Home() {
   // Send message to CD agent
   const handleSendMessage = useCallback(async (content: string, images?: File[], opts?: { skipUserAppend?: boolean }) => {
     console.log('🔴 API MODE - handleSendMessage called')
-    // Upload any images first
+    // Composer-pasted/attached images: upload to the session, show the
+    // thumbnail in the user bubble, and point CD at the files via agentRef
+    // (appended to the API payload's last user message below — NOT the visible
+    // bubble). This is "look at what I mean", distinct from the brand-asset
+    // upload pipeline (handleUpload). agentRef is '' when none. Ralph 2026-05-29.
+    let agentRef = ''
+    let thumbUrls: string[] | undefined
     if (images && images.length > 0) {
-      for (const file of images) {
-        await handleUpload(file)
-      }
+      const r = await uploadChatImages(images, sessionId)
+      thumbUrls = r.urls.length ? r.urls : undefined
+      agentRef = r.agentRef
     }
 
-    // Inject Director Mode edits into context so AI preserves manual changes
-    const activeEdits = selectedVibe ? vibeEdits.find(e => e.vibeId === selectedVibe.id) : null
-    let finalContent = content
-
-    if (activeEdits && activeEdits.textEdits.length > 0) {
-      const editSummary = activeEdits.textEdits
-        .map(e => `Element '${e.id}' was manually changed to: "${e.newText}"`)
-        .join('\n')
-
-      finalContent += `\n\n[SYSTEM NOTE: The user manually edited the current vibe. Ensure these text changes are preserved exactly in the next generation:\n${editSummary}]`
-    }
+    // Director-Mode edits persist to the vibe file via /api/vibe-edit (handleTextEdit)
+    // — the next generation reads them from disk, so the chat prompt no longer
+    // re-injects them. Superseded studio coupling removed 2026-05-29 (Ralph): the
+    // chat send is now studio-agnostic, (content, endpoint) → stream.
+    const finalContent = content
 
     const userMessage: ConversationMessage = {
       id: `msg-${Date.now()}`,
       role: 'user',
       content: finalContent,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
+      ...(thumbUrls ? { images: thumbUrls } : {}),
     }
 
     // skipUserAppend: when this call is being dispatched from the message
@@ -1732,6 +2269,15 @@ export default function Home() {
             })()
           : newMessages.map(msg => ({ role: msg.role, content: msg.content }))
 
+      // Point CD at any composer-attached images THIS turn (agentRef is '' when
+      // none). The API path sends the whole messages array to Anthropic, so the
+      // Read-reference rides on the LAST user message. The visible bubble stays
+      // clean (thumbnail only). Ralph 2026-05-29.
+      if (agentRef && messagesForAPI.length > 0) {
+        const last = messagesForAPI[messagesForAPI.length - 1]
+        if (last.role === 'user') last.content = `${last.content}${agentRef}`
+      }
+
       // API route for CD chat (CLI/SMPL modes use handleStreamingMessage → chat-stream)
       const endpoint = '/api/chat'
       const response = await fetch(endpoint, {
@@ -1772,36 +2318,12 @@ export default function Home() {
         await appendToSessionLogAction(currentSessionId, 'CD', data.message)
       }
 
-      // Process vibes
-      if (data.vibes && data.vibes.length > 0 && data.vibePaths) {
-        const newVibes: VibeData[] = data.vibes.map((v: any, i: number) => ({
-          id: `vibe-${Date.now()}-${i}`,
-          name: v.name,
-          category: v.category || 'premium',
-          headline: v.headline,
-          tagline: v.tagline,
-          colors: v.colors,
-          typography: v.typography,
-          voiceSamples: v.voiceSamples,
-          htmlPath: data.vibePaths[i],
-          html: v.html,
-          heroImage: v.heroImage,  // FIXED: Include heroImage
-          audience: v.audience,    // FIXED: Include audience
-          mood: v.mood             // FIXED: Include mood
-        }))
-        setVibes(newVibes)
-        if (!selectedVibe && newVibes.length > 0) {
-          setSelectedVibe(newVibes[0])
-        }
-        // Transition to 3-panel layout when vibes are generated
-
-        setWorkflowPhase('generation')
-      }
-
-      // Process image manifests
-      if (data.imageManifests && data.imageManifests.length > 0) {
-        setImageManifests(data.imageManifests)
-      }
+      // 2026-05-18 (Jedi, WP-83): the `data.vibes`/`data.imageManifests`
+      // consumer branches lived here. Both fields were stripped from the
+      // chat NextResponse alongside the ParsedVibeResult fields they
+      // came from — the inline `generate_vibe` dispatcher that populated
+      // them is gone. Vibes flow through MCP `vibe_built` SSE events into
+      // the gallery + studio panels; image manifests are no longer used.
 
       // Update context window fill from API response
       if (data.contextPct !== undefined) {
@@ -1812,17 +2334,6 @@ export default function Home() {
       }
       if (data.realInputTokens !== undefined) {
         setRealInputTokens(data.realInputTokens)
-      }
-
-      // Process moodboard
-      if (data.moodboard) {
-        setMoodboard({
-          id: data.moodboard.id,
-          imagePath: data.moodboard.imagePath,
-          concepts: data.moodboard.concepts,
-          generatedAt: data.moodboard.generatedAt
-        })
-        setWorkflowPhase('moodboard')
       }
 
       // After Claude finishes, read IMAGES.md and populate AssetsPanel
@@ -1885,34 +2396,36 @@ export default function Home() {
     }
 
     setIsLoading(false)
-  }, [messages, sourceImages, selectedVibe, vibeEdits, handleUpload, billingMode, ensureSession, isResumedSession])
+  }, [messages, sourceImages, sessionId, billingMode, ensureSession, isResumedSession])
 
   // Send message with streaming response
   const handleStreamingMessage = useCallback(async (content: string, images?: File[], opts?: { skipUserAppend?: boolean }) => {
     console.log('🟢 CLI MODE - handleStreamingMessage called')
-    // Upload any images first
+    // Composer-pasted/attached images: upload to the session, thumbnail in the
+    // bubble, and point CD at the files via agentRef (rides on `currentMessage`
+    // below — the CLI bridge gets ONLY currentMessage; history is server-side).
+    // Distinct from the brand-asset pipeline (handleUpload). Ralph 2026-05-29.
+    let agentRef = ''
+    let thumbUrls: string[] | undefined
     if (images && images.length > 0) {
-      for (const file of images) {
-        await handleUpload(file)
-      }
+      const r = await uploadChatImages(images, sessionId)
+      thumbUrls = r.urls.length ? r.urls : undefined
+      agentRef = r.agentRef
     }
 
-    // Inject Director Mode edits into context
-    const activeEdits = selectedVibe ? vibeEdits.find(e => e.vibeId === selectedVibe.id) : null
-    let finalContent = content
-
-    if (activeEdits && activeEdits.textEdits.length > 0) {
-      const editSummary = activeEdits.textEdits
-        .map(e => `Element '${e.id}' was manually changed to: "${e.newText}"`)
-        .join('\n')
-      finalContent += `\n\n[SYSTEM NOTE: The user manually edited the current vibe. Ensure these text changes are preserved exactly in the next generation:\n${editSummary}]`
-    }
+    // Director-Mode edits persist to the vibe file via /api/vibe-edit (handleTextEdit)
+    // — read from disk on the next generation; the chat prompt no longer re-injects
+    // them. Superseded studio coupling removed 2026-05-29 (Ralph).
+    const finalContent = content
+    // What CD actually reads this turn: clean bubble + the image Read-reference.
+    const agentContent = `${content}${agentRef}`
 
     const userMessage: ConversationMessage = {
       id: `msg-${Date.now()}`,
       role: 'user',
       content: finalContent,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
+      ...(thumbUrls ? { images: thumbUrls } : {}),
     }
 
     // skipUserAppend: see handleSendMessage above. Queue-dispatched calls
@@ -1948,14 +2461,13 @@ export default function Home() {
           // queue dispatches an out-of-order item (multiple mid-stream
           // queued messages all land in history but are dispatched one
           // per turn). Ralph 2026-05-02 disappearing-message bug.
-          currentMessage: finalContent,
+          currentMessage: agentContent,
           sourceImages: sourceImageInfo,
           sessionId: currentSessionId,  // Pass sessionId to API (for file storage)
-          selectedMoodboardConcept: moodboard?.selectedConcept,  // Pass moodboard selection
           cliSessionId,  // Pass CLI session UUID (for --session-id flag)
           isResume: isResumedSession,  // Tell CD agent if this is a resumed session
           executionMode: billingMode,  // 'smpl' | 'cli' | 'api'
-          cdModel: { smpl: 'opus', cli: 'claude-opus-4-7[1m]', api: 'claude-opus-4-7' }[billingMode],
+          cdModel: { smpl: 'opus', cli: 'claude-opus-4-8[1m]', api: 'claude-opus-4-8' }[billingMode],
           // Read from ref — always latest. If we referenced `webDevModel`
           // directly, the enclosing useCallback would need it in deps, which
           // would re-create the whole 532-line callback on every model toggle.
@@ -2026,6 +2538,18 @@ export default function Home() {
                 setStreamingText(assistantContent)
                 break
 
+              // 2026-05-27 (Ralph): card-vs-chat enforcement (streaming).
+              // The server fires this when a tc_* card was emitted in the
+              // same turn as chat text. The accumulated assistantContent
+              // has already streamed to the UI — clear it. The card stays.
+              // The verbatim text is on disk for next-turn feedback
+              // (see lib/strip-feedback.ts).
+              case 'strip_chat':
+                console.log(`✂️ strip_chat — clearing streamed text (reason=${(event as any).reason}, cards=${((event as any).cards || []).join('+')})`)
+                assistantContent = ''
+                setStreamingText('')
+                break
+
               case 'progress':
                 setStreamingProgress({
                   phase: event.phase as StreamingProgress['phase'],
@@ -2038,7 +2562,7 @@ export default function Home() {
               case 'tool_complete':
                 // 2026-05-04 (Ralph): generate_vibe SSE handler removed.
                 // Vibes flow through the vibe_built event-bus event after
-                // build_vibe / build_all_vibes / build_final MCP tools.
+                // build_vibe / build_wireframes MCP tools.
                 break
 
               case 'image_manifests':
@@ -2186,12 +2710,15 @@ export default function Home() {
                   category: 'premium',
                   headline: vibeData.oneLiner || '',
                   tagline: '',
-                  colors: vibeData.colors ? [
-                    vibeData.colors.primary,
-                    vibeData.colors.secondary,
-                    vibeData.colors.accent,
-                    vibeData.colors.text || '#1A1A1A'
-                  ] : [],
+                  // 2026-05-10 (WP-83 follow-up): drop the hardcoded
+                  // `'#1A1A1A'` default for text color. If the agent
+                  // didn't emit a text color, it stays undefined and
+                  // the swatch hides — instead of fabricating a black
+                  // that pretends to be the chosen ink.
+                  colors: vibeData.colors
+                    ? [vibeData.colors.primary, vibeData.colors.secondary, vibeData.colors.accent, vibeData.colors.text]
+                        .filter((c): c is string => typeof c === 'string')
+                    : [],
                   typography: {
                     heading: vibeData.fonts?.headings || '',
                     body: vibeData.fonts?.body || ''
@@ -2369,7 +2896,7 @@ export default function Home() {
     setIsLoading(false)
     setStreamingText('')
     setStreamingProgress({ phase: 'idle', message: '' })
-  }, [messages, sourceImages, selectedVibe, vibeEdits, handleUpload, ensureSession, cliSessionId, moodboard, businessName, sessionId, isResumedSession])
+  }, [messages, sourceImages, ensureSession, cliSessionId, businessName, sessionId, isResumedSession])
 
   // ─────────────────────────────────────────────────────────────────────────
   // ChatCoordinator — SINGLE MESSAGE ENTRY POINT.
@@ -2634,7 +3161,12 @@ export default function Home() {
       // Add the new image to source images with generation metadata
       if (data.savedPath) {
         const newImage: SourceImage = {
-          id: `${operation}-${Date.now()}`,
+          // Ralph 2026-05-12 — Date.now() is millisecond-resolution; N
+          // parallel edits/generates landing in the same ms produced
+          // duplicate React keys in AssetGrid. randomUUID() suffix kills
+          // the collision class. crypto is Web Crypto API (this file is
+          // 'use client') — no import needed.
+          id: `${operation}-${Date.now()}-${crypto.randomUUID().slice(0, 8)}`,
           filename: data.savedPath.split('/').pop() || `${operation}-${sourceImage.filename}`,
           path: data.savedPath,
           uploadedAt: new Date().toISOString(),
@@ -2719,7 +3251,9 @@ export default function Home() {
       // Add the new image to source images with generation metadata
       if (data.savedPath) {
         const newImage: SourceImage = {
-          id: `composed-${Date.now()}`,
+          // Ralph 2026-05-12 — same fix as the edit/generate path above.
+          // Date.now() alone collides on N-parallel composes.
+          id: `composed-${Date.now()}-${crypto.randomUUID().slice(0, 8)}`,
           filename: data.savedPath.split('/').pop() || `composed.jpg`,
           path: data.savedPath,
           uploadedAt: new Date().toISOString(),
@@ -2899,14 +3433,6 @@ export default function Home() {
       })
     })
   }, [imageManifests])
-
-  // Handle moodboard selection
-  const handleMoodboardSelect = useCallback((conceptName: string) => {
-    if (moodboard) {
-      setMoodboard({ ...moodboard, selectedConcept: conceptName })
-      setWorkflowPhase('generation')
-    }
-  }, [moodboard])
 
   // Handle image queue approval
   const handleApproveImage = useCallback((itemId: string) => {
@@ -3096,7 +3622,6 @@ export default function Home() {
       getState: () => ({
         workflowPhase,
         layoutMode,
-        moodboard,
         sourceImages,
         vibes,
         selectedVibe,
@@ -3116,11 +3641,6 @@ export default function Home() {
       submitImages: () => {
         handleSubmitImages()
         return { success: true, message: 'Images submitted' }
-      },
-
-      selectMoodboardConcept: (conceptName: string) => {
-        handleMoodboardSelect(conceptName)
-        return { success: true, message: `Selected concept: ${conceptName}` }
       },
 
       selectVibe: (vibeId: string) => {
@@ -3210,9 +3730,9 @@ export default function Home() {
       delete window.__OSKAR_TEST__
     }
   }, [
-    workflowPhase, layoutMode, moodboard, sourceImages, vibes, selectedVibe,
+    workflowPhase, layoutMode, sourceImages, vibes, selectedVibe,
     messages, isLoading, imageQueue, imageManifests, directorMode, vibeEdits,
-    handleSend, handleSubmitImages, handleMoodboardSelect,
+    handleSend, handleSubmitImages,
     handleApproveImage, handleSkipImage, handleAssetGenerate, handleTextEdit
   ])
 
@@ -3433,8 +3953,46 @@ export default function Home() {
               vibes={vibeCards}
               selectedVibeId={selectedVibe?.id || null}
               onVibeSelect={(id) => {
-                const vibe = vibes.find(v => v.id === id)
-                if (vibe) setSelectedVibe(vibe)
+                // WP-79: in gallery mode, vibeCards comes from
+                // galleryCards (server-built). The matching VibeData
+                // doesn't necessarily exist in `vibes` state because
+                // loadSession no longer populates that eagerly. Build a
+                // minimal VibeData from the gallery card if we can find
+                // it; fall back to the legacy `vibes.find` for non-
+                // gallery layouts that still drive `vibes` directly.
+                const fromVibes = vibes.find((v) => v.id === id)
+                if (fromVibes) {
+                  setSelectedVibe(fromVibes)
+                  return
+                }
+                if (galleryCards) {
+                  const card = galleryCards.find(
+                    (c) => `vibe-${c.vibeIndex}-${c.version}-${c.filename}` === id,
+                  )
+                  if (card) {
+                    setSelectedVibe({
+                      id,
+                      name: card.name,
+                      category: '',
+                      headline: '',
+                      tagline: card.oneLiner || '',
+                      colors: card.colors
+                        ? [card.colors.primary, card.colors.secondary, card.colors.accent, card.colors.text]
+                            .filter((c): c is string => typeof c === 'string')
+                        : [],
+                      typography: {
+                        heading: card.fonts?.heading || 'system-ui',
+                        body: card.fonts?.body || 'system-ui',
+                      },
+                      voiceSamples: [],
+                      htmlPath: card.htmlPath,
+                      heroImage: card.heroImage || undefined,
+                      audience: card.audience,
+                      mood: card.mood,
+                    })
+                    setSelectedVibeFile(card.filename)
+                  }
+                }
               }}
               onVibeDelete={requestVibeDelete}
               title="Vibes"
@@ -3505,8 +4063,11 @@ export default function Home() {
             onOpenAdvancedMode={openAdvancedMode}
             assetsView={assetsView}
             onAssetsViewChange={setAssetsView}
+            prospectId={prospectId}
+            onLinkedProspect={(pid) => setProspectId(pid)}
+            /* [Sentinel Ti — out of studio 2026-05-29]
             pendingCritiqueTarget={pendingCritiqueTarget}
-            onConsumePendingCritiqueTarget={() => setPendingCritiqueTarget(null)}
+            onConsumePendingCritiqueTarget={() => setPendingCritiqueTarget(null)} */
             vibeFilenames={vibes
               .map((v) => v.htmlPath?.split('/').pop() || '')
               .filter((fn) => fn.endsWith('.html'))}
@@ -3523,12 +4084,10 @@ export default function Home() {
               vibes={vibes}
               selectedVibe={selectedVibe}
               selectedAsset={selectedAsset}
-              moodboard={moodboard}
               onVibeSelect={setSelectedVibe}
               onAssetUpdate={handleAssetUpdate}
               onAssetRegenerate={handleAssetGenerate}
               onClearAsset={handleClearAsset}
-              onMoodboardSelect={handleMoodboardSelect}
               directorMode={directorMode}
               onToggleDirectorMode={() => setDirectorMode(prev => !prev)}
               onElementSelect={handleElementSelect}
@@ -3554,9 +4113,7 @@ export default function Home() {
         >
           <ConversationPanel
             messages={messages}
-            moodboard={moodboard}
             onSendMessage={handleSend}
-            onMoodboardSelect={handleMoodboardSelect}
             isLoading={isLoading}
             layoutMode={layoutMode}
             streamingText={streamingText}

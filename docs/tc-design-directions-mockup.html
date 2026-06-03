@@ -1,0 +1,666 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>tc_design_directions — Strategic Bets (interactive mockup)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=Inter:wght@400;500;600;700&family=Space+Mono:wght@400;700&family=Manrope:wght@400;600;700&family=Newsreader:ital,wght@0,400;0,600;1,400&family=Fraunces:wght@400;600;700&family=Lora:wght@400;600;700&family=JetBrains+Mono:wght@400;500&family=Cormorant+Garamond:wght@400;500;700&family=DM+Serif+Display&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0b0d10;
+    --bg-card: #14181d;
+    --surface-2: #1a1f26;
+    --border-card: #2a2f37;
+    --text-main: #e7ecf2;
+    --text-secondary: #b3bcc7;
+    --text-muted: #7c8794;
+    --brand-cyan: #22d3ee;
+    --brand-yellow: #f5c542;
+    --brand-green-bright: #22c55e;
+    --axis-risk: #ef4444;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0;
+    background: var(--bg);
+    color: var(--text-main);
+    font-family: ui-sans-serif, system-ui, -apple-system, "SF Pro Text", "Inter", sans-serif;
+    font-size: 14px;
+    line-height: 1.45;
+    -webkit-font-smoothing: antialiased;
+  }
+  .stage { max-width: 960px; margin: 32px auto; padding: 0 24px; }
+  .mockup-label {
+    font-family: ui-monospace, "SF Mono", Menlo, monospace;
+    font-size: 11px;
+    color: var(--text-muted);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    margin-bottom: 10px;
+  }
+
+  /* ── Tool card chrome ─────────────────────────────────────────────── */
+  .tool-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-card);
+    border-radius: 10px;
+    padding: 14px;
+  }
+  .tool-card-head {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 12px;
+  }
+  .tool-card-icon {
+    width: 28px; height: 28px;
+    border-radius: 6px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px; font-weight: 700;
+    font-family: monospace;
+    background: rgba(245, 197, 66, 0.15);
+    color: var(--brand-yellow);
+  }
+  .tool-card-head-text {
+    display: flex; flex-direction: column; gap: 2px;
+    flex: 1; min-width: 0;
+  }
+  .tool-card-title { font-weight: 600; font-size: 14px; }
+  .tool-card-meta { font-size: 11px; color: var(--text-secondary); }
+  .tool-card-pill {
+    background: rgba(245, 197, 66, 0.15);
+    color: var(--brand-yellow);
+    font-family: monospace;
+    font-size: 10px; font-weight: 700;
+    text-transform: uppercase;
+    padding: 2px 8px;
+    border-radius: 4px;
+  }
+
+  /* ── Preamble ─────────────────────────────────────────────────────── */
+  .dd-preamble {
+    display: flex; flex-direction: column; gap: 4px;
+    margin: 0 0 14px;
+    padding: 12px 14px;
+    border-left: 2px solid var(--brand-cyan);
+    background: rgba(34, 211, 238, 0.04);
+    border-radius: 0 8px 8px 0;
+  }
+  .dd-preamble-label {
+    font-size: 10px; color: var(--brand-cyan);
+    font-family: ui-monospace, SFMono-Regular, monospace;
+    text-transform: uppercase;
+    letter-spacing: 0.08em; font-weight: 700;
+  }
+  .dd-preamble-body {
+    font-size: 13px; color: var(--text-main);
+    line-height: 1.55;
+  }
+
+  /* ── Grid ─────────────────────────────────────────────────────────── */
+  .dd-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+  }
+  @media (max-width: 860px) { .dd-grid { grid-template-columns: repeat(2, 1fr); } }
+  @media (max-width: 560px) { .dd-grid { grid-template-columns: 1fr; } }
+
+  /* ── Tile ─────────────────────────────────────────────────────────── */
+  /* SINGLE ring renderer in every state — the border itself.
+     Width stays 2px always; only color changes. No box-shadow swap, no
+     position shift between states. */
+  .dd-direction {
+    position: relative;
+    padding: 14px;
+    border-radius: 8px;
+    border: 2px solid var(--border-card);
+    background: var(--bg-card);
+    cursor: pointer;
+    display: flex; flex-direction: column;
+    gap: 10px;
+    transition: border-color 120ms ease, background-color 120ms ease;
+    contain: layout style paint;
+  }
+  .dd-direction:hover {
+    border-color: var(--text-muted);
+    background: var(--surface-2);
+  }
+  .dd-direction.selected {
+    border-color: var(--brand-green-bright);
+    background: rgba(34, 197, 94, 0.04);
+  }
+  .dd-check {
+    position: absolute;
+    top: 8px; right: 8px;
+    z-index: 5;
+    background: var(--brand-green-bright);
+    color: #000;
+    font-size: 11px; font-weight: 700;
+    width: 18px; height: 18px;
+    border-radius: 4px;
+    display: flex; align-items: center; justify-content: center;
+    /* Always mounted; visibility driven by opacity+transform so it fades in
+       smoothly with the tile's bg/border transition. No display flicker. */
+    opacity: 0;
+    transform: scale(0.5);
+    transition: opacity 120ms ease, transform 120ms ease;
+    pointer-events: none;
+  }
+  .dd-direction.selected .dd-check {
+    opacity: 1;
+    transform: scale(1);
+  }
+
+  /* ── Axis section (Convention ↔ Disruption) ─────────────────────────
+     Lesson banked 2026-05-18: this used to be `.diag-axis` inside a row-flex
+     `.dd-diagnostic` wrapper alongside a `.diag-hook` column. When the hook
+     was removed, the stale `flex: 1.1` produced 22-47px height variance
+     across tiles in the column-flex parent. Rule: when a child loses its
+     row-flex sibling, audit every `flex:` rule on it. */
+  .axis-section { display: flex; flex-direction: column; gap: 4px; }
+
+  .axis-spectrum {
+    position: relative;
+    height: 5px;
+    background: var(--border-card);
+    border-radius: 3px;
+  }
+  .axis-spectrum .marker {
+    position: absolute;
+    top: 50%;
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+    border: 2px solid var(--bg-card);
+    background: var(--axis-risk);
+  }
+  .axis-poles {
+    display: flex; justify-content: space-between;
+    font-family: ui-monospace, SFMono-Regular, monospace;
+    font-size: 9px; color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  /* ── Bet name & body — RENDERED in the vibe's actual fonts ───────── */
+  .dd-title {
+    font-size: 22px;
+    line-height: 1.1;
+    padding-right: 24px;
+    margin: 0;
+    /* font-family set inline via data-display-font */
+  }
+  .dd-bet {
+    font-size: 13px;
+    color: var(--text-secondary);
+    line-height: 1.5;
+    /* font-family set inline via data-body-font */
+  }
+
+  /* ── Audience block (For + audience line) ─────────────────────────── */
+  .dd-audience-block {
+    display: flex;
+    gap: 8px;
+    align-items: baseline;
+    padding-top: 2px;
+  }
+  .dd-audience-micro {
+    font-family: ui-monospace, SFMono-Regular, monospace;
+    font-size: 8.5px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-muted);
+    flex-shrink: 0;
+    padding-top: 2px;
+  }
+  .dd-audience-line {
+    color: var(--text-muted) !important;
+    font-style: normal;
+    margin: 0;
+    flex: 1;
+    font-size: 11.5px;
+  }
+
+  /* ── Palette ──────────────────────────────────────────────────────── */
+  /* `margin-top: auto` pushes the palette + mutex to the BOTTOM of the
+     tile, absorbing whatever variable-height text sits above (bet
+     description, audience line). Combined with the .dd-mutex min-height
+     below, this gives palette + mutex a fixed-offset-from-bottom layout,
+     so palettes align horizontally across all 6 tiles regardless of how
+     long the bet text is. Verified 2026-05-18 via Chrome DevTools
+     measurement: paletteTop = 238 across every tile. */
+  .dd-palette-wrap { display: flex; flex-direction: column; gap: 4px; margin-top: auto; }
+  .dd-palette {
+    display: flex;
+    height: 16px;
+    border-radius: 3px;
+    overflow: hidden;
+  }
+  .dd-palette-bar { flex: 1; }
+  .dd-palette-roles {
+    display: flex; gap: 2px;
+    font-family: ui-monospace, SFMono-Regular, monospace;
+    font-size: 8.5px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+  }
+  .dd-palette-roles span {
+    flex: 1; text-align: center;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+
+  /* ── Font spec (rendered samples, not just names) ─────────────────── */
+  .dd-fonts {
+    display: flex; flex-direction: column; gap: 6px;
+    padding-top: 8px;
+    border-top: 1px dashed var(--border-card);
+  }
+  .dd-fonts-row {
+    display: flex; flex-direction: column; gap: 2px;
+  }
+  .dd-fonts-label {
+    font-family: ui-monospace, SFMono-Regular, monospace;
+    font-size: 8px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-muted);
+  }
+  .dd-fonts-sample {
+    font-size: 16px;
+    color: var(--text-main);
+    line-height: 1.1;
+  }
+  .dd-fonts-sample.body {
+    font-size: 12px;
+    color: var(--text-secondary);
+    line-height: 1.35;
+  }
+  .dd-fonts-name {
+    font-family: ui-monospace, SFMono-Regular, monospace;
+    font-size: 9px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    margin-top: 1px;
+  }
+
+  /* ── Mutex ────────────────────────────────────────────────────────── */
+  /* `min-height: 69px` reserves space for the longest mutex (3 lines of
+     10.5px text @ line-height 1.45 + the 8px top padding + label +
+     dashed border) so all tiles end up the same total height. Without
+     this, row-2 tiles (with 2-line mutexes) would be 15px shorter than
+     row-1 tiles, breaking the palette alignment that `margin-top: auto`
+     on .dd-palette-wrap depends on. Ralph 2026-05-18 — verified in
+     Chrome DevTools: all six tiles now equal-height at 366px. */
+  .dd-mutex {
+    font-size: 10.5px;
+    color: var(--text-muted);
+    padding-top: 8px;
+    border-top: 1px dashed var(--border-card);
+    line-height: 1.45;
+    min-height: 70px;
+  }
+  .dd-mutex .label {
+    font-family: ui-monospace, SFMono-Regular, monospace;
+    font-size: 8.5px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text-muted);
+    display: block;
+    margin-bottom: 2px;
+  }
+
+  .dd-filename {
+    font-family: ui-monospace, SFMono-Regular, monospace;
+    font-size: 9.5px;
+    color: var(--text-muted);
+    margin-top: auto;
+    padding-top: 4px;
+  }
+
+  /* ── Counter / Textarea / CTA ─────────────────────────────────────── */
+  .dd-counter {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 12px 0 4px;
+    font-family: monospace; font-size: 11px;
+  }
+  .dd-counter-left { text-transform: uppercase; color: var(--text-secondary); }
+  .dd-counter-warning { color: var(--brand-yellow); font-weight: 600; }
+  .dd-counter-ready { color: var(--brand-green-bright); font-weight: 600; }
+
+  .dd-textarea-wrap { padding: 4px 0 8px; }
+  .dd-textarea-label {
+    display: block;
+    font-size: 11px;
+    color: var(--text-secondary);
+    margin-bottom: 4px;
+  }
+  .dd-textarea-label .hint { color: var(--text-muted); margin-left: 4px; }
+  .dd-textarea {
+    width: 100%;
+    background: var(--bg-card);
+    border: 1px solid var(--border-card);
+    border-radius: 6px;
+    padding: 8px 10px;
+    font-size: 13px;
+    color: var(--text-main);
+    resize: vertical;
+    font-family: inherit;
+    min-height: 64px;
+  }
+  .dd-textarea:focus { outline: none; border-color: var(--brand-yellow); }
+  .dd-textarea::placeholder { color: var(--text-muted); }
+
+  .tool-card-foot {
+    display: flex; justify-content: flex-end;
+    padding-top: 8px;
+  }
+  .tool-card-btn {
+    background: var(--brand-yellow);
+    color: #1a1410;
+    border: none;
+    border-radius: 6px;
+    padding: 10px 18px;
+    font: inherit;
+    font-size: 13px; font-weight: 600;
+    cursor: pointer;
+    transition: opacity 120ms;
+  }
+  .tool-card-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+  .tool-card-btn:not(:disabled):hover { opacity: 0.9; }
+</style>
+</head>
+<body>
+<div class="stage">
+
+  <div class="mockup-label">tc_design_directions · interactive · real webfonts · 6 → 3</div>
+
+  <div class="tool-card">
+    <div class="tool-card-head">
+      <span class="tool-card-icon">DD</span>
+      <div class="tool-card-head-text">
+        <span class="tool-card-title">Strategic Bets</span>
+        <span class="tool-card-meta">Opens Phase 2 — gates the wireframe build</span>
+      </div>
+      <span class="tool-card-pill">PICK 4</span>
+    </div>
+
+    <div class="dd-preamble">
+      <span class="dd-preamble-label">CD speaking · why six</span>
+      <span class="dd-preamble-body">Six wagers on the same business. Each placed on the Convention↔Disruption axis with a chosen emotional hook. Throw out the two you'd never defend. Keep the four worth wireframing.</span>
+    </div>
+
+    <div class="dd-grid" id="grid"></div>
+
+    <div class="dd-counter">
+      <span class="dd-counter-left">Selected: <span id="count">0</span> / 4</span>
+      <span id="counter-status" class="dd-counter-warning">Pick four to advance</span>
+    </div>
+
+    <div class="dd-textarea-wrap">
+      <label class="dd-textarea-label" for="why-killed">
+        Why did you kill the ones you killed?
+        <span class="hint">— the why amplifies the survivors in Phase 3</span>
+      </label>
+      <textarea id="why-killed" class="dd-textarea"
+        placeholder="The Jaddah angle felt too sentimental for who we're filtering for. Night Majlis was good but redundant with The Arena."
+      ></textarea>
+    </div>
+
+    <div class="tool-card-foot">
+      <button id="cta" class="tool-card-btn" disabled>Send 4 to Wireframes →</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  // ── Data — six strategic bets. axis_hook stays in the model for
+  //    downstream consumers (sidecar / Phase 3 amplifier signal); it is
+  //    not rendered on the tile after the 2026-05-17 hook-row removal.
+  const bets = [
+    {
+      slug: 'bet-1',
+      filename: 'vibe-1-hospitality.md',
+      bet_name: 'The Hospitality Play',
+      bet_audience: 'Tourists and family groups, English-first, want a photogenic Saudi meal without friction.',
+      axis_linear: { poles: ['Convention','Disruption'], position: 0.12 },
+      axis_hook: 'Warmth',
+      the_bet: 'Warm Saudi welcome, family table, "you are home here." Industry playbook, executed cleanly.',
+      mutex: 'The only bet that does NOT filter out tourists — the conventional baseline that makes the others legible.',
+      palette: [
+        { hex: '#f6efe2', role: 'Cream' },
+        { hex: '#c79968', role: 'Date' },
+        { hex: '#8a5a3b', role: 'Cedar' },
+        { hex: '#2a2017', role: 'Ink' }
+      ],
+      fonts: {
+        display: 'Playfair Display', display_label: 'Playfair Display',
+        body: 'Inter', body_label: 'Inter'
+      }
+    },
+    {
+      slug: 'bet-2',
+      filename: 'vibe-2-arena.md',
+      bet_name: 'The Arena',
+      bet_audience: 'Saudi men 25–45 who book a restaurant the way they book a fight — for the story, not the food.',
+      axis_linear: { poles: ['Convention','Disruption'], position: 0.92 },
+      axis_hook: 'Pride',
+      the_bet: 'Two-man majlis as combat sport. Sultan vs. you. One leaves the cliff. The meal IS the duel.',
+      mutex: 'Disruption pole. The only bet that reframes dinner as a contest. Not "warm," not "lineage," not "view."',
+      palette: [
+        { hex: '#0d0d12', role: 'Onyx' },
+        { hex: '#8a1818', role: 'Blood' },
+        { hex: '#5a6068', role: 'Steel' },
+        { hex: '#e0d8c8', role: 'Bone' }
+      ],
+      fonts: {
+        display: '"Space Mono", monospace', display_label: 'Space Mono',
+        body: 'Inter', body_label: 'Inter'
+      }
+    },
+    {
+      slug: 'bet-3',
+      filename: 'vibe-3-highland.md',
+      bet_name: 'Highland Lineage',
+      bet_audience: 'Saudis 35–55 who answer "where are you from?" with a village, not a city. Arabic-first readers.',
+      axis_linear: { poles: ['Convention','Disruption'], position: 0.42 },
+      axis_hook: 'Pride',
+      the_bet: 'Not for tourists. For Saudis with mountain ancestry. Menu reads Arabic-first; the village is the dish.',
+      mutex: 'The only bet that locks out the English-first reader by design. Audience-as-architecture.',
+      palette: [
+        { hex: '#d8d2c4', role: 'Stone' },
+        { hex: '#6a4a30', role: 'Cedar' },
+        { hex: '#b8852a', role: 'Ochre' },
+        { hex: '#1c1a16', role: 'Ink' }
+      ],
+      fonts: {
+        display: 'Manrope', display_label: 'Manrope (Söhne-like)',
+        body: 'Newsreader, serif', body_label: 'Newsreader'
+      }
+    },
+    {
+      slug: 'bet-4',
+      filename: 'vibe-4-jaddah.md',
+      bet_name: "Grandma's Cliff",
+      bet_audience: 'Saudis 28–45 with kids, far from home. The cousin-who-shows-up-late guilt is alive in them.',
+      axis_linear: { poles: ['Convention','Disruption'], position: 0.65 },
+      axis_hook: 'Nostalgia',
+      the_bet: 'Jaddah set the table. The luqaimat are out. Don\'t be the cousin who shows up late.',
+      mutex: 'Nostalgia + guilt-as-warmth. No other bet leads with the family-obligation drumbeat.',
+      palette: [
+        { hex: '#d4a574', role: 'Clay' },
+        { hex: '#e9b94a', role: 'Saffron' },
+        { hex: '#5c3a20', role: 'Cedar' },
+        { hex: '#1a120a', role: 'Ink' }
+      ],
+      fonts: {
+        display: 'Fraunces, serif', display_label: 'Fraunces (GT Sectra-like)',
+        body: 'Inter', body_label: 'Inter'
+      }
+    },
+    {
+      slug: 'bet-5',
+      filename: 'vibe-5-cartographer.md',
+      bet_name: 'The Cartographer',
+      bet_audience: 'Editorially literate readers — the New Yorker subscriber who orders by reading, not by photo.',
+      axis_linear: { poles: ['Convention','Disruption'], position: 0.78 },
+      axis_hook: 'Exclusivity',
+      the_bet: 'Restaurant as field guide. Every dish has coordinates, a season, a falconer\'s name.',
+      mutex: 'Asks the reader to LEARN before ordering. Encyclopedic register no other bet shares.',
+      palette: [
+        { hex: '#f0eadd', role: 'Paper' },
+        { hex: '#7a6f5e', role: 'Rule' },
+        { hex: '#a8782a', role: 'Ochre' },
+        { hex: '#1f1a14', role: 'Ink' }
+      ],
+      fonts: {
+        display: 'Lora, serif', display_label: 'Lora (Tiempos-like)',
+        body: '"JetBrains Mono", monospace', body_label: 'JetBrains Mono'
+      }
+    },
+    {
+      slug: 'bet-6',
+      filename: 'vibe-6-night.md',
+      bet_name: 'Night Majlis',
+      bet_audience: 'Post-work 30s couples and small groups. They show up at 9pm because the day was loud.',
+      axis_linear: { poles: ['Convention','Disruption'], position: 0.55 },
+      axis_hook: 'Exclusivity',
+      the_bet: 'This meal does not exist before sunset. The cliff is a different room at night.',
+      mutex: 'Time-locked. Shares Exclusivity with Cartographer but earned via atmosphere, not knowledge.',
+      palette: [
+        { hex: '#0e1018', role: 'Midnight' },
+        { hex: '#c25a1f', role: 'Ember' },
+        { hex: '#e8d8b8', role: 'Bone' },
+        { hex: '#3a2818', role: 'Cedar' }
+      ],
+      fonts: {
+        display: '"Cormorant Garamond", serif', display_label: 'Cormorant (Canela-like)',
+        body: 'Inter', body_label: 'Inter'
+      }
+    }
+  ]
+
+  const selected = new Set()
+  const CAP = 4
+
+  function escapeAttr(s) { return String(s).replace(/"/g, '&quot;') }
+
+  function tileHTML(bet) {
+    const pct = Math.round(bet.axis_linear.position * 100)
+    return `
+      <div class="dd-direction" data-slug="${bet.slug}">
+        <span class="dd-check">✓</span>
+
+        <!-- 1. Convention ↔ Disruption axis -->
+        <div class="axis-section">
+          <div class="axis-spectrum">
+            <div class="marker" style="left: ${pct}%"></div>
+          </div>
+          <div class="axis-poles">
+            <span>${bet.axis_linear.poles[0]}</span>
+            <span>${bet.axis_linear.poles[1]}</span>
+          </div>
+        </div>
+
+        <!-- bet_name in display font -->
+        <h3 class="dd-title" style="font-family: ${escapeAttr(bet.fonts.display)}">${bet.bet_name}</h3>
+
+        <!-- bet_description in body font -->
+        <p class="dd-bet" style="font-family: ${escapeAttr(bet.fonts.body)}">${bet.the_bet}</p>
+
+        <!-- bet_audience in body font — no label, just who it's for -->
+        <p class="dd-bet dd-audience-line" style="font-family: ${escapeAttr(bet.fonts.body)}">${bet.bet_audience}</p>
+
+        <!-- Palette -->
+        <div class="dd-palette-wrap">
+          <div class="dd-palette">
+            ${bet.palette.map(p => `<div class="dd-palette-bar" style="background:${p.hex}"></div>`).join('')}
+          </div>
+          <div class="dd-palette-roles">
+            ${bet.palette.map(p => `<span title="${p.role} · ${p.hex}">${p.role}</span>`).join('')}
+          </div>
+        </div>
+
+        <!-- Mutex -->
+        <div class="dd-mutex">
+          <span class="label">Mutex</span>
+          ${bet.mutex}
+        </div>
+      </div>
+    `
+  }
+
+  const grid = document.getElementById('grid')
+  const countEl = document.getElementById('count')
+  const statusEl = document.getElementById('counter-status')
+  const ctaEl = document.getElementById('cta')
+
+  function renderOnce() {
+    // Build the DOM ONCE. Selection toggles via class flips below — no rebuild.
+    grid.innerHTML = bets.map(tileHTML).join('')
+    grid.querySelectorAll('.dd-direction').forEach(el => {
+      el.addEventListener('click', () => toggle(el.dataset.slug))
+    })
+    updateStatus()
+  }
+
+  function applySelection(slug) {
+    const el = grid.querySelector(`.dd-direction[data-slug="${slug}"]`)
+    if (!el) return
+    el.classList.toggle('selected', selected.has(slug))
+    // Check visibility is driven by .selected via CSS opacity/transform.
+    // Don't touch inline styles here — that would override the transition.
+  }
+
+  function toggle(slug) {
+    if (selected.has(slug)) {
+      selected.delete(slug)
+      applySelection(slug)
+    } else if (selected.size < CAP) {
+      selected.add(slug)
+      applySelection(slug)
+    } else {
+      statusEl.textContent = 'At cap (4). Deselect one to swap.'
+      statusEl.className = 'dd-counter-warning'
+      setTimeout(updateStatus, 1400)
+      return
+    }
+    updateStatus()
+  }
+
+  function updateStatus() {
+    countEl.textContent = selected.size
+    if (selected.size === CAP) {
+      statusEl.textContent = '✓ Ready to send to wireframes'
+      statusEl.className = 'dd-counter-ready'
+      ctaEl.disabled = false
+    } else {
+      statusEl.textContent = `Pick ${CAP - selected.size} more`
+      statusEl.className = 'dd-counter-warning'
+      ctaEl.disabled = true
+    }
+  }
+
+  ctaEl.addEventListener('click', () => {
+    if (selected.size !== CAP) return
+    const payload = {
+      picks: Array.from(selected),
+      kill_why: document.getElementById('why-killed').value.trim(),
+      survivors: bets.filter(b => selected.has(b.slug)).map(b => ({
+        slug: b.slug, bet_name: b.bet_name, axis_hook: b.axis_hook,
+        axis_linear_position: b.axis_linear.position, audience: b.bet_audience
+      })),
+      killed: bets.filter(b => !selected.has(b.slug)).map(b => ({ slug: b.slug, bet_name: b.bet_name }))
+    }
+    ctaEl.textContent = 'Sent ✓'
+    ctaEl.disabled = true
+    console.log('[tc_design_directions] submit payload:', payload)
+    alert('Submit payload (logged to console):\n\n' + JSON.stringify(payload, null, 2))
+  })
+
+  renderOnce()
+</script>
+</body>
+</html>

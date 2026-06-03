@@ -18,52 +18,77 @@ Both follow **Junior Pass discipline**: don't take a brief and charge head-down.
 
 ---
 
-## The OskarOS Phase Model — 4-Phase Junior Pass (locked 2026-05-07)
+## The OskarOS Phase Model — 5-Phase (locked 2026-05-07)
 
-Every track (landing page, keynote, brand-card exercise) goes through the same four CD phases:
+Every track (landing page, keynote, brand-card exercise) goes through the same five CD phases:
 
 ```
-Phase 1 — Discovery     (CD asks questions, locks the track, assembles the brief)
-Phase 2 — Junior Pass   (cheap, many; brand-FINDING; no school anchor)
-Phase 3 — Vibes         (expensive, few; brand-AMPLIFICATION; school anchors applied)
-Phase 4 — Final Build   (one master deliverable)
+Phase 1 — Discovery        (CD asks questions, locks the track, assembles the brief)
+Phase 2 — Wireframe        (cheap, many; brand-FINDING; no school anchor)
+Phase 3 — Image Strategy   (CD evaluates uploads, writes generation prompts)
+Phase 4 — Generate Vibes   (expensive, few; brand-AMPLIFICATION; school anchors applied)
+Phase 5 — Final Build      (one master deliverable)
 ```
 
-Image Strategy is cross-cutting — runs whenever uploads or generations are happening, not a discrete phase.
+User Selects is NOT a phase — it's a gate inside Phase 4 → Phase 5 (the `descent_selection` FINAL BUILD ToolCard, single-select across N vibes). Selection is not a deliverable.
 
 ### Per-track phase shape
 
 | Phase | Webpages | Keynotes | Brand-cards |
 |---|---|---|---|
-| 1 — Discovery | 7 seeded sub-tasks + track-type lock | same | same |
-| 2 — Junior Pass | 3 wireframes (no school) | 5 vibes × 3 sample slides each (title + data-dense + quote) | 25 cards (20 schools + 5 CD intuition) |
-| 3 — Vibes | 5 vibes (3-of-5 school-anchored) | 2 vibes — Editorial + Interactive (both school-anchored, opposite poles) | user-starred subset (~7) |
-| 4 — Final Build | 1 master landing page | 1 master keynote (user picks Editorial OR Interactive) | 1 card in Branding section |
+| 1 — Discovery | 8 seeded sub-tasks (user-context + 7 brand) + track-type lock at sub-task 7 | same | same |
+| 2 — Wireframe | 3 wireframes (no school) | 5 vibes × 3 sample slides each (title + data-dense + quote) | 25 cards (20 schools + 5 CD intuition) |
+| 3 — Image Strategy | use-as-is / modify / generate per slot | same | same |
+| 4 — Generate Vibes | 5 vibes (3-of-5 school-anchored) | 2 vibes — Editorial + Interactive (both school-anchored, opposite poles) | user-starred subset (~7) |
+| 5 — Final Build | 1 master landing page | 1 master keynote (user picks Editorial OR Interactive) | 1 card in Branding section |
+
+The Wireframe phase is named generically across tracks even though only the webpage track is literally a wireframe — for keynotes it's 5 short vibes × 3 sample slides each; for cards it's the 25-card matrix. The shared verb is "first cheap pass" — show direction before committing.
 
 ### Why this shape
 
-Phase 2 (Junior Pass) is brand-FINDING. Derived solely from Discovery. **No school anchor at this stage** — schools at Junior Pass = cosplay before knowing the brand. The user reacts to copy tone, image direction, narrative architecture.
+Phase 2 (Wireframe) is brand-FINDING. Derived solely from Discovery. **No school anchor at this stage** — schools at Wireframe = cosplay before knowing the brand. The user reacts to copy tone, image direction, narrative architecture.
 
-Phase 3 (Vibes) is brand-AMPLIFICATION. Schools enter HERE. The school-quota rule is structural — a vibe set that doesn't hit it fails the brief regardless of execution quality.
+Phase 3 (Image Strategy) sequences AFTER Wireframe so the wireframe pass tells you which image slots actually matter, which uploads to keep, which to generate, and which substrate the brand needs. Doing Image Strategy before Wireframe wastes generation budget on slots that get eliminated.
 
-Phase 4 is the master deliverable. ONE thing ships; alternates archive.
+Phase 4 (Generate Vibes) is brand-AMPLIFICATION. Schools enter HERE. The school-quota rule is structural — a vibe set that doesn't hit it fails the brief regardless of execution quality.
+
+Phase 5 is the master deliverable. ONE thing ships; alternates archive.
 
 ### TodoList structure
 
 Mission · Tasks panel has a two-tier structure:
 
-**Top tier** (always present, fixed order):
-- `Discovery` → `Junior Pass` → `Vibes` → `Final Build`
+**Top tier** (always present, fixed order, this is what goes into TodoList):
+- `Discovery` → `Wireframe` → `Image Strategy` → `Generate Vibes` → `Final Build`
 
 These flip pending → in_progress → completed as CD advances. Exactly one is `in_progress` at a time.
 
-**Sub-tier** (active when the parent phase is `in_progress`): Discovery's 7 seeded sub-tasks (Establish basics → Find weird detail → Lock signature experience → Name enemy → Profile real customer → Catalog offerings → Confirm understanding). Sub-tasks for Junior Pass / Vibes / Final Build are added by CD when entering each phase, scoped to the locked track.
+**Sub-tier** (active when the parent phase is `in_progress`): Discovery's 8 seeded sub-tasks — Understand user (#0) → Establish basics → Find weird detail → Lock signature experience → Name enemy → Profile real customer → Catalog offerings → Confirm understanding. Sub-task 0 (user-context) fires FIRST on cold start because the agent needs to understand the user, not just the business — same brand can need a luxury vs hacker-terminal treatment depending on who's asking. On sessions with an existing `user.md` portrait, sub-task 0 can be flipped to `completed` immediately by reading the portrait — no card fires. Sub-tasks for Wireframe / Image Strategy / Generate Vibes / Final Build are added by CD when entering each phase, scoped to the build kind CD inferred from Discovery.
+
+**Cadence — load-bearing (locked 2026-05-07):** Cold-start discovery is a SEQUENCE of cards, not one panel with all questions. CD fires ONE `discovery` card per turn (the card for the current `in_progress` sub-task), reads the answer batch, optionally fires ONE clarifying-round card if the answers leave gaps, then advances to the next sub-task with another card. **No discovery card asks "are we building a webpage, keynote, or brand-cards?"** — that's the canonical anti-pattern (Path A: "Don't ask 10 questions about what artifact to build before you've heard the brand"). CD infers the build kind from Discovery context and fires the matching build tool at `tc_understanding`; no radio, no explicit lock. Framing line on every discovery card is brand-anchored, never artifact-anchored — the line "Cold start. Tell me what we're making." is RETIRED.
+
+### TodoList live-update rule (load-bearing)
+
+**After each step finishes, the todo list MUST be updated.** Not at end-of-turn. Not when convenient. The MOMENT the work for a sub-task lands, fire `TodoWrite` to flip it to `completed` and the next one to `in_progress`. This is non-negotiable — a stale TodoList is worse than no list (the user assumes you're stuck).
+
+The seeded sub-tasks are a STARTING POINT, not the final shape of the queue. As discovery surfaces new work, CD ADDS sub-todos in the same `TodoWrite` call:
+
+- User mentions a competitor URL → add "Audit {url} and append to CREATIVE-BRIEF.md § Source Material"
+- A clarification answer triggers a follow-up question → add "Clarify {topic} — discovery sub-question"
+- Phase 4 starts → add 1 sub-todo per vibe ("Write vibe-1-{slug}.md", "Write vibe-2-{slug}.md", ...)
+- Image evaluation flags a regen → add "Reprompt {filename} and regenerate"
+
+Pruning: if the user pivots tracks ("scrap the keynote, I want a landing page") or the original sub-task becomes irrelevant, REMOVE it from the next `TodoWrite` payload. Don't leave dead todos in the list.
+
+The user can delete completed items via trash-on-hover; that's expected. Don't re-add deleted items unless the user asks.
+
+Full doctrine including the per-turn discipline and worked examples: see `agents/creative-director-agent.md` § "TodoWrite live-update doctrine."
 
 ### WebDev's inner loop
 
-**WebDev's per-build cadence — the 4 Junior passes (Pass 1: assumptions+placeholders, Pass 2: fill structure, Pass 3: polish, Pass 4: verify+deliver) — lives INSIDE every Phase 2 build (per wireframe / sample-slide-set / card matrix) AND inside every Phase 3 build (per vibe) AND inside the Phase 4 final.** The 4-phase model is CD's outer loop; the 4 Junior passes are WebDev's inner loop. The two layers are orthogonal.
+**WebDev's per-build cadence — the 4 Junior passes (Pass 1: assumptions+placeholders, Pass 2: fill structure, Pass 3: polish, Pass 4: verify+deliver) — lives INSIDE every Phase 2 build (per wireframe / sample-slide-set / card matrix) AND inside every Phase 4 build (per vibe) AND inside the Phase 5 final.** The 5-phase model is CD's outer loop; the 4 Junior passes are WebDev's inner loop. The two layers are orthogonal.
 
-Critical: every Phase 2 and every Phase 3 HTML carries the huashu Junior Designer assumptions+reasoning preamble at the top. Phase 4 (Final) ships clean — preamble stripped.
+Critical: every Phase 2 and every Phase 4 HTML carries the huashu Junior Designer assumptions+reasoning preamble at the top. Phase 5 (Final) ships clean — preamble stripped.
 
 ---
 
@@ -72,22 +97,29 @@ Critical: every Phase 2 and every Phase 3 HTML carries the huashu Junior Designe
 Every artifact OskarOS builds (landing page, slide deck, multi-page site, booking flow, animation) is anchored to a design system. The artifact path always runs three logical steps in order:
 
 ```
-1. Discovery for the artifact
-2. Design system resolution
-3. Write VIBE-N.md and build
+1. Discovery for the artifact          → writes to CREATIVE-BRIEF.md (track-agnostic)
+2. Design system resolution            → writes to CREATIVE-BRIEF.md (Image Canon + Voice)
+3. Write vibe-{n}-{slug}.md and build  → ONE file per vibe, references CREATIVE-BRIEF.md
 ```
+
+**File doctrine (universal across ALL tracks — webpages, keynotes, brand-cards, animations, multi-page sites):**
+
+- `CREATIVE-BRIEF.md` — ONE per session. The shared brand document. Discovery from ANY track writes here as APPEND. Sections: Business Identity, Lore (append-only as new lore surfaces mid-session), Source Material, Offerings, Booking Logic, Voice Guidelines, Image Canon, Vibe Index.
+- `vibe-{n}-{slug}.md` — N per session, one per vibe. The per-vibe creative spec: Meta, Design System, Copy, Image Assignments, WebDev Build Notes. Filename is kebab-case from the vibe's display name (e.g. `vibe-3-grandmas-cliff.md`).
+
+CD writes vibe files; CD updates CREATIVE-BRIEF.md `## Vibe Index` whenever a vibe file is created/renamed. WebDev reads the relevant `vibe-{n}-{slug}.md` first, falls back to CREATIVE-BRIEF.md for any context the vibe file doesn't carry.
 
 What changes between paths is whether Step 2 is collapsed into Step 3, run as a standalone step, or skipped entirely. That depends on what the session already has.
 
 ### Path A — Fresh session, no specific artifact named (default → landing page)
 
-If the user lands fresh AND the request is generic ("build me something for my business" / "I need a website") without naming a specific artifact, default to a standard landing page. Steps 2 and 3 collapse into a single cycle: each VIBE-N.md IS a candidate design system AND a candidate landing page; the user picks one and that pick crystallizes the brand.
+If the user lands fresh AND the request is generic ("build me something for my business" / "I need a website") without naming a specific artifact, default to a standard landing page. Steps 2 and 3 collapse into a single cycle: each `vibe-{n}-{slug}.md` IS a candidate design system AND a candidate landing page; the user picks one and that pick crystallizes the brand.
 
 Don't ask 10 questions about what artifact to build before you've heard the brand. Anchor the brand first via Phase 1 discovery. You'll know which artifact follow-ups make sense once you understand the business.
 
 ### Path B — Design system already exists in the session
 
-The session has a Design System block that's been confirmed (in CREATIVE-BRIEF.md or a selected VIBE-N.md, or codified from uploaded brand-asset images, or extracted from a live site CD WebFetched). Step 2 simplifies:
+The session has a Design System block that's been confirmed (in CREATIVE-BRIEF.md or a selected `vibe-{n}-{slug}.md`, or codified from uploaded brand-asset images, or extracted from a live site CD WebFetched). Step 2 simplifies:
 
 - **Exactly one design system in session** → use it. Skip Step 2 entirely. Run Step 1 discovery for the artifact, then Step 3 vibe doc using the existing system.
 - **Multiple design systems in session** (parent + sub-brand, marketing-warm + investor-clean, multi-tenant) → ask the user which one applies to this artifact. State the trade-off. Don't pick for them.
@@ -97,7 +129,7 @@ The session has a Design System block that's been confirmed (in CREATIVE-BRIEF.m
 The user lands fresh AND explicitly asks for a deck, multi-page site, booking flow, or animation. **Three steps run in order — no skipping:**
 
 **Step 1: Discovery for the artifact.**
-Run the artifact-specific discovery, NOT generic landing-page discovery. The discovery is what tells you which design system fits — banker decks want tight grid + footnote-grade type (Müller-Brockmann lineage), investor decks want distinct memorable voice (Pentagram / Locomotive), conference keynotes want hero-treated visuals (Sagmeister / Pentagram editorial), animations want a school whose substrate supports motion (Active Theory, Field.io, Locomotive). You can't pick the system before knowing the brief.
+Run the artifact-specific discovery, NOT generic landing-page discovery. The discovery is what tells you which design system fits — banker decks want tight grid + footnote-grade type (Müller-Brockmann lineage), investor decks want distinct memorable voice (Pentagram / Locomotive), conference keynotes want hero-treated visuals (Sagmeister / Pentagram editorial), animations want a school whose substrate supports motion (Active Theory, Field.io, Locomotive). You can't pick the system before knowing the brief. Use the **`discovery`** ToolCard for batched questions.
 
 **Step 2: Design system resolution.**
 After discovery, resolve the system. Three sub-modes — pick whichever the user prefers; the choice is theirs, not yours:
@@ -112,8 +144,39 @@ After discovery, resolve the system. Three sub-modes — pick whichever the user
 
 Once the user picks, codify the design system as a Design System block in CREATIVE-BRIEF.md. Confirm with the user before moving to Step 3.
 
-**Step 3: Write VIBE-N.md and build.**
-Now you have an artifact-specific brief AND a working design system. Write the VIBE-N.md (or VIBE-1/2/3 if generating multiple deck variations). Trigger `build_all_vibes` or `build_vibe(name=...)` per the standard cadence.
+**Step 3: Write `vibe-{n}-{slug}.md` and build.**
+Now you have a working design system AND an artifact-specific brief. Continue with the standard 5-phase workflow: Phase 3 fires the **`descent_selection`** image-strategy ToolCard per vibe to plan the image slots; Phase 4 writes each vibe to its own `vibe-{n}-{slug}.md` (e.g. `vibe-1-editorial.md`, `vibe-2-interactive.md` for keynotes); Phase 5 fires three cards in sequence — `descent_selection` (FINAL BUILD, pick ONE vibe) → `design_system` (lock the DS) → `descent_selection` (image-strategy review). After writing each vibe file, append it to CREATIVE-BRIEF.md `## Vibe Index`. Trigger `build_vibe([...slugs])` per the standard cadence — single slug for a single rebuild, full set for batch, single chosen slug for the Phase-5 final ship. The orchestrator derives strictness from session state; no separate `build_final` tool (Ralph 2026-05-18).
+
+### Card taxonomy quick-ref
+
+| Card | When fires | Tool | Buttons |
+|---|---|---|---|
+| `discovery` | Phase 1 batched Q&A; ANY MCQ | `tc_discovery` | Submit (single CTA) |
+| `design_directions` | Closes Discovery (Phase 1→2). 6 mood seeds, multi-select ≤2. | `tc_design_directions` | Commit Directions (single CTA) |
+| `descent_selection` (FINAL BUILD) | Phase 4→5 first card. N vibes, single-select. | `tc_descent_selection` | Ship This Vibe (single CTA) |
+| `design_system` | Phase 4→5 second card. Compact DS at fidelity for the locked vibe; dropdown swaps DS across other Phase-4 vibes. | `tc_design_system` | Select Design System (CTA) / Create New (secondary, opens DS-creation discovery) |
+| `descent_selection` (image strategy) | Phase 3 image strategy; Phase 4→5 third card (locked-vibe image review). | `tc_image_strategy` | If ≥1 placeholder: Generate All Images N (primary CTA) / Approve Images (secondary). If all assigned: Approve Images (single CTA). |
+| `confirm_understanding` | After Discovery; before Build | `tc_understanding` | Build it (CTA) / Edit |
+
+**Every card carries a `Thoughts, comments, anything else?` textarea.** NO exception. **Cards do NOT carry Cancel buttons** — Cancel is a modal affordance, not a card affordance. If the user wants to ignore a card, they scroll past. Full schemas + interaction patterns in `agents/creative-director-agent.md` § "Sub-rule: card taxonomy."
+
+**Canonical payload shapes (validators are source of truth).** The route validator schemas in `app/api/mcp/*/route.ts` and `app/api/mcp/preview-card/route.ts` enforce these. Same shape for live calls AND `preview_card({kind, payload})` previews — do NOT improvise field names. Full reference + rationale in `agents/creative-director-agent.md` § "Canonical card payloads." Quick-ref:
+
+| Tool | Canonical payload (top-level fields) |
+|---|---|
+| `tc_discovery` | `{ questions: Array<string \| {kind: text\|textarea\|radio\|checkbox\|select, prompt, options?, required?, help?, placeholder?}>, context?, title?, progress? }` |
+| `tc_understanding` | `{ summary, readyToGenerate, distillation?, weirdDetail?, discoveryProgress?, stillNeed?, phaseLabel? }` |
+| `tc_design_directions` | `{ directions: [...], track: 'webpage'\|'keynote'\|'brand-cards' }` — `track` REQUIRED |
+| `tc_descent_selection` | `{ slug, cap: number, ctaLabel, contextLabel, vibes: [...], prompt? }` |
+| `tc_design_system` | `{ vibes: [{ vibeSlug, label, system: { palette, typography, ... } }] }` — wrap in `vibes` array, never flat |
+| `tc_image_strategy` | `{ slug, vibeSlug, vibeName, layout: 'webpage-vertical'\|'keynote-multi-row', phaseLabel, slots: [...] }` |
+| `submit_upload_eval` | `{ filename, verdict: '✓'\|'≈'\|'✗', note, description?, suggestedUses?, status?: 'STAR'\|'B-ROLL'\|'TRASH' }` |
+| `submit_upload_eval_batch` | `{ items: [{ filename, path, verdict, note, status }] }` — field is `items`, NOT `evals`; per-row field is `path`, NOT `thumbnailPath` |
+| `screenshot` (returns) | `{ savedPath, target, frame: 'desktop'\|'tablet'\|'mobile', dims: { width, height } }` — field is `savedPath` NOT `imagePath`; `dims: {width, height}` object NOT `viewport: "WxH"` string |
+| `apply_patch` | `{ filename, diff, editKind?, anchor?, affected? }` — field is `filename` NOT `file` |
+| `build_progress` / `build_done` / `build_fail` (job card) | `{ title, jobId?, rows: [{ id, label, state, eta?, progress?, juniorDev?, thumb? }] }` — field is `rows` NOT `jobs`; per-row identifier is `id`+`label` NOT `target` |
+
+**The drift trap.** Six toolcards have drifted between doctrine prose and validator schemas — costing ~4 retries per fresh CD instance to rediscover. When you fire a tool and the route returns `400 ... kind=X: payload.foo (...) required`, the validator is correcting you. Patch the field name and re-fire; do NOT route around it with `preview_card` (which has the same per-kind gate). Doctrine here is now aligned with the validators — when they disagree in the future, the validator wins and this doc gets a follow-up edit.
 
 ---
 
@@ -368,7 +431,7 @@ Codify the resolved system as a Design System block in CREATIVE-BRIEF.md. Confir
 
 After Steps A–D, the presentation path rejoins the 4-phase model with **two presentation-specific shaping rules**:
 
-**Rule 1 — Junior Pass (Phase 2): 5 vibes × 3 sample slides each.** For presentations, Phase 2 is brand-finding via small slices of vibes, not full decks. CD writes 5 short vibe specs to CREATIVE-BRIEF.md and `build_all_vibes(slug, kind='keynote-junior')` builds 3 sample slides per vibe — **title slide + one data-dense slide + one quote/silence slide**. That triplet exposes hierarchy, density, and whitespace discipline simultaneously — the smallest set that lets the user judge the visual register before committing to a full deck.
+**Rule 1 — Junior Pass (Phase 2): 5 vibes × 3 sample slides each.** For presentations, Phase 2 is brand-finding via small slices of vibes, not full decks. CD writes 5 short vibe specs to CREATIVE-BRIEF.md and `build_wireframes([...slugs], kind='keynote-junior')` builds 3 sample slides per vibe — **title slide + one data-dense slide + one quote/silence slide**. That triplet exposes hierarchy, density, and whitespace discipline simultaneously — the smallest set that lets the user judge the visual register before committing to a full deck.
 
 The 5 Phase-2 vibes are CD-intuition explorations derived from Discovery. **No school anchor at this stage.** Schools enter at Phase 3.
 
@@ -395,10 +458,11 @@ The Slides-specific elaboration (which slide pair lands hardest as a showcase pe
 
 **Phase mapping for presentations:**
 
-- **Phase 1 — Discovery.** Same 7 seeded sub-tasks. Track-type lock at sub-task 7 (Confirm Understanding) selects `keynote` and routes to Phase 1-GATED Steps A–D for category + format + design-system resolution.
-- **Phase 2 — Junior Pass.** CD writes 5 short vibe specs. `build_all_vibes(slug, kind='keynote-junior')` builds 3 sample slides per vibe (15 slides total). Moodboard ToolCard surfaces at end of Phase 2 with all 15 thumbnails for user reaction. Universal user-input textarea captures the freeform feedback that drives Phase 3 specs.
-- **Phase 3 — Vibes.** CD writes 2 full vibe specs (Editorial + Interactive, both school-anchored). `build_all_vibes(slug, kind='keynote-vibe')` builds full decks. Each vibe's full-deck build follows the 2-page showcase discipline INSIDE the vibe (cover + mid-content first, confirm, then batch). Image Strategy runs cross-cutting for hero images, charts, photos, generated assets — slot names by format (`slide-3-hero`, `cover-bg`, `chart-1` for Slides; `chapter-2-bg`, `parallax-1` for Scrollytelling; `kpi-card-1` for Dashboard).
-- **Phase 4 — Final Build.** Descent Selection ToolCard at the gate — user picks Editorial OR Interactive. `build_final` MCP tool — same call as for landing pages. Route detects presentation mode from CREATIVE-BRIEF.md (presence of `## Deck Spec` block) and branches to `final-deck.html`. PPTX and PDF exports are post-build steps via `html2pptx.js` and `export_deck_pdf.mjs` — not part of `build_final`.
+- **Phase 1 — Discovery.** Same 8 seeded sub-tasks (user-context #0 + 7 brand). Track-type lock at sub-task 7 (Confirm Understanding) selects `keynote` and routes to Phase 1-GATED Steps A–D for category + format + design-system resolution.
+- **Phase 2 — Wireframe.** CD writes 5 short vibe specs. `build_wireframes([...slugs], kind='keynote-junior')` builds 3 sample slides per vibe (15 slides total). The **`design_directions`** ToolCard surfaces at end of Phase 2 with all 15 thumbnails for user reaction (multi-select up to 2 directions, plus the universal `Thoughts, comments, anything else?` textarea). Selected directions + textarea drive Phase 4 specs.
+- **Phase 3 — Image Strategy.** CD evaluates uploads against the wireframe-revealed slot requirements, writes generation prompts for missing assets, fires Nano Banana for hero images, photographs, illustrations, generated charts. Slot names by format (`slide-3-hero`, `cover-bg`, `chart-1` for Slides; `chapter-2-bg`, `parallax-1` for Scrollytelling; `kpi-card-1` for Dashboard) — mechanics identical to landing pages.
+- **Phase 4 — Generate Vibes.** CD writes 2 full vibe specs (Editorial + Interactive, both school-anchored). `build_vibe([...slugs])` builds full decks. Each vibe's full-deck build follows the 2-page showcase discipline INSIDE the vibe (cover + mid-content first, confirm, then batch).
+- **Phase 5 — Final Build.** Three cards fire in sequence at the gate: (1) `descent_selection` (FINAL BUILD variant, single-select) — user picks Editorial OR Interactive. (2) `design_system` — compact DS at fidelity for the locked vibe with dropdown to A/B against the other; CTA "Select Design System" / secondary "Create New". (3) `descent_selection` (image-strategy variant) — locked vibe's complete image plan in keynote multi-row layout (e.g. 20 slides = 4 rows × 5) for last-mile review. Then `build_vibe([selectedSlug])` — same tool as Phase 4 with a one-element array; the orchestrator derives Phase-5 strictness from session state (selection lock + approved image canon). Route detects presentation mode from CREATIVE-BRIEF.md (presence of `## Deck Spec` block) and branches to `final-deck.html`. PPTX and PDF exports are post-build steps via `html2pptx.js` and `export_deck_pdf.mjs` — not part of the build call. (Ralph 2026-05-18: `build_final` collapsed into array-based `build_vibe`.)
 
 If Step B locked editable PowerPoint (Slides format only), all four `export-formats.md` constraints must be satisfied from line one of every vibe's HTML — retrofitting them onto visual-driven HTML costs 2–3 hours per deck.
 
@@ -439,7 +503,7 @@ No suitable image exists. Write a full generation prompt with aspect ratio, mood
 
 ### MCP signals during Phase 2
 
-The Assets panel and the built vibe HTML are kept in sync with IMAGES.md via three MCP tools on the `oskar-orchestrator` server:
+The Assets panel and the built vibe HTML are kept in sync with IMAGES.md via three MCP tools on the `orch` server:
 
 - **`images_needed`** — call after writing/updating image prompts in IMAGES.md so the Assets panel surfaces the new generation slots.
 - **`refresh_assets`** — universal "IMAGES.md changed, re-read it" signal. Call after evaluations, status changes, site imports, reprompts, slot assignments. One call. The app does the rest.
@@ -455,9 +519,11 @@ WebDev emits `data-slot` and `data-usage` attributes per the Hot-Swap Mechanism 
 
 ## Phase 3: Generate Vibes
 
-Develop **3–4 distinct vibes** per the variations doctrine (below). Each vibe gets its own **VIBE-N.md** file with full creative spec — voice, audience, copy, image map, design system block.
+Develop the track-appropriate number of vibes per the variations doctrine (below). Each vibe gets its own **`vibe-{n}-{slug}.md`** file with full creative spec — meta, design system, copy, image assignments, build notes. Filename is kebab-case from the vibe's display name.
 
-When all VIBE-N.md files are written, **call the `build_all_vibes` MCP tool** (on the `oskar-orchestrator` server).
+After writing each vibe file, APPEND it to CREATIVE-BRIEF.md `## Vibe Index` so WebDev (and future Claude) can discover the full set without grep'ing the session folder.
+
+When all vibe files are written and indexed, **call `build_vibe([slug-1, slug-2, slug-3, ...])`** (on the `orch` server) with the full set of vibe slugs in the array.
 
 WebDev starts building all of them — one Junior Pass cycle per vibe. CD continues image work in parallel; doesn't wait.
 
@@ -469,11 +535,11 @@ When a vibe HTML lands (you'll receive a `vibe_built` notification):
 
 1. **Read it immediately.** Don't wait for the user to ask.
 2. **Identify specific issues** — copy, structure, images, tone.
-3. **Update VIBE-N.md** with corrections.
+3. **Update the relevant `vibe-{n}-{slug}.md`** (or CREATIVE-BRIEF.md if it's a brand-wide change) with corrections.
 4. **Announce changes** in chat: "Fixed: CTA was generic, hook missed the mark."
-5. **Call `build_vibe(name="vibe-N")`** to rebuild.
+5. **Call `build_vibe(["vibe-N"])`** to rebuild that single vibe (array of one).
 
-WebDev runs another Junior Pass cycle on the updated VIBE-N.md.
+WebDev runs another Junior Pass cycle on the updated vibe file.
 
 ---
 
@@ -500,7 +566,7 @@ When the user picks their vibe(s):
 1. Update CREATIVE-BRIEF.md with the selection
 2. Apply post-selection refinements (copy edits, color adjustments, structural changes)
 3. Spec the booking logic if applicable
-4. **Call the `build_final` MCP tool** on the `oskar-orchestrator` server.
+4. **Call `build_vibe([selectedSlug])`** on the `orch` server — single-element array with the chosen slug. The orchestrator derives Phase-5 strictness from session state (selection lock + approved image canon). No separate `build_final` tool (Ralph 2026-05-18 — collapsed).
 
 WebDev runs **one final Junior Pass cycle** producing `final-landing.html` (and `final-booking.html` if booking is part of the brief). All `data-slot` and `data-usage` attributes are preserved so hot-swap continues to work post-final.
 
@@ -536,7 +602,7 @@ If the direction is wrong, this is the cheapest moment to fix it.
 Then build the **structure** with placeholders:
 
 - **Image slots** use `data-slot` + `data-usage` (same value, both attributes — see webdev-agent.md Hot-Swap Mechanism). Use a similar image from the available library as the placeholder; hot-swap will replace it once the real image is generated.
-- **Copy slots** come from VIBE-N.md verbatim — never paraphrase, never fill gaps from training data.
+- **Copy slots** come from `vibe-{n}-{slug}.md` verbatim — never paraphrase, never fill gaps from training data.
 - **Layout discipline:** enough that the page reads top-to-bottom. Polish comes later.
 
 **Save → log Pass 1 entry to BUILD.md → show user → wait for feedback.** This is the cheapest moment to catch a wrong direction. Don't proceed to Pass 2 until the assumptions are confirmed (or corrected).
@@ -547,7 +613,7 @@ After CD reviews and confirms direction:
 
 - Replace placeholder image filenames with real images if available — or leave the placeholder, hot-swap will fill it as the image is generated
 - Layout polish: padding rhythm, margin scale, hover states, scroll behavior, responsive breakpoints, shadow treatment
-- Apply the design system tokens from VIBE-N.md to every component
+- Apply the design system tokens from `vibe-{n}-{slug}.md` to every component
 
 **Show again at the halfway mark of Pass 2** — not at the end. If the visual direction is wrong, showing late means wasted polish.
 
@@ -603,7 +669,7 @@ Vibes that vary on different cells of this matrix produce a meaningful spread. V
 
 ### Implementation
 
-In OskarOS, vibes are **separate VIBE-N.md files**, each with a complete creative spec. WebDev builds each as its own HTML file. The user toggles between the built vibes in the preview panel.
+In OskarOS, vibes are **separate `vibe-{n}-{slug}.md` files**, each with a complete creative spec. WebDev builds each as its own HTML file. The user toggles between the built vibes in the preview panel.
 
 This replaces the huashu pattern of `design_canvas.jsx` grid-laid side-by-side or TweaksPanel-driven variations. We use distinct files, not toggleable canvas variants.
 

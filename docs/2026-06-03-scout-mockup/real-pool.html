@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="de" data-theme="onyx">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Jedi Scout — Real pool (Aargau) + taste on the secondary row</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0;}
+  :root{
+    --bg-app:#0a0907;--bg-card:#171410;--bg-sunken:#13110d;--bg-row2:#100e0a;--bg-hover:#1f1a14;
+    --border:#1a160f;--border-active:#2a2519;--text:#ece1c5;--muted:#7a6f5a;--dim:#42392a;
+    --amber:#ffb84a;--phosphor:#c8ee7a;--red:#ff6a4d;--blue:#60a5fa;--violet:#b69cff;--green:#10b981;
+    --mono:'JetBrains Mono',monospace;
+  }
+  body{font-family:'Inter',system-ui,sans-serif;background:var(--bg-app);color:var(--text);-webkit-font-smoothing:antialiased;}
+  .mono{font-family:var(--mono);}
+
+  .top{height:50px;display:flex;align-items:center;gap:14px;padding:0 20px;border-bottom:1px solid var(--border);position:sticky;top:0;background:var(--bg-app);z-index:30;}
+  .logo{width:21px;height:21px;border-radius:6px;background:linear-gradient(135deg,#10b981,#0a8f6a);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:11px;font-family:var(--mono);}
+  .brand b{font-size:13.5px;font-weight:600;}.brand .sub{font-size:11px;color:var(--muted);border-left:1px solid var(--border-active);padding-left:8px;margin-left:8px;}
+  .nav{display:flex;gap:2px;margin-left:6px;}
+  .nav a{font-size:12px;color:var(--muted);padding:5px 10px;border-radius:7px;cursor:pointer;}
+  .nav a.active{color:#fff;background:var(--green);font-weight:600;}
+  .spacer{flex:1;}
+  .src{font-family:var(--mono);font-size:10px;color:var(--dim);}
+
+  .head{padding:16px 22px 8px;}
+  .head h1{font-size:17px;font-weight:600;letter-spacing:-.01em;}
+  .head .meta{font-family:var(--mono);font-size:11px;color:var(--muted);margin-top:5px;display:flex;gap:16px;flex-wrap:wrap;align-items:center;}
+  .head .meta b{color:var(--text);}
+  .head .meta .hot b{color:var(--red);}.head .meta .green b{color:var(--violet);}
+  .legend{display:flex;gap:14px;margin-top:9px;font-family:var(--mono);font-size:10px;color:var(--muted);flex-wrap:wrap;}
+  .legend span{display:inline-flex;align-items:center;gap:5px;}
+  .ldot{width:8px;height:8px;border-radius:2px;}
+
+  .wrap{padding:6px 22px 60px;overflow-x:auto;}
+  table{width:100%;border-collapse:collapse;min-width:980px;}
+  thead th{font-family:var(--mono);font-size:9px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);text-align:left;padding:8px 12px;border-bottom:1px solid var(--border-active);background:var(--bg-sunken);position:sticky;top:50px;z-index:10;}
+  tbody.lead{border-bottom:1px solid var(--border);}
+  tbody.lead:hover .r1{background:var(--bg-hover);}
+  tbody.lead:hover .r2{background:#16130d;}
+
+  /* primary row — the REAL research data */
+  .r1 td{padding:10px 12px;vertical-align:top;font-size:12.5px;}
+  .nm{font-weight:600;font-size:13px;color:var(--text);}
+  .typ{font-size:10.5px;color:var(--muted);margin-top:2px;line-height:1.3;max-width:230px;}
+  .regchip{font-family:var(--mono);font-size:9.5px;color:var(--muted);background:var(--bg-sunken);border:1px solid var(--border);padding:2px 7px;border-radius:999px;white-space:nowrap;}
+  .kontakt{font-family:var(--mono);font-size:11px;color:var(--text);}
+  .none{color:var(--dim);font-family:var(--mono);font-size:11px;}
+  .adr{font-size:11.5px;color:var(--muted);max-width:180px;line-height:1.35;}
+  .webcell .dom{font-family:var(--mono);font-size:11.5px;color:var(--blue);border-bottom:1px dotted var(--border-active);}
+  .leadtag{font-family:var(--mono);font-size:9.5px;font-weight:700;letter-spacing:.03em;color:var(--violet);background:rgba(182,156,255,.12);padding:2px 8px;border-radius:999px;white-space:nowrap;}
+  .leadtag.tief{color:var(--muted);background:var(--bg-sunken);}
+
+  /* secondary row — the JEDI SCOUT read */
+  .r2 td{padding:0 12px 11px;}
+  .scout{margin-left:2px;border-left:3px solid var(--dim);border-radius:0 9px 9px 0;background:var(--bg-row2);padding:9px 13px;display:flex;gap:18px;align-items:center;flex-wrap:wrap;}
+  .scout.hot{border-left-color:var(--red);}
+  .scout.warm{border-left-color:var(--amber);}
+  .scout.cold{border-left-color:var(--blue);}
+  .scout.green{border-left-color:var(--violet);}
+  .slabel{font-family:var(--mono);font-size:8.5px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--dim);display:flex;align-items:center;gap:5px;flex-shrink:0;width:54px;}
+  .slabel .eye{width:6px;height:6px;border-radius:999px;background:var(--phosphor);}
+
+  .taste{display:flex;gap:16px;align-items:center;flex-wrap:wrap;flex:1;min-width:300px;}
+  .metric{display:flex;align-items:center;gap:7px;}
+  .mname{font-family:var(--mono);font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;}
+  .segs{display:flex;gap:2px;}.seg{width:11px;height:6px;border-radius:1px;background:var(--border-active);}
+  .segs.pal .on{background:var(--phosphor);}.segs.exe .on{background:var(--amber);}
+  .mval{font-family:var(--mono);font-size:11px;font-weight:600;}
+  .heat{font-family:var(--mono);font-size:11px;font-weight:700;padding:3px 10px;border-radius:999px;white-space:nowrap;}
+  .heat.hot{background:rgba(255,106,77,.16);color:var(--red);}
+  .heat.warm{background:rgba(245,158,11,.16);color:var(--amber);}
+  .heat.cold{background:rgba(96,165,250,.14);color:var(--blue);}
+  .gapn{font-family:var(--mono);font-size:13px;font-weight:700;}
+  .gapn.hot{color:var(--red);}.gapn.warm{color:var(--amber);}.gapn.cold{color:var(--dim);}
+  .verdict{font-size:12px;color:var(--text);line-height:1.4;flex:1;min-width:220px;}
+  .verdict .choice{color:var(--muted);font-style:italic;}
+
+  /* cheap research lamps */
+  .lamps{display:flex;gap:9px;align-items:center;flex-wrap:wrap;padding-left:14px;border-left:1px solid var(--border);flex-shrink:0;}
+  .lamp{display:flex;align-items:center;gap:5px;}
+  .ldotr{width:7px;height:7px;border-radius:999px;flex-shrink:0;}
+  .ldotr.good{background:var(--phosphor);}.ldotr.mid{background:var(--amber);}.ldotr.bad{background:var(--red);}.ldotr.info{background:var(--muted);}
+  .lk{font-family:var(--mono);font-size:8.5px;color:var(--dim);text-transform:uppercase;}
+  .lv{font-family:var(--mono);font-size:10px;color:var(--text);}
+
+  /* greenfield secondary row */
+  .green-note{display:flex;align-items:center;gap:12px;flex:1;}
+  .gf-chip{font-family:var(--mono);font-size:9.5px;font-weight:700;letter-spacing:.06em;color:var(--violet);background:rgba(182,156,255,.12);padding:3px 10px;border-radius:999px;}
+  .gf-text{font-size:12px;color:var(--muted);line-height:1.4;}
+  .gf-text b{color:var(--text);font-weight:600;}
+  .pursue{font-family:var(--mono);font-size:10px;padding:2px 9px;border-radius:999px;margin-left:auto;}
+  .pursue.high{color:var(--phosphor);background:rgba(200,238,122,.12);}
+  .pursue.low{color:var(--muted);background:var(--bg-sunken);}
+
+  .foot{padding:14px 22px;font-family:var(--mono);font-size:10px;color:var(--dim);border-top:1px solid var(--border);line-height:1.7;}
+  .foot b{color:var(--muted);}
+</style>
+</head>
+<body>
+  <div class="top">
+    <div class="logo">O</div>
+    <div class="brand"><b>OskarOS</b><span class="sub">Scout · Pool</span></div>
+    <nav class="nav"><a>Overview</a><a>Kanban</a><a class="active">Scout</a></nav>
+    <span class="spacer"></span>
+    <span class="src">source: intelligence/aargau-full-1.html</span>
+  </div>
+
+  <div class="head">
+    <h1>Raw Pool — Praxen für Psyche, Kanton Aargau</h1>
+    <div class="meta">
+      <span><b id="cTotal">0</b> leads shown · of 200 imported</span>
+      <span><b id="cWeb">0</b> with a site → tasted</span>
+      <span class="hot">🔥 <b id="cHot">0</b> hot</span>
+      <span class="green"><b id="cGreen">0</b> greenfield (no site)</span>
+    </div>
+    <div class="legend">
+      <span><i class="ldot" style="background:var(--red)"></i> 🔥 hot — taste outruns the site</span>
+      <span><i class="ldot" style="background:var(--amber)"></i> warm</span>
+      <span><i class="ldot" style="background:var(--blue)"></i> cold — nothing to sell</span>
+      <span><i class="ldot" style="background:var(--violet)"></i> greenfield — no site to displace</span>
+    </div>
+  </div>
+
+  <div class="wrap">
+    <table>
+      <thead><tr>
+        <th style="width:24%">Name / Typ <span style="color:var(--dim)">· scout below</span></th>
+        <th style="width:90px">Region</th>
+        <th style="width:120px">Telefon</th>
+        <th style="width:150px">E-Mail</th>
+        <th>Adresse</th>
+        <th style="width:160px">Website-Status</th>
+      </tr></thead>
+      <tbody id="body"></tbody>
+    </table>
+  </div>
+
+  <div class="foot">
+    <b>Primary row</b> = the real research data, verbatim from the imported HTML table (Region · Name · Typ · Telefon · E-Mail · Adresse · Website-Status).<br>
+    <b>Secondary row</b> = the Jedi Scout read, layered beneath: a <b>taste</b> (palate − execution → gap → heat) + the cheap code lamps (Age · Stack · Hosting · Perf · SEO) for site-bearing leads — a <b>greenfield</b> note for the no-site leads.<br>
+    Taste &amp; lamp values are illustrative on this mockup; the lead identity, address &amp; website-status are the real imported data.
+  </div>
+
+<script>
+const HEAT = g => g>=2?'hot':(g===1?'warm':'cold');
+// real leads from intelligence/aargau-full-1.html (Region Aarau / Suhrental). web = the real domain or null (no site).
+const LEADS = [
+ {region:'Aarau', name:'Margherita Viviani', typ:'Psychotherapeutin FSP', tel:'—', email:'—', adr:'Gönhardweg 51, 5000 Aarau', web:'mviviani.ch',
+   sc:{p:5,e:2,choice:'a single art-photograph — light through water, a point of view, not a stethoscope', v:'Taste way out front of the build — already wants what we sell.', l:{age:'~2017 · aging',stack:'WordPress',host:'Infomaniak · CH',perf:'mobile 44',seo:'66'}}},
+ {region:'Aarau', name:'Salome Schraner', typ:'Psychotherapeutin FSP · Praxis Michalik', tel:'—', email:'—', adr:'Zollrain 2, 5000 Aarau', web:'praxis-michalik.ch',
+   sc:{p:4,e:2,choice:'a hand-drawn logo mark, real warmth in the portraits', v:'Genuine eye on a tired theme — strong displacement pain.', l:{age:'~2016 · aging',stack:'WordPress · old theme',host:'Cyon · CH',perf:'mobile 41',seo:'63'}}},
+ {region:'Aarau', name:'Corina Bacilieri', typ:'Psychotherapeutin FSP · familienpraxis balu', tel:'079 873 33 49', email:'—', adr:'In der Rütti 3, 5000 Aarau', web:'cbacilieri.ch',
+   sc:{p:4,e:2,choice:'a child’s-drawing motif carried into the nav — warmth on purpose', v:'Clear point of view, half-built. Hot.', l:{age:'~2019 · ok',stack:'WordPress',host:'Hostpoint · CH',perf:'mobile 49',seo:'68'}}},
+ {region:'Aarau', name:'Dr. med. Patrick Perrenoud', typ:'Facharzt FMH Psychiatrie · Aare Praxis', tel:'062 544 92 62', email:'—', adr:'Mühlemattstrasse 50, 5000 Aarau', web:'praxisaare.ch',
+   sc:{p:3,e:1,choice:'a real photograph of the Aare tying the name to the place — then a flat layout drops it', v:'One good instinct, no follow-through. Pursue.', l:{age:'~2016 · aging',stack:'WordPress · old',host:'Hostpoint · CH',perf:'mobile 40',seo:'61'}}},
+ {region:'Aarau', name:'Anouk Alder-Mugier', typ:'Fachpsychologin für Psychotherapie FSP', tel:'077 461 35 59', email:'mail@psychotherapie-alder.ch', adr:'Hallwylstrasse 15, 5000 Aarau', web:'psychotherapie-alder.ch',
+   sc:{p:4,e:3,choice:'one honest portrait, generous whitespace, a real sentence not a slogan', v:'Promising eye, mostly realized — a touch, not a rebuild.', l:{age:'~2020 · ok',stack:'Webflow',host:'Webflow',perf:'mobile 72',seo:'84'}}},
+ {region:'Aarau', name:'Rukiye Isik', typ:'Psychotherapeutin FSP · VT Aarau', tel:'—', email:'isik@fsp-hin.ch', adr:'Ochsengässli 9, 5000 Aarau', web:'vt-aarau.ch',
+   sc:{p:3,e:2,choice:'a calm sage-green palette, not clinical white — one shared-practice site', v:'A little eye, template execution. Warm.', l:{age:'~2018 · ok',stack:'WordPress',host:'Hostpoint · CH',perf:'mobile 54',seo:'71'}}},
+ {region:'Suhr', name:'Dr. med. Lienhard Maeck', typ:'Facharzt Psychiatrie · Praxis im Suhre-Park', tel:'076 240 44 80', email:'—', adr:'Tramstrasse 2, 5034 Suhr', web:'psy-suhr.ch',
+   sc:{p:3,e:2,choice:'one nice photograph of the park the practice is named for', v:'A grounded choice on a thin build. Warm.', l:{age:'~2019 · ok',stack:'WordPress',host:'Cyon · CH',perf:'mobile 51',seo:'69'}}},
+ {region:'Aarau', name:'Corinne Picard', typ:'Fachpsychologin für Psychotherapie FSP', tel:'079 362 84 82', email:'corinne.picard@fsp-hin.ch', adr:'Ochsengässli 9, 5000 Aarau', web:'psychotherapie-picard.ch',
+   sc:{p:3,e:3,choice:'tidy and professional, but every choice is the safe one', v:'Competent, no felt lack. Teach desire first.', l:{age:'~2021 · ok',stack:'Squarespace',host:'Squarespace',perf:'mobile 78',seo:'88'}}},
+ {region:'Aarau', name:'Colomba Lardieri', typ:'lic. phil. Psychotherapeutin FSP', tel:'078 689 00 92', email:'c.lardieri@gmx.net', adr:'Ochsengässli 9, 5000 Aarau', web:'psychologie-lardieri.ch',
+   sc:{p:2,e:2,choice:'default Jimdo theme, stock lavender header — borrowed calm', v:'Convention top to bottom. Cold.', l:{age:'~2014 · stale',stack:'Jimdo',host:'Jimdo · DE',perf:'mobile 38',seo:'55'}}},
+ {region:'Aarau', name:'Dr. med. Annette Rahm', typ:'Fachärztin FMH Psychiatrie u. Psychotherapie', tel:'079 511 62 28', email:'—', adr:'Rain 16, 5000 Aarau', web:'psychiater-aarau.ch',
+   sc:{p:1,e:2,choice:'keyword domain, blue gradient, a clip-art brain — pure convention', v:'Plonk. No eye to work with.', l:{age:'~2018 · ok',stack:'WordPress',host:'Hostpoint · CH',perf:'mobile 58',seo:'74'}}},
+ {region:'Aarau', name:'Aude Arnoux', typ:'M.Sc. Fachpsychologin FSP · Therapie-Reich', tel:'—', email:'—', adr:'5000 Aarau', web:'therapie-reich.ch',
+   sc:{p:4,e:4,choice:'a confident wordmark, art-directed top to bottom — already knows good', v:'The connoisseur. Beautiful, nothing to sell.', l:{age:'~2023 · fresh',stack:'Next.js · custom',host:'Vercel',perf:'mobile 94',seo:'97'}}},
+ {region:'Aarau', name:'Claudia Schmid-Schüller', typ:'lic. phil. Fachpsychologin FSP', tel:'078 860 51 30', email:'claudia@schmidschueller.ch', adr:'Hintere Vorstadt 16, 5000 Aarau', web:'schmidschueller.ch',
+   sc:{p:1,e:1,choice:'nothing chosen — a builder template with the demo text half-replaced', v:'Raw template, no conviction. Cold.', l:{age:'~2015 · stale',stack:'Wix',host:'Wix · US',perf:'mobile 35',seo:'52'}}},
+ // greenfield — no own website ("Keine eigene Website (LEAD)")
+ {region:'Aarau', name:'Claudia Leuenberger', typ:'Psychotherapeutin FSP (Psychoonkologie)', tel:'—', email:'—', adr:'Kasinostrasse 17, 5000 Aarau', web:null,
+   gf:{pursue:'high', note:'No web presence at all — nothing to displace, you set the first impression. Specialist niche (Psychoonkologie) reads high-intent.'}},
+ {region:'Aarau', name:'Urs Bachofner', typ:'Psychotherapeut FSP', tel:'—', email:'—', adr:'Igelweid 1, 5000 Aarau', web:null,
+   gf:{pursue:'high', note:'Established central address, zero digital footprint. Pure greenfield build.'}},
+ {region:'Aarau', name:'Monika Heeb', typ:'Psychologin FSP (Laufbahnberatung)', tel:'—', email:'—', adr:'Laurenzenvorstadt 89, 5000 Aarau', web:null,
+   gf:{pursue:'low', note:'No site, and flagged «tief» — career-coaching rather than therapy; weaker fit.'}},
+];
+
+const seg=(cls,n)=>`<div class="segs ${cls}">`+[1,2,3,4,5].map(i=>`<i class="seg${i<=n?' on':''}"></i>`).join('')+`</div>`;
+const tone=(k,v)=>{ if(k==='age')return /stale/.test(v)?'good':(/aging/.test(v)?'mid':'bad'); if(k==='stack')return /old|Jimdo|Wix/.test(v)?'good':(/WordPress/.test(v)?'mid':'info'); if(k==='perf'){const n=+v.replace(/\D/g,'');return n<50?'good':(n<75?'mid':'bad');} if(k==='seo'){return +v<70?'bad':'info';} return 'info'; };
+const lamp=(k,label,v)=>`<div class="lamp"><span class="ldotr ${tone(k,v)}"></span><span class="lk">${label}</span><span class="lv">${v}</span></div>`;
+
+function row(d){
+  const tel = d.tel==='—'?`<span class="none">—</span>`:`<span class="kontakt">${d.tel}</span>`;
+  const email = d.email==='—'?`<span class="none">—</span>`:`<span class="kontakt">${d.email}</span>`;
+  const webcell = d.web
+    ? `<span class="dom">${d.web} ↗</span>`
+    : `<span class="leadtag${d.gf&&d.gf.pursue==='low'?' tief':''}">KEINE WEBSITE</span>`;
+  let r2;
+  if(d.web && d.sc){
+    const g=d.sc.p-d.sc.e, h=HEAT(g), L=d.sc.l;
+    r2 = `<div class="scout ${h}">
+      <div class="slabel"><span class="eye"></span>Taste</div>
+      <div class="taste">
+        <div class="metric"><span class="mname">Pal</span>${seg('pal',d.sc.p)}<span class="mval">${d.sc.p}</span></div>
+        <div class="metric"><span class="mname">Exe</span>${seg('exe',d.sc.e)}<span class="mval">${d.sc.e}</span></div>
+        <span class="gapn ${h}">${g>0?'+':''}${g}</span>
+        <span class="heat ${h}">${h==='hot'?'🔥 HOT':(h==='warm'?'Warm':'Cold')}</span>
+        <span class="verdict">${d.sc.v} <span class="choice">— “${d.sc.choice}”</span></span>
+      </div>
+      <div class="lamps">${lamp('age','Age',L.age)}${lamp('stack','Stack',L.stack)}${lamp('host','Host',L.host)}${lamp('perf','Perf',L.perf)}${lamp('seo','SEO',L.seo)}</div>
+    </div>`;
+  } else {
+    r2 = `<div class="scout green">
+      <div class="slabel"><span class="eye" style="background:var(--violet)"></span>Scout</div>
+      <div class="green-note">
+        <span class="gf-chip">◇ GREENFIELD</span>
+        <span class="gf-text">${d.gf.note}</span>
+        <span class="pursue ${d.gf.pursue}">${d.gf.pursue==='high'?'pursue ↑':'low priority'}</span>
+      </div>
+    </div>`;
+  }
+  return `<tbody class="lead">
+    <tr class="r1">
+      <td><div class="nm">${d.name}</div><div class="typ">${d.typ}</div></td>
+      <td><span class="regchip">${d.region}</span></td>
+      <td>${tel}</td>
+      <td>${email}</td>
+      <td class="adr">${d.adr}</td>
+      <td class="webcell">${webcell}</td>
+    </tr>
+    <tr class="r2"><td colspan="6">${r2}</td></tr>
+  </tbody>`;
+}
+
+document.getElementById('body').innerHTML = LEADS.map(row).join('');
+const web = LEADS.filter(d=>d.web);
+document.getElementById('cTotal').textContent = LEADS.length;
+document.getElementById('cWeb').textContent = web.length;
+document.getElementById('cHot').textContent = web.filter(d=>d.sc.p-d.sc.e>=2).length;
+document.getElementById('cGreen').textContent = LEADS.filter(d=>!d.web).length;
+</script>
+</body>
+</html>

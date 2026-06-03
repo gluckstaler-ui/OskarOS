@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+import { humanizeSessionId } from '../session'
 
 // We'll test the pure functions and type structures
 // File I/O tests would need memfs or similar mocking
@@ -178,10 +179,35 @@ describe('SESSION.md parsing', () => {
 ## Conversation Log
 `
 
-  describe('business name extraction', () => {
-    it('extracts business name from **Business:** field', () => {
-      const match = sampleSessionMd.match(/\*\*Business:\*\*\s*(.+)/)
-      expect(match?.[1].trim()).toBe('FalCaMel Cafe')
+  // Ralph 2026-06-01 — was: regex-extracts `**Business:** Name` from
+  // SESSION.md. Eliminated because CD's Confirm-Understanding cards
+  // hijacked that pattern with multi-sentence brand paragraphs, producing
+  // a 500-char gibberish top-bar. Replaced with the deterministic
+  // `humanizeSessionId` helper, tested below.
+  describe('humanizeSessionId', () => {
+    it('reverses a date-prefixed slug to a title-cased name', () => {
+      expect(humanizeSessionId('2026-05-31-weingut-barbazza')).toBe('Weingut Barbazza')
+    })
+    it('handles legacy slugs without a date prefix', () => {
+      expect(humanizeSessionId('falcamel-cafe')).toBe('Falcamel Cafe')
+      expect(humanizeSessionId('escrow-smoketest')).toBe('Escrow Smoketest')
+    })
+    it('does not touch standalone numbers after the date strip', () => {
+      // "2026-01-27-18" → strip date → "18" → "18"
+      expect(humanizeSessionId('2026-01-27-18')).toBe('18')
+    })
+    it('returns empty for empty input — never throws', () => {
+      expect(humanizeSessionId('')).toBe('')
+    })
+    it('is immune to CD-Confirm-Understanding hijack — input is sessionId, not markdown', () => {
+      // The bug surface (`**Business:** [long paragraph]` in SESSION.md)
+      // is unreachable: this function NEVER reads markdown. The output is
+      // a pure function of the sessionId alone.
+      const input = '2026-05-31-weingut-barbazza'
+      const out = humanizeSessionId(input)
+      expect(out.length).toBeLessThan(60)  // sanity: top-bar-sized
+      expect(out).not.toContain('—')
+      expect(out).not.toContain('500-year')
     })
   })
 

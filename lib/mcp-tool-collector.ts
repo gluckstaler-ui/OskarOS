@@ -27,7 +27,7 @@
  *
  * Tool names normalized: the Claude CLI prefixes MCP tool names with
  * `mcp__<server>__`. Both forms ("submit_critique" or
- * "mcp__oskar-orchestrator__submit_critique") match the same expected
+ * "mcp__orch__submit_critique") match the same expected
  * name. Callers pass the bare tool name.
  */
 
@@ -46,7 +46,7 @@ export interface ToolUseObservation {
 /**
  * Strip the `mcp__<server>__` prefix Claude CLI adds to MCP tool names.
  * The agent might call `submit_critique`; the CLI relays it as
- * `mcp__oskar-orchestrator__submit_critique`. Either form maps to the
+ * `mcp__orch__submit_critique`. Either form maps to the
  * bare tool name in the expected-set.
  */
 export function stripMcpPrefix(name: string): string {
@@ -131,4 +131,83 @@ export function collectFromStdout(
   expectedTools: readonly string[],
 ): ToolCalls {
   return collectFromStreamJsonLines(stdout.split('\n'), expectedTools)
+}
+
+/**
+ * Real-time streaming variant. Watches stdout chunks line-by-line and
+ * invokes `onToolUse` AS each `tool_use` block lands inside an
+ * `assistant` event — not at end-of-stream. Use this when the caller
+ * needs to FORWARD agent tool calls back to a route while the agent is
+ * still running (e.g. `build-wireframes/route.ts` per-slug
+ * `build_progress` / `submit_critique` routing via a closure-bound
+ * `target`).
+ *
+ * Ralph 2026-05-19 (Job-Card Ladder Fix — CLI onToolCall hookup):
+ * Previously this hook only existed in API mode (Claude API loop +
+ * Gemini API loop). CLI mode (claude --print stream-json) had a
+ * single-shot post-mortem `collectFromStdout` that scanned the
+ * captured stdout at build_done time — too late for mid-build event
+ * forwarding. The agent's `build_progress({stage:"verify"})` and
+ * `build_progress({stage:"critique"})` fires landed at the MCP
+ * server (acked) but the route's per-slug onToolCall handler never
+ * saw them because nothing was parsing stream-json in real time.
+ * As a result, wireframe builds completed correctly on disk but the
+ * job-card UI ladder hung at `html` or `verify` forever — the
+ * stage-transition publish() calls never fired.
+ *
+ * Returns `feed(chunk)` for streaming input and `end()` to drain any
+ * trailing buffered line at stdout close. Tolerant: skips invalid
+ * JSON lines (CLI sometimes mixes status text into stream-json).
+ *
+ * The `name` passed to onToolUse is stripped of the `mcp__<server>__`
+ * prefix the CLI relays — `mcp__orch__build_progress` becomes
+ * `build_progress`, matching what route handlers check.
+ */
+export function streamAssistantToolUses(
+  onToolUse: (name: string, input: unknown) => void,
+): { feed: (chunk: string) => void; end: () => void } {
+  let buffer = ''
+  const handleLine = (line: string) => {
+    const trimmed = line.trim()
+    if (!trimmed) return
+    let evt: BridgeEvent
+    try {
+      evt = JSON.parse(trimmed) as BridgeEvent
+    } catch {
+      return
+    }
+    if (evt?.type !== 'assistant') return
+    const message = (evt as { message?: unknown }).message
+    const blocks = (message as { content?: unknown })?.content
+    if (!Array.isArray(blocks)) return
+    for (const block of blocks) {
+      if (!block || typeof block !== 'object') continue
+      const b = block as { type?: string; name?: string; input?: unknown }
+      if (b.type !== 'tool_use') continue
+      if (typeof b.name !== 'string') continue
+      try {
+        onToolUse(stripMcpPrefix(b.name), b.input)
+      } catch (err) {
+        // Caller's onToolUse threw — log but don't crash the stream
+        // parser. The agent is still mid-build; we don't want a
+        // route-side error to kill the WebDev subprocess.
+        console.error('[streamAssistantToolUses] onToolUse threw:', err)
+      }
+    }
+  }
+  return {
+    feed(chunk: string) {
+      buffer += chunk
+      const lines = buffer.split('\n')
+      // Last element is the partial line still mid-stream — keep it
+      // in the buffer until the next chunk completes it.
+      buffer = lines.pop() ?? ''
+      for (const line of lines) handleLine(line)
+    },
+    end() {
+      // Drain any trailing complete line at EOF (no terminating \n).
+      if (buffer) handleLine(buffer)
+      buffer = ''
+    },
+  }
 }

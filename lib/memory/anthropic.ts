@@ -16,7 +16,7 @@ import path from 'path'
 // Sonnet 4.6; Big CD uses Opus 4.7. No Haiku surface in OUR code.
 // (Note: the Claude Code CLI itself spawns Haiku internally for sub-tasks
 // like summarization — that's not our code, can't disable from here.)
-export type MemoryModel = 'claude-sonnet-4-6' | 'claude-opus-4-7'
+export type MemoryModel = 'claude-sonnet-4-6' | 'claude-opus-4-8'
 
 /**
  * Call claude --print. Returns null on failure (memory agents are best-effort).
@@ -39,6 +39,13 @@ export async function callAnthropic(
   // so dreamer.ts can fan it out as a ProgressEvent and the
   // CompactionOverlay shows the agent's actual work in real time.
   onStreamEvent?: (preview: { type: string; detail: string }) => void,
+  // 2026-05-13 (Ralph): caller abort signal. Order 66's "Continue" button
+  // disconnects the SSE client; that abort now reaches here and SIGTERMs the
+  // claude --print child instead of letting it run to the 10-min timeout.
+  // Stops the orphan from holding an OAuth slot AND — because a killed child
+  // resolves null and every Sage pass returns agent-fail before its
+  // SESSION.md writeFile — prevents the stale-content overwrite.
+  signal?: AbortSignal,
 ): Promise<string | null> {
   const inputSize = userMessage.length
   const sysSize = systemPrompt?.length || 0
@@ -236,8 +243,23 @@ export async function callAnthropic(
       // effect. The close handler resolves the promise.
     }, 10 * 60 * 1000)
 
+    // Abort wiring (Ralph 2026-05-13). Caller signal aborts (Order 66
+    // Continue disconnects the SSE client) → SIGTERM the child now instead
+    // of waiting out the 10-min timer. `{ once: true }` self-removes after
+    // firing; close/error handlers below remove it on the normal path so a
+    // long-lived signal (req.signal) doesn't accumulate listeners.
+    const onAbort = () => {
+      console.error(`[${agentTag}] aborted by caller — killing child (SIGTERM)`)
+      try { child.kill('SIGTERM') } catch {}
+    }
+    if (signal) {
+      if (signal.aborted) onAbort()
+      else signal.addEventListener('abort', onAbort, { once: true })
+    }
+
     child.on('close', (code: number | null) => {
       clearTimeout(timer)
+      if (signal) { try { signal.removeEventListener('abort', onAbort) } catch {} }
       if (sysFile) { try { unlinkSync(sysFile) } catch {} }
       // Clean up the user-message temp file too — it can be hundreds of KB.
       try { unlinkSync(userFile) } catch {}
@@ -288,6 +310,7 @@ export async function callAnthropic(
 
     child.on('error', (err: Error) => {
       clearTimeout(timer)
+      if (signal) { try { signal.removeEventListener('abort', onAbort) } catch {} }
       try { unlinkSync(userFile) } catch {}
       console.error(`[memory/anthropic] Spawn error: ${err.message}`)
       resolve(null)

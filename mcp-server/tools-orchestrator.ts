@@ -102,7 +102,7 @@ export const ORCHESTRATOR_TOOL_DEFINITIONS = [
       properties: {
         target: {
           type: 'string',
-          enum: ['cd', 'webdev', 'sentinel', 'jedi-code'],
+          enum: ['cd', 'webdev', 'sentinel', 'jedi-code', 'consular'],
         },
       },
       required: ['target'],
@@ -155,6 +155,126 @@ export const ORCHESTRATOR_TOOL_DEFINITIONS = [
     },
   },
   {
+    name: 'build_wireframes',
+    description:
+      'Phase 2 build for webpages. Fires N wireframes (one per slug passed) ' +
+      'derived solely from Discovery + the Pass-1 Reasoning section in each ' +
+      'vibe-{n}-{slug}.md spec (no school anchor; subject-matched SVG ' +
+      'placeholders). Same fire-and-forget contract as build_vibe — returns ' +
+      'immediately with one jobId per slug, then CD polls job_status(jobId) ' +
+      'for completion. Backend wiring is a separate WP.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        slugs: {
+          type: 'array',
+          items: { type: 'string' },
+          description:
+            'Vibe slugs to build wireframes for. Each slug references an ' +
+            'existing vibe-{n}-{slug}.md spec in the current session. ' +
+            'Example: ["vibe-1-grandmas-cliff", "vibe-2-decompression-chamber", "vibe-3-the-deployment"]. ' +
+            'WebDev reads each spec end-to-end and renders one HTML wireframe per slug.',
+        },
+      },
+      required: ['slugs'],
+    },
+  },
+  {
+    name: 'tc_design_directions',
+    description:
+      'Present 6 strategic bets at the end of Phase 1 Discovery / start of Phase 2. ' +
+      'User picks 4 to keep, kills 2. The 4 picks become the slugs passed to ' +
+      'build_wireframes. Each tile renders a Convention↔Disruption axis, the ' +
+      'bet name in the display font, the bet description in the body font, the ' +
+      'audience line, palette strip with role labels, and a mutex block. ' +
+      'Response arrives as a user message with { picks, kill_why, survivors, killed }. ' +
+      'Shape mirrors docs/tc-design-directions-mockup.html.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        slug: { type: 'string', description: 'Session slug.' },
+        directions: {
+          type: 'array',
+          items: {
+            type: 'object',
+            properties: {
+              slug: { type: 'string', description: 'Stable id, e.g. "bet-1".' },
+              filename: { type: 'string', description: 'vibe-x.md filename this bet seeds, e.g. "vibe-1-hospitality.md".' },
+              bet_name: { type: 'string', description: 'The wager — e.g. "The Hospitality Play". NOT a school name.' },
+              bet_audience: { type: 'string', description: 'One sentence describing the audience this bet filters for.' },
+              axis_linear: {
+                type: 'object',
+                description: 'Convention↔Disruption spectrum with a 0..1 marker.',
+                properties: {
+                  poles: {
+                    type: 'array',
+                    items: { type: 'string' },
+                    description: '[Convention-pole label, Disruption-pole label]. Usually ["Convention","Disruption"].',
+                  },
+                  position: {
+                    type: 'number',
+                    description: '0..1 — marker position. 0 = pure Convention, 1 = pure Disruption.',
+                  },
+                },
+                required: ['poles', 'position'],
+              },
+              axis_hook: {
+                type: 'string',
+                description: 'Warmth | Pride | Nostalgia | Exclusivity | Humor. Model-only; not rendered on the tile.',
+              },
+              the_bet: {
+                type: 'string',
+                description: 'What becomes true if this wager wins. One-two sentences in the bet\'s body voice.',
+              },
+              mutex: {
+                type: 'string',
+                description: 'What UNIQUELY differentiates this bet from the other five. The mutually-exclusive check.',
+              },
+              palette: {
+                type: 'array',
+                items: {
+                  type: 'object',
+                  properties: {
+                    hex: { type: 'string' },
+                    role: { type: 'string', description: 'Short role label, e.g. "Cream", "Cedar", "Ink".' },
+                  },
+                  required: ['hex', 'role'],
+                },
+                description: 'Exactly 4 swatches.',
+              },
+              fonts: {
+                type: 'object',
+                properties: {
+                  display: { type: 'string', description: 'CSS font-family value, e.g. \'Playfair Display\' or \'"Space Mono", monospace\'.' },
+                  display_label: { type: 'string', description: 'Short label, e.g. "Playfair Display" or "Manrope (Söhne-like)".' },
+                  body: { type: 'string' },
+                  body_label: { type: 'string' },
+                },
+                required: ['display', 'display_label', 'body', 'body_label'],
+              },
+            },
+            required: ['slug', 'bet_name', 'the_bet', 'mutex', 'palette', 'fonts', 'axis_linear'],
+          },
+          description: 'Exactly 6 strategic bets.',
+        },
+        preamble: {
+          type: 'object',
+          description: 'CD-speaking preamble — the cyan-bordered callout above the bet grid.',
+          properties: {
+            label: { type: 'string', description: 'Mono-caps role tag — e.g. "CD speaking · why six".' },
+            body: { type: 'string', description: 'Prose explanation of the bet set — what axes pivot, why these six. 2-4 sentences.' },
+          },
+          required: ['label', 'body'],
+        },
+        prompt: {
+          type: 'string',
+          description: '@deprecated — flat-string preamble. Use `preamble: {label, body}` instead.',
+        },
+      },
+      required: ['slug', 'directions'],
+    },
+  },
+  {
     name: 'replay_events',
     description:
       'Drain events from this session\'s ring buffer. Use this on the FIRST ' +
@@ -179,6 +299,126 @@ export const ORCHESTRATOR_TOOL_DEFINITIONS = [
             'Useful for incremental polling: pass the latest `ts` you\'ve already seen.',
         },
       },
+    },
+  },
+  // ──────────────────────────────────────────────────────────────────────
+  // WP-68 — User-impersonation tools (test-agent allowlist only)
+  // ──────────────────────────────────────────────────────────────────────
+  // These are the ONLY tools that mint `from: 'user'` against the agent
+  // bus. Production agents (CD, WebDev, Sentinel, Jedi-Code) MUST NOT have
+  // these in their `--allowed-tools` lists. Whitelist on the test agent
+  // (COO Claude) only.
+  //
+  // Why MCP, not curl-from-Bash: permission gating + semantic discipline.
+  // `notify_agent`'s permission table is agent-to-agent only — no "user"
+  // entry. The HTTP `/api/mcp/notify-agent` route accepts `from: 'user'`
+  // (page.tsx:2419 pushUserMessageToCD uses it directly) but no MCP tool
+  // exposes that capability with allowlist gating until now.
+  {
+    name: 'send_user_input',
+    description:
+      'TEST-AGENT TOOL — impersonate the user sending input to CD. ' +
+      'NEVER available to production agents.\n\n' +
+      'Two modes:\n' +
+      '  • mode: "chat"       — POST to /api/chat-stream as the user; ' +
+      'turn-initiating; blocks until CD finishes and SSE stream ends. ' +
+      'Returns the final text + cards CD fired + jobs CD started during ' +
+      'the turn.\n' +
+      '  • mode: "inbox-note" — POST to /api/mcp/notify-agent with ' +
+      'from:"user", target:"cd"; non-blocking; CD picks it up at the start ' +
+      'of its NEXT turn via agent_inbox(). Use this for between-turn ' +
+      'signals while CD is mid-stream — same channel page.tsx ' +
+      'pushUserMessageToCD uses today.\n\n' +
+      'The `from: "user"` tag is enforced server-side by this tool. The ' +
+      'calling agent cannot fake a different identity. Whitelist gates ' +
+      'WHO can invoke; the route gates WHAT the invocation says.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        sessionId: {
+          type: 'string',
+          description: 'OskarOS session id (e.g. "2026-01-27-debug"). The session must already exist; use start_session via /api/test-backdoor to create one.',
+        },
+        message: {
+          type: 'string',
+          description: 'The user message text. For card responses (discovery questions, design directions), format as a normal user reply — CD reads this just like a typed chat message.',
+        },
+        mode: {
+          type: 'string',
+          enum: ['chat', 'inbox-note'],
+          description: '"chat" for turn-initiating messages (blocks ~30-60s for CD turn); "inbox-note" for between-turn signals (returns ~50ms).',
+        },
+        attachments: {
+          type: 'array',
+          items: { type: 'string' },
+          description: 'Optional. Filenames already uploaded via /api/test-backdoor upload_image. The chat-stream sees these as sourceImages.',
+        },
+        priority: {
+          type: 'string',
+          enum: ['low', 'normal', 'high'],
+          description: 'Inbox-note mode only. Default "high" for user impersonation (matches page.tsx pushUserMessageToCD behavior).',
+        },
+      },
+      required: ['sessionId', 'message', 'mode'],
+    },
+  },
+  {
+    name: 'respond_to_card',
+    description:
+      'TEST-AGENT TOOL — resolve a user-action card CD fired. NEVER ' +
+      'available to production agents.\n\n' +
+      'Cards split into two resolution paths:\n' +
+      '  • ask_user cards — Promise-based; resolves via ' +
+      '/api/mcp/ask-user-response/[requestId]. Use type:"ask_user" with the ' +
+      'requestId you saw in cardsFired[] of the prior send_user_input ' +
+      'response.\n' +
+      '  • All other cards (discovery_questions, design_directions, ' +
+      'confirm_understanding, image_prompt, image_verdict, ' +
+      'descent_selection) — user response is a normal chat message; this ' +
+      'tool formats the response and dispatches via send_user_input(' +
+      'mode:"chat") under the hood. CD reads it as a regular user reply ' +
+      'next turn.\n\n' +
+      'The discriminated union on `response` catches dispatch-shape errors ' +
+      'at the tool boundary instead of at silent runtime failure. Sending ' +
+      '`{type:"image_prompt", verdict:"approve"}` (verdict belongs on ' +
+      'image_verdict) fails validation here, not after the message lands.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        sessionId: { type: 'string', description: 'OskarOS session id.' },
+        requestId: {
+          type: 'string',
+          description: 'For ask_user cards only — the requestId from cardsFired[]. Other card types ignore this field.',
+        },
+        response: {
+          type: 'object',
+          description:
+            'Discriminated union by `type`:\n' +
+            '  • {type:"ask_user", choice: string}\n' +
+            '  • {type:"discovery_questions", answers: string[], freeformText?: string}\n' +
+            '  • {type:"design_directions", picks: string[], freeformText?: string}\n' +
+            '  • {type:"confirm_understanding", action: "commit" | "discuss"}\n' +
+            '  • {type:"image_prompt", prompt: string, action: "approve" | "modify" | "reject"}\n' +
+            '  • {type:"image_verdict", verdict: "approve" | "reject" | "regenerate", notes?: string}\n' +
+            '  • {type:"descent_selection", picks: string[]}',
+          properties: {
+            type: {
+              type: 'string',
+              enum: [
+                'ask_user',
+                'discovery_questions',
+                'design_directions',
+                'confirm_understanding',
+                'image_prompt',
+                'image_verdict',
+                'descent_selection',
+              ],
+            },
+          },
+          required: ['type'],
+        },
+      },
+      required: ['sessionId', 'response'],
     },
   },
 ] as const
@@ -362,6 +602,29 @@ export async function callOrchestratorTool(
       return { text: JSON.stringify({ events, count: events.length }, null, 2), isError: false }
     }
 
+    case 'tc_design_directions': {
+      // Doctrine: Design Directions are TRACK-AGNOSTIC. Never re-add a
+      // `track` field here — see INSTITUTIONAL-MEMORY.md "Doctrine drift:
+      // track grafted onto tc_design_directions (2nd time)" 2026-05-14.
+      const slug = String(args.slug || '').trim()
+      const directions = Array.isArray(args.directions) ? args.directions : []
+      if (!slug || directions.length === 0) {
+        return { text: 'Error: slug and non-empty directions are required', isError: true }
+      }
+      const r = await postJson<{ ok: boolean; directionCount?: number; error?: string }>(
+        '/api/mcp/present-design-directions',
+        { sessionId, slug, directions, prompt: args.prompt, preamble: args.preamble },
+      )
+      if (!r.ok) return { text: `tc_design_directions failed: ${r.error}`, isError: true }
+      if (r.body?.error) return { text: `tc_design_directions error: ${r.body.error}`, isError: true }
+      return {
+        text:
+          `Design Directions card surfaced (${r.body?.directionCount ?? directions.length} candidates). ` +
+          `Wait for the user's response — it arrives as a user message with { picks, freeformText }.`,
+        isError: false,
+      }
+    }
+
     case 'agent_status': {
       // For v1 we only surface the inbox count — last-seen tracking can come
       // later. Same /api/mcp/agent-inbox call but without draining (peek mode).
@@ -378,6 +641,333 @@ export async function callOrchestratorTool(
           `and watch for a reply in your inbox if the agent is active.`,
         isError: false,
       }
+    }
+
+    case 'send_user_input': {
+      // WP-68. Test-agent allowlist only. The tool mints `from: 'user'`
+      // server-side; the calling agent's identity (ctx.agentRole) is NOT
+      // propagated as the inbox `from` field — that's the whole point of
+      // user-impersonation. Permission gating is via --allowed-tools, not
+      // via runtime role-check (the agent has the tool ⟹ it's authorized).
+      const message = String(args.message || '').trim()
+      const mode = String(args.mode || '').trim()
+      const attachments = Array.isArray(args.attachments)
+        ? (args.attachments as unknown[]).map((a) => String(a || '').trim()).filter(Boolean)
+        : []
+      const priority = (args.priority as string) || 'high'
+      if (!message) return { text: 'Error: `message` is required', isError: true }
+      if (mode !== 'chat' && mode !== 'inbox-note') {
+        return { text: 'Error: `mode` must be "chat" or "inbox-note"', isError: true }
+      }
+
+      if (mode === 'inbox-note') {
+        // Between-turn signal — non-blocking. Hits the same notify-agent
+        // route page.tsx:2419 pushUserMessageToCD uses, with from='user'.
+        const r = await postJson<{
+          ok: boolean
+          messageId?: string
+          error?: string
+        }>('/api/mcp/notify-agent', {
+          sessionId,
+          from: 'user',
+          // fromInstance is the impersonation source; tag it as "test-backdoor"
+          // so cd-side audit can distinguish UI-typed from agent-impersonated
+          // input if it ever wants to.
+          fromInstance: `test-backdoor-${instanceId}`,
+          target: 'cd',
+          message,
+          priority,
+          replyTo: null,
+        })
+        if (!r.ok) return { text: r.error || 'send_user_input(inbox-note) failed', isError: true }
+        if (r.body?.error) return { text: r.body.error, isError: true }
+        return {
+          text: `send_user_input → cd inbox: queued (messageId=${r.body?.messageId})`,
+          isError: false,
+        }
+      }
+
+      // mode === 'chat' — turn-initiating; blocks on SSE stream completion.
+      // We POST to /api/chat-stream with the same body shape the UI uses.
+      // Since SSE is a long-lived stream, we drain it inside this tool and
+      // return a structured summary. The agent doesn't see raw SSE chunks.
+      const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'
+      try {
+        const streamRes = await fetch(`${baseUrl}/api/chat-stream`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            sessionId,
+            // Minimal payload — chat-stream resolves the full message
+            // history from SESSION.md when this is set.
+            messages: [{ role: 'user', content: message }],
+            sourceImages: attachments.map((filename) => ({ filename })),
+            isResume: false,
+          }),
+        })
+        if (!streamRes.ok || !streamRes.body) {
+          return {
+            text: `send_user_input(chat) failed: HTTP ${streamRes.status}`,
+            isError: true,
+          }
+        }
+        // Drain the SSE stream, collecting events.
+        const reader = streamRes.body.getReader()
+        const decoder = new TextDecoder()
+        let finalText = ''
+        const cardsFired: { requestId: string; type: string }[] = []
+        const jobsStarted: { jobId: string; kind: string }[] = []
+        const eventLog: { type: string }[] = []
+        let buffer = ''
+        for (;;) {
+          const { done, value } = await reader.read()
+          if (done) break
+          buffer += decoder.decode(value, { stream: true })
+          const lines = buffer.split('\n')
+          buffer = lines.pop() ?? ''
+          for (const line of lines) {
+            if (!line.startsWith('data: ')) continue
+            const payload = line.slice(6).trim()
+            if (!payload || payload === '[heartbeat]') continue
+            try {
+              const evt = JSON.parse(payload) as { type?: string; [k: string]: unknown }
+              if (evt.type) eventLog.push({ type: evt.type })
+              // Capture ask_user-style cards (Promise-resolved via ask-user-response)
+              if (evt.type === 'cd_ask_user' && typeof evt.requestId === 'string') {
+                cardsFired.push({ requestId: evt.requestId, type: 'ask_user' })
+              }
+              // Capture event-bus cards (resolved via chat reply)
+              for (const cardType of [
+                'discovery_questions',
+                'design_directions',
+                'confirm_understanding',
+                'image_prompt',
+                'image_verdict',
+                'descent_selection',
+              ]) {
+                if (evt.type === cardType) {
+                  cardsFired.push({
+                    requestId: typeof evt.requestId === 'string' ? evt.requestId : '',
+                    type: cardType,
+                  })
+                }
+              }
+              // Capture jobs.
+              if (evt.type === 'build_started' && typeof evt.jobId === 'string') {
+                jobsStarted.push({ jobId: evt.jobId, kind: String(evt.kind || 'build') })
+              }
+              // Final text accumulates from text deltas + done event.
+              if (evt.type === 'text' && typeof evt.content === 'string') {
+                finalText += evt.content
+              }
+              if (evt.type === 'done' && typeof evt.finalText === 'string' && !finalText) {
+                finalText = evt.finalText
+              }
+            } catch {
+              // Non-JSON SSE line — ignore (heartbeats, comments, etc.)
+            }
+          }
+        }
+        // Ralph 2026-05-10 (COO test harness): mirror the user prompt +
+        // assistant reply onto /api/events so the browser's chat panel
+        // shows MCP-injected turns. The chat-stream's response chunks
+        // are consumed only by this proxy; without this echo the browser
+        // sees nothing for MCP-driven test runs.
+        try {
+          await postJson('/api/mcp/echo-chat', {
+            sessionId,
+            userText: message,
+            assistantText: finalText,
+          })
+        } catch {
+          // Best-effort — never fail the tool just because the echo
+          // didn't land. The MCP caller still gets the finalText below.
+        }
+        return {
+          text: JSON.stringify(
+            {
+              mode: 'chat',
+              finalText,
+              cardsFired,
+              jobsStarted,
+              eventCount: eventLog.length,
+            },
+            null,
+            2,
+          ),
+          isError: false,
+        }
+      } catch (err) {
+        return {
+          text: `send_user_input(chat) error: ${err instanceof Error ? err.message : String(err)}`,
+          isError: true,
+        }
+      }
+    }
+
+    case 'respond_to_card': {
+      // WP-68. Test-agent allowlist only. Dispatches by response.type:
+      //  - ask_user → POST /api/mcp/ask-user-response/[requestId] (Promise resolver)
+      //  - all others → format as user message + send_user_input(chat) under the hood
+      const requestId = String(args.requestId || '').trim()
+      const response = args.response as Record<string, unknown> | undefined
+      if (!response || typeof response !== 'object') {
+        return { text: 'Error: `response` object is required', isError: true }
+      }
+      const type = String(response.type || '').trim()
+      if (!type) return { text: 'Error: `response.type` is required', isError: true }
+
+      // ask_user — Promise resolver
+      if (type === 'ask_user') {
+        if (!requestId) {
+          return { text: 'Error: `requestId` required for type:"ask_user"', isError: true }
+        }
+        const choice = String(response.choice || '').trim()
+        if (!choice) return { text: 'Error: `response.choice` required', isError: true }
+        const r = await postJson<{ ok: boolean; error?: string }>(
+          `/api/mcp/ask-user-response/${encodeURIComponent(requestId)}`,
+          { value: choice },
+        )
+        if (!r.ok) return { text: r.error || 'respond_to_card(ask_user) failed', isError: true }
+        if (r.body?.error) return { text: r.body.error, isError: true }
+        return { text: `respond_to_card(ask_user) delivered: requestId=${requestId}`, isError: false }
+      }
+
+      // Other card types → format as chat message and dispatch via send_user_input
+      let formattedMessage = ''
+      switch (type) {
+        case 'discovery_questions': {
+          const answers = Array.isArray(response.answers)
+            ? (response.answers as unknown[]).map((a) => String(a || '').trim())
+            : []
+          if (answers.length === 0) {
+            return { text: 'Error: `response.answers` (non-empty array) required', isError: true }
+          }
+          formattedMessage = answers.map((a, i) => `${i + 1}. ${a}`).join('\n\n')
+          if (typeof response.freeformText === 'string' && response.freeformText.trim()) {
+            formattedMessage += `\n\n${response.freeformText.trim()}`
+          }
+          break
+        }
+        case 'design_directions': {
+          const picks = Array.isArray(response.picks)
+            ? (response.picks as unknown[]).map((p) => String(p || '').trim())
+            : []
+          if (picks.length === 0) {
+            return { text: 'Error: `response.picks` (non-empty array) required', isError: true }
+          }
+          formattedMessage = `I pick: ${picks.join(', ')}.`
+          if (typeof response.freeformText === 'string' && response.freeformText.trim()) {
+            formattedMessage += ` ${response.freeformText.trim()}`
+          }
+          break
+        }
+        case 'confirm_understanding': {
+          const action = String(response.action || '').trim()
+          if (action !== 'commit' && action !== 'discuss') {
+            return { text: 'Error: `response.action` must be "commit" or "discuss"', isError: true }
+          }
+          formattedMessage = action === 'commit'
+            ? 'Yes, that summary is right. Build it.'
+            : 'Let\'s discuss before building.'
+          break
+        }
+        case 'image_prompt': {
+          const prompt = String(response.prompt || '').trim()
+          const action = String(response.action || '').trim()
+          if (!prompt) return { text: 'Error: `response.prompt` required', isError: true }
+          if (action !== 'approve' && action !== 'modify' && action !== 'reject') {
+            return { text: 'Error: `response.action` must be approve|modify|reject', isError: true }
+          }
+          formattedMessage =
+            action === 'approve'
+              ? `Approved prompt: ${prompt}`
+              : action === 'modify'
+                ? `Modified prompt: ${prompt}`
+                : `Rejecting that direction. Try: ${prompt}`
+          break
+        }
+        case 'image_verdict': {
+          const verdict = String(response.verdict || '').trim()
+          if (verdict !== 'approve' && verdict !== 'reject' && verdict !== 'regenerate') {
+            return {
+              text: 'Error: `response.verdict` must be approve|reject|regenerate',
+              isError: true,
+            }
+          }
+          const notes = typeof response.notes === 'string' ? response.notes.trim() : ''
+          formattedMessage =
+            verdict === 'approve'
+              ? `Approved.${notes ? ' ' + notes : ''}`
+              : verdict === 'reject'
+                ? `Rejected.${notes ? ' Notes: ' + notes : ''}`
+                : `Please regenerate.${notes ? ' Notes: ' + notes : ''}`
+          break
+        }
+        case 'descent_selection': {
+          const picks = Array.isArray(response.picks)
+            ? (response.picks as unknown[]).map((p) => String(p || '').trim())
+            : []
+          if (picks.length === 0) {
+            return { text: 'Error: `response.picks` (non-empty array) required', isError: true }
+          }
+          formattedMessage =
+            picks.length === 1
+              ? `My pick: ${picks[0]}.`
+              : `My picks: ${picks.join(', ')}.`
+          break
+        }
+        default:
+          return {
+            text: `Error: unknown response.type "${type}". Valid: ask_user, discovery_questions, design_directions, confirm_understanding, image_prompt, image_verdict, descent_selection`,
+            isError: true,
+          }
+      }
+
+      // Dispatch the formatted message via the same chat-stream path as
+      // send_user_input(chat). Reuse the implementation by recursing
+      // through the orchestrator dispatcher.
+      return await callOrchestratorTool(
+        'send_user_input' as OrchestratorToolName,
+        { sessionId, message: formattedMessage, mode: 'chat' },
+        ctx,
+      )
+    }
+
+    // ─────────────────────────────────────────────────────────────────────
+    // Phase 2 build dispatch (Ralph 2026-05-10 — WP-69 backend wiring).
+    // build_wireframes lives in the orchestrator-tool surface (not tools-cd)
+    // because Phase 2 wireframes are CD-fired but conceptually align with
+    // the orchestrator's other multi-job dispatch tools (notify_agent /
+    // claim_orphan also enqueue work into other agents' lanes).
+    // ─────────────────────────────────────────────────────────────────────
+    case 'build_wireframes': {
+      const slugs = Array.isArray(args.slugs)
+        ? (args.slugs as unknown[]).filter((s): s is string => typeof s === 'string' && s.trim().length > 0)
+        : []
+      if (slugs.length === 0) {
+        return { text: 'Error: `slugs` must be a non-empty array of vibe-slug strings', isError: true }
+      }
+      const r = await postJson<{
+        slugCount: number
+        jobs?: { jobId: string; target: string; status: string; deduped?: boolean; originalStartedAt?: string }[]
+        error?: string
+      }>('/api/mcp/build-wireframes', { sessionId, slugs })
+      if (!r.ok) return { text: r.error || 'build_wireframes failed', isError: true }
+      if (Array.isArray(r.body?.jobs) && r.body.jobs.length > 0) {
+        const lines = r.body.jobs.map((j) => {
+          const dedupNote = j.deduped ? ` (deduped, since ${j.originalStartedAt})` : ''
+          return `  - ${j.target}: jobId=${j.jobId}${dedupNote}`
+        })
+        return {
+          text:
+            `build_wireframes enqueued ${r.body.slugCount} wireframe(s). Per-slug jobIds:\n` +
+            lines.join('\n') +
+            `\nPoll job_status(jobId) for each; do other work between polls.`,
+          isError: false,
+        }
+      }
+      return { text: `build_wireframes error: ${r.body?.error || 'unknown'}`, isError: true }
     }
 
     default:

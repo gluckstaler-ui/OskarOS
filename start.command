@@ -10,7 +10,7 @@
 
 set -e
 
-cd "$(dirname "$0")/.."
+cd "$(dirname "$0")"   # was '/..' — that walked above the repo root, where there's no package.json (WP-40 fix 2026-06-02)
 PROJECT_DIR="$(pwd)"
 
 clear
@@ -31,8 +31,11 @@ sudo rm -rf .next
 # Bridge reads CLAUDE_CODE_OAUTH_TOKEN from .env.local and passes it to
 # `claude --print` subprocesses, so the CLI works under root.
 echo "Starting Next.js on :80..."
+HOST="$(hostname -s 2>/dev/null || hostname 2>/dev/null || echo localhost)"
+IP="$(ipconfig getifaddr en0 2>/dev/null || true)"
+if [ -z "$IP" ]; then IP="$(hostname -I 2>/dev/null | awk '{print $1}')"; fi
 echo "────────────────────────────"
-echo "  LAN:    http://paradiso.local  or  http://paradiso"
+echo "  LAN:    http://${HOST}.local${IP:+   or   http://$IP}"
 echo "  Local:  http://localhost"
 echo "  Stop:   Ctrl+C"
 echo "────────────────────────────"

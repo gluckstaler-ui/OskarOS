@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="onyx">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Jedi Scout — Pool (real data, card redesign)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0;}
+  html:not([data-theme]),html[data-theme="onyx"]{background:#0a0907;}
+  html[data-theme="polar"]{background:#ede2c4;}
+  body{font-family:'Inter',system-ui,-apple-system,sans-serif;-webkit-font-smoothing:antialiased;}
+
+  html:not([data-theme]) .app,html[data-theme="onyx"] .app{
+    --bg-app:#0a0907;--bg-card:#171410;--bg-sunken:#13110d;--bg-hover:#1f1a14;
+    --border:#1a160f;--border-active:#2a2519;--text:#ece1c5;--muted:#7a6f5a;--dim:#42392a;
+    --amber:#ffb84a;--amber-dim:#7a6536;--phosphor:#c8ee7a;--red:#ff6a4d;--blue:#60a5fa;--violet:#b69cff;--green:#10b981;
+  }
+  html[data-theme="polar"] .app{
+    --bg-app:#ffffff;--bg-card:#f7f2e2;--bg-sunken:#efe7cf;--bg-hover:#fffdf6;
+    --border:#d0c098;--border-active:#806a3a;--text:#1a1408;--muted:#5c4a28;--dim:#a09078;
+    --amber:#b97e10;--amber-dim:#8a5a18;--phosphor:#1f880e;--red:#c8341f;--blue:#2563eb;--violet:#6d44d0;--green:#0f9d6e;
+  }
+  .app{min-height:100vh;background:var(--bg-app);color:var(--text);--mono:'JetBrains Mono',monospace;}
+  .mono{font-family:var(--mono);}
+
+  /* ── top bar ── */
+  .top{height:52px;display:flex;align-items:center;gap:16px;padding:0 18px;border-bottom:1px solid var(--border);position:sticky;top:0;background:var(--bg-app);z-index:40;}
+  .logo{width:22px;height:22px;border-radius:6px;background:linear-gradient(135deg,#10b981,#0a8f6a);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:12px;font-family:var(--mono);}
+  .brand b{font-size:14px;font-weight:600;}.brand .sub{font-size:11px;color:var(--muted);border-left:1px solid var(--border-active);padding-left:9px;margin-left:9px;}
+  .nav{display:flex;gap:2px;margin-left:6px;}
+  .nav a{font-size:12.5px;color:var(--muted);padding:6px 11px;border-radius:7px;cursor:pointer;font-weight:500;}
+  .nav a:hover{color:var(--text);background:var(--bg-card);}
+  .nav a.active{color:#fff;background:var(--green);font-weight:600;}
+  .spacer{flex:1;}
+  .tbtn{font-family:var(--mono);font-size:11px;color:var(--muted);background:var(--bg-card);border:1px solid var(--border);border-radius:7px;padding:5px 10px;cursor:pointer;}
+  .tbtn:hover{color:var(--text);}
+  .src{font-family:var(--mono);font-size:10px;color:var(--dim);}
+
+  /* ── header ── */
+  .head{padding:16px 22px 0;}
+  .head h1{font-size:17px;font-weight:600;letter-spacing:-.01em;}
+  .funnel{display:flex;align-items:center;gap:10px;margin-top:9px;font-family:var(--mono);font-size:11px;color:var(--muted);flex-wrap:wrap;}
+  .pill{display:inline-flex;align-items:center;gap:6px;background:var(--bg-card);border:1px solid var(--border);border-radius:999px;padding:4px 11px;}
+  .pill b{color:var(--text);font-weight:600;}
+  .pill.hot b{color:var(--red);}.pill.green b{color:var(--violet);}
+  .arw{color:var(--dim);}
+
+  /* ── toolbar ── */
+  .tools{display:flex;align-items:center;gap:8px;padding:14px 22px 10px;flex-wrap:wrap;}
+  .search{display:flex;align-items:center;gap:6px;background:var(--bg-card);border:1px solid var(--border);border-radius:8px;padding:6px 10px;color:var(--dim);font-size:12px;width:200px;}
+  .search input{border:0;background:transparent;color:var(--text);font-size:12px;outline:none;width:100%;font-family:'Inter';}
+  .chips{display:flex;gap:5px;flex-wrap:wrap;}
+  .chip{font-family:var(--mono);font-size:10.5px;font-weight:600;color:var(--muted);background:var(--bg-card);border:1px solid var(--border);border-radius:999px;padding:5px 11px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;}
+  .chip:hover{color:var(--text);}
+  .chip.on{color:var(--text);border-color:var(--border-active);background:var(--bg-hover);}
+  .chip .c{color:var(--dim);}.chip.on .c{color:var(--muted);}
+
+  /* ── card list ── */
+  .wrap{padding:4px 22px 120px;}
+  .cards{display:flex;flex-direction:column;gap:8px;}
+  .selall{display:flex;align-items:center;gap:9px;padding:4px 2px 8px;font-family:var(--mono);font-size:10.5px;color:var(--muted);cursor:pointer;}
+  .selall:hover{color:var(--text);}
+
+  .lc{border:1px solid var(--border);border-radius:12px;background:var(--bg-card);transition:border-color .15s,background .15s,opacity .35s,transform .35s;}
+  .lc:hover{border-color:var(--border-active);}
+  .lc.sel{border-color:var(--green);background:rgba(16,185,129,.05);}
+  html[data-theme="polar"] .lc.sel{background:rgba(15,157,110,.07);}
+  .lc.open{border-color:var(--border-active);}
+  .lc.gone{opacity:0;transform:translateX(30px);}
+
+  .lc-body{padding:13px 16px;cursor:pointer;}
+  .lc-top{display:flex;align-items:center;gap:16px;}
+  .lc-id{flex:1;min-width:0;}
+  .nm{font-weight:600;font-size:14px;color:var(--text);line-height:1.2;}
+  .typ{font-size:11px;color:var(--muted);margin-top:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .typ .reg{margin-right:7px;}
+  .lc-contact{font-family:var(--mono);font-size:11px;color:var(--muted);display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end;max-width:62%;}
+  .lc-contact .dot{color:var(--dim);}
+  .lc-contact .adr{color:var(--text);}
+  .lc-verdict{display:flex;align-items:center;gap:10px;flex-shrink:0;}
+  .exp{width:24px;height:24px;border-radius:7px;border:1px solid var(--border);background:var(--bg-sunken);color:var(--muted);display:inline-flex;align-items:center;justify-content:center;font-size:11px;flex-shrink:0;transition:transform .2s,color .15s;}
+  .lc-body:hover .exp{color:var(--text);}
+  .lc.open .exp{transform:rotate(180deg);color:var(--text);}
+
+  /* checkbox */
+  .chk{width:18px;height:18px;border-radius:5px;border:1.5px solid var(--border-active);display:inline-flex;align-items:center;justify-content:center;cursor:pointer;background:var(--bg-app);flex-shrink:0;}
+  .chk.on{background:var(--green);border-color:var(--green);}
+  .chk svg{width:11px;height:11px;display:none;}.chk.on svg{display:block;}
+
+  /* sub line — region + contact + website */
+  .lc-sub{display:flex;align-items:center;gap:9px;flex-wrap:wrap;margin-top:10px;padding-left:31px;font-family:var(--mono);font-size:11px;color:var(--muted);}
+  .lc-sub .dot{color:var(--dim);}
+  .reg{font-size:9px;color:var(--muted);background:var(--bg-sunken);border:1px solid var(--border);padding:2px 8px;border-radius:999px;letter-spacing:.04em;text-transform:uppercase;}
+  .ct{color:var(--text);}.ct.none{color:var(--dim);}
+  .web{color:var(--blue);text-decoration:none;border-bottom:1px dotted var(--border-active);}
+  .web:hover{color:var(--text);}
+  .gftag{font-size:9px;font-weight:700;color:var(--violet);background:rgba(182,156,255,.12);padding:2px 8px;border-radius:999px;text-transform:uppercase;letter-spacing:.04em;}
+  .gftag.low{color:var(--muted);background:var(--bg-sunken);}
+
+  /* meters / gap / heat */
+  .meter{display:inline-flex;align-items:center;gap:7px;}
+  .segs{display:flex;gap:3px;}
+  .seg{width:6px;height:14px;border-radius:2px;background:var(--border-active);}
+  .meter.pal .seg.on{background:var(--phosphor);}
+  .meter.exe .seg.on{background:var(--amber);}
+  .meter .n{font-family:var(--mono);font-size:12px;font-weight:600;}
+  .meter .n .mx{color:var(--dim);font-weight:400;}
+  .gap{font-family:var(--mono);font-size:17px;font-weight:700;}
+  .gap.hot{color:var(--red);}.gap.warm{color:var(--amber);}.gap.cold{color:var(--dim);}
+  .vchip{display:inline-flex;align-items:center;gap:4px;padding:2px 9px;border-radius:999px;font-family:var(--mono);font-size:10px;font-weight:700;letter-spacing:.04em;}
+  .vchip.hot{background:rgba(255,106,77,.16);color:var(--red);}
+  .vchip.warm{background:rgba(245,158,11,.16);color:var(--amber);}
+  .vchip.cold{background:rgba(96,165,250,.15);color:var(--blue);}
+  .rawtag{font-family:var(--mono);font-size:10px;color:var(--dim);text-transform:uppercase;letter-spacing:.05em;}
+
+  /* scout summary strip (inside card) */
+  .lc-scout{display:flex;align-items:center;gap:20px;flex-wrap:wrap;margin-top:11px;padding:11px 14px;background:var(--bg-sunken);border-radius:9px;}
+  .sc-verdict{display:flex;align-items:center;gap:9px;flex-shrink:0;}
+  .sc-meters{display:flex;gap:16px;flex-shrink:0;}
+  .m{display:flex;align-items:center;gap:8px;}
+  .ml{font-family:var(--mono);font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;}
+  .sc-choice{flex:1;min-width:220px;font-size:12.5px;color:var(--text);line-height:1.35;}
+  .sc-choice .q{color:var(--dim);}
+  .sc-intel{display:flex;align-items:center;gap:7px;flex-shrink:0;}
+  .lampstrip{display:flex;gap:4px;}
+  .ld{width:8px;height:8px;border-radius:999px;background:var(--border-active);}
+  .ld.good{background:var(--phosphor);}.ld.mid{background:var(--amber);}.ld.bad{background:var(--red);}.ld.info{background:var(--muted);}
+  .sc-intel .il{font-family:var(--mono);font-size:9px;color:var(--dim);text-transform:uppercase;letter-spacing:.05em;}
+  .lc-scout.raw{color:var(--dim);}
+  .lc-scout.raw .rawmsg{font-family:var(--mono);font-size:11.5px;color:var(--muted);}
+  .lc-scout.raw .pickhint{font-family:var(--mono);font-size:10.5px;color:var(--amber);opacity:.85;margin-left:auto;}
+  .lc-scout.green .pursue{font-family:var(--mono);font-size:10px;padding:2px 9px;border-radius:999px;flex-shrink:0;}
+  .pursue.high{color:var(--phosphor);background:rgba(200,238,122,.12);}
+  .pursue.low{color:var(--muted);background:var(--bg-card);}
+  .lc-scout.green .gfnote{font-size:12px;color:var(--muted);line-height:1.4;}
+  .tasting{display:inline-flex;align-items:center;gap:9px;color:var(--amber);font-family:var(--mono);font-size:12px;}
+  .tasting .spin{width:12px;height:12px;border-radius:999px;border:2px solid var(--amber);border-right-color:transparent;animation:spin .7s linear infinite;}
+
+  /* ── expand dossier ── */
+  .lc-detail{display:none;border-top:1px solid var(--border);}
+  .lc.open .lc-detail{display:block;}
+  .dgrid2{display:grid;grid-template-columns:1fr 1fr;gap:32px;padding:16px;}
+  @media(max-width:980px){.dgrid2{grid-template-columns:1fr;}}
+  .dlabel{font-family:var(--mono);font-size:8.5px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--dim);margin-bottom:11px;}
+  .kv{display:flex;gap:8px;font-size:12px;margin-bottom:7px;}
+  .kv .k{font-family:var(--mono);font-size:10px;color:var(--muted);width:58px;flex-shrink:0;text-transform:uppercase;letter-spacing:.04em;padding-top:1px;}
+  .kv .v{color:var(--text);}.kv .v.none{color:var(--dim);font-family:var(--mono);}
+  .shot{height:118px;max-width:340px;border-radius:8px;border:1px solid var(--border);background:linear-gradient(135deg,#211b13,#14110c);position:relative;overflow:hidden;margin-top:14px;}
+  .shot .wf{position:absolute;inset:0;padding:9px;display:flex;flex-direction:column;gap:5px;opacity:.55;}
+  .shot .wf .b{background:var(--border-active);border-radius:2px;}
+  .shot .wf .nav{height:7px;width:55%;}.shot .wf .hero{flex:1;border-radius:3px;}.shot .wf .l{height:4px;}.shot .wf .l.s{width:62%;}
+  .shot .lbl{position:absolute;bottom:5px;right:7px;font-family:var(--mono);font-size:8px;color:var(--dim);}
+  .lamps2{display:grid;grid-template-columns:repeat(3,1fr);gap:12px 16px;}
+  @media(max-width:980px){.lamps2{grid-template-columns:repeat(2,1fr);}}
+  .lamp2{display:grid;grid-template-columns:auto 1fr auto;align-items:center;column-gap:7px;row-gap:2px;}
+  .lamp2 .ld{grid-row:1;grid-column:1;}
+  .lamp2 .ln{grid-row:1;grid-column:2;font-family:var(--mono);font-size:9.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;}
+  .lamp2 .lsrc{grid-row:1;grid-column:3;font-family:var(--mono);font-size:8px;color:var(--dim);}
+  .lamp2 .lv{grid-row:2;grid-column:1/-1;padding-left:19px;font-family:var(--mono);font-size:11px;color:var(--text);line-height:1.3;}
+  .scrow{display:flex;align-items:center;gap:12px;margin-bottom:10px;flex-wrap:wrap;}
+  .scmini{font-family:var(--mono);font-size:11px;color:var(--muted);}.scmini b{color:var(--text);font-size:13px;}
+  .choiceq{margin-top:9px;font-size:12px;color:var(--text);line-height:1.45;padding:9px 11px;background:var(--bg-sunken);border-radius:8px;border-left:2px solid var(--phosphor);}
+  .choiceq .cl{font-family:var(--mono);font-size:8.5px;color:var(--dim);text-transform:uppercase;letter-spacing:.1em;display:block;margin-bottom:3px;}
+  .vbig{font-size:12px;color:var(--text);line-height:1.45;margin-top:9px;}
+  .qline{font-size:11.5px;color:var(--muted);line-height:1.5;}
+  .gfbig{font-family:var(--mono);font-size:13px;color:var(--violet);margin-bottom:6px;}
+  .gfnote2{font-size:11.5px;color:var(--muted);line-height:1.45;margin-bottom:8px;}
+
+  /* sticky decision deck */
+  .deck{position:fixed;left:50%;bottom:18px;transform:translateX(-50%) translateY(120px);opacity:0;pointer-events:none;transition:.32s cubic-bezier(.4,0,.2,1);z-index:50;
+    display:flex;align-items:center;gap:12px;background:var(--bg-card);border:1px solid var(--border-active);border-radius:12px;padding:11px 14px;box-shadow:0 12px 40px rgba(0,0,0,.5);}
+  .deck.show{transform:translateX(-50%);opacity:1;pointer-events:auto;}
+  .deck .sum{font-family:var(--mono);font-size:12px;color:var(--muted);}.deck .sum b{color:var(--text);}
+  .deck .vr{width:1px;height:22px;background:var(--border-active);}
+  .act{font-family:var(--mono);font-size:11.5px;font-weight:700;border-radius:8px;padding:8px 13px;cursor:pointer;border:1px solid var(--border-active);background:var(--bg-sunken);color:var(--muted);display:inline-flex;align-items:center;gap:7px;}
+  .act:hover{color:var(--text);}
+  .act.taste{border-color:var(--amber-dim);color:var(--amber);}
+  .act.taste[disabled]{opacity:.35;cursor:not-allowed;}
+  .act.promote{background:var(--green);border-color:transparent;color:#fff;}
+  .act.discard:hover{border-color:var(--red);color:var(--red);}
+
+  .toast{position:fixed;bottom:84px;left:50%;transform:translateX(-50%) translateY(40px);background:var(--bg-card);border:1px solid var(--green);border-radius:10px;padding:10px 15px;font-size:13px;z-index:60;opacity:0;transition:.3s;box-shadow:0 8px 30px rgba(0,0,0,.5);}
+  .toast.show{transform:translateX(-50%);opacity:1;}.toast b{color:var(--phosphor);}.toast.kill{border-color:var(--red);}.toast.kill b{color:var(--red);}
+
+  .foot{padding:16px 22px;font-family:var(--mono);font-size:10px;color:var(--dim);line-height:1.7;}
+  .foot b{color:var(--muted);}
+  .badge{position:fixed;bottom:10px;right:12px;font-family:var(--mono);font-size:9px;color:var(--dim);background:var(--bg-card);border:1px solid var(--border);border-radius:6px;padding:4px 8px;z-index:30;}
+  @keyframes spin{to{transform:rotate(360deg);}}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <div class="top">
+    <span class="logo">O</span>
+    <div class="brand"><b>OskarOS</b><span class="sub">Scout</span></div>
+    <nav class="nav"><a>Overview</a><a>Kanban</a><a class="active">Scout</a><a>Analytics</a></nav>
+    <span class="spacer"></span>
+    <span class="src">source: intelligence/aargau-full-1.html</span>
+    <button class="tbtn" id="themeToggle">◐ Polar</button>
+  </div>
+
+  <div class="head">
+    <h1>Pool — Praxen für Psyche, Kanton Aargau</h1>
+    <div class="funnel">
+      <span class="pill"><b id="cImport">200</b> imported</span><span class="arw">→</span>
+      <span class="pill"><b id="cScouted">0</b> scouted</span>
+      <span class="pill hot">🔥 <b id="cHot">0</b> hot</span>
+      <span class="pill green">◇ <b id="cGreen">0</b> greenfield</span>
+      <span class="arw">→</span>
+      <span class="pill"><b id="cDecided">0</b> decided</span>
+    </div>
+  </div>
+
+  <div class="tools">
+    <div class="search">🔍 <input placeholder="Search leads…" id="q"/></div>
+    <div class="chips" id="chips">
+      <span class="chip on" data-f="all">All <span class="c" id="fAll">0</span></span>
+      <span class="chip" data-f="hot">🔥 Hot <span class="c" id="fHot">0</span></span>
+      <span class="chip" data-f="warm">Warm <span class="c" id="fWarm">0</span></span>
+      <span class="chip" data-f="cold">Cold <span class="c" id="fCold">0</span></span>
+      <span class="chip" data-f="raw">Not scouted <span class="c" id="fRaw">0</span></span>
+      <span class="chip" data-f="green">Greenfield <span class="c" id="fGreen">0</span></span>
+    </div>
+  </div>
+
+  <div class="wrap">
+    <div class="selall" id="selAll" onclick="toggleAll()"><span class="chk" id="chkAll"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg></span> select all shown · click a card to open its dossier</div>
+    <div class="cards" id="body"></div>
+  </div>
+
+  <div class="foot">
+    <b>One card per lead.</b> Click a card to open its dossier · check cards + <b>Taste</b> to enrich raw ones · then <b>Promote</b> (use later → Kanban) or <b>Discard</b>.<br>
+    <b>Gap = Palate − Execution.</b> ≥ +2 🔥 hot · +1 warm · ≤ 0 cold. Intel dots (Age·Stack·Host·Perf·SEO): greener = more tired site = bigger displacement gap. The dossier splits ◐ <b>Queried</b> (code-fetched, no LLM) from ◓ <b>Scouted</b> (the agent's read).
+  </div>
+
+  <div class="deck" id="deck">
+    <span class="sum"><b id="selN">0</b> selected</span>
+    <span class="vr"></span>
+    <button class="act taste" id="bTaste" onclick="tasteSelected()">◐ Taste <span id="tasteN">0</span></button>
+    <button class="act promote" onclick="promoteSelected()">→ Promote</button>
+    <button class="act discard" onclick="discardSelected()">✕ Discard</button>
+  </div>
+  <div class="toast" id="toast"></div>
+  <div class="badge">MOCKUP · real-pool v2 · cards · not wired</div>
+</div>
+
+<script>
+const HEAT = g => g>=2?'hot':(g===1?'warm':'cold');
+const LEADS = [
+ {id:1,region:'Aarau',name:'Margherita Viviani',typ:'Psychotherapeutin FSP',tel:'—',email:'—',adr:'Gönhardweg 51, 5000 Aarau',web:'mviviani.ch',state:'scouted',
+   sc:{p:5,e:2,choice:'a single art-photograph — light through water, a point of view, not a stethoscope',v:'Taste way out front of the build — already wants what we sell.',l:{age:'~2017 · aging',stack:'WordPress',host:'Infomaniak · CH',perf:'mobile 44',seo:'66'}}},
+ {id:2,region:'Aarau',name:'Salome Schraner',typ:'Psychotherapeutin FSP · Praxis Michalik',tel:'—',email:'—',adr:'Zollrain 2, 5000 Aarau',web:'praxis-michalik.ch',state:'scouted',
+   sc:{p:4,e:2,choice:'a hand-drawn logo mark, real warmth in the portraits',v:'Genuine eye on a tired theme — strong displacement pain.',l:{age:'~2016 · aging',stack:'WordPress · old theme',host:'Cyon · CH',perf:'mobile 41',seo:'63'}}},
+ {id:3,region:'Aarau',name:'Corina Bacilieri',typ:'Psychotherapeutin FSP · familienpraxis balu',tel:'079 873 33 49',email:'—',adr:'In der Rütti 3, 5000 Aarau',web:'cbacilieri.ch',state:'scouted',
+   sc:{p:4,e:2,choice:'a child’s-drawing motif carried into the nav — warmth on purpose',v:'Clear point of view, half-built. Hot.',l:{age:'~2019 · ok',stack:'WordPress',host:'Hostpoint · CH',perf:'mobile 49',seo:'68'}}},
+ {id:4,region:'Aarau',name:'Dr. med. Patrick Perrenoud',typ:'Facharzt FMH Psychiatrie · Aare Praxis',tel:'062 544 92 62',email:'—',adr:'Mühlemattstrasse 50, 5000 Aarau',web:'praxisaare.ch',state:'scouted',
+   sc:{p:3,e:1,choice:'a real photograph of the Aare tying the name to the place — then a flat layout drops it',v:'One good instinct, no follow-through. Pursue.',l:{age:'~2016 · aging',stack:'WordPress · old',host:'Hostpoint · CH',perf:'mobile 40',seo:'61'}}},
+ {id:5,region:'Aarau',name:'Anouk Alder-Mugier',typ:'Fachpsychologin für Psychotherapie FSP',tel:'077 461 35 59',email:'mail@psychotherapie-alder.ch',adr:'Hallwylstrasse 15, 5000 Aarau',web:'psychotherapie-alder.ch',state:'scouted',
+   sc:{p:4,e:3,choice:'one honest portrait, generous whitespace, a real sentence not a slogan',v:'Promising eye, mostly realized — a touch, not a rebuild.',l:{age:'~2020 · ok',stack:'Webflow',host:'Webflow',perf:'mobile 72',seo:'84'}}},
+ {id:6,region:'Aarau',name:'Rukiye Isik',typ:'Psychotherapeutin FSP · VT Aarau',tel:'—',email:'isik@fsp-hin.ch',adr:'Ochsengässli 9, 5000 Aarau',web:'vt-aarau.ch',state:'scouted',
+   sc:{p:3,e:2,choice:'a calm sage-green palette, not clinical white',v:'A little eye, template execution. Warm.',l:{age:'~2018 · ok',stack:'WordPress',host:'Hostpoint · CH',perf:'mobile 54',seo:'71'}}},
+ {id:7,region:'Suhr',name:'Dr. med. Lienhard Maeck',typ:'Facharzt Psychiatrie · Praxis im Suhre-Park',tel:'076 240 44 80',email:'—',adr:'Tramstrasse 2, 5034 Suhr',web:'psy-suhr.ch',state:'raw',
+   sc:{p:3,e:2,choice:'one nice photograph of the park the practice is named for',v:'A grounded choice on a thin build. Warm.',l:{age:'~2019 · ok',stack:'WordPress',host:'Cyon · CH',perf:'mobile 51',seo:'69'}}},
+ {id:8,region:'Aarau',name:'Corinne Picard',typ:'Fachpsychologin für Psychotherapie FSP',tel:'079 362 84 82',email:'corinne.picard@fsp-hin.ch',adr:'Ochsengässli 9, 5000 Aarau',web:'psychotherapie-picard.ch',state:'raw',
+   sc:{p:3,e:3,choice:'tidy and professional, but every choice is the safe one',v:'Competent, no felt lack. Teach desire first.',l:{age:'~2021 · ok',stack:'Squarespace',host:'Squarespace',perf:'mobile 78',seo:'88'}}},
+ {id:9,region:'Aarau',name:'Colomba Lardieri',typ:'lic. phil. Psychotherapeutin FSP',tel:'078 689 00 92',email:'c.lardieri@gmx.net',adr:'Ochsengässli 9, 5000 Aarau',web:'psychologie-lardieri.ch',state:'scouted',
+   sc:{p:2,e:2,choice:'default Jimdo theme, stock lavender header — borrowed calm',v:'Convention top to bottom. Cold.',l:{age:'~2014 · stale',stack:'Jimdo',host:'Jimdo · DE',perf:'mobile 38',seo:'55'}}},
+ {id:10,region:'Aarau',name:'Dr. med. Annette Rahm',typ:'Fachärztin FMH Psychiatrie u. Psychotherapie',tel:'079 511 62 28',email:'—',adr:'Rain 16, 5000 Aarau',web:'psychiater-aarau.ch',state:'scouted',
+   sc:{p:1,e:2,choice:'keyword domain, blue gradient, a clip-art brain — pure convention',v:'Plonk. No eye to work with.',l:{age:'~2018 · ok',stack:'WordPress',host:'Hostpoint · CH',perf:'mobile 58',seo:'74'}}},
+ {id:11,region:'Aarau',name:'Aude Arnoux',typ:'M.Sc. Fachpsychologin FSP · Therapie-Reich',tel:'—',email:'—',adr:'5000 Aarau',web:'therapie-reich.ch',state:'scouted',
+   sc:{p:4,e:4,choice:'a confident wordmark, art-directed top to bottom — already knows good',v:'The connoisseur. Beautiful, nothing to sell.',l:{age:'~2023 · fresh',stack:'Next.js · custom',host:'Vercel',perf:'mobile 94',seo:'97'}}},
+ {id:12,region:'Aarau',name:'Claudia Schmid-Schüller',typ:'lic. phil. Fachpsychologin FSP',tel:'078 860 51 30',email:'claudia@schmidschueller.ch',adr:'Hintere Vorstadt 16, 5000 Aarau',web:'schmidschueller.ch',state:'raw',
+   sc:{p:1,e:1,choice:'nothing chosen — a builder template with the demo text half-replaced',v:'Raw template, no conviction. Cold.',l:{age:'~2015 · stale',stack:'Wix',host:'Wix · US',perf:'mobile 35',seo:'52'}}},
+ {id:13,region:'Aarau',name:'Claudia Leuenberger',typ:'Psychotherapeutin FSP (Psychoonkologie)',tel:'—',email:'—',adr:'Kasinostrasse 17, 5000 Aarau',web:null,state:'greenfield',
+   gf:{pursue:'high',note:'No web presence at all — nothing to displace, you set the first impression. Specialist niche (Psychoonkologie) reads high-intent.'}},
+ {id:14,region:'Aarau',name:'Urs Bachofner',typ:'Psychotherapeut FSP',tel:'—',email:'—',adr:'Igelweid 1, 5000 Aarau',web:null,state:'greenfield',
+   gf:{pursue:'high',note:'Established central address, zero digital footprint. Pure greenfield build.'}},
+ {id:15,region:'Aarau',name:'Monika Heeb',typ:'Psychologin FSP (Laufbahnberatung)',tel:'—',email:'—',adr:'Laurenzenvorstadt 89, 5000 Aarau',web:null,state:'greenfield',
+   gf:{pursue:'low',note:'No site, and flagged «tief» — career-coaching rather than therapy; weaker fit.'}},
+];
+
+const SEL=new Set(), OPEN=new Set();
+let filter='all', query='', DECIDED=0;
+const $=id=>document.getElementById(id);
+const gapOf=d=>d.sc.p-d.sc.e;
+const tone=(k,v)=>{ if(k==='age')return /stale/.test(v)?'good':(/aging/.test(v)?'mid':'bad'); if(k==='stack')return /old|Jimdo|Wix/.test(v)?'good':(/WordPress/.test(v)?'mid':'info'); if(k==='perf'){const n=+v.replace(/\D/g,'');return n<50?'good':(n<75?'mid':'bad');} if(k==='seo'){return +v<70?'good':'info';} if(k==='traffic')return /no field|sparse|thin/.test(v)?'mid':'info'; if(k==='trackers')return /⚠/.test(v)?'mid':'info'; if(k==='booking')return /none|—/.test(v)?'good':'info'; if(k==='photos')return /stock|clip|demo/.test(v)?'good':(/art|real|honest|hand-drawn|portrait/.test(v)?'bad':'mid'); return 'info'; };
+const SRC={age:'Wayback',stack:'HTML',host:'DNS·ASN',perf:'PageSpeed',seo:'PageSpeed',traffic:'CrUX',trackers:'cookie+grep',booking:'HTML grep',langs:'HTML grep',photos:'vision·hero'};
+const QX={
+ 1:{traffic:'~150/mo · thin',trackers:'GA4',booking:'— none',langs:'DE',photos:'art-directed · the water photo'},
+ 2:{traffic:'~90/mo · sparse',trackers:'GA4 + Meta · no cookie policy ⚠',booking:'— none',langs:'DE',photos:'real portraits · warm'},
+ 3:{traffic:'~120/mo',trackers:'GA4',booking:'— none',langs:'DE',photos:'hand-drawn motif + real'},
+ 4:{traffic:'~70/mo',trackers:'none disclosed',booking:'— none',langs:'DE',photos:'one Aare photo · rest stock'},
+ 5:{traffic:'~260/mo',trackers:'Webflow analytics',booking:'Calendly',langs:'DE · EN',photos:'one honest portrait'},
+ 6:{traffic:'~80/mo',trackers:'GA4',booking:'— none',langs:'DE',photos:'stock · sage-tinted'},
+ 7:{traffic:'~60/mo · sparse',trackers:'none',booking:'— none',langs:'DE',photos:'one park photo · rest stock'},
+ 8:{traffic:'~140/mo',trackers:'Squarespace',booking:'Acuity',langs:'DE · FR',photos:'tasteful stock'},
+ 9:{traffic:'~45/mo · sparse',trackers:'Jimdo',booking:'— none',langs:'DE',photos:'stock lavender'},
+ 10:{traffic:'~95/mo',trackers:'GA4 + Meta · no cookie policy ⚠',booking:'— none',langs:'DE',photos:'clip-art brain'},
+ 11:{traffic:'~1.1k/mo',trackers:'Plausible (privacy)',booking:'Cal.com',langs:'DE · EN · FR',photos:'fully art-directed'},
+ 12:{traffic:'no field data',trackers:'Wix',booking:'— none',langs:'DE',photos:'demo stock left in'},
+};
+const segs=(cls,n)=>`<span class="meter ${cls}"><span class="segs">`+[1,2,3,4,5].map(i=>`<i class="seg${i<=n?' on':''}"></i>`).join('')+`</span><span class="n">${n}<span class="mx">/5</span></span></span>`;
+const checkSvg=`<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>`;
+const lampstrip=l=>`<span class="lampstrip" title="Age · Stack · Host · Perf · SEO">`+['age','stack','host','perf','seo'].map(k=>`<span class="ld ${tone(k,l[k])}"></span>`).join('')+`</span>`;
+const lampdot=t=>`<span class="ld ${t}" style="display:inline-block;vertical-align:middle"></span>`;
+const ctc=v=>v==='—'?`<span class="ct none">—</span>`:`<span class="ct">${v}</span>`;
+const shot=d=> d.web?`<div class="shot"><div class="wf"><div class="b nav"></div><div class="b hero" style="background:linear-gradient(${((d.sc?d.sc.p:2)*53)%360}deg,#2a2014,#171410)"></div><div class="b l"></div><div class="b l s"></div></div><span class="lbl">Puppeteer · full-page + 1 inner</span></div>`:'';
+
+function matchesFilter(d){ if(filter==='all')return true; if(filter==='raw')return d.state==='raw'; if(filter==='green')return d.state==='greenfield'; if(d.state!=='scouted')return false; return HEAT(gapOf(d))===filter; }
+function matchesQuery(d){ if(!query)return true; return (d.name+' '+d.typ+' '+(d.web||'')+' '+d.region).toLowerCase().includes(query); }
+
+function dossier(d){
+  if(d.state==='greenfield'){
+    return `<div class="dgrid2">
+      <div><div class="dlabel">◐ Queried — code fetches it · no LLM</div><div class="qline">No domain on record → nothing to fetch. The queried layer (Age · Stack · Perf · SEO · Trackers · Booking) is empty by definition — there is no site yet.</div></div>
+      <div><div class="dlabel">◓ Scouted — the agent's read</div><div class="gfbig">◇ Greenfield — no site to taste</div><div class="gfnote2">${d.gf.note}</div><div class="qline">Decision is pursue / skip — you set the first impression, nothing to displace.</div></div></div>`;
+  }
+  if(d.state!=='scouted'){
+    return `<div class="dgrid2">
+      <div><div class="dlabel">◐ Queried — code fetches it · no LLM</div><div class="qline">Rides along free on Taste — Age · Stack · Hosting · Perf · SEO · Traffic · Trackers · Booking · Languages, plus the screenshot the taste judges.</div></div>
+      <div><div class="dlabel">◓ Scouted — the agent tastes it</div><div class="qline">Not scouted yet. Select the card and press <b>Taste</b> — the agent returns Palate · Execution · the named choice · Verdict · Photos.</div></div></div>`;
+  }
+  const L=d.sc.l, x=QX[d.id]||{};
+  const lamp=(name,key,val)=>`<div class="lamp2"><span class="ld ${tone(key,val)}"></span><span class="ln">${name}</span><span class="lsrc">${SRC[key]||''}</span><span class="lv">${val}</span></div>`;
+  const queried=`<div><div class="dlabel">◐ Queried — code fetches it · deterministic, no LLM</div><div class="lamps2">
+      ${lamp('Age','age',L.age)}${lamp('Stack','stack',L.stack)}${lamp('Hosting','host',L.host)}
+      ${lamp('Perf','perf',L.perf)}${lamp('SEO','seo',L.seo)}${lamp('Traffic','traffic',x.traffic||'—')}
+      ${lamp('Trackers','trackers',x.trackers||'—')}${lamp('Booking','booking',x.booking||'—')}${lamp('Langs','langs',x.langs||'—')}</div>${shot(d)}</div>`;
+  const g=gapOf(d),h=HEAT(g);
+  const scouted=`<div><div class="dlabel">◓ Scouted — the agent tastes it · jedi-scout.md</div>
+      <div class="scrow"><span class="scmini">Palate <b>${d.sc.p}</b>/5</span><span class="scmini">Execution <b>${d.sc.e}</b>/5</span><span class="gap ${h}" style="font-size:15px">${g>0?'+':''}${g}</span><span class="vchip ${h}">${h==='hot'?'🔥 HOT':(h==='warm'?'Warm':'Cold')}</span></div>
+      <div class="kv"><span class="k">Photos</span><span class="v">${lampdot(tone('photos',x.photos||''))} ${x.photos||'—'}</span></div>
+      <div class="choiceq"><span class="cl">the specific choice it named — mandatory, no naming = it guessed</span>“${d.sc.choice}”</div>
+      <div class="vbig">${d.sc.v}</div></div>`;
+  return `<div class="dgrid2">${queried}${scouted}</div>`;
+}
+
+function scoutStrip(d){
+  if(d.state==='tasting') return `<div class="lc-scout"><span class="tasting"><span class="spin"></span> tasting ${d.web}… <span style="color:var(--dim)">opening · reading · holding the gap</span></span></div>`;
+  if(d.state==='greenfield') return `<div class="lc-scout green"><span class="pursue ${d.gf.pursue}">${d.gf.pursue==='high'?'pursue ↑':'low priority'}</span><span class="gfnote">${d.gf.note}</span></div>`;
+  if(d.state!=='scouted') return `<div class="lc-scout raw"><span class="rawmsg">— not scouted yet —</span><span class="pickhint">select, then Taste →</span></div>`;
+  const g=gapOf(d),h=HEAT(g);
+  return `<div class="lc-scout">
+      <div class="sc-verdict"><span class="vchip ${h}">${h==='hot'?'🔥 HOT':(h==='warm'?'Warm':'Cold')}</span><span class="gap ${h}">${g>0?'+':''}${g}</span></div>
+      <div class="sc-meters"><span class="m"><span class="ml">Palate</span>${segs('pal',d.sc.p)}</span><span class="m"><span class="ml">Exec</span>${segs('exe',d.sc.e)}</span></div>
+      <div class="sc-choice"><span class="q">“</span>${d.sc.choice}<span class="q">”</span></div>
+      <div class="sc-intel">${lampstrip(d.sc.l)}<span class="il">intel</span></div></div>`;
+}
+
+function verdictTop(d){
+  if(d.state==='scouted'){ const g=gapOf(d),h=HEAT(g); return `<span class="vchip ${h}">${h==='hot'?'🔥 HOT':(h==='warm'?'Warm':'Cold')}</span><span class="gap ${h}">${g>0?'+':''}${g}</span>`; }
+  if(d.state==='greenfield') return `<span class="gftag${d.gf.pursue==='low'?' low':''}">◇ greenfield</span>`;
+  if(d.state==='tasting') return `<span class="rawtag">tasting…</span>`;
+  return `<span class="rawtag">not scouted</span>`;
+}
+
+function cardHTML(d){
+  const sel=SEL.has(d.id);
+  const webCell = d.web ? `<a class="web" onclick="event.stopPropagation()">↗ ${d.web}</a>` : `<span class="gftag${d.gf&&d.gf.pursue==='low'?' low':''}">keine Website</span>`;
+  return `<article class="lc ${d.state}${sel?' sel':''}${OPEN.has(d.id)?' open':''}" data-id="${d.id}">
+    <div class="lc-body" onclick="togOpen(${d.id})">
+      <div class="lc-top">
+        <span class="chk${sel?' on':''}" onclick="event.stopPropagation();togSel(${d.id})">${checkSvg}</span>
+        <div class="lc-id"><div class="nm">${d.name}</div><div class="typ"><span class="reg">${d.region}</span>${d.typ}</div></div>
+        <div class="lc-contact">☎&nbsp;${ctc(d.tel)}<span class="dot">·</span>✉&nbsp;${ctc(d.email)}<span class="dot">·</span>⌂&nbsp;<span class="adr">${d.adr}</span><span class="dot">·</span>${webCell}</div>
+        <span class="exp">⌄</span>
+      </div>
+      ${scoutStrip(d)}
+    </div>
+    <div class="lc-detail">${dossier(d)}</div>
+  </article>`;
+}
+
+function render(){
+  const shown=LEADS.filter(d=>matchesFilter(d)&&matchesQuery(d));
+  $('body').innerHTML = shown.length? shown.map(cardHTML).join('') : `<div style="padding:40px;text-align:center;color:var(--dim);font-family:var(--mono);font-size:12px">no leads match this filter</div>`;
+  updateCounts();
+}
+function togOpen(id){ OPEN.has(id)?OPEN.delete(id):OPEN.add(id); const el=document.querySelector(`.lc[data-id="${id}"]`); if(el)el.classList.toggle('open'); }
+function togSel(id){ SEL.has(id)?SEL.delete(id):SEL.add(id); const el=document.querySelector(`.lc[data-id="${id}"]`); if(el){el.classList.toggle('sel');el.querySelector('.chk').classList.toggle('on');} syncDeck(); }
+function toggleAll(){ const shown=LEADS.filter(d=>matchesFilter(d)&&matchesQuery(d)); const allOn=shown.length&&shown.every(d=>SEL.has(d.id)); shown.forEach(d=>allOn?SEL.delete(d.id):SEL.add(d.id)); render(); syncDeck(); }
+function syncDeck(){ const n=SEL.size; $('selN').textContent=n; $('chkAll').classList.toggle('on',n>0); $('deck').classList.toggle('show',n>0);
+  const rawSel=[...SEL].map(id=>LEADS.find(d=>d.id===id)).filter(d=>d&&d.state==='raw'); $('tasteN').textContent=rawSel.length; $('bTaste').toggleAttribute('disabled',rawSel.length===0); }
+function updateCounts(){ const sc=LEADS.filter(d=>d.state==='scouted');
+  $('cScouted').textContent=sc.length; $('cHot').textContent=sc.filter(d=>gapOf(d)>=2).length; $('cGreen').textContent=LEADS.filter(d=>d.state==='greenfield').length; $('cDecided').textContent=DECIDED;
+  $('fAll').textContent=LEADS.length; $('fHot').textContent=sc.filter(d=>HEAT(gapOf(d))==='hot').length; $('fWarm').textContent=sc.filter(d=>HEAT(gapOf(d))==='warm').length; $('fCold').textContent=sc.filter(d=>HEAT(gapOf(d))==='cold').length; $('fRaw').textContent=LEADS.filter(d=>d.state==='raw').length; $('fGreen').textContent=LEADS.filter(d=>d.state==='greenfield').length; }
+
+function tasteSelected(){
+  const raws=[...SEL].map(id=>LEADS.find(d=>d.id===id)).filter(d=>d&&d.state==='raw');
+  raws.forEach((d,k)=>{ d.state='tasting'; setTimeout(render,30);
+    setTimeout(()=>{ d.state='scouted'; render(); syncDeck();
+      const el=document.querySelector(`.lc[data-id="${d.id}"]`); if(el&&gapOf(d)>=2){el.style.transition='box-shadow .5s';el.style.boxShadow='0 0 0 2px var(--red)';setTimeout(()=>el.style.boxShadow='',700);} }, 700+900*(k+1)); });
+  if(raws.length) toast(`◐ tasting ${raws.length} site${raws.length>1?'s':''}…`,'');
+}
+function decide(kind){
+  const ids=[...SEL]; if(!ids.length)return; let n=0;
+  ids.forEach(id=>{ const el=document.querySelector(`.lc[data-id="${id}"]`); if(el)el.classList.add('gone'); const i=LEADS.findIndex(d=>d.id===id); if(i>-1){LEADS.splice(i,1);n++;DECIDED++;} });
+  SEL.clear(); setTimeout(()=>{render();syncDeck();},380);
+  toast(kind==='promote'?`→ ${n} promoted to Kanban · Incoming`:`✕ ${n} discarded`, kind==='promote'?'':'kill');
+}
+const promoteSelected=()=>decide('promote');
+const discardSelected=()=>decide('discard');
+function toast(msg,cls){ const t=$('toast'); t.className='toast '+(cls||''); t.innerHTML=msg; t.classList.add('show'); clearTimeout(t._t); t._t=setTimeout(()=>t.classList.remove('show'),2600); }
+
+$('chips').addEventListener('click',e=>{ const c=e.target.closest('.chip'); if(!c)return; filter=c.dataset.f; document.querySelectorAll('.chip').forEach(x=>x.classList.toggle('on',x===c)); render(); });
+$('q').addEventListener('input',e=>{ query=e.target.value.toLowerCase().trim(); render(); });
+$('themeToggle').addEventListener('click',function(){ const h=document.documentElement,p=h.getAttribute('data-theme')==='polar'; h.setAttribute('data-theme',p?'onyx':'polar'); this.textContent=p?'◐ Polar':'◑ Onyx'; });
+
+render(); syncDeck();
+</script>
+</body>
+</html>

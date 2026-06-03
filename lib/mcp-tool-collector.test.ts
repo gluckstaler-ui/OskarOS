@@ -40,7 +40,7 @@ function assistantEventWithText(text: string): BridgeEvent {
 
 describe('stripMcpPrefix', () => {
   it('strips the mcp__server__ prefix the Claude CLI adds', () => {
-    expect(stripMcpPrefix('mcp__oskar-orchestrator__submit_critique')).toBe('submit_critique')
+    expect(stripMcpPrefix('mcp__orch__submit_critique')).toBe('submit_critique')
   })
 
   it('returns bare names unchanged', () => {
@@ -48,7 +48,7 @@ describe('stripMcpPrefix', () => {
   })
 
   it('handles multi-segment tool names', () => {
-    expect(stripMcpPrefix('mcp__server__report_build_complete')).toBe('report_build_complete')
+    expect(stripMcpPrefix('mcp__server__build_done')).toBe('build_done')
   })
 })
 
@@ -72,7 +72,7 @@ describe('makeToolCollector', () => {
   it('handles the prefixed CLI form', () => {
     const c = makeToolCollector(['submit_critique'])
     c.consume(
-      assistantEventWithToolUse('mcp__oskar-orchestrator__submit_critique', {
+      assistantEventWithToolUse('mcp__orch__submit_critique', {
         target: 'vibe-1',
         scores: [],
       }),
@@ -166,10 +166,10 @@ describe('collectFromStdout', () => {
   it('splits a concatenated stdout buffer and extracts matched tool calls', () => {
     const stdout =
       '{"type":"system","subtype":"init"}\n' +
-      '{"type":"assistant","message":{"content":[{"type":"tool_use","name":"report_build_complete","input":{"filename":"vibe-3.html","vibeIndex":3,"vibeName":"X","sectionsBuilt":[],"imagesUsed":[]}}]}}\n' +
+      '{"type":"assistant","message":{"content":[{"type":"tool_use","name":"build_done","input":{"filename":"vibe-3.html","vibeIndex":3,"vibeName":"X","sectionsBuilt":[],"imagesUsed":[]}}]}}\n' +
       '{"type":"result","subtype":"success"}\n'
-    expect(collectFromStdout(stdout, ['report_build_complete'])).toEqual({
-      report_build_complete: {
+    expect(collectFromStdout(stdout, ['build_done'])).toEqual({
+      build_done: {
         filename: 'vibe-3.html',
         vibeIndex: 3,
         vibeName: 'X',
@@ -198,7 +198,7 @@ describe('Phase 2 doctrine: tool effects only fire from typed events', () => {
   })
 
   it('does NOT extract trailing JSON from text blocks', () => {
-    const c = makeToolCollector(['report_build_complete'])
+    const c = makeToolCollector(['build_done'])
     c.consume(
       assistantEventWithText(
         'Build complete.\n{"filename":"vibe-3.html","vibeIndex":3,"vibeName":"X"}',

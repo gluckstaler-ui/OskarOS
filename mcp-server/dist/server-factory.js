@@ -22,7 +22,7 @@ export function createOskarServer(opts) {
     const { sessionId, agentRole, instanceId } = opts;
     const ctx = { sessionId, agentRole, instanceId };
     const server = new Server({
-        name: 'oskar-orchestrator',
+        name: 'orch',
         version: '1.0.0',
     }, {
         capabilities: {

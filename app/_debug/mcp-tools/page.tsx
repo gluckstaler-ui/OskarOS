@@ -78,7 +78,7 @@ function PROBES(sessionId: string): ProbeRow[] {
       body: () => ({ webDevModel: 'claude-sonnet-4-6' }),
     },
 
-    // Note: build_vibe / build_all_vibes / build_final / generate_image
+    // Note: build_vibe / build_wireframes / generate_image
     // / hotswap / screenshot / image_ops / apply_patch / update_image_metadata
     // are intentionally OMITTED — they have side effects (spawn child
     // processes, fire Nano Banana, etc.) we don't want from a probe page.

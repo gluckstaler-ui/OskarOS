@@ -1,0 +1,1295 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>OskarOS Design System — Onyx × Polar Reference Plate</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Inter+Tight:wght@500;600;700;800;900&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/feather-icons"></script>
+<style>
+  /* ===========================================================
+     OskarOS Design System — Bento × Territory + Fathom touches
+     Reference Plate v1 (2026-05-03)
+     =========================================================== */
+
+  /* SHARED TOKENS */
+  :root {
+    --radius-card: 12px;
+    --radius-button: 8px;
+    --radius-pill: 999px;
+    --gap-app: 16px;
+    --shadow-card-onyx: 0 1px 3px rgba(0,0,0,0.3), 0 1px 2px rgba(0,0,0,0.2);
+    --shadow-card-polar: 0 4px 12px rgba(15,23,42,0.06), 0 1px 3px rgba(15,23,42,0.04);
+    --transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    --font-display: 'Inter Tight', 'Inter', -apple-system, sans-serif;
+    --font-body:    'Inter', -apple-system, sans-serif;
+    --font-mono:    'JetBrains Mono', 'SF Mono', Monaco, monospace;
+  }
+
+  /* ============= ONYX (DARK) — military-grade durable ============= */
+  .theme-onyx {
+    --bg-app:        #09090b;
+    --bg-card:       #1e1e22;       /* lifted — Ralph: cards much lighter than rest */
+    --bg-card-hover: #2a2a2e;
+    --bg-input:      #0d0d0f;
+    --border-card:   #2e2e33;
+    --border-strong: #3f3f46;
+    --text-main:     #f4f4f5;
+    --text-muted:    #a1a1aa;
+    --text-dim:      #52525b;
+    --shadow-card:   var(--shadow-card-onyx);
+
+    /* Brand quartet — the four colors that own buttons + headings */
+    --brand-green-bright: #15B981;   /* H1, primary action — Ralph's exact chrome eyedrop */
+    --brand-green-deep:   #047857;   /* H3 mono, hover/pressed  */
+    --brand-teal-bright:  #5EEAD4;   /* H2, secondary action    */
+    --brand-teal-deep:    #0F766E;   /* link, body emphasis     */
+
+    /* Semantic — never promoted to heading rank */
+    --warning:   #FACC15;   /* yellow — attention */
+    --error:     #EF4444;
+    --info:      #3B82F6;
+    --working:   #F97316;
+  }
+
+  /* ============= POLAR (LIGHT) — independently designed ============= */
+  .theme-polar {
+    --bg-app:        #f8fafc;
+    --bg-card:       #ffffff;
+    --bg-card-hover: #f1f5f9;
+    --bg-input:      #f8fafc;
+    --border-card:   #e2e8f0;
+    --border-strong: #cbd5e1;
+    --text-main:     #0f172a;
+    --text-muted:    #64748b;
+    --text-dim:      #94a3b8;
+    --shadow-card:   var(--shadow-card-polar);
+
+    /* Brand quartet — Polar unified to the SAME green as Onyx (#15B981).
+       The deep #047857 read mossy on white. Contrast for primary buttons
+       handled by --text-on-brand (dark-on-green), not by darkening green. */
+    --brand-green-bright: #15B981;   /* matches Onyx */
+    --brand-green-deep:   #047857;   /* hover/pressed only */
+    --brand-teal-bright:  #0F766E;   /* deep teal reads on white */
+    --brand-teal-deep:    #134E4A;
+
+    /* Polar gets a touch more rounding + softer shadows — Bento generous */
+    --radius-card: 16px;
+
+    --warning:   #B45309;
+    --error:     #B91C1C;
+    --info:      #3B82F6;
+    --working:   #F97316;
+  }
+
+  /* ============= RESET + PAGE LAYOUT ============= */
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body {
+    font-family: var(--font-body);
+    background: #000;
+    color: #fff;
+    min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
+  }
+  .page {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    min-height: 100vh;
+  }
+  .col {
+    background: var(--bg-app);
+    color: var(--text-main);
+    padding: 32px 28px;
+    overflow-x: hidden;
+  }
+  .col-onyx { background: var(--bg-app); }
+  .col-polar { background: var(--bg-app); }
+
+  /* Page-top banner spans both columns */
+  .banner {
+    grid-column: 1 / -1;
+    background: #000;
+    color: #fff;
+    padding: 14px 28px;
+    border-bottom: 1px solid #1a1a1a;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #a1a1aa;
+  }
+  .banner-title {
+    font-family: var(--font-display);
+    font-size: 13px;
+    letter-spacing: -0.005em;
+    text-transform: none;
+    color: #f4f4f5;
+    font-weight: 600;
+  }
+  .banner-sep { color: #3f3f46; }
+
+  /* ============= COLUMN HEADER STRIP ============= */
+  .col-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 28px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--border-card);
+  }
+  .col-name {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--brand-green-bright);
+  }
+  .col-tagline {
+    font-family: var(--font-body);
+    font-size: 11px;
+    color: var(--text-muted);
+    font-style: italic;
+  }
+
+  /* ============= SECTION ============= */
+  .section {
+    margin-bottom: 32px;
+  }
+  .section-marker {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .section-marker::before {
+    content: '';
+    width: 14px;
+    height: 1px;
+    background: var(--text-muted);
+  }
+
+  /* ============= TYPOGRAPHY (BIG) ============= */
+  .h1 {
+    /* 2026-05-03 (Ralph) — weight 800 → 900 for max in-your-face mass.
+       Same #15B981 across both themes; contrast on Polar compensated by
+       weight, not hex. */
+    font-family: var(--font-display);
+    font-size: clamp(44px, 5.5vw, 64px);
+    font-weight: 900;
+    line-height: 1.0;
+    letter-spacing: -0.03em;
+    color: var(--brand-green-bright);
+    margin-bottom: 16px;
+  }
+  .h2 {
+    font-family: var(--font-display);
+    font-size: clamp(28px, 3.2vw, 40px);
+    font-weight: 800;
+    line-height: 1.08;
+    letter-spacing: -0.02em;
+    color: var(--brand-teal-bright);
+    margin-bottom: 12px;
+  }
+  .h3 {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 700;
+    line-height: 1.4;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--brand-green-deep);
+    margin: 16px 0 8px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .h3::before { content: '▸'; }
+  .theme-polar .h3 { color: var(--brand-green-bright); }
+
+  .h4 {
+    font-family: var(--font-body);
+    font-size: 11px;
+    font-weight: 700;
+    line-height: 1.4;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin: 14px 0 6px;
+  }
+  .body {
+    font-family: var(--font-body);
+    font-size: 14px;
+    line-height: 1.6;
+    color: var(--text-main);
+    margin-bottom: 12px;
+  }
+  .body-muted {
+    font-family: var(--font-body);
+    font-size: 13px;
+    line-height: 1.55;
+    color: var(--text-muted);
+    margin-bottom: 12px;
+  }
+  .link {
+    color: var(--brand-teal-deep);
+    text-decoration: none;
+    border-bottom: 1px solid color-mix(in srgb, var(--brand-teal-deep) 40%, transparent);
+    transition: var(--transition);
+  }
+  .theme-onyx .link { color: var(--brand-teal-bright); border-bottom-color: color-mix(in srgb, var(--brand-teal-bright) 40%, transparent); }
+  .link:hover { border-bottom-color: currentColor; }
+
+  /* ============= BUTTONS ============= */
+  .btn-row { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 8px; }
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    padding: 8px 14px;
+    border-radius: var(--radius-button);
+    border: 1px solid transparent;
+    cursor: pointer;
+    transition: var(--transition);
+    background: transparent;
+    line-height: 1;
+  }
+  .btn svg {
+    width: 13px;
+    height: 13px;
+    stroke-width: 2.25;
+  }
+
+  /* Primary — green-bright. Dark text on green in BOTH themes (white text
+     on #15B981 fails AA at ~2.6:1; dark green-ink #042f1f passes AAA). */
+  .btn-primary {
+    background: var(--brand-green-bright);
+    color: #042f1f;
+    border-color: var(--brand-green-bright);
+  }
+  .btn-primary:hover { background: var(--brand-green-deep); border-color: var(--brand-green-deep); color: #ffffff; }
+
+  /* Secondary — teal-bright */
+  .btn-secondary {
+    background: transparent;
+    color: var(--brand-teal-bright);
+    border-color: color-mix(in srgb, var(--brand-teal-bright) 50%, transparent);
+  }
+  .theme-polar .btn-secondary { color: var(--brand-teal-bright); border-color: color-mix(in srgb, var(--brand-teal-bright) 60%, transparent); }
+  .btn-secondary:hover {
+    background: color-mix(in srgb, var(--brand-teal-bright) 12%, transparent);
+    border-color: var(--brand-teal-bright);
+  }
+
+  /* Ghost — text-muted, transparent */
+  .btn-ghost {
+    background: transparent;
+    color: var(--text-muted);
+    border-color: var(--border-card);
+  }
+  .btn-ghost:hover { color: var(--text-main); border-color: var(--border-strong); }
+
+  /* Warning (ORDER 66 destructive) — amber */
+  .btn-warning {
+    background: transparent;
+    color: var(--warning);
+    border-color: color-mix(in srgb, var(--warning) 50%, transparent);
+  }
+  .btn-warning:hover {
+    background: color-mix(in srgb, var(--warning) 14%, transparent);
+    border-color: var(--warning);
+  }
+
+  /* Error — red */
+  .btn-error {
+    background: var(--error);
+    color: #ffffff;
+    border-color: var(--error);
+  }
+  .btn-error:hover { background: color-mix(in srgb, var(--error) 80%, #000); }
+
+  /* ============= PILLS (status, theme toggle, tags) ============= */
+  .pill-row { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 8px; }
+  .pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-family: var(--font-mono);
+    font-size: 9.5px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    padding: 4px 9px;
+    border-radius: var(--radius-pill);
+    border: 1px solid transparent;
+    line-height: 1;
+  }
+  .pill svg { width: 10px; height: 10px; stroke-width: 2.5; }
+  .pill-success {
+    color: var(--brand-green-bright);
+    border-color: color-mix(in srgb, var(--brand-green-bright) 40%, transparent);
+    background: color-mix(in srgb, var(--brand-green-bright) 10%, transparent);
+  }
+  .pill-info {
+    color: var(--brand-teal-bright);
+    border-color: color-mix(in srgb, var(--brand-teal-bright) 40%, transparent);
+    background: color-mix(in srgb, var(--brand-teal-bright) 8%, transparent);
+  }
+  .pill-warning {
+    color: var(--warning);
+    border-color: color-mix(in srgb, var(--warning) 45%, transparent);
+    background: color-mix(in srgb, var(--warning) 10%, transparent);
+  }
+  .pill-error {
+    color: var(--error);
+    border-color: color-mix(in srgb, var(--error) 45%, transparent);
+    background: color-mix(in srgb, var(--error) 10%, transparent);
+  }
+  .pill-neutral {
+    color: var(--text-muted);
+    border-color: var(--border-card);
+    background: var(--bg-card);
+  }
+
+  /* Theme toggle (chrome bar pattern: ONYX | POLAR) */
+  .theme-toggle {
+    display: inline-flex;
+    border: 1px solid var(--border-card);
+    border-radius: var(--radius-pill);
+    padding: 2px;
+    background: var(--bg-card);
+  }
+  .theme-toggle-opt {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    padding: 5px 11px;
+    border-radius: var(--radius-pill);
+    color: var(--text-muted);
+    transition: var(--transition);
+  }
+  .theme-toggle-opt.active {
+    background: var(--brand-green-bright);
+    color: #042f1f;
+  }
+
+  /* ============= SNACKBAR v2 — Territory boxed-state-pill + Bento corner + Fathom progress ============= */
+  --text-on-brand: #042f1f;
+  .snackbar-stack { display: flex; flex-direction: column; gap: 10px; max-width: 540px; }
+  .snackbar {
+    display: flex;
+    align-items: stretch;
+    background: var(--bg-card);
+    border: 1px solid var(--border-card);
+    border-radius: var(--radius-card);
+    box-shadow: var(--shadow-card);
+    overflow: hidden;
+    position: relative;
+    min-width: 440px;
+  }
+  /* Boxed left state pill — full-height, colored bg, mono caps label + optional event code */
+  .snackbar-state {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: flex-start;
+    padding: 14px 16px;
+    width: 140px;        /* fixed — all snackbars same left-pill width */
+    flex-shrink: 0;
+    background: var(--text-muted);
+    color: var(--text-on-brand);
+    gap: 5px;
+  }
+  .snackbar-state-label {
+    font-family: var(--font-mono);
+    font-size: 11px; font-weight: 700;
+    letter-spacing: 0.16em; text-transform: uppercase; line-height: 1;
+    white-space: nowrap;
+  }
+  .snackbar-state-code {
+    font-family: var(--font-mono);
+    font-size: 9px; font-weight: 500;
+    letter-spacing: 0.1em; text-transform: uppercase; line-height: 1;
+    opacity: 0.72; white-space: nowrap;
+  }
+  .snackbar-success  .snackbar-state { background: var(--brand-green-bright); color: var(--text-on-brand); }
+  .snackbar-info     .snackbar-state { background: var(--info);               color: #ffffff; }
+  .snackbar-warning  .snackbar-state { background: var(--warning);            color: var(--text-on-brand); }
+  .snackbar-error    .snackbar-state { background: var(--error);              color: #ffffff; }
+  /* WORKING outlined treatment — whole snackbar */
+  .snackbar-progress {
+    background: #ffffff;
+    border: 2px solid var(--working);
+  }
+  .snackbar-progress .snackbar-state {
+    background: transparent;
+    color: var(--working);
+  }
+  .snackbar-progress .snackbar-heading,
+  .snackbar-progress .snackbar-message {
+    color: #0f172a;
+  }
+  .snackbar-progress .snackbar-action {
+    color: var(--working);
+    border-color: color-mix(in srgb, var(--working) 50%, transparent);
+  }
+  .snackbar-progress .snackbar-dismiss { color: #64748b; }
+  .snackbar-state-icon { display: flex; margin-bottom: 2px; }
+  .snackbar-state-icon svg { width: 18px; height: 18px; stroke-width: 2.25; }
+
+  /* Body — heading + message stacked */
+  .snackbar-body {
+    flex: 1;
+    padding: 12px 14px;
+    display: flex; flex-direction: column; gap: 3px;
+    min-width: 0; justify-content: center;
+  }
+  .snackbar-heading {
+    font-family: var(--font-body);
+    font-size: 14px; font-weight: 600;
+    color: var(--text-main); line-height: 1.3;
+    letter-spacing: -0.005em;
+  }
+  .snackbar-message {
+    font-family: var(--font-body);
+    font-size: 13px; line-height: 1.45;
+    color: var(--text-muted);
+  }
+
+  /* Right action area */
+  .snackbar-actions {
+    display: flex; align-items: center; gap: 6px;
+    padding: 10px 12px 10px 0; flex-shrink: 0;
+  }
+  .snackbar-action {
+    font-family: var(--font-mono);
+    font-size: 10px; font-weight: 700;
+    letter-spacing: 0.12em; text-transform: uppercase;
+    padding: 6px 12px; border-radius: 6px;
+    border: 1px solid var(--border-strong);
+    background: transparent; color: var(--text-main);
+    cursor: pointer; transition: var(--transition);
+    white-space: nowrap;
+  }
+  .snackbar-action:hover {
+    border-color: var(--brand-green-bright);
+    color: var(--brand-green-bright);
+  }
+  .snackbar-dismiss {
+    width: 28px; height: 28px;
+    display: flex; align-items: center; justify-content: center;
+    border-radius: 6px; border: none; background: transparent;
+    color: var(--text-dim); cursor: pointer; transition: var(--transition);
+  }
+  .snackbar-dismiss svg { width: 12px; height: 12px; stroke-width: 2.5; }
+  .snackbar-dismiss:hover { color: var(--text-main); background: var(--bg-card-hover); }
+
+  /* Fathom progress bar at bottom edge — only on progress variant.
+     Orange to match the --working state pill. */
+  .snackbar-progress-bar {
+    position: absolute; bottom: 0; left: 0; right: 0;
+    height: 2px; pointer-events: none;
+    background: color-mix(in srgb, var(--working) 18%, transparent);
+    overflow: hidden;
+  }
+  .snackbar-progress-bar::after {
+    content: ''; display: block; width: 32%; height: 100%;
+    background: var(--working);
+    animation: fathomProgress 1.6s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  }
+  @keyframes fathomProgress {
+    0%   { transform: translateX(-110%); }
+    100% { transform: translateX(420%); }
+  }
+
+  /* ============= MODAL (AskUserModal pattern) ============= */
+  .modal-frame {
+    background: var(--bg-card);
+    border: 1px solid var(--border-card);
+    border-radius: var(--radius-card);
+    box-shadow: var(--shadow-card);
+    padding: 22px 24px;
+    max-width: 480px;
+  }
+  .modal-eyebrow {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--brand-green-bright);
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .modal-eyebrow svg { width: 11px; height: 11px; stroke-width: 2.5; }
+  .modal-question {
+    font-family: var(--font-display);
+    font-size: 18px;
+    font-weight: 600;
+    line-height: 1.35;
+    letter-spacing: -0.01em;
+    color: var(--text-main);
+    margin-bottom: 16px;
+  }
+  .modal-options {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .modal-option {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    text-align: left;
+    padding: 11px 14px;
+    background: var(--bg-card-hover);
+    border: 1px solid var(--border-card);
+    border-radius: var(--radius-button);
+    color: var(--text-main);
+    font-family: var(--font-body);
+    font-size: 13.5px;
+    cursor: pointer;
+    transition: var(--transition);
+  }
+  .modal-option svg {
+    width: 14px; height: 14px;
+    stroke-width: 2.25;
+    color: var(--text-dim);
+  }
+  .modal-option:hover {
+    background: color-mix(in srgb, var(--brand-green-bright) 8%, var(--bg-card-hover));
+    border-color: var(--brand-green-bright);
+  }
+  .modal-option:hover svg { color: var(--brand-green-bright); }
+  .modal-foot {
+    margin-top: 14px;
+    font-family: var(--font-mono);
+    font-size: 9.5px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    text-align: right;
+  }
+
+  /* ============= QUESTION FORM (chip pattern) ============= */
+  .qf {
+    background: var(--bg-card);
+    border: 1px solid var(--border-card);
+    border-radius: var(--radius-card);
+    box-shadow: var(--shadow-card);
+    overflow: hidden;
+  }
+  .qf-head {
+    display: flex; align-items: center; gap: 12px;
+    padding: 12px 14px;
+    border-bottom: 1px solid var(--border-card);
+  }
+  .qf-icon {
+    width: 26px; height: 26px;
+    border-radius: var(--radius-pill);
+    background: var(--brand-green-bright);
+    color: #042f1f;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .qf-icon svg { width: 13px; height: 13px; stroke-width: 2.5; }
+  .qf-title {
+    font-family: var(--font-display);
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: -0.005em;
+    color: var(--text-main);
+  }
+  .qf-body { padding: 14px; display: flex; flex-direction: column; gap: 10px; }
+  .qf-label {
+    font-family: var(--font-body);
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text-main);
+    margin-bottom: 4px;
+  }
+  .qf-options { display: flex; flex-wrap: wrap; gap: 6px; }
+  .qf-chip {
+    display: inline-flex; align-items: center; gap: 5px;
+    font-family: var(--font-body);
+    font-size: 12px;
+    padding: 6px 12px;
+    border: 1px solid var(--border-card);
+    border-radius: var(--radius-pill);
+    background: var(--bg-card);
+    color: var(--text-main);
+    cursor: pointer;
+    transition: var(--transition);
+  }
+  .qf-chip:hover { border-color: var(--brand-green-bright); color: var(--brand-green-bright); }
+  .qf-chip.on {
+    border-color: var(--brand-green-bright);
+    background: color-mix(in srgb, var(--brand-green-bright) 12%, var(--bg-card));
+    color: var(--brand-green-bright);
+    font-weight: 500;
+  }
+
+  /* ============= TABLE (Fathom — single-hue ramp data bars) ============= */
+  .table-wrap {
+    background: var(--bg-card);
+    border: 1px solid var(--border-card);
+    border-radius: var(--radius-card);
+    overflow: hidden;
+  }
+  .table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+  .table thead {
+    background: var(--bg-app);
+    border-bottom: 1px solid var(--border-card);
+  }
+  .table th {
+    font-family: var(--font-mono);
+    font-size: 9.5px;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    text-align: left;
+    padding: 10px 14px;
+    white-space: nowrap;
+  }
+  .table th.num { text-align: right; }
+  .table td {
+    font-family: var(--font-body);
+    font-size: 12.5px;
+    color: var(--text-main);
+    padding: 11px 14px;
+    border-top: 1px solid var(--border-card);
+    vertical-align: middle;
+  }
+  .table tbody tr:first-child td { border-top: none; }
+  .table td.mono {
+    font-family: var(--font-mono);
+    font-size: 11.5px;
+    color: var(--text-main);
+  }
+  .table td.num {
+    text-align: right;
+    font-family: var(--font-mono);
+    font-size: 11.5px;
+    color: var(--text-main);
+  }
+  /* Fathom data-bar cell: single-hue green ramp */
+  .table td.bar {
+    width: 36%;
+  }
+  .data-bar {
+    display: block;
+    height: 6px;
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--brand-green-bright) 10%, transparent);
+    overflow: hidden;
+    position: relative;
+  }
+  .data-bar::after {
+    content: '';
+    display: block;
+    height: 100%;
+    background: linear-gradient(90deg,
+      color-mix(in srgb, var(--brand-green-bright) 50%, transparent) 0%,
+      var(--brand-green-bright) 100%);
+    border-radius: 999px;
+    width: var(--w, 50%);
+  }
+  .table .row-status {
+    display: inline-flex; align-items: center; gap: 5px;
+    font-family: var(--font-mono);
+    font-size: 9.5px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+  }
+  .table .row-status.ok { color: var(--brand-green-bright); }
+  .table .row-status.partial { color: var(--warning); }
+  .table .row-status.failed { color: var(--error); }
+  .table .row-status svg { width: 10px; height: 10px; stroke-width: 2.5; }
+
+  /* ============= CARD (Bento) ============= */
+  .card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-card);
+    border-radius: var(--radius-card);
+    box-shadow: var(--shadow-card);
+    padding: 18px 20px;
+  }
+
+  /* ============= CHROME-BAR PREVIEW ============= */
+  .chrome {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 8px 14px;
+    background: var(--bg-card);
+    border: 1px solid var(--border-card);
+    border-radius: var(--radius-card);
+    flex-wrap: wrap;
+  }
+  .chrome-tab {
+    display: inline-flex; align-items: center; gap: 5px;
+    font-family: var(--font-mono);
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    padding: 5px 10px;
+    border-radius: var(--radius-pill);
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: var(--transition);
+  }
+  .chrome-tab svg { width: 11px; height: 11px; stroke-width: 2.5; }
+  .chrome-tab.active {
+    background: var(--brand-green-bright);
+    color: #042f1f;
+  }
+  .chrome-sep { width: 1px; height: 18px; background: var(--border-card); }
+
+  /* ============= UTIL ============= */
+  .stack { display: flex; flex-direction: column; gap: 12px; }
+  .stack-tight { display: flex; flex-direction: column; gap: 6px; }
+</style>
+</head>
+<body>
+
+<div class="page">
+
+  <!-- TOP BANNER spans both columns -->
+  <header class="banner">
+    <span class="banner-title">OskarOS Design System</span>
+    <span class="banner-sep">·</span>
+    <span>Bento × Territory + Fathom touches</span>
+    <span class="banner-sep">·</span>
+    <span>Reference Plate v1 — 2026-05-03</span>
+    <span class="banner-sep">·</span>
+    <span>headlines = Inter Tight · markers = JetBrains Mono · icons = Feather (only)</span>
+  </header>
+
+  <!-- ============================ ONYX COLUMN ============================ -->
+  <section class="col theme-onyx col-onyx">
+
+    <header class="col-header">
+      <div class="col-name">◆ ONYX · DARK</div>
+      <div class="col-tagline">military-grade durable</div>
+    </header>
+
+    <!-- Chrome bar preview -->
+    <div class="section">
+      <div class="section-marker">01 · Chrome bar</div>
+      <div class="chrome">
+        <span class="chrome-tab"><i data-feather="file-text"></i>Brief</span>
+        <span class="chrome-tab"><i data-feather="layers"></i>Studio</span>
+        <span class="chrome-tab active"><i data-feather="image"></i>Image</span>
+        <span class="chrome-tab"><i data-feather="grid"></i>Gallery</span>
+        <span class="chrome-sep"></span>
+        <span class="theme-toggle">
+          <span class="theme-toggle-opt active">Onyx</span>
+          <span class="theme-toggle-opt">Polar</span>
+        </span>
+        <span class="chrome-sep"></span>
+        <span class="pill pill-success"><i data-feather="check"></i>Order 75</span>
+        <span class="pill pill-warning"><i data-feather="alert-triangle"></i>Order 66</span>
+      </div>
+    </div>
+
+    <!-- Type hierarchy -->
+    <div class="section">
+      <div class="section-marker">02 · Type hierarchy · BIG</div>
+      <h1 class="h1">Hospitality on a cliff.</h1>
+      <h2 class="h2">Two hundred meters above the future.</h2>
+      <h3 class="h3">Section marker · the chrome's voice</h3>
+      <h4 class="h4">Sub-label · supporting copy</h4>
+      <p class="body">Body sets in <strong style="color:var(--brand-teal-bright)">Inter regular fourteen pixel</strong>, line-height one-point-six. <a href="#" class="link">Links are teal-deep</a> with a hairline underbar that bolds on hover. No magazine restraint — readable, dense, agent-ready.</p>
+      <p class="body-muted">Muted body in Inter, smaller, dim. For metadata, captions, secondary information — anything the eye should skip on first pass.</p>
+    </div>
+
+    <!-- Buttons -->
+    <div class="section">
+      <div class="section-marker">03 · Buttons · one palette</div>
+      <div class="btn-row">
+        <button class="btn btn-primary"><i data-feather="play"></i>Run analysis</button>
+        <button class="btn btn-secondary"><i data-feather="download"></i>Export CSV</button>
+        <button class="btn btn-ghost"><i data-feather="help-circle"></i>Help</button>
+      </div>
+      <div class="btn-row">
+        <button class="btn btn-warning"><i data-feather="alert-triangle"></i>Order 66 · Compact</button>
+        <button class="btn btn-error"><i data-feather="x-octagon"></i>Force quit</button>
+      </div>
+    </div>
+
+    <!-- Pills / status -->
+    <div class="section">
+      <div class="section-marker">04 · Status pills</div>
+      <div class="pill-row">
+        <span class="pill pill-success"><i data-feather="check-circle"></i>Success</span>
+        <span class="pill pill-info"><i data-feather="info"></i>Running</span>
+        <span class="pill pill-warning"><i data-feather="alert-triangle"></i>Partial</span>
+        <span class="pill pill-error"><i data-feather="x-circle"></i>Failed</span>
+        <span class="pill pill-neutral"><i data-feather="circle"></i>Idle</span>
+      </div>
+    </div>
+
+    <!-- Snackbars (the ugly-as-hell fix) -->
+    <div class="section">
+      <div class="section-marker">05 · Snackbars · Territory edge + Bento corner + Feather + Fathom progress</div>
+      <div class="snackbar-stack">
+        <div class="snackbar snackbar-success">
+          <div class="snackbar-state">
+            <span class="snackbar-state-label">Ready</span>
+            <span class="snackbar-state-code">Vibe-1</span>
+          </div>
+          <div class="snackbar-body">
+            <span class="snackbar-heading">Grandma's Cliff is live</span>
+            <span class="snackbar-message">Preview compiled in 3.4s — ready for review</span>
+          </div>
+          <div class="snackbar-actions">
+            <button class="snackbar-action">View</button>
+            <button class="snackbar-dismiss"><i data-feather="x"></i></button>
+          </div>
+        </div>
+        <div class="snackbar snackbar-info">
+          <div class="snackbar-state">
+            <span class="snackbar-state-label">Image</span>
+            <span class="snackbar-state-code">Img-014</span>
+          </div>
+          <div class="snackbar-body">
+            <span class="snackbar-heading">qahwa-service-v1.jpg</span>
+            <span class="snackbar-message">Hands pouring from brass dallah · golden hour · 3:4</span>
+          </div>
+          <div class="snackbar-actions">
+            <button class="snackbar-action">View</button>
+            <button class="snackbar-dismiss"><i data-feather="x"></i></button>
+          </div>
+        </div>
+        <div class="snackbar snackbar-progress">
+          <div class="snackbar-state">
+            <span class="snackbar-state-label">Working</span>
+            <span class="snackbar-state-code">Iter 3/5</span>
+          </div>
+          <div class="snackbar-body">
+            <span class="snackbar-heading">Regenerating cliff-edge-v2.jpg</span>
+            <span class="snackbar-message">Tuning hue · stronger sandstone tone</span>
+          </div>
+          <div class="snackbar-actions">
+            <button class="snackbar-dismiss"><i data-feather="x"></i></button>
+          </div>
+          <div class="snackbar-progress-bar"></div>
+        </div>
+        <div class="snackbar snackbar-warning">
+          <div class="snackbar-state">
+            <span class="snackbar-state-label">Attention</span>
+            <span class="snackbar-state-code">AA-Cont</span>
+          </div>
+          <div class="snackbar-body">
+            <span class="snackbar-heading">Brand drift detected</span>
+            <span class="snackbar-message">Three vibes failing AA contrast — proofread next build</span>
+          </div>
+          <div class="snackbar-actions">
+            <button class="snackbar-action">Audit</button>
+            <button class="snackbar-dismiss"><i data-feather="x"></i></button>
+          </div>
+        </div>
+        <div class="snackbar snackbar-error">
+          <div class="snackbar-state">
+            <span class="snackbar-state-label">Failed</span>
+            <span class="snackbar-state-code">Vibe-3</span>
+          </div>
+          <div class="snackbar-body">
+            <span class="snackbar-heading">Build failed · 500</span>
+            <span class="snackbar-message">WebDev returned 500 — see /logs/vibe-3-build.log</span>
+          </div>
+          <div class="snackbar-actions">
+            <button class="snackbar-action">Retry</button>
+            <button class="snackbar-dismiss"><i data-feather="x"></i></button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal (AskUserModal) -->
+    <div class="section">
+      <div class="section-marker">06 · Modal · Ask CD</div>
+      <div class="modal-frame">
+        <div class="modal-eyebrow"><i data-feather="message-circle"></i>CD asks</div>
+        <div class="modal-question">Should I commit this prompt or keep iterating on the lighting?</div>
+        <div class="modal-options">
+          <button class="modal-option"><i data-feather="check"></i>Commit — send to Nano</button>
+          <button class="modal-option"><i data-feather="rotate-cw"></i>Iterate — show me three lighting variants first</button>
+          <button class="modal-option"><i data-feather="x"></i>Cancel — abandon this prompt</button>
+        </div>
+        <div class="modal-foot">Click outside to cancel</div>
+      </div>
+    </div>
+
+    <!-- Question form -->
+    <div class="section">
+      <div class="section-marker">07 · Question form</div>
+      <div class="qf">
+        <div class="qf-head">
+          <div class="qf-icon"><i data-feather="help-circle"></i></div>
+          <div class="qf-title">Calibration check</div>
+        </div>
+        <div class="qf-body">
+          <div>
+            <div class="qf-label">Does the green-teal palette land?</div>
+            <div class="qf-options">
+              <span class="qf-chip on"><i data-feather="check" style="width:11px;height:11px"></i>Lands</span>
+              <span class="qf-chip">Close</span>
+              <span class="qf-chip">Wrong direction</span>
+            </div>
+          </div>
+          <div>
+            <div class="qf-label">Snackbar — better than yesterday?</div>
+            <div class="qf-options">
+              <span class="qf-chip">Much better</span>
+              <span class="qf-chip on"><i data-feather="check" style="width:11px;height:11px"></i>Better</span>
+              <span class="qf-chip">Same</span>
+              <span class="qf-chip">Worse</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Table (Fathom data ramp) -->
+    <div class="section">
+      <div class="section-marker">08 · Table · Fathom single-hue ramp</div>
+      <div class="table-wrap">
+        <table class="table">
+          <thead>
+            <tr>
+              <th>Cohort</th>
+              <th class="num">N</th>
+              <th class="num">Mean</th>
+              <th>Distribution</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="mono">A · control</td>
+              <td class="num">1,044</td>
+              <td class="num">0.41</td>
+              <td class="bar"><span class="data-bar" style="--w:42%"></span></td>
+              <td><span class="row-status ok"><i data-feather="check"></i>Normal</span></td>
+            </tr>
+            <tr>
+              <td class="mono">B · treatment 1</td>
+              <td class="num">1,022</td>
+              <td class="num">0.58</td>
+              <td class="bar"><span class="data-bar" style="--w:58%"></span></td>
+              <td><span class="row-status ok"><i data-feather="check"></i>Normal</span></td>
+            </tr>
+            <tr>
+              <td class="mono">C · treatment 2</td>
+              <td class="num">1,030</td>
+              <td class="num">0.71</td>
+              <td class="bar"><span class="data-bar" style="--w:71%"></span></td>
+              <td><span class="row-status partial"><i data-feather="alert-triangle"></i>Partial</span></td>
+            </tr>
+            <tr>
+              <td class="mono">D · pilot</td>
+              <td class="num">1,032</td>
+              <td class="num">0.62</td>
+              <td class="bar"><span class="data-bar" style="--w:34%"></span></td>
+              <td><span class="row-status failed"><i data-feather="x"></i>Excluded</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Card sample -->
+    <div class="section">
+      <div class="section-marker">09 · Bento card</div>
+      <div class="card">
+        <h4 class="h4">Sultan</h4>
+        <h2 class="h2" style="font-size:24px;margin-bottom:6px">47-0 since 2019</h2>
+        <p class="body-muted">Saker falcon. Air patrol, counter-drone, The Race champion. SAR 350 / hour majlis booking.</p>
+        <div class="btn-row" style="margin-top:10px">
+          <button class="btn btn-primary"><i data-feather="calendar"></i>Book majlis</button>
+          <button class="btn btn-ghost"><i data-feather="play-circle"></i>Watch race</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================ POLAR COLUMN ============================ -->
+  <section class="col theme-polar col-polar">
+
+    <header class="col-header">
+      <div class="col-name">◇ POLAR · LIGHT</div>
+      <div class="col-tagline">independently designed — not an inversion</div>
+    </header>
+
+    <!-- Chrome bar -->
+    <div class="section">
+      <div class="section-marker">01 · Chrome bar</div>
+      <div class="chrome">
+        <span class="chrome-tab"><i data-feather="file-text"></i>Brief</span>
+        <span class="chrome-tab"><i data-feather="layers"></i>Studio</span>
+        <span class="chrome-tab active"><i data-feather="image"></i>Image</span>
+        <span class="chrome-tab"><i data-feather="grid"></i>Gallery</span>
+        <span class="chrome-sep"></span>
+        <span class="theme-toggle">
+          <span class="theme-toggle-opt">Onyx</span>
+          <span class="theme-toggle-opt active">Polar</span>
+        </span>
+        <span class="chrome-sep"></span>
+        <span class="pill pill-success"><i data-feather="check"></i>Order 75</span>
+        <span class="pill pill-warning"><i data-feather="alert-triangle"></i>Order 66</span>
+      </div>
+    </div>
+
+    <!-- Type hierarchy -->
+    <div class="section">
+      <div class="section-marker">02 · Type hierarchy · BIG</div>
+      <h1 class="h1">Hospitality on a cliff.</h1>
+      <h2 class="h2">Two hundred meters above the future.</h2>
+      <h3 class="h3">Section marker · the chrome's voice</h3>
+      <h4 class="h4">Sub-label · supporting copy</h4>
+      <p class="body">Body sets in <strong style="color:var(--brand-teal-bright)">Inter regular fourteen pixel</strong>, line-height one-point-six. <a href="#" class="link">Links are teal-deep</a> with a hairline underbar that bolds on hover. Polar leans into white air; the green earns its place.</p>
+      <p class="body-muted">Muted body — same role, theme-correct contrast. Slate-500 against off-white slate-50. AA-clear at body sizes.</p>
+    </div>
+
+    <!-- Buttons -->
+    <div class="section">
+      <div class="section-marker">03 · Buttons · one palette</div>
+      <div class="btn-row">
+        <button class="btn btn-primary"><i data-feather="play"></i>Run analysis</button>
+        <button class="btn btn-secondary"><i data-feather="download"></i>Export CSV</button>
+        <button class="btn btn-ghost"><i data-feather="help-circle"></i>Help</button>
+      </div>
+      <div class="btn-row">
+        <button class="btn btn-warning"><i data-feather="alert-triangle"></i>Order 66 · Compact</button>
+        <button class="btn btn-error"><i data-feather="x-octagon"></i>Force quit</button>
+      </div>
+    </div>
+
+    <!-- Pills -->
+    <div class="section">
+      <div class="section-marker">04 · Status pills</div>
+      <div class="pill-row">
+        <span class="pill pill-success"><i data-feather="check-circle"></i>Success</span>
+        <span class="pill pill-info"><i data-feather="info"></i>Running</span>
+        <span class="pill pill-warning"><i data-feather="alert-triangle"></i>Partial</span>
+        <span class="pill pill-error"><i data-feather="x-circle"></i>Failed</span>
+        <span class="pill pill-neutral"><i data-feather="circle"></i>Idle</span>
+      </div>
+    </div>
+
+    <!-- Snackbars -->
+    <div class="section">
+      <div class="section-marker">05 · Snackbars</div>
+      <div class="snackbar-stack">
+        <div class="snackbar snackbar-success">
+          <div class="snackbar-state">
+            <span class="snackbar-state-label">Ready</span>
+            <span class="snackbar-state-code">Vibe-1</span>
+          </div>
+          <div class="snackbar-body">
+            <span class="snackbar-heading">Grandma's Cliff is live</span>
+            <span class="snackbar-message">Preview compiled in 3.4s — ready for review</span>
+          </div>
+          <div class="snackbar-actions">
+            <button class="snackbar-action">View</button>
+            <button class="snackbar-dismiss"><i data-feather="x"></i></button>
+          </div>
+        </div>
+        <div class="snackbar snackbar-info">
+          <div class="snackbar-state">
+            <span class="snackbar-state-label">Image</span>
+            <span class="snackbar-state-code">Img-014</span>
+          </div>
+          <div class="snackbar-body">
+            <span class="snackbar-heading">qahwa-service-v1.jpg</span>
+            <span class="snackbar-message">Hands pouring from brass dallah · golden hour · 3:4</span>
+          </div>
+          <div class="snackbar-actions">
+            <button class="snackbar-action">View</button>
+            <button class="snackbar-dismiss"><i data-feather="x"></i></button>
+          </div>
+        </div>
+        <div class="snackbar snackbar-progress">
+          <div class="snackbar-state">
+            <span class="snackbar-state-label">Working</span>
+            <span class="snackbar-state-code">Iter 3/5</span>
+          </div>
+          <div class="snackbar-body">
+            <span class="snackbar-heading">Regenerating cliff-edge-v2.jpg</span>
+            <span class="snackbar-message">Tuning hue · stronger sandstone tone</span>
+          </div>
+          <div class="snackbar-actions">
+            <button class="snackbar-dismiss"><i data-feather="x"></i></button>
+          </div>
+          <div class="snackbar-progress-bar"></div>
+        </div>
+        <div class="snackbar snackbar-warning">
+          <div class="snackbar-state">
+            <span class="snackbar-state-label">Attention</span>
+            <span class="snackbar-state-code">AA-Cont</span>
+          </div>
+          <div class="snackbar-body">
+            <span class="snackbar-heading">Brand drift detected</span>
+            <span class="snackbar-message">Three vibes failing AA contrast — proofread next build</span>
+          </div>
+          <div class="snackbar-actions">
+            <button class="snackbar-action">Audit</button>
+            <button class="snackbar-dismiss"><i data-feather="x"></i></button>
+          </div>
+        </div>
+        <div class="snackbar snackbar-error">
+          <div class="snackbar-state">
+            <span class="snackbar-state-label">Failed</span>
+            <span class="snackbar-state-code">Vibe-3</span>
+          </div>
+          <div class="snackbar-body">
+            <span class="snackbar-heading">Build failed · 500</span>
+            <span class="snackbar-message">WebDev returned 500 — see /logs/vibe-3-build.log</span>
+          </div>
+          <div class="snackbar-actions">
+            <button class="snackbar-action">Retry</button>
+            <button class="snackbar-dismiss"><i data-feather="x"></i></button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal -->
+    <div class="section">
+      <div class="section-marker">06 · Modal · Ask CD</div>
+      <div class="modal-frame">
+        <div class="modal-eyebrow"><i data-feather="message-circle"></i>CD asks</div>
+        <div class="modal-question">Should I commit this prompt or keep iterating on the lighting?</div>
+        <div class="modal-options">
+          <button class="modal-option"><i data-feather="check"></i>Commit — send to Nano</button>
+          <button class="modal-option"><i data-feather="rotate-cw"></i>Iterate — show me three lighting variants first</button>
+          <button class="modal-option"><i data-feather="x"></i>Cancel — abandon this prompt</button>
+        </div>
+        <div class="modal-foot">Click outside to cancel</div>
+      </div>
+    </div>
+
+    <!-- Question form -->
+    <div class="section">
+      <div class="section-marker">07 · Question form</div>
+      <div class="qf">
+        <div class="qf-head">
+          <div class="qf-icon"><i data-feather="help-circle"></i></div>
+          <div class="qf-title">Calibration check</div>
+        </div>
+        <div class="qf-body">
+          <div>
+            <div class="qf-label">Does the green-teal palette land?</div>
+            <div class="qf-options">
+              <span class="qf-chip on"><i data-feather="check" style="width:11px;height:11px"></i>Lands</span>
+              <span class="qf-chip">Close</span>
+              <span class="qf-chip">Wrong direction</span>
+            </div>
+          </div>
+          <div>
+            <div class="qf-label">Snackbar — better than yesterday?</div>
+            <div class="qf-options">
+              <span class="qf-chip">Much better</span>
+              <span class="qf-chip on"><i data-feather="check" style="width:11px;height:11px"></i>Better</span>
+              <span class="qf-chip">Same</span>
+              <span class="qf-chip">Worse</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Table -->
+    <div class="section">
+      <div class="section-marker">08 · Table · Fathom single-hue ramp</div>
+      <div class="table-wrap">
+        <table class="table">
+          <thead>
+            <tr>
+              <th>Cohort</th>
+              <th class="num">N</th>
+              <th class="num">Mean</th>
+              <th>Distribution</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="mono">A · control</td>
+              <td class="num">1,044</td>
+              <td class="num">0.41</td>
+              <td class="bar"><span class="data-bar" style="--w:42%"></span></td>
+              <td><span class="row-status ok"><i data-feather="check"></i>Normal</span></td>
+            </tr>
+            <tr>
+              <td class="mono">B · treatment 1</td>
+              <td class="num">1,022</td>
+              <td class="num">0.58</td>
+              <td class="bar"><span class="data-bar" style="--w:58%"></span></td>
+              <td><span class="row-status ok"><i data-feather="check"></i>Normal</span></td>
+            </tr>
+            <tr>
+              <td class="mono">C · treatment 2</td>
+              <td class="num">1,030</td>
+              <td class="num">0.71</td>
+              <td class="bar"><span class="data-bar" style="--w:71%"></span></td>
+              <td><span class="row-status partial"><i data-feather="alert-triangle"></i>Partial</span></td>
+            </tr>
+            <tr>
+              <td class="mono">D · pilot</td>
+              <td class="num">1,032</td>
+              <td class="num">0.62</td>
+              <td class="bar"><span class="data-bar" style="--w:34%"></span></td>
+              <td><span class="row-status failed"><i data-feather="x"></i>Excluded</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Card -->
+    <div class="section">
+      <div class="section-marker">09 · Bento card</div>
+      <div class="card">
+        <h4 class="h4">Sultan</h4>
+        <h2 class="h2" style="font-size:24px;margin-bottom:6px">47-0 since 2019</h2>
+        <p class="body-muted">Saker falcon. Air patrol, counter-drone, The Race champion. SAR 350 / hour majlis booking.</p>
+        <div class="btn-row" style="margin-top:10px">
+          <button class="btn btn-primary"><i data-feather="calendar"></i>Book majlis</button>
+          <button class="btn btn-ghost"><i data-feather="play-circle"></i>Watch race</button>
+        </div>
+      </div>
+    </div>
+
+  </section>
+
+</div>
+
+<script>feather.replace({ 'stroke-width': 2.25 });</script>
+</body>
+</html>

@@ -50,7 +50,7 @@ export async function GET(req: NextRequest) {
 
   const scenarios: Record<string, any> = {
     minimal: {
-      model: 'claude-opus-4-7',
+      model: 'claude-opus-4-8',
       max_tokens: 32,
       messages: [{ role: 'user', content: 'reply with the word ok and nothing else' }],
     },
@@ -61,13 +61,13 @@ export async function GET(req: NextRequest) {
     },
     'cli-suffix-model': {
       // What the CLI uses; should 400/404 from API directly.
-      model: 'claude-opus-4-7[1m]',
+      model: 'claude-opus-4-8[1m]',
       max_tokens: 32,
       messages: [{ role: 'user', content: 'hi' }],
     },
     'malformed': {
       // Missing max_tokens; should 400 invalid_request_error.
-      model: 'claude-opus-4-7',
+      model: 'claude-opus-4-8',
       messages: [{ role: 'user', content: 'hi' }],
     },
     'cached': {
@@ -75,7 +75,7 @@ export async function GET(req: NextRequest) {
       // cache_control on system (1h TTL). If 529 fires HERE while
       // minimal succeeds, the issue is cache-pool saturation, not
       // API capacity.
-      model: 'claude-opus-4-7',
+      model: 'claude-opus-4-8',
       max_tokens: 32,
       system: [{
         type: 'text',

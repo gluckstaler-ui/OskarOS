@@ -54,7 +54,7 @@ function withSessionLock<T>(sessionId: string, fn: () => Promise<T>): Promise<T>
 // ─────────────────────────────────────────────────────────────────────────────
 
 export interface CallCDOptions extends Partial<BridgeOptions> {
-  /** Override the default model — defaults to claude-opus-4-7[1m] (Big CD). */
+  /** Override the default model — defaults to claude-opus-4-8[1m] (Big CD). */
   model?: string
   /**
    * Phase 2 (2026-04-30): structured-response migration. When the caller
@@ -120,9 +120,15 @@ export async function callCDBridge(
     )
 
   const options: BridgeOptions = {
-    model: opts.model || 'claude-opus-4-7[1m]',
+    model: opts.model || 'claude-opus-4-8[1m]',
     systemPrompt,
     cwd: opts.cwd || process.cwd(),
+    // Ralph 2026-06-01: propagate useWorker so cd-upload-eval (and any
+    // future one-shot) can opt into the worker pool path. Other BridgeOptions
+    // fields (agentRole, allowedTools, ensure1M) intentionally stay
+    // unforwarded — only chat-stream sets those, and chat doesn't go
+    // through callCDBridge.
+    ...(opts.useWorker !== undefined ? { useWorker: opts.useWorker } : {}),
   }
 
   // Phase 2: optional tool-call collector. When the caller declares the
@@ -130,7 +136,14 @@ export async function callCDBridge(
   // we scan the stream for matching tool_use events and surface their args.
   const toolCollector = makeToolCollector(opts.expectedTools || [])
 
-  return withSessionLock(sessionId, async () => {
+  // Ralph 2026-06-01 — worker-pool callers (one-shots like upload-eval,
+  // verdict, proofread) skip withSessionLock entirely. The pool's busy
+  // flag handles concurrency: N parallel one-shots run on N parallel CLI
+  // subprocesses without serializing on a shared stdin/stdout. Main-
+  // bridge callers (chat) still pass through the lock as before — chat
+  // is sequential anyway and depends on --resume context continuity.
+  const useWorker = options.useWorker === true
+  const run = async () => {
     const start = Date.now()
     const events: BridgeEvent[] = []
     let text = ''
@@ -159,5 +172,6 @@ export async function callCDBridge(
       toolCalls: toolCollector.getToolCalls(),
       durationMs: Date.now() - start,
     }
-  })
+  }
+  return useWorker ? run() : withSessionLock(sessionId, run)
 }

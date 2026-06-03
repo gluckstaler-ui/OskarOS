@@ -3,8 +3,8 @@
  *
  * The tool was deleted in Commit C — it was confusing CD (sometimes she'd
  * pick generate_vibe, get the placeholder string, and never reach the
- * actual MCP build path). The real path is `build_vibe` / `build_all_vibes`
- * / `build_final` via MCP.
+ * actual MCP build path). The real path is `build_vibe([slugs])` /
+ * `build_wireframes([slugs])` via MCP.
  *
  * This test asserts the tool name is gone from the route's source. Adding
  * it back without spec approval fails the test loud.

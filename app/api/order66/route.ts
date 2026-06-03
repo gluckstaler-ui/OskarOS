@@ -107,9 +107,16 @@ export async function GET(req: NextRequest) {
         // for audio. The audio bug was React reconciliation cost from the
         // live feed; that fix lives in CompactionOverlay.tsx's throttled
         // flush. Stagger length here is incidental.
-        const sage240Promise = runSage240_40(sessionId, onProgress)
+        // Ralph 2026-05-13: pass req.signal so clicking Continue (client
+        // disconnect) propagates an abort all the way to the claude --print
+        // children. Without this the Sages ran to their own 10-min timeout
+        // as orphans — holding OAuth slots and overwriting SESSION.md from
+        // stale pre-abort content. Now: abort → SIGTERM child → callAnthropic
+        // resolves null → pass returns agent-fail before its writeFile, and
+        // the inner loop's `signal?.aborted` check stops the next pass.
+        const sage240Promise = runSage240_40(sessionId, onProgress, req.signal)
         await new Promise((r) => setTimeout(r, 3000))
-        const portraitPromise = runSagePortrait(sessionId, onProgress)
+        const portraitPromise = runSagePortrait(sessionId, onProgress, req.signal)
         const [sage240Result, portraitResult] = await Promise.all([
           sage240Promise,
           portraitPromise,

@@ -1,0 +1,783 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Advanced Mode</title>
+<style>
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+:root{--bg:#0e0e0e;--panel:#141414;--surface:#191919;--input:#1e1e1e;--border:#222;--bh:#3a3a3a;--text:#ddd;--muted:#777;--dim:#4a4a4a;--blue:#3B82F6;--purple:#8B5CF6;--green:#10B981;--orange:#F59E0B;--red:#EF4444;--active:var(--green)}
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;font-size:13px;-webkit-font-smoothing:antialiased}
+
+/* === LAYOUT ===
+   Tab bar on top spanning full width (except zone1)
+   Then a 2x2 grid below:
+   | 1 | 2          |
+   | 1 | 3    | 4   |
+*/
+.app{display:grid;grid-template-columns:clamp(180px,18vw,400px) 1fr;grid-template-rows:36px 1fr;height:100vh}
+
+/* Zone 1 spans both rows */
+.zone1{grid-column:1;grid-row:1/3;background:var(--panel);border-right:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden}
+
+/* Tab bar spans column 2 */
+.bar{grid-column:2;grid-row:1;background:var(--surface);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 10px;gap:3px}
+
+/* Content area: 2,3,4 as a sub-grid */
+.content{grid-column:2;grid-row:2;display:grid;grid-template-columns:1fr 1fr;grid-template-rows:auto 1fr 1fr;overflow:hidden}
+
+/* Help text: row 1, spans both columns */
+.tab-help{grid-column:1/3;grid-row:1}
+
+/* Zone 2: row 2, spans both columns */
+.zone2{grid-column:1/3;grid-row:2;position:relative;overflow:hidden;background:#080808}
+
+/* Zone 3: row 3, left */
+.zone3{grid-column:1;grid-row:3;border-top:1px solid var(--border);border-right:1px solid var(--border);background:var(--surface);display:flex;flex-direction:column;overflow:hidden}
+
+/* Zone 4: row 3, right */
+.zone4{grid-column:2;grid-row:3;border-top:1px solid var(--border);background:var(--surface);display:flex;flex-direction:column;overflow:hidden}
+
+/* ===== ZONE 1: ASSETS ===== */
+.z1-h{flex:0 0 40px;display:flex;align-items:center;padding:0 14px;border-bottom:1px solid var(--border);font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);gap:8px}
+.z1-l{padding:10px 10px 5px;font-size:9px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--dim)}
+.z1-g{flex:1;overflow-y:auto;padding:0 8px 8px;display:grid;grid-template-columns:1fr 1fr;gap:6px;align-content:start}
+.z1-g::-webkit-scrollbar{width:3px}
+.z1-g::-webkit-scrollbar-thumb{background:#252525;border-radius:2px}
+.tile{cursor:pointer;display:flex;flex-direction:column;gap:2px}
+.tb{width:100%;aspect-ratio:1;border-radius:5px;position:relative;border:2px solid transparent;overflow:hidden;transition:all .12s;background-size:cover;background-position:center}
+.tb:hover{border-color:#444}
+.tb.scene{border-color:var(--green);box-shadow:0 0 0 1px var(--green)}
+.tb.subject{border-color:var(--orange);box-shadow:0 0 0 1px var(--orange)}
+.tb.slot-a{border-color:var(--green);box-shadow:0 0 0 1px var(--green)}
+.tbg{position:absolute;top:3px;left:3px;height:14px;padding:0 4px;border-radius:3px;font-size:7px;font-weight:700;color:#fff;display:none;align-items:center;text-transform:uppercase}
+.tb.scene .tbg{display:flex;background:var(--green)}
+.tb.subject .tbg{display:flex;background:var(--orange)}
+.tb.slot-a .tbg{display:flex;background:var(--green)}
+.tn{font-size:8px;color:var(--dim);text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+/* ===== TAB BAR (matches app design system) ===== */
+.bar{padding:0 12px;gap:12px}
+.tab-group{display:flex;align-items:center;gap:2px;padding:4px;background:rgba(9,9,11,.5);border-radius:8px;border:1px solid rgba(39,39,42,.5)}
+.tab{padding:6px 12px;border-radius:6px;border:none;background:transparent;color:var(--muted);font-size:10px;font-weight:700;letter-spacing:.05em;cursor:pointer;transition:all .15s;text-transform:uppercase}
+.tab:hover{color:var(--text);background:rgba(255,255,255,.04)}
+.tab.on{background:var(--green);color:#fff;box-shadow:0 1px 3px rgba(16,185,129,.3)}
+.sp{flex:1}
+.action-group{display:flex;align-items:center;gap:6px}
+.ba{padding:6px 14px;border-radius:6px;border:none;color:#fff;font-size:10px;font-weight:700;cursor:pointer;text-transform:uppercase;letter-spacing:.05em;transition:all .15s}
+.ba:hover{filter:brightness(1.15)}
+.ba-exit{background:transparent;border:1px solid #3f3f46;color:#a1a1aa;box-shadow:none}
+.ba-exit:hover{border-color:#52525b;color:#f4f4f5;background:rgba(255,255,255,.04)}
+
+/* ===== ZONE 2: PICTURE ===== */
+.z2-img{display:flex;align-items:center;justify-content:center;height:100%;padding:10px}
+.z2-img img{max-width:100%;max-height:100%;object-fit:contain;border-radius:4px}
+.z2-bento{display:none;height:100%;padding:8px;gap:5px}
+.z2-bento.vis{display:grid;grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr}
+.bc{border-radius:4px;overflow:hidden;background:#1a1a1a;background-size:cover;background-position:center}
+.bc.hero{grid-row:1/3}
+.ver{position:absolute;top:0;right:0;width:90px;height:100%;background:rgba(14,14,14,.88);border-left:1px solid var(--border);backdrop-filter:blur(8px);display:none;flex-direction:column}
+.ver.has-items{display:flex}
+.ver-h{padding:8px 8px 4px;font-size:8px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--dim);text-align:center}
+.ver-s{flex:1;overflow-y:auto;padding:0 6px 6px;display:flex;flex-direction:column;gap:5px}
+.ver-s::-webkit-scrollbar{width:2px}
+.ver-s::-webkit-scrollbar-thumb{background:#333;border-radius:1px}
+.vc{width:100%;aspect-ratio:4/3;border-radius:4px;position:relative;cursor:pointer;border:2px solid transparent;overflow:hidden;transition:all .12s;flex-shrink:0;background-size:cover;background-position:center}
+.vc:hover{border-color:#555}
+.vc.on{border-color:var(--green)}
+.vc-l{position:absolute;bottom:0;left:0;right:0;padding:2px 4px;background:linear-gradient(transparent,rgba(0,0,0,.85));font-size:7px;color:rgba(255,255,255,.5)}
+.dsc{position:absolute;bottom:0;left:0;right:90px;background:linear-gradient(transparent,rgba(0,0,0,.92) 40%);padding:36px 20px 12px;display:flex;align-items:flex-end;gap:8px}
+.dsc-i{font-size:12px;opacity:.4;flex-shrink:0}
+.dsc-t{flex:1;font-size:12px;line-height:1.6;color:rgba(255,255,255,.55)}
+.dsc-c{height:22px;padding:0 8px;border-radius:4px;border:1px solid rgba(255,255,255,.15);background:rgba(255,255,255,.06);color:rgba(255,255,255,.4);font-size:10px;cursor:pointer;flex-shrink:0;display:flex;align-items:center;gap:4px;transition:all .12s}
+.dsc-c:hover{color:rgba(255,255,255,.7);border-color:rgba(255,255,255,.3)}
+
+/* ===== ZONE 3: TEMPLATES + STAGING + ASK CD ===== */
+.z3-heading{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:#a1a1aa;padding:12px 16px 16px;flex-shrink:0;display:flex;align-items:center;gap:6px}
+.z3-heading svg{opacity:.5}
+.tpl-row{display:flex;gap:5px;padding:0 16px 0;flex-wrap:wrap;flex-shrink:0;min-height:52px;align-items:center;align-content:start;overflow-y:auto}
+.tpl-row::-webkit-scrollbar{width:3px}
+.tpl-row::-webkit-scrollbar-thumb{background:#252525;border-radius:2px}
+.tpl-cat{font-size:9px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#52525b;padding:0 2px 0 0;line-height:24px;white-space:nowrap}
+.tp{height:24px;padding:0 11px;border-radius:12px;border:1px solid #27272a;background:transparent;color:#a1a1aa;font-size:11px;font-weight:500;cursor:pointer;transition:all .15s;white-space:nowrap}
+.tp:hover{border-color:#3f3f46;color:#f4f4f5;background:rgba(255,255,255,.03)}
+.tp.on{border-color:var(--active);color:#fff;background:rgba(16,185,129,.08)}
+.z3-sep{height:1px;margin:10px 16px;background:#1e1e1e;flex-shrink:0}
+.stg{display:none;padding:4px 16px 8px;gap:6px;align-items:center;flex-shrink:0}
+.stg.vis{display:flex}
+.stg-l{font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:#71717a;margin-right:4px}
+.sl{flex:0 0 auto;width:48px;height:48px;border-radius:5px;border:1.5px dashed #333;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all .12s;position:relative;overflow:hidden;background-size:cover;background-position:center}
+.sl:hover{border-color:#555}
+.sl.asl{border-color:var(--blue);border-style:solid;background:rgba(59,130,246,.05)}
+.sl.filled{border-style:solid}
+.sl.filled.sc{border-color:var(--purple)}.sl.filled.su{border-color:var(--orange)}.sl.filled.gr{border-color:var(--green)}
+.sl-l{font-size:7px;font-weight:700;color:var(--dim)}.sl.filled .sl-l{display:none}
+.sl-b{position:absolute;bottom:0;left:0;right:0;font-size:6px;font-weight:700;text-align:center;padding:2px;color:#fff;text-transform:uppercase;display:none}
+.sl.filled .sl-b{display:block}
+.sc .sl-b{background:var(--purple)}.su .sl-b{background:var(--orange)}.gr .sl-b{background:var(--green)}
+.sarr{color:var(--dim);font-size:12px}
+.sadd{width:48px;height:48px;border-radius:5px;border:1px dashed #2a2a2a;background:#252529;display:flex;align-items:center;justify-content:center;color:var(--dim);font-size:16px;cursor:pointer;flex-shrink:0}
+.sadd:hover{border-color:#444;color:var(--muted)}
+.srst{height:22px;padding:0 8px;border-radius:4px;border:1px solid rgba(239,68,68,.2);background:rgba(239,68,68,.04);color:var(--red);font-size:8px;font-weight:700;cursor:pointer;margin-left:auto;flex-shrink:0;display:flex;align-items:center;gap:2px}
+.srst:hover{border-color:rgba(239,68,68,.5);background:rgba(239,68,68,.1)}
+/* Zone 3 input — matches app's ConversationPanel */
+.z3-lbl{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:#a1a1aa;padding:4px 16px 8px;flex-shrink:0;display:flex;align-items:center;gap:6px}
+.z3-lbl svg{opacity:.5}
+.z3-wrap{flex:1;margin:0 16px 8px;background:#18181b;border:1px solid #27272a;border-radius:10px;overflow:hidden;display:flex;flex-direction:column;min-height:0}
+.z3-ta{flex:1;background:transparent;border:none;color:#f4f4f5;font-family:inherit;font-size:14px;line-height:1.6;padding:12px 16px;resize:none;outline:none;min-height:0}
+.z3-ta::placeholder{color:#52525b}
+.z3-toolbar{flex-shrink:0;padding:0 16px 16px;display:flex;align-items:center;justify-content:flex-end}
+.z3-btn{height:34px;padding:0 14px;border-radius:8px;border:none;background:var(--orange);color:#fff;font-size:11px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:4px;transition:all .12s;letter-spacing:.05em;text-transform:uppercase}
+.z3-btn:hover{filter:brightness(1.15)}
+
+/* Active asset in library — green highlight like compose/layout */
+.tb.viewing{border-color:var(--green);box-shadow:0 0 0 1px var(--green)}
+
+/* Tab help text — below tab bar, above zone 2 */
+.tab-help{grid-column:1/3;padding:8px 20px;font-size:12px;color:#71717a;line-height:1.5;background:#111;border-bottom:1px solid var(--border);flex-shrink:0}
+
+/* ===== ZONE 4: PROMPT + RATIO + RES (matches app design system, more prominent) ===== */
+.z4-top{display:flex;align-items:center;gap:8px;padding:12px 16px 10px;flex-shrink:0}
+.z4-lbl{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:#a1a1aa;display:flex;align-items:center;gap:6px}
+.z4-lbl svg{opacity:.5}
+.z4-sp{flex:1}
+.cg{display:flex;align-items:center;gap:2px;padding:3px;background:rgba(9,9,11,.5);border-radius:6px;border:1px solid rgba(39,39,42,.5)}
+.cl{font-size:9px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:#71717a;margin-right:2px;padding:0 4px}
+.pl{padding:4px 8px;border-radius:4px;border:none;background:transparent;color:#a1a1aa;font-size:10px;font-weight:700;letter-spacing:.05em;cursor:pointer;transition:all .15s}
+.pl:hover{color:#f4f4f5;background:rgba(255,255,255,.04)}
+.pl.on{background:var(--green);color:#fff;box-shadow:0 1px 3px rgba(16,185,129,.3)}
+.z4-wrap{flex:1;margin:0 16px 8px;background:#252529;border:none;border-radius:10px;overflow:hidden;display:flex;flex-direction:column;min-height:0}
+.z4-ta{flex:1;background:transparent;border:none;color:#f4f4f5;font-family:inherit;font-size:14px;line-height:1.7;padding:14px 18px;resize:none;outline:none;min-height:0}
+.z4-ta::placeholder{color:#71717a;font-size:13px;line-height:1.6}
+.z4-ta:focus{outline:none}
+.z4-toolbar{flex-shrink:0;padding:0 16px 16px;display:flex;align-items:center}
+.z4-btn{width:100%;height:34px;border-radius:8px;border:none;background:var(--green);color:#fff;font-size:11px;font-weight:700;cursor:pointer;transition:all .12s;letter-spacing:.05em;text-transform:uppercase}
+.z4-btn:hover{filter:brightness(1.15);box-shadow:0 2px 8px rgba(16,185,129,.3)}
+</style>
+</head>
+<body>
+
+<div class="app">
+
+  <!-- 1: ASSETS -->
+  <div class="zone1">
+    <div class="z1-h">📷 Assets</div>
+    <div class="z1-l">Image Library</div>
+    <div class="z1-g" id="grid"></div>
+  </div>
+
+  <!-- TAB BAR -->
+  <div class="bar">
+    <div class="tab-group">
+      <button class="tab" data-tab="view">View</button>
+      <button class="tab" data-tab="generate">Generate</button>
+      <button class="tab" data-tab="edit">Edit</button>
+      <button class="tab" data-tab="compose">Compose</button>
+      <button class="tab on" data-tab="layout">Layout</button>
+    </div>
+    <div class="sp"></div>
+    <div class="action-group">
+      <button class="ba ba-exit" id="btnExit">← Exit</button>
+    </div>
+  </div>
+
+  <!-- CONTENT: help + 2, 3, 4 -->
+  <div class="content">
+
+    <!-- TAB HELP TEXT -->
+    <div class="tab-help" id="tabHelp">Select an image from the library, then choose a preset to transform it. The image description is automatically included in your prompt.</div>
+
+    <!-- 2: PICTURE -->
+    <div class="zone2">
+      <div class="z2-img" id="z2Img"><img id="heroImg" src="sultan.jpg"></div>
+      <div class="z2-bento" id="z2Bento">
+        <div class="bc hero" id="bc0"></div>
+        <div class="bc" id="bc1"></div>
+        <div class="bc" id="bc2"></div>
+        <div class="bc" id="bc3"></div>
+      </div>
+      <div class="ver">
+        <div class="ver-h">Generated</div>
+        <div class="ver-s" id="verS"></div>
+      </div>
+      <div class="dsc">
+        <span class="dsc-i">🦅</span>
+        <span class="dsc-t" id="dscT">Cliff-top majlis at golden hour. Man in white thobe on traditional cushions, falcon on perch, camel tethered nearby. Two cats lounging. Tuwaiq Escarpment sandstone. Theme park lights in the valley.</span>
+        <button class="dsc-c" id="dscC">📋 Copy</button>
+      </div>
+    </div>
+
+    <!-- 3: TEMPLATES + STAGING + ASK CD -->
+    <div class="zone3">
+      <div class="z3-heading">
+        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/></svg>
+        Presets
+      </div>
+      <div class="tpl-row" id="tpls"></div>
+      <div class="z3-sep"></div>
+      <div class="stg" id="stgC">
+        <span class="stg-l">Scene:</span>
+        <div class="sl sc asl" data-role="scene" data-name=""><span class="sl-l">Scene</span><div class="sl-b">Scene</div></div>
+        <span class="sarr">→</span>
+        <div class="sl su" data-role="subject" data-name=""><span class="sl-l">+</span><div class="sl-b">Subj</div></div>
+        <div class="sl su" data-role="subject" data-name=""><span class="sl-l">+</span><div class="sl-b">Subj</div></div>
+        <div class="sl su" data-role="subject" data-name=""><span class="sl-l">+</span><div class="sl-b">Subj</div></div>
+        <button class="sadd">+</button>
+        <button class="srst" id="rstC">✕ Reset</button>
+      </div>
+      <div class="stg" id="stgL">
+        <span class="stg-l">Grid:</span>
+        <div class="sl gr asl" data-role="hero" data-name="" style="width:64px;height:48px"><span class="sl-l">Hero</span><div class="sl-b">Hero</div></div>
+        <div class="sl gr" data-role="cell" data-idx="1" data-name=""><span class="sl-l">2</span><div class="sl-b">2</div></div>
+        <div class="sl gr" data-role="cell" data-idx="2" data-name=""><span class="sl-l">3</span><div class="sl-b">3</div></div>
+        <div class="sl gr" data-role="cell" data-idx="3" data-name=""><span class="sl-l">4</span><div class="sl-b">4</div></div>
+        <button class="sadd" id="addL">+</button>
+        <button class="srst" id="rstL">✕ Reset</button>
+      </div>
+      <div class="z3-sep"></div>
+      <div class="z3-lbl">
+        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+        Creative Director
+      </div>
+      <div class="z3-wrap">
+        <textarea class="z3-ta" id="askCD" placeholder="Ask the Creative Director for help — evaluate this image, write a better prompt, suggest which vibe slot it fits, or get a second opinion on your edit. Be specific about what you need."></textarea>
+      </div>
+      <div class="z3-toolbar">
+        <button class="z3-btn">
+          <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+          Send to CD for review
+        </button>
+      </div>
+    </div>
+
+    <!-- 4: PROMPT + RATIO + RES -->
+    <div class="zone4">
+      <div class="z4-top">
+        <div class="z4-lbl">
+          <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+          Image Prompt
+        </div>
+        <div class="z4-sp"></div>
+        <div class="cg"><span class="cl">Ratio</span>
+          <button class="pl on" data-g="r">1:1</button><button class="pl" data-g="r">16:9</button><button class="pl" data-g="r">9:16</button><button class="pl" data-g="r">3:4</button><button class="pl" data-g="r">4:3</button>
+        </div>
+        <div class="cg"><span class="cl">Res</span>
+          <button class="pl" data-g="x">1K</button><button class="pl on" data-g="x">2K</button><button class="pl" data-g="x">4K</button>
+        </div>
+      </div>
+      <div class="z4-wrap">
+        <textarea class="z4-ta" id="mainP" placeholder="Asymmetric bento: cliff-majlis.jpg as large hero left third. sultan.jpg, haboob.jpg, shams.jpg in smaller cells on right. Clean gutters, unified lighting."></textarea>
+      </div>
+      <div class="z4-toolbar">
+        <button class="z4-btn" id="genBtn">Generate</button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+(function(){
+// Images with Nano Banana descriptions
+const I=[
+  {n:'cliff-majlis.jpg',s:'cliff-majlis.jpg',d:'Cliff-top majlis at golden hour. Man in white thobe on traditional cushions, falcon on perch, camel tethered nearby. Two cats lounging. Tuwaiq Escarpment sandstone. Theme park lights in the valley. Warm atmospheric haze.'},
+  {n:'sultan.jpg',s:'sultan.jpg',d:'Peregrine falcon perched on carved wooden stand. Warm beige studio backdrop. Sharp plumage detail in brown-gold breast feathers. Profile view, natural scale. Professional studio quality.'},
+  {n:'haboob.jpg',s:'haboob.jpg',d:'White dromedary camel standing in profile. Burgundy and gold traditional saddle blanket with tassels. Warm beige studio backdrop. Dignified posture.'},
+  {n:'shams.jpg',s:'shams.jpg',d:'Ginger tabby cat lying on side, belly exposed, relaxed posture. Warm beige studio backdrop. Soft fur detail.'},
+  {n:'qamar.jpg',s:'qamar.jpg',d:'Orange long-haired cat curled sleeping. Dense warm fur. Warm beige studio backdrop. Peaceful, compact form.'},
+  {n:'shabby-2.jpeg',s:'shabby-2.jpeg',d:'Black cat sitting upright, alert expression, green eyes. Dark sleek fur against warm beige backdrop.'},
+  {n:'hero.jpg',s:'hero.jpg',d:'Aerial view of cliff-top desert lounge at sunset. Tuwaiq Escarpment. Traditional cushions, lanterns, tent structure. Theme park with ferris wheel in valley below. Golden hour light.'},
+  {n:'hero-night.jpeg',s:'hero-night.jpeg',d:'Night scene of cliff-top majlis. Lantern glow, string lights. Man on cushions with falcon. Camel and cats nearby. Canyon and distant theme park lights. Deep blue sky with stars.'},
+  {n:'falcon-diving.jpg',s:'falcon-diving.jpg',d:'Peregrine falcon in dramatic diving stoop. Wings tucked, extreme speed posture. Motion blur on background. Powerful raptor hunting dive.'},
+  {n:'bento.jpeg',s:'bento.jpeg',d:'Bento grid layout: falcon as tall hero left, two cats top-right squares, camel wide bottom-right. Warm beige studio backdrop unified across all cells. Clean gutters, rounded corners.'},
+  {n:'cliff-steve.jpeg',s:'cliff-majlis-steve.jpeg',d:'Man in white thobe seated in cliff-top majlis. Falcon on arm. Camel behind. Cats on cushions. Lanterns glowing. Golden hour, Tuwaiq Escarpment.'},
+  {n:'luqaimat.jpg',s:'luqaimat.jpg',d:'Golden luqaimat (sweet dumplings) drizzled with date syrup on ornate brass plate. Traditional Arabian sweets. Warm lighting.'},
+  {n:'magazine-cover.jpg',s:'magazine-cover.jpg',d:'Magazine cover layout. AL KHRAZE: THE CLIFFSIDE DYNASTY. Hero cliff scene center, falcon and cat inset portraits. Editorial typography, body copy blocks.'},
+  {n:'Haus-D-E.jpg',s:'Haus-D-E.jpg',d:'3D architectural rendering of modern residential complex. Timber cladding, cantilevered balconies, glass balustrades. 5-story mixed-use building.'},
+  {n:'blueprint.jpg',s:'blueprint.jpg',d:'Architectural blueprint. West elevation and ground floor plan. Cyan-on-dark-blue. Timber cladding callouts, section detail, dimensions. Sheet A-202.'},
+  {n:'tenet.jpg',s:'tenet.jpg',d:'Infographic explaining Tenet time mechanics. Dark UI, teal/gold. Inversion concept, temporal pincer movement, entropy diagrams. Key terminology defined.'},
+];
+const V=[
+  {s:'magazine-cover.jpg',l:'v4 magazine',lat:1},
+  {s:'all-vibes-qahwa-service-v1.jpg',l:'v2 compose'},
+  {s:'bento.jpeg',l:'v1 bento'},
+];
+
+// ===== STATE =====
+let tab='edit';
+let activeTemplate=null; // {l, p/f} — the currently selected template
+let editImage=null; // {n, s, d} — the image selected in edit mode
+// Compose: scene + subjects tracked by staging slot state
+// Layout: slots tracked by staging slot state
+
+const T={
+  view:[],
+  generate:[
+    {_:'Website Essentials'},
+    {l:'Hero Banner',p:'Generate a cinematic hero banner image for a website. Wide format, dramatic lighting, atmospheric depth. Subtle space for text overlay on the left third. Warm, inviting, premium feel.'},
+    {l:'Product Shot',p:'Generate a flawless commercial product shot on a minimal matte concrete pedestal. Soft, diffused professional studio light from front-right creating subtle defined shadows. Sharp focus on texture. 8K, photorealistic, clean composition.'},
+    {l:'Service Icons',p:'Generate a set of 8 cohesive minimal line icons on a clean dark background. Consistent 2px stroke weight, rounded corners, modern style. Suitable for a website services section.'},
+    {l:'Background Pattern',p:'Generate a seamless tileable background pattern. Subtle and sophisticated, suitable for a website section background. Low contrast, muted warm tones. Organic or geometric.'},
+    {l:'Team Portrait',p:'Generate a professional team portrait in a modern workspace setting. Natural window light, shallow depth of field. Warm, approachable, not corporate-stiff. 3-5 people.'},
+    {l:'Menu Card',p:'Generate an elegant menu or price card design. Clean typography, organized sections, decorative dividers. Warm tones, premium feel. Suitable for food & beverage or services.'},
+    {_:'Marketing'},
+    {l:'Testimonial Card',p:'Design a testimonial quote card with subtle textured background, large decorative quotation marks, circular avatar placeholder, and attribution text area. Warm and trustworthy.'},
+    {l:'Social Media',p:'Generate an eye-catching social media post graphic. Bold typography, vibrant brand colors, strong visual hierarchy. Optimized for Instagram square format.'},
+    {l:'Location Illustration',p:'Generate a stylized illustrated map showing a business location. Warm color palette, landmark callouts, charming hand-drawn feel. Suitable for a website location section.'},
+    {l:'Infographic',p:'Create an illustrated infographic. Dark UI with teal and gold accents. Include diagrams, flowcharts, key terminology, and visual breakdowns. Professional data visualization style.'},
+    {l:'Seasonal Promo',p:'Generate a seasonal promotional banner. Festive but tasteful, with space for offer text and a call-to-action button. Warm lighting, celebratory mood without being generic.'},
+    {l:'Event Flyer',p:'Generate a promotional event flyer. Bold headline area, date/time/location details zone, atmospheric background. Professional but energetic. Vertical format.'},
+    {_:'Creative'},
+    {l:'Epic Landscape',p:'Generate a sweeping, cinematic view of a jagged, snowy mountain range at sunrise. A tiny solitary figure standing on a distant peak emphasizes the monumental scale. Intricate details in the rock faces. Dramatic low-hanging mist and powerful sun-rays cutting through the haze. Unreal Engine 5 render style, hyper-real, 8K, wide-angle lens perspective.'},
+    {l:'Isometric 3D',p:'Generate a clean, photorealistic isometric view of a tiny, 3D modular smart home setup presented against a solid, light pastel blue background. The style is cute, playful, 3D render, complete with soft, rounded corners and unified, soft studio light. Clear focus on the specific, detailed objects (tiny solar panels, security camera). Excellent depth of field for an app icon.'},
+    {l:'Abstract Concept',p:'Generate a highly detailed surrealist digital sculpture visualizing the abstract concept of \'the flow of time\'. A complex, flowing, liquid mercury structure merges with crumbling ancient clock gears and a delicate blooming flower. No text, just the intricate visual association. Ethereal, hazy light from the center. High-fidelity, conceptual masterpiece.'},
+  ],
+  edit:[
+    {_:'Filters'},
+    {l:'Vibrant',e:d=>'Make this image more vibrant and saturated. Increase the intensity of all colors. Brighter, more lively, punchier.\n\n'+d},
+    {l:'Brighten',e:d=>'Brighten the overall image and increase the exposure. Make shadows clearer and highlights brighter. Fix any underexposure.\n\n'+d},
+    {l:'Dramatic Contrast',e:d=>'Increase the contrast and make the lighting more dramatic. Deepen shadows, brighten highlights. Punchy, defined separation between light and dark.\n\n'+d},
+    {l:'Vintage Film',e:d=>'Apply a vintage film grain and warm sepia-amber tone. Nostalgic, historical feel. Visible grain texture, soft vignetting at edges. Kodachrome warmth.\n\n'+d},
+    {_:'Object Edits'},
+    {l:'Clean Background',e:d=>'Remove the background and replace with a clean, seamless white studio backdrop. Isolate the main subject perfectly. Professional product/portrait photography.\n\n'+d},
+    {l:'Change Color',e:d=>'Change the primary color of the main object in this image. Swap it to a different hue while preserving texture, lighting, reflections, and all surrounding context.\n\n'+d},
+    {l:'Change Scene',e:d=>'Keep the main subject but replace the entire background with a new environment. Integrate the subject naturally — match lighting direction, color temperature, and shadow angles.\n\n'+d},
+    {l:'Remove Object',e:d=>'Remove the unwanted person or object from the scene. Fill the space with a clean, plausible extension of the surrounding background. Seamless — no trace of removal.\n\n'+d},
+    {l:'Motion Blur',e:d=>'Add controlled, dynamic motion blur. The central subject must remain sharp, clear, and perfectly masked, while the surrounding background and non-central objects are streaked horizontally to create an intense sense of speed and motion. Flawless subject isolation.\n\n'+d},
+    {_:'Art Direction'},
+    {l:'Watercolor',e:d=>'Transform into a watercolor painting. Keep the semantic structure and all key details but apply a hand-painted watercolor medium. Visible brushstrokes, paper texture, paint bleeds.\n\n'+d},
+    {l:'Night Scene',e:d=>'Edit this to be a moody, foggy nighttime scene. Relight entirely — moonlight and artificial sources replace daylight. Deep shadows, atmospheric haze, stars visible.\n\n'+d},
+    {l:'Cinematic Noir',e:d=>'Moody, high-contrast Film Noir version. Deep chiaroscuro lighting, extreme shadow definition and minimal, focused highlights that emphasize textures. Long, raking shadows for mystery. Deep hazy atmospheric perspective. Film grain and crushed blacks.\n\n'+d},
+    {l:'Blueprint',e:d=>'Transform into a detailed architectural blueprint. Cyan-on-dark-blue technical drawing. Elevations, floor plan, section details. Annotate materials correctly from what is visible.\n\n'+d},
+    {l:'Pixel Art',e:d=>'Transform into high-quality 16-bit pixel art style with intentional CRT scanline overlay and retro gaming color palette. Preserve core composition and subjects, render all edges as clean intentional pixelation. Flat, technical lighting as if from a classic gaming monitor.\n\n'+d},
+    {_:'Advanced'},
+    {l:'Ultra-HD',e:d=>'Generate an ultra-high-definition, hyper-photorealistic version. Sharpen every texture to extreme clarity. Every detail lifelike and razor-sharp.\n\n'+d},
+    {l:'Golden Hour',e:d=>'Enhance with dramatic golden hour lighting. Deep warm amber light, long raking shadows, rays through atmospheric haze. Rich warmth on all surfaces.\n\n'+d},
+    {l:'Atmospheric Mist',e:d=>'Add deep, multi-layered atmospheric mist. Profound sense of scale. Horizon dissolves into soft gradient. Foreground hyper-detailed, background recedes into haze.\n\n'+d},
+    {l:'Depth & Scale',e:d=>'Exaggerate depth and dramatic scale. Push background further away. Sharp foreground contrasts against vast receding background. Monumental sense of scale.\n\n'+d},
+    {l:'Add Life Details',e:d=>'Enrich with lived-in details. Add contextually appropriate props — food, drinks, personal items. Make the setting feel inhabited, curated, and real.\n\n'+d},
+    {l:'Aerial View',e:d=>'Transform to dramatic aerial perspective. Reveal full spatial layout, surroundings, and scale from a drone vantage point.\n\n'+d},
+    {l:'Color Grade',e:d=>'Apply cinematic color grading. Teal shadows, warm highlights, lifted blacks, controlled contrast. The look of a high-end commercial or film still.\n\n'+d},
+    {l:'Portrait Enhance',e:d=>'Subtle portrait enhancement. Soften skin texture naturally, brighten eyes, even out skin tone, add gentle warmth. Keep it realistic — magazine-quality retouching, not plastic. Preserve the person\'s identity and character.\n\n'+d},
+    {l:'Portrait Pro',e:d=>'Hyper-photorealistic portrait quality. 85mm f/1.8 lens feel. Capture micro skin pores and individual hairs. Intense Rembrandt studio lighting from the left. Slightly blurred neutral background. 8K cinematic quality. Every texture razor-sharp.\n\n'+d},
+    {l:'Product Shot',e:d=>'Generate a flawless, commercial product advertisement shot. Presented angled perfectly on a clean, light grey minimalist concrete pedestal. Unified soft, diffused professional studio light from the front-right, creating subtle, defined shadows. Sharp focus on product texture and logos. 8K, photorealistic, clean composition.\n\n'+d},
+  ],
+  compose:[
+    {_:'Editorial'},
+    {l:'Magazine Cover',f:d=>'Combine '+d.ing+' to create a stylish magazine cover photoshoot. Editorial lighting, cinematic composition. Include masthead title area, inset portraits, body copy block zones.'},
+    {l:'Before / After',f:d=>'Create a dramatic before/after split comparison. Left side: '+d.sc+' in original state. Right side: enhanced version with '+d.sl+' integrated. Clean vertical divider line between halves.'},
+    {l:'Movie Poster',f:d=>'Cinematic movie poster. '+d.sc+' as dramatic background. '+d.su.join(', ')+' arranged heroically in the composition. Bold title area at top, credits at bottom. Dramatic lighting and color grade.'},
+    {_:'Placement'},
+    {l:'Natural Placement',f:d=>'Seamlessly integrate '+d.sl+' into '+d.sc+'. Match lighting direction, shadow angles, and color temperature perfectly. Place subjects on logical surfaces. As if they were always there.'},
+    {l:'Foreground Hero',f:d=>'Place '+(d.su[0]||'[subject]')+' as a massive, hyper-detailed foreground centerpiece. '+(d.su.length>1?d.su.slice(1).join(', ')+' as smaller mid-ground elements. ':'')+d.sc+' as vast background. Dramatic scale contrast.'},
+    {l:'Balanced Scene',f:d=>'Balanced, harmonious integration into '+d.sc+'. '+d.su.map((s,i)=>s+(i%2===0?' positioned right':' positioned left')).join('. ')+'. Natural spacing, matched lighting and atmosphere.'},
+    {l:'Layered Depth',f:d=>'Create a layered depth composition over '+d.sc+'. '+(d.su[0]||'[subject]')+' sharp in foreground. '+(d.su.length>1?d.su.slice(1).join(', ')+' softer in mid-ground.':'')+' Atmospheric perspective. Each layer at different focal depth.'},
+    {l:'Panoramic Merge',f:d=>'Extend '+d.sc+' into a wide panoramic scene. Seamlessly integrate '+d.sl+' into the expanded environment. Consistent lighting and atmosphere across the full width.'},
+    {_:'Artistic'},
+    {l:'Artistic Collage',f:d=>'Artistic mixed-media collage. Torn-edge cutouts of '+d.sl+' arranged over '+d.sc+'. Textured paper overlay, paint strokes, hand-crafted feel. Editorial art direction.'},
+    {l:'Double Exposure',f:d=>'Artistic double exposure blend. Merge '+d.sc+' with '+d.sl+'. Silhouette of one contains the detail of another. Moody, cinematic, with controlled transparency and overlap.'},
+    {l:'Polaroid Pile',f:d=>'Nostalgic photo pile on a warm surface. '+d.sl+' as individual polaroid-style prints with white borders, arranged in a loose overlapping cluster. Slight random rotations. Realistic shadows between layers. '+d.sc+' as the background surface texture.'},
+    {_:'People & Product'},
+    {l:'Profile Shot',f:d=>'Professional portrait. Take the subject from '+(d.su[0]||'[subject]')+' and place them in front of the soft, blurred bokeh background from '+d.sc+'. Match lighting to natural, slightly overcast. Flawless masking, preserved expression and clothing.'},
+    {l:'Product Try-On',f:d=>'Photorealistic product fitting. Integrate '+(d.su[0]||'[product]')+' onto the person in '+d.sc+'. The product fits naturally — correct scale, matched skin tone lighting, realistic shadows and depth of field. As if photographed wearing it.'},
+    {l:'Product Staging',f:d=>'Interior staging mockup. Place '+d.sl+' seamlessly into the environment of '+d.sc+'. Products sit naturally on surfaces with correct shadows, anchored to the floor or table. Matched warm light from the scene\'s windows and fixtures.'},
+    {l:'Flat-Lay',f:d=>'Creative flat-lay knolling composition. Arrange '+d.sl+' in a clean, balanced grid from directly above on a textured surface from '+d.sc+'. Warm, curated aesthetic. Visible surface texture. All items have matched overhead light and unified shadow direction.'},
+  ],
+  layout:[
+    {_:'Grids'},
+    {l:'Bento 2×2',f:d=>'Bento grid layout: '+(d.s[0]||'[hero]')+' as tall portrait left column. '+(d.s[1]||'[slot 2]')+' top-right square. '+(d.s[2]||'[slot 3]')+' top-right square. '+(d.s[3]||'[slot 4]')+' as wide landscape bottom-right. 12px white gutters, rounded corners, warm unified studio grade.'},
+    {l:'Bento Asymmetric',f:d=>'Asymmetric bento: '+(d.s[0]||'[hero]')+' as large hero panel left third. '+(d.s.slice(1).filter(x=>x!=='[empty]').join(', ')||'[remaining slots]')+' in smaller cells on right. Clean gutters, unified lighting across all cells.'},
+    {l:'Triptych',f:d=>'Clean triptych: three panels side by side. '+(d.s[0]||'[panel 1]')+' left. '+(d.s[1]||'[panel 2]')+' center. '+(d.s[2]||'[panel 3]')+' right. Equal widths, 10px white gutters, matched color grade.'},
+    {_:'Editorial'},
+    {l:'Editorial Stack',f:d=>'Editorial stacked layout. '+(d.s[0]||'[hero]')+' as full-width hero image on top. '+d.s.slice(1).filter(x=>x!=='[empty]').join(', ')+' as a row of smaller panels below. 8px white borders, sophisticated lighting.'},
+    {l:'Filmstrip',f:d=>'Horizontal filmstrip: '+d.s.filter(x=>x!=='[empty]').join(', ')+' as equal panels side by side. Each subject isolated on matching studio backdrop. Consistent lighting across all panels. 8px gutters.'},
+    {l:'Editorial Magazine',f:d=>'Magazine spread layout: '+(d.s[0]||'[hero]')+' as large hero taking left 60%. '+(d.s.slice(1).filter(x=>x!=='[empty]').join(', ')||'[detail crops]')+' arranged asymmetrically on right with generous negative space. Minimal, sophisticated.'},
+    {l:'Side by Side',f:d=>'Clean side-by-side comparison. Left panel: '+(d.s[0]||'[image 1]')+'. Right panel: '+(d.s[1]||'[image 2]')+'. Equal 50/50 split. Matched color grade and lighting. Thin divider.'},
+    {_:'Gallery'},
+    {l:'Portfolio Grid',f:d=>'Portfolio grid: '+d.s.filter(x=>x!=='[empty]').join(', ')+' arranged in a clean grid. 10px white gutters between cells. Soft diffused studio lighting. Muted sophisticated palette unified across all cells.'},
+    {l:'Vertical Stack',f:d=>'Vertical stack layout: '+d.s.filter(x=>x!=='[empty]').join(' → ')+'. Each panel full-width, stacked top to bottom. Consistent color grade across panels. 8px gutters between.'},
+    {l:'Feature + Detail',f:d=>'Feature layout: '+(d.s[0]||'[hero]')+' as 70% hero panel on top. '+(d.s.slice(1).filter(x=>x!=='[empty]').join(', ')||'[detail shots]')+' as a row of smaller detail panels below. Clean, editorial hierarchy.'},
+    {l:'Mosaic',f:d=>'Organic mosaic layout. '+d.s.filter(x=>x!=='[empty]').join(', ')+' arranged in varied sizes — some large, some small. No strict grid. Artistic, Pinterest-style arrangement. Minimal gaps.'},
+    {_:'Special'},
+    {l:'Infographic',f:d=>'Illustrated infographic layout. Arrange '+d.s.filter(x=>x!=='[empty]').join(', ')+' as visual elements within a dark UI infographic. Teal and gold accents. Add diagrams, labels, connecting lines, and explanatory text zones between the images.'},
+    {l:'Detail Inset',f:d=>'Technical detail view. '+(d.s[0]||'[main product]')+' as the full clean background view. '+(d.s.slice(1).filter(x=>x!=='[empty]').join(', ')||'[detail shots]')+' as circular inset panels showing extreme macro close-ups. Clean white connecting lines from inset to detail area. Unified technical lighting.'},
+  ]
+};
+
+const $=id=>document.getElementById(id);
+const grid=$('grid'),stgC=$('stgC'),stgL=$('stgL'),tpls=$('tpls'),mainP=$('mainP'),
+  heroImg=$('heroImg'),verS=$('verS'),z2Img=$('z2Img'),z2Bento=$('z2Bento'),dscT=$('dscT');
+const bc=[0,1,2,3].map(i=>$('bc'+i));
+const allBoxes=[];
+const imgByName={};
+
+// ===== BUILD ASSET GRID =====
+I.forEach(img=>{
+  imgByName[img.n]=img;
+  const t=document.createElement('div');t.className='tile';
+  const b=document.createElement('div');b.className='tb';
+  b.style.backgroundImage=`url(${img.s})`;b.dataset.name=img.n;
+  b.appendChild(Object.assign(document.createElement('div'),{className:'tbg'}));
+  const n=document.createElement('div');n.className='tn';n.textContent=img.n;
+  t.appendChild(b);t.appendChild(n);
+  b.addEventListener('click',()=>handleAssetClick(img,b));
+  grid.appendChild(t);
+  allBoxes.push(b);
+});
+
+// ===== BUILD VERSIONS =====
+const verPanel=document.querySelector('.ver');
+if(V.length>0)verPanel.classList.add('has-items');
+V.forEach(v=>{
+  const c=document.createElement('div');c.className='vc'+(v.lat?' on':'');
+  c.style.backgroundImage=`url(${v.s})`;
+  const l=document.createElement('div');l.className='vc-l';l.textContent=v.l;
+  c.appendChild(l);
+  c.addEventListener('click',()=>{verS.querySelectorAll('.vc').forEach(x=>x.classList.remove('on'));c.classList.add('on');heroImg.src=v.s});
+  verS.appendChild(c);
+});
+
+// ===== HIGHLIGHT ACTIVE ASSET =====
+function setViewing(box){
+  allBoxes.forEach(b=>b.classList.remove('viewing'));
+  if(box)box.classList.add('viewing');
+}
+
+// ===== CORE: HANDLE ASSET CLICK =====
+function handleAssetClick(img,box){
+  if(tab==='edit'||tab==='generate'){
+    editImage=img;
+    heroImg.src=img.s;
+    dscT.textContent=img.d;
+    setViewing(box);
+    // If template selected, merge instruction with description
+    if(activeTemplate&&activeTemplate.e){
+      mainP.value=activeTemplate.e(img.d);
+    } else if(activeTemplate&&activeTemplate.p){
+      mainP.value=activeTemplate.p;
+    } else {
+      mainP.value=img.d;
+    }
+  }
+  else if(tab==='compose'){
+    toggleSlot(img,box,stgC);
+    // Show scene in canvas
+    const sceneSlot=[...stgC.querySelectorAll('.sl')].find(x=>x.dataset.role==='scene'&&x.classList.contains('filled'));
+    if(sceneSlot){
+      heroImg.src=sceneSlot.dataset.name;
+      const sceneImg=imgByName[sceneSlot.dataset.name];
+      if(sceneImg)dscT.textContent=sceneImg.d;
+    }
+    rebuildPrompt();
+  }
+  else if(tab==='layout'){
+    toggleSlot(img,box,stgL);
+    updBento();
+    rebuildPrompt();
+  }
+  else{
+    heroImg.src=img.s;
+    dscT.textContent=img.d;
+    setViewing(box);
+  }
+}
+
+// ===== TOGGLE SLOT: click once = fill, click again = remove =====
+function toggleSlot(img,box,ctr){
+  const slots=[...ctr.querySelectorAll('.sl')];
+
+  // Is this image already in a slot? Remove it.
+  const existing=slots.find(s=>s.classList.contains('filled')&&s.dataset.name===img.n);
+  if(existing){
+    existing.classList.remove('filled');
+    existing.style.backgroundImage='';
+    existing.dataset.name='';
+    // Remove badge from asset
+    box.classList.remove('scene','subject','slot-a');
+    box.querySelector('.tbg').textContent='';
+    // If no active slot, make this the active one
+    if(!slots.find(s=>s.classList.contains('asl')))existing.classList.add('asl');
+    return;
+  }
+
+  // Find next empty slot
+  const sl=slots.find(s=>s.classList.contains('asl'));
+  if(!sl)return;
+  sl.classList.add('filled');sl.classList.remove('asl');
+  sl.style.backgroundImage=`url(${img.s})`;sl.dataset.name=img.n;
+  const r=sl.dataset.role;
+  box.classList.add(r==='scene'?'scene':r==='hero'||r==='cell'?'slot-a':'subject');
+  box.querySelector('.tbg').textContent=r==='scene'?'Scene':r==='hero'?'Hero':r==='cell'?(parseInt(sl.dataset.idx||0)+1):'Subj';
+  // Advance to next empty
+  const next=slots.find(s=>!s.classList.contains('filled')&&!s.classList.contains('asl'));
+  if(next)next.classList.add('asl');
+}
+
+// ===== UPDATE BENTO PREVIEW =====
+function updBento(){
+  const slots=[...stgL.querySelectorAll('.sl')];
+  // Update existing bento cells (first 4)
+  slots.forEach((s,i)=>{
+    if(bc[i])bc[i].style.backgroundImage=s.classList.contains('filled')?`url(${s.dataset.name})`:'';
+  });
+  // Clear any bento cells beyond what's filled
+  for(let i=slots.length;i<4;i++){
+    if(bc[i])bc[i].style.backgroundImage='';
+  }
+}
+
+// ===== REBUILD PROMPT (live update) =====
+function rebuildPrompt(){
+  if(!activeTemplate)return;
+
+  if(tab==='compose'){
+    const data=getComposeData();
+    if(activeTemplate.f){
+      let prompt=activeTemplate.f(data);
+      if(data.sceneDesc&&data.sc!=='[scene]'){
+        prompt+='\n\n'+data.sceneDesc;
+      }
+      mainP.value=prompt;
+    }
+  }
+  else if(tab==='layout'){
+    const data=getLayoutData();
+    if(activeTemplate.f)mainP.value=activeTemplate.f(data);
+  }
+}
+
+function getComposeData(){
+  const slots=[...stgC.querySelectorAll('.sl')];
+  const scSlot=slots.find(x=>x.dataset.role==='scene'&&x.classList.contains('filled'));
+  const suSlots=slots.filter(x=>x.dataset.role==='subject'&&x.classList.contains('filled'));
+  const sc=scSlot?scSlot.dataset.name:'[scene]';
+  const sceneImg=scSlot?imgByName[scSlot.dataset.name]:null;
+  const sus=suSlots.map(x=>x.dataset.name);
+  return{
+    sc,
+    su:sus.length?sus:['[subjects]'],
+    sl:sus.length?sus.join(', '):'[subjects]',
+    ing:[sc,...sus].join(', '),
+    sceneDesc:sceneImg?sceneImg.d:''
+  };
+}
+
+function getLayoutData(){
+  return{s:[...stgL.querySelectorAll('.sl')].map(x=>x.classList.contains('filled')?x.dataset.name:'[empty]')};
+}
+
+// ===== CLEAR / RESET =====
+function clearAllBadges(){
+  allBoxes.forEach(b=>{b.classList.remove('scene','subject','slot-a');b.querySelector('.tbg').textContent=''});
+}
+function rstStg(container){
+  container.querySelectorAll('.sl').forEach(s=>{s.classList.remove('filled','asl');s.style.backgroundImage='';s.dataset.name=''});
+  container.querySelector('.sl')?.classList.add('asl');
+  clearAllBadges();
+  bc.forEach(cell=>{if(cell)cell.style.backgroundImage=''});
+  mainP.value='';
+  activeTemplate=null;
+  tpls.querySelectorAll('.tp').forEach(x=>x.classList.remove('on'));
+}
+$('rstC').addEventListener('click',()=>{rstStg(stgC);rebuildPrompt()});
+$('rstL').addEventListener('click',()=>{rstStg(stgL);updBento();rebuildPrompt()});
+
+// + buttons: add new slot
+function addSlot(container,role,cls){
+  const slots=container.querySelectorAll('.sl');
+  const idx=slots.length;
+  const sl=document.createElement('div');
+  sl.className='sl '+cls;
+  sl.dataset.role=role;
+  sl.dataset.idx=String(idx);
+  sl.dataset.name='';
+  sl.innerHTML='<span class="sl-l">'+(role==='subject'?'📌':String(idx+1))+'</span><div class="sl-b">'+(role==='subject'?'Subj':String(idx+1))+'</div>';
+  // If no active slot, make this one active
+  if(!container.querySelector('.sl.asl'))sl.classList.add('asl');
+  // Insert before the + button
+  const addBtn=container.querySelector('.sadd');
+  container.insertBefore(sl,addBtn);
+  // Wire up click to re-activate
+  sl.addEventListener('click',()=>{
+    container.querySelectorAll('.sl').forEach(x=>x.classList.remove('asl'));
+    sl.classList.add('asl');
+  });
+}
+document.querySelector('#stgC .sadd')?.addEventListener('click',()=>addSlot(stgC,'subject','su'));
+$('addL').addEventListener('click',()=>addSlot(stgL,'cell','gr'));
+
+// Click a slot to re-activate it
+document.querySelectorAll('.sl').forEach(s=>s.addEventListener('click',()=>{
+  s.closest('.stg').querySelectorAll('.sl').forEach(x=>x.classList.remove('asl'));
+  s.classList.add('asl');
+}));
+
+// ===== TAB SWITCHING + STATE PRESERVATION =====
+const zone3=document.querySelector('.zone3'),zone4=document.querySelector('.zone4');
+const tabHelp=$('tabHelp');
+const zone1=document.querySelector('.zone1');
+const saved={};// per-tab state
+
+const TAB_HELP={
+  view:'Full-size preview. Click any image in the library or select a previous generation to view it.',
+  generate:'Create images from scratch using presets. No source image needed — describe what you want and Nano Banana generates it.',
+  edit:'Select an image from the library, then choose a preset to transform it. The image description is automatically included in your prompt.',
+  compose:'Pick a scene image, then add subjects to place into it. Choose a preset to define the composition style. The prompt updates live as you select.',
+  layout:'Arrange multiple images into a grid layout. Pick a preset, then click images to fill the grid slots. The bento preview updates in real-time.'
+};
+const PH={
+  view:'',
+  generate:'IMAGE PROMPT · Describe exactly what you want Nano Banana to create from scratch. Include subject, setting, lighting, mood, and style. Or pick a preset above to start from a template, then edit.',
+  edit:'IMAGE PROMPT · Step 1: Click an image in the library. Step 2: Pick a preset — the prompt fills automatically with your image description + the edit instruction. Step 3: Tweak the prompt, then hit Generate.',
+  compose:'IMAGE PROMPT · This builds itself. Pick a scene → add subjects → choose a preset. The prompt assembles live as you click. Edit the text to fine-tune, then Generate.',
+  layout:'IMAGE PROMPT · This builds itself. Choose a grid preset → click images to fill the slots. The prompt assembles live. Add style notes at the end if you want, then Generate.'
+};
+const COLORS={view:'#555',generate:'#F59E0B',edit:'#3B82F6',compose:'#8B5CF6',layout:'#10B981'};
+
+function saveTab(){
+  saved[tab]={
+    prompt:mainP.value,
+    tpl:activeTemplate,
+    tplLabel:tpls.querySelector('.tp.on')?.textContent||null,
+    img:editImage,
+    hero:heroImg.src,
+    desc:dscT.textContent,
+    badges:allBoxes.map(b=>({
+      n:b.dataset.name,
+      c:['scene','subject','slot-a','viewing'].filter(c=>b.classList.contains(c)),
+      t:b.querySelector('.tbg').textContent
+    }))
+  };
+}
+
+function restoreTab(t){
+  const s=saved[t];
+  if(!s)return false;
+  mainP.value=s.prompt;
+  activeTemplate=s.tpl;
+  editImage=s.img;
+  if(s.hero)heroImg.src=s.hero;
+  dscT.textContent=s.desc||'';
+  // badges
+  s.badges.forEach(sv=>{
+    const b=allBoxes.find(x=>x.dataset.name===sv.n);
+    if(!b)return;
+    sv.c.forEach(c=>b.classList.add(c));
+    b.querySelector('.tbg').textContent=sv.t;
+  });
+  // re-highlight active preset pill
+  if(s.tplLabel)tpls.querySelectorAll('.tp').forEach(p=>{if(p.textContent===s.tplLabel)p.classList.add('on')});
+  // restore bento cells if layout
+  if(t==='layout')updBento();
+  return true;
+}
+
+function stripBadges(){
+  allBoxes.forEach(b=>{b.classList.remove('scene','subject','slot-a','viewing');b.querySelector('.tbg').textContent=''});
+}
+
+document.querySelectorAll('.tab').forEach(t=>t.addEventListener('click',()=>{
+  const newTab=t.dataset.tab;
+  if(newTab===tab)return;
+
+  // save outgoing tab
+  saveTab();
+  stripBadges();
+
+  tab=newTab;
+  document.querySelectorAll('.tab').forEach(b=>b.classList.toggle('on',b.dataset.tab===tab));
+  tabHelp.textContent=TAB_HELP[tab]||'';
+
+  const isView=tab==='view';
+  zone3.style.display=isView?'none':'';
+  zone4.style.display=isView?'none':'';
+  tabHelp.style.display=isView?'none':'';
+  z2Img.style.display=tab==='layout'?'none':'flex';
+  z2Bento.className='z2-bento'+(tab==='layout'?' vis':'');
+  stgC.classList.toggle('vis',tab==='compose');
+  stgL.classList.toggle('vis',tab==='layout');
+
+  mainP.placeholder=PH[tab]||'';
+  document.documentElement.style.setProperty('--active',COLORS[tab]||'#3B82F6');
+  $('genBtn').style.background=COLORS[tab]||'#3B82F6';
+
+  buildTpls();
+
+  // restore incoming tab or start fresh
+  if(!restoreTab(tab)){
+    activeTemplate=null;
+    editImage=null;
+    mainP.value='';
+    if(tab==='generate')heroImg.src='';
+  }
+
+  const content=document.querySelector('.content');
+  content.style.gridTemplateRows=isView?'auto 1fr':'auto 1fr 1fr';
+}));
+
+// ===== TEMPLATES =====
+function buildTpls(){
+  tpls.innerHTML='';
+  (T[tab]||[]).forEach(t=>{
+    if(t._){const cat=document.createElement('div');cat.className='tpl-cat';cat.textContent=t._;tpls.appendChild(cat);return;}
+    const pill=document.createElement('button');pill.className='tp';pill.textContent=t.l;
+    pill.addEventListener('click',()=>{
+      tpls.querySelectorAll('.tp').forEach(x=>x.classList.remove('on'));
+      pill.classList.add('on');
+
+      // Store active template
+      activeTemplate=t;
+
+      if(tab==='edit'||tab==='generate'){
+        if(editImage&&t.e){
+          mainP.value=t.e(editImage.d);
+        } else if(editImage&&t.p){
+          mainP.value=t.p;
+        } else {
+          mainP.value=t.e?t.e('[select an image first]'):t.p;
+        }
+      }
+      else if(tab==='compose'){
+        const data=getComposeData();
+        let prompt=t.f?t.f(data):t.p;
+        if(data.sceneDesc&&data.sc!=='[scene]'){
+          prompt+='\n\n'+data.sceneDesc;
+        }
+        mainP.value=prompt;
+      }
+      else if(tab==='layout'){
+        mainP.value=t.f?t.f(getLayoutData()):t.p;
+      }
+      mainP.focus();
+    });
+    tpls.appendChild(pill);
+  });
+}
+buildTpls();
+
+// ===== PILLS =====
+document.querySelectorAll('.pl').forEach(p=>p.addEventListener('click',()=>{
+  document.querySelectorAll(`.pl[data-g="${p.dataset.g}"]`).forEach(x=>x.classList.remove('on'));p.classList.add('on');
+}));
+
+// ===== MISC =====
+$('dscC').addEventListener('click',()=>{
+  const desc=dscT.textContent.trim();
+  if(!desc)return;
+  const start=mainP.selectionStart,end=mainP.selectionEnd;
+  const before=mainP.value.substring(0,start),after=mainP.value.substring(end);
+  const sep=before&&!before.endsWith('\n')&&!before.endsWith(' ')?'\n\n':'';
+  mainP.value=before+sep+desc+after;
+  mainP.selectionStart=mainP.selectionEnd=start+sep.length+desc.length;
+  mainP.focus();
+});
+$('genBtn').addEventListener('click',()=>{const b=$('genBtn');b.textContent='Generating…';b.style.opacity='.7';setTimeout(()=>{b.textContent='Generate';b.style.opacity=''},1500)});
+$('btnExit').addEventListener('click',()=>{/* Exit advanced mode — navigate back to main app */});
+
+// ===== INIT =====
+document.querySelector('.tab[data-tab="edit"]').click();
+})();
+</script>
+</body>
+</html>

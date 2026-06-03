@@ -26,21 +26,24 @@ describe('TOOL_DEFINITIONS', () => {
     expect(names).toContain('submit_upload_eval')
     expect(names).toContain('submit_image_prompt')
     // WebDev report_*
-    expect(names).toContain('report_build_complete')
-    expect(names).toContain('report_build_failed')
-    expect(names).toContain('report_build_progress')
+    expect(names).toContain('build_done')
+    expect(names).toContain('build_fail')
+    expect(names).toContain('build_progress')
     // Sentinel Ti
     expect(names).toContain('submit_critique')
   })
 
   it('preserves every Phase 1 orchestration tool', () => {
     const names = TOOL_DEFINITIONS.map((t) => t.name)
+    // Ralph 2026-05-18: build_all_vibes + build_final collapsed into
+    // array-based build_vibe. Two build tools now: vibe + wireframes.
     expect(names).toContain('build_vibe')
-    expect(names).toContain('build_all_vibes')
-    expect(names).toContain('build_final')
+    expect(names).toContain('build_wireframes')
     expect(names).toContain('hotswap')
     expect(names).toContain('images_needed')
     expect(names).toContain('refresh_assets')
+    expect(names).not.toContain('build_all_vibes')
+    expect(names).not.toContain('build_final')
   })
 
   it('every tool has a description and inputSchema', () => {
@@ -96,8 +99,8 @@ describe('callTool — Family 1 submit/report (pure ack)', () => {
     expect(r.isError).toBe(false)
   })
 
-  it('report_build_complete acks valid manifest', async () => {
-    const r = await callTool('report_build_complete', {
+  it('build_done acks valid manifest', async () => {
+    const r = await callTool('build_done', {
       filename: 'vibe-3-the-deployment.html',
       vibeIndex: 3,
       vibeName: 'The Deployment',
@@ -107,8 +110,8 @@ describe('callTool — Family 1 submit/report (pure ack)', () => {
     expect(r.isError).toBe(false)
   })
 
-  it('report_build_complete rejects non-html filename', async () => {
-    const r = await callTool('report_build_complete', {
+  it('build_done rejects non-html filename', async () => {
+    const r = await callTool('build_done', {
       filename: 'vibe-3.txt',
       vibeIndex: 3,
       vibeName: 'X',
@@ -118,8 +121,8 @@ describe('callTool — Family 1 submit/report (pure ack)', () => {
     expect(r.isError).toBe(true)
   })
 
-  it('report_build_complete rejects non-numeric vibeIndex', async () => {
-    const r = await callTool('report_build_complete', {
+  it('build_done rejects non-numeric vibeIndex', async () => {
+    const r = await callTool('build_done', {
       filename: 'vibe-3.html',
       vibeIndex: 'three',
       vibeName: 'X',
@@ -129,10 +132,10 @@ describe('callTool — Family 1 submit/report (pure ack)', () => {
     expect(r.isError).toBe(true)
   })
 
-  it('report_build_failed requires error message', async () => {
-    const ok = await callTool('report_build_failed', { error: 'Image hero.jpg missing' })
+  it('build_fail requires error message', async () => {
+    const ok = await callTool('build_fail', { error: 'Image hero.jpg missing' })
     expect(ok.isError).toBe(false)
-    const bad = await callTool('report_build_failed', {})
+    const bad = await callTool('build_fail', {})
     expect(bad.isError).toBe(true)
   })
 

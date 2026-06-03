@@ -4,12 +4,13 @@
 // ==========================================
 
 import { NextRequest, NextResponse } from 'next/server'
-import { readdir, readFile, stat } from 'fs/promises'
+import { readdir, readFile, stat, rm } from 'fs/promises'
 import { existsSync } from 'fs'
 import { join } from 'path'
 import { readSessionUsage, formatCost, formatTokens } from '@/lib/usage-tracker'
 import { matchField, matchFieldMultiline } from '@/lib/markdown-fields'
-import { parseVibesFromFiles, parseVibePreview } from '@/lib/creative-brief-parser'
+import { invalidateLinksCache } from '@/lib/crm-store'
+import { humanizeSessionId } from '@/lib/session'
 
 // ==========================================
 // Types
@@ -26,9 +27,6 @@ interface SessionDetail {
   htmlFiles: HtmlFileInfo[]  // All HTML files in session
   workflow: WorkflowState
   vibes: VibeInfo[]
-  agents: AgentInfo[]
-  imagePrompts: ImagePrompt[]  // Parsed from IMAGES.md Reprompt fields
-  briefSummary?: BriefSummary
   tokenBurn: TokenBurn
   hasBridgeMapping: boolean  // true = BRIDGE.json exists, can --resume
   rawFiles: {
@@ -39,19 +37,9 @@ interface SessionDetail {
   }
 }
 
-interface ImagePrompt {
-  name: string        // Image filename
-  prompt: string      // The reprompt text
-  aspectRatio?: string
-  status: 'pending' | 'approved' | 'generated'
-  analysis?: string   // CD Analysis
-  suggestedUses?: string
-  suggestedVibes?: string
-}
-
 interface FileInfo {
   name: string
-  type: 'md' | 'html' | 'image' | 'json' | 'other'
+  type: 'md' | 'html' | 'image' | 'pdf' | 'json' | 'other'
   size: string
   modified: string
 }
@@ -96,21 +84,6 @@ interface VibeInfo {
   colors?: { primary: string; secondary: string; accent: string; text: string }
   fonts?: { headings: string; body: string }
   heroImage?: string
-}
-
-interface AgentInfo {
-  name: string
-  status: 'active' | 'building' | 'generating' | 'waiting' | 'idle'
-  task?: string
-}
-
-interface BriefSummary {
-  businessName?: string
-  tagline?: string
-  vibeCount: number
-  hasMenu: boolean
-  hasCharacters: boolean
-  recommendation?: string
 }
 
 interface TokenBurn {
@@ -163,7 +136,25 @@ export async function GET(
       let type: FileInfo['type'] = 'other'
       if (ext === 'md') type = 'md'
       else if (ext === 'html') type = 'html'
-      else if (['jpg', 'jpeg', 'png', 'webp', 'gif'].includes(ext)) type = 'image'
+      // Ralph 2026-05-31 (weingut-barbazza session) · 'svg' added. The studio's
+      // AssetsPanel rebuilds sourceImages from this response's `images[]` on
+      // every page reload; without 'svg' here, uploaded SVGs (e.g. Logos-
+      // Barbazza-*.svg, Plavac-Mali.svg) were classified as `type:'other'`,
+      // excluded from `images[]`, and disappeared on refresh — even though
+      // the upload handler accepted them and IMAGES.md had entries. The
+      // "I saw them briefly" behavior was state from the upload's optimistic
+      // setSourceImages, wiped on the next admin-route rehydration.
+      // Browsers render SVG via <img> identically to raster, so no panel
+      // changes are needed downstream. The lib/tool-executor.ts allowlist is
+      // deliberately NOT extended — agents reading an .svg get the XML text
+      // (more useful than a base64 mime-image of vector source).
+      else if (['jpg', 'jpeg', 'png', 'webp', 'gif', 'svg'].includes(ext)) type = 'image'
+      // Ralph 2026-05-31 — 'pdf' added alongside 'svg' for the same reason: the
+      // chat-paste path already accepts PDFs (uploadChatImages writes them to
+      // the session folder) and the asset upload UIs now accept PDFs too, but
+      // without a dedicated type they were lumped into 'other' and never
+      // surfaced in the asset panel.
+      else if (ext === 'pdf') type = 'pdf'
       else if (ext === 'json') type = 'json'
 
       files.push({
@@ -175,7 +166,13 @@ export async function GET(
 
       // Collect images - but skip generated images (pattern: {vibe}-{purpose}-v{n}-{timestamp}.jpg)
       // Generated images have format like: falcon-s-flight-sultan-action-v1-1769796516993.jpg
-      if (type === 'image') {
+      //
+      // Ralph 2026-05-31 — PDFs flow through this same array. They're not
+      // raster/vector images, but the asset panel is functionally the "uploads"
+      // surface, and we want the same drop/picker → tile experience parity. The
+      // tile renderer detects .pdf and shows an icon tile (no broken <img>).
+      // Generated-image filter is jpg/jpeg/png-only so PDFs sail past it.
+      if (type === 'image' || type === 'pdf') {
         const isGeneratedImage = /^[a-z-]+-[a-z-]+-v\d+-\d+\.(jpg|jpeg|png)$/i.test(fileName)
         if (!isGeneratedImage) {
           images.push({
@@ -295,133 +292,20 @@ export async function GET(
       } catch {}
     }
 
-    // ==========================================
-    // Parse vibes from CREATIVE-BRIEF.md
-    // ==========================================
+    // Removed 2026-05-09:
+    //   - parseVibesFromFiles + parseVibePreview population (block at ~298–407).
+    //     admin.html only renders htmlPath, name, status, type — all derivable
+    //     from htmlFiles[] (filename + content scrape). Parser-extracted
+    //     audience/mood/colors/fonts/voice/whoFor were never rendered.
+    //   - briefSummary {businessName, tagline, vibeCount, hasMenu, hasCharacters,
+    //     recommendation}: built but consumed by zero callers (admin.html does
+    //     not reference it; nothing else does either).
+    //   - FalCaMel-keyword image-matching fallback: Potemkin that lied about
+    //     hero images on non-FalCaMel sessions.
+    // admin.html's existing `s.vibes || s.htmlFiles` fallback
+    // (public/admin.html:572) handles the empty vibes[] via the htmlFiles-
+    // derived block lower in this file.
     const vibes: VibeInfo[] = []
-    let briefSummary: BriefSummary | undefined
-
-    if (briefContent) {
-      // NEW: Try Vibe Preview section first (keyed by filename)
-      // This gives us exact per-file metadata including audience/mood
-      const vibePreviewMap = parseVibePreview(briefContent)
-
-      // Also get traditional vibes for fallback data (reads VIBE-N.md files, falls back to CREATIVE-BRIEF.md)
-      const parsedVibes = await parseVibesFromFiles(sessionPath)
-
-      // Strategy: Create one vibe per HTML file, using Vibe Preview data if available
-      console.log('🗺️ vibePreviewMap keys:', Array.from(vibePreviewMap.keys()))
-      for (const html of htmlFiles) {
-        const filename = html.name
-        const preview = vibePreviewMap.get(filename)
-        console.log(`🔍 Matching "${filename}":`, preview ? `FOUND → heroImage="${preview.heroImage}"` : 'NOT FOUND')
-
-        // Find hero image for this vibe
-        // PRIORITY: Use the hero image extracted from the HTML file itself (ground truth)
-        let heroImage: string | undefined = html.heroImage
-
-        // Fallback: keyword matching if HTML didn't have a hero image
-        if (!heroImage) {
-          const vibeKeywords: Record<string, string[]> = {
-            'qahwa': ['dallah', 'coffee', 'grandmother', 'qahwa'],
-            'jareen': ['highlands', 'asir', 'mountain', 'highland'],
-            'race': ['haboob', 'sand', 'desert', 'adrenaline'],
-            'majlis': ['falcon', 'royal', 'luxury', 'sultan', 'night'],
-          }
-
-          let matchedKeywords: string[] = []
-          for (const [key, keywords] of Object.entries(vibeKeywords)) {
-            if (filename.toLowerCase().includes(key)) {
-              matchedKeywords = keywords
-              break
-            }
-          }
-
-          for (const img of images) {
-            const imgLower = img.filename.toLowerCase()
-            if (matchedKeywords.some(kw => imgLower.includes(kw))) {
-              heroImage = img.path
-              if (imgLower.includes('hero')) break
-            }
-          }
-        }
-
-        // Last resort: first hero image or any image
-        if (!heroImage && images.length > 0) {
-          const anyHero = images.find(i => i.filename.toLowerCase().includes('hero'))
-          heroImage = anyHero ? anyHero.path : images[0].path
-        }
-
-        if (preview) {
-          // Use Vibe Preview data (preferred - has audience/mood)
-          // Use heroImage from preview if specified, otherwise fall back to keyword matching
-          const resolvedHeroImage = preview.heroImage
-            ? `/${sessionId}/${preview.heroImage}`
-            : heroImage
-          vibes.push({
-            index: html.vibeIndex || vibes.length + 1,
-            name: preview.name,
-            slug: filename.replace('.html', ''),
-            status: 'complete',
-            htmlPath: html.path,
-            audience: preview.audience,
-            mood: preview.mood,
-            colors: preview.colors,
-            fonts: preview.fonts,
-            heroImage: resolvedHeroImage
-          })
-        } else if (html.vibeIndex !== undefined) {
-          // Fallback to traditional parsed vibe data
-          // Match by slug first (more specific), then by index (less specific)
-          const fileSlug = filename.replace('.html', '').replace(/^vibe-\d+-/, '')
-          const matchedParsed = parsedVibes.find(pv => pv.slug === fileSlug)
-            || parsedVibes.find(pv => {
-              // Only match by index if this is the ONLY file with this vibeIndex
-              const filesWithSameIndex = htmlFiles.filter(h => h.vibeIndex === html.vibeIndex)
-              return filesWithSameIndex.length === 1 && pv.index === html.vibeIndex
-            })
-
-          vibes.push({
-            index: html.vibeIndex,
-            name: matchedParsed?.name || html.vibeName || `Vibe ${html.vibeIndex}`,
-            slug: matchedParsed?.slug || filename.replace('.html', ''),
-            status: 'complete',
-            htmlPath: html.path,
-            oneLiner: matchedParsed?.oneLiner,
-            voice: matchedParsed?.voice,
-            whoFor: matchedParsed?.whoFor,
-            audience: matchedParsed?.audience || '',
-            mood: matchedParsed?.mood || '',
-            colors: matchedParsed?.colors,
-            fonts: matchedParsed?.fonts,
-            heroImage
-          })
-        }
-      }
-
-      // Debug log final vibes
-      console.log('✅ Final vibes data:', vibes.map(v => ({
-        name: v.name,
-        heroImage: v.heroImage,
-        audience: v.audience?.substring(0, 30) + '...'
-      })))
-
-      // Build brief summary
-      const businessMatch = briefContent.match(/# Creative Brief: ([^\n]+)/i)
-        || briefContent.match(/Business:\s*(.+)/i)
-      const taglineMatch = briefContent.match(/One-sentence:\s*([^\n]+)/i)
-        || briefContent.match(/Tagline:\s*(.+)/i)
-      const recommendationMatch = briefContent.match(/## MY RECOMMENDATION[\s\S]*?(?=##|$)/i)
-
-      briefSummary = {
-        businessName: businessMatch ? businessMatch[1].trim() : undefined,
-        tagline: taglineMatch ? taglineMatch[1].trim() : undefined,
-        vibeCount: vibes.length,  // Now counts actual built vibes
-        hasMenu: /## Menu/i.test(briefContent),
-        hasCharacters: /## (?:The Residents|Characters|Residents)/i.test(briefContent),
-        recommendation: recommendationMatch ? extractRecommendation(recommendationMatch[0]) : undefined
-      }
-    }
 
     // If no vibes from brief but HTML files exist, create vibes from HTML files
     if (vibes.length === 0 && htmlFiles.length > 0) {
@@ -438,47 +322,17 @@ export async function GET(
     }
 
     // ==========================================
-    // Detect agents from SESSION.md
-    // ==========================================
-    const agents: AgentInfo[] = []
-
-    // Check if CD is mentioned as active
-    if (sessionContent.includes('CD →') || sessionContent.includes('#### CD |')) {
-      const isDiscoveryPhase = sessionContent.includes('PHASE_1_DISCOVERY') || sessionContent.includes('PHASE_2')
-      const isVibePhase = sessionContent.includes('PHASE_2_VIBES') || sessionContent.includes('PHASE_3')
-      agents.push({
-        name: 'Creative Director',
-        status: isDiscoveryPhase ? 'active' : isVibePhase ? 'active' : 'idle',
-        task: isDiscoveryPhase ? 'Discovery questions' : isVibePhase ? 'Crafting vibes' : 'Waiting'
-      })
-    }
-
-    // Check if WebDev is active (HTML files being built)
-    if (buildContent && !buildContent.includes('*To be provided*')) {
-      const isBuilding = vibes.some(v => v.status === 'pending') && vibes.some(v => v.status === 'complete')
-      agents.push({
-        name: 'WebDeveloper',
-        status: htmlFiles.length > 0 ? (isBuilding ? 'building' : 'idle') : 'waiting',
-        task: isBuilding ? `Building vibe HTML` : htmlFiles.length > 0 ? 'Vibes complete' : 'Waiting for brief'
-      })
-    }
-
-    // ==========================================
     // Detect Phase from content
     // ==========================================
     let phase = detectPhase(sessionContent, briefContent, vibes, images, htmlFiles, hasBrief)
 
-    // Extract name
-    let name = sessionId
-    const nameMatch = sessionContent.match(/Business:\s*(.+)/i)
-      || sessionContent.match(/# Session: ([^\n]+)/i)
-      || briefContent.match(/# Creative Brief: ([^\n]+)/i)
-    if (nameMatch) name = nameMatch[1].trim()
-
-    // ==========================================
-    // Parse image prompts from IMAGES.md
-    // ==========================================
-    const imagePrompts = parseImagePrompts(imagesContent)
+    // Top-bar display name — deterministic from sessionId (Ralph 2026-06-01).
+    // Was: regex-scan of SESSION.md / brief for `Business:` etc. That regex
+    // got hijacked by CD's Confirm-Understanding cards which write a long
+    // brand paragraph after `**Business:**`, producing a 500-char top-bar.
+    // The sessionId IS the slug of the businessName by construction, so
+    // reversing it is a pure transformation with no failure modes.
+    const name = humanizeSessionId(sessionId)
 
     // ==========================================
     // Parse image usage from IMAGES.md
@@ -553,9 +407,6 @@ export async function GET(
       htmlFiles,
       workflow,
       vibes,
-      agents,
-      imagePrompts,
-      briefSummary,
       tokenBurn,
       rawFiles,
       hasBridgeMapping
@@ -630,68 +481,6 @@ function detectPhase(
   return 1
 }
 
-function extractRecommendation(section: string): string {
-  const text = section.replace(/## MY RECOMMENDATION/i, '').trim()
-  const firstPara = text.split('\n\n')[0].trim()
-  return firstPara.length > 150 ? firstPara.substring(0, 150) + '...' : firstPara
-}
-
-// ==========================================
-// Parse Image Prompts from IMAGES.md
-// ==========================================
-
-function parseImagePrompts(imagesContent: string): ImagePrompt[] {
-  const prompts: ImagePrompt[] = []
-
-  if (!imagesContent) return prompts
-
-  // Split by image sections (### filename.ext)
-  const imageBlocks = imagesContent.split(/(?=^### )/gm)
-
-  for (const block of imageBlocks) {
-    // Match image header: ### filename.jpg or ### 123-filename.jpg
-    const headerMatch = block.match(/^### ([^\n]+)/m)
-    if (!headerMatch) continue
-
-    const filename = headerMatch[1].trim()
-
-    // Skip if not an image file
-    if (!/\.(jpg|jpeg|png|webp|gif)$/i.test(filename)) continue
-
-    // Extract Reprompt field — accepts both bold-labeled and plain formats.
-    const reprompt = matchFieldMultiline(block, 'Reprompt')
-    if (!reprompt) continue
-
-    // Skip empty or placeholder reprompts
-    if (!reprompt || reprompt.length < 10) continue
-
-    // All field reads via shared helpers — accept both bold and plain.
-    const analysis = matchFieldMultiline(block, 'CD Analysis') || undefined
-    const suggestedUses = matchField(block, 'Suggested uses') || undefined
-    const suggestedVibes = matchField(block, 'Suggested vibes') || undefined
-
-    // Determine aspect ratio from prompt or default
-    let aspectRatio = '16:9'
-    if (/portrait|vertical|tall/i.test(reprompt)) aspectRatio = '9:16'
-    else if (/square/i.test(reprompt)) aspectRatio = '1:1'
-
-    // Determine status (for now, all parsed prompts are "pending")
-    const status: ImagePrompt['status'] = 'pending'
-
-    prompts.push({
-      name: filename,
-      prompt: reprompt,
-      aspectRatio,
-      status,
-      analysis,
-      suggestedUses,
-      suggestedVibes
-    })
-  }
-
-  return prompts
-}
-
 function getRelativeTime(date: Date): string {
   const now = new Date()
   const diffMs = now.getTime() - date.getTime()
@@ -710,4 +499,26 @@ function formatFileSize(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
+}
+
+
+// ─── WP-SESSION-DELETE (Ralph 2026-05-24) ─────────────────────────────
+// Permanently removes the session folder + all content. Invalidates the
+// CRM links cache because the deleted session may have carried a
+// prospect_id that the kanban was rendering. UI confirms.
+// ─────────────────────────────────────────────────────────────────────
+export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  try {
+    const { id } = await params
+    const sessionPath = join(process.cwd(), 'public', id)
+    if (!existsSync(sessionPath)) {
+      return NextResponse.json({ error: `session ${id} not found` }, { status: 404 })
+    }
+    await rm(sessionPath, { recursive: true, force: true })
+    invalidateLinksCache()
+    return NextResponse.json({ removed: id })
+  } catch (err) {
+    console.error('[Sessions] DELETE failed:', err)
+    return NextResponse.json({ error: String(err) }, { status: 500 })
+  }
 }

@@ -15,6 +15,7 @@
 
 import { memo, forwardRef, useImperativeHandle, useRef } from 'react'
 import { AspectRatio, ImageSize } from '@/lib/types'
+import { FilenameInput } from '@/components/image-mode/ResizeTool'
 
 export interface PromptEditorProps {
   activeTab: 'view' | 'generate' | 'edit' | 'compose' | 'layout' | 'brand'
@@ -42,6 +43,15 @@ export interface PromptEditorProps {
   onReviewAI?: () => void
   /** True while a Review-AI round-trip is in flight. */
   isReviewingAI?: boolean
+  /** Ralph 2026-05-20: filename for the output image, pre-filled with a
+   *  suggestion that the user can change before clicking Generate. Renders
+   *  between the "Image Prompt" header row and the prompt textarea on the
+   *  four generation tabs (generate/edit/compose/layout). The current
+   *  filename-building logic frequently produces garbage names; this field
+   *  surfaces the proposal so the user can correct it BEFORE the file lands. */
+  filename: string
+  /** Setter for the filename field. */
+  onFilenameChange: (value: string) => void
 }
 
 // WP-1D: Labels + colors for the prompt source indicator
@@ -102,6 +112,8 @@ function PromptEditorImpl(
     canReset,
     onReviewAI,
     isReviewingAI,
+    filename,
+    onFilenameChange,
   }: PromptEditorProps,
   ref: React.Ref<PromptEditorHandle>
 ) {
@@ -227,6 +239,23 @@ function PromptEditorImpl(
           onChange={(v) => onResolutionChange(v as ImageSize)}
         />
       </div>
+
+      {/* Filename input — Ralph 2026-05-20: surface the proposed output
+          filename BEFORE Generate, so the user can correct the slugifier's
+          frequent garbage names (e.g. `vibe-11-build-zuviel-vibe-14-...`)
+          before the file lands on disk. Pre-filled via useAutoFill in the
+          parent; user edits are preserved across source-image changes.
+          Rendered only on the four generation tabs (not view/brand). */}
+      {(activeTab === 'generate' || activeTab === 'edit' ||
+        activeTab === 'compose' || activeTab === 'layout') && (
+        <div style={{ margin: '0 16px 8px' }}>
+          <FilenameInput
+            value={filename}
+            onChange={onFilenameChange}
+            proposed={filename ? `→ ${filename}.jpg` : undefined}
+          />
+        </div>
+      )}
 
       {/* Textarea */}
       <div

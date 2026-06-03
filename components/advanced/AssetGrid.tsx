@@ -17,6 +17,7 @@
 
 import { memo, useRef, useState, useMemo } from 'react'
 import { SourceImage } from '@/lib/types'
+import { PdfTilePreview } from '@/components/PdfTilePreview'
 
 type CurationFilter = 'STAR' | 'B-ROLL' | 'TRASH' | 'HERO' | 'USED'
 
@@ -80,7 +81,13 @@ function AssetGridImpl({ sourceImages, selectedImageId, onSelect, roleBadgeMap =
     if (!onUpload) return
     e.preventDefault()
     Array.from(e.dataTransfer.files).forEach((f) => {
-      if (f.type.startsWith('image/')) onUpload(f)
+      // Accept by mime OR extension — Finder/OS drops sometimes leave
+      // file.type empty for SVGs, which would silently reject them
+      // despite the picker showing image/*. Ralph 2026-05-30.
+      // 2026-05-31: PDFs join the accept set — icon-tile render downstream.
+      const isImage = f.type.startsWith('image/') || /\.svg$/i.test(f.name)
+      const isPdf = f.type === 'application/pdf' || /\.pdf$/i.test(f.name)
+      if (isImage || isPdf) onUpload(f)
     })
   }
 
@@ -298,7 +305,7 @@ function AssetGridImpl({ sourceImages, selectedImageId, onSelect, roleBadgeMap =
             <input
               ref={fileInputRef}
               type="file"
-              accept="image/*"
+              accept="image/*,image/svg+xml,.svg,application/pdf,.pdf"
               multiple
               onChange={(e) => {
                 Array.from(e.target.files || []).forEach((f) => onUpload(f))
@@ -372,6 +379,14 @@ function AssetGridImpl({ sourceImages, selectedImageId, onSelect, roleBadgeMap =
           const otherTag = img.tag && img.tag !== 'HERO' && img.tag !== 'USED'
             ? img.tag
             : null
+          // SVG-aware tile chrome (Ralph 2026-05-31). cover-crop hides wide
+          // logos, viewBox-only SVGs sometimes collapse to 0×0 in <img
+          // width:100%/height:100%>, and monochrome vector logos disappear
+          // against the card background. contain + checker backdrop fixes all
+          // three. Matches the BRIEF/STUDIO BentoTile logic in AssetsPanel.
+          const isSvg = /\.svg($|\?)/i.test(img.path || img.filename || '')
+          // PDFs render via PdfTilePreview — browsers can't display PDFs in <img>.
+          const isPdf = /\.pdf($|\?)/i.test(img.path || img.filename || '')
 
           return (
             <div
@@ -393,7 +408,18 @@ function AssetGridImpl({ sourceImages, selectedImageId, onSelect, roleBadgeMap =
                     : 'none',
                   overflow: 'hidden',
                   transition: 'all 0.12s',
-                  backgroundColor: 'var(--bg-card-hover)',
+                  // SVG tiles get a checker backdrop so monochrome vector logos
+                  // are still visible. Raster keeps the default card-hover bg.
+                  backgroundColor: isSvg ? '#f5f5f5' : 'var(--bg-card-hover)',
+                  ...(isSvg ? {
+                    backgroundImage:
+                      'linear-gradient(45deg, rgba(0,0,0,0.04) 25%, transparent 25%),' +
+                      'linear-gradient(-45deg, rgba(0,0,0,0.04) 25%, transparent 25%),' +
+                      'linear-gradient(45deg, transparent 75%, rgba(0,0,0,0.04) 75%),' +
+                      'linear-gradient(-45deg, transparent 75%, rgba(0,0,0,0.04) 75%)',
+                    backgroundSize: '12px 12px',
+                    backgroundPosition: '0 0, 0 6px, 6px -6px, -6px 0px',
+                  } : null),
                 }}
                 onMouseEnter={(e) => {
                   if (!showBorder) (e.currentTarget as HTMLElement).style.borderColor = 'var(--border-active)'
@@ -403,20 +429,32 @@ function AssetGridImpl({ sourceImages, selectedImageId, onSelect, roleBadgeMap =
                 }}
               >
                 {/* WP-13C: <img> + object-fit: cover — matches AssetsPanel's
-                    BRIEF/STUDIO tile rendering (was background-image before). */}
-                <img
+                    BRIEF/STUDIO tile rendering (was background-image before).
+                    Ralph 2026-05-12: loading="lazy" + decoding="async" so the
+                    full-res JPGs only fetch + decode when their tile is near
+                    the viewport. AssetGrid commonly renders 30-100 tiles;
+                    without these the browser kicks off N parallel fetches +
+                    main-thread decodes on first paint, then again on every
+                    scroll that brings new tiles into view. */}
+                {isPdf && <PdfTilePreview filename={img.filename} src={img.path} size="large" />}
+                {!isPdf && <img
                   src={img.path}
                   alt={img.filename}
+                  loading="lazy"
+                  decoding="async"
                   style={{
                     position: 'absolute',
                     inset: 0,
                     width: '100%',
                     height: '100%',
-                    objectFit: 'cover',
+                    // SVGs: contain (no crop, preserves aspect). Raster: cover.
+                    objectFit: isSvg ? 'contain' : 'cover',
+                    padding: isSvg ? 8 : 0,
+                    boxSizing: 'border-box',
                     display: 'block',
                   }}
                   draggable={false}
-                />
+                />}
                 {/* Role badge (compose/layout) — takes the top-left slot. */}
                 {badge && (
                   <div

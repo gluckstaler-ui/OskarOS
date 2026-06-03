@@ -17,6 +17,7 @@ import {
   DEFAULT_SESSION_CONFIG,
   type SessionConfig,
 } from '@/lib/session-config'
+import { invalidateLinksCache } from '@/lib/crm-store'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -63,8 +64,20 @@ export async function POST(
     if (body.webDevMode !== undefined) allowed.webDevMode = body.webDevMode
     if (body.cdModel !== undefined) allowed.cdModel = body.cdModel
     if (body.billingMode !== undefined) allowed.billingMode = body.billingMode
+    // WP-CRM-C1 (Ralph 2026-05-22): allow the "Link to CRM lead" picker in
+    // the CRM subtab to write `prospect_id` here. Empty string clears the
+    // link. Either path requires invalidating the LinksMap cache so the
+    // next /api/admin/crm/sessions GET sees the change.
+    let prospectIdTouched = false
+    if (body.prospect_id !== undefined) {
+      allowed.prospect_id = body.prospect_id
+      prospectIdTouched = true
+    }
 
     const updated = writeSessionConfig(sessionId, allowed)
+    if (prospectIdTouched) {
+      try { invalidateLinksCache() } catch { /* best effort */ }
+    }
     return NextResponse.json(updated, { headers: NO_CACHE })
   } catch (err) {
     console.error('[/api/sessions/[id]/config] POST failed:', err)
