@@ -944,6 +944,10 @@ export type StreamEvent =
   | { type: 'hotswap_started'; vibeName: string; slot: string }
   | { type: 'hotswap_complete'; vibeName: string; slot: string }
   | { type: 'hotswap_error'; vibeName: string; slot: string; error: string }
+  // 2026-05-27 (Ralph): card-vs-chat enforcement — server fires this when a
+  // tc_* card was emitted in the same turn as chat text. Client clears the
+  // streamed-so-far text; the card stays. See lib/strip-feedback.ts.
+  | { type: 'strip_chat'; reason?: string; cards?: string[] }
   // Bug M (Ralph 2026-05-04): the actual CD model on the wire. Sent by
   // chat-stream once at start (config-seeded) and again when Claude CLI's
   // system/init event lands (truth on wire — when ANTHROPIC_BASE_URL is

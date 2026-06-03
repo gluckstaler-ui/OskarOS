@@ -24,8 +24,8 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync, rmSync, readdirSync
 import QRCode from 'qrcode'
 import pino from 'pino'
 import {
-  // @ts-expect-error — Baileys ships .d.ts files but the default export
-  // shape is awkward in strict TS. Runtime is fine.
+  // Ralph 2026-06-03 · @ts-expect-error directive removed — Baileys types
+  // now expose makeWASocket cleanly; the suppression no longer applies.
   makeWASocket,
   useMultiFileAuthState,
   DisconnectReason,
@@ -281,7 +281,11 @@ class WaRuntime {
         if (forceQr) {
           this.pushLog('info', 'force-QR requested — clearing existing creds')
           if (this.sock) {
-            try { (this.sock as { end?: () => void })?.end?.() } catch { /* ignore */ }
+            // Ralph 2026-06-03 · cast via unknown — Baileys' real `end`
+            // signature `(error: Error) => void` doesn't overlap with the
+            // lazy `() => void` we use here, so a direct `as` cast is
+            // rejected. We only need to nullable-call it on force-QR.
+            try { (this.sock as unknown as { end?: () => void })?.end?.() } catch { /* ignore */ }
             this.sock = null
           }
           rmSync(AUTH_DIR, { recursive: true, force: true })

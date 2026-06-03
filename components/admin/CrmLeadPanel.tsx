@@ -812,7 +812,10 @@ export function CrmLeadPanel({ prospectId }: CrmLeadPanelProps) {
                     setActivities(prev => prev.filter(x => x.id !== a.id))
                   } catch (err) {
                     const msg = err instanceof Error ? err.message : String(err)
-                    showToast(`Delete failed: ${msg}`, 'error')
+                    // Ralph 2026-06-03 · showToast signature is (msg) — second
+                    // arg 'error' was a stale severity hint. Drop it; the "Delete
+                    // failed:" prefix is the severity cue.
+                    showToast(`Delete failed: ${msg}`)
                   }
                 }}
               />

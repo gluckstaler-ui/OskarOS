@@ -761,6 +761,27 @@ export function pendingCount(
   return (state.queues.get(queueKey(sessionId, agent, instanceId)) || []).length
 }
 
+/**
+ * Total pending across ALL instances of a role in a session (diagnostics).
+ *
+ * Bus-addressing v2 keys queues by `${sessionId}|${agent}|${instanceId}`, so
+ * the per-instance `pendingCount` can't answer "how many messages are queued
+ * for this role overall?". Sum across every key that matches the
+ * `${sessionId}|${agent}|` prefix — counts live AND orphan instance queues,
+ * which is the true per-role total the admin diagnostics view wants.
+ *
+ * Trailing `|` in the prefix prevents role-name collisions (e.g. `cd` vs
+ * `cd-x`).
+ */
+export function pendingCountForRole(sessionId: string, agent: AgentRole): number {
+  const prefix = `${sessionId}|${agent}|`
+  let total = 0
+  for (const [key, queue] of state.queues) {
+    if (key.startsWith(prefix)) total += queue.length
+  }
+  return total
+}
+
 /** Diagnostics-only peek into the message log. */
 export function getMessageRecord(
   sessionId: string,

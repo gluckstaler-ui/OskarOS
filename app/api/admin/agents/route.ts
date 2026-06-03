@@ -17,7 +17,7 @@ import { join } from 'path'
 import { marked } from 'marked'
 import {
   liveInstancesOf,
-  pendingCount,
+  pendingCountForRole,
   pendingOrphansFor,
   type AgentRole,
 } from '@/lib/agent-inbox-bus'
@@ -204,7 +204,7 @@ export async function GET(req: NextRequest) {
 
     for (const sessionId of sessionIds) {
       const live = liveInstancesOf(sessionId, role).length
-      const pending = pendingCount(sessionId, role)
+      const pending = pendingCountForRole(sessionId, role)
       liveInstances += live
       pendingTotal += pending
       if (live > 0 || pending > 0) sessionsActive.push(sessionId)

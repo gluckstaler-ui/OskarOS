@@ -33,7 +33,9 @@ export async function POST(req: NextRequest) {
     }
 
     const result = await getRuntime().redownloadMedia(wa_message_id)
-    if (!result.ok) {
+    // Ralph 2026-06-03 · explicit `=== false` so TS narrows the discriminated
+    // union; `if (!result.ok)` was unreliable here (build-blocker on typecheck).
+    if (result.ok === false) {
       return NextResponse.json({ error: result.error }, { status: result.status })
     }
 
