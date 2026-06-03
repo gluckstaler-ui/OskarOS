@@ -224,16 +224,10 @@
 .scout-act.promote{background:var(--sv-green);border-color:transparent;color:#fff;}
 .scout-act.discard:hover{border-color:var(--brand-red);color:var(--brand-red);}
 
-/* Toast stack (Ralph 2026-06-03) — was a single fixed-positioned `.scout-toast`,
-   but Scout's per-row failure flashes can land 5-20 in a 30s window and a
-   single slot just trampled them. The stack is the fixed-positioned container;
-   each toast inside is static and fades in independently. column-reverse so
-   new flashes appear at the bottom edge — user's eye doesn't jump around. */
-.scout-toast-stack{position:fixed;bottom:84px;left:50%;transform:translateX(-50%);display:flex;flex-direction:column-reverse;gap:8px;z-index:60;align-items:center;pointer-events:none;}
-.scout-toast{background:var(--bg-card);border:1px solid var(--sv-green);border-radius:10px;padding:10px 15px;font-size:13px;box-shadow:0 8px 30px rgba(0,0,0,.5);display:flex;align-items:center;gap:12px;pointer-events:auto;animation:scoutToastIn .2s ease-out;}
-.scout-toast b{color:var(--brand-phosphor);}.scout-toast.kill{border-color:var(--brand-red);}.scout-toast.kill b{color:var(--brand-red);}
-.scout-toast a{color:var(--sv-blue);cursor:pointer;text-decoration:none;border-bottom:1px dotted var(--sv-blue);font-size:12px;}
-@keyframes scoutToastIn{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:translateY(0);}}
+/* Snackbar styling lives in the canonical SnackbarProvider — ScoutPool now
+   calls `useSnackbar().show()` (see components/crm/scout/ScoutPool.tsx).
+   The old `.scout-toast-stack` and `.scout-toast` rules were removed
+   2026-06-03 when the bespoke stack was swapped out. */
 
 .scout-foot{padding:14px 2px 4px;font-family:var(--font-mono,monospace);font-size:10px;color:var(--text-dim);line-height:1.7;}
 .scout-foot b{color:var(--text-muted);}

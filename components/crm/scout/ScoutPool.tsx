@@ -17,6 +17,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { ScoutRow } from './ScoutRow'
 import { DecisionDeck } from './DecisionDeck'
+import { useSnackbar } from '@/components/SnackbarProvider'
 import {
   type RawProspect, type FilterKey,
   scoutOf, stateOf, heatOf,
@@ -37,11 +38,13 @@ export function ScoutPool({ onPromoted, onViewKanban }: Props) {
   const [tasting, setTasting] = useState<Set<string>>(new Set())
   const [filter, setFilter] = useState<FilterKey>('all')
   const [query, setQuery] = useState('')
-  // Snackbar stack — was a single nullable slot, but Scout's per-row failure
-  // flashes (Ralph 2026-06-03) can land 5-20 in a single 30s window and we
-  // want each one VISIBLE, not silently overwritten. Each entry has its own
-  // id + linger timer; the renderer stacks them inside `.scout-toast-stack`.
-  const [toasts, setToasts] = useState<{ id: string; msg: string; kill?: boolean; kanban?: boolean }[]>([])
+  // Ralph 2026-06-03 · switched from a bespoke `.scout-toast-stack` to the
+  // canonical SnackbarProvider used everywhere else (chat, image ops, CD
+  // verdicts). One visual surface for all app-wide flashes; the per-row Scout
+  // failures now ride the same stack and styling as a chat error. The provider
+  // caps auto-dismiss snackbars at 8, drops the oldest first — so a 32-row
+  // batch with 20 failures degrades gracefully instead of flooding the screen.
+  const snackbar = useSnackbar()
   /**
    * Ralph 2026-06-03 · STOP-button pattern. Captured from the POST /scout/taste
    * response so the running button can morph "Run Scout (N)" → "STOP (M in flight)"
@@ -64,18 +67,31 @@ export function ScoutPool({ onPromoted, onViewKanban }: Props) {
 
   useEffect(() => { void load() }, [load])
 
+  // Thin adapter so call sites stay terse — keys the legacy `{kill, kanban,
+  // kind}` shape onto the canonical snackbar.show(type, msg, opts) API:
+  //   kill | kind:'error'        → 'error'
+  //   kind:'success' | kanban    → 'success'
+  //   default                    → 'info'
+  // kanban-flagged flashes get a 'View in Kanban' action button instead of
+  // the old inline `<a>` (the canonical Snackbar component already handles
+  // action buttons — no need for the bespoke `<a>` markup).
   const flash = useCallback(
     (msg: string, opts: { kill?: boolean; kanban?: boolean; kind?: 'success' | 'error' } = {}) => {
-      // `kind:'error'` maps to the existing `.kill` red-border style; `kind:
-      // 'success'` falls through to the default (green border). The success
-      // snackbar lingers a touch longer so the user can read the count.
-      const kill = opts.kill || opts.kind === 'error'
-      const linger = opts.kanban ? 5000 : opts.kind ? 4000 : 2600
-      const id = `t-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`
-      setToasts((t) => [...t, { id, msg, kill, kanban: opts.kanban }])
-      setTimeout(() => setToasts((t) => t.filter((x) => x.id !== id)), linger)
+      const isError = opts.kill || opts.kind === 'error'
+      const type: 'info' | 'success' | 'error' = isError
+        ? 'error'
+        : opts.kanban || opts.kind === 'success'
+          ? 'success'
+          : 'info'
+      const actions = opts.kanban
+        ? [{ label: 'View in Kanban →', onClick: onViewKanban }]
+        : undefined
+      // 5 s auto-dismiss for everything — errors don't stick because a 32-row
+      // batch can fire 20+ of them and a sticky pile would block the deck.
+      // The provider's 8-deep cap evicts the tail anyway.
+      snackbar.show(type, msg, { duration: 5000, actions })
     },
-    [],
+    [snackbar, onViewKanban],
   )
 
   // ── Funnel counts: total · scouted · 🔥 hot · ◇ greenfield. Counts is
@@ -496,16 +512,8 @@ export function ScoutPool({ onPromoted, onViewKanban }: Props) {
         onDiscard={() => void discardSelected()}
       />
 
-      {toasts.length > 0 ? (
-        <div className="scout-toast-stack">
-          {toasts.map((t) => (
-            <div key={t.id} className={`scout-toast${t.kill ? ' kill' : ''}`}>
-              {t.msg}
-              {t.kanban ? <a onClick={onViewKanban}>View in Kanban →</a> : null}
-            </div>
-          ))}
-        </div>
-      ) : null}
+      {/* Snackbars render via the global SnackbarProvider (app/layout.tsx);
+          no local container needed here. */}
     </div>
   )
 }

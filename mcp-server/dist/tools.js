@@ -126,6 +126,14 @@ const CD_ALLOWED = new Set([
     'preview_card',
     'build_done', 'build_fail', 'build_progress',
     'submit_critique',
+    // WP-SCOUT-3 (Ralph 2026-06-03): typed Scout verdict tool. Same drift
+    // class the comment 30 lines up warned about — registered in
+    // mcp-server/tools-cd.ts:156 + dispatched at :1032 but missed in BOTH
+    // allowlists, so the spawn-time `--allowed-tools` gate rejected the call
+    // and the bridge collector saw zero tool_use blocks → "no verdict from
+    // agent" on EVERY worker run. Pair with the entry in lib/mcp-config.ts
+    // CD_ALLOWED_TOOLS (same commit).
+    'submit_scout_verdict',
 ]);
 const WEBDEV_ALLOWED = new Set([
     'build_done', 'build_fail', 'build_progress',
@@ -158,12 +166,19 @@ const JEDI_CODE_ALLOWED = new Set(ALL_TOOL_NAMES);
 // minimal set — submit_image_prompt, snackbar, modal, bus — is subsumed by CD's
 // superset.) Persona stays distinct via agents/CONSULAR-agent.md.
 const CONSULAR_ALLOWED = CD_ALLOWED;
+// WP-SCOUT-3 (Ralph 2026-06-03). Scout = CD's surface (same aliasing pattern
+// as the Consular). The persona is the tasting agent (agents/jedi-scout.md);
+// the discriminator is the typed submit_scout_verdict (defined alongside
+// submit_image_verdict in tools-cd.ts). Both gates (this one and
+// lib/mcp-config.ts) are INDEPENDENT — keep them in lockstep.
+const SCOUT_ALLOWED = CD_ALLOWED;
 const ROLE_ALLOWED = {
     cd: CD_ALLOWED,
     webdev: WEBDEV_ALLOWED,
     sentinel: SENTINEL_ALLOWED,
     'jedi-code': JEDI_CODE_ALLOWED,
     consular: CONSULAR_ALLOWED,
+    scout: SCOUT_ALLOWED,
 };
 export function isToolAllowedForRole(toolName, role) {
     return ROLE_ALLOWED[role]?.has(toolName) ?? false;

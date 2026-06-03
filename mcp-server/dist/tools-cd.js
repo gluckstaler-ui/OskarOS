@@ -134,6 +134,67 @@ export const CD_TOOL_DEFINITIONS = [
         },
     },
     {
+        // WP-SCOUT-3 (Ralph 2026-06-03). The typed verdict the Jedi Scout calls
+        // after tasting a captured website. Mirrors submit_image_verdict's
+        // tool-as-channel shape — the dispatch case is a no-op return; the
+        // verdict is captured by makeToolCollector inside lib/scout-bridge-call.ts
+        // and the heat is derived server-side (gap = palate − execution; locked
+        // 3-tier per §17 [SCOUT-J]). Never trust gap/heat from the model.
+        name: 'submit_scout_verdict',
+        description: 'Submit a structured taste-verdict on a captured website. Call this ONCE ' +
+            'after reading the full-page + inner screenshots and the imported lead ' +
+            "fields. Returns palate (1-5), execution (1-5), the visual choice the eye " +
+            "actually saw, a one-line verdict, and a photos read. The server derives " +
+            'gap = palate − execution and bands heat (≥2 hot · 1 warm · ≤0 cold).',
+        inputSchema: {
+            type: 'object',
+            properties: {
+                palate: {
+                    type: 'integer',
+                    minimum: 1,
+                    maximum: 5,
+                    description: 'The taste the BUSINESS would have if it could see itself clearly — ' +
+                        'the design ceiling implied by the product, the location, the people ' +
+                        '(not how the current site executes it). 1 = generic / no taste / ' +
+                        'no identity to defend; 5 = a clear, durable identity worth ' +
+                        'displacing a site to honour.',
+                },
+                palate_choice: {
+                    type: 'string',
+                    description: 'ONE specific visual decision the business has ALREADY made — the ' +
+                        "named thing the eye saw (e.g. \"a real winemaker's photo, not a " +
+                        'stock glass" · "the stone-built courtyard, lit at dusk" · "the ' +
+                        'family handwriting on the labels"). Concrete, not abstract — a ' +
+                        'reader should be able to find that decision on the site or in the ' +
+                        'photos. NOT the colour palette.',
+                },
+                execution: {
+                    type: 'integer',
+                    minimum: 1,
+                    maximum: 5,
+                    description: 'How well the current website CARRIES that taste. 1 = generic ' +
+                        'WordPress theme, stock imagery, the design contradicts the ' +
+                        'product; 5 = the design IS the business at full strength, nothing ' +
+                        'to displace.',
+                },
+                verdict: {
+                    type: 'string',
+                    description: 'One line, plain prose. The Scout\'s read in a sentence — what the ' +
+                        'gap MEANS for the lead (e.g. "Taste outruns the site." · ' +
+                        '"Nothing to defend — greenfield." · "Tired stock photos against ' +
+                        'real terroir."). No bullet lists, no scores duplicated as text.',
+                },
+                photos: {
+                    type: 'string',
+                    description: 'A short read on the imagery (10-30 words). Art-directed vs stock, ' +
+                        'people visible vs not, the hero image\'s decision. Whether photos ' +
+                        'do or do not match the palate_choice.',
+                },
+            },
+            required: ['palate', 'palate_choice', 'execution', 'verdict', 'photos'],
+        },
+    },
+    {
         name: 'submit_upload_eval',
         description: 'Submit your evaluation of a user upload. Replaces the ' +
             '`## VERDICT` / `## NOTE` / `## SUGGESTED_USES` headers (parsers retired ' +
@@ -904,6 +965,7 @@ export async function callCDTool(name, args, ctx) {
         case 'submit_image_verdict':
         case 'submit_upload_eval':
         case 'submit_image_prompt':
+        case 'submit_scout_verdict': // WP-SCOUT-3 — same tool-as-channel shape
             return { text: 'submitted', isError: false };
         // ── Phase 2.5: escrow polling + cancel ───────────────────────────────
         case 'job_status': {
