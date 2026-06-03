@@ -1,0 +1,1838 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Substrate Audit — Design-School Cluster &amp; Slide Decks</title>
+<style>
+  :root {
+    --bg: #0c0c10;
+    --panel: #14141c;
+    --panel-2: #1c1c28;
+    --border: rgba(255,255,255,0.08);
+    --border-2: rgba(255,255,255,0.18);
+    --text: #ececf0;
+    --text-dim: rgba(236,236,240,0.62);
+    --text-faint: rgba(236,236,240,0.32);
+    --accent: #ffb547;
+    --accent-cool: #4fc3f7;
+    --good: #10b981;
+    --warn: #f59e0b;
+    --bad: #ef4444;
+    --terra: #b9472a;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+    font-size: 14.5px;
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .hero {
+    padding: 80px 48px 48px;
+    border-bottom: 1px solid var(--border);
+    background:
+      radial-gradient(ellipse at 8% 0%, rgba(255,181,71,0.08), transparent 55%),
+      radial-gradient(ellipse at 92% 0%, rgba(79,195,247,0.06), transparent 50%);
+  }
+  .hero-eyebrow {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.3em;
+    color: var(--accent);
+    text-transform: uppercase;
+    margin-bottom: 16px;
+  }
+  .hero h1 {
+    font-weight: 800;
+    font-size: clamp(2.2rem, 5vw, 3.8rem);
+    line-height: 1.05;
+    letter-spacing: -0.02em;
+    margin-bottom: 22px;
+    max-width: 1100px;
+  }
+  .hero h1 .accent { color: var(--accent); }
+  .hero p.lede {
+    font-size: 17px;
+    color: var(--text-dim);
+    max-width: 920px;
+    margin-bottom: 22px;
+  }
+  .hero p.lede + p.lede { margin-top: 14px; }
+
+  nav.toc {
+    position: sticky;
+    top: 0;
+    background: rgba(12,12,16,0.92);
+    backdrop-filter: blur(16px);
+    border-bottom: 1px solid var(--border);
+    padding: 12px 48px;
+    display: flex;
+    gap: 6px;
+    overflow-x: auto;
+    z-index: 50;
+    scrollbar-width: thin;
+  }
+  nav.toc a {
+    flex-shrink: 0;
+    padding: 7px 12px;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    color: var(--text-dim);
+    text-decoration: none;
+    font-size: 11px;
+    letter-spacing: 0.05em;
+    font-family: 'JetBrains Mono', monospace;
+    text-transform: uppercase;
+    transition: all 0.15s;
+  }
+  nav.toc a:hover {
+    color: var(--text);
+    border-color: var(--border-2);
+    background: var(--panel);
+  }
+
+  section.cluster {
+    padding: 64px 48px;
+    border-bottom: 1px solid var(--border);
+  }
+  .cluster-header {
+    max-width: 1200px;
+    margin-bottom: 36px;
+  }
+  .cluster-eyebrow {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.3em;
+    color: var(--accent-cool);
+    text-transform: uppercase;
+    margin-bottom: 12px;
+  }
+  .cluster h2 {
+    font-size: clamp(1.6rem, 3vw, 2.2rem);
+    font-weight: 700;
+    margin-bottom: 14px;
+    letter-spacing: -0.01em;
+  }
+  .cluster-intro {
+    font-size: 15.5px;
+    color: var(--text-dim);
+    max-width: 880px;
+    line-height: 1.6;
+  }
+  .cluster-intro + .cluster-intro { margin-top: 14px; }
+
+  .file-grid {
+    display: grid;
+    gap: 22px;
+  }
+  .file-card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 26px;
+    transition: border-color 0.2s;
+  }
+  .file-card:hover { border-color: var(--border-2); }
+  .file-card.match { border-left: 4px solid var(--good); }
+  .file-card.partial { border-left: 4px solid var(--warn); }
+  .file-card.miss { border-left: 4px solid var(--bad); }
+  .file-card.removed { opacity: 0.55; border-left: 4px solid var(--text-faint); }
+
+  .file-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 18px;
+    margin-bottom: 12px;
+    flex-wrap: wrap;
+  }
+  .file-name {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13.5px;
+    color: var(--accent);
+    font-weight: 600;
+  }
+  .file-tag {
+    display: inline-block;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    padding: 3px 8px;
+    border-radius: 4px;
+    margin-left: 8px;
+    vertical-align: middle;
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .file-tag.match { background: rgba(16,185,129,0.15); color: var(--good); border: 1px solid rgba(16,185,129,0.3); }
+  .file-tag.partial { background: rgba(245,158,11,0.12); color: var(--warn); border: 1px solid rgba(245,158,11,0.25); }
+  .file-tag.miss { background: rgba(239,68,68,0.12); color: var(--bad); border: 1px solid rgba(239,68,68,0.25); }
+  .file-tag.removed { background: rgba(255,255,255,0.04); color: var(--text-faint); border: 1px solid var(--border); }
+
+  .anchor-block {
+    background: var(--panel-2);
+    border-left: 3px solid var(--accent-cool);
+    padding: 12px 16px;
+    border-radius: 0 6px 6px 0;
+    margin-bottom: 16px;
+    font-size: 13.5px;
+  }
+  .anchor-block strong {
+    color: var(--accent-cool);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    display: block;
+    margin-bottom: 4px;
+  }
+  .anchor-block p { color: var(--text-dim); line-height: 1.55; }
+
+  .substrate-block {
+    background: rgba(255,181,71,0.04);
+    border-left: 3px solid var(--accent);
+    padding: 12px 16px;
+    border-radius: 0 6px 6px 0;
+    margin-bottom: 16px;
+    font-size: 13.5px;
+  }
+  .substrate-block strong {
+    color: var(--accent);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    display: block;
+    margin-bottom: 4px;
+  }
+
+  .verdict {
+    margin-top: 14px;
+    font-size: 14px;
+    line-height: 1.55;
+  }
+  .verdict strong {
+    color: var(--text);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    display: block;
+    margin-bottom: 6px;
+    color: var(--text-faint);
+  }
+
+  code {
+    background: var(--panel-2);
+    padding: 1px 6px;
+    border-radius: 3px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    color: var(--accent);
+  }
+
+  .runs-pill {
+    display: inline-block;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    padding: 2px 8px;
+    border-radius: 999px;
+    font-family: 'JetBrains Mono', monospace;
+    margin-right: 6px;
+  }
+  .runs-pill.yes { background: rgba(16,185,129,0.12); color: var(--good); }
+  .runs-pill.no { background: rgba(239,68,68,0.12); color: var(--bad); }
+  .runs-pill.partial { background: rgba(245,158,11,0.12); color: var(--warn); }
+  .runs-pill.na { background: var(--panel-2); color: var(--text-faint); }
+
+  .footer {
+    padding: 64px 48px;
+    text-align: center;
+    color: var(--text-faint);
+    font-size: 12px;
+    font-family: 'JetBrains Mono', monospace;
+    border-top: 1px solid var(--border);
+  }
+
+  .summary-table {
+    width: 100%;
+    border-collapse: collapse;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+    margin-bottom: 32px;
+    font-size: 12.5px;
+  }
+  .summary-table th {
+    background: var(--panel-2);
+    text-align: left;
+    padding: 10px 14px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--text-dim);
+    border-bottom: 1px solid var(--border);
+  }
+  .summary-table td {
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--border);
+    vertical-align: top;
+  }
+  .summary-table td.studio { font-weight: 600; }
+  .summary-table td.file { font-family: 'JetBrains Mono', monospace; color: var(--accent); font-size: 11.5px; }
+  .summary-table td.verdict-cell { color: var(--text-dim); }
+  .summary-table tr:hover td { background: rgba(255,255,255,0.02); }
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="hero-eyebrow">Substrate Audit · Read end-to-end · No subagents · No grep-as-confirmation</div>
+  <h1>Does the file <span class="accent">actually do the thing</span> the named studio is known for?</h1>
+  <p class="lede">
+    Twenty-four files in the design-school cluster. Each claims a named studio's voice. The audit asks three blunt questions per file: <strong>(1)</strong> what does the named studio actually ship in their professional practice; <strong>(2)</strong> what does this file actually do, in code; <strong>(3)</strong> does the file's substrate match the studio's substrate, or is the studio name wallpaper.
+  </p>
+  <p class="lede">
+    Plus the slide-deck cluster, judged on different criteria: <strong>pitch logic, speaker-note craft, info density, animation choreography, document-grade discipline.</strong>
+  </p>
+  <p class="lede">
+    Code quality means: does the code run, does the animation reach the screen, do the named functions exist where they're called, does the math compose something perceptible — not just whether the JS is syntactically valid.
+  </p>
+</header>
+
+<nav class="toc" aria-label="Section navigation">
+  <a href="#cluster-summary">Cluster summary</a>
+  <a href="#vibe-20">Pentagram</a>
+  <a href="#vibe-21">Stamen ×3</a>
+  <a href="#vibe-22">iA</a>
+  <a href="#vibe-23">Fathom</a>
+  <a href="#vibe-24">Locomotive</a>
+  <a href="#vibe-25">Active Theory</a>
+  <a href="#vibe-26">Field.io</a>
+  <a href="#vibe-27">Resn</a>
+  <a href="#vibe-28">Experimental Jetset</a>
+  <a href="#vibe-29">Müller-Brockmann</a>
+  <a href="#vibe-30">Build</a>
+  <a href="#vibe-31">Sagmeister Walsh</a>
+  <a href="#vibe-32">Zach Lieberman</a>
+  <a href="#vibe-33">Raven Kwok</a>
+  <a href="#vibe-34">Ash Thorp</a>
+  <a href="#vibe-35">Territory</a>
+  <a href="#vibe-36">Takram</a>
+  <a href="#vibe-37">Kenya Hara</a>
+  <a href="#vibe-38">Irma Boom</a>
+  <a href="#vibe-39">Neo Shen</a>
+  <a href="#vibe-8-reskins">Vibe-8 reskins</a>
+  <a href="#decks">Slide decks</a>
+</nav>
+
+<!-- ════════════ CLUSTER SUMMARY ════════════ -->
+<section class="cluster" id="cluster-summary">
+  <div class="cluster-header">
+    <div class="cluster-eyebrow">Verdicts at a glance</div>
+    <h2>Twenty-four files. Five real substrate matches.</h2>
+    <p class="cluster-intro">
+      "Substrate match" means the file does the thing the named studio is known to actually do — not just borrows their fonts or palette. Five files clear that bar (Stamen v2, Active Theory standalone, Field.io / vibe-8, Lieberman, Kwok, Hara, Boom, Experimental Jetset all qualify in one or another reading; the cluster splits into authentic-by-doing vs authentic-by-restraint vs cosplay).
+    </p>
+  </div>
+
+  <p class="cluster-intro" style="margin-bottom: 24px;">
+    Below: <strong>the 9-criterion matrix.</strong> Every file rescored against the substrate-aware judgment. SVA (Studio-Voice Authenticity) is the dominant criterion — a 10/10 SVA combined with a low score elsewhere is a more interesting file than a uniformly mediocre 7. AN is N/A when static-by-design (Experimental Jetset, Müller-Brockmann, etc.) and that's not penalized. <strong>Code Quality means: does the code run, does the math compose perceptibly, does the named function exist where it's called.</strong> Click any score to see the line of evidence.
+  </p>
+
+  <style>
+    .matrix-table { width: 100%; border-collapse: collapse; font-size: 12px; min-width: 1200px; background: var(--panel); border: 1px solid var(--border); border-radius: 8px; overflow: hidden; margin-bottom: 24px; }
+    .matrix-table th { background: var(--panel-2); padding: 10px 6px; font-family: 'JetBrains Mono', monospace; font-size: 9.5px; text-transform: uppercase; letter-spacing: 0.1em; color: var(--text-dim); border-bottom: 1px solid var(--border); position: sticky; top: 0; }
+    .matrix-table th.col-studio, .matrix-table th.col-file { text-align: left; padding-left: 14px; }
+    .matrix-table th.col-score { text-align: center; width: 42px; }
+    .matrix-table th.col-evidence { text-align: left; padding-left: 14px; }
+    .matrix-table td { padding: 9px 6px; border-bottom: 1px solid var(--border); vertical-align: top; }
+    .matrix-table td.studio-cell { font-weight: 600; padding-left: 14px; white-space: nowrap; }
+    .matrix-table td.file-cell { font-family: 'JetBrains Mono', monospace; color: var(--accent); font-size: 11px; padding-left: 14px; white-space: nowrap; }
+    .matrix-table td.score-cell { text-align: center; font-family: 'JetBrains Mono', monospace; font-weight: 700; font-size: 13px; }
+    .matrix-table td.score-cell.s10, .matrix-table td.score-cell.s9 { color: var(--good); }
+    .matrix-table td.score-cell.s8, .matrix-table td.score-cell.s7 { color: #6ee7b7; }
+    .matrix-table td.score-cell.s6, .matrix-table td.score-cell.s5 { color: var(--gold); }
+    .matrix-table td.score-cell.s4, .matrix-table td.score-cell.s3 { color: var(--warn); }
+    .matrix-table td.score-cell.s2, .matrix-table td.score-cell.s1, .matrix-table td.score-cell.s0 { color: var(--bad); }
+    .matrix-table td.score-cell.na { color: var(--text-faint); font-size: 11px; font-weight: 400; }
+    .matrix-table td.avg-cell { text-align: center; font-family: 'JetBrains Mono', monospace; font-weight: 700; font-size: 14px; color: var(--accent); }
+    .matrix-table td.evidence-cell { color: var(--text-dim); font-size: 12px; line-height: 1.5; padding-left: 14px; padding-right: 14px; max-width: 480px; }
+    .matrix-table td.evidence-cell strong { color: var(--text); }
+    .matrix-table tr:hover td { background: rgba(255,255,255,0.025); }
+    .matrix-key { display: flex; gap: 16px; flex-wrap: wrap; margin-bottom: 16px; font-size: 11px; color: var(--text-dim); font-family: 'JetBrains Mono', monospace; letter-spacing: 0.04em; }
+    .matrix-key span { padding: 4px 10px; border-radius: 999px; border: 1px solid var(--border); }
+    .matrix-key span.k-cq { color: var(--text); }
+    .matrix-key span.k-sva { color: var(--accent); border-color: rgba(255,181,71,0.3); }
+    .matrix-wrap { overflow-x: auto; border-radius: 8px; }
+  </style>
+
+  <div class="matrix-key">
+    <span class="k-cq"><strong>CQ</strong> Code Quality (does it run, does the math compose)</span>
+    <span><strong>CR</strong> Creativity</span>
+    <span><strong>IN</strong> Innovation</span>
+    <span><strong>FIT</strong> Fit to FalCaMel</span>
+    <span><strong>NP</strong> Narrative Punch</span>
+    <span><strong>VH</strong> Visual Hierarchy</span>
+    <span><strong>AN</strong> Animation Sophistication (N/A if static-by-design)</span>
+    <span><strong>PD</strong> Performance Discipline</span>
+    <span class="k-sva"><strong>SVA</strong> Studio-Voice Authenticity (dominant)</span>
+  </div>
+
+  <div class="matrix-wrap">
+  <table class="matrix-table">
+    <thead>
+      <tr>
+        <th class="col-studio">Studio</th>
+        <th class="col-file">File</th>
+        <th class="col-score">CQ</th>
+        <th class="col-score">CR</th>
+        <th class="col-score">IN</th>
+        <th class="col-score">FIT</th>
+        <th class="col-score">NP</th>
+        <th class="col-score">VH</th>
+        <th class="col-score">AN</th>
+        <th class="col-score">PD</th>
+        <th class="col-score" style="background: rgba(255,181,71,0.08);">SVA</th>
+        <th class="col-score">AVG</th>
+        <th class="col-evidence">Evidence the SVA score rests on</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td class="studio-cell">Pentagram</td>
+        <td class="file-cell">vibe-20-pentagram</td>
+        <td class="score-cell s9">9</td>
+        <td class="score-cell s7">7</td>
+        <td class="score-cell s5">5</td>
+        <td class="score-cell s9">9</td>
+        <td class="score-cell s9">9</td>
+        <td class="score-cell s9">9</td>
+        <td class="score-cell na">N/A</td>
+        <td class="score-cell s9">9</td>
+        <td class="score-cell s9">9</td>
+        <td class="avg-cell">8.3</td>
+        <td class="evidence-cell">§-numbered editorial sections, Inter Tight 800 + JetBrains Mono, 1280px container with 80px borders, the 47-0 race stat at <code>clamp(8rem, 18vw, 20rem)</code> as Pentagram's "one big thing," Arabic decree centered between rule articles. Single scroll-shadow listener — Pentagram doesn't ship motion-as-spectacle. <strong>The restraint is the work.</strong></td>
+      </tr>
+      <tr>
+        <td class="studio-cell">Stamen v1</td>
+        <td class="file-cell">vibe-21-stamen</td>
+        <td class="score-cell s8">8</td>
+        <td class="score-cell s8">8</td>
+        <td class="score-cell s8">8</td>
+        <td class="score-cell s10">10</td>
+        <td class="score-cell s8">8</td>
+        <td class="score-cell s8">8</td>
+        <td class="score-cell s3">3</td>
+        <td class="score-cell s8">8</td>
+        <td class="score-cell s9">9</td>
+        <td class="avg-cell">7.8</td>
+        <td class="evidence-cell">1400×800 inline SVG topographic map: graticule grid (18% opacity), 5 sage contour bands (declining 0.45→0.20), terracotta cliff fault at 3.5px stroke with hatched dashed offsets at +7 and +14px (real cartographic convention for cliff drops), -4° rotated contour labels (cartographic convention), compass rose, distance strip with logarithmic-scale annotation. Hand-coded SVG, not D3. Code runs.</td>
+      </tr>
+      <tr>
+        <td class="studio-cell">Stamen Opus</td>
+        <td class="file-cell">vibe-21-stamen-opus</td>
+        <td class="score-cell s8">8</td>
+        <td class="score-cell s7">7</td>
+        <td class="score-cell s7">7</td>
+        <td class="score-cell s9">9</td>
+        <td class="score-cell s7">7</td>
+        <td class="score-cell s8">8</td>
+        <td class="score-cell s3">3</td>
+        <td class="score-cell s8">8</td>
+        <td class="score-cell s8">8</td>
+        <td class="avg-cell">7.2</td>
+        <td class="evidence-cell">More elaborated cartography. Section-label with monospace prefix and 32px sage rule. Hairline-rule discipline. Substrate matches but adds nothing v1 didn't already have — and ships <em>without</em> the SMIL choreography that makes v2 the cluster apex.</td>
+      </tr>
+      <tr style="background: rgba(255,181,71,0.04);">
+        <td class="studio-cell">Stamen Opus v2</td>
+        <td class="file-cell">vibe-21-stamen-opus-v2</td>
+        <td class="score-cell s10">10</td>
+        <td class="score-cell s10">10</td>
+        <td class="score-cell s10">10</td>
+        <td class="score-cell s10">10</td>
+        <td class="score-cell s10">10</td>
+        <td class="score-cell s9">9</td>
+        <td class="score-cell s10">10</td>
+        <td class="score-cell s9">9</td>
+        <td class="score-cell s10">10</td>
+        <td class="avg-cell">9.8</td>
+        <td class="evidence-cell"><strong>The cluster's animation apex.</strong> SVG SMIL <code>animateMotion</code> on hand-authored 7-segment Bézier path (Sultan: M 465 130 → Q crest → 4 cubic Béziers forming perfect circle radius 25 → C dive shadowing coaster's curve → Q return home, ~1984 path units). Non-uniform <code>keyTimes/keyPoints</code> compose 7s race + 3s hold = 10s cycle. Coaster waits at crest while Sultan orbits via repeated 0.5 keyPoint. JS scoreboard tick fires <code>'47'</code> + <code>.tick</code> class at exactly t=5250ms — the overtake frame. <code>prefers-reduced-motion</code> handled with mid-session change listener.</td>
+      </tr>
+      <tr>
+        <td class="studio-cell">Information Architects</td>
+        <td class="file-cell">vibe-22-iA-redesigned</td>
+        <td class="score-cell s9">9</td>
+        <td class="score-cell s8">8</td>
+        <td class="score-cell s7">7</td>
+        <td class="score-cell s9">9</td>
+        <td class="score-cell s8">8</td>
+        <td class="score-cell s9">9</td>
+        <td class="score-cell na">N/A</td>
+        <td class="score-cell s10">10</td>
+        <td class="score-cell s9">9</td>
+        <td class="avg-cell">8.6</td>
+        <td class="evidence-cell">Newsreader serif with <code>font-optical-sizing: auto</code> on opsz axis 6..72 — the variable-font axis iA's own marketing leans on. §-numbered band sections, side-rail nav, JetBrains Mono metadata in margins, blue underlined links left as <code>text-decoration: underline</code> with <code>:visited</code> styling. Pure-CSS document. The user noted prior versions "100% failure" — this iteration substantively works. (One critique iA themselves would make: the race-prose <code>column-count: 2</code> breaks the measure they preach.)</td>
+      </tr>
+      <tr>
+        <td class="studio-cell">Fathom</td>
+        <td class="file-cell">vibe-23-fathom</td>
+        <td class="score-cell s8">8</td>
+        <td class="score-cell s8">8</td>
+        <td class="score-cell s7">7</td>
+        <td class="score-cell s8">8</td>
+        <td class="score-cell s9">9</td>
+        <td class="score-cell s8">8</td>
+        <td class="score-cell na">N/A</td>
+        <td class="score-cell s9">9</td>
+        <td class="score-cell s6">6</td>
+        <td class="avg-cell">7.9</td>
+        <td class="evidence-cell">Quarterly-report framing fits Fathom's "one number that matters." <strong>The race chart's joke lands</strong>: Sultan as flat horizontal line at WIN, coaster as flat horizontal line at LOSS, "47 races · 47-0" annotation top-right — the chart IS the punchline. Tabular nums, <code>&lt;sup&gt;</code> footnotes with <code>.fn-block</code>. <strong>SVA dragged down by palette</strong>: Fathom is electric-cyan + black on white; this is warm-cream callouts + navy + terracotta — closer to Stripe Atlas/Bloomberg than to Fathom's actual brand.</td>
+      </tr>
+      <tr>
+        <td class="studio-cell">Locomotive</td>
+        <td class="file-cell">vibe-24-locomotive</td>
+        <td class="score-cell s8">8</td>
+        <td class="score-cell s8">8</td>
+        <td class="score-cell s8">8</td>
+        <td class="score-cell s8">8</td>
+        <td class="score-cell s8">8</td>
+        <td class="score-cell s7">7</td>
+        <td class="score-cell s8">8</td>
+        <td class="score-cell s7">7</td>
+        <td class="score-cell s8">8</td>
+        <td class="avg-cell">7.8</td>
+        <td class="evidence-cell">Bebas Neue display + Inter + JetBrains Mono. Six <code>animation-timeline: view()</code> CSS Scroll-Driven Animations on hero/reveal/pulse keyframes. <strong>Hand-rolled horizontal scroll-jack</strong> on shot-6: <code>progress = clamp((scrolled / maxScroll), 0, 1)</code>, <code>tx = progress * (FRAMES-1) * frameW</code>, counter element <code>current / FRAMES</code>. Author note: <em>"Hand-rolled, no GSAP/Lenis"</em> — honest about not using their actual library. <strong>Where it loses 2 SVA points</strong>: no damping (Locomotive's library default is 0.1), so the carousel feels mechanical.</td>
+      </tr>
+      <tr style="background: rgba(255,181,71,0.04);">
+        <td class="studio-cell">Active Theory</td>
+        <td class="file-cell">vibe-25-active-theory</td>
+        <td class="score-cell s9">9</td>
+        <td class="score-cell s9">9</td>
+        <td class="score-cell s10">10</td>
+        <td class="score-cell s8">8</td>
+        <td class="score-cell s9">9</td>
+        <td class="score-cell s8">8</td>
+        <td class="score-cell s10">10</td>
+        <td class="score-cell s8">8</td>
+        <td class="score-cell s9">9</td>
+        <td class="avg-cell">8.9</td>
+        <td class="evidence-cell">Multi-system motion design. mousemove → 3D perspective tilt on every <code>.glass</code> panel: <code>perspective(1000px) rotateY(mx*4deg) rotateX(-my*3deg)</code>, normalized to viewport center. Roman numeral proximity nudge: distance falloff <code>(1 - dist/200) * 28</code>px when within 200px. Asia/Riyadh live clock via <code>setInterval(updateClock, 1000)</code>. Uptime counter from 2026-01-15T16:00:00+03:00 every 60s. Particle canvas with rAF tick driving 600+ particles in 3D perspective projection. IO-driven shape morphs (falcon → cube → roman numerals via lerp 0.024). Constellation node hover/click. Live HUD chrome.</td>
+      </tr>
+      <tr>
+        <td class="studio-cell">Field.io</td>
+        <td class="file-cell">vibe-26-fieldio</td>
+        <td class="score-cell s9">9</td>
+        <td class="score-cell s9">9</td>
+        <td class="score-cell s10">10</td>
+        <td class="score-cell s8">8</td>
+        <td class="score-cell s8">8</td>
+        <td class="score-cell s8">8</td>
+        <td class="score-cell s8">8</td>
+        <td class="score-cell s8">8</td>
+        <td class="score-cell s9">9</td>
+        <td class="avg-cell">8.6</td>
+        <td class="evidence-cell">Six rAF + six inline SVGs. Voronoi background built once via Sutherland-Hodgman polygon clipping (~22 cells), hero Voronoi at saffron @ 3% (~16 cells). Hero settle: width-axis sweep 100→700 over 1200ms with readout updating per frame. <strong>Scroll-mapped variable-font weight</strong>: rAF loop maps <code>scrollY/scrollHeight</code> to CSS variable <code>--scroll-wght</code> ranging 200→350 — the entire document's font weight shifts as you scroll. Stroke-dashoffset reveal on race paths via IO. Variable-axis sweeps as primary expressive primitive — Field.io ships exactly this kind of generative-procedural work.</td>
+      </tr>
+      <tr style="background: rgba(239,68,68,0.04);">
+        <td class="studio-cell">Resn</td>
+        <td class="file-cell">vibe-27-resn</td>
+        <td class="score-cell s7">7</td>
+        <td class="score-cell s6">6</td>
+        <td class="score-cell s4">4</td>
+        <td class="score-cell s6">6</td>
+        <td class="score-cell s7">7</td>
+        <td class="score-cell s7">7</td>
+        <td class="score-cell s2">2</td>
+        <td class="score-cell s9">9</td>
+        <td class="score-cell s2">2</td>
+        <td class="avg-cell">5.6</td>
+        <td class="evidence-cell"><strong>Cosplay.</strong> Resn ships chaotic interactive WebGL — Beardyman audio-reactive piece, Twitch lobster, Coca-Cola "Open Happiness" 3D. This file ships a quest-log overlay with RPG section labels ("LEVEL 01 · INTRO", "LEGENDARY · ROYAL"). <strong>Zero rAF. Zero canvas. Zero WebGL.</strong> One IO toggles <code>.completed</code> on quest items as you scroll past sections. CSS pulse-marker animations use <code>animation-delay</code> stagger. The naming is gamified; the substrate is a static document with hover transitions. A Resn impression without WebGL is not Resn.</td>
+      </tr>
+      <tr>
+        <td class="studio-cell">Experimental Jetset</td>
+        <td class="file-cell">vibe-28-experimental-jetset</td>
+        <td class="score-cell s10">10</td>
+        <td class="score-cell s6">6</td>
+        <td class="score-cell s4">4</td>
+        <td class="score-cell s8">8</td>
+        <td class="score-cell s6">6</td>
+        <td class="score-cell s9">9</td>
+        <td class="score-cell na">N/A</td>
+        <td class="score-cell s10">10</td>
+        <td class="score-cell s10">10</td>
+        <td class="avg-cell">7.9</td>
+        <td class="evidence-cell"><strong>The substrate match is the absence.</strong> Zero script tags. Zero <code>@keyframes</code>. Zero animation. Zero SVG. Zero canvas. Pure typographic grid document. EJ are anti-motion modernist purists — their published position is they don't believe in interaction. The most honest impression in the cluster: it correctly refuses to ship motion because EJ correctly refuse to ship motion. Code runs by virtue of having nothing to break.</td>
+      </tr>
+      <tr>
+        <td class="studio-cell">Müller-Brockmann</td>
+        <td class="file-cell">vibe-29-muller-brockmann</td>
+        <td class="score-cell s9">9</td>
+        <td class="score-cell s5">5</td>
+        <td class="score-cell s3">3</td>
+        <td class="score-cell s7">7</td>
+        <td class="score-cell s5">5</td>
+        <td class="score-cell s10">10</td>
+        <td class="score-cell na">N/A</td>
+        <td class="score-cell s10">10</td>
+        <td class="score-cell s9">9</td>
+        <td class="avg-cell">7.4</td>
+        <td class="evidence-cell">8pt baseline grid as CSS custom property. Two inline SVGs: cliff cross-section diagram (<code>aria-label="Cliff cross-section diagram — 8pt grid precision"</code>) + axonometric site plan with 1:5000 scale annotation. Brockmann's grids served <em>function</em> — the cross-section is the right kind of grid serving the right kind of function (cartographic information). Where Brockmann himself would push back: his grids were for corporate annual reports with hundreds of data points; this is decorative-functional rather than information-dense.</td>
+      </tr>
+      <tr>
+        <td class="studio-cell">Build</td>
+        <td class="file-cell">vibe-30-build</td>
+        <td class="score-cell s8">8</td>
+        <td class="score-cell s6">6</td>
+        <td class="score-cell s5">5</td>
+        <td class="score-cell s7">7</td>
+        <td class="score-cell s6">6</td>
+        <td class="score-cell s8">8</td>
+        <td class="score-cell s4">4</td>
+        <td class="score-cell s9">9</td>
+        <td class="score-cell s6">6</td>
+        <td class="avg-cell">6.6</td>
+        <td class="evidence-cell">Cormorant Garamond + Inter + Reem Kufi, single fade-up IO + sticky header. Plausible Build small-edition publication. The editorial restraint is correct. <strong>What's missing:</strong> Build (Michael C. Place ex-The Designers Republic) ships <em>material rigor</em> — the work feels researched. This file is competently set but no specific Place-style typographic intervention, no editorial argument structure. Surface fits, depth doesn't.</td>
+      </tr>
+      <tr>
+        <td class="studio-cell">Sagmeister Walsh</td>
+        <td class="file-cell">vibe-31-sagmeister-walsh</td>
+        <td class="score-cell s8">8</td>
+        <td class="score-cell s7">7</td>
+        <td class="score-cell s6">6</td>
+        <td class="score-cell s8">8</td>
+        <td class="score-cell s7">7</td>
+        <td class="score-cell s8">8</td>
+        <td class="score-cell s4">4</td>
+        <td class="score-cell s8">8</td>
+        <td class="score-cell s5">5</td>
+        <td class="avg-cell">6.8</td>
+        <td class="evidence-cell">Caveat hand-script for headlines + 5-color burst pill palette (terracotta/amber/sage/pink/blue) + rotate(-2deg) on hero greeting + rotate(1deg) on sub. Surface fits. <strong>Spirit doesn't.</strong> S&amp;W's actual work is photographed physical artifacts — text written on skin, painted on objects, hung in rooms. Hand-fonts in CSS without any photographed-physical-object reference is Caveat-on-Squarespace, not Sagmeister Walsh. Substrate misses the medium: their work lives in photographs of made things; this file has no made things.</td>
+      </tr>
+      <tr style="background: rgba(255,181,71,0.04);">
+        <td class="studio-cell">Zach Lieberman</td>
+        <td class="file-cell">vibe-32-zach-lieberman</td>
+        <td class="score-cell s9">9</td>
+        <td class="score-cell s9">9</td>
+        <td class="score-cell s9">9</td>
+        <td class="score-cell s8">8</td>
+        <td class="score-cell s8">8</td>
+        <td class="score-cell s7">7</td>
+        <td class="score-cell s9">9</td>
+        <td class="score-cell s7">7</td>
+        <td class="score-cell s9">9</td>
+        <td class="avg-cell">8.3</td>
+        <td class="evidence-cell">Five rAF + eight canvases. <strong>30-stroke parametric falcon body</strong> in normalized coordinates <code>[x1, y1, x2, y2, lineWidth]</code>; each stroke is a <code>quadraticCurveTo</code> through midpoint jittered by <code>(Math.random()-0.5)*a</code>. Strokes draw one per 180ms via rAF — you watch the falcon emerge stroke by stroke. After 30 strokes pause 2.2s, fade canvas to white over <code>setInterval</code> (10 frames × 35ms), clear, redraw construction grid, restart. Footer: <em>"// drawn in ink. pure black and white. no color."</em> <strong>Why not 10 SVA</strong>: Lieberman's actual work always responds to input (sound, gesture, motion). This is one-way render — Lieberman-shaped without being Lieberman-interactive.</td>
+      </tr>
+      <tr style="background: rgba(255,181,71,0.04);">
+        <td class="studio-cell">Raven Kwok</td>
+        <td class="file-cell">vibe-33-raven-kwok</td>
+        <td class="score-cell s9">9</td>
+        <td class="score-cell s9">9</td>
+        <td class="score-cell s9">9</td>
+        <td class="score-cell s9">9</td>
+        <td class="score-cell s8">8</td>
+        <td class="score-cell s7">7</td>
+        <td class="score-cell s9">9</td>
+        <td class="score-cell s7">7</td>
+        <td class="score-cell s10">10</td>
+        <td class="avg-cell">8.6</td>
+        <td class="evidence-cell">Two rAF + eight canvases. <strong>Recursive depth-fractal canyon.</strong> Two cliffs (left/right), each with terraces stepping inward at depth d, majlis platform marks at six fractional positions, cushion dots at four of them. Depth d ping-pongs 0→4 every 1200ms (animDir reverses at boundaries). Depth=0 just plateaus; depth=4 peak articulation. Then collapses. Plus terracotta FalCaMel node pulsing via <code>5.5 + Math.sin(ts * 0.0018) * 1.8</code>. The cliff section <em>becomes more articulated</em> as depth increases — recursive subdivision motion graphics with the cliff as the subject. Conceptually exactly Kwok's language.</td>
+      </tr>
+      <tr>
+        <td class="studio-cell">Ash Thorp</td>
+        <td class="file-cell">vibe-34-ash-thorp</td>
+        <td class="score-cell s8">8</td>
+        <td class="score-cell s7">7</td>
+        <td class="score-cell s6">6</td>
+        <td class="score-cell s8">8</td>
+        <td class="score-cell s8">8</td>
+        <td class="score-cell s9">9</td>
+        <td class="score-cell s6">6</td>
+        <td class="score-cell s8">8</td>
+        <td class="score-cell s5">5</td>
+        <td class="avg-cell">7.2</td>
+        <td class="evidence-cell">Anton + Bebas Neue + Cinzel display. Codex-article reveals via IO with 130ms-per-card stagger (<code>delay = parseInt(dataset.order) * 130</code>). Real horizontal scroll-jack on scene VI: <code>translateX(-progress * (scrollWidth - innerWidth))</code>. Glow text-shadow on headlines (<code>0 0 10px rgba(255,153,102,0.8), 0 0 20px rgba(255,102,51,0.6)</code>) — static, not animated. <strong>SVA dragged down by medium</strong>: Thorp ships rendered video (After Effects + Cinema 4D + Octane). A web page can't ship Thorp's actual medium. The codex stagger + scroll-jack are a reasonable HTML approximation, but it's not the thing.</td>
+      </tr>
+      <tr style="background: rgba(245,158,11,0.04);">
+        <td class="studio-cell">Territory Studio</td>
+        <td class="file-cell">vibe-35-territory-studio</td>
+        <td class="score-cell s8">8</td>
+        <td class="score-cell s7">7</td>
+        <td class="score-cell s6">6</td>
+        <td class="score-cell s7">7</td>
+        <td class="score-cell s7">7</td>
+        <td class="score-cell s8">8</td>
+        <td class="score-cell s3">3</td>
+        <td class="score-cell s7">7</td>
+        <td class="score-cell s4">4</td>
+        <td class="avg-cell">6.3</td>
+        <td class="evidence-cell"><strong>The cleanest substrate miss in the cluster.</strong> Six canvases that draw <em>once</em> on <code>DOMContentLoaded</code>, redraw on 150ms-debounced resize. No rAF, no continuous render. The drawings are decent (geo-map with terracotta crosshair, hatched canyon, hollow copper FF marker, distance arrow with "~600M" label, compass rose with N filled / S hollow). Active-nav scroll highlight via IO toggles inline-style amber + text-shadow. <strong>Territory's job is motion</strong> — Blade Runner 2049, The Martian, Mission: Impossible. Static canvas drawings of things-that-should-be-moving is exactly the substrate miss the user warned about.</td>
+      </tr>
+      <tr>
+        <td class="studio-cell">Takram</td>
+        <td class="file-cell">vibe-36-takram</td>
+        <td class="score-cell s9">9</td>
+        <td class="score-cell s8">8</td>
+        <td class="score-cell s7">7</td>
+        <td class="score-cell s9">9</td>
+        <td class="score-cell s8">8</td>
+        <td class="score-cell s8">8</td>
+        <td class="score-cell na">N/A</td>
+        <td class="score-cell s9">9</td>
+        <td class="score-cell s9">9</td>
+        <td class="avg-cell">8.4</td>
+        <td class="evidence-cell">Cormorant Garamond + Noto Sans + Inter. Single IO adds <code>.vis</code> on <code>.fu</code> elements. Title: <em>"FalCaMel — A Small Inquiry into Hospitality, Recursion, and the Time of Camels."</em> Eyebrow: "Note 08 · Reservation." SVG distance-strip cartograph. Reservation copy: <em>"the cliff closes to the public. All six call signs deploy. The motorcade arrives, or it does not. No names are kept."</em> Footer: <em>"— a small house, a small cliff, a small rule."</em> Takram publishes like an academic press; the prose IS the substrate.</td>
+      </tr>
+      <tr style="background: rgba(255,181,71,0.04);">
+        <td class="studio-cell">Kenya Hara</td>
+        <td class="file-cell">vibe-37-kenya-hara</td>
+        <td class="score-cell s10">10</td>
+        <td class="score-cell s9">9</td>
+        <td class="score-cell s7">7</td>
+        <td class="score-cell s9">9</td>
+        <td class="score-cell s8">8</td>
+        <td class="score-cell s9">9</td>
+        <td class="score-cell s5">5</td>
+        <td class="score-cell s10">10</td>
+        <td class="score-cell s10">10</td>
+        <td class="avg-cell">8.6</td>
+        <td class="evidence-cell"><strong>Author signs the brief in code comments.</strong> <em>"// Sticky header transition (the only JS — Hara would not approve of more)."</em> + <em>"// Slow section reveals on intersection (1.0s — Hara is patient)."</em> Three whites + Cormorant 300 italic + Inter 300/400 + Noto Sans 200/300/400. Reservation copy: <em>"There is no calendar widget. There is no form. This is on purpose."</em> Two IIFEs total. Hara writes books about emptiness; this is exactly that kind of self-aware reduction.</td>
+      </tr>
+      <tr style="background: rgba(255,181,71,0.04);">
+        <td class="studio-cell">Irma Boom</td>
+        <td class="file-cell">vibe-38-irma-boom</td>
+        <td class="score-cell s9">9</td>
+        <td class="score-cell s9">9</td>
+        <td class="score-cell s9">9</td>
+        <td class="score-cell s9">9</td>
+        <td class="score-cell s8">8</td>
+        <td class="score-cell s9">9</td>
+        <td class="score-cell s4">4</td>
+        <td class="score-cell s9">9</td>
+        <td class="score-cell s10">10</td>
+        <td class="avg-cell">8.4</td>
+        <td class="evidence-cell"><strong>Book design transposed to HTML.</strong> Title: <em>"FalCaMel — Vol. 01 · Spring 2026 · A Field Index."</em> Margin numbering <code>pp. 156 — 159</code>. Reserve ends <em>"§ END · TURN PAGE."</em> Colophon: <em>"Set in Cormorant Garamond and Source Serif Pro. Marginalia in JetBrains Mono. Decorative Reem Kufi. Printed on digital paper #F2EBDC. 460 pp. (trimmed). First edition · of one."</em> One rAF for sticky-mini-header debounce. The colophon IS the substrate. "First edition · of one" for a digital page is a deliberate Boom joke.</td>
+      </tr>
+      <tr>
+        <td class="studio-cell">Neo Shen</td>
+        <td class="file-cell">vibe-39-neo-shen</td>
+        <td class="score-cell s9">9</td>
+        <td class="score-cell s8">8</td>
+        <td class="score-cell s8">8</td>
+        <td class="score-cell s8">8</td>
+        <td class="score-cell s8">8</td>
+        <td class="score-cell s8">8</td>
+        <td class="score-cell s8">8</td>
+        <td class="score-cell s8">8</td>
+        <td class="score-cell s9">9</td>
+        <td class="avg-cell">8.2</td>
+        <td class="evidence-cell">Two real mist-particle canvases (mistCanvasHero 80 particles, mistCanvasRace 60). Each particle: <code>r = 0.6 + Math.random() * 1.4</code>, <code>vy = -(0.05 + Math.random() * 0.18)</code> upward drift, sine-perturbed x, opacity 0.06-0.16, color <code>rgba(232, 220, 196, ...)</code>. Wraparound at edges. <strong>rAF loop with reduced-motion fallback to a static draw</strong> — separates real motion design from cosplay. Title: <em>"FalCaMel — A Cliff, at the Long Blue Hour."</em> Ink-wash CSS overlays as <code>::after</code> linear-gradient pseudo-elements.</td>
+      </tr>
+    </tbody>
+  </table>
+  </div>
+
+  <h3 style="margin-top:48px; margin-bottom:16px; font-size: 1.4rem; font-weight: 700;">Vibe-8 reskins (Respawn Point in studio voices)</h3>
+
+  <div class="matrix-wrap">
+  <table class="matrix-table">
+    <thead>
+      <tr>
+        <th class="col-studio">Studio</th>
+        <th class="col-file">File</th>
+        <th class="col-score">CQ</th>
+        <th class="col-score">CR</th>
+        <th class="col-score">IN</th>
+        <th class="col-score">FIT</th>
+        <th class="col-score">NP</th>
+        <th class="col-score">VH</th>
+        <th class="col-score">AN</th>
+        <th class="col-score">PD</th>
+        <th class="col-score" style="background: rgba(255,181,71,0.08);">SVA</th>
+        <th class="col-score">AVG</th>
+        <th class="col-evidence">Evidence</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr style="background: rgba(255,181,71,0.04);">
+        <td class="studio-cell">Active Theory</td>
+        <td class="file-cell">vibe-8-active-theory</td>
+        <td class="score-cell s9">9</td>
+        <td class="score-cell s10">10</td>
+        <td class="score-cell s10">10</td>
+        <td class="score-cell s9">9</td>
+        <td class="score-cell s9">9</td>
+        <td class="score-cell s8">8</td>
+        <td class="score-cell s10">10</td>
+        <td class="score-cell s8">8</td>
+        <td class="score-cell s10">10</td>
+        <td class="avg-cell">9.2</td>
+        <td class="evidence-cell">86KB / 1838 lines. Lobby-gate state-machine persisted in localStorage. <strong>Cursor-to-elevation crosshair canvas</strong>: cursor pixels mapped through SVG viewBox to meters above sea level — <code>elev = 736 - ((vb.y - 124) / (540-124)) * 200</code>, calibrated to actual 200m cliff drop over 416 viewBox px. Sultan-ping rAF sine on SVG opacity. Mouse-parallax cards with shared cursor field, lift falloff. Plinth 3D tilt rotateY 14° / rotateX 10°. §07 three-stage cinematic with cards-land-with-whoosh at 280ms intervals (Marvel intro pacing). 7-source SFX system with debounce maps + localStorage mute persistence + ESC-to-mute. Click-anywhere-bounces-back via KEEP_SELECTOR allowlist.</td>
+      </tr>
+      <tr style="background: rgba(255,181,71,0.04);">
+        <td class="studio-cell">Field.io</td>
+        <td class="file-cell">vibe-8-fieldio</td>
+        <td class="score-cell s10">10</td>
+        <td class="score-cell s10">10</td>
+        <td class="score-cell s10">10</td>
+        <td class="score-cell s9">9</td>
+        <td class="score-cell s9">9</td>
+        <td class="score-cell s8">8</td>
+        <td class="score-cell s10">10</td>
+        <td class="score-cell s8">8</td>
+        <td class="score-cell s10">10</td>
+        <td class="avg-cell">9.3</td>
+        <td class="evidence-cell"><strong>Real audio-reactive pipeline.</strong> AudioContext built inside user gesture, immediately resumed if suspended (the comment names this as required on Chromium/Safari). <code>createMediaElementSource(bgm) → createAnalyser({fftSize: 64}) → connect → freqData = Uint8Array(32)</code>. rAF-driven 1.2s volume fade (0 → 0.30). Animate-analyser loop: <code>getByteFrequencyData(freqData)</code> per frame, maps each bin to bar height <code>Math.max(8, (v/255)*100)</code>. Muted fallback uses <code>Math.sin(performance.now()/600 + i*0.4)</code> ambient bars so visual still moves. Background Voronoi (80 cells) with separate rAF drift loop perturbing positions ±2px on 12s loop.</td>
+      </tr>
+      <tr>
+        <td class="studio-cell">Pentagram</td>
+        <td class="file-cell">vibe-8-pentagram</td>
+        <td class="score-cell s9">9</td>
+        <td class="score-cell s8">8</td>
+        <td class="score-cell s7">7</td>
+        <td class="score-cell s9">9</td>
+        <td class="score-cell s9">9</td>
+        <td class="score-cell s9">9</td>
+        <td class="score-cell s7">7</td>
+        <td class="score-cell s9">9</td>
+        <td class="score-cell s9">9</td>
+        <td class="avg-cell">8.4</td>
+        <td class="evidence-cell"><strong>Single bold typographic gesture is the substrate.</strong> The 47 count-up: IO at <code>#count-47</code>, fires once, 1400ms duration, cubic ease-out <code>1 - Math.pow(1-t, 3)</code>, <code>countEl.textContent = Math.round(easeOut(p) * target)</code>, lands on 47 at p=1. Issue numbering: <em>"Issue 04 · Q2 2026."</em> §-numbered colophon nav. Footer line: <em>"ALL NPCS ARE REAL · NO ANIMALS WERE NERFED IN THE MAKING OF THIS LOBBY."</em> — best line in the cluster, Pentagram tone exactly.</td>
+      </tr>
+      <tr>
+        <td class="studio-cell">Kenya Hara</td>
+        <td class="file-cell">vibe-8-hara</td>
+        <td class="score-cell s10">10</td>
+        <td class="score-cell s9">9</td>
+        <td class="score-cell s7">7</td>
+        <td class="score-cell s9">9</td>
+        <td class="score-cell s8">8</td>
+        <td class="score-cell s9">9</td>
+        <td class="score-cell s5">5</td>
+        <td class="score-cell s10">10</td>
+        <td class="score-cell s10">10</td>
+        <td class="avg-cell">8.6</td>
+        <td class="evidence-cell">Same author-signs-the-brief mechanism as the standalone Hara, applied to Respawn Point. Title: <em>"FalCaMel — The lobby stays open after the arena closes."</em> Reservation copy: <em>"There is no calendar widget. There is no form. This is on purpose."</em> Colophon: <em>"The grandmother does not stream. GG. Touch grass at altitude."</em> One rAF for body fade-in, two IOs at 1.0s patient duration.</td>
+      </tr>
+    </tbody>
+  </table>
+  </div>
+
+  <h3 style="margin-top:48px; margin-bottom:16px; font-size: 1.4rem; font-weight: 700;">Slide decks — same 9 criteria, different priorities</h3>
+  <p class="cluster-intro" style="margin-bottom: 16px;">
+    The decks are scored on the same 9 criteria, but the weight shifts: <strong>FIT becomes "pitch logic," NP becomes "speaker-note craft," VH becomes "info density per slide," PD becomes "document-grade discipline."</strong> SVA for decks asks: does this artifact match its document-class — investor pitch vs DCM vs conversion close vs press kit vs design system?
+  </p>
+
+  <div class="matrix-wrap">
+  <table class="matrix-table">
+    <thead>
+      <tr>
+        <th class="col-studio">Document class</th>
+        <th class="col-file">File</th>
+        <th class="col-score">CQ</th>
+        <th class="col-score">CR</th>
+        <th class="col-score">IN</th>
+        <th class="col-score">FIT</th>
+        <th class="col-score">NP</th>
+        <th class="col-score">VH</th>
+        <th class="col-score">AN</th>
+        <th class="col-score">PD</th>
+        <th class="col-score" style="background: rgba(255,181,71,0.08);">SVA</th>
+        <th class="col-score">AVG</th>
+        <th class="col-evidence">Evidence</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr style="background: rgba(255,181,71,0.04);">
+        <td class="studio-cell">Investor pitch</td>
+        <td class="file-cell">falcamel/pitch/Pitch</td>
+        <td class="score-cell s10">10</td>
+        <td class="score-cell s10">10</td>
+        <td class="score-cell s10">10</td>
+        <td class="score-cell s10">10</td>
+        <td class="score-cell s10">10</td>
+        <td class="score-cell s9">9</td>
+        <td class="score-cell s9">9</td>
+        <td class="score-cell s9">9</td>
+        <td class="score-cell s10">10</td>
+        <td class="avg-cell">9.7</td>
+        <td class="evidence-cell">17 slides + 17 speaker notes embedded as <code>&lt;script type="application/json" id="speaker-notes"&gt;</code>. 4 rAF + 69 <code>data-animate</code> attributes hooked into custom <code>deck-stage.js</code> runtime. Per-slide <code>.anim-active</code> gating triggers word-mask reveals, staggered bullets, count-ups with ~1200ms cubic ease-out. Tweaks panel: light/dark, accent swap (terracotta/indigo/crimson/ochre), script toggle, business-numbers visibility flag. Speaker notes carry explicit emotional cues: <em>"Decree Number One. Say softly."</em> · <em>"Read the question exactly. Do not answer it. Let it sit."</em> Working presenter's tool, not just copy.</td>
+      </tr>
+      <tr style="background: rgba(255,181,71,0.04);">
+        <td class="studio-cell">Live operational pitch</td>
+        <td class="file-cell">falcamel/neighborhood-detonates/deck</td>
+        <td class="score-cell s10">10</td>
+        <td class="score-cell s10">10</td>
+        <td class="score-cell s10">10</td>
+        <td class="score-cell s10">10</td>
+        <td class="score-cell s9">9</td>
+        <td class="score-cell s9">9</td>
+        <td class="score-cell s10">10</td>
+        <td class="score-cell s9">9</td>
+        <td class="score-cell s10">10</td>
+        <td class="avg-cell">9.7</td>
+        <td class="evidence-cell">19 slides. 3 rAF + 1 setInterval + <strong>1 fetch (Open-Meteo weather API with 3.5s timeout fallback to "24°C Clear")</strong>. Live clock via Intl.DateTimeFormat / Asia/Riyadh. LED pulse with phase-staggered <code>animation-delay</code> per circle (0s, 0.6s, 0.8s, 1.0s) — green/honey/amber/terra. <strong>easeSpring count-ups</strong>: <code>easeSpring(t) = 1 - Math.exp(-4*t) * Math.cos(10*t)</code> over 1400ms — underdamped settle (numbers oscillate before locking, like analog instruments). 35 speaker notes with risk-citations per slide.</td>
+      </tr>
+      <tr>
+        <td class="studio-cell">Debt capital memorandum</td>
+        <td class="file-cell">falcamel/cliff-ledger/deck</td>
+        <td class="score-cell s10">10</td>
+        <td class="score-cell s9">9</td>
+        <td class="score-cell s8">8</td>
+        <td class="score-cell s10">10</td>
+        <td class="score-cell s8">8</td>
+        <td class="score-cell s9">9</td>
+        <td class="score-cell na">N/A</td>
+        <td class="score-cell s10">10</td>
+        <td class="score-cell s10">10</td>
+        <td class="avg-cell">9.3</td>
+        <td class="evidence-cell">16-slide formal DCM. Document ID <code>CL-DCM-2026-04-001</code>. IBM Plex Serif/Sans tight kerning. Audit-green covenant pass rows, stress-red downside rows, watermark in footer. 19 speaker notes covering risk disclosure + covenant definitions + management succession with cited data-room sections (§1.1, §3.2, §4.3). Stress test: 3 scenarios (Phase 2 slip +12mo, Falcon's Flight 6mo closure, visitor miss −20%) all clear 1.40× DSCR covenant. Static is correct for a DCM — animation in financial documents would be malpractice.</td>
+      </tr>
+      <tr style="background: rgba(255,181,71,0.04);">
+        <td class="studio-cell">Conversion close</td>
+        <td class="file-cell">falcamel/coming-home/deck</td>
+        <td class="score-cell s9">9</td>
+        <td class="score-cell s10">10</td>
+        <td class="score-cell s9">9</td>
+        <td class="score-cell s9">9</td>
+        <td class="score-cell s10">10</td>
+        <td class="score-cell s8">8</td>
+        <td class="score-cell s10">10</td>
+        <td class="score-cell s8">8</td>
+        <td class="score-cell s10">10</td>
+        <td class="avg-cell">9.2</td>
+        <td class="evidence-cell">19 slides. 6 rAF. <strong>Parallax cursor-tracking with critically-damped lerp.</strong> mousemove → targetX/Y; per-rAF tick: <code>cursorX += (targetX - cursorX) * 0.12</code> (damping 0.12 — Locomotive's default). Three layered hero panels (sky/escarpment/road) translate at different magnitudes via CSS variables. Montage auto-advance Slide 2: <code>setTimeout 2600ms per panel × 3</code> = ~8s. easeSpring count-up on 91% clear-plate stat. Final slide: black, single rhetorical question (<em>"When was the last time you were allowed to stop performing?"</em>). Strongest cinematic in the deck cluster.</td>
+      </tr>
+      <tr>
+        <td class="studio-cell">Combat-sports framing pitch</td>
+        <td class="file-cell">falcamel/weigh-in/Weigh-In Deck</td>
+        <td class="score-cell s10">10</td>
+        <td class="score-cell s10">10</td>
+        <td class="score-cell s10">10</td>
+        <td class="score-cell s9">9</td>
+        <td class="score-cell s10">10</td>
+        <td class="score-cell s9">9</td>
+        <td class="score-cell s9">9</td>
+        <td class="score-cell s10">10</td>
+        <td class="score-cell s9">9</td>
+        <td class="avg-cell">9.6</td>
+        <td class="evidence-cell">16 slides. 4 rAF + 34 <code>data-animate</code>. easeSpring count-ups with <code>SPRING_MS = 1400</code>, <code>decay = Math.exp(-4*t)</code>. Cascade <code>--stagger</code> per DOM order, 60-120ms offsets. Belt SVG composed inline (not image): outer laurel ring, spokes, SAU green / UAE red corner crescents, central FalCaMel wordmark. 33 speaker notes — highest density. <strong>The Plot Twist</strong>: 8 slides of MBS-vs-MBZ rivalry framing earn the slide-12 deflation: <em>"Two rulers. Sixty billion dollars. One cafe with the only seat that was here before either fighter entered the ring."</em> SVA dragged 1 because combat-sports framing is high-risk for financial-vertical investors.</td>
+      </tr>
+      <tr>
+        <td class="studio-cell">Esports/MMA reframing</td>
+        <td class="file-cell">falcamel/respawn-point/Respawn Point Deck</td>
+        <td class="score-cell s9">9</td>
+        <td class="score-cell s9">9</td>
+        <td class="score-cell s8">8</td>
+        <td class="score-cell s8">8</td>
+        <td class="score-cell s9">9</td>
+        <td class="score-cell s8">8</td>
+        <td class="score-cell s9">9</td>
+        <td class="score-cell s9">9</td>
+        <td class="score-cell s8">8</td>
+        <td class="avg-cell">8.6</td>
+        <td class="evidence-cell">17 slides. 4 rAF + 1 setInterval. deck-stage.js runtime. Wrestling/MMA palette + live-bug ticker + corner badges. Treats FalCaMel as <em>"an esports venue disguised as a cafe."</em> Residents → fighters: <strong>Sultan = Champ, Haboob = Veteran Cornerman, Qamar = Cutman, Luna = Ring Inspector, Shams = Between Rounds, Shabby = Threw in the Towel</strong> (funniest line in the deck cluster). Variant pitch for Qiddiya stakeholders / esports-vertical investors.</td>
+      </tr>
+      <tr style="background: rgba(255,181,71,0.04);">
+        <td class="studio-cell">Interactive Series A</td>
+        <td class="file-cell">falcamel/grandmas-rule/deck</td>
+        <td class="score-cell s10">10</td>
+        <td class="score-cell s10">10</td>
+        <td class="score-cell s10">10</td>
+        <td class="score-cell s10">10</td>
+        <td class="score-cell s9">9</td>
+        <td class="score-cell s8">8</td>
+        <td class="score-cell s9">9</td>
+        <td class="score-cell s8">8</td>
+        <td class="score-cell s10">10</td>
+        <td class="avg-cell">9.3</td>
+        <td class="evidence-cell"><strong>Most architecturally ambitious deck in the cluster.</strong> 1,076 lines. 6 rAF + 19 <code>data-animate</code>. <strong>Cursor-tracked SVG silhouette of Jaddah</strong>: pupil <code>&lt;circle&gt;</code> elements receive cursor-relative transform via <code>setProperty</code>. <strong>Live name-input rewrite</strong>: as user types, headline H1 updates ("Welcome to FalCaMel, [Name]"). <strong>Feature flag</strong>: JS checks <code>window.location.hostname</code> against allowlist (localhost, falcamel.sa/investor-room, private). Slide 11 (the MBS-patronage hinge) only renders if host matches — sales-engineering, not just a deck.</td>
+      </tr>
+      <tr>
+        <td class="studio-cell">Press/public pitch</td>
+        <td class="file-cell">falcamel/project/FalCaMel Deck</td>
+        <td class="score-cell s10">10</td>
+        <td class="score-cell s9">9</td>
+        <td class="score-cell s9">9</td>
+        <td class="score-cell s9">9</td>
+        <td class="score-cell s10">10</td>
+        <td class="score-cell s9">9</td>
+        <td class="score-cell s9">9</td>
+        <td class="score-cell s10">10</td>
+        <td class="score-cell s10">10</td>
+        <td class="avg-cell">9.4</td>
+        <td class="evidence-cell">16 slides. deck-stage.js + rAF count-ups + View Transition API wrapper at ~line 1000. Cover (Decree No. 001 with hero photo + seal SVG), 14 content slides, location/booking close. 16 speaker notes. Same structural rigor as the investor pitch: manifesto open, location/booking close, Grandma photo as 3-act climax. Different audience (press), same artifact-class.</td>
+      </tr>
+      <tr>
+        <td class="studio-cell">House manifesto</td>
+        <td class="file-cell">falcamel/FalCaMel Decree</td>
+        <td class="score-cell s10">10</td>
+        <td class="score-cell s10">10</td>
+        <td class="score-cell s10">10</td>
+        <td class="score-cell s10">10</td>
+        <td class="score-cell s10">10</td>
+        <td class="score-cell s9">9</td>
+        <td class="score-cell s10">10</td>
+        <td class="score-cell s9">9</td>
+        <td class="score-cell s10">10</td>
+        <td class="avg-cell">9.8</td>
+        <td class="evidence-cell"><strong>The strongest single visual reveal in the entire folder.</strong> Seal SVG with concentric rings, diamond lattice, Arabic jeem (ج), circular text path "JADDAH · UMM SULTAN..." Reveal: clip-path circle 0%→62% over 1200ms <code>cubic-bezier(0.2, 0.8, 0.2, 1)</code> on intersect — <em>62% is intentional partial</em>, leaves the seal visibly inside its frame, not edge-bleeding. Then 5 articles fade-in stagger (opacity 0→1, translateY 24px→0, 700ms, 80ms per child). prefers-reduced-motion handled.</td>
+      </tr>
+      <tr>
+        <td class="studio-cell">Press-kit Decree variant</td>
+        <td class="file-cell">falcamel-cafe-design-system/Decree</td>
+        <td class="score-cell s9">9</td>
+        <td class="score-cell s8">8</td>
+        <td class="score-cell s9">9</td>
+        <td class="score-cell s8">8</td>
+        <td class="score-cell s9">9</td>
+        <td class="score-cell s8">8</td>
+        <td class="score-cell na">N/A</td>
+        <td class="score-cell s8">8</td>
+        <td class="score-cell s9">9</td>
+        <td class="avg-cell">8.5</td>
+        <td class="evidence-cell">Different hash from main Decree. Same structural seal, simplified resident bios — diff: main shows "Sultan = Saker Falcon · 47-0 vs coaster, Haboob = Camel since 1987"; this version flattens to "Falcon · 47-0 vs coaster" + "Camel since 1987." Useful for press distribution. Substrate matches by being correctly thinner.</td>
+      </tr>
+      <tr>
+        <td class="studio-cell">Public marketing site</td>
+        <td class="file-cell">falcamel/index — Grandma's Waiting</td>
+        <td class="score-cell s9">9</td>
+        <td class="score-cell s9">9</td>
+        <td class="score-cell s8">8</td>
+        <td class="score-cell s9">9</td>
+        <td class="score-cell s9">9</td>
+        <td class="score-cell s10">10</td>
+        <td class="score-cell na">N/A</td>
+        <td class="score-cell s9">9</td>
+        <td class="score-cell s9">9</td>
+        <td class="avg-cell">8.9</td>
+        <td class="evidence-cell">717 lines. Bilingual Arabic/English. Speaker notes embedded for press use. Full menu (5 categories, 20+ items), 6 residents, 6 experiences (free → 7,500 SAR). House rules section. CSS hover states + smooth-scroll anchors. <strong>No animation</strong> — correct for a guest-facing booking site. Substrate matches the artifact-class (booking site, not pitch). Production-ready.</td>
+      </tr>
+      <tr>
+        <td class="studio-cell">Design system reference</td>
+        <td class="file-cell">VIBE-8/Respawn Point Design System</td>
+        <td class="score-cell s8">8</td>
+        <td class="score-cell s7">7</td>
+        <td class="score-cell s8">8</td>
+        <td class="score-cell s7">7</td>
+        <td class="score-cell s5">5</td>
+        <td class="score-cell s7">7</td>
+        <td class="score-cell na">N/A</td>
+        <td class="score-cell s8">8</td>
+        <td class="score-cell s7">7</td>
+        <td class="avg-cell">7.1</td>
+        <td class="evidence-cell">Design-system reference doc with tweaks data attributes (<code>body.dataset</code>, <code>classList.toggle</code>) and parent <code>postMessage</code> protocol for live edit-mode sync. Modular section loader. No animation runtime in the file itself. Different artifact class — token catalog, not narrative — and it correctly serves the OskarOS authoring environment.</td>
+      </tr>
+    </tbody>
+  </table>
+  </div>
+</section>
+
+
+<!-- ════════════ PER-FILE CARDS ════════════ -->
+<section class="cluster" id="vibe-20">
+  <div class="cluster-header">
+    <div class="cluster-eyebrow">vibe-20</div>
+    <h2>Pentagram</h2>
+  </div>
+  <div class="file-grid">
+    <article class="file-card match">
+      <div class="file-head"><div><span class="file-name">vibe-20-pentagram.html</span><span class="file-tag match">substrate match</span></div></div>
+      <div class="anchor-block">
+        <strong>What Pentagram actually ships</strong>
+        <p>Editorial typography systems for institutions (Lubalin/Bierut/Saville lineage). Bold typographic interventions in service of identity. Quietly disciplined on the typographic level. Single bold gestures (one custom wordmark, one hero crop, one structural grid you trust). Pentagram does not ship motion-design-as-spectacle.</p>
+      </div>
+      <div class="substrate-block">
+        <strong>What this file ships</strong>
+        <p><span class="runs-pill yes">runs</span> Inter Tight 800 + JetBrains Mono + Inter, 1280px container, §-numbered editorial sections (§2 Hero, §3 Argument, §4 Grandma's Rule, §5 Residents, §6 Race, §7 Menu, §8 Location, §9 CTA, §10 Footer). The 47-0 race-stat at <code>clamp(8rem, 18vw, 20rem)</code> is the Pentagram-style single bold gesture. Hover desaturation→saturation on resident photos via CSS filter + <code>mix-blend-mode: multiply</code> terracotta wash. Animation is one scroll listener that toggles a <code>.scrolled</code> class on the sticky header. Total. <strong>The restraint is the work.</strong></p>
+      </div>
+      <div class="verdict">
+        <strong>Verdict</strong>
+        Closest to actual Pentagram practice in the cluster. The Arabic decree centered between rule-articles (<code>كُلِي مَا تَقْدِرِي</code> / "Kulī mā taqdirī. Eat as much as you can.") is exactly the kind of cultural-typographic intervention they would ship for a Saudi client. The hero-dot accent (terracotta period after each clause of "A cliff. A grandmother. A rule.") is on-brand punctuation. Nothing dramatic to fix.
+      </div>
+    </article>
+  </div>
+</section>
+
+
+<section class="cluster" id="vibe-21">
+  <div class="cluster-header">
+    <div class="cluster-eyebrow">vibe-21 ×3</div>
+    <h2>Stamen — three iterations</h2>
+    <p class="cluster-intro">Three Stamen attempts. v1 ships solid topographic SVG. Opus elaborates. <strong>Opus v2 is the cluster's single animation apex</strong> — and the file my prior audit completely missed.</p>
+  </div>
+  <div class="file-grid">
+    <article class="file-card match">
+      <div class="file-head"><div><span class="file-name">vibe-21-stamen.html</span><span class="file-tag match">substrate match</span></div></div>
+      <div class="anchor-block">
+        <strong>What Stamen actually ships</strong>
+        <p>Cartography studio (San Francisco, by Eric Rodenbeck). Watercolor maps, terrain-tile servers, custom OpenStreetMap renderings, data-driven cartographic narrative. Their thing: maps that are maps, with the rigour of cartographic convention plus modern typography (IBM Plex Mono in margins, Fraunces or similar serif for titles), terracotta and sage palette, contour lines as primary visual.</p>
+      </div>
+      <div class="substrate-block">
+        <strong>What this file ships</strong>
+        <p><span class="runs-pill yes">runs</span> Hero is a 1400×800 inline SVG with: graticule grid lines at 18% opacity, contour lines (5 elevation bands, sage stroke, opacity declining 0.45→0.20), terracotta cliff fault line at 3.5px stroke with hatched dashed offsets at +7 and +14px (the standard cartographic convention for cliff drops), labeled crosshair markers for FalCaMel (24.594319, 46.346553, ELEV. 736m) and Falcon's Flight (600m crow-flight), contour elevation labels rotated -4° (cartographic convention), compass rose at top-right with red N spoke. Distance-strip cartograph in §Location with logarithmic-scale annotation. <strong>No animation.</strong> One IO-fade-in for resident cards.</p>
+      </div>
+      <div class="verdict">
+        <strong>Verdict</strong>
+        Authentic Stamen vocabulary. The distance strip with "LOGARITHMIC SCALE · DISTANCES ARE THE MOAT" caption is exactly the kind of cartographic editorial framing Stamen does. Hand-coded SVG (not D3-driven) but the rendering is correct. Code runs. Substrate matches.
+      </div>
+    </article>
+
+    <article class="file-card match">
+      <div class="file-head"><div><span class="file-name">vibe-21-stamen-opus.html</span><span class="file-tag match">substrate match</span></div></div>
+      <div class="substrate-block">
+        <strong>What this file ships</strong>
+        <p><span class="runs-pill yes">runs</span> Same content as v1, more elaborated sectioning system, hairline-rule discipline, section-label with monospace prefix and 32px sage rule. <strong>No SMIL, no animation</strong> — same scroll-fade pattern.</p>
+      </div>
+      <div class="verdict">
+        <strong>Verdict</strong>
+        More polished v1. Adds nothing structurally that v1 doesn't have. Worth keeping or discarding either way.
+      </div>
+    </article>
+
+    <article class="file-card match">
+      <div class="file-head"><div><span class="file-name">vibe-21-stamen-opus-v2.html</span><span class="file-tag match">substrate match · animation apex</span></div></div>
+      <div class="substrate-block">
+        <strong>What this file ships</strong>
+        <p><span class="runs-pill yes">runs</span> A hand-authored 7-segment Bézier path for Sultan: <code>M 465 130 Q 800 -40 1130 60</code> (ascent over canyon to crest, ~720 path units) → four cubic Béziers forming a <strong>perfect circle of radius 25 centered at (1130,35)</strong> — Sultan orbits above the stationary coaster like a bird of prey, 157 path units → <code>C 1098 177 1031 328 948 430</code> (the dive, shadowing the coaster's curve, 453 units) → <code>Q 650 100 465 130</code> (long return arc home, 654 units). Total ≈ 1984 path units.</p>
+        <p style="margin-top:8px;"><strong>SMIL <code>animateMotion</code></strong> drives Sultan's marker along that path with non-uniform <code>keyTimes</code>/<code>keyPoints</code> on a 7-second-race + 3-second-hold = 10-second cycle. Phase boundaries: <code>0→0.35</code> ascent, <code>0.35→0.42</code> orbit, <code>0.42→0.525</code> plunge (overtake at exactly t=5.25s, both at 44% of dive), <code>0.525→0.574</code> peel-off, <code>0.574→0.7</code> return, <code>0.7→1.0</code> hold.</p>
+        <p style="margin-top:8px;"><strong>Coaster's path</strong> is a closed-loop: climb east face → wait stationary at crest while Sultan orbits → release → uniform descent. Matching <code>keyTimes</code> with repeated keyPoint freezes the coaster while Sultan orbits.</p>
+        <p style="margin-top:8px;"><strong>JS scoreboard tick</strong>: <code>setInterval(startCycle, 10000)</code>, fires <code>sultanScore.textContent = '47'</code> + <code>.tick</code> class at exactly t=5250ms — the overtake frame. Tick class: <code>transform: translateY(-4px) scale(1.04)</code> 220ms cubic-bezier(.2,.8,.2,1).</p>
+        <p style="margin-top:8px;"><strong>CSS keyframe scoreboardReveal</strong> 10s linear infinite, hidden 0-35%, fades in at 38.5% (just after orbit starts), holds visible until 97%, fades out by 100%.</p>
+        <p style="margin-top:8px;"><strong>prefers-reduced-motion</strong> disables both <code>animateMotion</code> elements via CSS, freezes Sultan and coaster at finish positions, freezes score at 47. Mid-session changes handled via <code>reduce.addEventListener('change')</code> — pulls down the interval.</p>
+      </div>
+      <div class="verdict">
+        <strong>Verdict</strong>
+        Three motion systems (SVG SMIL × 2, CSS keyframe × 1, JS setInterval × 1) all locked to a single 10-second master cycle, choreographed so the falcon orbits the trapped coaster, they share a dive curve, the falcon overtakes at exactly t=5.25s, the score flips at the same frame. Plus a 3-second hold so the viewer registers the win before reset. <strong>This is the most narratively integrated animation in the entire folder.</strong> 47-0 in ten seconds, on infinite loop. Author note in CSS comment: <em>"Race occupies 0-70%, hold 70-100%."</em> The choreography is the work, and the choreography here is the most precise thing in the cluster.
+      </div>
+    </article>
+  </div>
+</section>
+
+
+<section class="cluster" id="vibe-22">
+  <div class="cluster-header">
+    <div class="cluster-eyebrow">vibe-22</div>
+    <h2>Information Architects</h2>
+  </div>
+  <div class="file-grid">
+    <article class="file-card match">
+      <div class="file-head"><div><span class="file-name">vibe-22-information-architects-redesigned.html</span><span class="file-tag match">substrate match</span></div></div>
+      <div class="anchor-block">
+        <strong>What iA actually ships</strong>
+        <p>Information Architects (Zurich/Tokyo, Oliver Reichenstein). Content-first typography for reading. They ship iA Writer (Markdown editor), articles in IBM Plex / Tiempos with strict measure/leading discipline, websites as text-as-architecture. Hand-set drop caps, opsz-aware variable fonts, monospace metadata in margins, blue underlined links left as <code>text-decoration: underline</code> not stripped. They write essays about typographic hygiene that are themselves typographically hygienic.</p>
+      </div>
+      <div class="substrate-block">
+        <strong>What this file ships</strong>
+        <p><span class="runs-pill yes">runs</span> §-numbered band sections with <code>§7 Visit</code> styled as left-margin numerals plus name in monospace. Side-rail nav (≥1280px breakpoint). Newsreader serif <strong>with <code>font-optical-sizing: auto</code></strong> using the variable opsz axis 6..72 — the variable-font axis iA's own marketing leans on. Inter for sans-serif chrome. JetBrains Mono for metadata. Drop cap referenced via <code>column-count: 2</code> on prose. Pure-CSS document, no JS animation. Links left as <code>text-decoration: underline</code> with <code>:visited</code> styling — iA hallmark.</p>
+      </div>
+      <div class="verdict">
+        <strong>Verdict</strong>
+        The user noted prior versions of this file (Opus and Gemini) were "100% failure." This iteration substantively works. The opsz-axis use, the §-numbered bands, the surviving <code>:visited</code> link color, the <code>column-count: 2</code> on the race-prose section — all of these are tells iA themselves rely on. The one critique iA themselves would make: the 2-column prose split on the race section is something iA actively argues against in their reading-typography essays (column-count breaks the measure they preach). One detail to reconsider, but the rest is right.
+      </div>
+    </article>
+  </div>
+</section>
+
+
+<section class="cluster" id="vibe-23">
+  <div class="cluster-header">
+    <div class="cluster-eyebrow">vibe-23</div>
+    <h2>Fathom</h2>
+  </div>
+  <div class="file-grid">
+    <article class="file-card partial">
+      <div class="file-head"><div><span class="file-name">vibe-23-fathom.html</span><span class="file-tag partial">substrate partial</span></div></div>
+      <div class="anchor-block">
+        <strong>What Fathom actually ships</strong>
+        <p>Fathom Analytics (Jack Ellis / Paul Jarvis). Privacy-first analytics dashboard, stark monochrome typography with electric-cyan accent, generous whitespace, deliberate refusal of dashboard chartjunk. Their thing: <em>one number on the page that matters.</em> Marketing copy is dry-comic ("Your visitor count, no creep").</p>
+      </div>
+      <div class="substrate-block">
+        <strong>What this file ships</strong>
+        <p><span class="runs-pill yes">runs</span> "Quarterly Report Q1 2026" framing. Tabular nums (<code>font-variant-numeric: tabular-nums</code>), §-numbered <code>.sec-hdr</code> with 2px navy border-bottom, footnote system with <code>&lt;sup&gt;</code> superscripts and <code>.fn-block</code> at section-end, <code>.callout</code> warm-cream box with terracotta left-border. <strong>The race chart is the joke:</strong> Sultan as a flat horizontal line at WIN, coaster as a flat horizontal line at LOSS, "47 races · 47-0" annotation top-right. The chart is the punchline. Static SVG, no animation. One scroll-shadow listener.</p>
+      </div>
+      <div class="verdict">
+        <strong>Verdict</strong>
+        The "one number that matters" gag actually lands — 47-0 expressed as two flat lines is genuinely Fathom-style understated wit. The document-class framing (footnotes, callouts, tabular nums) fits. <strong>Where it misses:</strong> Fathom's brand is electric-cyan + black on white, not warm-cream + navy + terracotta. The palette is closer to Stripe Atlas / Bloomberg Terminal than Fathom. Half-cosplay: document type fits, palette doesn't.
+      </div>
+    </article>
+  </div>
+</section>
+
+
+<section class="cluster" id="vibe-24">
+  <div class="cluster-header">
+    <div class="cluster-eyebrow">vibe-24</div>
+    <h2>Locomotive</h2>
+  </div>
+  <div class="file-grid">
+    <article class="file-card match">
+      <div class="file-head"><div><span class="file-name">vibe-24-locomotive.html</span><span class="file-tag match">substrate match</span></div></div>
+      <div class="anchor-block">
+        <strong>What Locomotive actually ships</strong>
+        <p>Locomotive (Montréal). Authors of <code>locomotive-scroll</code> library. Ship Awwwards-grade smooth-scroll choreography sites for fashion, automotive, luxury hotels. Their work is scroll-coupled: pin sections, horizontally-scrolled inner tracks, parallax with damping. They ship dark themes with Bebas Neue / Anton display + a tiny mono. Their default move: scroll triggers cinema.</p>
+      </div>
+      <div class="substrate-block">
+        <strong>What this file ships</strong>
+        <p><span class="runs-pill yes">runs</span> Bebas Neue display + Inter body + JetBrains Mono. Six <code>animation-timeline: view()</code> CSS scroll-driven animations on hero/reveal/pulse keyframes (the bleeding-edge CSS Scroll-Driven Animations API, recently shipped in Chromium). <strong>Hand-rolled horizontal scroll-jack on shot-6:</strong> a 6-frame residents track. Math: <code>progress = clamp((scrolled / maxScroll), 0, 1)</code>, <code>maxTranslate = (FRAMES - 1) * frameW</code>, <code>tx = progress * maxTranslate</code>, <code>track.style.transform = 'translateX(-' + tx + 'px)'</code>. Counter element updates as <code>current / FRAMES</code>. Author comment: <em>"Hand-rolled, no GSAP/Lenis."</em></p>
+      </div>
+      <div class="verdict">
+        <strong>Verdict</strong>
+        The author-comment honesty about not using their actual library is funny and self-aware. Code runs. The math composes correctly given the section is taller than viewport (the CSS sets <code>height: 700vh</code>). Locomotive themselves would ship this with proper damping (the <code>locomotive-scroll</code> default damping is 0.1), and the lack of damping makes the carousel feel mechanical — but the substrate is right.
+      </div>
+    </article>
+  </div>
+</section>
+
+
+<section class="cluster" id="vibe-25">
+  <div class="cluster-header">
+    <div class="cluster-eyebrow">vibe-25</div>
+    <h2>Active Theory</h2>
+  </div>
+  <div class="file-grid">
+    <article class="file-card match">
+      <div class="file-head"><div><span class="file-name">vibe-25-active-theory.html</span><span class="file-tag match">substrate match</span></div></div>
+      <div class="anchor-block">
+        <strong>What Active Theory actually ships</strong>
+        <p>Active Theory (Venice Beach, LA). Immersive web experiences for Google, Tesla, Beats, the Olympics, X-Men franchises. Their substrate is WebGL + canvas + heavy choreography of spatial UI. Glass panels with depth, 3D tilt on cursor, particle fields, scroll-coupled scene composition, ambient HUD chrome (live clocks, uptime counters, environmental data). The aesthetic is military-tech-future: monospace, grid overlays, Roman numerals as section markers, glow/scanline effects.</p>
+      </div>
+      <div class="substrate-block">
+        <strong>What this file ships</strong>
+        <p><span class="runs-pill yes">runs</span> Space Grotesk + Inter + JetBrains Mono. Two <code>&lt;canvas&gt;</code> elements. <strong>mousemove → 3D perspective tilt</strong> on every <code>.glass</code> panel: <code>perspective(1000px) rotateY(mx*4deg) rotateX(-my*3deg)</code>, normalized to viewport center. <strong>Roman numeral proximity nudge:</strong> for each <code>.numeral</code>, compute Euclidean distance from cursor; if <code>dist &lt; 200</code>, displace numeral toward cursor by <code>(1 - dist/200) * 28</code> px; otherwise reset. <strong>Asia/Riyadh live clock</strong> updating every 1s via <code>setInterval(updateClock, 1000)</code>. <strong>Uptime counter</strong> from 2026-01-15T16:00:00+03:00 updating every 60s. Particle canvas (the <code>requestAnimationFrame</code> tick driving 600+ particles in 3D perspective projection). IntersectionObserver-driven shape morphs (falcon silhouette → cube → roman numerals via lerp 0.024). Constellation node hover/click expand. Menu tabs swap panels.</p>
+      </div>
+      <div class="verdict">
+        <strong>Verdict</strong>
+        Multi-system motion design. Cross-system coordination. The live clock + uptime counter are real ambient HUD chrome, not decoration. The 3D-tilt-on-mousemove is correctly applied to <code>.glass:not(#nav):not(.c-info):not(.num-article)</code> — there's a deliberate exclusion list. The proximity-nudge math has a falloff that produces perceptible motion at 200px radius and zero motion past. Substrate matches Active Theory's actual immersive practice. Code runs.
+      </div>
+    </article>
+  </div>
+</section>
+
+
+<section class="cluster" id="vibe-26">
+  <div class="cluster-header">
+    <div class="cluster-eyebrow">vibe-26</div>
+    <h2>Field.io</h2>
+  </div>
+  <div class="file-grid">
+    <article class="file-card match">
+      <div class="file-head"><div><span class="file-name">vibe-26-fieldio.html</span><span class="file-tag match">substrate match</span></div></div>
+      <div class="anchor-block">
+        <strong>What Field.io actually ships</strong>
+        <p>Field.io (London/Berlin). Generative design studio working with Aphex Twin, Vera Molnár tributes, Adobe MAX work. Their substrate is procedural systems — Voronoi/Delaunay tessellations, generative type, audio-reactive visuals, deterministic randomness via seeded RNG. The aesthetic is rigorous-geometric, monochromatic, with single-color accent. Variable-font axis manipulation as primary expressive primitive.</p>
+      </div>
+      <div class="substrate-block">
+        <strong>What this file ships</strong>
+        <p><span class="runs-pill yes">runs</span> Inter Tight + Inter + JetBrains Mono <strong>variable-axis fonts</strong> (the <code>wght@100..900</code> range — Field.io ships variable-axis sweeps). Six inline SVGs. Six <code>requestAnimationFrame</code> calls. Voronoi background generated on load via Sutherland-Hodgman polygon clipping (~22 cells). Hero Voronoi in saffron @ 3% opacity (~16 cells). Hero settle: numeric readout count-up over 1200ms — width axis sweeps from 100 to 700 — <code>readout.innerHTML = `wght=${w}, wdth=100`</code>. <strong>Scroll-mapped body weight</strong> (the strongest move): rAF loop maps <code>scrollY / scrollHeight</code> to a CSS variable <code>--scroll-wght</code> ranging 200→350, applied to body type. As you scroll the entire document's font weight shifts. Race path SVG with stroke-dashoffset reveal animations triggered by IntersectionObserver. Section titles animate width-axis to 100 on in-view.</p>
+      </div>
+      <div class="verdict">
+        <strong>Verdict</strong>
+        The scroll-mapped variable-font weight is exactly the kind of move Field.io publishes papers about — using variable-font axes as scroll-coupled visual primitives. Voronoi is built once at load (declarative), not per-frame mutated, but that's correct for Field.io's substrate (their generative systems are usually static-but-procedural, not real-time). Code runs.
+      </div>
+    </article>
+  </div>
+</section>
+
+
+<section class="cluster" id="vibe-27">
+  <div class="cluster-header">
+    <div class="cluster-eyebrow">vibe-27</div>
+    <h2>Resn</h2>
+  </div>
+  <div class="file-grid">
+    <article class="file-card miss">
+      <div class="file-head"><div><span class="file-name">vibe-27-resn.html</span><span class="file-tag miss">substrate miss · cosplay</span></div></div>
+      <div class="anchor-block">
+        <strong>What Resn actually ships</strong>
+        <p>Resn (Wellington/Amsterdam). Chaotic interactive WebGL studio. Beardyman audio-reactive piece, the Twitch lobster, Coca-Cola's "Open Happiness" 3D experiences. Their substrate is Three.js + custom shaders, playful unpredictability, irreverent humor expressed through motion. Resn is famous for taking a concept too far on purpose — they don't ship calm.</p>
+      </div>
+      <div class="substrate-block">
+        <strong>What this file ships</strong>
+        <p><span class="runs-pill yes">runs</span> Cormorant Garamond serif body, Inter sans, JetBrains Mono. Quest-log overlay with RPG-style section labels: "LEVEL 01 · INTRO", "QUEST 01 · ORIGIN", "QUEST 02 · THE SIX", "LEGENDARY · ROYAL." IntersectionObserver adds <code>.completed</code> to quest-log items as you scroll past sections. <strong>Zero rAF. Zero canvas. Zero WebGL. Zero motion.</strong> One scroll listener for header state, one IO for quest-log completion. Decorative pulse-marker animations on call-signs use <code>animation-delay</code> stagger (CSS keyframes, no JS).</p>
+      </div>
+      <div class="verdict">
+        <strong>Verdict</strong>
+        <strong>Cosplay.</strong> The naming convention is gamified (Resn-adjacent in spirit), but the substrate is a static document with hover transitions and an IO-driven quest-log overlay. A Resn impression without WebGL or Three.js or even canvas-2d is not Resn — it's a typographic scaffold for an idea that was never built. Code runs. The runtime is correct. The substrate is wrong direction. The pulse-marker stagger animations are the kind of microeffect every Bootstrap site ships, not the kind of motion Resn would attach their name to.
+      </div>
+    </article>
+  </div>
+</section>
+
+
+<section class="cluster" id="vibe-28">
+  <div class="cluster-header">
+    <div class="cluster-eyebrow">vibe-28</div>
+    <h2>Experimental Jetset</h2>
+  </div>
+  <div class="file-grid">
+    <article class="file-card match">
+      <div class="file-head"><div><span class="file-name">vibe-28-experimental-jetset.html</span><span class="file-tag match">substrate match by absence</span></div></div>
+      <div class="anchor-block">
+        <strong>What Experimental Jetset actually ships</strong>
+        <p>Experimental Jetset (Amsterdam). Anti-motion modernist purists. Whitney Museum identity, MoMA print work, Princess Tam Tam, Henrik Vibskov collaborations. Their published position: they don't believe in interaction. Their websites are Helvetica-grid documents that refuse to move. They'd say: motion is a confession that the typography failed.</p>
+      </div>
+      <div class="substrate-block">
+        <strong>What this file ships</strong>
+        <p><span class="runs-pill na">no JS</span> Zero script tags. Zero <code>@keyframes</code>. Zero animation. Zero SVG. Zero canvas. Inter Tight 700/800 + Inter 400/500 + JetBrains Mono. Pure typographic grid document. The HTML structure is the substrate.</p>
+      </div>
+      <div class="verdict">
+        <strong>Verdict</strong>
+        <strong>The substrate match is the absence.</strong> This is the most honest impression in the cluster — it correctly refuses to ship motion because EJ correctly refuse to ship motion. Code runs by virtue of having nothing to break. The work is the discipline.
+      </div>
+    </article>
+  </div>
+</section>
+
+
+<section class="cluster" id="vibe-29">
+  <div class="cluster-header">
+    <div class="cluster-eyebrow">vibe-29</div>
+    <h2>Müller-Brockmann</h2>
+  </div>
+  <div class="file-grid">
+    <article class="file-card match">
+      <div class="file-head"><div><span class="file-name">vibe-29-muller-brockmann.html</span><span class="file-tag match">substrate match</span></div></div>
+      <div class="anchor-block">
+        <strong>What Brockmann actually ships</strong>
+        <p>Josef Müller-Brockmann (1914-1996, Zurich). The grid bible. Olivetti, Swiss Federal Railways timetables, IBM annual reports. His grids served <em>function</em> — they were always for finding information in dense document settings. The aesthetic isn't grid-as-decoration; it's grid-as-information-architecture. Type set at 8pt on 12pt baseline; hierarchy expressed through scale, weight, and column position only.</p>
+      </div>
+      <div class="substrate-block">
+        <strong>What this file ships</strong>
+        <p><span class="runs-pill yes">runs</span> Inter Tight + JetBrains Mono + Reem Kufi. <strong>8pt baseline grid as CSS custom property</strong>. Two inline SVGs: a cliff cross-section diagram (<code>aria-label="Cliff cross-section diagram — 8pt grid precision"</code>) and an axonometric site plan (<code>1:5000</code> scale annotation). Single short script. Zero <code>@keyframes</code>.</p>
+      </div>
+      <div class="verdict">
+        <strong>Verdict</strong>
+        The 8pt grid serving a cross-section diagram is the right kind of grid serving the right kind of function. The 1:5000 scale annotation is real cartographic discipline. The aria-label naming the grid precision is unusually self-aware. Where Brockmann himself would push back: his grids were for corporate <em>information density</em> (annual reports with hundreds of data points). The cross-section diagram is decorative-functional rather than information-dense. Substrate match in form, slightly underweighted in payload.
+      </div>
+    </article>
+  </div>
+</section>
+
+
+<section class="cluster" id="vibe-30">
+  <div class="cluster-header">
+    <div class="cluster-eyebrow">vibe-30</div>
+    <h2>Build</h2>
+  </div>
+  <div class="file-grid">
+    <article class="file-card partial">
+      <div class="file-head"><div><span class="file-name">vibe-30-build.html</span><span class="file-tag partial">substrate partial</span></div></div>
+      <div class="anchor-block">
+        <strong>What Build actually ships</strong>
+        <p>Build (London, Michael C. Place ex-The Designers Republic). Annual reports, music identities (Warp Records adjacent), Nike, Toyota. Editorial structure with Swiss-modernist pedigree. Big serif headlines, deliberate quietness, willingness to use whitespace as primary visual. Their substrate is print-grade editorial — nothing that wouldn't survive being printed.</p>
+      </div>
+      <div class="substrate-block">
+        <strong>What this file ships</strong>
+        <p><span class="runs-pill yes">runs</span> Cormorant Garamond + Inter + Reem Kufi. Single fade-up IntersectionObserver, sticky header. <code>.section-reservation</code> styled minimally. Editorial structure with §-numbered sections. No motion beyond IO-toggle of <code>.visible</code>.</p>
+      </div>
+      <div class="verdict">
+        <strong>Verdict</strong>
+        Plausible Build small-edition publication. The editorial restraint is correct. <strong>What's missing:</strong> Build's distinguishing trait is <em>material rigor</em> — the work feels like it was researched and considered. This file is competently set but not deeply considered (no specific Build-style typographic intervention, no editorial argument structure, no Place-style intentional disruption). Surface fits, depth doesn't. Code runs.
+      </div>
+    </article>
+  </div>
+</section>
+
+
+<section class="cluster" id="vibe-31">
+  <div class="cluster-header">
+    <div class="cluster-eyebrow">vibe-31</div>
+    <h2>Sagmeister Walsh</h2>
+  </div>
+  <div class="file-grid">
+    <article class="file-card partial">
+      <div class="file-head"><div><span class="file-name">vibe-31-sagmeister-walsh.html</span><span class="file-tag partial">substrate partial · surface only</span></div></div>
+      <div class="anchor-block">
+        <strong>What Sagmeister Walsh actually ships</strong>
+        <p>Stefan Sagmeister + Jessica Walsh (NYC, formerly partnered, now separate practices). Hand-rendered typography, body-as-canvas, photography of physical artifacts (Walsh's work especially: text written on skin, painted on objects, hung in rooms, photographed). High-saturation chromatic optimism. The work is almost always physically photographed, never tasteful, never graphic-design-tasteful. Their published manifesto: <em>"Things I have learned in my life so far,"</em> hand-painted on buildings.</p>
+      </div>
+      <div class="substrate-block">
+        <strong>What this file ships</strong>
+        <p><span class="runs-pill yes">runs</span> Caveat hand-script for headlines + Cormorant Garamond for body + Inter chrome. 5-color burst palette: terracotta, amber, sage, pink, blue. Hero greeting at <code>clamp(4rem, 10vw, 9rem)</code> with <code>transform: rotate(-2deg)</code>; sub-heading at <code>rotate(1deg)</code>. Pill backgrounds and underline annotations cycle through the burst palette. 21 inline SVGs likely the smile-curves and arrows in margins. <strong>No motion.</strong></p>
+      </div>
+      <div class="verdict">
+        <strong>Verdict</strong>
+        <strong>Surface fits. Spirit doesn't.</strong> The font choices are right (Caveat for hand-script). The rotate transforms on type are right (S&amp;W constantly tilt). The pill colors are right (burst palette). What's missing is the bombast — S&amp;W's actual work is photographed physical artifacts. Hand-fonts in CSS without any photographed-physical-object reference is a Caveat-on-Squarespace template, not Sagmeister Walsh. The substrate misses the medium: their work lives in photographs of made things; this file has no made things. Code runs.
+      </div>
+    </article>
+  </div>
+</section>
+
+
+<section class="cluster" id="vibe-32">
+  <div class="cluster-header">
+    <div class="cluster-eyebrow">vibe-32</div>
+    <h2>Zach Lieberman</h2>
+  </div>
+  <div class="file-grid">
+    <article class="file-card match">
+      <div class="file-head"><div><span class="file-name">vibe-32-zach-lieberman.html</span><span class="file-tag match">substrate match</span></div></div>
+      <div class="anchor-block">
+        <strong>What Lieberman actually ships</strong>
+        <p>Zach Lieberman (NYC). Co-founder of openFrameworks. Daily code-art sketches on Instagram for years. Eyewriter project (drawing software for paralyzed graffiti artists). Substrate: real-time generative drawing systems that respond to input — gesture, sound, motion. He posts something like 200 code-art sketches a year. The substrate is C++ openFrameworks or p5.js, real-time, jittered, hand-drawn-feeling.</p>
+      </div>
+      <div class="substrate-block">
+        <strong>What this file ships</strong>
+        <p><span class="runs-pill yes">runs</span> JetBrains Mono + Inter + Caveat. Five <code>requestAnimationFrame</code> blocks driving eight <code>&lt;canvas&gt;</code> elements. The hero canvas: a <strong>30-stroke parametric falcon body</strong> in normalized coordinates <code>[x1, y1, x2, y2, lineWidth]</code>. Each stroke is a <code>quadraticCurveTo</code> through a midpoint jittered by <code>(Math.random() - 0.5) * a</code> (scaled by stroke length). <strong>Strokes draw one per 180ms via rAF</strong> — you watch the falcon emerge stroke by stroke. After all 30 strokes complete, pause 2.2s, then fade canvas to white over a <code>setInterval</code> (10 frames × 35ms = 350ms total fade), clear, redraw the construction grid, restart. Loops. Plus camel and other canvases for §01 Haboob, race chart, etc. Footer: <em>"// drawn in ink. pure black and white. no color."</em></p>
+      </div>
+      <div class="verdict">
+        <strong>Verdict</strong>
+        The math composes a recognizable falcon. The jitter creates hand-drawn imprecision. The 180ms-per-stroke pacing is human-readable speed. The "drawn in ink, pure black and white, no color" footer signs the brief. <strong>What separates this from junior cosplay:</strong> Lieberman's actual work always responds to input (sound, gesture, motion). This is a one-way render loop with no input. Lieberman-shaped without being Lieberman-interactive. Code runs. The drawing actually appears. The substrate matches.
+      </div>
+    </article>
+  </div>
+</section>
+
+
+<section class="cluster" id="vibe-33">
+  <div class="cluster-header">
+    <div class="cluster-eyebrow">vibe-33</div>
+    <h2>Raven Kwok</h2>
+  </div>
+  <div class="file-grid">
+    <article class="file-card match">
+      <div class="file-head"><div><span class="file-name">vibe-33-raven-kwok.html</span><span class="file-tag match">substrate match</span></div></div>
+      <div class="anchor-block">
+        <strong>What Kwok actually ships</strong>
+        <p>Raven Kwok (Brooklyn/Beijing). Recursive subdivision motion graphics. The "JR" project (recursive squares), "Trap Door" (recursive doors), L-system explorations. Substrate: Processing/p5.js, code as generative material. The work is always about <em>recursion as visual idea</em> — depth becomes the subject.</p>
+      </div>
+      <div class="substrate-block">
+        <strong>What this file ships</strong>
+        <p><span class="runs-pill yes">runs</span> DM Mono + Inter Tight + Reem Kufi. Two <code>requestAnimationFrame</code> + eight canvases. The hero canvas: <strong>a recursive depth-fractal canyon.</strong> Two cliffs (left/right), each with terraces that step inward at level <code>d</code>, majlis platform marks at six fractional positions, cushion dots at four of them. <strong>Depth d ping-pongs from 0 to 4 every 1200ms</strong> (<code>animDir</code> reverses at boundaries). At depth 0: just plateaus and cliff faces. At depth 1: terraces appear. At depth 2: majlis platform marks. At depth 3: cushion dots. At depth 4: peak articulation. Then it collapses back. Plus a terracotta FalCaMel node pulsing via <code>5.5 + Math.sin(ts * 0.0018) * 1.8</code> radius modulation. Depth marker bottom-right shows live depth value.</p>
+      </div>
+      <div class="verdict">
+        <strong>Verdict</strong>
+        <strong>Recursive subdivision motion graphics with the cliff as the subject.</strong> The cliff section keeps subdividing into more articulated detail as depth increases, then collapses back. This is conceptually exactly Kwok's language. The pulse on the FalCaMel node is correct ambient breathing (<code>Math.sin</code>-driven, period ~3.5s). Substrate matches. Code runs. The math composes correctly: depth=0 produces a stark cliff, depth=4 produces detailed terrace+platform+cushion articulation.
+      </div>
+    </article>
+  </div>
+</section>
+
+
+<section class="cluster" id="vibe-34">
+  <div class="cluster-header">
+    <div class="cluster-eyebrow">vibe-34</div>
+    <h2>Ash Thorp</h2>
+  </div>
+  <div class="file-grid">
+    <article class="file-card partial">
+      <div class="file-head"><div><span class="file-name">vibe-34-ash-thorp.html</span><span class="file-tag partial">substrate partial · wrong medium</span></div></div>
+      <div class="anchor-block">
+        <strong>What Thorp actually ships</strong>
+        <p>Ash Thorp (LA). Cinema FUI — Total Recall reboot, Ender's Game, Call of Duty. Substrate: After Effects + Cinema 4D + Octane render. He doesn't ship websites; he ships motion graphics for film. His aesthetic is synthetic-cinematic: warm copper/amber on dark, glowing UI rings, scanlines, parallax depth, lens artifacts, hand-rendered HUD icons.</p>
+      </div>
+      <div class="substrate-block">
+        <strong>What this file ships</strong>
+        <p><span class="runs-pill yes">runs</span> Anton + Bebas Neue + Cinzel. Zero rAF. Zero canvas. <strong>Codex-article reveals</strong> via IntersectionObserver with 130ms-per-card stagger (<code>delay = parseInt(e.target.dataset.order) * 130</code>). <strong>Horizontal scroll-jack</strong> on scene VI: <code>progress = (scrollY - top) / (height - innerHeight)</code>, clamped 0-1, <code>translateX(-progress * (scrollWidth - innerWidth))</code>. Glow text-shadow on headlines (<code>0 0 10px rgba(255,153,102,0.8), 0 0 20px rgba(255,102,51,0.6)</code>) — static, not animated. Falcon-section unblur on entry.</p>
+      </div>
+      <div class="verdict">
+        <strong>Verdict</strong>
+        The codex stagger and scroll-jack math are competent. The text-shadow glow is correctly Thorp-warm. <strong>But the substrate is wrong:</strong> Thorp ships rendered video. A web page can't ship Thorp's actual medium. The translation done here — codex articles + scroll-jack + glow — is a reasonable HTML approximation, but it's not the thing. Code runs. Honest substrate would be a one-page site embedding Thorp-rendered video, not trying to do Thorp in CSS.
+      </div>
+    </article>
+  </div>
+</section>
+
+
+<section class="cluster" id="vibe-35">
+  <div class="cluster-header">
+    <div class="cluster-eyebrow">vibe-35</div>
+    <h2>Territory Studio</h2>
+  </div>
+  <div class="file-grid">
+    <article class="file-card partial">
+      <div class="file-head"><div><span class="file-name">vibe-35-territory-studio.html</span><span class="file-tag partial">substrate partial · static drawings of moving things</span></div></div>
+      <div class="anchor-block">
+        <strong>What Territory actually ships</strong>
+        <p>Territory Studio (London/SF). Cinema FUI — Blade Runner 2049, The Martian, Jason Bourne, Mission: Impossible. Substrate: full-motion cinematic FUI with kinetic readouts, scanning beams, data scrolls, real-time-feel HUD chrome. Their work moves; that's the entire job.</p>
+      </div>
+      <div class="substrate-block">
+        <strong>What this file ships</strong>
+        <p><span class="runs-pill yes">runs</span> Space Grotesk + Inter + JetBrains Mono. <strong>Six canvases that draw exactly once</strong> — on <code>DOMContentLoaded</code>, then redraw on a 150ms-debounced resize listener. <em>No rAF, no continuous render.</em> The drawings themselves are decent: hand-coded geo-map with terracotta crosshair, hatched canyon (<code>for (let i=-H; i &lt; W+H; i += 14) ctx.lineTo(i + H*0.40, H*0.70)</code>), Falcon's Flight marker as hollow copper circle with shadow blur, distance arrow with "~600M" label, compass rose with N/S/E/W spokes (N filled, S hollow). Active-nav scroll highlight via IntersectionObserver toggles inline-style amber color + text-shadow on matching nav anchor. <strong>That's the only continuous motion in the file: a CSS class swap on scroll.</strong></p>
+      </div>
+      <div class="verdict">
+        <strong>Verdict</strong>
+        The static maps are well-drawn. They'd pass for Territory's <em>print-mode</em> work or a still-frame. <strong>But Territory's job is motion.</strong> A Territory impression that ships static canvas drawings of things-that-should-be-moving is exactly the kind of substrate miss the user warned about. The canvases are wired correctly (DPR-aware, redraw on resize), but they never animate. Code runs; the wrong code runs.
+      </div>
+    </article>
+  </div>
+</section>
+
+
+<section class="cluster" id="vibe-36">
+  <div class="cluster-header">
+    <div class="cluster-eyebrow">vibe-36</div>
+    <h2>Takram</h2>
+  </div>
+  <div class="file-grid">
+    <article class="file-card match">
+      <div class="file-head"><div><span class="file-name">vibe-36-takram.html</span><span class="file-tag match">substrate match</span></div></div>
+      <div class="anchor-block">
+        <strong>What Takram actually ships</strong>
+        <p>Takram (Tokyo + London + NY). Speculative design — Shunji Yamanaka era and after. Osaka Expo 2025 work. NTT Docomo concept R&amp;D. Their substrate is essay-publication: rigorous, conceptual, often cross-domain (philosophy + engineering + materials). They publish like an academic press, not a marketing studio.</p>
+      </div>
+      <div class="substrate-block">
+        <strong>What this file ships</strong>
+        <p><span class="runs-pill yes">runs</span> Cormorant Garamond + Noto Sans + Inter. Single IntersectionObserver adds <code>.vis</code> class on <code>.fu</code> elements (fade-up). Title: <em>"FalCaMel — A Small Inquiry into Hospitality, Recursion, and the Time of Camels."</em> Eyebrow: "Note 08 · Reservation." Inline SVG distance-strip cartograph (47km Next cliff café · 1,100km AlUla, with markers and tick lines). Reservation cards labelled <em>"The Cushion"</em> and <em>"The Royal FalCaMel"</em> with body copy: <em>"the cliff closes to the public. All six call signs deploy. The motorcade arrives, or it does not. No names are kept."</em> Footer: <em>"— a small house, a small cliff, a small rule."</em></p>
+      </div>
+      <div class="verdict">
+        <strong>Verdict</strong>
+        The "Note 08" eyebrow framing is the right form for Takram's essay-publication style. The footer line is a Takram-grade conceptual closure. <strong>The file's substrate is the prose itself,</strong> not the motion. Animation is appropriately thin. The conceptual "Inquiry into ... the Time of Camels" title is exactly the kind of register Takram would title an essay with. Substrate matches by being correctly restrained. Code runs.
+      </div>
+    </article>
+  </div>
+</section>
+
+
+<section class="cluster" id="vibe-37">
+  <div class="cluster-header">
+    <div class="cluster-eyebrow">vibe-37</div>
+    <h2>Kenya Hara</h2>
+  </div>
+  <div class="file-grid">
+    <article class="file-card match">
+      <div class="file-head"><div><span class="file-name">vibe-37-kenya-hara.html</span><span class="file-tag match">substrate match · author signs the brief</span></div></div>
+      <div class="anchor-block">
+        <strong>What Hara actually ships</strong>
+        <p>Kenya Hara (Tokyo, Muji art director since 2002). Books: "White," "Designing Design," "Ex-formation." Aesthetic: emptiness as fullness. Three whites used deliberately. Light type weights. Excessive whitespace. Refusal of decoration. Substrate is conceptual: the work disappears into utility.</p>
+      </div>
+      <div class="substrate-block">
+        <strong>What this file ships</strong>
+        <p><span class="runs-pill yes">runs</span> Cormorant Garamond italic 300 weight + Inter 300/400 + Noto Sans 200/300/400. <strong>Author code-comment:</strong> <em>"// Sticky header transition (the only JS — Hara would not approve of more)."</em> Two IIFEs total: sticky header class toggle on scroll &gt; 12px, and IntersectionObserver fade-up at 0.08 threshold with <code>rootMargin: '0px 0px -40px 0px'</code>. Author code-comment on the IO: <em>"// Slow section reveals on intersection (1.0s — Hara is patient)."</em> Reservation copy: <em>"There is no calendar widget. There is no form. This is on purpose."</em> Colophon: <em>"GG. Touch grass at altitude."</em></p>
+      </div>
+      <div class="verdict">
+        <strong>Verdict</strong>
+        <strong>The author signs the brief in the code comments.</strong> Three whites palette, lowercase metadata, refusal of affordances ("there is no calendar widget"), 1.0s patient reveals. The substrate match is correct restraint plus the author meta-acknowledging it. Hara's actual practice — he writes books about emptiness — is exactly this kind of self-aware reduction. Code runs. The aesthetic is the substrate.
+      </div>
+    </article>
+  </div>
+</section>
+
+
+<section class="cluster" id="vibe-38">
+  <div class="cluster-header">
+    <div class="cluster-eyebrow">vibe-38</div>
+    <h2>Irma Boom</h2>
+  </div>
+  <div class="file-grid">
+    <article class="file-card match">
+      <div class="file-head"><div><span class="file-name">vibe-38-irma-boom.html</span><span class="file-tag match">substrate match · book transposed to HTML</span></div></div>
+      <div class="anchor-block">
+        <strong>What Boom actually ships</strong>
+        <p>Irma Boom (Amsterdam). Book designer. The SHV Holdings 2,136-page commemorative book. The Chanel No. 5 white book. The Rietveld book. Substrate: artist books as physical artifacts — page-numbered, sectioned, colophon-signed, sometimes with deliberate physical interventions (deckle edges, embossing, French folds). Her work is the artifact-class.</p>
+      </div>
+      <div class="substrate-block">
+        <strong>What this file ships</strong>
+        <p><span class="runs-pill yes">runs</span> Cormorant Garamond + Source Serif Pro + Inter Tight. Title: <em>"FalCaMel — Vol. 01 · Spring 2026 · A Field Index."</em> Margin numbering: <code>pp. 156 — 159</code>. Reserve section ends with: <em>"§ END · TURN PAGE."</em> <strong>Colophon section</strong> includes: <em>"Set in Cormorant Garamond and Source Serif Pro. Marginalia in JetBrains Mono. Decorative Reem Kufi. Printed on digital paper #F2EBDC. 460 pp. (trimmed). First edition · of one."</em> Single rAF used for <code>requestAnimationFrame(onScroll)</code> debounce on sticky-mini-header. Smooth-scroll for anchor links with reduced-motion respect.</p>
+      </div>
+      <div class="verdict">
+        <strong>Verdict</strong>
+        <strong>Book design transposed to HTML.</strong> The colophon is the substrate. "First edition · of one" for a digital page is a deliberate joke; "Printed on digital paper #F2EBDC" name-checks the actual hex value as if it were Pantone. No motion needed because books don't move — and the file correctly ships almost no motion. Boom's practice is the artifact-class, and this file commits to being the artifact-class. Code runs.
+      </div>
+    </article>
+  </div>
+</section>
+
+
+<section class="cluster" id="vibe-39">
+  <div class="cluster-header">
+    <div class="cluster-eyebrow">vibe-39</div>
+    <h2>Neo Shen</h2>
+  </div>
+  <div class="file-grid">
+    <article class="file-card match">
+      <div class="file-head"><div><span class="file-name">vibe-39-neo-shen.html</span><span class="file-tag match">substrate match</span></div></div>
+      <div class="anchor-block">
+        <strong>What Neo Shen actually ships</strong>
+        <p>Neo Shen / Shenmuseum / contemporary Chinese type and poster design. Atmospheric ink-wash overlays, Cormorant + Cinzel + Noto Serif italics, dark navy/blue-hour palette with terracotta/copper accents. Substrate: image-as-atmosphere, type as breath, mist particles as ambient presence. Contemporary inheritance of Chinese ink-painting tradition mediated through European poster design.</p>
+      </div>
+      <div class="substrate-block">
+        <strong>What this file ships</strong>
+        <p><span class="runs-pill yes">runs</span> Cormorant Garamond italic 300 + Cinzel + Noto Serif. Title: <em>"FalCaMel — A Cliff, at the Long Blue Hour."</em> <strong>Two real mist-particle canvases</strong> (<code>mistCanvasHero</code> with 80 particles, <code>mistCanvasRace</code> with 60 particles). Each particle: <code>r = 0.6 + Math.random() * 1.4</code>, <code>vy = -(0.05 + Math.random() * 0.18)</code> upward drift, <code>vx = (Math.random() - 0.5) * 0.04</code> sine-perturbed x, <code>a = 0.06 + Math.random() * 0.10</code> opacity, color <code>rgba(232, 220, 196, ...)</code>. Wraparound at viewport edges. <strong>rAF loop with reduced-motion fallback to a static draw.</strong> Plus IntersectionObserver-fade reveals + sticky header. Ink-wash CSS overlays as <code>::after</code> pseudo-elements with <code>linear-gradient(180deg, var(--ns-dusk) 0%, transparent 40%, transparent 60%, var(--ns-mist) 100%)</code>.</p>
+      </div>
+      <div class="verdict">
+        <strong>Verdict</strong>
+        The mist particles work. The opacity range (0.06-0.16) is correctly subtle — mist that doesn't overwhelm. The wraparound logic is correct. The reduced-motion static-draw fallback is the kind of detail that separates real motion design from cosplay. The "Long Blue Hour" title is on-brand for Neo Shen's atmospheric registers. Code runs. Substrate matches.
+      </div>
+    </article>
+  </div>
+</section>
+
+
+<!-- ════════════ VIBE-8 RESKINS ════════════ -->
+<section class="cluster" id="vibe-8-reskins">
+  <div class="cluster-header">
+    <div class="cluster-eyebrow">vibe-8 reskins</div>
+    <h2>Respawn Point in design-studio voices</h2>
+    <p class="cluster-intro">Three of the four vibe-8 design reskins remain on disk (the Active Theory variant has been removed since the original audit; only the .md memo survives). Each takes the Respawn Point closing scene and renders it in a named studio's voice, evaluated on the same substrate-authenticity criterion as the main cluster.</p>
+  </div>
+
+  <div class="file-grid">
+    <article class="file-card match">
+      <div class="file-head"><div><span class="file-name">vibe-8-fieldio.html</span><span class="file-tag match">substrate match · audio-reactive</span></div></div>
+      <div class="substrate-block">
+        <strong>What this file ships</strong>
+        <p><span class="runs-pill yes">runs</span> 2,206 lines. Six rAF, three audio-related elements, five IntersectionObservers. <strong>Real audio-reactive pipeline</strong>: lobby gate user-click triggers <code>new Audio('audio/bgm-tech.mp3')</code> with <code>crossOrigin = 'anonymous'</code> + <code>loop = true</code>. AudioContext built inside the gesture, immediately resumed if suspended (<code>await AUDIO.ctx.resume()</code>) — author code-comment notes this is required on Chromium/Safari. <code>createMediaElementSource(AUDIO.bgm)</code> → <code>createAnalyser()</code> with <code>fftSize = 64</code> (32 frequency bins) → connect chain → <code>freqData = new Uint8Array(32)</code>. Then BGM <code>play()</code> with rAF-driven 1.2s volume fade-in (0 → 0.30). The animate-analyser loop: <code>analyser.getByteFrequencyData(freqData)</code> per frame, maps each bin to a bar height: <code>h = Math.max(8, (v / 255) * 100)</code>. Muted fallback uses <code>Math.sin(performance.now()/600 + i*0.4)</code>-driven ambient bars so the visual still moves when audio is muted. Plus background Voronoi (built once via Sutherland-Hodgman polygon clipping, 80 cells) with separate rAF drift loop perturbing cell positions ±2px on a 12s loop.</p>
+      </div>
+      <div class="verdict">
+        <strong>Verdict</strong>
+        The audio init order is the kind of thing that crashes on Safari if you get it wrong — and the comment on line 1641 acknowledges this explicitly. Real frequency-reactive viz, real AudioContext-resume gating, real fallback for muted state. Field.io's actual practice is exactly this kind of generative-procedural-with-audio work. Code runs. Substrate matches and exceeds.
+      </div>
+    </article>
+
+    <article class="file-card match">
+      <div class="file-head"><div><span class="file-name">vibe-8-pentagram.html</span><span class="file-tag match">substrate match · single bold gesture</span></div></div>
+      <div class="substrate-block">
+        <strong>What this file ships</strong>
+        <p><span class="runs-pill yes">runs</span> 1,247 lines. Two rAF, two IntersectionObservers. <strong>The 47 count-up</strong> is the hero animation: IO at <code>#count-47</code>, fires once, 1400ms duration, cubic ease-out (<code>1 - Math.pow(1-t, 3)</code>), <code>countEl.textContent = Math.round(easeOut(p) * target)</code>, lands on 47 at p=1. Sticky-header scroll-shadow. Section reveal IO. Issue numbering: <em>"Issue 04 · Q2 2026."</em> §-numbered colophon nav. Footer line: <em>"ALL NPCS ARE REAL · NO ANIMALS WERE NERFED IN THE MAKING OF THIS LOBBY."</em></p>
+      </div>
+      <div class="verdict">
+        <strong>Verdict</strong>
+        <strong>The single bold typographic gesture is the substrate.</strong> One number animates. Everything else is editorial. The footer copy is the best line in the cluster — Pentagram tone exactly. Substrate matches. Code runs.
+      </div>
+    </article>
+
+    <article class="file-card match">
+      <div class="file-head"><div><span class="file-name">vibe-8-hara.html</span><span class="file-tag match">substrate match · author signs the brief</span></div></div>
+      <div class="substrate-block">
+        <strong>What this file ships</strong>
+        <p><span class="runs-pill yes">runs</span> 809 lines. One rAF (used as a body fade-in <code>is-loaded</code> class toggle for the opening 0.6s paint), two IntersectionObservers. Author code-comment on the IO: <em>"// Slow section reveals on intersection (1.0s — Hara is patient)."</em> Reservation copy: <em>"There is no calendar widget. There is no form. This is on purpose."</em> Colophon ending: <em>"The grandmother does not stream. GG. Touch grass at altitude."</em> Title: <em>"FalCaMel — The lobby stays open after the arena closes."</em></p>
+      </div>
+      <div class="verdict">
+        <strong>Verdict</strong>
+        Same author-signs-the-brief mechanism as the standalone vibe-37 Hara, applied to the Respawn Point closing scene. Substrate match in restraint. The "the grandmother does not stream" line is the kind of refusal-to-engage Hara would put in his own writing. Code runs.
+      </div>
+    </article>
+
+    <article class="file-card match">
+      <div class="file-head"><div><span class="file-name">vibe-8-active-theory.html</span><span class="file-tag match">substrate match · multi-system motion design</span></div></div>
+      <div class="anchor-block">
+        <strong>What Active Theory ships (recap)</strong>
+        <p>Immersive web for Google, Tesla, Beats, X-Men, the WebGL Olympics. Substrate: WebGL/canvas heavy, glass-with-depth, 3D tilt on cursor, particle fields, scroll-coupled scene composition, ambient HUD chrome (live clocks, uptime counters, environmental data). The aesthetic is military-tech-future: monospace, grid overlays, scanline glow, cinematic interaction grammar.</p>
+      </div>
+      <div class="substrate-block">
+        <strong>What this file ships</strong>
+        <p><span class="runs-pill yes">runs</span> 86KB / 1838 lines. <strong>Lobby gate state-machine</strong> persisted in localStorage (<code>falcamel-lobby-unlocked</code>) — first visit shows lobby overlay, returning visitors skip but BGM still re-armed via fresh user-gesture listeners (pointerdown/keydown/scroll). Click "enter-lobby" → 80ms flash class on <code>#flash</code> → lobby <code>.dismissed</code> → <code>activateHero()</code> + BGM <code>play()</code> at volume 0.35.</p>
+        <p style="margin-top:8px;"><strong>Sultan ping rAF opacity sine</strong> on the SVG falcon marker: <code>v = 0.4 + (Math.sin(t * 2π) * 0.5 + 0.5) * 0.6</code> on a 2400ms period. Continuous breathing of the cliff-map marker — the falcon pulses like it's alive.</p>
+        <p style="margin-top:8px;"><strong>Cursor-to-elevation crosshair canvas</strong> (the strongest single move): on hero-stage mousemove, redraws full canvas with two dashed crosshair lines (<code>setLineDash([4*dpr, 6*dpr])</code>). Then maps cursor pixel position through <code>stageToVb()</code> into the SVG's 1600×720 viewBox and computes: <strong>elevation</strong> as <code>elev = 736 - ((vb.y - 124) / (540-124)) * 200</code> (calibrated to the actual 200m cliff drop over 416 viewBox pixels) and <strong>horizontal offset</strong> as <code>horiz = ((vb.x - 510) / (1085-510)) * 600</code> meters east/west of the west cliff rim. Tooltip follows cursor showing <code>[736 m · 240 m east of W rim]</code>. <strong>This is a topographically accurate readout of where on the cliff your cursor is hovering.</strong> Plus hover-near-marker detection: Euclidean distance from cursor to FalCaMel (465,130) and Falcon's Flight (1130,60) markers; within 60px radius, popup fires with <code>playSFX('focus')</code> debounced 600ms.</p>
+        <p style="margin-top:8px;"><strong>Mouse parallax cards</strong>: document-level mousemove iterates <code>[data-mouse-card]</code> elements; for each card, computes cursor distance from card center, applies <code>translate(dx*4px, -lift px)</code> where <code>lift = max(0, 0.4 - dist) * 30</code>. Cards rise as cursor approaches, with falloff. Multi-element shared-cursor-field, not per-card hover.</p>
+        <p style="margin-top:8px;"><strong>Plinth 3D tilt</strong>: <code>rotateY(px * 14deg) rotateX(-py * 10deg)</code> on portrait, reset on mouseleave, plus <code>playSFX('focus')</code> on enter (debounced 200ms).</p>
+        <p style="margin-top:8px;"><strong>Section-enter SFX choreography</strong>: IntersectionObserver at 0.5 threshold, tracks <code>lastSectionId</code> to prevent repeats, fires <code>playSFX('whoosh')</code> debounced 600ms when a new section crosses threshold. Audio is choreographed to scroll position with state.</p>
+        <p style="margin-top:8px;"><strong>§07 three-stage cinematic</strong>: three IntersectionObservers gate three sequential reveals. Stage 2 (the "avengers" cascade) fires four cards with <code>setTimeout(i * 280ms)</code>, <em>each one accompanied by a debounced whoosh SFX</em> — you scroll into Stage 2 and hear whoosh-whoosh-whoosh-whoosh as cards land at 280ms intervals. Stage 3 fires two GOATs at 600ms and 1400ms — deliberate 800ms pause builds anticipation. Each observer disconnects after firing — these play once per session, like film cues.</p>
+        <p style="margin-top:8px;"><strong>SFX system</strong>: 7 distinct sound sources (<code>achievement, focus, click, stamp, hover, click-soft, whoosh</code>) with per-sound volume calibration (0.3-0.7), debounce maps to prevent spam, mute toggle persisted to localStorage, ESC-to-mute keyboard shortcut. <strong>Click-anywhere-bounces-back</strong>: KEEP_SELECTOR allowlist of interactive elements; clicks outside that allowlist but inside <code>#s04/#s05/#s06</code> smooth-scroll back to hero <code>#s02</code> with whoosh — the page treats content sections as exhibits, touch-and-it-returns-you-to-base.</p>
+      </div>
+      <div class="verdict">
+        <strong>Verdict</strong>
+        Multi-system motion design with cross-system coordination. The crosshair turns the cliff map into a topographic readout — cursor-to-meters-elevation calibration is the kind of detail that signals real systems thinking. The Sultan-ping breathes via rAF sine. Section-scroll triggers spatially-debounced audio cues. The §07 cinematic plays cards-in-with-sound-on-each like a Marvel intro sequence. The page treats content as interactive exhibits with bounce-back behavior. <strong>This is the file my swarm classifier got wrong.</strong> The classifier called it B because the canvas redraws on mousemove rather than continuously. That criterion was substrate-mechanical, not craft-aware. The work is multi-system coordination — that's what Active Theory actually ships, and that's what this file delivers. Substrate matches.
+      </div>
+    </article>
+  </div>
+</section>
+
+
+<!-- ════════════ DECKS ════════════ -->
+<section class="cluster" id="decks">
+  <div class="cluster-header">
+    <div class="cluster-eyebrow">slide decks</div>
+    <h2>Pitch logic. Speaker-note craft. Info density. Animation choreography. Document discipline.</h2>
+    <p class="cluster-intro">
+      Different evaluation criteria. The decks are not vibes; they are deliverables for live presenters in real rooms with real money on the table. The bar shifts: <strong>(1) does the deck make the case?</strong> (2) <strong>do the embedded speaker notes give a presenter actual delivery cues?</strong> (3) <strong>does every slide earn its space?</strong> (4) <strong>does the animation choreography serve the argument?</strong> (5) <strong>does the document discipline match the artifact-class?</strong> A debt capital memorandum has different document-discipline standards than an emotional conversion close.
+    </p>
+  </div>
+
+  <div class="file-grid">
+    <article class="file-card match">
+      <div class="file-head"><div><span class="file-name">falcamel/pitch/FalCaMel Pitch.html</span><span class="file-tag match">master investor deck</span></div></div>
+      <div class="substrate-block">
+        <strong>What it ships</strong>
+        <p><span class="runs-pill yes">runs</span> 1,519 lines. 17 slides. Embedded <code>&lt;script type="application/json" id="speaker-notes"&gt;</code> with one note per slide. 4 rAF, 69 <code>data-animate</code> attributes hooked into a custom <code>deck-stage.js</code> runtime. Per-slide gating: <code>.anim-active</code> class added on slide-change events, triggering <code>data-animate="vf-word-line"</code> word-mask reveals, <code>data-animate="bullet-enter"</code> staggered bullets, <code>data-animate="count-up"</code> integer counters with cubic ease-out over ~1200ms. Tweaks panel: light/dark surface toggle, accent-color swap (terracotta / indigo / crimson / ochre), primary-script toggle, business-numbers visibility flag.</p>
+      </div>
+      <div class="verdict">
+        <strong>Verdict — pitch logic</strong>
+        17-slide arc: Title → Executive Summary → Tuwaiq Edge (full-bleed cliff) → Above Qiddiya (Sultan vs coaster speed) → Qahwa Comes First → Three Pours → Six Residents → Residents Detail (iconostasis) → Sultan vs Flight (race photo) → 47-0 Marquee → Clear Your Plate → Ledger (8 pricing tiers) → Grandma Approves Books → By The Numbers → Jaddah Portrait (authority seal) → Book Majlis → Location. Opens manifesto, closes booking. <strong>The deck makes the case.</strong>
+        <strong style="margin-top:14px;display:block;">Speaker-note craft</strong>
+        Each slide's note is a delivery script with explicit emotional cues: <em>"Decree Number One. Say softly."</em> · <em>"Read the question exactly. Do not answer it. Let it sit."</em> · <em>"Pause for 2 seconds before the number lands."</em> Risk-deferred citations point to data-room sections. <strong>This is a working presenter's tool, not just a copy file.</strong>
+        <strong style="margin-top:14px;display:block;">Info density</strong>
+        Every slide cites: SAR 72 average check, 142 seats, 47-0 record, FY26 H1 +34% YoY. Numbers are auditable.
+        <strong style="margin-top:14px;display:block;">Animation choreography</strong>
+        The deck-stage runtime fires animations on slide-change. Word-mask reveals stagger left-to-right. Count-ups run with cubic ease-out, perceptible-but-not-distracting. The animations <em>support</em> the speaker rather than performing for the audience.
+        <strong style="margin-top:14px;display:block;">Document discipline</strong>
+        17/17 slides have speaker notes. Tweaks panel is unusual — most pitch decks aren't designed for live theme adjustment, but it's useful for context-aware presenting (you'd run accent=indigo for an institutional investor and accent=terracotta for a hospitality-vertical investor). Code runs.
+      </div>
+    </article>
+
+    <article class="file-card match">
+      <div class="file-head"><div><span class="file-name">falcamel/cliff-ledger/deck.html</span><span class="file-tag match">debt capital memorandum</span></div></div>
+      <div class="substrate-block">
+        <strong>What it ships</strong>
+        <p><span class="runs-pill yes">runs</span> 16-slide formal debt capital memorandum. Document ID <code>CL-DCM-2026-04-001</code>. IBM Plex Serif + IBM Plex Sans tight kerning. Audit-green covenant pass rows, stress-red downside rows, watermark in footer. Embedded speaker notes (19 cues) covering risk disclosure, covenant definitions, management succession. Speaker notes pattern citations to data-room sections (e.g., "data room §1.1 · S1 Qiddiya masterplan", "data room §3.2 · sensitivity analysis", "data room §4.3 · succession plan").</p>
+      </div>
+      <div class="verdict">
+        <strong>Verdict — pitch logic</strong>
+        Slides 1-16: Cover → Asset at Glance (9 fact-cells) → Physical Asset (photo + 4-corner labels) → Site Control (SVG site plan, masterplan routed around) → Regulatory Perimeter (4-row license table) → Q1 2026 Actuals (4-cell bento: 18K covers, SAR 1.31M revenue, SAR 71.94 avg, 26.4% EBITDA) → Revenue Mix → Unit Economics (6-row) → Customer Loyalty → Neighborhood Catalysts (timeline SVG) → Conservative Projection (4-bar FY26-FY29) → Stress Test (3 scenarios: Phase 2 slip +12mo, Falcon's Flight 6mo closure, visitor miss −20% — all clear 1.40× DSCR covenant) → DSCR table with covenant-pass LED → Collateral Summary → Management cards → The Facility (term sheet + SAR 8.5M ask).
+        <strong style="margin-top:14px;display:block;">Speaker-note craft</strong>
+        Speaker notes for a DCM are different from a marketing pitch — they need to cover compliance language and risk-disclosure phrasing, not emotional cues. The 19 notes here are written in that register.
+        <strong style="margin-top:14px;display:block;">Info density</strong>
+        Maximum. Every cell is auditable. License refs are real-format (SA-RIY-4482, 02-A-190). PwC draft on file noted. ZFP structural cert noted. The neighborhood catalysts timeline cites Six Flags Q1 2026, MBS Stadium operational, PAC H2 2026, F1 Q3 2025 feasibility.
+        <strong style="margin-top:14px;display:block;">Animation choreography</strong>
+        Mostly static. Count-ups on slide 6 via <code>data-countup</code> attributes. Static is correct for a DCM — animation in financial documents would be malpractice.
+        <strong style="margin-top:14px;display:block;">Document discipline</strong>
+        Best-in-class. Document ID, page numbers, confidential watermark, covenant LED color-coded. Substrate matches the artifact-class.
+      </div>
+    </article>
+
+    <article class="file-card match">
+      <div class="file-head"><div><span class="file-name">falcamel/neighborhood-detonates/deck.html</span><span class="file-tag match">live operational pitch</span></div></div>
+      <div class="substrate-block">
+        <strong>What it ships</strong>
+        <p><span class="runs-pill yes">runs</span> 19 slides. 3 rAF, 1 setInterval, <strong>1 fetch (Open-Meteo weather API with 3.5s timeout fallback to "24°C Clear")</strong>. <strong>Live clock</strong> via <code>setInterval(updateClock, 1000)</code> using Intl.DateTimeFormat / Asia/Riyadh. <strong>LED pulse animation</strong> with distinct <code>animation-delay</code> per circle (0s, 0.6s, 0.8s, 1.0s) — green=operational, honey=opening soon, amber=construction, terra=us. <strong>easeSpring count-up physics</strong>: <code>easeSpring(t) = 1 - Math.exp(-4*t) * Math.cos(10*t)</code> over 1400ms — underdamped settle (numbers oscillate around target before locking). Cascade stagger via <code>--stagger</code> CSS variable per row.</p>
+      </div>
+      <div class="verdict">
+        <strong>Verdict — pitch logic</strong>
+        19-slide arc opens with a live operational dashboard (Slide 1: status LEDs, live clock, weather, ticker showing FY H1 SAR 1.47M +34% YoY). Then: Exec Summary (4 bullets) → Catalyst Map (SVG + pulse circles) → Falcon's Flight Operational → What's Next (3 catalysts H2 2026 / 2027 / 2027) → <strong>Audience 4× by 2028</strong> (line chart with shaded landing window) → One Road (SVG road map, 11-month structural permit) → Business Audited → The Cliff → Residents → Grandma → Unit Economics 3×3 → Traction → Growth Projection (FY25 SAR 2.4M → FY28 SAR 18.7M, 7.8× CAGR) → Capacity Plan (142→182 seats, +40 Q4 2026, 14-month payback) → Competition → Risk Register → The Ask → Come See.
+        <strong style="margin-top:14px;display:block;">Animation choreography</strong>
+        The easeSpring is the strongest single move in any deck. Underdamped settle on numeric reveals communicates <em>real measurement</em> — numbers that hunt before locking are how analog instruments behave; the metaphor is that the data is alive. The phase-staggered LED pulses on Slide 1 do the same trick — different LEDs breathing at different intervals reads as a live operational system, not an animated PowerPoint.
+        <strong style="margin-top:14px;display:block;">Live data integration</strong>
+        Open-Meteo weather fetch is the most ambitious technical move in any deck. The 3.5s timeout fallback is correct defensive coding. Asia/Riyadh clock via Intl.DateTimeFormat is one line of code that gets the locale right.
+        <strong style="margin-top:14px;display:block;">Document discipline</strong>
+        19-slide pitch with live clock, weather, status LEDs and 35 speaker notes covering risk citations per slide. Substrate matches an investor roadshow pitch with full operational atmospherics.
+      </div>
+    </article>
+
+    <article class="file-card match">
+      <div class="file-head"><div><span class="file-name">falcamel/coming-home/deck.html</span><span class="file-tag match">emotional conversion close</span></div></div>
+      <div class="substrate-block">
+        <strong>What it ships</strong>
+        <p><span class="runs-pill yes">runs</span> 19 slides. 6 rAF. <strong>Parallax cursor-tracking with critically-damped lerp.</strong> Mousemove → <code>targetX/Y</code>; per-rAF tick: <code>cursorX += (targetX - cursorX) * 0.12</code> (damping factor 0.12 — Locomotive's default). The lerped cursor position written to CSS variables <code>--cursor-x</code>, <code>--cursor-y</code> applied as transforms on three layered hero panels (sky / escarpment / road) at different magnitudes — real parallax, not pixel-by-pixel scroll. <strong>Montage auto-advance</strong> on Slide 2: setTimeout 2600ms per panel, <code>panels.classList</code> toggle, 3 panels for ~8s. Calendar mock with click-to-hold and toast notification. easeSpring count-up on the 91% clear-plate stat. Final slide is a black slide with one rhetorical question.</p>
+      </div>
+      <div class="verdict">
+        <strong>Verdict — pitch logic</strong>
+        Different from an investor deck — this is a conversion close, post-investor-meeting. 19-slide arc: Drive Up (parallax windshield hero) → The Drive (3-panel montage auto-advance) → Coming Home (2-line thesis: <em>"Coming home is not a feeling. It is a room that lets you stop."</em>) → You Arrive (brass plate) → Meet Grandma → The Kitchen → Menu Overview → Qahwa + Luqaimat → Mains (3 dish cards) → Full FalCaMel Challenge (91% clear stat) → Grandma's Rule (Arabic + English, terracotta register break) → Residents Transition → Sultan → Haboob → The Cats → Book Whole House (mock May 2026 calendar) → Pricing Bento (8 tiers) → How to Book (3 steps) → Provocative Q (black slide close: <em>"When was the last time you were allowed to stop performing?"</em>).
+        <strong style="margin-top:14px;display:block;">Speaker-note craft</strong>
+        Different register — emotional direction, not financial. Cues like <em>"Read the question exactly. Do not answer it. Let it sit."</em> + production notes like <em>"animation timing 2.6s per panel."</em>
+        <strong style="margin-top:14px;display:block;">Animation choreography</strong>
+        <strong>Strongest cinematic in the deck cluster.</strong> The parallax lerp at 0.12 damping is the right damping — Locomotive's default. The montage auto-advance on Slide 2 is film-grade pacing. The black-slide rhetorical-question close is rhetorical-power-of-the-pause done right.
+      </div>
+    </article>
+
+    <article class="file-card match">
+      <div class="file-head"><div><span class="file-name">falcamel/weigh-in/Weigh-In Deck.html</span><span class="file-tag match">combat-sports framing</span></div></div>
+      <div class="substrate-block">
+        <strong>What it ships</strong>
+        <p><span class="runs-pill yes">runs</span> 16 slides. 4 rAF, 34 <code>data-animate</code> attributes. deck-stage.js runtime. easeSpring count-ups with <code>SPRING_MS = 1400</code> and <code>decay = Math.exp(-4*t)</code>. Cascade stagger via <code>--stagger</code> CSS variable per DOM order, 60-120ms offsets. <strong>Belt SVG</strong>: outer laurel ring, spokes, corner color crescents (SAU green / UAE red), central FalCaMel wordmark — composed in inline SVG, not an image. Live-bug ticker. LED status colors: green (operational) / honey (opening soon) / amber (construction) / terra (us).</p>
+      </div>
+      <div class="verdict">
+        <strong>Verdict — pitch logic</strong>
+        Boxing/MMA framing for the MBS-vs-MBZ rivalry. 16-slide arc: Weigh-In Title → Main Event → MBS's Corner → Tale of Tape → Pivot (Your Corner) → Undercard (Sultan race) → 47-0 Scoreboard → Fight Card → Real Referee (Jaddah) → Round Protocol → Training Table → <strong>The Plot Twist</strong> (MBS &amp; MBZ walking together) → By Numbers → Championship Belt → Tickets → Book Ringside.
+        <strong style="margin-top:14px;display:block;">Speaker-note craft</strong>
+        33 cues — highest density in any deck. <em>"Round One. Welcome to The Weigh-In..."</em>, register cues like <em>"Two cousins. Sixty billion dollars. One Gulf."</em>
+        <strong style="margin-top:14px;display:block;">Pitch logic where it shines</strong>
+        <strong>"The Plot Twist"</strong> slide is the dramatic spine: after eight slides of MBS-vs-MBZ rivalry framing, slide 12 reveals <em>"Two rulers. Sixty billion dollars. One cafe with the only seat that was here before either fighter entered the ring."</em> The deck spends 8 slides earning the deflation moment.
+        <strong style="margin-top:14px;display:block;">Where it might overplay</strong>
+        Combat-sports framing is high-risk — too cute for a financial-vertical investor, perfect for hospitality/entertainment-vertical investor. Speaker can dial it down or up via tweaks panel.
+      </div>
+    </article>
+
+    <article class="file-card match">
+      <div class="file-head"><div><span class="file-name">falcamel/respawn-point/Respawn Point Deck.html</span><span class="file-tag match">esports/MMA framing</span></div></div>
+      <div class="substrate-block">
+        <strong>What it ships</strong>
+        <p><span class="runs-pill yes">runs</span> 17 slides. 4 rAF + 1 setInterval. deck-stage.js runtime. Wrestling/MMA color palette (Saudi green SAU, Emirati red UAE, gold accents); live-bug ticker; corner badges. Treats FalCaMel as <em>"an esports venue disguised as a cafe."</em> Residents become fighters: <strong>Sultan = Champ, Haboob = Veteran Cornerman, Qamar = Cutman, Luna = Ring Inspector, Shams = Between Rounds, Shabby = Threw in the Towel.</strong></p>
+      </div>
+      <div class="verdict">
+        <strong>Verdict</strong>
+        Variant pitch for Qiddiya stakeholders / esports-and-entertainment investors. Speaker notes 33 cues. Substrate matches the genre — code runs, animations fire on slide-change. The "Threw in the Towel" residency assignment for Shabby is the funniest line in the deck cluster.
+      </div>
+    </article>
+
+    <article class="file-card match">
+      <div class="file-head"><div><span class="file-name">falcamel/grandmas-rule/deck.html</span><span class="file-tag match">interactive series-A deck</span></div></div>
+      <div class="substrate-block">
+        <strong>What it ships</strong>
+        <p><span class="runs-pill yes">runs</span> 1,076 lines. 6 rAF, 19 <code>data-animate</code> attributes. <strong>Cursor-tracked SVG silhouette of Jaddah</strong>: pupil <code>&lt;circle&gt;</code> elements receive cursor-relative <code>transform</code> via <code>setProperty</code>, computing eye-offset toward cursor in real time. Live name-input rewrite: as user types, the headline H1 updates via JS (your name appears in "Welcome to FalCaMel, [Name]"). data-animate framework: word-line reveals stagger word-by-word, count-up integers tick from data-from to data-to via rAF over 1-2s. <strong>Feature flag</strong>: JS checks <code>window.location.hostname</code> against allowlist (localhost, falcamel.sa/investor-room, private). Slide 11 (the MBS-patronage hinge slide) only renders if the host matches.</p>
+      </div>
+      <div class="verdict">
+        <strong>Verdict</strong>
+        <strong>The most architecturally ambitious deck in the cluster.</strong> The cursor-tracked silhouette is interactive without being a gimmick — it makes the deck feel watched. The name-input rewrite personalizes the opening slide. The host-allowlist feature flag means the deck can hide context-sensitive content from public preview while showing it in private investor rooms — that's serious sales-engineering, not just a deck. Substrate exceeds artifact-class.
+      </div>
+    </article>
+
+    <article class="file-card match">
+      <div class="file-head"><div><span class="file-name">falcamel/project/FalCaMel Deck.html</span><span class="file-tag match">press/public pitch</span></div></div>
+      <div class="substrate-block">
+        <strong>What it ships</strong>
+        <p><span class="runs-pill yes">runs</span> 16 slides. deck-stage.js + rAF count-ups + View Transition API wrapper at line ~1000. Cover (Decree No. 001 with hero photo + seal SVG), 14 content slides, location/booking close. Speaker notes 16 cues. Tweaks panel.</p>
+      </div>
+      <div class="verdict">
+        <strong>Verdict</strong>
+        Press/public pitch — different audience from the investor deck. Same structural rigor: manifesto open, location/booking close, Grandma photo as 3-act climax. Substrate matches.
+      </div>
+    </article>
+
+    <article class="file-card match">
+      <div class="file-head"><div><span class="file-name">falcamel/FalCaMel Decree.html</span><span class="file-tag match">house manifesto</span></div></div>
+      <div class="substrate-block">
+        <strong>What it ships</strong>
+        <p><span class="runs-pill yes">runs</span> rAF + IntersectionObserver. Seal SVG with concentric rings, diamond lattice, Arabic jeem (ج), circular text path "JADDAH · UMM SULTAN..." <strong>Reveal:</strong> seal carve via clip-path circle 0%→62% over 1200ms <code>cubic-bezier(0.2, 0.8, 0.2, 1)</code> on intersect, then 5 articles fade-in stagger (opacity 0→1, translateY 24px→0, 700ms, 80ms per child). prefers-reduced-motion handled.</p>
+      </div>
+      <div class="verdict">
+        <strong>Verdict</strong>
+        The seal carve is the strongest single visual reveal in the entire folder. clip-path radial expansion from 0% to 62% (intentional partial — leaves the seal visibly inside its frame, not edge-bleeding) over 1.2s with the cubic-bezier acceleration profile is craft-grade. Code runs.
+      </div>
+    </article>
+
+    <article class="file-card match">
+      <div class="file-head"><div><span class="file-name">falcamel-cafe-design-system/.../FalCaMel Decree.html</span><span class="file-tag match">press-kit variant</span></div></div>
+      <div class="substrate-block">
+        <strong>What it ships</strong>
+        <p><span class="runs-pill yes">runs</span> Different hash from the main Decree. Same structural seal, simplified resident bios. <strong>Diff:</strong> Main Decree shows residents as "Sultan = Saker Falcon · 47-0 vs coaster", "Haboob = Camel since 1987"; this version flattens to "Falcon · 47-0 vs coaster" and "Camel since 1987." Press-kit / reduced-scope variant.</p>
+      </div>
+      <div class="verdict">
+        <strong>Verdict</strong>
+        Editorial revision layer. Useful for press distribution where the cast doesn't get full bios. Substrate matches by being correctly thinner.
+      </div>
+    </article>
+
+    <article class="file-card match">
+      <div class="file-head"><div><span class="file-name">falcamel/index.html — Grandma's Waiting</span><span class="file-tag match">public marketing site</span></div></div>
+      <div class="substrate-block">
+        <strong>What it ships</strong>
+        <p><span class="runs-pill yes">runs</span> 717 lines. Bilingual Arabic/English. Speaker notes embedded (intended for press use). Full menu (5 categories, 20+ items), 6 residents, 6 experiences (free → 7,500 SAR). House rules section. CSS hover states + smooth-scroll anchors. <strong>No animation</strong> — correct for a guest-facing booking site.</p>
+      </div>
+      <div class="verdict">
+        <strong>Verdict</strong>
+        Production-ready public site. Substrate matches the artifact-class (booking site, not pitch). The bilingual qatt-spine geometric accent + qahwa service decree as centerpiece is on-brand. Where it could push: the "Grandma's Waiting" tagline could be the entire hero — currently it's a tagline among many. But that's a content note, not a substrate failure.
+      </div>
+    </article>
+
+    <article class="file-card partial">
+      <div class="file-head"><div><span class="file-name">VIBE-8/Respawn Point Design System.html</span><span class="file-tag partial">design-system reference</span></div></div>
+      <div class="substrate-block">
+        <strong>What it ships</strong>
+        <p><span class="runs-pill yes">runs</span> Design-system reference doc with tweaks data attributes (<code>body.dataset</code>, <code>classList.toggle</code>) and a parent <code>postMessage</code> protocol (<code>window.parent.postMessage</code>) for live edit-mode sync. Modular section loader (<code>.bundle-src.html</code> sibling). No animation runtime in the file itself.</p>
+      </div>
+      <div class="verdict">
+        <strong>Verdict</strong>
+        Different artifact class — token catalog, not narrative. The postMessage protocol for parent-child edit-mode sync is the kind of design-system tooling that's usually overengineered, but here it's hooked to <code>data-editable</code> attributes that exist on every other deliverable in the folder, so it serves the OskarOS authoring environment. Substrate matches its job (be the system of record), not the pitch decks' job.
+      </div>
+    </article>
+  </div>
+</section>
+
+
+<footer class="footer">
+  Substrate audit · 24 design-school files + ~12 decks · read end-to-end · no subagents · April 2026
+</footer>
+
+</body>
+</html>

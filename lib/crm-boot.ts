@@ -164,10 +164,12 @@ function ensureSchema(db: Database.Database): void {
       promoted_at     TEXT,
       promoted_to     TEXT REFERENCES prospects(id),
       rejected_at     TEXT,
-      rejected_reason TEXT
+      rejected_reason TEXT,
+      scout_json      TEXT DEFAULT '{}'
     );
     CREATE INDEX IF NOT EXISTS idx_raw_prospects_source_scraped_at ON raw_prospects(source, scraped_at DESC);
     CREATE INDEX IF NOT EXISTS idx_raw_prospects_phone ON raw_prospects(phone);
+    CREATE INDEX IF NOT EXISTS idx_raw_prospects_unpromoted ON raw_prospects(promoted_at, rejected_at);
 
     CREATE TABLE IF NOT EXISTS merge_conflicts (
       id              TEXT PRIMARY KEY,
@@ -227,6 +229,15 @@ function ensureSchema(db: Database.Database): void {
     if (!prospectCols.has(col)) {
       db.exec(`ALTER TABLE prospects ADD COLUMN ${col} TEXT DEFAULT ''`)
     }
+  }
+
+  // Migration: scout_json on raw_prospects (Scout v1, Ralph 2026-06-03). The
+  // pool's prescreen result (taste + ◐ queried lamps) lives here as a blob.
+  const rawCols = new Set(
+    (db.prepare("PRAGMA table_info(raw_prospects)").all() as Array<{ name: string }>).map(c => c.name),
+  )
+  if (!rawCols.has('scout_json')) {
+    db.exec(`ALTER TABLE raw_prospects ADD COLUMN scout_json TEXT DEFAULT '{}'`)
   }
 
   // Migration: drop the consolidated duplicate fields (Ralph 2026-05-28).

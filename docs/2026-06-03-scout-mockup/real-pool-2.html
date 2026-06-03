@@ -164,6 +164,16 @@
   .choiceq{margin-top:9px;font-size:12px;color:var(--text);line-height:1.45;padding:9px 11px;background:var(--bg-sunken);border-radius:8px;border-left:2px solid var(--phosphor);}
   .choiceq .cl{font-family:var(--mono);font-size:8.5px;color:var(--dim);text-transform:uppercase;letter-spacing:.1em;display:block;margin-bottom:3px;}
   .vbig{font-size:12px;color:var(--text);line-height:1.45;margin-top:9px;}
+  /* ◓ Scouted — multi-row verdict scorecard (one judgment per row) */
+  .sc-rows{display:flex;flex-direction:column;margin-top:2px;}
+  .sc-r{display:grid;grid-template-columns:96px 1fr;gap:14px;align-items:center;padding:10px 1px;border-bottom:1px solid var(--border);}
+  .sc-r:last-child{border-bottom:0;}
+  .sc-l{font-family:var(--mono);font-size:9.5px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);align-self:start;padding-top:2px;}
+  .sc-v{font-size:12.5px;color:var(--text);line-height:1.4;display:flex;align-items:center;gap:11px;flex-wrap:wrap;}
+  .sc-note{font-family:var(--mono);font-size:9px;color:var(--dim);letter-spacing:.03em;}
+  .sc-quote{font-style:italic;color:var(--text);}
+  .sc-r.verdict{background:rgba(200,238,122,.05);border-radius:8px;padding-left:11px;padding-right:11px;}
+  .sc-vline{font-size:13.5px;color:var(--text);line-height:1.5;}
   .qline{font-size:11.5px;color:var(--muted);line-height:1.5;}
   .gfbig{font-family:var(--mono);font-size:13px;color:var(--violet);margin-bottom:6px;}
   .gfnote2{font-size:11.5px;color:var(--muted);line-height:1.45;margin-bottom:8px;}
@@ -329,12 +339,17 @@ function dossier(d){
       ${lamp('Age','age',L.age)}${lamp('Stack','stack',L.stack)}${lamp('Hosting','host',L.host)}
       ${lamp('Perf','perf',L.perf)}${lamp('SEO','seo',L.seo)}${lamp('Traffic','traffic',x.traffic||'—')}
       ${lamp('Trackers','trackers',x.trackers||'—')}${lamp('Booking','booking',x.booking||'—')}${lamp('Langs','langs',x.langs||'—')}</div>${shot(d)}</div>`;
-  const g=gapOf(d),h=HEAT(g);
+  const g=gapOf(d),h=HEAT(g), hl=h==='hot'?'🔥 HOT':(h==='warm'?'Warm':'Cold');
+  const scRow=(lbl,val,cls='')=>`<div class="sc-r ${cls}"><span class="sc-l">${lbl}</span><span class="sc-v">${val}</span></div>`;
   const scouted=`<div><div class="dlabel">◓ Scouted — the agent tastes it · jedi-scout.md</div>
-      <div class="scrow"><span class="scmini">Palate <b>${d.sc.p}</b>/5</span><span class="scmini">Execution <b>${d.sc.e}</b>/5</span><span class="gap ${h}" style="font-size:15px">${g>0?'+':''}${g}</span><span class="vchip ${h}">${h==='hot'?'🔥 HOT':(h==='warm'?'Warm':'Cold')}</span></div>
-      <div class="kv"><span class="k">Photos</span><span class="v">${lampdot(tone('photos',x.photos||''))} ${x.photos||'—'}</span></div>
-      <div class="choiceq"><span class="cl">the specific choice it named — mandatory, no naming = it guessed</span>“${d.sc.choice}”</div>
-      <div class="vbig">${d.sc.v}</div></div>`;
+      <div class="sc-rows">
+        ${scRow('Palate /5', `${segs('pal',d.sc.p)}<span class="sc-note">Sip 1 — does the maker have an eye, a point of view</span>`)}
+        ${scRow('Execution /5', `${segs('exe',d.sc.e)}<span class="sc-note">Sip 2 — does it hold below the fold, or break</span>`)}
+        ${scRow('Gap', `<span class="gap ${h}" style="font-size:16px">${g>0?'+':''}${g}</span><span class="vchip ${h}">${hl}</span><span class="sc-note">palate − execution → heat band</span>`)}
+        ${scRow('The choice', `<span class="sc-quote">“${d.sc.choice}”</span>`)}
+        ${scRow('Photos', `${lampdot(tone('photos',x.photos||''))} ${x.photos||'—'}<span class="sc-note">art-directed vs stock</span>`)}
+        ${scRow('Verdict', `<span class="sc-vline">${d.sc.v}</span>`, 'verdict')}
+      </div></div>`;
   return `<div class="dgrid2">${queried}${scouted}</div>`;
 }
 

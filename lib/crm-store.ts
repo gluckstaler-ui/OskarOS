@@ -348,6 +348,161 @@ function updateProspectField(db: ReturnType<typeof getDb>, id: string, field: st
   }
 }
 
+// ─── Raw prospects: the Scout pre-Kanban pool (Scout v1, Ralph 2026-06-03) ───
+
+export interface RawProspect {
+  id: string
+  source: string
+  scraped_at: string
+  raw_payload: string
+  name: string
+  company: string
+  phone: string
+  email: string
+  website: string
+  country: string
+  industry: string
+  promoted_at: string | null
+  promoted_to: string | null
+  rejected_at: string | null
+  rejected_reason: string | null
+  /** Prescreen blob, '{}' until tasted. Shape:
+   *  { scanned_at, taste:{palate,execution,gap,heat,palate_choice,verdict,photos},
+   *    queried:{age,stack,hosting,performance,seo,traffic,trackers,booking,languages},
+   *    failed, fail_reason }. */
+  scout_json: string
+}
+
+function rowToRawProspect(r: Record<string, unknown>): RawProspect {
+  const nullable = (v: unknown): string | null => (v === null || v === undefined ? null : String(v))
+  return {
+    id: String(r.id ?? ''),
+    source: String(r.source ?? ''),
+    scraped_at: String(r.scraped_at ?? ''),
+    raw_payload: String(r.raw_payload ?? '{}'),
+    name: String(r.name ?? ''),
+    company: String(r.company ?? ''),
+    phone: String(r.phone ?? ''),
+    email: String(r.email ?? ''),
+    website: String(r.website ?? ''),
+    country: String(r.country ?? ''),
+    industry: String(r.industry ?? ''),
+    promoted_at: nullable(r.promoted_at),
+    promoted_to: nullable(r.promoted_to),
+    rejected_at: nullable(r.rejected_at),
+    rejected_reason: nullable(r.rejected_reason),
+    scout_json: String(r.scout_json ?? '{}'),
+  }
+}
+
+/** Live pool only — promoted/rejected rows stay in the table (audit) but drop out. */
+export function readRawProspects(): RawProspect[] {
+  const db = getDb()
+  const rows = db.prepare(
+    `SELECT * FROM raw_prospects WHERE promoted_at IS NULL AND rejected_at IS NULL ORDER BY scraped_at DESC, id`,
+  ).all() as Record<string, unknown>[]
+  return rows.map(rowToRawProspect)
+}
+
+/** Any row by id (incl. promoted/rejected) — promote/discard read the full row. */
+export function readRawProspect(id: string): RawProspect | null {
+  const db = getDb()
+  const row = db.prepare('SELECT * FROM raw_prospects WHERE id = ?').get(id) as Record<string, unknown> | undefined
+  return row ? rowToRawProspect(row) : null
+}
+
+const RAW_PROSPECT_FIELDS = [
+  'source', 'scraped_at', 'raw_payload',
+  'name', 'company', 'phone', 'email', 'website', 'country', 'industry',
+  'promoted_at', 'promoted_to', 'rejected_at', 'rejected_reason', 'scout_json',
+] as const
+
+function writeRawProspectToDb(db: ReturnType<typeof getDb>, p: RawProspect): void {
+  try {
+    db.prepare(`
+      INSERT OR REPLACE INTO raw_prospects (
+        id, source, scraped_at, raw_payload,
+        name, company, phone, email, website, country, industry,
+        promoted_at, promoted_to, rejected_at, rejected_reason, scout_json
+      ) VALUES (
+        @id, @source, @scraped_at, @raw_payload,
+        @name, @company, @phone, @email, @website, @country, @industry,
+        @promoted_at, @promoted_to, @rejected_at, @rejected_reason, @scout_json
+      )
+    `).run({
+      id: p.id,
+      source: p.source ?? '',
+      scraped_at: p.scraped_at || new Date().toISOString(),
+      raw_payload: p.raw_payload ?? '{}',
+      name: p.name ?? null,
+      company: p.company ?? null,
+      phone: p.phone ?? null,
+      email: p.email ?? null,
+      website: p.website ?? null,
+      country: p.country ?? null,
+      industry: p.industry ?? null,
+      promoted_at: p.promoted_at ?? null,
+      promoted_to: p.promoted_to ?? null,
+      rejected_at: p.rejected_at ?? null,
+      rejected_reason: p.rejected_reason ?? null,
+      scout_json: p.scout_json ?? '{}',
+    })
+  } catch (err) {
+    console.warn('[crm-store] SQLite raw_prospect insert/replace failed; will recover on next boot replay:', err)
+  }
+}
+
+/** Add a lead to the pool (event-first). Idempotent by id (INSERT OR REPLACE) —
+ *  a seed re-run with stable ids overwrites rather than duplicates. Cross-domain
+ *  dedup vs the pipeline is WP-SCOUT-6's ingest concern. */
+export async function ingestRawProspect(
+  p: Partial<RawProspect> & { id: string; source: string },
+): Promise<RawProspect> {
+  const db = getDb()
+  const row: RawProspect = {
+    id: p.id,
+    source: p.source,
+    scraped_at: p.scraped_at || new Date().toISOString(),
+    raw_payload: p.raw_payload ?? '{}',
+    name: p.name ?? '',
+    company: p.company ?? '',
+    phone: p.phone ?? '',
+    email: p.email ?? '',
+    website: p.website ?? '',
+    country: p.country ?? '',
+    industry: p.industry ?? '',
+    promoted_at: p.promoted_at ?? null,
+    promoted_to: p.promoted_to ?? null,
+    rejected_at: p.rejected_at ?? null,
+    rejected_reason: p.rejected_reason ?? null,
+    scout_json: p.scout_json ?? '{}',
+  }
+  await appendEvent(makeEvent({
+    actor: 'system', entity: 'raw_prospect', entity_id: row.id, op: 'insert', payload: { ...row },
+  }))
+  writeRawProspectToDb(db, row)
+  return row
+}
+
+/** Patch pool-row fields (event-first, one update event per field). Used by
+ *  Taste (scout_json), Promote (promoted_at/promoted_to), Discard (rejected_*). */
+export async function patchRawProspect(id: string, patch: Partial<RawProspect>): Promise<void> {
+  const db = getDb()
+  for (const [field, value] of Object.entries(patch)) {
+    if (field === 'id') continue
+    if (!(RAW_PROSPECT_FIELDS as readonly string[]).includes(field)) continue
+    await appendEvent(makeEvent({
+      actor: 'system', entity: 'raw_prospect', entity_id: id, op: 'update', field, next: value ?? null,
+    }))
+    try {
+      db.prepare(`UPDATE raw_prospects SET ${field} = ? WHERE id = ?`)
+        .run(value === null || value === undefined ? null : String(value), id)
+    } catch (err) {
+      console.warn(`[crm-store] SQLite raw_prospect field update failed (${field}); will recover on next boot replay:`, err)
+    }
+  }
+}
+
 // ─── Activities: reads ──────────────────────────────────────────────────────
 
 export function readActivities(prospect_id?: string): Activity[] {

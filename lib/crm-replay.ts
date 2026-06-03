@@ -34,10 +34,21 @@ export interface ReplayResult {
  * `incrementalReplay` instead — same result, faster on large logs.
  */
 export function coldReplay(db: Database.Database): ReplayResult {
-  truncateProjection(db)
-  const { events, malformedLineCount } = readAllEvents()
-  const result = applyEventsToDb(db, events)
-  return { ...result, malformedLineCount }
+  // FKs OFF during a full rebuild (Ralph 2026-06-03): the event log is the
+  // source of truth, but replaying the *entire* history in lamport order can
+  // transiently reference a not-yet-inserted / since-deleted / id-reused parent
+  // (e.g. a contact whose prospect was deleted-then-recreated, or a reused
+  // prospect id). The NET projection is consistent; enforcing per-statement FKs
+  // mid-replay would crash recovery. Re-enabled after. Live writes keep FKs ON.
+  db.pragma('foreign_keys = OFF')
+  try {
+    truncateProjection(db)
+    const { events, malformedLineCount } = readAllEvents()
+    const result = applyEventsToDb(db, events)
+    return { ...result, malformedLineCount }
+  } finally {
+    db.pragma('foreign_keys = ON')
+  }
 }
 
 /**
@@ -280,9 +291,50 @@ function applyContactEvent(db: Database.Database, e: Event): void {
   }
 }
 
-function applyRawProspectEvent(_db: Database.Database, _e: Event): void {
-  // Scraper-owned table; F22 ships the empty schema. Implementation lands
-  // alongside the scraper WP when it materializes.
+function applyRawProspectEvent(db: Database.Database, e: Event): void {
+  // Scout v1 (Ralph 2026-06-03): the pre-Kanban pool. Mirrors applyProspectEvent.
+  if (e.op === 'insert') {
+    const p = (e.payload ?? {}) as Record<string, unknown>
+    db.prepare(`
+      INSERT OR REPLACE INTO raw_prospects (
+        id, source, scraped_at, raw_payload,
+        name, company, phone, email, website, country, industry,
+        promoted_at, promoted_to, rejected_at, rejected_reason, scout_json
+      ) VALUES (
+        @id, @source, @scraped_at, @raw_payload,
+        @name, @company, @phone, @email, @website, @country, @industry,
+        @promoted_at, @promoted_to, @rejected_at, @rejected_reason, @scout_json
+      )
+    `).run({
+      id: e.entity_id,
+      source: str(p.source),
+      scraped_at: str(p.scraped_at) || new Date(e.ts ?? Date.now()).toISOString(),
+      raw_payload: str(p.raw_payload) || '{}',
+      name: nul(p.name),
+      company: nul(p.company),
+      phone: nul(p.phone),
+      email: nul(p.email),
+      website: nul(p.website),
+      country: nul(p.country),
+      industry: nul(p.industry),
+      // NULL (not '') preserved on the stamps — readRawProspects filters on IS NULL.
+      promoted_at: nul(p.promoted_at),
+      promoted_to: nul(p.promoted_to),
+      rejected_at: nul(p.rejected_at),
+      rejected_reason: nul(p.rejected_reason),
+      scout_json: str(p.scout_json) || '{}',
+    })
+  } else if (e.op === 'update') {
+    if (!e.field) return
+    if (!ALLOWED_RAW_PROSPECT_UPDATE_FIELDS.has(e.field)) {
+      console.warn(`[crm-replay] ignoring update to unknown raw_prospect field "${e.field}"`)
+      return
+    }
+    const value = e.next === null || e.next === undefined ? null : String(e.next)
+    db.prepare(`UPDATE raw_prospects SET ${e.field} = ? WHERE id = ?`).run(value, e.entity_id)
+  } else if (e.op === 'delete') {
+    db.prepare(`DELETE FROM raw_prospects WHERE id = ?`).run(e.entity_id)
+  }
 }
 
 function applyMergeConflictEvent(_db: Database.Database, _e: Event): void {
@@ -309,6 +361,11 @@ const ALLOWED_ACTIVITY_UPDATE_FIELDS = new Set<string>([
 
 const ALLOWED_CONTACT_UPDATE_FIELDS = new Set<string>([
   'name', 'role', 'phone', 'email', 'linkedin', 'notes', 'title', 'is_decisive',
+])
+
+const ALLOWED_RAW_PROSPECT_UPDATE_FIELDS = new Set<string>([
+  'name', 'company', 'phone', 'email', 'website', 'country', 'industry',
+  'scout_json', 'promoted_at', 'promoted_to', 'rejected_at', 'rejected_reason',
 ])
 
 // ─── Log reading helpers ────────────────────────────────────────────────────
@@ -379,4 +436,10 @@ function bool(v: unknown): boolean {
   if (typeof v === 'number') return v !== 0
   if (typeof v === 'string') return v === 'true' || v === '1' || v.toLowerCase() === 'yes'
   return false
+}
+/** Null-preserving string coercion — for nullable raw_prospects columns where
+ *  IS NULL matters (promoted_at / rejected_at drive the live-pool filter). */
+function nul(v: unknown): string | null {
+  if (v === null || v === undefined || v === '') return null
+  return String(v)
 }
