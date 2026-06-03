@@ -193,10 +193,10 @@ interface BridgeProcess {
  */
 interface WorkerPool {
   workers: BridgeProcess[]
-  waiters: Array<{ resolve: (bp: BridgeProcess) => void; reject: (err: Error) => void }>
+  waiters: Array<{ resolve: (bp: BridgeProcess) => void; reject: (err: Error) => void; options: BridgeOptions }>
 }
 
-const MAX_WORKERS_PER_SESSION = 5
+const MAX_WORKERS_PER_SESSION = 32 // Ralph 2026-06-03: raised 5→32 for wider one-shot fan-out (ceiling, not baseline — spawns only up to actual concurrent demand)
 
 function findClaudeBinary(): string {
   // Consolidated into lib/cli-paths.ts (WP-40, 2026-06-02). findBinary returns
@@ -260,32 +260,46 @@ class BridgeProcessManagerImpl {
       pool.workers.push(fresh)
       return fresh
     }
-    // Pool full + all busy → wait for a release.
+    // Pool full → queue. Workers are fire-and-die (no idle ones to hand off),
+    // so when an in-flight worker finishes the freed slot spawns a FRESH
+    // worker for the next waiter — carry its options for that spawn.
     return new Promise<BridgeProcess>((resolve, reject) => {
-      pool!.waiters.push({ resolve, reject })
+      pool!.waiters.push({ resolve, reject, options })
     })
   }
 
   /**
-   * Release a worker back to the pool. If a waiter is queued, hand the
-   * worker directly to them (stays busy). Otherwise mark idle so the next
-   * acquireWorker can pick it up. Dead workers are dropped from the pool.
+   * Release a worker after its one-shot call. Ralph 2026-06-03: workers are
+   * FIRE-AND-DIE — when the call finishes the CLI subprocess is terminated,
+   * not pooled for reuse. This removes idle workers entirely and shrinks the
+   * orphan window to a single call's duration. The cap still bounds how many
+   * run concurrently; when a slot frees, the next queued waiter is handed a
+   * FRESH worker spawned with its own options.
    */
   private releaseWorker(sessionId: string, bp: BridgeProcess): void {
     const pool = this.workerPools.get(sessionId)
     if (!pool) return
-    if (bp.dead) {
-      pool.workers = pool.workers.filter((w) => w !== bp)
-      bp.busy = false
-      return
-    }
-    const waiter = pool.waiters.shift()
-    if (waiter) {
-      bp.lastActivity = Date.now()
-      waiter.resolve(bp) // stays busy — handed off
-      return
+    // Terminate this worker — one call, then exit. (Its response is already
+    // delivered by the time release is called; workers hold no on-disk state.)
+    if (!bp.dead) {
+      try { bp.child.kill('SIGTERM') } catch { /* already gone */ }
+      bp.dead = true
     }
     bp.busy = false
+    if (bp.systemPromptFile) { try { unlinkSync(bp.systemPromptFile) } catch { /* already gone */ } }
+    pool.workers = pool.workers.filter((w) => w !== bp)
+    // A slot just freed — spawn a fresh worker for the next waiter, if any.
+    const waiter = pool.waiters.shift()
+    if (waiter) {
+      try {
+        const fresh = this.spawnFreshWorker(sessionId, waiter.options)
+        fresh.busy = true
+        pool.workers.push(fresh)
+        waiter.resolve(fresh)
+      } catch (err) {
+        waiter.reject(err instanceof Error ? err : new Error(String(err)))
+      }
+    }
   }
 
   /**
