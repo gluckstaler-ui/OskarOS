@@ -1,0 +1,495 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CRM · Email screen</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+/* ── palettes copied verbatim from the prototype (v3-minimal*.jsx) ── */
+:root,[data-theme="onyx"]{
+  --bg:#0a0907; --bgElev:#13110d; --bgSurf:#1c1a13; --bgCard:#13110d;
+  --line:#2a2519; --lineDim:#1a160f;
+  --amber:#ffb84a; --amberHi:#ffd07a; --amberDim:#7a6536;
+  --phosphor:#c8ee7a; --red:#ff6a4d;
+  --bone:#ece1c5; --muted:#7a6f5a; --mutedDim:#42392a;
+  --exec-ink:#0a0805;
+}
+[data-theme="polar"]{
+  --bg:#ffffff; --bgElev:#ffffff; --bgSurf:#ede2c4; --bgCard:#f7f2e2;
+  --line:#806a3a; --lineDim:#d0c098;
+  --amber:#e89e16; --amberHi:#dca612; --amberDim:#8a5a18;
+  --phosphor:#1f880e; --red:#d62012;
+  --bone:#1a1408; --muted:#453620; --mutedDim:#a09078;
+  --exec-ink:#ffffff;
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%}
+body{background:var(--bg);color:var(--bone);font-family:'Inter',system-ui,sans-serif;font-size:14px;height:100vh;overflow:hidden}
+.mono{font-family:'JetBrains Mono',monospace}
+.lab{font-family:'JetBrains Mono',monospace;font-weight:500;font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted)}
+
+.screen{height:100vh;display:grid;grid-template-columns:360px minmax(0,1fr) 400px;gap:0}
+.col{min-height:0;overflow:auto}
+
+/* LEFT rail */
+.rail{border-right:1px solid var(--line);background:var(--bg);padding:22px 20px;display:flex;flex-direction:column;gap:20px}
+.greet{font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:var(--mutedDim)}
+.hl{font-size:25px;line-height:1.18;font-weight:600;letter-spacing:-.4px;margin:7px 0 0;color:var(--bone)}
+.hl b{color:var(--amber);font-weight:700}
+.fold{display:flex;flex-direction:column;gap:7px}
+/* IMPLEMENTED: compact triage rows (inline number+label), not big cards. */
+.foldrow{display:flex;align-items:center;gap:12px;padding:9px 12px;border:1px solid var(--line);background:var(--bgCard);cursor:pointer;transition:background .12s}
+.foldrow:hover{background:var(--bgSurf)}
+.foldrow.on{border-left:3px solid var(--amber);background:var(--bgSurf)}
+.foldrow .num{font-family:'JetBrains Mono',monospace;font-size:19px;font-weight:700;line-height:1;color:var(--amber);min-width:30px;text-align:right}
+.foldrow .num.g{color:var(--phosphor)}
+.foldrow .body .nm{font-weight:600;font-size:12.5px;color:var(--bone)}
+.foldrow .body .sub{font-family:'JetBrains Mono',monospace;font-size:9.5px;color:var(--mutedDim);margin-top:2px;letter-spacing:.3px}
+.cpcard{border:1px solid var(--line);background:var(--bgCard);padding:13px 14px}
+.cpcard .t{font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:1.4px;text-transform:uppercase;color:var(--phosphor);font-weight:600;margin-bottom:6px}
+.cpcard .d{font-size:12px;color:var(--muted);line-height:1.5}
+.cpcard .d b{color:var(--amber)}
+.foot{margin-top:auto;display:flex;gap:26px;padding-top:16px;border-top:1px solid var(--line);font-family:'JetBrains Mono',monospace;font-size:10px}
+.foot .l{color:var(--mutedDim);text-transform:uppercase;letter-spacing:.6px}
+.foot .v{color:var(--amber);font-weight:700;margin-left:7px}
+
+/* MIDDLE */
+.mid{background:var(--bg);display:flex;flex-direction:column;min-height:0}
+.lanes{display:flex;gap:0;border-bottom:1px solid var(--line);padding:0 8px;flex:none;overflow-x:auto}
+.lane{flex:none;border:none;background:none;font-family:'JetBrains Mono',monospace;font-size:10.5px;letter-spacing:1.2px;text-transform:uppercase;color:var(--mutedDim);padding:14px 14px;cursor:pointer;border-bottom:2px solid transparent;display:flex;align-items:center;gap:8px;white-space:nowrap}
+.lane:hover{color:var(--muted)}
+.lane.on{color:var(--bone);font-weight:700;border-bottom-color:var(--amber)}
+.lane .ct{font-family:'JetBrains Mono',monospace;font-size:9.5px;font-weight:700;background:var(--bgSurf);color:var(--muted);padding:2px 7px;min-width:18px;text-align:center}
+.lane.on .ct{background:var(--amber);color:var(--exec-ink)}
+.lane .cd{width:5px;height:5px;border-radius:50%;background:var(--phosphor)}
+.scroll{flex:1;overflow:auto;min-height:0}
+
+.row{display:flex;align-items:center;gap:13px;padding:13px 18px;border-bottom:1px solid var(--lineDim);cursor:pointer;transition:background .1s}
+.row:hover{background:var(--bgSurf)}
+.row.sel{background:var(--bgSurf);box-shadow:inset 3px 0 0 var(--amber)}
+.av{width:32px;height:32px;border-radius:50%;flex:none;display:flex;align-items:center;justify-content:center;font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:700;color:var(--amber);background:transparent;border:1.5px solid var(--amber)}
+.av.cp{border-color:var(--phosphor);color:var(--phosphor)}.av.un{border-color:var(--red);color:var(--red)}.av.q{border-color:var(--mutedDim);color:var(--mutedDim)}
+.who{flex:1;min-width:0}
+.who .nm{font-size:13px;font-weight:600;color:var(--bone);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.who .nm.un{font-weight:800}
+.who .sj{font-family:'JetBrains Mono',monospace;font-size:10.5px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:2px;letter-spacing:.2px}
+.who .pv{font-size:11.5px;color:var(--mutedDim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:2px}
+.rmeta{display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex:none}
+.rmeta .v{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--bone)}
+.rmeta .p{font-family:'JetBrains Mono',monospace;font-size:10.5px;color:var(--amber);font-weight:700}
+.rmeta .tm{font-family:'JetBrains Mono',monospace;font-size:9.5px;color:var(--mutedDim)}
+.tag{font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:.6px;text-transform:uppercase;padding:3px 8px;font-weight:700;white-space:nowrap}
+.tg-a{background:var(--amber);color:var(--exec-ink)}.tg-g{background:var(--phosphor);color:var(--exec-ink)}.tg-r{background:var(--red);color:var(--exec-ink)}.tg-d{background:var(--bgSurf);color:var(--muted);border:1px solid var(--line)}
+.bulk{display:flex;gap:8px;align-items:center;padding:12px 18px;border-bottom:1px solid var(--line);color:var(--mutedDim);font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.6px}
+
+/* detail + co-pilot */
+.detail{flex:1;min-height:0;display:flex;flex-direction:column;overflow:hidden}
+.dback{font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:1px;text-transform:uppercase;color:var(--mutedDim);padding:14px 18px;border-bottom:1px solid var(--line);cursor:pointer;flex:none}
+.dback:hover{color:var(--amber)}
+.dscroll{flex:1;overflow:auto;min-height:0}
+.mh{padding:18px;border-bottom:1px solid var(--line)}
+.mh .sj{font-size:16px;font-weight:600;color:var(--bone);margin-bottom:6px;letter-spacing:-.2px}
+.mh .fr{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--mutedDim)}
+.mb{padding:18px;font-size:13px;color:var(--muted);line-height:1.6;white-space:pre-wrap;border-bottom:1px solid var(--line)}
+
+.cp{padding:18px;background:var(--bgElev)}
+.cph{display:flex;align-items:center;gap:9px;margin-bottom:14px}
+.cph .t{font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:1.4px;text-transform:uppercase;color:var(--amber);font-weight:700;display:flex;align-items:center;gap:8px}
+.cph .pulse{width:7px;height:7px;background:var(--phosphor);box-shadow:0 0 8px var(--phosphor);animation:bl 1.4s infinite}
+@keyframes bl{50%{opacity:.35}}
+.cph .lk{margin-left:auto;font-family:'JetBrains Mono',monospace;font-size:9.5px;letter-spacing:.5px;text-transform:uppercase;color:var(--muted);border:1px solid var(--line);padding:4px 9px;cursor:pointer;background:var(--bgCard)}
+.cph .lk:hover{border-color:var(--amber);color:var(--amber)}
+.stage{display:flex;align-items:center;gap:9px;font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--muted);margin-bottom:14px;padding:9px 12px;border:1px solid var(--line);background:var(--bgCard)}
+.stage .c{color:var(--bone);font-weight:700}
+.stage .adv{margin-left:auto;border:1px solid var(--amber);color:var(--amber);background:transparent;padding:5px 10px;cursor:pointer;font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:.6px;text-transform:uppercase}
+.stage .adv:hover{background:var(--amber);color:var(--exec-ink)}
+.blk{margin-bottom:15px}
+.bl{font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:1.2px;text-transform:uppercase;color:var(--mutedDim);margin-bottom:8px;display:flex;align-items:center;gap:8px}
+.bl .pill{font-size:8px;color:var(--phosphor);border:1px solid var(--phosphor);padding:1px 5px;letter-spacing:.4px}
+.sum{font-size:12.5px;color:var(--bone);line-height:1.55;background:var(--bgCard);border:1px solid var(--line);padding:12px}
+.sig{display:flex;flex-direction:column;gap:7px}
+.sg{display:flex;align-items:center;gap:10px;font-size:12px;color:var(--muted)}
+.sd{width:7px;height:7px;border-radius:50%;flex:none}.dg{background:var(--phosphor)}.da{background:var(--amber)}.dr{background:var(--red)}.ds{background:var(--mutedDim)}
+.flds{display:flex;flex-direction:column;gap:6px}
+.fld{display:flex;align-items:center;gap:10px;font-size:12px;background:var(--bgCard);border:1px solid var(--line);padding:7px 11px}
+.fld .k{font-family:'JetBrains Mono',monospace;font-size:9px;text-transform:uppercase;letter-spacing:.5px;color:var(--mutedDim);width:80px;flex:none}
+.fld .v{font-weight:600;color:var(--bone)}
+.fld .sy{margin-left:auto;font-family:'JetBrains Mono',monospace;font-size:8.5px;color:var(--phosphor);text-transform:uppercase;letter-spacing:.4px}
+.rslv{border:1px solid var(--amber);background:var(--bgCard);padding:13px;margin-bottom:15px}
+.rslv .h{font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:1px;text-transform:uppercase;color:var(--amber);font-weight:700;margin-bottom:7px}
+.rslv .x{font-size:12.5px;color:var(--bone);line-height:1.5;margin-bottom:11px}
+.rslv .x b{color:var(--amber)}
+.draft{border:1px solid var(--line);background:var(--bgCard);overflow:hidden}
+.draft .h{padding:9px 12px;background:var(--bgSurf);border-bottom:1px solid var(--line);font-family:'JetBrains Mono',monospace;font-size:9.5px;text-transform:uppercase;letter-spacing:.6px;color:var(--amber);font-weight:700}
+.draft .x{padding:12px;font-size:12.5px;color:var(--muted);line-height:1.6;white-space:pre-wrap}
+.chrow{display:flex;gap:7px;padding:0 12px 10px}
+.chip{font-family:'JetBrains Mono',monospace;font-size:9.5px;text-transform:uppercase;letter-spacing:.4px;padding:5px 10px;border:1px solid var(--line);background:var(--bg);color:var(--mutedDim);cursor:pointer}
+.chip.on{border-color:var(--amber);color:var(--amber);font-weight:700}
+.dacts{display:flex;gap:7px;padding:0 12px 12px;flex-wrap:wrap}
+.nba{display:flex;flex-direction:column;gap:7px}
+.nb{text-align:left;border:1px solid var(--line);background:var(--bgCard);padding:9px 11px;font-size:12px;color:var(--muted);cursor:pointer;display:flex;gap:10px;align-items:center}
+.nb:hover{border-color:var(--amber);color:var(--bone)}
+.nb .i{font-family:'JetBrains Mono',monospace;color:var(--amber)}
+.cpoff{padding:40px;text-align:center;color:var(--mutedDim);display:flex;flex-direction:column;gap:10px;align-items:center}
+.cpoff .b{font-size:13px;color:var(--muted);font-weight:600}
+/* ── Opus co-pilot: read → move → draft → chain (judgment, not widgets) ── */
+.read{font-size:13.5px;color:var(--bone);line-height:1.6;border-left:2px solid var(--amber);padding:1px 0 1px 13px}
+.conf{margin-left:auto;font-family:'JetBrains Mono',monospace;font-size:8.5px;letter-spacing:.5px;text-transform:uppercase;color:var(--phosphor);border:1px solid var(--phosphor);padding:1px 6px}
+.move{background:var(--bgCard);border:1px solid var(--line);padding:12px}
+.move .mc{font-weight:700;font-size:13.5px;color:var(--amber);line-height:1.35}
+.move .mw{font-size:12px;color:var(--muted);margin-top:5px;line-height:1.5}
+.alts{margin-top:9px;display:flex;flex-direction:column;gap:5px}
+.alts .a{font-size:11px;color:var(--mutedDim);line-height:1.4}
+.chain{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:7px}
+.chain li{font-size:12px;color:var(--muted);line-height:1.4;display:flex;gap:9px;align-items:flex-start}
+.chain li .n{font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--amber);border:1px solid var(--amberDim);min-width:16px;height:16px;display:flex;align-items:center;justify-content:center;flex:none;margin-top:1px}
+.wb{font-family:'JetBrains Mono',monospace;font-size:9.5px;letter-spacing:.5px;text-transform:uppercase;color:var(--phosphor);margin-top:4px}
+.clar{border:1px solid var(--amber);background:var(--bgCard);padding:12px;margin-bottom:15px}
+.clar .q{font-size:12.5px;color:var(--bone);line-height:1.45;margin-bottom:9px}
+.clar .q b{color:var(--amber)}
+.clar .opts{display:flex;gap:7px;flex-wrap:wrap}
+.att{font-family:'JetBrains Mono',monospace;background:var(--bgCard);border:1px solid var(--line);color:var(--muted);padding:0 11px;cursor:pointer;font-size:13px}
+.att:hover{border-color:var(--amber);color:var(--amber)}
+/* ── reading pane: the actual email thread (content first, co-pilot below) ── */
+.thread{display:flex;flex-direction:column}
+.msg{padding:15px 18px;border-bottom:1px solid var(--lineDim)}
+.msg.out{background:var(--bgCard)}
+.mhd{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.av.sm{width:26px;height:26px;font-size:9.5px}
+.av.me{border-color:var(--muted);color:var(--muted)}
+.who2{display:flex;flex-direction:column;line-height:1.3}
+.who2 b{font-size:12.5px;color:var(--bone);font-weight:700}
+.tm2{font-family:'JetBrains Mono',monospace;font-size:9.5px;color:var(--mutedDim);letter-spacing:.3px}
+.mtext{font-size:13px;color:var(--bone);line-height:1.65;white-space:pre-wrap}
+.cp{border-top:2px solid var(--line)}
+/* ── compose (new email) ── */
+.compose-btn{margin-left:auto;color:var(--phosphor)!important;border-bottom-color:transparent!important}
+.compose-btn:hover{color:var(--amberHi)!important}
+.compose{padding:18px;display:flex;flex-direction:column;gap:12px}
+.crow{display:flex;align-items:center;gap:12px;border:1px solid var(--line);background:var(--bgCard);padding:10px 13px}
+.crow .cl{font-family:'JetBrains Mono',monospace;font-size:9.5px;letter-spacing:.6px;text-transform:uppercase;color:var(--mutedDim);width:62px;flex:none}
+.crow input{flex:1;background:none;border:none;outline:none;color:var(--bone);font-family:'Inter';font-size:13px}
+.crow input::placeholder{color:var(--mutedDim)}
+.intent{border:1px solid var(--amber);background:var(--bgCard);padding:13px}
+.intent .il{font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:1px;text-transform:uppercase;color:var(--amber);font-weight:700;display:flex;align-items:center;gap:7px}
+.introw{display:flex;gap:8px;margin-top:9px}
+.introw input{flex:1;background:var(--bg);border:1px solid var(--line);outline:none;color:var(--bone);font-family:'Inter';font-size:12.5px;padding:9px 11px}
+.introw input::placeholder{color:var(--mutedDim)}
+.cbody{min-height:210px;background:var(--bgCard);border:1px solid var(--line);outline:none;color:var(--bone);font-family:'Inter';font-size:13px;line-height:1.65;padding:13px;resize:vertical;white-space:pre-wrap}
+/* ── rail: mail folders + CRM contacts (by recency) ── */
+.folders{display:flex;flex-direction:column;gap:2px}
+.frow{display:flex;align-items:center;gap:10px;padding:8px 11px;cursor:pointer;border:1px solid transparent;border-left:2px solid transparent;transition:background .1s}
+.frow:hover{background:var(--bgSurf)}
+.frow.on{background:var(--bgSurf);border-color:var(--line);border-left:2px solid var(--amber)}
+.frow .fn{font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.8px;text-transform:uppercase;color:var(--muted)}
+.frow.on .fn{color:var(--bone);font-weight:700}
+.frow .fc{margin-left:auto;font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--mutedDim)}
+.railsep{height:1px;background:var(--line);margin:2px 0}
+.cch{font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:1.2px;text-transform:uppercase;color:var(--mutedDim);margin-bottom:8px}
+.contacts{display:flex;flex-direction:column;gap:3px}
+.crow2{display:flex;align-items:center;gap:10px;padding:7px 9px;cursor:pointer;border:1px solid transparent}
+.crow2:hover{background:var(--bgSurf)}
+.crow2.on{background:var(--bgSurf);border-color:var(--line);border-left:2px solid var(--amber)}
+.cav{width:26px;height:26px;border-radius:50%;flex:none;display:flex;align-items:center;justify-content:center;font-family:'JetBrains Mono',monospace;font-size:9.5px;font-weight:700;color:var(--amber);border:1.5px solid var(--amber)}
+.cinfo{flex:1;min-width:0;display:flex;flex-direction:column;line-height:1.3}
+.cinfo .cn{font-size:12px;font-weight:600;color:var(--bone);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cinfo .cco{font-family:'JetBrains Mono',monospace;font-size:9.5px;color:var(--mutedDim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ct2{font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--mutedDim);flex:none}
+
+.btn{font-family:'JetBrains Mono',monospace;font-size:9.5px;letter-spacing:.6px;text-transform:uppercase;padding:8px 12px;border:1px solid var(--line);background:var(--bgCard);color:var(--muted);cursor:pointer;font-weight:700}
+.btn:hover{border-color:var(--amber);color:var(--amber)}
+.btn.am{background:var(--amber);color:var(--exec-ink);border-color:var(--amber)}
+.btn.ph{background:var(--phosphor);color:var(--exec-ink);border-color:var(--phosphor)}
+
+/* RIGHT — flight deck. IMPLEMENTED behavior (FlightDeck.tsx has onyx+polar
+   token tables): it FOLLOWS the theme — light/cream in polar, dark in onyx.
+   So it inherits the page vars; no pin. */
+.flight{border-left:1px solid var(--line);background:var(--bg);padding:18px 16px 14px;display:flex;flex-direction:column;min-height:0;overflow:hidden}
+.fh{display:flex;align-items:center;gap:9px;margin-bottom:3px}
+.fbadge{width:20px;height:20px;display:flex;align-items:center;justify-content:center;background:color-mix(in srgb,var(--phosphor) 18%,transparent);border:1px solid var(--phosphor);color:var(--phosphor);font:600 11px/1 'JetBrains Mono';animation:bl 2s infinite}
+.fh .ft{font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:1.4px;text-transform:uppercase;color:var(--amber);font-weight:600}
+.fh .live{margin-left:auto;display:flex;align-items:center;gap:6px}
+.fh .live .d{width:7px;height:7px;background:var(--phosphor);box-shadow:0 0 8px var(--phosphor);animation:bl 1.4s infinite}
+.fh .live .t{font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:1.2px;color:var(--phosphor)}
+.fsub{font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--mutedDim);letter-spacing:.8px;margin:4px 0 14px}
+.fsub b{color:var(--amber)}
+.fdeck{flex:1;overflow:auto;min-height:0;display:flex;flex-direction:column;gap:9px}
+.fcard{padding:13px 15px;position:relative;overflow:hidden}
+.fcard.top{border:1px solid;}
+.fcard.row2{border:1px solid var(--line);border-left:2px solid;background:transparent}
+.fcard .pr{font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:2px;font-weight:600;display:flex;justify-content:space-between;align-items:center}
+.fcard .co{font:600 18px/1.1 'Inter';color:var(--bone);margin-top:9px;letter-spacing:-.4px}
+.fcard .vc{font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:1.2px;margin-top:6px}
+.fcard .wy{font-size:11px;color:var(--muted);margin-top:6px;line-height:1.4}
+.fcard .ex{display:flex;align-items:center;gap:10px;margin-top:11px}
+.fexec{display:inline-flex;align-items:center;gap:6px;font:600 9px/1 'JetBrains Mono';letter-spacing:1.2px;color:var(--exec-ink);padding:8px 12px;text-transform:uppercase;cursor:pointer}
+.fdur{font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--mutedDim)}
+/* Consular prose block (matches the implemented right pane: deck cards →
+   Consular written reasoning → input). Portfolio-level Opus analysis. */
+.consular{margin-top:13px;border-top:1px solid var(--line);padding-top:12px}
+.consular .ch{font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:1.4px;text-transform:uppercase;color:var(--phosphor);margin-bottom:7px}
+.cprose{font-size:12px;color:var(--muted);line-height:1.6}
+.cprose b{color:var(--amber);font-weight:600}
+.fchat{margin-top:11px;border-top:1px solid var(--line);padding-top:11px;display:flex;gap:7px}
+.fchat input{flex:1;background:var(--bgCard);border:1px solid var(--line);padding:9px 11px;color:var(--bone);font-family:'Inter';font-size:12px;outline:none}
+.fchat .s{font-family:'JetBrains Mono',monospace;background:var(--amber);color:var(--exec-ink);border:none;padding:0 13px;cursor:pointer;font-weight:700}
+
+.hidden{display:none!important}
+#toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(40px);background:var(--bgSurf);border:1px solid var(--amber);color:var(--bone);font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.4px;padding:11px 16px;opacity:0;transition:.25s;pointer-events:none;z-index:60}
+#toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
+#toast b{color:var(--amber)}
+.empty{text-align:center;color:var(--mutedDim);font-size:12px;padding:44px;font-family:'JetBrains Mono',monospace}
+.empty b{display:block;font-size:14px;color:var(--phosphor);margin-bottom:6px}
+</style>
+</head>
+<body>
+<div class="screen">
+  <!-- LEFT -->
+  <div class="col rail">
+    <div>
+      <div class="greet">Mailbox · Sun 15 Jun</div>
+      <div class="hl">12 need a reply. <b>5 are CRM.</b></div>
+    </div>
+    <div class="folders" id="folders"></div>
+    <div class="railsep"></div>
+    <div><div class="cch">CRM Contacts · by recency</div><div class="contacts" id="contacts"></div></div>
+    <div class="foot"><span><span class="l">Unread</span><span class="v">12</span></span><span><span class="l">Co-pilot</span><span class="v">ON</span></span></div>
+  </div>
+
+  <!-- MIDDLE -->
+  <div class="col mid">
+    <div class="lanes" id="lanes"></div>
+    <div class="scroll" id="list"></div>
+    <div class="detail hidden" id="detail"></div>
+  </div>
+
+  <!-- RIGHT flight deck -->
+  <div class="col flight" id="flight"></div>
+</div>
+<div id="toast"></div>
+
+<script>
+const theme=new URLSearchParams(location.search).get('theme')||'onyx';
+document.documentElement.setAttribute('data-theme',theme);
+
+const BUCKETS=[{id:'normal',name:'Normal',cp:1},{id:'promo',name:'Promo',cp:0},{id:'social',name:'Social',cp:0},{id:'updates',name:'Updates',cp:0}];
+/* mail folders (rail) + CRM contacts (rail, by recency). The CRM bucket/lane
+   is gone — CRM email lives under contacts now. */
+const FOLDERS=[['inbox','Inbox',12],['drafts','Drafts',2],['sent','Sent',8],['spam','Spam',3],['trash','Trash',0]];
+const CONTACTS=[
+ {id:'c1',name:'Jan Muster',co:'Acme AG',init:'JM',last:'09:14'},
+ {id:'c2',name:'Marco Rossi',co:'Bistrot SA',init:'MR',last:'Mon'},
+ {id:'c3',name:'P. Bär',co:'Bär GmbH',init:'PB',last:'Fri'},
+];
+const FOLDERMAIL={
+ drafts:[{id:'d1',from:'To: Hotel Bellevue',init:'HB',subj:'Demo-Recap & nächste Schritte',prev:'(Entwurf) vielen Dank für die Zeit heute…',time:'—'},{id:'d2',from:'To: Restaurant Du Pont',init:'RP',subj:'Menükarte — Rückfrage',prev:'(Entwurf) zu Ihrer Frage…',time:'—'}],
+ sent:[{id:'se1',from:'To: Marco · Bistrot SA',init:'MR',subj:'Vertrag zur Unterschrift',prev:'anbei der Vertrag, Konditionen wie besprochen…',time:'Fri'},{id:'se2',from:'To: Jan · Acme AG',init:'JM',subj:'Angebot Webseite (PDF)',prev:'wie besprochen das Angebot…',time:'Thu'}],
+ spam:[{id:'sp1',from:'crypto-deals.biz',init:'!',q:1,subj:'You won 2 BTC — claim now',prev:'verify your wallet…',time:'06:01'}],
+ trash:[],
+};
+const MAIL={
+ normal:[
+  {id:'n4',unread:1,from:'office@acme.ch',init:'?',cp:1,unresolved:1,resolveTo:'Acme AG',subj:'Projektablauf — interne Abstimmung',prev:'Wir stimmen das Angebot intern ab…',time:'09:31',body:'Guten Tag\n\nWir stimmen das Angebot gerade intern ab. Eine kurze Rückfrage zum Projektablauf — können Sie die Phasen nochmals kurz umreissen?\n\nDanke',
+   resolveWhy:'Domain <b>acme.ch</b> matches lead <b>Acme AG</b> (Jan Muster). Same thread family as "Angebot Webseite."',summary:'Internal Acme address with a clarifying question. Not yet linked — resolve once and every future mail from this address routes to the lead silently.',signals:[['da','Unmatched · domain → Acme AG (98%)']]},
+  {id:'n1',unread:1,from:'Notariat Weber',init:'NW',cp:1,subj:'Beglaubigung Kaufvertrag',prev:'Unterlagen bereit — Donnerstag 14:00?',time:'08:40',body:'Guten Morgen\n\nDie Unterlagen liegen zur Unterschrift bereit. Passt Ihnen Donnerstag um 14:00? Tel. 056 222 14 80.\n\nFreundliche Grüsse\nNotariat Weber',
+   summary:'Weber confirms the deed is ready and proposes Thu 14:00. A time and a phone number to capture.',signals:[['dg','Direct ask — awaiting slot confirmation']],extract:[['Meeting','Thu 14:00 — signing','→ Calendar'],['Phone','+41 56 222 14 80','→ Contact'],['Next step','Confirm slot','→ Tasks']],draft:'Guten Morgen Herr Weber,\n\nDonnerstag 14:00 passt mir. Ich bringe die Ausweise mit.\n\nHerzliche Grüsse\nSilke',nba:[['↵','Confirm Thu 14:00'],['📅','Send booking link']]},
+  {id:'n2',from:'Maria · Treuhand',init:'MT',cp:1,subj:'MwSt-Abrechnung Q1 — Freigabe?',prev:'Freigabe bis Freitag…',time:'Gestern',body:'Hallo Silke\n\nBitte um Freigabe der Q1-Abrechnung bis Freitag.\n\nGruss Maria',summary:'Maria needs sign-off on Q1 VAT by Friday or submission slips.',signals:[['da','Deadline Friday — blocks her filing']],extract:[['Sentiment','Neutral · procedural','→ Contact'],['Next step','Approve by Fri','→ Tasks']],draft:'Hallo Maria,\n\nFreigabe erteilt — die Zahlen stimmen. Danke fürs Dranbleiben.\n\nGruss Silke',nba:[['↵','Approve filing']]},
+ ],
+ crm:[
+  {id:'c1',unread:1,from:'Jan Muster · Acme AG',init:'JM',cp:1,subj:'Re: Angebot Webseite',prev:'Danke, sieht gut aus — Team schaut…',time:'09:14',body:'Hallo Silke\n\nDanke, das Angebot sieht gut aus. Ich schaue es mir mit dem Team an und melde mich.\n\nGruss Jan',lead:'Acme AG',stageCur:'Proposal',stageNext:'Closing',tlKey:'acme',tag:['tg-a','opened 3×'],val:"24'000",pct:'45%',
+   summary:'Jan likes the proposal but is routing it through his team — opened 3× without replying. Price hesitation, not disinterest.',signals:[['dr','Offer opened 3× · no reply · 7d · confidence ↓'],['ds','R. Vogt (CFO) silently on CC']],extract:[['Sentiment','Hesitant · price','→ Deal'],['Intent','Evaluating budget','→ Deal'],['Stakeholder','R. Vogt (CFO) · CC','→ Contacts'],['Next step','Offer 15-min call','→ Tasks']],draft:'Hallo Jan,\n\nfreut mich, dass das Angebot überzeugt. Falls beim Team eine Frage zum Budget aufkommt: Ich gehe die Positionen gerne in 15 Minuten mit Ihnen durch.\n\nPasst Mittwoch kurz?\n\nBeste Grüsse\nSilke',nba:[['↵','Send reassurance'],['👤','Address CFO directly'],['📅','Insert booking link']]},
+  {id:'c2',unread:1,from:'Marco · Bistrot SA',init:'MB',cp:1,subj:'können wir diese Woche unterschreiben?',prev:'Budget passt, finalisieren…',time:'Mo',body:'Hoi Silke\n\nBudget passt — lass uns das diese Woche unterschreiben.\n\nGruss Marco',lead:'Bistrot SA',stageCur:'Closing',stageNext:'Won',tag:['tg-g','ready to sign'],val:"9'000",pct:'90%',
+   summary:'Marco is ready to sign this week. Budget agreed on WhatsApp Friday. Send the contract, don’t re-sell.',signals:[['dg','Replied after 2 opens · confidence ↑'],['ds','Budget agreed · WhatsApp · Fri']],extract:[['Sentiment','Positive · ready','→ Deal'],['Intent','Sign this week','→ Deal'],['Next step','Send contract','→ Tasks']],draft:'Hoi Marco,\n\nperfekt! Ich schicke dir heute den Vertrag zur Unterschrift — Konditionen wie auf WhatsApp besprochen.\n\nGruss Silke',nba:[['↵','Send contract'],['✍','Insert e-sign link']]},
+  {id:'c3',from:'P. Bär · Bär GmbH',init:'PB',cp:1,subj:'Rechnung März',prev:'Anbei Rechnung. Phase 2…',time:'Fr',body:'Guten Tag\n\nAnbei die Rechnung für März. Bezüglich Phase 2 melde ich mich.\n\nFreundliche Grüsse\nP. Bär',lead:'Bär GmbH',stageCur:'Cooling',stageNext:'Discovery',tag:['tg-d','silent 5d'],val:"6'500",pct:'30%',
+   summary:'Invoice mail, but Phase-2 talk went silent 5 days after a warm thread. Champion cooling — low-key re-engage.',signals:[['da','Warm thread, then silent 5d']],extract:[['Sentiment','Cooling','→ Deal'],['Phone','+41 31 511 09 22','→ Contact'],['Next step','Hold May slot','→ Tasks']],draft:'Hallo Herr Bär,\n\nbesten Dank für die Rechnung. Wie sieht es bei Ihnen mit Phase 2 aus? Ich halte Ihnen den Slot im Mai gerne frei.\n\nFreundliche Grüsse\nSilke',nba:[['↵','Gentle re-engage'],['🗓','Hold May slot']]},
+ ],
+ promo:[{id:'p1',from:'Figma',init:'F',q:1,subj:'New in Figma: AI layouts',prev:'Generate full layouts…',time:'07:10'},{id:'p2',from:'Webflow',init:'W',q:1,subj:'Black Friday: 40% off',prev:'Biggest savings…',time:'Gestern'}],
+ social:[{id:'s1',from:'LinkedIn',init:'in',q:1,subj:'5 people viewed your profile',prev:'See who…',time:'10:02'},{id:'s2',from:'Xing',init:'X',q:1,subj:'Marco endorsed you',prev:'Web Design…',time:'Mo'}],
+ updates:[{id:'u1',from:'Stripe',init:'St',q:1,subj:'Payout CHF 8’400 on the way',prev:'Expected Mar 14…',time:'06:30'},{id:'u2',from:'Google Cal',init:'GC',q:1,subj:'Reminder: Notariat Thu 14:00',prev:'Beglaubigung…',time:'Di'}],
+};
+const TIMELINE={acme:[{dot:'da',h:'Re: Angebot Webseite',s:'in · "sieht gut aus…" — opened 3×'},{dot:'da',h:'Offer PDF sent',s:'out · CHF 24k · CFO CC’d'},{dot:'dg',h:'"Budget Frage?"',s:'in · WhatsApp · answered'}]};
+
+/* Opus co-pilot reasoning per thread — the READ (insight, not summary),
+   the MOVE (one strategic call + confidence + alternatives), a DRAFT that
+   executes that move, a CHAIN run on one approval, a silent write-back,
+   and a CLARIFIER when it genuinely needs input instead of guessing. */
+const COPILOT={
+ c1:{read:`Not price — it's the CFO. Jan's already sold ("sieht gut aus", twice). The offer's been opened 3× but never forwarded: it's parked on R. Vogt's desk, who reads every thread and never replies. A reassurance email to Jan won't move Vogt.`,
+   move:{call:'Arm Jan to sell it upward',why:`Give him a one-page, CFO-facing ROI he can forward — don't make him paraphrase your PDF to his boss.`,conf:'High'},
+   alts:['Go direct to Vogt on CC — faster, but Jan loses face','Add a real deadline: cohort onboarding closes Fri'],
+   draft:`Hallo Jan,\n\nfreut mich, dass es überzeugt. Damit die Freigabe intern leicht fällt, hänge ich eine einseitige ROI-Übersicht an — gemacht fürs Gremium, nicht für Sie. Und falls eine 15-Min-Runde mit dem CFO hilft, halte ich Mittwoch frei.\n\nBeste Grüsse\nSilke`,
+   chain:['Send to Jan','Attach the Sportcenter ROI one-pager (closest analogue to Acme)','Set a Wed follow-up if no reply','Log + advance Proposal → Closing'],
+   wb:'Acme updated · blocker = CFO · next step · stage queued'},
+ c2:{read:`Done deal — he's confirming, not negotiating. Budget was agreed on WhatsApp Friday. More selling now re-opens a closed question; the only real risk is you slowing it down.`,
+   move:{call:'Send the contract today. Nothing else.',why:`He said "diese Woche" — match his speed, don't re-pitch.`,conf:'High'},
+   alts:['Pencil a kickoff date to build momentum'],
+   draft:`Hoi Marco,\n\nperfekt — anbei der Vertrag zur Unterschrift, Konditionen wie auf WhatsApp. Ein Klick und wir starten nächste Woche. Soll ich den Kickoff schon auf Dienstag reservieren?\n\nGruss Silke`,
+   chain:['Send contract + e-sign link','Pencil kickoff for Tue','Advance Closing → Won on signature','Log'],
+   wb:'Bistrot updated · intent = sign this week · stage queued → Won'},
+ c3:{read:`Reads as an invoice, but the signal is the silence: "ich melde mich zu Phase 2" five days ago, then nothing. He's cooling, not lost — chase hard now and you look desperate.`,
+   move:{call:'Re-engage on value, not the sale',why:`Offer to hold a slot — a reason to come back, no pressure.`,conf:'Medium'},
+   alts:['Wait 3 days, let the invoice land first'],
+   draft:`Hallo Herr Bär,\n\nbesten Dank für die Rechnung. Für Phase 2 halte ich Ihnen unverbindlich einen Slot im Mai frei — sagen Sie einfach Bescheid.\n\nFreundliche Grüsse\nSilke`,
+   chain:['Send','Hold a provisional May slot','Set a 1-week check-back'],
+   wb:'Bär updated · status = cooling · next step',
+   clar:{q:`He's cooling — a <b>call</b> may beat email, and you have his number. Which?`,opts:['Draft a 30-sec call script','Email is fine']}},
+ n1:{read:`Pure logistics, no strategy — he needs a yes on Thu 14:00. The intelligent move is to not spend attention on it: confirm and capture the appointment.`,
+   move:{call:`Confirm the slot — I'll handle the rest.`,why:'',conf:'High'},
+   alts:[],
+   draft:`Guten Morgen Herr Weber,\n\nDonnerstag 14:00 passt. Ich bringe die Ausweise mit.\n\nHerzliche Grüsse\nSilke`,
+   chain:['Reply yes','Add Thu 14:00 to your calendar',`Save Weber's number to contacts`],
+   wb:'Contact saved · appointment booked'},
+ n2:{read:`Procedural sign-off with a hard Friday deadline. No nuance to read — approve, or the filing slips.`,
+   move:{call:'Approve the filing.',why:'',conf:'High'},
+   alts:['Ask for the PDF first if you want to eyeball the numbers'],
+   draft:`Hallo Maria,\n\nFreigabe erteilt — Zahlen stimmen. Danke fürs Dranbleiben.\n\nGruss Silke`,
+   chain:['Send approval','Close the Q1-VAT task'],
+   wb:'Task closed · Q1 VAT approved'},
+};
+
+/* Actual email threads — so the reading pane shows real content, not a stub. */
+const THREADS={
+ c1:[
+  {from:'Silke (you)',time:'Thu 12 Jun · 16:20',dir:'out',body:`Hallo Jan,\n\nwie besprochen anbei das Angebot für die neue Website — Umfang, Zeitplan und Investition auf einer Seite. Bei Fragen jederzeit.\n\nBeste Grüsse\nSilke`},
+  {from:'Jan Muster · Acme AG',time:'Today · 09:14',dir:'in',body:`Hallo Silke\n\nDanke, das Angebot sieht gut aus. Ich schaue es mir mit dem Team an und melde mich.\n\nGruss Jan`},
+ ],
+ c2:[
+  {from:'Silke (you)',time:'Fri 13 Jun · 11:40',dir:'out',body:`Hoi Marco,\n\nfreut mich! Wie auf WhatsApp besprochen: CHF 9'000 fürs Paket. Ich kann den Vertrag heute fertig machen.\n\nGruss Silke`},
+  {from:'Marco · Bistrot SA',time:'Mon · 09:02',dir:'in',body:`Hoi Silke\n\nBudget passt — lass uns das diese Woche unterschreiben. Wie machen wir das?\n\nGruss Marco`},
+ ],
+};
+const DECK=[
+ {tone:'green',pr:'▸▸ TOP PRIORITY',dl:'12 MIN LEFT',co:"Caffè Sant'Ambrogio",vc:'REPLY · WHATSAPP',wy:'Inbound 59m ago · still warm. Reply before it cools.',ex:'● Reply',dur:'2 MIN'},
+ {tone:'red',pr:'CALL',dl:'38 MIN LEFT',co:'Sportcenter Olimpia',vc:'CALL · PHONE',wy:'Negotiation window closes 14:00',ex:'Call',dur:'10 MIN'},
+ {tone:'amber',pr:'SEND',dl:'DUE TODAY',co:'Atelier Frau Weber',vc:'SEND · EMAIL',wy:'Proposal v3 promised EOD',ex:'Send',dur:'5 MIN'},
+];
+const TONE={green:'var(--phosphor)',red:'var(--red)',amber:'var(--amber)'};
+
+const state={folder:'inbox',bucket:'normal',sel:null,contact:null,ch:'email',compose:false};
+const $=s=>document.querySelector(s);
+function toast(t){const e=$('#toast');e.innerHTML=t;e.classList.add('on');clearTimeout(e._t);e._t=setTimeout(()=>e.classList.remove('on'),2300);}
+function cb(){return BUCKETS.find(b=>b.id===state.bucket);}
+/* current open item = a CRM contact's thread OR a message in the active folder */
+function cm(){
+ if(state.contact)return (MAIL.crm||[]).find(m=>m.id===state.contact);
+ const pool=state.folder==='inbox'?(MAIL[state.bucket]||[]):(FOLDERMAIL[state.folder]||[]);
+ return pool.find(m=>m.id===state.sel);
+}
+function renderRail(){
+ $('#folders').innerHTML=FOLDERS.map(f=>`<div class="frow ${f[0]===state.folder&&!state.contact?'on':''}" data-act="folder" data-f="${f[0]}"><span class="fn">${f[1]}</span><span class="fc">${f[2]||''}</span></div>`).join('');
+ $('#contacts').innerHTML=CONTACTS.map(c=>`<div class="crow2 ${c.id===state.contact?'on':''}" data-act="contact" data-id="${c.id}"><span class="cav">${c.init}</span><span class="cinfo"><span class="cn">${c.name}</span><span class="cco">${c.co}</span></span><span class="ct2">${c.last}</span></div>`).join('');
+}
+
+function renderLanes(){
+ $('#lanes').innerHTML=BUCKETS.map(b=>{const it=MAIL[b.id]||[];const u=it.filter(m=>m.unread).length;return `<button class="lane ${b.id===state.bucket?'on':''}" data-b="${b.id}">${b.cp?'<span class="cd"></span>':''}${b.name}<span class="ct">${u||it.length}</span></button>`;}).join('')
+  +`<button class="lane compose-btn" data-act="compose">✎ New email</button>`;
+}
+function initials(s){return ((s||'?').match(/[A-ZÄÖÜ]/g)||['?']).slice(0,2).join('');}
+function composer(){
+ return `<div class="dback" data-act="compose-close">‹ Cancel</div><div class="dscroll"><div class="compose">
+  <div class="crow"><span class="cl">To</span><input id="cto" placeholder="name@company.ch"></div>
+  <div class="crow"><span class="cl">Subject</span><input id="csubj" placeholder="Subject"></div>
+  <div class="intent"><div class="il">✦ Co-Pilot · compose from intent</div><div class="introw"><input id="cgoal" placeholder="What do you want to achieve? e.g. follow up with Hotel Bellevue about the May demo"><button class="btn am" data-act="compose-draft">Draft it</button></div></div>
+  <textarea id="cbody" class="cbody" placeholder="Write your email — or describe the goal above and let the co-pilot draft it from the relationship history."></textarea>
+  <div class="dacts"><button class="btn am" data-act="compose-send">Send</button><button class="btn" data-act="compose-close">Discard</button></div>
+ </div></div>`;
+}
+function row(m){
+ const av=m.unresolved?'un':(m.cp?'cp':(m.q?'q':''));
+ const right=m.unresolved?`<span class="tag tg-r">resolve</span>`:(m.lead?`<div class="rmeta"><span class="v">CHF ${m.val}</span><span class="p">${m.pct}</span></div>`:`<span class="rmeta"><span class="tm">${m.time}</span></span>`);
+ const tag=m.tag?`<span class="tag ${m.tag[0]}">${m.tag[1]}</span>`:'';
+ return `<div class="row ${m.id===state.sel?'sel':''}" data-act="mail" data-id="${m.id}"><div class="av ${av}">${m.init}</div><div class="who"><div class="nm ${m.unread?'un':''}">${m.from}</div><div class="sj">${m.subj}</div><div class="pv">${m.prev}</div></div>${tag}${right}</div>`;
+}
+function renderList(){
+ if(state.folder!=='inbox'){const it=FOLDERMAIL[state.folder]||[];$('#list').innerHTML=it.length?it.map(row).join(''):`<div class="empty"><b>Empty</b>Nothing in ${state.folder}.</div>`;return;}
+ const b=cb();const it=MAIL[state.bucket]||[];
+ let head=b.cp?'':`<div class="bulk">Bulk lane · <span class="btn">Select all</span> <span class="btn">Archive read</span> <span class="btn">Unsubscribe</span></div>`;
+ $('#list').innerHTML=head+(it.length?it.map(row).join(''):`<div class="empty"><b>Inbox zero</b>Nothing in ${b.name}.</div>`);
+}
+function fields(m){if(!m.extract)return'';return `<div class="blk"><div class="bl">AI captured → written to record <span class="pill">#3</span></div><div class="flds">${m.extract.map(f=>`<div class="fld"><span class="k">${f[0]}</span><span class="v">${f[1]}</span><span class="sy">${f[2]} ✓</span></div>`).join('')}</div></div>`;}
+function copilot(m){
+ if(m.unresolved)return `<div class="cp"><div class="cph"><span class="t"><span class="pulse"></span> Co-Pilot · Sender Ledger</span></div>
+  <div class="blk"><div class="bl">The read</div><div class="read">New address, but this is Acme. The <b>acme.ch</b> domain and the "Angebot Webseite" thread both tie to the Acme AG deal. Resolve once and every future mail from this address routes to the lead on its own — leave it and it clutters Normal forever.</div></div>
+  <div class="rslv"><div class="h">● Resolve once — Sender Ledger</div><div class="x">${m.resolveWhy}</div><div style="display:flex;gap:7px"><button class="btn am" data-act="resolve">Resolve → ${m.resolveTo}</button><button class="btn" data-act="mute">Mute sender</button></div></div>
+  <div class="wb">Drafting unlocks once the sender is on a deal</div></div>`;
+ const c=COPILOT[m.id];
+ const stage=m.stageNext?`<div class="stage"><span>Stage</span><span class="c">${m.stageCur}</span><span>→ ${m.stageNext}?</span><button class="adv" data-act="advance">Advance ▸ ${m.stageNext}</button></div>`:'';
+ const ch=m.lead?`<div class="chrow"><button class="chip ${state.ch==='email'?'on':''}" data-act="ch" data-c="email">Email</button><button class="chip ${state.ch==='wa'?'on':''}" data-act="ch" data-c="wa">WhatsApp</button></div>`:'';
+ if(!c)return `<div class="cp"><div class="cph"><span class="t"><span class="pulse"></span> Co-Pilot</span></div><div class="blk"><div class="bl">The read</div><div class="read">${m.summary||''}</div></div></div>`;
+ const alts=c.alts&&c.alts.length?`<div class="alts">${c.alts.map(a=>`<div class="a">▸ ${a}</div>`).join('')}</div>`:'';
+ const clar=c.clar?`<div class="clar"><div class="q">${c.clar.q}</div><div class="opts">${c.clar.opts.map(o=>`<button class="btn" data-act="clar" data-t="${o}">${o}</button>`).join('')}</div></div>`:'';
+ return `<div class="cp">
+  <div class="cph"><span class="t"><span class="pulse"></span> Co-Pilot · ${m.lead?'CRM':'Normal'}</span>${m.lead?`<span class="lk" data-act="goov">Open lead →</span>`:''}</div>
+  ${stage}
+  <div class="blk"><div class="bl">The read</div><div class="read">${c.read}</div></div>
+  <div class="blk"><div class="bl">Recommended move <span class="conf">${c.move.conf} confidence</span></div><div class="move"><div class="mc">→ ${c.move.call}</div>${c.move.why?`<div class="mw">${c.move.why}</div>`:''}${alts}</div></div>
+  ${clar}
+  <div class="blk"><div class="bl">Draft that executes it ${m.lead?`· ${state.ch==='wa'?'WhatsApp':'Email'}`:''}</div><div class="draft"><div class="h">✦ ${c.move.call}</div><div class="x" id="dtext">${c.draft}</div>${ch}</div></div>
+  <div class="blk"><div class="bl">On approve, I run this chain</div><ol class="chain">${c.chain.map((s,i)=>`<li><span class="n">${i+1}</span>${s}</li>`).join('')}</ol><div class="dacts"><button class="btn am" data-act="send">Approve chain ▸</button><button class="btn" data-act="book">📅 Booking link</button><button class="btn" data-act="edit">Edit draft</button></div></div>
+  <div class="wb">✓ ${c.wb}</div>
+ </div>`;
+}
+function renderDetail(){
+ const host=$('#detail'),b=cb();
+ if(state.compose){host.classList.remove('hidden');$('#list').classList.add('hidden');host.innerHTML=composer();return;}
+ const m=cm();
+ if(!m){host.classList.add('hidden');$('#list').classList.remove('hidden');return;}
+ host.classList.remove('hidden');$('#list').classList.add('hidden');
+ const showcp=state.contact||(state.folder==='inbox'&&b.cp);
+ const cp=showcp?copilot(m):`<div class="cpoff"><div class="lab">Co-pilot off</div><div class="b">${state.contact?'':b.name+' is a bulk lane.'}</div><div style="font-size:12px;max-width:32ch">No drafting here — scan, archive, unsubscribe.</div></div>`;
+ const thread=THREADS[m.id]||[{from:m.from,time:m.time,dir:'in',body:m.body||m.prev}];
+ const msgs=thread.map(t=>`<div class="msg ${t.dir}"><div class="mhd"><span class="av sm ${t.dir==='out'?'me':'cp'}">${t.dir==='out'?'SL':initials(t.from)}</span><span class="who2"><b>${t.from}</b><span class="tm2">${t.time}</span></span></div><div class="mtext">${t.body}</div></div>`).join('');
+ const backlbl=state.contact?'Back to contacts':(state.folder==='inbox'?'Back to '+b.name:'Back to '+state.folder);
+ const ctx=state.contact?(m.lead||'CRM contact'):(b.name+(m.lead?` · ${m.lead}`:''));
+ host.innerHTML=`<div class="dback" data-act="back">‹ ${backlbl}</div><div class="dscroll">
+   <div class="mh"><div class="sj">${m.subj}</div><div class="fr">${ctx} · ${thread.length} message${thread.length>1?'s':''}</div></div>
+   <div class="thread">${msgs}</div>
+   ${cp}</div>`;
+}
+function renderFlight(){
+ $('#flight').innerHTML=`<div class="fh"><span class="fbadge">✦</span><span class="ft">▸ Flight Deck</span><span class="live"><span class="d"></span><span class="t">LIVE</span></span></div>
+  <div class="fsub">CONSULAR PUSHED <b>${DECK.length}</b> · 14 IN QUEUE ▾</div>
+  <div class="fdeck">${DECK.map((d,i)=>{const c=TONE[d.tone];
+   if(i===0)return `<div class="fcard top" style="border-color:${c}55;background:color-mix(in srgb,${c} 14%,transparent)"><div class="pr" style="color:${c}"><span>${d.pr}</span><span>${d.dl}</span></div><div class="co">${d.co}</div><div class="vc" style="color:${c}">${d.vc}</div><div class="wy">${d.wy}</div><div class="ex"><span class="fexec" style="background:${c}" data-act="deck">${d.ex}</span><span class="fdur">${d.dur}</span></div></div>`;
+   return `<div class="fcard row2" style="border-left-color:${c}"><div class="pr" style="color:${c}"><span>${d.vc}</span><span class="fdur">${d.dl}</span></div><div class="co" style="font-size:14px;margin-top:7px">${d.co}</div><div class="wy">${d.wy}</div></div>`;}).join('')}</div>
+  <div class="consular">
+    <div class="ch">Consular</div>
+    <div class="cprose">Three of today's CRM threads stall at the same step — the buyer's sold, the CFO isn't. <b>Acme</b> and two Closing deals all went quiet after the proposal reached finance. I've drafted one CFO-facing ROI one-pager that fits all three; say the word and I'll attach it to each thread. <b>Bistrot</b> is the exception — ready to sign, leave it alone beyond the contract.</div>
+  </div>
+  <div class="fchat"><button class="att" title="Attach image or PDF">📎</button><input placeholder="Comment or instruction · paste an image or PDF…"><button class="s">↵</button></div>`;
+}
+function paint(){renderRail();renderLanes();renderList();renderDetail();renderFlight();
+ const detail=state.compose||state.contact||state.sel;
+ $('#lanes').style.display=(state.folder==='inbox'&&!detail)?'flex':'none';}
+
+document.addEventListener('click',e=>{
+ const lane=e.target.closest('[data-b]');if(lane){state.bucket=lane.dataset.b;state.sel=null;state.contact=null;state.compose=false;paint();return;}
+ const act=e.target.closest('[data-act]');if(!act)return;const a=act.dataset.act,m=cm();
+ if(a==='folder'){state.folder=act.dataset.f;state.sel=null;state.contact=null;state.compose=false;paint();}
+ else if(a==='contact'){state.contact=act.dataset.id;state.sel=null;state.compose=false;paint();}
+ else if(a==='mail'){state.sel=act.dataset.id;paint();}
+ else if(a==='back'){state.sel=null;state.contact=null;paint();}
+ else if(a==='compose'){state.compose=true;state.sel=null;state.contact=null;paint();}
+ else if(a==='compose-close'){state.compose=false;paint();}
+ else if(a==='compose-draft'){const g=(($('#cgoal')||{}).value||'').trim();$('#csubj').value=g?(g.charAt(0).toUpperCase()+g.slice(1)):'Kurze Rückmeldung';$('#cbody').value=`Guten Tag,\n\n${g?'zum Thema „'+g+'": ':''}gerne melde ich mich kurz dazu. [Co-Pilot-Entwurf — ausformuliert auf Basis Ihres Ziels und des bisherigen Verlaufs mit diesem Kontakt.]\n\nFür einen kurzen Austausch halte ich mich diese Woche frei.\n\nBeste Grüsse\nSilke`;toast('Drafted from your goal — edit and send');}
+ else if(a==='compose-send'){toast('Email sent · logged to the timeline ✓');state.compose=false;paint();}
+ else if(a==='ch'){state.ch=act.dataset.c;renderDetail();}
+ else if(a==='advance'){if(m){toast(`Stage advanced · <b>${m.stageCur} → ${m.stageNext}</b> (#10)`);m.stageCur=m.stageNext;m.stageNext=null;renderDetail();}}
+ else if(a==='book'){const d=$('#dtext');if(d)d.textContent=d.textContent.replace(/\n\n(Herzliche|Beste|Gruss|Freundliche)/,x=>'\n\n📅 Termin: cal.atelier.ch/silke/15min'+x);toast('Booking link inserted (#10)');}
+ else if(a==='send'){const c=m&&COPILOT[m.id];const n=c?c.chain.length:1;if(m&&m.tlKey&&TIMELINE[m.tlKey])TIMELINE[m.tlKey].unshift({dot:'da',h:'Re: '+m.subj.replace(/^Re:\s*/,'')+' (sent)',s:'out · co-pilot · '+(state.ch==='wa'?'WhatsApp':'Email')});toast(`Chain run · <b>${n} actions</b> — sent, logged${m&&m.lead?' to '+m.lead:''}, follow-up set ✓`);if(m)m.unread=0;renderList();}
+ else if(a==='edit'){toast('Draft opened for editing');}
+ else if(a==='clar'){toast('Noted · '+act.dataset.t);}
+ else if(a==='discard'){toast('Draft discarded');}
+ else if(a==='nba'){if(act.dataset.t&&act.dataset.t.toLowerCase().includes('booking')){const bb=document.querySelector('[data-act="book"]');if(bb)bb.click();}else toast(act.dataset.t);}
+ else if(a==='goov'){toast('→ Opens the lead in Overview (#1 binding)');}
+ else if(a==='mute'){toast('Sender muted');}
+ else if(a==='deck'){toast('Flight-deck action fired');}
+ else if(a==='resolve'){const i=MAIL.normal.findIndex(x=>x.id===m.id);if(i>-1){const mv=MAIL.normal.splice(i,1)[0];mv.unresolved=0;mv.lead=mv.resolveTo;mv.stageCur='Proposal';mv.stageNext='Closing';mv.tlKey='acme';mv.from='Acme (office) · Acme AG';mv.subj=mv.subj||'Projektablauf';COPILOT[mv.id]={read:`Same deal as Jan — this is an internal Acme address (office@acme.ch) asking about project flow. Low-stakes; answer the process question and keep it moving.`,move:{call:'Answer the process question, briefly',why:'Internal alignment query — give them what they need to forward upward.',conf:'High'},alts:[],draft:'Guten Tag,\n\ngerne — was braucht das Team für die Abstimmung? Ich liefere die Angaben heute noch.\n\nBeste Grüsse\nSilke',chain:['Reply','Log to Acme AG timeline'],wb:'Routed to Acme AG · linked to the deal'};MAIL.crm.push(mv);CONTACTS.unshift({id:mv.id,name:'Acme (office)',co:'Acme AG',init:'AC',last:'now'});state.contact=mv.id;state.sel=null;paint();toast(`Resolved · <b>office@acme.ch → Acme AG</b>. Now a CRM contact (#1)`);}}
+});
+paint();
+</script>
+</body>
+</html>

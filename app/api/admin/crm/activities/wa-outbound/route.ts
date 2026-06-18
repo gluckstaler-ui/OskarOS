@@ -23,6 +23,11 @@ export const dynamic = 'force-dynamic'
 
 interface OutboundPayload {
   prospect_id?: string
+  // Reply to an UNMATCHED sender (no lead yet) by raw phone — used by the
+  // unmatched-senders reply box. When present without prospect_id we send to
+  // this number and skip the activity log (there's no prospect to attach it
+  // to). Ralph 2026-06-15.
+  phone?: string
   body?: string
 }
 
@@ -30,19 +35,44 @@ export async function POST(req: NextRequest) {
   try {
     const body = (await req.json().catch(() => ({}))) as OutboundPayload
     const prospect_id = body.prospect_id?.trim()
+    const rawPhone = body.phone?.trim()
     const text = (body.body ?? '').trim()
-    if (!prospect_id || !text) {
-      return NextResponse.json({ error: 'prospect_id and body required' }, { status: 400 })
+    if (!text || (!prospect_id && !rawPhone)) {
+      return NextResponse.json({ error: 'body and (prospect_id or phone) required' }, { status: 400 })
     }
 
-    const prospects = readSheet()
-    const p = prospects.find(x => x.id === prospect_id)
-    if (!p) {
-      return NextResponse.json({ error: `prospect ${prospect_id} not found` }, { status: 404 })
+    // Resolve the destination number: a known lead's phone, or a raw phone for
+    // an unmatched-sender reply.
+    let phone: string | null
+    if (prospect_id) {
+      const p = readSheet().find(x => x.id === prospect_id)
+      if (!p) {
+        return NextResponse.json({ error: `prospect ${prospect_id} not found` }, { status: 404 })
+      }
+      phone = normalizeWhatsAppNumber(p.phone)
+      if (!phone) {
+        return NextResponse.json({ error: `prospect ${prospect_id} has no usable phone` }, { status: 400 })
+      }
+    } else {
+      phone = normalizeWhatsAppNumber(rawPhone!)
+      if (!phone) {
+        return NextResponse.json({ error: `"${rawPhone}" is not a usable WhatsApp number` }, { status: 400 })
+      }
     }
-    const phone = normalizeWhatsAppNumber(p.phone)
-    if (!phone) {
-      return NextResponse.json({ error: `prospect ${prospect_id} has no usable phone` }, { status: 400 })
+
+    // Don't fire a WhatsApp at a number with no WhatsApp account (e.g. a plain
+    // landline). `false` = verified no-account → refuse; `null` = couldn't
+    // verify (bridge down) → fall through and let the send attempt itself fail
+    // with its own error. The `typeof` guard tolerates the HMR-pinned runtime
+    // singleton (globalThis.__waRuntime survives hot-reloads, so a freshly-added
+    // method isn't on the live instance until a server restart). Ralph 2026-06-16.
+    const wa = getRuntime()
+    const hasWa = typeof wa.checkWhatsApp === 'function' ? await wa.checkWhatsApp(phone) : null
+    if (hasWa === false) {
+      return NextResponse.json(
+        { error: `+${phone} has no WhatsApp account — nothing was sent`, code: 'no_whatsapp' },
+        { status: 422 },
+      )
     }
 
     const sendResult = await getRuntime().sendMessage(phone, text)
@@ -53,20 +83,27 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    const activity = await appendActivity({
-      prospect_id,
-      type: 'WhatsApp Out',
-      icon: 'message-circle',
-      color: '#25D366',
-      notes: text,
-      wa_message_id: sendResult.wa_message_id || '',
-      wa_status: 'sent',
-    })
+    // Log a `WhatsApp Out` activity only when there's a prospect to attach it
+    // to. An unmatched-sender reply has no lead, so it just sends.
+    let activity_id: string | undefined
+    if (prospect_id) {
+      const activity = await appendActivity({
+        prospect_id,
+        type: 'WhatsApp Out',
+        icon: 'message-circle',
+        color: '#25D366',
+        notes: text,
+        wa_message_id: sendResult.wa_message_id || '',
+        wa_status: 'sent',
+      })
+      activity_id = activity.id
+    }
 
     return NextResponse.json({
       ok: true,
       prospect_id,
-      activity_id: activity.id,
+      phone,
+      activity_id,
       wa_message_id: sendResult.wa_message_id,
     })
   } catch (err) {

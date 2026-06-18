@@ -4,10 +4,11 @@
 //
 // Two switches:
 //   MODE:  cli | api
-//   MODEL: opus | sonnet | gemini
+//   MODEL: sonnet | opus | gemini   (sonnet restored 2026-06-10 — padawan default;
+//          opus kept for legacy configs; gemini = sonnet's slot under the gemini preset)
 //
-// CLI mode:  Opus, Sonnet only → Claude Code subprocess (existing)
-// API mode:  Opus, Sonnet, Gemini → Next.js tool execution loop
+// CLI mode:  Sonnet/Opus → Claude Code subprocess; Gemini → Gemini CLI
+// API mode:  Sonnet/Opus, Gemini → Next.js tool execution loop
 //
 // In API mode, ALL models go through the Next.js server route.
 // The model determines which API to call, but the execution
@@ -17,7 +18,7 @@
 import { buildVibeHTML, buildVibeHTMLGemini, type VibeBuildResult } from './webdev'
 import { runClaudeAgentLoop } from './claude-api-loop'
 import { runGeminiAgentLoop } from './gemini-loop'
-import { existsSync, readFileSync, writeFileSync } from 'fs'
+import { existsSync, readFileSync } from 'fs'
 import { join } from 'path'
 import { verifyVibeHtml, parseTrailingJson } from './vibe-verify'
 import { publish } from './event-bus'
@@ -29,11 +30,11 @@ import { buildModeBanner } from './webdev-mode-banner'
 
 export type ExecutionMode = 'smpl' | 'cli' | 'api'
 
-export type Model = 'claude-opus-4-8' | 'claude-sonnet-4-6' | 'gemini-3.1-pro-preview'
+export type Model = 'claude-sonnet-4-6' | 'claude-opus-4-8' | 'gemini-3.1-pro-preview'  // sonnet restored 2026-06-10 (padawan default)
 
 // Valid combinations:
-// CLI:  opus, sonnet
-// API:  opus, sonnet, gemini
+// CLI:  sonnet, opus, gemini
+// API:  sonnet, opus, gemini
 
 /**
  * Ralph 2026-04-26: WebDev now takes a raw `target` string (whatever CD wrote
@@ -248,19 +249,17 @@ async function buildResultFromApiOutput(
 // ==========================================
 
 /**
- * Ralph 2026-05-19 (Sonnet→Opus fallback): single-attempt runner.
- * `runWebDev` (below) wraps this with the model-fallback layer. Keep
- * this function returning whatever the underlying CLI/API runner
- * produces — including failure results — without retrying. The retry
- * decision lives in `runWebDev`.
+ * WebDev router — routes a build by MODE (cli|api) then MODEL (opus|gemini)
+ * and returns whatever the underlying CLI/API runner produces, including
+ * failure results. Single attempt, no retry.
  *
- * Why the split: the existing function has many internal return
- * paths (CLI Claude, CLI Gemini, API Claude, API Gemini, error). The
- * fallback wrapper only needs to inspect the final result once, so
- * wrapping the whole function in a thin outer caller keeps the
- * retry logic readable instead of threading it through every branch.
+ * History: this was `runWebDevAttempt`, wrapped by a `runWebDev` that
+ * retried Sonnet failures on Opus. The Sonnet path was ripped 2026-06-10,
+ * which left the wrapper as a pure passthrough — collapsed back into this
+ * exported function. There is no model fallback: Opus and Gemini failures
+ * pass through to the caller unchanged.
  */
-async function runWebDevAttempt(request: WebDevBuildRequest): Promise<VibeBuildResult> {
+export async function runWebDev(request: WebDevBuildRequest): Promise<VibeBuildResult> {
   const { mode, model, target, sessionPath, sessionId } = request
 
   console.log(`[RunWebDev] Mode: ${mode}, Model: ${model}, Target: "${target}"`)
@@ -308,7 +307,7 @@ async function runWebDevAttempt(request: WebDevBuildRequest): Promise<VibeBuildR
     request.onToolCall?.(toolName, input)
   }
 
-  if (model === 'claude-opus-4-8' || model === 'claude-sonnet-4-6') {
+  if (model === 'claude-sonnet-4-6' || model === 'claude-opus-4-8') {
     const result = await runClaudeAgentLoop({
       model,
       systemPrompt: agentPrompt,
@@ -350,141 +349,3 @@ async function runWebDevAttempt(request: WebDevBuildRequest): Promise<VibeBuildR
   }
 }
 
-/**
- * Ralph 2026-05-19 (Sonnet→Opus fallback): the public runner.
- *
- * Calls `runWebDevAttempt` once. If the result is a failure AND the
- * requested model was `claude-sonnet-4-6`, retries the same build
- * once with `claude-opus-4-8` and returns that result instead.
- *
- * **Rationale.** Sonnet 4.6's default `effort: high` ships dialed-in
- * for the rumination cliff that ate session 2026-05-16-1 (vibe-1,
- * vibe-2, vibe-3 across multiple attempts). With our prompt
- * prescriptions in place, Sonnet succeeds ~2/3 of the time on
- * wireframe-class workloads; Opus succeeds reliably on the same
- * spec set at ~2× the cost-per-attempt. Trying Sonnet first keeps
- * the cheap-fast path active for the cases that work; the Opus
- * fallback rescues the cases that don't. Net cost vs always-Opus:
- * lower on average. Net wall time vs single-attempt Sonnet: worse
- * on the rescue path (~12 min wasted on Sonnet's SIGTERM + ~7 min
- * for Opus to rebuild from scratch), better than a hard failure.
- *
- * **Direction is one-way.** Sonnet → Opus only. Opus failures and
- * Gemini failures pass through unchanged — Opus is the highest tier
- * we trust for this workload; Gemini was never asked to fall back
- * per the user's spec ("switch to Opus when Sonnet fails").
- *
- * **Cancellation honoured.** If `request.abortSignal` is already
- * aborted after the first attempt (user clicked cancel mid-Sonnet),
- * don't retry. The user's cancel-job intent overrides the fallback.
- *
- * **Same `onToolCall` closure on the retry.** The route's
- * (build-wireframes/route.ts:251) closure-bound forwarder is
- * passed through unchanged. The Opus retry's build_progress /
- * submit_critique fires reach the same SSE bus and the same
- * job-card row.
- *
- * Observability: a `build_progress` milestone is published before
- * the retry so the user sees "Sonnet failed (reason), retrying with
- * Opus..." in the live job card. BUILD.md gets the Opus result's
- * COMPLETE/FAIL entry from the route layer; the Sonnet partial is
- * captured in the milestone history but not separately logged to
- * BUILD.md to avoid pollution.
- */
-export async function runWebDev(request: WebDevBuildRequest): Promise<VibeBuildResult> {
-  const firstResult = await runWebDevAttempt(request)
-
-  if (firstResult.status === 'complete') return firstResult
-  if (request.model !== 'claude-sonnet-4-6') return firstResult
-  if (request.abortSignal?.aborted) return firstResult
-
-  // Sonnet failed. Trigger one Opus fallback attempt.
-  const errMsg = (firstResult.error ?? 'unknown error').slice(0, 120)
-  console.log(`[RunWebDev] Sonnet failed for "${request.target}" (${errMsg}). Retrying with Opus.`)
-  // Ralph 2026-05-19: distinctive emoji prefix on the rescue milestones
-  // so the user can scan a long row list and immediately see which
-  // builds went to Opus. The fallback bullet appears mid-build; the
-  // success/fail bullet appears post-Opus. Both surface in the
-  // BuildJobCard's per-row milestone list.
-  publish(request.sessionId, {
-    type: 'build_progress',
-    target: request.target,
-    milestone: `🟣 Sonnet failed (${errMsg}) — escalating to Opus`,
-  })
-
-  const opusResult = await runWebDevAttempt({
-    ...request,
-    model: 'claude-opus-4-8',
-  })
-
-  if (opusResult.status === 'complete') {
-    console.log(`[RunWebDev] Opus fallback rescued "${request.target}".`)
-    // Ralph 2026-05-19: stamp the output HTML so the user can see in
-    // the rendered file (and in source) that this was an Opus rescue.
-    // Injects a fixed-position chip top-right via `body::before` so it
-    // overlays whatever wireframe layout the agent produced without
-    // mutating the build's own DOM. Also adds an HTML comment marker
-    // at the very top of the file for source-view scanning.
-    if (opusResult.filename) {
-      try {
-        const htmlPath = join(request.sessionPath, opusResult.filename)
-        if (existsSync(htmlPath)) {
-          let html = readFileSync(htmlPath, 'utf-8')
-          const sourceMarker =
-            `<!-- ===== BUILT BY OPUS (Sonnet failed on first attempt) ===== -->\n`
-          const chipStyle = `<style data-oskar-opus-chip>
-  body::before {
-    content: "🟣 BUILT BY OPUS";
-    position: fixed;
-    top: 8px;
-    right: 8px;
-    z-index: 99999;
-    background: rgba(125, 60, 152, 0.96);
-    color: #fff;
-    padding: 5px 12px;
-    font-family: ui-monospace, "SF Mono", Menlo, monospace;
-    font-size: 11px;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    border-radius: 3px;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.25);
-    pointer-events: none;
-  }
-</style>
-`
-          // Prepend source marker; inject chip styles into <head> if
-          // present, otherwise into <html> top. The chip survives even
-          // if the agent's CSS resets pseudo-elements because nothing
-          // selects `body::before` in normal builds.
-          html = sourceMarker + html
-          if (html.includes('</head>')) {
-            html = html.replace('</head>', chipStyle + '</head>')
-          } else {
-            // Defensive — no </head> means malformed HTML; prepend
-            // the style to the start of <body> instead.
-            html = html.replace(/<body([^>]*)>/i, `<body$1>\n${chipStyle}`)
-          }
-          writeFileSync(htmlPath, html)
-          console.log(`[RunWebDev] Stamped OPUS chip onto ${opusResult.filename}.`)
-        }
-      } catch (stampErr) {
-        // Non-fatal — the build itself succeeded, we just couldn't
-        // mark it. Log and continue.
-        console.error(`[RunWebDev] Failed to stamp OPUS chip:`, stampErr)
-      }
-    }
-    publish(request.sessionId, {
-      type: 'build_progress',
-      target: request.target,
-      milestone: `🟣 RESCUED BY OPUS — ${request.target}`,
-    })
-  } else {
-    console.log(`[RunWebDev] Opus fallback ALSO failed for "${request.target}": ${opusResult.error}`)
-    publish(request.sessionId, {
-      type: 'build_progress',
-      target: request.target,
-      milestone: `🔴 OPUS ALSO FAILED — real fail (${(opusResult.error ?? '').slice(0, 100)})`,
-    })
-  }
-  return opusResult
-}

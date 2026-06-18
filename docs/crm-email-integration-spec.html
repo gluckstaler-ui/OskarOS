@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CRM × Email — Overview Integration Spec (5 Proposals)</title>
+<style>
+  :root{
+    --ink:#1d2125; --mute:#6b7480; --faint:#9aa3ad; --line:#e4e7ea; --line2:#eef0f2;
+    --bg:#fbfcfd; --card:#ffffff; --code:#f5f7f8;
+    --wa:#25D366; --email:#e8861a; --email-soft:#fdf1e3; --wa-soft:#e8faf0;
+    --blue:#2f6df0; --blue-soft:#eef3fe; --green:#16864a; --amber:#b5721a; --red:#c0392b;
+    --accent:#3b5168;
+    --mono:'SF Mono',ui-monospace,'JetBrains Mono',Menlo,Consolas,monospace;
+    --sans:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Roboto,sans-serif;
+  }
+  *{box-sizing:border-box}
+  body{font-family:var(--sans);color:var(--ink);background:var(--bg);margin:0;line-height:1.62;font-size:15px;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:1000px;margin:0 auto;padding:56px 32px 120px}
+  header.doc{border-bottom:2px solid var(--ink);padding-bottom:22px;margin-bottom:8px}
+  .kicker{font-family:var(--mono);font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--email);font-weight:600}
+  h1{font-size:33px;line-height:1.12;letter-spacing:-.02em;margin:.35em 0 .25em;font-weight:700}
+  .sub{color:var(--mute);font-size:16px;max-width:74ch}
+  .meta{display:flex;flex-wrap:wrap;gap:8px 22px;margin-top:18px;font-family:var(--mono);font-size:11.5px;color:var(--faint)}
+  .meta b{color:var(--mute);font-weight:600}
+  h2{font-size:23px;letter-spacing:-.01em;margin:64px 0 6px;padding-top:18px;border-top:1px solid var(--line);font-weight:700}
+  h2 .n{font-family:var(--mono);font-size:14px;color:var(--email);font-weight:600;margin-right:10px}
+  h3{font-size:17px;margin:32px 0 8px;font-weight:650}
+  h4{font-size:13px;font-family:var(--mono);letter-spacing:.04em;text-transform:uppercase;color:var(--accent);margin:22px 0 6px}
+  p{margin:.5em 0}
+  a{color:var(--blue);text-decoration:none}
+  code,.path{font-family:var(--mono);font-size:.86em;background:var(--code);padding:1px 5px;border-radius:4px;color:#384049}
+  .path{color:#5a6470;white-space:nowrap}
+  ul,ol{margin:.4em 0 .9em;padding-left:22px}
+  li{margin:.28em 0}
+  li > strong{font-weight:650}
+  .lede{font-size:16.5px;color:#2b3138;border-left:3px solid var(--email);padding:2px 0 2px 16px;margin:14px 0}
+  /* TOC */
+  nav.toc{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:18px 22px;margin:26px 0 8px}
+  nav.toc ol{columns:2;column-gap:34px;margin:0;padding-left:20px;font-size:13.5px}
+  nav.toc li{margin:.3em 0}
+  /* badges */
+  .badge{display:inline-block;font-family:var(--mono);font-size:10.5px;font-weight:600;letter-spacing:.03em;padding:2px 8px;border-radius:20px;vertical-align:middle;white-space:nowrap}
+  .b-new{background:#eaf6ee;color:var(--green)}
+  .b-reuse{background:#eef3fe;color:var(--blue)}
+  .b-email{background:var(--email-soft);color:var(--amber)}
+  .b-wa{background:var(--wa-soft);color:#0f7a3d}
+  .b-effort{background:#fbf0e6;color:#9a5b16}
+  .chan{display:inline-flex;align-items:center;gap:5px;font-family:var(--mono);font-size:11px;font-weight:600}
+  .dot{width:8px;height:8px;border-radius:50%;display:inline-block}
+  .dot.wa{background:var(--wa)} .dot.em{background:var(--email)} .dot.bl{background:var(--blue)}
+  /* tables */
+  table{border-collapse:collapse;width:100%;margin:14px 0;font-size:13px}
+  th,td{text-align:left;padding:8px 11px;border-bottom:1px solid var(--line2);vertical-align:top}
+  th{font-family:var(--mono);font-size:10.5px;letter-spacing:.05em;text-transform:uppercase;color:var(--mute);border-bottom:1px solid var(--line);font-weight:600}
+  tr:last-child td{border-bottom:none}
+  td .path{font-size:11px}
+  table.matrix td{text-align:center}
+  table.matrix td:first-child{text-align:left;font-weight:600}
+  .y{color:var(--green);font-weight:700} .n{color:var(--faint)} .p{color:var(--amber);font-weight:600}
+  /* code block */
+  pre{background:var(--code);border:1px solid var(--line);border-radius:8px;padding:14px 16px;overflow-x:auto;font-family:var(--mono);font-size:12px;line-height:1.55;margin:12px 0;color:#2f363d}
+  pre .c{color:#8b94a0} pre .k{color:#0b6cbf} pre .s{color:#1a7d4a} pre .t{color:#9a5b16}
+  /* callout */
+  .note{background:var(--card);border:1px solid var(--line);border-left:3px solid var(--blue);border-radius:8px;padding:12px 16px;margin:14px 0;font-size:13.5px}
+  .note.warn{border-left-color:var(--amber)} .note.good{border-left-color:var(--green)}
+  .note b{font-family:var(--mono);font-size:11px;letter-spacing:.04em;text-transform:uppercase}
+  /* proposal header */
+  .prop-head{display:flex;align-items:baseline;gap:14px;flex-wrap:wrap;margin-top:6px}
+  .prop-tag{font-family:var(--mono);font-size:11px;color:var(--mute)}
+  /* wireframe */
+  .wf{border:1px solid var(--line);border-radius:10px;background:var(--card);padding:16px;margin:16px 0}
+  .wf-cap{font-family:var(--mono);font-size:10.5px;letter-spacing:.05em;text-transform:uppercase;color:var(--faint);margin-bottom:10px}
+  .wf-grid{display:grid;grid-template-columns:1.05fr 1.6fr 1.2fr;gap:8px;min-height:148px}
+  .wf-col{border:1px dashed var(--line);border-radius:7px;padding:9px;background:#fcfdfe;font-size:11px;color:var(--mute)}
+  .wf-col h6{margin:0 0 7px;font-family:var(--mono);font-size:9.5px;letter-spacing:.05em;text-transform:uppercase;color:var(--faint);font-weight:600}
+  .wf-box{border:1px solid var(--line2);border-radius:5px;padding:5px 7px;margin:5px 0;background:#fff;font-size:10.5px;color:#5d6670}
+  .wf-box.hot{border-color:var(--email);background:var(--email-soft);color:var(--amber);font-weight:600}
+  .wf-box.wa{border-color:var(--wa);background:var(--wa-soft);color:#0f7a3d}
+  .wf-tabs{display:flex;gap:4px;margin-bottom:6px}
+  .wf-tab{font-size:9.5px;padding:2px 7px;border-radius:11px;border:1px solid var(--line2);color:var(--faint)}
+  .wf-tab.on{background:var(--email);color:#fff;border-color:var(--email)}
+  .wf-full{grid-template-columns:1fr}
+  /* footer */
+  footer{margin-top:80px;border-top:1px solid var(--line);padding-top:18px;font-size:12px;color:var(--faint);font-family:var(--mono)}
+  .two{display:grid;grid-template-columns:1fr 1fr;gap:0 30px}
+  @media(max-width:760px){.two,nav.toc ol{grid-template-columns:1fr;columns:1}.wf-grid{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="doc">
+  <div class="kicker">OskarOS · Consular CRM · Design Specification</div>
+  <h1>Email in the CRM Overview</h1>
+  <p class="sub">Five fine-grained proposals for integrating email as a first-class channel in the lead-management overview — each grounded in the surfaces, data model, and channel machinery that already ship today.</p>
+  <div class="meta">
+    <span><b>Scope</b> /crm Overview view</span>
+    <span><b>Status</b> Proposal — pick one (or a phased blend)</span>
+    <span><b>Engine</b> Gmail MCP (13 tools, unwired)</span>
+    <span><b>Author</b> Jedi CD</span>
+    <span><b>Date</b> 2026-06-13</span>
+  </div>
+</header>
+
+<nav class="toc">
+  <ol>
+    <li><a href="#ctx">Context — what already exists</a></li>
+    <li><a href="#backbone">The shared email backbone</a></li>
+    <li><a href="#p1">P1 · Consular-as-Inbox (agent-mediated)</a></li>
+    <li><a href="#p2">P2 · Unified Channel Thread</a></li>
+    <li><a href="#p3">P3 · Right-Rail Tabs (Chat ⇄ Email)</a></li>
+    <li><a href="#p4">P4 · Triage Inbox (rail-driven)</a></li>
+    <li><a href="#p5">P5 · Dedicated Inbox View (4th tab)</a></li>
+    <li><a href="#matrix">Comparison matrix</a></li>
+    <li><a href="#reco">Recommendation &amp; rollout</a></li>
+  </ol>
+</nav>
+
+<p class="lede">The premise: email is <em>not</em> a greenfield bolt-on. WhatsApp already proves the channel pattern end-to-end (compose modal → send route → Baileys → activity row → inbound dispatch → unmatched pool → status receipts). Email re-uses that spine, swapping Baileys for the Gmail MCP. The five proposals below differ <strong>only in the overview UX</strong> layered on top of one shared backbone.</p>
+
+<!-- ============================================================ -->
+<h2 id="ctx"><span class="n">00</span>Context — what already exists</h2>
+
+<p>The Overview is a three-column grid (<span class="path">app/crm/crm.css:1245</span>): <code>grid-template-columns: 400px minmax(0,1fr) 420px</code>. Every proposal must respect or deliberately reshape this frame.</p>
+
+<table>
+  <tr><th>Column</th><th>Component</th><th>Holds</th><th>Existing email touchpoint</th></tr>
+  <tr><td><b>Left · 400px</b><br><span class="path">TriageRail.tsx</span></td><td>Triage rail</td><td>Greeting · editorial headline · 3 bento groups (Urgency / <b>Channel</b> / Stage) · pipeline footer</td><td><span class="badge b-email">Emails bento</span> already exists — <code>data-tone="email"</code>, filter <code>activity:Email</code> (<span class="path">TriageRail.tsx:128</span>)</td></tr>
+  <tr><td><b>Center · flex</b><br><span class="path">LeadList / LeadDetail</span></td><td>Queue → opp dashboard</td><td>List rows; on select, the full opportunity dashboard (intel, verdict, lamps, People, <b>Activities feed</b>)</td><td>Row email icon as <code>mailto:</code> (<span class="path">LeadList.tsx:202</span>); feed icons <code>E-mail Out→mail</code>, <code>E-mail In→mail-open</code> (<span class="path">LeadDetail.tsx:121</span>)</td></tr>
+  <tr><td><b>Right · 420px</b><br><span class="path">fp-right</span></td><td>Consular chat</td><td>FlightDeck push-queue + <code>ConversationPanel</code> (reused 1:1 from Studio); read-only advisor</td><td>none yet</td></tr>
+</table>
+
+<h4>The channel pattern email will mirror</h4>
+<p>WhatsApp is the reference implementation. The whole loop is worth naming because four of the five proposals reuse it verbatim:</p>
+<table>
+  <tr><th>Stage</th><th>WhatsApp (today)</th><th>Email equivalent</th></tr>
+  <tr><td>Compose</td><td><code>WaComposeModal</code> — textarea, prefilled draft, "Ask AI", Send (<span class="path">WaComposeModal.tsx:1-165</span>)</td><td><code>EmailComposeModal</code> — + subject line, + cc/bcc, threading</td></tr>
+  <tr><td>Send route</td><td><span class="path">POST /api/admin/crm/activities/wa-outbound</span> → Baileys → ack</td><td><span class="path">POST …/activities/email-outbound</span> → Gmail MCP → message id</td></tr>
+  <tr><td>Log</td><td><code>appendActivity({type:'WhatsApp Out', notes, wa_message_id, wa_status})</code></td><td><code>appendActivity({type:'E-mail Out', subject, notes, …})</code> — <b>type already in the union</b> (<span class="path">crm-store.ts:100</span>)</td></tr>
+  <tr><td>Inbound</td><td>Baileys <code>messages.upsert</code> → match by <code>phone</code> → activity or unmatched pool</td><td>Gmail watch/poll → match by <code>email</code> → activity or email-unmatched pool</td></tr>
+  <tr><td>Status</td><td><code>updateWaStatusByMessageId</code> (sent→delivered→read) (<span class="path">crm-store.ts:642</span>)</td><td><code>updateEmailStatusByMessageId</code> (sent→delivered→opened)</td></tr>
+</table>
+
+<div class="note good"><b>Why this matters</b> — Prospect and Contact both already carry an <code>email</code> field (<span class="path">crm-store.ts:39, 890</span>), the activity timeline already renders <code>E-mail In/Out</code> types, and the triage rail already counts an <em>Emails</em> bucket. Today those are dead ends (mailto links, empty counts). The work is wiring a real engine behind affordances the UI is already drawn for.</p></div>
+
+<!-- ============================================================ -->
+<h2 id="backbone"><span class="n">01</span>The shared email backbone <span class="badge b-new">all 5 build on this</span></h2>
+
+<p>Before the overview UX, one substrate. The five proposals are five front-ends to <em>this same</em> backend; choosing between them does not change the backbone, only what the operator sees.</p>
+
+<h3>1.1 — Data model <span class="badge b-reuse">reuse + 2 optional columns</span></h3>
+<p>The <code>activities</code> table already has every field email needs (<span class="path">crm-store.ts:113-129</span>): <code>type</code>, <code>subject</code>, <code>notes</code> (body), <code>media_path/media_mime</code> (attachments), <code>wa_message_id</code> + <code>wa_status</code> (id + delivery). Two cleanliness options:</p>
+<table>
+  <tr><th>Option</th><th>Shape</th><th>Trade</th></tr>
+  <tr><td><b>A · discriminated reuse</b></td><td><code>type='E-mail Out'</code> ⇒ <code>wa_message_id</code> = Gmail msg id, <code>wa_status</code> = email status. No migration.</td><td>Zero schema change; the <code>wa_*</code> names lie a little.</td></tr>
+  <tr><td><b>B · explicit columns</b></td><td><code>ALTER TABLE activities ADD email_message_id TEXT; ADD email_thread_id TEXT; ADD email_status TEXT;</code></td><td>Honest names + a <code>thread_id</code> we genuinely need for reply-threading. <b>Recommended.</b></td></tr>
+</table>
+<p>One field email needs that WhatsApp didn't: <code>email_thread_id</code> — the Gmail thread, so replies stay in-thread and the dashboard can collapse a back-and-forth into one conversation. That alone argues for Option B.</p>
+
+<h3>1.2 — Outbound <span class="badge b-new">new route</span></h3>
+<pre><span class="c">// POST /api/admin/crm/activities/email-outbound  (mirrors wa-outbound/route.ts)</span>
+{ <span class="t">prospect_id</span>, <span class="t">to?</span>, <span class="t">cc?</span>, <span class="t">bcc?</span>, <span class="t">subject</span>, <span class="t">body</span>, <span class="t">in_reply_to?</span>, <span class="t">attachments?</span> }
+  <span class="k">→</span> resolve recipient: <span class="s">to ?? contact.email ?? prospect.email</span>
+  <span class="k">→</span> Gmail MCP: <span class="s">create_draft({to,subject,body,…})</span> then send  <span class="c">// + thread via in_reply_to</span>
+  <span class="k">→</span> appendActivity({ type:<span class="s">'E-mail Out'</span>, subject, notes:body,
+                     email_message_id, email_thread_id, email_status:<span class="s">'sent'</span> })
+  <span class="k">→</span> { ok, activity_id, email_message_id, email_thread_id }   <span class="c">// 502 if MCP down</span></pre>
+
+<h3>1.3 — Inbound <span class="badge b-new">new dispatcher</span></h3>
+<p>Mirror <code>wa-inbound-dispatch</code>: a Gmail <em>watch</em> (Pub/Sub push) or a 60-second poll on a labeled mailbox. For each new message: <code>get_thread()</code> → extract from/subject/body/attachments → match <code>from</code> against <code>prospect.email</code> then <code>contact.email</code>.</p>
+<ul>
+  <li><strong>Match</strong> → <code>appendActivity({type:'E-mail In', subject, notes, email_thread_id, media_*})</code>; emit the <code>activities</code> bus event the overview already polls (15s).</li>
+  <li><strong>No match</strong> → email-unmatched pool (<span class="path">db/email-unmatched.jsonl</span>), exactly like WA's <code>media/unmatched/&lt;phone&gt;/</code>. When a Contact/Prospect with that address is later created, <code>promoteUnmatchedForEmail()</code> rescues the buffered thread — the direct parallel to <code>promoteUnmatchedForPhone()</code>.</li>
+</ul>
+
+<h3>1.4 — EmailComposeModal <span class="badge b-new">parallels WaComposeModal</span></h3>
+<p>One component, reused by every proposal that composes inline (P2–P5). It is <code>WaComposeModal</code> with three additions: a <b>Subject</b> field, optional <b>Cc/Bcc</b> row, and a thread-aware header ("Reply · re: …" when <code>in_reply_to</code> is set). The amber channel tone (<code>--email #e8861a</code>) replaces WhatsApp green. "Ask AI" hits the same <span class="path">/consular/ask</span> route, now returning <code>{subject, body}</code> instead of body-only.</p>
+
+<div class="note"><b>Boundary</b> — Consular stays read-only (<span class="path">consular/chat</span> performs no mutations, WP-111). Sending always goes through the dedicated <code>email-outbound</code> route, never the chat agent's tool surface — same firewall WhatsApp respects.</div>
+
+<!-- ============================================================ -->
+<h2 id="p1"><span class="n">02</span>Proposal 1 — Consular-as-Inbox <span class="badge b-effort">effort: S</span></h2>
+<div class="prop-head"><span class="chan"><span class="dot bl"></span>AGENT-MEDIATED</span><span class="prop-tag">zero new pane · ships first</span></div>
+
+<p class="lede">Email lives entirely inside the right-rail chat you already have. You never open an email client — you <em>ask</em>. "Draft a reply to the Falcamel inquiry", "what did Silke email about the build?", "send it." Consular reads the thread (Gmail MCP <code>search_threads</code>/<code>get_thread</code>), drafts, and on your OK fires <code>email-outbound</code>; the result lands as an <code>E-mail Out</code> activity on the lead and a draft card in chat.</p>
+
+<div class="wf"><div class="wf-cap">Overview — unchanged grid; email surfaces as chat cards</div>
+<div class="wf-grid">
+  <div class="wf-col"><h6>TriageRail</h6><div class="wf-box">Overdue · Today</div><div class="wf-box hot">Emails — 4</div><div class="wf-box">Stages…</div></div>
+  <div class="wf-col"><h6>LeadDetail</h6><div class="wf-box">Verdict · Lamps</div><div class="wf-box">Activities feed<br>· E-mail In ↩</div></div>
+  <div class="wf-col"><h6>Consular chat</h6><div class="wf-box hot">📨 Draft reply to Silke<br>[subject][body]<br>Approve · Edit · Send</div><div class="wf-box">"3 unread for leads"</div></div>
+</div></div>
+
+<h4>Features (fine-grained)</h4>
+<ul>
+  <li><strong>Read in context.</strong> Consular gains 3 Gmail tools (<code>search_threads</code>, <code>get_thread</code>, <code>list_drafts</code>) plus the existing SQL read path, so it can answer "summarise the last email from this lead" by joining <code>prospect.email</code> → thread.</li>
+  <li><strong>Draft card.</strong> When Consular drafts, it returns a typed <code>card</code> on the same channel <code>tc_discovery</code> uses today (<span class="path">consular/chat/route.ts:98</span> already passes <code>card</code> through). New card kind <code>email_draft</code>: subject + body + recipient + <em>Approve / Edit / Send</em> buttons.</li>
+  <li><strong>Send is gated.</strong> "Send" on the card POSTs <code>email-outbound</code> — the agent proposes, the human commits. No autonomous sending.</li>
+  <li><strong>Inbound nudges.</strong> The FlightDeck push-queue (<span class="path">page.tsx:552</span>, <code>db/flight-deck.json</code>) gains email rows: "Silke replied · 2h ago · re: build" → click scrolls the lead.</li>
+</ul>
+
+<h4>Integration map</h4>
+<table>
+  <tr><th>Existing surface</th><th>Change</th><th>Ref</th></tr>
+  <tr><td>Consular tool allow-list</td><td>Add Gmail read tools to <code>CONSULAR_ALLOWED_TOOLS</code></td><td><span class="path">lib/mcp-config.ts</span></td></tr>
+  <tr><td>chat response card</td><td>New <code>email_draft</code> card kind alongside discovery card</td><td><span class="path">consular/chat/route.ts</span></td></tr>
+  <tr><td>FlightDeck queue</td><td>Email rows in <code>db/flight-deck.json</code></td><td><span class="path">page.tsx:552</span></td></tr>
+  <tr><td>Activities feed</td><td>Renders the resulting <code>E-mail Out</code> row (no change)</td><td><span class="path">LeadDetail.tsx:1323</span></td></tr>
+</table>
+
+<h4>Edge cases &amp; tradeoffs</h4>
+<ul>
+  <li><strong>Strength:</strong> least UI built, leans on the chat metaphor Consular already owns, conversational triage ("who's owed a reply?") is genuinely better than a list.</li>
+  <li><strong>Weakness:</strong> no visual inbox — you can't <em>browse</em> mail, only query it. Power users who live in threads will feel blind. Long threads are summarised, not shown verbatim, unless you ask.</li>
+  <li><strong>Doctrine risk:</strong> Consular is read-only by design; the send card must route around the agent (direct <code>email-outbound</code> POST from the card click), or you breach the WP-111 firewall.</li>
+</ul>
+
+<!-- ============================================================ -->
+<h2 id="p2"><span class="n">03</span>Proposal 2 — Unified Channel Thread <span class="badge b-effort">effort: M</span></h2>
+<div class="prop-head"><span class="chan"><span class="dot em"></span>+<span class="dot wa"></span> ONE CONVERSATION</span><span class="prop-tag">email = a lane in the Activities feed · most cohesive</span></div>
+
+<p class="lede">Email interleaves with WhatsApp, calls, and notes inside the lead's existing <strong>Activities feed</strong> — one channel-agnostic conversation per lead. The Send composer in the LeadDetail header gains a channel toggle (<span class="chan"><span class="dot wa"></span>WhatsApp</span> / <span class="chan"><span class="dot em"></span>Email</span>); the feed already renders <code>E-mail In/Out</code> with the right icons. Nothing new in the overview frame — email deepens the surface you already select into.</p>
+
+<div class="wf"><div class="wf-cap">LeadDetail center column — channel-blended feed + toggle composer</div>
+<div class="wf-grid">
+  <div class="wf-col"><h6>TriageRail</h6><div class="wf-box">Channel · Emails 4</div></div>
+  <div class="wf-col"><h6>LeadDetail · Activities</h6>
+    <div class="wf-box wa">14:02 · WhatsApp Out — "quick follow-up"</div>
+    <div class="wf-box hot">11:20 · E-mail In ↩ — re: Offerte <span style="opacity:.7">📎 2</span></div>
+    <div class="wf-box hot">09:05 · E-mail Out — Erstgespräch</div>
+    <div class="wf-box" style="border-color:var(--email);background:var(--email-soft)">[ Reply ▾ <b>Email</b> | WhatsApp ]  Send</div>
+  </div>
+  <div class="wf-col"><h6>Consular</h6><div class="wf-box">advisory only</div></div>
+</div></div>
+
+<h4>Features (fine-grained)</h4>
+<ul>
+  <li><strong>Blended feed.</strong> <code>FeedRow</code> already maps <code>E-mail Out→mail</code>, <code>E-mail In→mail-open</code> (<span class="path">LeadDetail.tsx:116-131</span>). Email rows show <code>subject</code> in bold + a body snippet; the existing <code>WaMediaBlock</code> (<span class="path">:1544</span>) renders attachments (it already handles images/audio/video/docs).</li>
+  <li><strong>Thread collapsing.</strong> Consecutive same-<code>email_thread_id</code> rows fold into a "re: … (5)" expander, so a 5-mail exchange is one feed entry — without it, email volume would drown WhatsApp.</li>
+  <li><strong>Toggle composer.</strong> The History header's "Send WhatsApp" button (<span class="path">:1311</span>) becomes a split control: channel chooser + Reply. Email reply pre-fills <code>in_reply_to</code> from the latest <code>E-mail In</code>, opening <code>EmailComposeModal</code> in thread mode.</li>
+  <li><strong>Channel-lit icons stay truthful.</strong> The LeadList row email icon (<span class="path">LeadList.tsx:202</span>) already lights "active/recent" off email activity — now it lights for real, beside the WhatsApp and Call lamps.</li>
+  <li><strong>"Awaiting reply" status.</strong> An unanswered <code>E-mail In</code> can auto-flip the lead's status chip to <em>Awaiting reply</em> (one of the 5 header statuses, <span class="path">:729</span>).</li>
+</ul>
+
+<h4>Integration map</h4>
+<table>
+  <tr><th>Surface</th><th>Change</th><th>Ref</th></tr>
+  <tr><td>Activities <code>FeedRow</code></td><td>Render subject + snippet + thread-fold for email types</td><td><span class="path">LeadDetail.tsx:1641</span></td></tr>
+  <tr><td>History header button</td><td>"Send WhatsApp" → channel split (WA / Email)</td><td><span class="path">LeadDetail.tsx:1311</span></td></tr>
+  <tr><td>Compose modal</td><td>Mount <code>EmailComposeModal</code> from page state next to <code>WaComposeModal</code></td><td><span class="path">page.tsx:318</span></td></tr>
+  <tr><td>LeadList / Kanban icons</td><td>Email icon → button (opens modal) instead of bare <code>mailto:</code></td><td><span class="path">LeadList.tsx:202</span></td></tr>
+  <tr><td>NextMoveHero CTA</td><td>"Send Email" tier opens modal when tone=<code>email</code></td><td><span class="path">NextMoveHero.tsx:196</span></td></tr>
+</table>
+
+<h4>Edge cases &amp; tradeoffs</h4>
+<ul>
+  <li><strong>Strength:</strong> the single most coherent with today's mental model — WhatsApp is already a lane, email just joins it; one timeline, one "what happened with this lead", channel-agnostic CTAs.</li>
+  <li><strong>Weakness:</strong> entirely lead-centric — there is <em>no cross-lead inbox</em>. Anything that isn't matched to a prospect (cold inbound, a forward) has nowhere to land except the unmatched pool, which has no UI here.</li>
+  <li><strong>Risk:</strong> email is verbose; without disciplined thread-folding and snippet truncation, the feed loses its scannability. The fold logic is load-bearing, not polish.</li>
+</ul>
+
+<!-- ============================================================ -->
+<h2 id="p3"><span class="n">04</span>Proposal 3 — Right-Rail Tabs (Chat ⇄ Email) <span class="badge b-effort">effort: M</span></h2>
+<div class="prop-head"><span class="chan"><span class="dot bl"></span>/<span class="dot em"></span> SPLIT THE RIGHT RAIL</span><span class="prop-tag">email thread for the selected lead, beside Consular</span></div>
+
+<p class="lede">The 420px right column (<span class="path">fp-right</span>) becomes tabbed: <strong>Chat | Email</strong>. Selecting a lead shows its email thread (reading pane + reply box) in the Email tab; flip to Chat to ask Consular about it. Email is always <em>contextual to the selected lead</em> but gets real estate to actually read a thread, which P2's feed-row can't.</p>
+
+<div class="wf"><div class="wf-cap">fp-right tabbed — reading pane for the selected lead</div>
+<div class="wf-grid">
+  <div class="wf-col"><h6>TriageRail</h6><div class="wf-box">Emails 4</div></div>
+  <div class="wf-col"><h6>LeadDetail</h6><div class="wf-box">Opp dashboard</div></div>
+  <div class="wf-col"><h6>Right rail</h6>
+    <div class="wf-tabs"><span class="wf-tab">Chat</span><span class="wf-tab on">Email · 2</span></div>
+    <div class="wf-box hot">re: Offerte (thread)<br>Silke → you · 11:20<br>"Danke, sieht gut aus…"</div>
+    <div class="wf-box">[ reply … ]  Send</div>
+  </div>
+</div></div>
+
+<h4>Features (fine-grained)</h4>
+<ul>
+  <li><strong>Tab strip</strong> atop <code>fp-right</code>, above the existing FlightDeck + <code>ConversationPanel</code> stack (<span class="path">page.tsx:551-577</span>). Unread count rides the Email tab.</li>
+  <li><strong>Reading pane</strong> keyed to <code>selectedProspect.email_thread_id</code> via <code>get_thread()</code> — full message bodies, quoted history, attachment chips. This is the only proposal besides P5 that shows verbatim threads.</li>
+  <li><strong>Inline reply</strong> below the pane (not a modal) — replies post to <code>email-outbound</code> with <code>in_reply_to</code>; the new row appears in both the pane and the LeadDetail feed (one write, two readers).</li>
+  <li><strong>Context handoff:</strong> a "Ask Consular about this" button on a thread switches to the Chat tab pre-seeded with the thread summary — the two tabs talk to each other.</li>
+  <li><strong>No selection → empty state</strong> ("Select a lead to see its email"), matching how the center column behaves.</li>
+</ul>
+
+<h4>Integration map</h4>
+<table>
+  <tr><th>Surface</th><th>Change</th><th>Ref</th></tr>
+  <tr><td><code>fp-right</code> container</td><td>Wrap FlightDeck+chat in a tab host; add Email tab</td><td><span class="path">page.tsx:551</span></td></tr>
+  <tr><td>Grid width</td><td>Possibly widen 420→460px when Email tab active</td><td><span class="path">crm.css:1245</span></td></tr>
+  <tr><td>Thread reader</td><td>New <code>EmailThreadPane</code> component (get_thread + reply box)</td><td>new</td></tr>
+  <tr><td>Selection state</td><td>Reader keys off existing <code>selectedProspect</code></td><td><span class="path">page.tsx</span></td></tr>
+</table>
+
+<h4>Edge cases &amp; tradeoffs</h4>
+<ul>
+  <li><strong>Strength:</strong> keeps the 3-column overview intact, gives email enough room to read a real thread, and the Chat↔Email adjacency is powerful (advisor + correspondence side by side).</li>
+  <li><strong>Weakness:</strong> the right rail now juggles two jobs; the FlightDeck push-queue gets buried under a tab. Inbound-only / unmatched mail still has nowhere to surface (same blind spot as P2).</li>
+  <li><strong>Risk:</strong> 420px is tight for a reading pane on a laptop; needs the width bump and careful typography or threads feel cramped.</li>
+</ul>
+
+<!-- ============================================================ -->
+<h2 id="p4"><span class="n">05</span>Proposal 4 — Triage Inbox (rail-driven) <span class="badge b-effort">effort: S–M</span></h2>
+<div class="prop-head"><span class="chan"><span class="dot em"></span>EMAIL AS A SIGNAL</span><span class="prop-tag">the Emails bento becomes a real triage queue · most on-brand</span></div>
+
+<p class="lede">Email drives <em>what to do next</em>, not a reading client. The TriageRail's existing <strong>Emails</strong> bento (<span class="path">TriageRail.tsx:128</span>) splits into action buckets — <em>Awaiting reply (4)</em>, <em>Hot inbound (2)</em>, <em>Unread</em> — and each routes you to the relevant lead, where you read/reply in the center column (reusing P2's feed + composer). Email becomes a first-class citizen of the triage-first design the CRM is built around.</p>
+
+<div class="wf"><div class="wf-cap">TriageRail Channel group — email as routed action buckets</div>
+<div class="wf-grid">
+  <div class="wf-col"><h6>TriageRail</h6>
+    <div class="wf-box">— Channel —</div>
+    <div class="wf-box hot">04 · Awaiting reply<br><span style="opacity:.7">you owe a response</span></div>
+    <div class="wf-box hot">02 · Hot inbound<br><span style="opacity:.7">new, &lt;24h</span></div>
+    <div class="wf-box wa">07 · WhatsApp</div>
+  </div>
+  <div class="wf-col"><h6>LeadDetail (routed)</h6><div class="wf-box">opens lead → feed → reply</div></div>
+  <div class="wf-col"><h6>Consular</h6><div class="wf-box">advisory</div></div>
+</div></div>
+
+<h4>Features (fine-grained)</h4>
+<ul>
+  <li><strong>Bucketed bentos.</strong> Reuse the exact <code>.fp-triage</code> anatomy (num · label · sub · arrow, <span class="path">TriageRail.tsx:183</span>). New email filters: <code>email:awaiting</code> (latest activity is an unanswered <code>E-mail In</code>), <code>email:inbound24h</code>, <code>email:unread</code>. The amber <code>data-tone="email"</code> styling already exists (<span class="path">crm.css:1396</span>).</li>
+  <li><strong>Editorial headline integration.</strong> The rail's pivot sentence (<span class="path">TriageRail.tsx:105-115</span>) gains an email clause: "<em>4 emails are waiting on you</em> — start with Silke (overdue 2d)."</li>
+  <li><strong>Click → route + open.</strong> Selecting "Awaiting reply" filters the LeadList to those leads <em>and</em> auto-opens the top one's dashboard with the composer focused on Email — a two-click reply from cold.</li>
+  <li><strong>Pipeline footer unaffected;</strong> these are activity signals, not money signals.</li>
+  <li><strong>Reuses P2's center surface</strong> for the actual read/reply — P4 is the <em>entry</em>, P2 is the <em>workspace</em>. They compose naturally (see Recommendation).</li>
+</ul>
+
+<h4>Integration map</h4>
+<table>
+  <tr><th>Surface</th><th>Change</th><th>Ref</th></tr>
+  <tr><td>Channel bento group</td><td>Split Emails into Awaiting / Hot-inbound / Unread</td><td><span class="path">TriageRail.tsx:221</span></td></tr>
+  <tr><td>Filter union</td><td>Add <code>email:awaiting · email:inbound24h · email:unread</code></td><td><span class="path">TriageRail.tsx + LeadList useMemo</span></td></tr>
+  <tr><td>Editorial headline</td><td>Email clause in the pivot sentence</td><td><span class="path">TriageRail.tsx:105</span></td></tr>
+  <tr><td>Filter→select bridge</td><td>Bento click sets filter + auto-selects top lead</td><td><span class="path">page.tsx:482</span></td></tr>
+</table>
+
+<h4>Edge cases &amp; tradeoffs</h4>
+<ul>
+  <li><strong>Strength:</strong> most native to the existing triage-first philosophy, lowest clutter, action-oriented ("who's owed a reply" is the question this CRM is organised around). Cheapest standalone slice.</li>
+  <li><strong>Weakness:</strong> you can't browse raw mail — only prospect-matched signals. "Hot inbound" depends entirely on matching; unmatched cold mail is invisible. It's a router, not a client (which is the point, but also the ceiling).</li>
+  <li><strong>Risk:</strong> "awaiting reply" detection needs solid thread state — mis-firing the count erodes trust in the rail, which is the CRM's most-trusted surface.</li>
+</ul>
+
+<!-- ============================================================ -->
+<h2 id="p5"><span class="n">06</span>Proposal 5 — Dedicated Inbox View (4th tab) <span class="badge b-effort">effort: L</span></h2>
+<div class="prop-head"><span class="chan"><span class="dot em"></span>FULL CLIENT</span><span class="prop-tag">a real two-pane inbox · turns strangers into leads</span></div>
+
+<p class="lede">Add <code>inbox</code> beside <code>overview · kanban · scout</code> (<span class="path">page.tsx:55, 430</span>) — a genuine two-pane email client (thread list + reading pane) that auto-matches senders to prospects and offers <strong>Attach to lead / Promote to lead</strong>. It is the only proposal that handles raw inbound volume <em>and</em> manufactures new leads from cold mail — the email analogue of the Scout pool.</p>
+
+<div class="wf"><div class="wf-cap">New /crm?view=inbox — full-width two-pane client</div>
+<div class="wf-grid wf-full">
+  <div class="wf-col"><h6>Inbox view</h6>
+    <div style="display:grid;grid-template-columns:1fr 1.4fr;gap:8px">
+      <div><div class="wf-box hot">● Silke L. · re: Offerte · 11:20 <span style="opacity:.6">→ Lead #P011</span></div><div class="wf-box">○ unknown@x.ch · Anfrage <span style="opacity:.6">→ no match</span></div><div class="wf-box">○ Marco · re: Termin · 09:40</div></div>
+      <div><div class="wf-box hot">re: Offerte — full thread<br>quoted history · 📎 2<br>[Reply] · [Attach to P011] · [Promote → new lead]</div></div>
+    </div>
+  </div>
+</div></div>
+
+<h4>Features (fine-grained)</h4>
+<ul>
+  <li><strong>Thread list</strong> (left) with sender, subject, time, and a <em>match chip</em>: "→ Lead #P011", "→ unknown". Filterable by label (Gmail <code>list_labels</code>/<code>label_thread</code>) and by matched/unmatched.</li>
+  <li><strong>Reading pane</strong> (right) — verbatim thread via <code>get_thread()</code>, full bodies, attachments, reply/forward.</li>
+  <li><strong>Lead manufacturing.</strong> "Promote → new lead" runs the same path as Scout's <code>raw-prospects</code> promotion (<span class="path">raw-prospects/[id]</span>): seed a <code>prospect</code> from the sender's name/email/domain, attach the thread as the first <code>E-mail In</code>, drop into the overview. "Attach to lead" links an unmatched thread to an existing prospect and back-fills the activity.</li>
+  <li><strong>Bulk triage:</strong> select N threads → label / archive / "create leads from all".</li>
+  <li><strong>Cross-view links:</strong> a matched thread row deep-links to <code>/crm?view=overview</code> with that lead selected — inbox and overview are two doors to one dataset.</li>
+</ul>
+
+<h4>Integration map</h4>
+<table>
+  <tr><th>Surface</th><th>Change</th><th>Ref</th></tr>
+  <tr><td>View union + tabs</td><td>Add <code>'inbox'</code> to <code>CrmView</code> + a tab</td><td><span class="path">page.tsx:55, 430</span></td></tr>
+  <tr><td>Inbox components</td><td>New <code>InboxList</code> + <code>EmailThreadPane</code></td><td>new</td></tr>
+  <tr><td>Promote-to-lead</td><td>Reuse raw-prospects promotion path</td><td><span class="path">raw-prospects/[id]/route.ts</span></td></tr>
+  <tr><td>Unmatched pool</td><td>This view <em>is</em> the UI for the backbone's email-unmatched pool</td><td>§1.3</td></tr>
+</table>
+
+<h4>Edge cases &amp; tradeoffs</h4>
+<ul>
+  <li><strong>Strength:</strong> the only option that handles cold inbound and converts strangers into pipeline; a complete email surface; the natural twin of the existing Scout pool.</li>
+  <li><strong>Weakness:</strong> a separate <em>mode</em> — a context switch away from the lead-centric overview, and the most to build (full client + match UI + bulk ops). Risks re-creating Gmail inside the CRM.</li>
+  <li><strong>Risk:</strong> scope creep into a mail client. Mitigate by scoping v1 to one label (e.g. "Leads") and matched-vs-unmatched only — not a general inbox.</li>
+</ul>
+
+<!-- ============================================================ -->
+<h2 id="matrix"><span class="n">07</span>Comparison matrix</h2>
+<table class="matrix">
+  <tr><th>Dimension</th><th>P1 Consular</th><th>P2 Thread</th><th>P3 Tabs</th><th>P4 Triage</th><th>P5 Inbox</th></tr>
+  <tr><td>Lives in</td><td>right chat</td><td>center feed</td><td>right rail</td><td>left rail</td><td>new view</td></tr>
+  <tr><td>Read full thread</td><td class="p">summary</td><td class="p">folded</td><td class="y">yes</td><td class="n">no</td><td class="y">yes</td></tr>
+  <tr><td>Compose inline</td><td class="p">card</td><td class="y">modal</td><td class="y">pane</td><td class="p">via center</td><td class="y">pane</td></tr>
+  <tr><td>Cross-lead inbox</td><td class="p">query</td><td class="n">no</td><td class="n">no</td><td class="p">signals</td><td class="y">yes</td></tr>
+  <tr><td>Handles cold inbound</td><td class="n">no</td><td class="n">no</td><td class="n">no</td><td class="n">no</td><td class="y">yes</td></tr>
+  <tr><td>Manufactures leads</td><td class="n">no</td><td class="n">no</td><td class="n">no</td><td class="n">no</td><td class="y">yes</td></tr>
+  <tr><td>Changes overview frame</td><td class="y">no</td><td class="y">no</td><td class="p">rail</td><td class="y">no</td><td class="n">new view</td></tr>
+  <tr><td>Fit w/ today's model</td><td class="p">good</td><td class="y">best</td><td class="p">good</td><td class="y">best</td><td class="p">parallel</td></tr>
+  <tr><td>Build effort</td><td class="y">S</td><td class="p">M</td><td class="p">M</td><td class="y">S–M</td><td class="n">L</td></tr>
+</table>
+
+<!-- ============================================================ -->
+<h2 id="reco"><span class="n">08</span>Recommendation &amp; phased rollout</h2>
+
+<p class="lede">These are not mutually exclusive — they layer. The right answer is a phased blend, not a single pick: build the backbone once, then add surfaces in increasing ambition, stopping wherever the volume justifies.</p>
+
+<table>
+  <tr><th>Phase</th><th>Ship</th><th>Why</th></tr>
+  <tr><td><b>0 · Backbone</b> <span class="badge b-new">required</span></td><td>§1 — <code>email-outbound</code>, inbound dispatch, status, <code>EmailComposeModal</code>, schema Option B</td><td>Every surface needs it; nothing user-visible decided yet.</td></tr>
+  <tr><td><b>1 · P2 + P4</b> <span class="badge b-reuse">recommended core</span></td><td>Email lane in the Activities feed + channel-toggle composer (P2), entered via the triage Awaiting-reply / Hot-inbound bentos (P4)</td><td>The two most on-brand, lowest-net-new-UI options compose perfectly: P4 is the entry, P2 is the workspace. Delivers read + reply + "who's owed a response" with almost no new frame.</td></tr>
+  <tr><td><b>2 · P1</b> <span class="badge b-effort">optional</span></td><td>Consular gains Gmail read tools + draft cards</td><td>Cheap add-on once the backbone exists; turns the advisor into a drafting partner.</td></tr>
+  <tr><td><b>3 · P5</b> <span class="badge b-effort">only if needed</span></td><td>Dedicated Inbox view, scoped to one label</td><td>Reach for this <em>only</em> when meaningful <strong>cold inbound</strong> arrives that isn't yet a lead. Until then it's a Gmail clone you don't need.</td></tr>
+</table>
+
+<div class="note good"><b>The call</b> — Build the backbone, then <b>P2 ⊕ P4</b>. It is the most coherent with the WhatsApp/triage model already shipping, the least net-new UI, and it makes the dead affordances (the Emails bento, the mailto icons, the E-mail activity types) finally real. Add P1 as a low-cost multiplier. Defer P3 and P5 until inbound volume — especially <em>unmatched</em> volume — actually demands a reading client.</p></div>
+
+<footer>
+  OskarOS · Consular CRM · Email-in-Overview spec · 5 proposals over 1 backbone · grounded in app/crm + lib/crm-store + the Gmail MCP · 2026-06-13
+</footer>
+
+</div>
+</body>
+</html>

@@ -39,7 +39,8 @@ import {
   normalizeMessageChain,
   stripEagerInputStreaming,
 } from '@/lib/providers/normalize'
-import { getContextWindow } from '@/lib/providers/model-context'
+import { resolveConfig, type CdModel } from '@/lib/session-config'
+import { brainSpec, DEFAULT_BRAIN, bareModelId } from '@/lib/models'
 // 2026-05-27 (Ralph): card-vs-chat strip + feedback loop. Doctrine alone
 // can't keep the model from adding chat prose alongside a tc_* card.
 // Enforcement is at the render layer: strip the chat, persist it, quote
@@ -953,17 +954,16 @@ export async function POST(req: NextRequest) {
     // Phase 2 toggle wiring (Ralph 2026-05-04). Resolve cdModel once at the
     // top: per-request body > session config file > hardcoded default. The
     // value flows into every callAnthropicAPI invocation below.
-    // 2026-05-04 (Ralph): API mode is HARDWIRED to `claude-opus-4-8`.
-    // The session-config cdModel field uses Claude Code CLI strings
-    // (e.g. `claude-opus-4-8[1m]`) that the Anthropic API doesn't
-    // accept. CLI and API need genuinely different identifiers — they
-    // are not derivable from each other by simple translation.
-    // Originally hardwired here for that reason; Bug A's "make the
-    // toggle work" tried to unify them and produced a 404 cascade.
-    // The toggle now only meaningfully controls CLI mode; API mode
-    // uses this fixed value. If you need Sonnet in API mode, change
-    // this constant.
-    const resolvedCdModel = 'claude-opus-4-8'
+    // 2026-06-10 (Ralph): resolve from the SINGLE source — session-config
+    // `cdModel`, written only by the brain selector (/api/sessions/[id]/brain).
+    // The old hardwire to `claude-opus-4-8` existed because cdModel used to
+    // carry the CLI `[1m]` form the API rejects; now cdModel is a BARE id
+    // (valid for both the CLI bridge and the raw API), so the same value
+    // works here. `bareModelId` defensively strips any stale `[1m]` left in
+    // an old on-disk config so the API can't 404. Default = the one brain.
+    const resolvedCdModel = bareModelId(
+      resolveConfig('cdModel', cdModel as CdModel | undefined, effectiveSessionId, brainSpec(DEFAULT_BRAIN).id),
+    )
     const memorySessionFiles = await (async () => {
       try {
         const consolidatedSessionMd = await readFile(getSessionMdPath(effectiveSessionId), 'utf-8').catch(() => undefined)
@@ -1300,22 +1300,15 @@ Don't be polite. Be brilliant. If something is stunning, say "holy shit." If som
     const parsed = parseToolCalls(response, requestId)
 
     // Track token usage if sessionId provided.
-    // 2026-05-04 (Ralph, Bug L): per-model context window. Hardcoding
-    // 200K under-reported by 5x for Opus 4.7 + Sonnet 4.6 (both 1M
-    // native per Anthropic's docs as of 2026-05-04). The lookup table
-    // is in lib/providers/model-context.ts.
-    const contextWindow = getContextWindow(resolvedCdModel)
-    // 2026-05-04 (Ralph, Bug N): contextPct measures CURRENT FILL of the
-    // window — i.e. the size of the last request we sent. Using
-    // totalInputTokens (cumulative across the tool-use loop) was wrong:
-    // it overcounted by Nx where N = iterations. The right value is the
-    // last iter's input + cache_read + cache_creation (everything that
-    // landed in that single API call's prompt). Bounded by the window
-    // by definition.
+    // Anthropic Messages API does not report a context window, and we do NOT
+    // assert one from a name-table (that was the Potemkin — deleted 2026-06-10).
+    // In direct-API mode the window is UNKNOWN: publish 0 and no %. The badge
+    // shows raw context tokens (contextSize) instead. A fill % is shown only on
+    // the bridge/CLI path, where the wire reports the true window and the
+    // Order-66 re-roll probe enforces 1M.
+    const contextWindow = 0
     const lastIterTotalContext = lastIterInputTokens + lastIterCacheRead + lastIterCacheCreation
-    const contextPct = lastIterTotalContext > 0
-      ? Math.round((lastIterTotalContext / contextWindow) * 100)
-      : 0
+    const contextPct = 0  // unknown window → never fabricate a fill %
     if (sessionId && (totalInputTokens > 0 || totalOutputTokens > 0)) {
       try {
         const cost = calculateCost(totalInputTokens, totalOutputTokens)
@@ -1463,12 +1456,13 @@ async function handleStreamingPOST(
   const cdModelOverride = body.cdModel as string | undefined
   const system = MAIN_CHAT_AGENT === 'cd' ? buildCDPrompt() : buildSagePrompt()
 
-  // 2026-05-04 (Ralph): hardwired — see same-named constant in the JSON
-  // path above. API and CLI use genuinely different model identifiers
-  // (`claude-opus-4-8` vs `claude-opus-4-8[1m]`); session-config's
-  // cdModel field carries the CLI form. The API path overrides with
-  // this fixed value to avoid 404s.
-  const resolvedCdModel = 'claude-opus-4-8'
+  // 2026-06-10 (Ralph): resolve from the single source — session-config
+  // `cdModel` (bare id, written only by the brain selector). Same change as
+  // the JSON path above; the [1m]-divergence that forced the old hardwire is
+  // gone now that cdModel is bare. `bareModelId` strips any stale `[1m]`.
+  const resolvedCdModel = bareModelId(
+    resolveConfig('cdModel', cdModelOverride as CdModel | undefined, sessionId, brainSpec(DEFAULT_BRAIN).id),
+  )
 
   // 2026-05-04 (Ralph, Bug K): normalize → sanitize, same order as JSON path.
   // Normalize merges consecutive same-role + drops empty content; sanitize
@@ -1648,11 +1642,11 @@ async function handleStreamingPOST(
             // cumulative. Same fix as the JSON path. Without this the
             // streaming-API badge would either show 0 (the prior code
             // path) or wildly inflated cumulative numbers like 970%.
-            const contextWindow = getContextWindow(resolvedCdModel)
+            // API mode: window unknown (Anthropic doesn't report it; no name-table).
+            // Publish 0 + no % — the badge shows raw tokens. See JSON path above.
+            const contextWindow = 0
             const lastIterTotal = lastIterInputTokens + lastIterCacheRead + lastIterCacheCreation
-            const contextPct = lastIterTotal > 0
-              ? Math.round((lastIterTotal / contextWindow) * 100)
-              : 0
+            const contextPct = 0  // unknown window → no fabricated %
             await appendUsage(
               sessionId,
               'CD',

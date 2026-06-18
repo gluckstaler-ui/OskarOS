@@ -147,70 +147,132 @@ export const CD_TOOL_DEFINITIONS = [
     },
   },
   {
-    // WP-SCOUT-3 (Ralph 2026-06-03). The typed verdict the Jedi Scout calls
-    // after tasting a captured website. Mirrors submit_image_verdict's
-    // tool-as-channel shape — the dispatch case is a no-op return; the
-    // verdict is captured by makeToolCollector inside lib/scout-bridge-call.ts
-    // and the heat is derived server-side (gap = palate − execution; locked
-    // 3-tier per §17 [SCOUT-J]). Never trust gap/heat from the model.
+    // WP-SCOUT-3 (Ralph 2026-06-03) · TASTED redesign (Ralph 2026-06-10).
+    // The typed verdict the Jedi Scout calls after tasting a captured website.
+    // Tool-as-channel shape — the dispatch case is a no-op return; the verdict
+    // is captured by makeToolCollector inside lib/scout-bridge-call.ts.
+    // Unified with Kanban's intel_json — arg names ARE the blob keys (who /
+    // buying / verdict_subline / …), one language end-to-end. PALAT/BUDGET
+    // is DERIVED server-side from chf_est ÷ heads — never asked of the model.
+    // gap/heat retired; verdict_tone is stored server-side from the tag.
     name: 'submit_scout_verdict',
     description:
       'Submit a structured taste-verdict on a captured website. Call this ONCE ' +
-      'after reading the full-page + inner screenshots and the imported lead ' +
-      "fields. Returns palate (1-5), execution (1-5), the visual choice the eye " +
-      "actually saw, a one-line verdict, and a photos read. The server derives " +
-      'gap = palate − execution and bands heat (≥2 hot · 1 warm · ≤0 cold).',
+      'after reading every captured screenshot and the imported lead fields. ' +
+      'Carries WHO (the portrait), BUYING readiness (0-5, cited), a realistic ' +
+      'CHF redesign estimate + headcount, switching pain, design + photos ' +
+      'quality lamps (0-5, each with a one-line citation), a one-line verdict ' +
+      'and the verdict tag (PERSUE / WARMING UP / WATCH / SKIP).',
     inputSchema: {
       type: 'object',
       properties: {
-        palate: {
-          type: 'integer',
-          minimum: 1,
-          maximum: 5,
-          description:
-            'The taste the BUSINESS would have if it could see itself clearly — ' +
-            'the design ceiling implied by the product, the location, the people ' +
-            '(not how the current site executes it). 1 = generic / no taste / ' +
-            'no identity to defend; 5 = a clear, durable identity worth ' +
-            'displacing a site to honour.',
-        },
-        palate_choice: {
+        who: {
           type: 'string',
           description:
-            'ONE specific visual decision the business has ALREADY made — the ' +
-            "named thing the eye saw (e.g. \"a real winemaker's photo, not a " +
-            'stock glass" · "the stone-built courtyard, lit at dusk" · "the ' +
-            'family handwriting on the labels"). Concrete, not abstract — a ' +
-            'reader should be able to find that decision on the site or in the ' +
-            'photos. NOT the colour palette.',
+            'WHO — the portrait, the report\'s centrepiece, written BEFORE the ' +
+            'verdict can be. Free text rooted in what the eye actually saw: who ' +
+            'this maker is, the taste they already show, the one specific visual ' +
+            'decision they ALREADY made (e.g. "a real winemaker\'s photo, not a ' +
+            'stock glass" · "the stone-built courtyard, lit at dusk"). Concrete, ' +
+            'not abstract — a reader should find that decision on the site.',
         },
-        execution: {
+        buying: {
           type: 'integer',
-          minimum: 1,
+          minimum: 0,
           maximum: 5,
           description:
-            'How well the current website CARRIES that taste. 1 = generic ' +
-            'WordPress theme, stock imagery, the design contradicts the ' +
-            'product; 5 = the design IS the business at full strength, nothing ' +
-            'to displace.',
+            'BUYING readiness 0-5 — one point per cited criterion: paid-before ' +
+            '(pro stack / footer credit) · live trigger (rebrand, new location, ' +
+            'recruiting page) · embarrassment gap (site below their standing) · ' +
+            'low switching pain · reachable decider. Grant a point ONLY when you ' +
+            'can cite the evidence; Kanban later overrides this seed with ' +
+            'observed behaviour.',
         },
-        verdict: {
+        chf_est: {
+          type: 'integer',
+          minimum: 1,
+          description:
+            'Realistic CHF estimate for redesigning THIS site at its real scope. ' +
+            'Anchor on the counted sections across all pages (the SECTIONS ' +
+            'queried lamp; ≈ CHF 300 per section is a sane anchor), then adjust ' +
+            'for what you actually saw. Stays editable by the rep.',
+        },
+        heads: {
+          type: 'integer',
+          minimum: 1,
+          description:
+            'Headcount — people in the practice/team counted from the site ' +
+            '(team page, about page, practitioner lists). 1 when solo or ' +
+            'uncountable. The server bands the budget from chf_est ÷ heads.',
+        },
+        switching_pain: {
           type: 'string',
           description:
-            'One line, plain prose. The Scout\'s read in a sentence — what the ' +
-            'gap MEANS for the lead (e.g. "Taste outruns the site." · ' +
-            '"Nothing to defend — greenfield." · "Tired stock photos against ' +
-            'real terroir."). No bullet lists, no scores duplicated as text.',
+            'How dug-in is the incumbent — free text. Booking systems wired into ' +
+            'the site, SEO rankings they would fear losing, a webmaster ' +
+            'relationship, integrations. The cost of saying yes to a new site.',
+        },
+        pitch: {
+          type: 'string',
+          description:
+            'OPTIONAL — what you would pitch, ONE row per line, each row ending ' +
+            'with its CHF anchor after a middle dot (e.g. "Mobile-first ' +
+            'one-pager with booking flow · 2\'400" · "Care retainer, hosting + ' +
+            'updates · 120/mo"). Only rows anchored in something you actually ' +
+            'saw on the site; when their books are full, pitch the RIGHT ' +
+            'customers, not more customers. Omit entirely when you have none.',
+        },
+        design: {
+          type: 'integer',
+          minimum: 0,
+          maximum: 5,
+          description:
+            'Design quality 0-5 — an EVIDENCE lamp, not a decision lamp. How well ' +
+            'the current site is designed and carried below the fold. 0-1 raw ' +
+            'template / broken; 5 fully art-directed, guts top to bottom.',
+        },
+        design_cite: {
+          type: 'string',
+          description:
+            'One line citing the design score — the named thing the eye saw that ' +
+            'justifies the number.',
         },
         photos: {
+          type: 'integer',
+          minimum: 0,
+          maximum: 5,
+          description:
+            'Photos quality 0-5. Art-directed real photography scores high; ' +
+            'stock, clipart and empty hero slots score low.',
+        },
+        photos_cite: {
           type: 'string',
           description:
-            'A short read on the imagery (10-30 words). Art-directed vs stock, ' +
-            'people visible vs not, the hero image\'s decision. Whether photos ' +
-            'do or do not match the palate_choice.',
+            'One line citing the photos score (e.g. "real portraits in the team ' +
+            'grid, stock handshake in the hero").',
+        },
+        verdict_subline: {
+          type: 'string',
+          description:
+            'One line, plain prose. The Scout\'s read in a sentence — what this ' +
+            'lead MEANS (e.g. "Taste outruns the site." · "Nothing to defend — ' +
+            'greenfield." · "Tired stock photos against real terroir."). No ' +
+            'bullet lists, no scores duplicated as text.',
+        },
+        verdict_tag: {
+          type: 'string',
+          enum: ['PERSUE', 'WARMING UP', 'WATCH', 'SKIP'],
+          description:
+            'The call. PERSUE = go now · WARMING UP = heating, not ready to ' +
+            'close · WATCH = not ripe, keep an eye · SKIP = nothing to ' +
+            'displace / no felt lack. Color derives from this tag (green / ' +
+            'yellow / orange / red).',
         },
       },
-      required: ['palate', 'palate_choice', 'execution', 'verdict', 'photos'],
+      required: [
+        'who', 'buying', 'chf_est', 'heads',
+        'design', 'photos', 'verdict_subline', 'verdict_tag',
+      ],
     },
   },
   {
@@ -365,7 +427,7 @@ export const CD_TOOL_DEFINITIONS = [
   // can call them via the same MCP path. Each handler POSTs to its
   // /api/mcp/{slug} route, which publishes to the event-bus. Frontend
   // renders <DiscoveryQuestionsCard> / <ConfirmUnderstandingCard> in the
-  // chat surface — same render slot as UnfinishedTodosPanel (WP-2.8).
+  // chat surface.
   {
     name: 'tc_discovery',
     description:
@@ -817,45 +879,6 @@ export const CD_TOOL_DEFINITIONS = [
     },
   },
 
-  // ── WP-66 (Ralph 2026-05-06): TodoWrite persistence ────────────────────
-  // CD's TodoWrite calls land here; the route writes the `## Todos` section
-  // in SESSION.md and broadcasts `todos_updated`. LiveOverlay (WP-22)
-  // re-reads + re-renders. Single-writer model — user-add flows through
-  // normal chat, CD encodes as a TodoWrite on its next turn.
-  {
-    name: 'todo_write',
-    description:
-      'Write the current task list. Full-list replace (not incremental). ' +
-      'Persists to the `## Todos` section of SESSION.md; the panel updates ' +
-      'live on the user side. Use for any task spanning 3+ steps. Tag the ' +
-      'in-progress item with status="in_progress" + an `activeForm` (present-' +
-      'continuous phrasing) so the user sees what you are doing right now.',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        todos: {
-          type: 'array',
-          items: {
-            type: 'object',
-            properties: {
-              id: { type: 'string', description: 'Stable id (optional but recommended).' },
-              content: { type: 'string', description: 'Imperative phrasing — what to do.' },
-              activeForm: { type: 'string', description: 'Present-continuous — shown while in_progress.' },
-              status: {
-                type: 'string',
-                enum: ['pending', 'in_progress', 'completed'],
-                description: 'Lifecycle state.',
-              },
-            },
-            required: ['content', 'status'],
-          },
-          description: 'Full task list. Sending an empty array clears all todos.',
-        },
-      },
-      required: ['todos'],
-    },
-  },
-
   // ── Bug 18 (2026-04-30): typed gateway for IMAGES.md mutations ──────────
   {
     name: 'update_image_metadata',
@@ -1288,24 +1311,6 @@ export async function callCDTool(
         text:
           `Card preview rendered (kind=${r.body?.kind ?? kind}). The user ` +
           `now sees a visual instance in chat.`,
-        isError: false,
-      }
-    }
-
-    // ── WP-66 (Ralph 2026-05-06): TodoWrite persistence ─────────────────
-    case 'todo_write': {
-      const todos = Array.isArray(args.todos) ? args.todos : null
-      if (!todos) return { text: 'Error: todos must be an array', isError: true }
-      const r = await postJson<{ ok: boolean; count?: number; error?: string }>(
-        '/api/mcp/todo-write',
-        { sessionId, todos },
-      )
-      if (!r.ok) return { text: `todo_write failed: ${r.error}`, isError: true }
-      if (r.body?.error) return { text: `todo_write error: ${r.body.error}`, isError: true }
-      return {
-        text:
-          `Todos written (${r.body?.count ?? todos.length} items). ` +
-          `Panel updates via todos_updated event.`,
         isError: false,
       }
     }

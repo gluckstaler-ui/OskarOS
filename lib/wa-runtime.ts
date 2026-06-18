@@ -230,19 +230,33 @@ class WaRuntime {
       // F20: content-hashed media. The URL the UI uses to fetch this is
       // the auth-gated /api/admin/media/<hash> route, NOT a direct static
       // URL. media/<sha256>.<ext> lives outside public/.
-      // Bucket by sender number (Ralph 2026-05-31): matched lead → media/<phone>/,
-      // unknown sender → media/unmatched/<phone>/ (moved to media/<phone>/ once the
-      // number is matched, via promoteUnmatchedForPhone → moveMediaByHashes).
+      //
+      // Bucket-on-landing per WP-133 (Ralph 2026-06-05). The previous bucket
+      // was just `<digits>` (or `unmatched/<digits>`) — readable as a phone
+      // only if you squinted. New scheme via lib/wa-bucketing.ts:
+      //   matched     → media/<digits>-<slug>/             (slug = prospect.company || contact_name)
+      //   phone JID,
+      //   no prospect → media/unmatched/<digits>-<slug>/   (slug = pushName)
+      //   @lid/@g.us  → media/_non_phone/<digits>-<slug>/  (linked-device / group — quarantined)
+      //   unparsed    → media/_invalid_phone/<safe>/
+      // The serve route (resolveMediaFile) is bucket-agnostic — no DB rewrites.
       let bucket: string | undefined
       try {
         const jid = m.key?.remoteJid || ''
-        const rawPhone = jid.includes('@') ? jid.split('@')[0] : jid
+        const pushName = m.pushName || ''
         const { normalizeWhatsAppNumber, readSheet } = await import('./crm-store')
-        const phone = normalizeWhatsAppNumber(rawPhone)
-        if (phone) {
-          const matched = readSheet().some((p) => normalizeWhatsAppNumber(p.phone) === phone)
-          bucket = matched ? phone : `unmatched/${phone}`
+        const { bucketFor, parseJid } = await import('./wa-bucketing')
+        // Look up the matched prospect (if any) so the bucket carries their label.
+        let matchedProspect: { company?: string | null; contact_name?: string | null } | null = null
+        const parts = parseJid(jid)
+        if (parts.kind === 'phone') {
+          const phone = normalizeWhatsAppNumber(parts.digits)
+          if (phone) {
+            const found = readSheet().find((p) => normalizeWhatsAppNumber(p.phone) === phone)
+            if (found) matchedProspect = { company: found.company, contact_name: found.contact_name }
+          }
         }
+        bucket = bucketFor(jid, pushName, matchedProspect).dir
       } catch (e) {
         this.pushLog('warn', `media bucket resolve failed (filing flat): ${String((e as Error)?.message ?? e)}`)
       }
@@ -431,6 +445,32 @@ class WaRuntime {
       const msg = String((err as Error)?.message ?? err)
       this.pushLog('error', `send failed: ${msg}`)
       return { ok: false, error: msg }
+    }
+  }
+
+  // ─── WhatsApp-account check ───────────────────────────────────────────
+  /**
+   * Does this phone number have a WhatsApp account? Authoritative — asks
+   * WhatsApp itself via Baileys `onWhatsApp`. This is NOT a landline/mobile
+   * prefix guess: a mobile number may have no WhatsApp, and a landline may run
+   * WhatsApp Business — only the server knows. Returns:
+   *   true  → registered on WhatsApp
+   *   false → no WhatsApp account on this number (e.g. a plain landline)
+   *   null  → couldn't verify (bridge down, empty/bad number, or query error)
+   * Ralph 2026-06-16.
+   */
+  async checkWhatsApp(phone: string): Promise<boolean | null> {
+    if (!this.sock || !this.isConnected()) return null
+    const cleanPhone = String(phone ?? '').replace(/\D+/g, '')
+    if (!cleanPhone) return null
+    try {
+      const results = await this.sock.onWhatsApp(cleanPhone)
+      const hit = results?.find((r) => (r?.jid ?? '').startsWith(cleanPhone)) ?? results?.[0]
+      if (!hit) return false
+      return !!hit.exists
+    } catch (err) {
+      this.pushLog('warn', `onWhatsApp check failed for ${cleanPhone}: ${String((err as Error)?.message ?? err)}`)
+      return null
     }
   }
 

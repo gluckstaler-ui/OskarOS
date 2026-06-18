@@ -244,7 +244,12 @@ export function UsageBadge({ sessionId, refreshTrigger, theme = 'onyx', contextP
   const effectiveContextSize =
     liveContextSize ?? modeContextSize ?? usage?.display?.latestContextSize ?? 0
   const effectiveContextWindow =
-    modeContextWindow ?? usage?.display?.latestContextWindow ?? 200000
+    modeContextWindow ?? usage?.display?.latestContextWindow ?? 0
+  // Window 0 = the wire never reported one (direct-API mode, where Anthropic
+  // doesn't send a context window; or a brief pre-wire respawn). We do NOT
+  // assert a number from a name-table — the % is hidden and the badge shows
+  // raw context tokens instead. Honest-unknown > fabricated-1M. Ralph 2026-06-10.
+  const windowKnown = effectiveContextWindow > 0
 
   const badgeStyle: React.CSSProperties = {
     backgroundColor: theme === 'polar' ? '#ffffff' : 'rgba(9, 9, 11, 0.5)',
@@ -384,6 +389,7 @@ export function UsageBadge({ sessionId, refreshTrigger, theme = 'onyx', contextP
             Colored dot turns yellow at 50%, red at 75% — that's when
             to consider Order 66 in CLI mode or accept that the next
             request might 400 in API mode. */}
+        {windowKnown && (
         <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
           <span style={{
             width: '6px',
@@ -403,6 +409,7 @@ export function UsageBadge({ sessionId, refreshTrigger, theme = 'onyx', contextP
             {effectiveContextPct}%
           </span>
         </div>
+        )}
 
         {/* 2026-05-04 (Ralph): standalone "cached input tokens" pill
             (formerly between % and the X/Y display) was redundant
@@ -429,7 +436,9 @@ export function UsageBadge({ sessionId, refreshTrigger, theme = 'onyx', contextP
             <div
               style={{ display: 'flex', alignItems: 'center', gap: '4px' }}
               title={
-                `Context fill: ${formatTokensLocal(effectiveContextSize)} of ${formatTokensLocal(effectiveContextWindow)}\n` +
+                (windowKnown
+                  ? `Context fill: ${formatTokensLocal(effectiveContextSize)} of ${formatTokensLocal(effectiveContextWindow)}\n`
+                  : `Context fill: ${formatTokensLocal(effectiveContextSize)} (context window not reported in direct-API mode)\n`) +
                 `Cache reads (lifetime): ${usage?.display?.cacheReadTokens || '0'}\n` +
                 `Cache writes (lifetime): ${usage?.display?.cacheCreationTokens || '0'}\n` +
                 `Fresh input (lifetime): ${usage?.display?.freshInputTokens || '0'}\n` +
@@ -443,7 +452,7 @@ export function UsageBadge({ sessionId, refreshTrigger, theme = 'onyx', contextP
                 color: contextColor,
                 letterSpacing: '-0.02em',
               }}>
-                {formatTokensLocal(effectiveContextSize)}<span style={{ opacity: 0.5 }}>/</span>{formatTokensLocal(effectiveContextWindow)}
+                {formatTokensLocal(effectiveContextSize)}{windowKnown && (<><span style={{ opacity: 0.5 }}>/</span>{formatTokensLocal(effectiveContextWindow)}</>)}
               </span>
             </div>
           </>

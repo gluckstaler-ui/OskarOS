@@ -1,0 +1,442 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Overview + Email — Integrated Features (Prototype v3)</title>
+<style>
+:root{
+  --paper:#F7F5EF; --panel:#fff; --ink:#15161A; --ink2:#3c3d43; --mute:#8b877d; --faint:#b7b2a6;
+  --line:#e4e1d7; --line2:#efece3; --rail:#f1eee7;
+  --accent:#d6402b; --accent-bg:#fbe9e5;
+  --email:#b5721a; --email-bg:#fbf0e1;
+  --wa:#1c9e4f; --wa-bg:#e6f6ec;
+  --slate:#33506e; --slate-bg:#ebf0f6;
+  --red:#bc4a33; --amber:#c9941e; --green:#2e7d54;
+  --copilot:#5b3fa6; --copilot-bg:#f0ecf9;
+  --sans:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;
+  --mono:'SF Mono',ui-monospace,Menlo,Consolas,monospace;
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%}
+body{background:var(--paper);color:var(--ink);font-family:var(--sans);font-size:14px;line-height:1.5;-webkit-font-smoothing:antialiased;display:flex;flex-direction:column;height:100vh;overflow:hidden}
+
+.chrome{flex:none;border-bottom:1px solid var(--line);background:#fff}
+.chrome .row1{display:flex;align-items:center;gap:18px;padding:9px 18px}
+.logo{font-weight:800;font-size:14px;letter-spacing:-.01em}
+.logo b{color:var(--accent)}
+.nav{display:flex;gap:3px;font-size:12.5px}
+.nav button{border:none;background:none;font-family:var(--sans);padding:6px 13px;border-radius:7px;color:var(--mute);cursor:pointer;font-size:12.5px}
+.nav button:hover{color:var(--ink)}
+.nav button.on{background:var(--ink);color:#fff;font-weight:600}
+.who{margin-left:auto;font-size:12px;color:var(--mute)}
+
+.lanes{display:flex;gap:2px;padding:0 14px;background:#fff;border-bottom:1px solid var(--line);overflow-x:auto}
+.lane{flex:none;border:none;background:none;font-family:var(--sans);font-size:12.5px;color:var(--mute);padding:11px 15px;cursor:pointer;border-bottom:2px solid transparent;white-space:nowrap;display:flex;align-items:center;gap:8px}
+.lane:hover{color:var(--ink)}
+.lane.on{color:var(--ink);font-weight:700;border-bottom-color:var(--accent)}
+.lane .ct{font-variant-numeric:tabular-nums;font-size:10.5px;font-weight:700;background:var(--line2);color:var(--ink2);padding:1px 7px;border-radius:9px;min-width:18px;text-align:center}
+.lane.on .ct{background:var(--accent);color:#fff}
+.lane.cp .badge{font-family:var(--mono);font-size:8px;letter-spacing:.05em;color:var(--copilot);background:var(--copilot-bg);padding:2px 5px;border-radius:3px;text-transform:uppercase;font-weight:700}
+
+.intro{flex:none;padding:10px 22px;background:var(--paper);border-bottom:1px solid var(--line)}
+.intro h2{margin:0;font-size:16px;letter-spacing:-.01em}
+.intro p{margin:2px 0 0;font-size:12.5px;color:var(--ink2);max-width:120ch}
+.intro .new{color:var(--copilot);font-weight:600}
+
+.stage{flex:1;min-height:0;padding:14px 22px;overflow:hidden;display:flex}
+.shell{flex:1;min-height:0;border:1px solid var(--line);border-radius:11px;overflow:hidden;background:var(--panel);box-shadow:0 1px 2px rgba(0,0,0,.03);display:flex;flex-direction:column}
+.grid-ov{display:grid;grid-template-columns:230px minmax(0,1fr) 286px;flex:1;min-height:0}
+.grid-mail{display:grid;grid-template-columns:minmax(0,1fr) 372px;flex:1;min-height:0}
+.col{padding:14px;overflow:auto;min-height:0}
+.col.rail{background:var(--rail);border-right:1px solid var(--line)}
+.col.right{background:var(--rail);border-left:1px solid var(--line);padding:0}
+
+.ch{font-family:var(--mono);font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--mute);margin:0 0 9px}
+.ch.sp{margin-top:18px}
+
+.bk{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:8px 10px;border-radius:7px;background:#fff;border:1px solid var(--line);margin-bottom:5px;font-size:12.5px;cursor:pointer;transition:.12s}
+.bk:hover{border-color:var(--faint)}
+.bk .n{font-variant-numeric:tabular-nums;font-weight:700}
+.bk small{color:var(--mute);font-size:11px}
+.bk.on{outline:2px solid var(--accent);background:var(--accent-bg);border-color:transparent}
+
+.row{display:flex;align-items:flex-start;gap:10px;padding:10px 11px;border:1px solid var(--line);border-radius:8px;background:#fff;margin-bottom:6px;transition:.12s;cursor:pointer}
+.row:hover{border-color:var(--faint);transform:translateY(-1px)}
+.row.sel{outline:2px solid var(--copilot);background:var(--copilot-bg);border-color:transparent}
+.row.flat{cursor:default}.row.flat:hover{transform:none;border-color:var(--line)}
+.row.unread .h{font-weight:800}
+.row.fresh{animation:fresh .9s ease}
+@keyframes fresh{0%{background:var(--wa-bg)}100%{background:#fff}}
+.dot{width:8px;height:8px;border-radius:50%;flex:none;margin-top:5px}
+.d-em{background:var(--email)}.d-wa{background:var(--wa)}.d-red{background:var(--red)}.d-amb{background:var(--amber)}.d-grn{background:var(--green)}.d-sl{background:var(--slate)}.d-q{background:var(--faint)}
+.av{width:30px;height:30px;border-radius:50%;flex:none;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#fff;background:var(--slate)}
+.av.cp{background:var(--copilot)}.av.q{background:var(--faint)}.av.un{background:var(--amber)}
+.tx{flex:1;min-width:0}
+.tx .h{font-weight:600;font-size:12.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tx .sub{font-size:12px;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tx .s{font-size:11.5px;color:var(--ink2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.meta{display:flex;flex-direction:column;align-items:flex-end;gap:5px;flex:none}
+.time{font-size:10.5px;color:var(--mute);font-variant-numeric:tabular-nums}
+.tag{font-family:var(--mono);font-size:9px;letter-spacing:.03em;text-transform:uppercase;padding:2px 7px;border-radius:3px;white-space:nowrap;font-weight:600}
+.t-em{background:var(--email-bg);color:var(--email)}.t-wa{background:var(--wa-bg);color:var(--wa)}.t-sl{background:var(--slate-bg);color:var(--slate)}.t-warn{background:#f6e3c6;color:var(--email)}.t-cta{background:var(--accent);color:#fff}.t-mut{background:#ececec;color:var(--mute)}.t-cp{background:var(--copilot-bg);color:var(--copilot)}.t-grn{background:var(--wa-bg);color:var(--green)}.t-red{background:#f7e0da;color:var(--red)}.t-amb{background:#fdf3df;color:var(--amber)}
+
+.bulk{display:flex;gap:8px;align-items:center;padding:8px 10px;border:1px dashed var(--line);border-radius:8px;background:#fff;margin-bottom:10px;font-size:12px;color:var(--mute)}
+
+.deckwrap{padding:14px;overflow:auto;height:100%}
+.dc{border:1px solid var(--line);border-radius:8px;background:#fff;padding:10px 11px;margin-bottom:8px}
+.dc .top{display:flex;justify-content:space-between;font-family:var(--mono);font-size:9px;letter-spacing:.05em;text-transform:uppercase;color:var(--mute);margin-bottom:5px}
+.dc .vb{font-weight:700;color:var(--ink)}
+.dc .ti{font-weight:700;font-size:13px;margin-bottom:2px}
+.dc .rs{font-size:11.5px;color:var(--ink2);line-height:1.35;margin-bottom:9px}
+.dc .ex{display:flex;justify-content:flex-end;gap:6px}
+.dc.new{outline:2px solid var(--accent);outline-offset:1px}
+
+/* co-pilot */
+.cp{height:100%;display:flex;flex-direction:column;background:#fff}
+.cp .cphd{flex:none;padding:12px 14px;border-bottom:1px solid var(--line);background:linear-gradient(180deg,var(--copilot-bg),#fff)}
+.cp .cphd .lab{font-family:var(--mono);font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--copilot);font-weight:700;display:flex;align-items:center;gap:6px}
+.cp .cphd .lab .pulse{width:7px;height:7px;border-radius:50%;background:var(--copilot);animation:pl 2s infinite}
+@keyframes pl{0%{box-shadow:0 0 0 0 rgba(91,63,166,.5)}70%{box-shadow:0 0 0 6px rgba(91,63,166,0)}100%{box-shadow:0 0 0 0 rgba(91,63,166,0)}}
+.cp .cphd .ent{margin-top:7px;display:flex;align-items:center;gap:8px}
+.cp .cphd .ent .nm{font-weight:800;font-size:13.5px}
+.cp .cphd .ent .lk{margin-left:auto;font-family:var(--mono);font-size:9.5px;text-transform:uppercase;color:var(--slate);cursor:pointer;border:1px solid var(--line);border-radius:5px;padding:3px 7px;background:#fff}
+.cp .cphd .ent .lk:hover{border-color:var(--slate)}
+.stagebar{display:flex;align-items:center;gap:8px;margin-top:8px;font-size:11.5px;color:var(--ink2)}
+.stagebar .cur{font-weight:700;color:var(--ink)}
+.stagebar .adv{font-family:var(--mono);font-size:9px;text-transform:uppercase;letter-spacing:.04em;border:1px solid var(--copilot);color:var(--copilot);background:#fff;border-radius:5px;padding:3px 8px;cursor:pointer;margin-left:auto}
+.stagebar .adv:hover{background:var(--copilot-bg)}
+.cp .cpbody{flex:1;overflow:auto;padding:13px 14px}
+.cp .block{margin-bottom:14px}
+.cp .blab{font-family:var(--mono);font-size:9px;letter-spacing:.08em;text-transform:uppercase;color:var(--mute);margin-bottom:6px;display:flex;align-items:center;gap:7px}
+.cp .blab .pill{font-size:8px;color:var(--green);border:1px solid var(--green);border-radius:3px;padding:1px 5px;letter-spacing:.04em}
+.cp .signal{display:flex;flex-direction:column;gap:5px}
+.cp .sg{display:flex;align-items:center;gap:8px;font-size:12px}
+.cp .summary{font-size:12.5px;color:var(--ink);line-height:1.45;background:var(--copilot-bg);border-radius:8px;padding:10px 11px;border:1px solid #e3dcf3}
+
+/* field write-back */
+.fields{display:flex;flex-direction:column;gap:5px}
+.field{display:flex;align-items:center;gap:9px;font-size:12px;background:#fff;border:1px solid var(--line);border-radius:6px;padding:6px 9px}
+.field .fk{font-family:var(--mono);font-size:9px;text-transform:uppercase;letter-spacing:.04em;color:var(--mute);width:74px;flex:none}
+.field .fv{font-weight:600;color:var(--ink)}
+.field .syn{margin-left:auto;font-family:var(--mono);font-size:8.5px;color:var(--green);text-transform:uppercase;letter-spacing:.04em;white-space:nowrap}
+
+/* resolve banner */
+.resolve{border:1px solid var(--amber);background:#fdf3df;border-radius:9px;padding:12px;margin-bottom:14px}
+.resolve .rh{font-family:var(--mono);font-size:9px;text-transform:uppercase;letter-spacing:.06em;color:var(--amber);font-weight:700;margin-bottom:6px;display:flex;align-items:center;gap:6px}
+.resolve .rt{font-size:12.5px;color:var(--ink);line-height:1.45;margin-bottom:10px}
+.resolve .rt b{color:var(--ink)}
+.resolve .ra{display:flex;gap:7px}
+
+.cp .draft{border:1px solid var(--copilot);border-radius:9px;background:#fff;overflow:hidden}
+.cp .draft .dh{display:flex;align-items:center;gap:7px;padding:8px 11px;background:var(--copilot-bg);border-bottom:1px solid #e3dcf3;font-family:var(--mono);font-size:9.5px;text-transform:uppercase;letter-spacing:.04em;color:var(--copilot);font-weight:700}
+.cp .draft .dtext{padding:11px;font-size:12.5px;color:var(--ink2);line-height:1.5;white-space:pre-wrap}
+.cp .chrow{display:flex;gap:6px;padding:0 11px 9px;flex-wrap:wrap}
+.cp .chip{font-family:var(--mono);font-size:9.5px;text-transform:uppercase;letter-spacing:.03em;padding:4px 9px;border-radius:5px;border:1px solid var(--line);background:#fff;color:var(--mute);cursor:pointer}
+.cp .chip.on{border-color:var(--copilot);background:var(--copilot-bg);color:var(--copilot);font-weight:700}
+.cp .dacts{display:flex;gap:6px;padding:0 11px 11px;flex-wrap:wrap}
+.cp .nba{display:flex;flex-direction:column;gap:6px}
+.cp .nbtn{text-align:left;border:1px solid var(--line);border-radius:7px;background:#fff;padding:8px 10px;font-size:12px;cursor:pointer;display:flex;gap:8px;align-items:center}
+.cp .nbtn:hover{border-color:var(--copilot)}
+.cp .nbtn .k{font-family:var(--mono);font-size:9px;color:var(--copilot);font-weight:700}
+
+.cpoff{height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:30px;color:var(--mute);gap:10px}
+.cpoff .big{font-size:13px;color:var(--ink2);font-weight:600}
+.cpoff .mono{font-family:var(--mono);font-size:9.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--faint)}
+
+.btn{font-family:var(--mono);font-size:9.5px;letter-spacing:.03em;text-transform:uppercase;padding:5px 9px;border-radius:5px;border:1px solid var(--line);background:#fff;color:var(--ink2);white-space:nowrap;cursor:pointer;transition:.12s}
+.btn:hover{border-color:var(--ink);color:var(--ink)}
+.btn.p{background:var(--copilot);color:#fff;border-color:var(--copilot)} .btn.p:hover{filter:brightness(1.08)}
+.btn.e{background:var(--email);color:#fff;border-color:var(--email)}
+.btn.g{background:var(--green);color:#fff;border-color:var(--green)}
+.btn.a{background:var(--amber);color:#fff;border-color:var(--amber)}
+
+.empty{text-align:center;color:var(--mute);font-size:12.5px;padding:38px 12px}
+.empty b{display:block;font-size:15px;color:var(--green);margin-bottom:4px}
+
+#toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%) translateY(40px);background:var(--ink);color:#fff;font-size:12.5px;padding:9px 16px;border-radius:8px;opacity:0;transition:.25s;pointer-events:none;z-index:50;box-shadow:0 6px 20px rgba(0,0,0,.2)}
+#toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
+.hidden{display:none!important}
+</style>
+</head>
+<body>
+
+<div class="chrome">
+  <div class="row1">
+    <div class="logo">Atelier<b>OS</b></div>
+    <div class="nav" id="nav">
+      <button data-scr="overview">Overview</button>
+      <button data-scr="email" class="on">Email</button>
+      <button data-scr="x" style="opacity:.45;cursor:default">Pipeline</button>
+      <button data-scr="x" style="opacity:.45;cursor:default">Calendar</button>
+    </div>
+    <div class="who">Silke · solo</div>
+  </div>
+  <div class="lanes" id="lanes"></div>
+</div>
+
+<div class="intro" id="intro"></div>
+
+<div class="stage">
+  <div class="shell" id="screen-email">
+    <div class="grid-mail">
+      <div class="col" id="maillist"></div>
+      <div class="col right" id="copilot"></div>
+    </div>
+  </div>
+  <div class="shell hidden" id="screen-overview">
+    <div class="grid-ov">
+      <div class="col rail" id="ov-rail"></div>
+      <div class="col" id="ov-center"></div>
+      <div class="col right"><div class="deckwrap" id="ov-deck"></div></div>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+/* ───────── DATA ───────── */
+const BUCKETS = [
+  {id:'normal',  name:'Normal',      copilot:true,  desc:'Important mail that isn’t CRM, Promo, Social or Updates. <span class="new">Co-pilot on.</span> Unresolved senders surface a one-click <b>resolve</b> — the Sender Ledger (feature&nbsp;#1).'},
+  {id:'crm',     name:'CRM senders', copilot:true,  desc:'Everyone resolved to a lead. <span class="new">Co-pilot on.</span> Reads the mail → <b>writes structured fields back</b> (#3), <b>advances stage in-thread</b> (#10), and <b>logs the reply</b> to the timeline on send (#2).'},
+  {id:'promo',   name:'Promo',       copilot:false, desc:'Marketing & newsletters. Co-pilot off — bulk lane.'},
+  {id:'social',  name:'Social',      copilot:false, desc:'LinkedIn, Xing, platform notifications. Co-pilot off — bulk lane.'},
+  {id:'updates', name:'Updates',     copilot:false, desc:'Receipts, system & app notifications. Co-pilot off — bulk lane.'},
+];
+
+const MAIL = {
+  normal:[
+    {id:'n4',unread:true,from:'office@acme.ch',init:'?',cp:true,unresolved:true,resolveTo:'Acme AG',subj:'Projektablauf — interne Abstimmung',prev:'Wir stimmen das Angebot intern ab, eine kurze Rückfrage…',time:'09:31',ctx:'Unresolved sender',
+      resolveWhy:'Domain <b>acme.ch</b> matches lead <b>Acme AG</b> (Jan Muster). Same thread subject family as “Angebot Webseite.”',
+      summary:'An internal Acme address asking a clarifying question about the proposal. Not yet linked — resolve once and every future mail from this address routes to the lead silently.',
+      signals:[['d-amb','Unmatched sender · domain → Acme AG (98%)']]},
+    {id:'n1',unread:true,from:'Notariat Weber',init:'NW',cp:true,subj:'Beglaubigung Kaufvertrag',prev:'Die Unterlagen liegen bereit — passt Donnerstag 14:00?',time:'08:40',ctx:'Notar · contact',
+      summary:'Weber confirms the deed is ready and proposes Thu 14:00 for signing. A time and a contact detail to capture.',
+      signals:[['d-grn','Direct ask — awaiting your slot confirmation']],
+      extract:[['Meeting','Thu 14:00 — signing','→ Calendar'],['Phone','+41 56 222 14 80','→ Contact'],['Next step','Confirm slot','→ Tasks']],
+      draft:'Guten Morgen Herr Weber,\n\nDonnerstag 14:00 passt mir. Ich bringe die Ausweise mit.\n\nHerzliche Grüsse\nSilke',
+      nba:[['↵','Confirm Thu 14:00'],['📅','Send booking link instead']]},
+    {id:'n2',from:'Maria · Treuhand',init:'MT',cp:true,subj:'MwSt-Abrechnung Q1 — Freigabe?',prev:'Bitte um Freigabe bis Freitag…',time:'Gestern',ctx:'Treuhand · contact',
+      summary:'Maria needs sign-off on the Q1 VAT filing by Friday or submission slips.',
+      signals:[['d-amb','Deadline Friday — blocks her filing']],
+      extract:[['Sentiment','Neutral · procedural','→ Contact'],['Next step','Approve filing by Fri','→ Tasks']],
+      draft:'Hallo Maria,\n\nFreigabe erteilt — die Zahlen stimmen. Danke fürs Dranbleiben.\n\nGruss Silke',
+      nba:[['↵','Approve filing']]},
+  ],
+  crm:[
+    {id:'c1',unread:true,from:'Jan Muster · Acme AG',init:'JM',cp:true,subj:'Re: Angebot Webseite',prev:'Danke, sieht gut aus — ich schaue es mit dem Team an…',time:'09:14',
+      lead:'Acme AG',stage:'Proposal · CHF 24k',stageCur:'Proposal',stageNext:'Closing',tlKey:'acme',tag:['t-warn','opened 3×'],
+      summary:'Jan likes the proposal but is routing it through his team — opened 3× without replying. Price hesitation, not disinterest.',
+      signals:[['d-red','Offer opened 3× · no reply · 7d · confidence ↓'],['d-sl','R. Vogt (CFO) silently on CC']],
+      extract:[['Sentiment','Hesitant · price','→ Deal'],['Intent','Evaluating budget w/ team','→ Deal'],['Stakeholder','R. Vogt (CFO) · CC','→ Contacts'],['Next step','Offer 15-min call','→ Tasks']],
+      draft:'Hallo Jan,\n\nfreut mich, dass das Angebot überzeugt. Falls beim Team eine Frage zum Budget aufkommt: Ich gehe die Positionen gerne in 15 Minuten mit Ihnen durch — oft klärt das mehr als ein PDF.\n\nPasst Mittwoch kurz?\n\nBeste Grüsse\nSilke',
+      nba:[['↵','Send reassurance'],['👤','Address CFO directly'],['📅','Insert booking link']]},
+    {id:'c2',unread:true,from:'Marco · Bistrot SA',init:'MB',cp:true,subj:'können wir diese Woche unterschreiben?',prev:'Budget passt, lass uns finalisieren…',time:'Mo',
+      lead:'Bistrot SA',stage:'Closing · CHF 9k',stageCur:'Closing',stageNext:'Won',tag:['t-cta','ready to sign'],
+      summary:'Marco is ready to sign this week. Budget agreed on WhatsApp Friday — he’s confirming on email. Send the contract, don’t re-sell.',
+      signals:[['d-grn','Replied after 2 opens · confidence ↑'],['d-wa','Budget agreed · WhatsApp · Fri']],
+      extract:[['Sentiment','Positive · ready','→ Deal'],['Intent','Sign this week','→ Deal'],['Next step','Send contract + e-sign','→ Tasks']],
+      draft:'Hoi Marco,\n\nperfekt! Ich schicke dir heute den Vertrag zur Unterschrift — Konditionen wie auf WhatsApp besprochen. Ein Klick und wir starten nächste Woche.\n\nGruss Silke',
+      nba:[['↵','Send contract'],['✍','Insert e-sign link']]},
+    {id:'c3',from:'P. Bär · Bär GmbH',init:'PB',cp:true,subj:'Rechnung März',prev:'Anbei die Rechnung. Melde mich bzgl. Phase 2…',time:'Fr',
+      lead:'Bär GmbH',stage:'Cooling',stageCur:'Cooling',stageNext:'Discovery',tag:['t-mut','silent 5d'],
+      summary:'Transactional invoice mail, but Phase-2 talk went silent 5 days after a warm thread. Champion cooling — low-key re-engage.',
+      signals:[['d-amb','Warm thread, then silent 5d']],
+      extract:[['Sentiment','Cooling','→ Deal'],['Phone','+41 31 511 09 22','→ Contact'],['Next step','Hold May slot','→ Tasks']],
+      draft:'Hallo Herr Bär,\n\nbesten Dank für die Rechnung. Wie sieht es bei Ihnen mit Phase 2 aus? Ich halte Ihnen den Slot im Mai gerne frei.\n\nFreundliche Grüsse\nSilke',
+      nba:[['↵','Gentle re-engage'],['🗓','Hold a May slot']]},
+  ],
+  promo:[
+    {id:'p1',from:'Figma',init:'FG',cls:'q',subj:'New in Figma: AI layouts',prev:'Generate full layouts from a prompt…',time:'07:10'},
+    {id:'p2',from:'Webflow',init:'WF',cls:'q',subj:'Black Friday: 40% off annual',prev:'Your biggest savings of the year…',time:'Gestern'},
+  ],
+  social:[
+    {id:'s1',from:'LinkedIn',init:'in',cls:'q',subj:'5 people viewed your profile',prev:'See who’s been looking…',time:'10:02'},
+    {id:'s2',from:'Xing',init:'X',cls:'q',subj:'Marco Bistrot endorsed you',prev:'For: Web Design, Branding…',time:'Mo'},
+  ],
+  updates:[
+    {id:'u1',from:'Stripe',init:'St',cls:'q',subj:'Payout CHF 8’400 on the way',prev:'Expected Mar 14…',time:'06:30'},
+    {id:'u2',from:'Google Cal',init:'GC',cls:'q',subj:'Reminder: Notariat Thu 14:00',prev:'Beglaubigung Kaufvertrag…',time:'Di'},
+  ],
+};
+
+const TIMELINE = {
+  acme:[
+    {dot:'d-em',h:'Re: Angebot Webseite',s:'in · "Danke, sieht gut aus…" — opened 3×',tag:'Email ↩',tc:'t-em'},
+    {dot:'d-sl',h:'Offer PDF sent',s:'out · CHF 24k · CFO silently CC’d',tag:'Email',tc:'t-em'},
+    {dot:'d-wa',h:'"Budget Frage?"',s:'in · WhatsApp · answered',tag:'WhatsApp',tc:'t-wa'},
+    {dot:'d-grn',h:'Discovery call · 22 min',s:'champion warm',tag:'Call',tc:'t-sl'},
+  ]
+};
+const DECK = [
+  {new:true,vb:'EMAIL',ti:'Acme AG — reassure on price',rs:'Opened 3×, quiet 7d. Draft a 15-min-call offer; loop the silent CFO.',acts:[['btn p','▶ Draft'],['btn','Open lead']]},
+  {vb:'EMAIL',ti:'Bistrot — send contract',rs:'Ready to sign. Budget agreed on WhatsApp Fri.',acts:[['btn g','▶ Send contract']]},
+  {vb:'NUDGE',ti:'Bär GmbH — re-engage Phase 2',rs:'Warm then silent 5d. Hold a May slot.',acts:[['btn','▶ Nudge']]},
+];
+const PIPE = [
+  {n:'7',lab:'Closing',sub:'CHF 41k',on:false},
+  {n:'4',lab:'Proposal',sub:'CHF 68k',on:true},
+  {n:'9',lab:'Discovery',sub:'CHF 52k',on:false},
+  {n:'3',lab:'Cooling',sub:'at risk',on:false},
+];
+
+/* ───────── STATE ───────── */
+const state = { screen:'email', bucket:'crm', sel:'c1', replyCh:'email', freshId:null };
+
+const $ = s => document.querySelector(s);
+function toast(t){const e=$('#toast');e.innerHTML=t;e.classList.add('on');clearTimeout(e._t);e._t=setTimeout(()=>e.classList.remove('on'),2200);}
+function curBucket(){return BUCKETS.find(b=>b.id===state.bucket);}
+function curMail(){return (MAIL[state.bucket]||[]).find(m=>m.id===state.sel);}
+
+/* ───────── CHROME ───────── */
+function renderNav(){document.querySelectorAll('#nav button[data-scr]').forEach(b=>b.classList.toggle('on',b.dataset.scr===state.screen));}
+function renderLanes(){
+  const lanes=$('#lanes');
+  if(state.screen!=='email'){lanes.classList.add('hidden');return;}
+  lanes.classList.remove('hidden');
+  lanes.innerHTML=BUCKETS.map(b=>{
+    const items=MAIL[b.id]||[]; const unread=items.filter(m=>m.unread).length;
+    return `<button class="lane ${b.id===state.bucket?'on':''} ${b.copilot?'cp':''}" data-bucket="${b.id}">${b.name}${b.copilot?'<span class="badge">co-pilot</span>':''}<span class="ct">${unread||items.length}</span></button>`;
+  }).join('');
+}
+function renderIntro(){
+  const i=$('#intro');
+  if(state.screen==='email'){const b=curBucket();i.innerHTML=`<h2>Email · ${b.name}</h2><p>${b.desc}</p>`;}
+  else i.innerHTML=`<h2>Overview</h2><p>The relationship surface. Replies sent from the co-pilot <span class="new">land here in the timeline</span> (#2). Pick a deal — the right rail is your flight deck.</p>`;
+}
+
+/* ───────── EMAIL LIST ───────── */
+function mailRow(m){
+  const av=m.unresolved?'un':(m.cp?'cp':(m.cls==='q'?'q':''));
+  const tag=m.unresolved?`<span class="tag t-amb">resolve</span>`:(m.tag?`<span class="tag ${m.tag[0]}">${m.tag[1]}</span>`:'');
+  return `<div class="row ${m.id===state.sel?'sel':''} ${m.unread?'unread':''} ${m.id===state.freshId?'fresh':''}" data-act="mail" data-id="${m.id}">
+    <div class="av ${av}">${m.init}</div>
+    <div class="tx"><div class="h">${m.from}</div><div class="sub">${m.subj}</div><div class="s">${m.prev}</div></div>
+    <div class="meta"><span class="time">${m.time}</span>${tag}</div></div>`;
+}
+function renderMailList(){
+  const list=$('#maillist'); const b=curBucket(); const items=MAIL[state.bucket]||[];
+  let head=''; if(!b.copilot) head=`<div class="bulk">Bulk lane · <span class="btn">Select all</span><span class="btn">Archive read</span><span class="btn">Unsubscribe</span><span style="margin-left:auto">${items.length} messages</span></div>`;
+  list.innerHTML=head+(items.length?items.map(mailRow).join(''):`<div class="empty"><b>Inbox zero</b>Nothing in ${b.name}.</div>`);
+  state.freshId=null;
+}
+
+/* ───────── CO-PILOT ───────── */
+function fieldBlock(m){
+  if(!m.extract) return '';
+  return `<div class="block">
+    <div class="blab">AI captured → written to record <span class="pill">#3 field write-back</span></div>
+    <div class="fields">${m.extract.map(f=>`<div class="field"><span class="fk">${f[0]}</span><span class="fv">${f[1]}</span><span class="syn">${f[2]} ✓</span></div>`).join('')}</div>
+  </div>`;
+}
+function renderCopilot(){
+  const wrap=$('#copilot'); const b=curBucket();
+  if(!b.copilot){wrap.innerHTML=`<div class="cpoff"><div class="mono">Co-pilot off</div><div class="big">${b.name} is a bulk lane.</div><div style="font-size:12px;max-width:30ch">No drafting here. Scan, archive, unsubscribe.</div></div>`;return;}
+  const m=curMail();
+  if(!m){wrap.innerHTML=`<div class="cpoff"><div class="mono">Co-pilot ready</div><div class="big">Pick a message.</div></div>`;return;}
+
+  /* unresolved → Sender Ledger (#1) */
+  if(m.unresolved){
+    wrap.innerHTML=`<div class="cp">
+      <div class="cphd"><div class="lab"><span class="pulse"></span> Co-Pilot · Sender Ledger</div>
+        <div class="ent"><span class="nm">${m.from}</span><span class="tag t-amb">unresolved</span></div></div>
+      <div class="cpbody">
+        <div class="resolve">
+          <div class="rh">● Resolve once — feature #1</div>
+          <div class="rt">${m.resolveWhy}</div>
+          <div class="ra"><button class="btn a" data-act="resolve">Resolve → ${m.resolveTo}</button><button class="btn" data-act="newlead">New lead</button><button class="btn" data-act="mute">Mute</button></div>
+        </div>
+        <div class="block"><div class="blab">What this is</div><div class="summary">${m.summary}</div></div>
+        <div class="block"><div class="blab">Signals</div><div class="signal">${m.signals.map(s=>`<div class="sg"><span class="dot ${s[0]}"></span>${s[1]}</div>`).join('')}</div></div>
+        <div class="block"><div style="font-size:11.5px;color:var(--mute)">Drafting unlocks once the sender is resolved to a lead.</div></div>
+      </div></div>`;
+    return;
+  }
+
+  const entity=m.lead?m.lead:m.from.split(' · ')[0];
+  const entityLine=m.lead?m.stage:(m.ctx||'Not a CRM contact');
+  const stagebar=m.stageNext?`<div class="stagebar"><span>Stage:</span><span class="cur">${m.stageCur}</span><span>→ ${m.stageNext}?</span><button class="adv" data-act="advance">Advance ▸ ${m.stageNext}</button></div>`:'';
+  const chans=m.lead?`<div class="chrow"><button class="chip ${state.replyCh==='email'?'on':''}" data-act="ch" data-c="email">Email</button><button class="chip ${state.replyCh==='wa'?'on':''}" data-act="ch" data-c="wa">WhatsApp</button></div>`:'';
+
+  wrap.innerHTML=`<div class="cp">
+    <div class="cphd">
+      <div class="lab"><span class="pulse"></span> Co-Pilot · ${m.lead?'CRM':'Normal'}</div>
+      <div class="ent"><span class="nm">${entity}</span>${m.lead?`<span class="lk" data-act="goov">Open in Overview →</span>`:`<span class="tag t-mut">contact</span>`}</div>
+      <div style="font-size:11.5px;color:var(--mute);margin-top:2px">${entityLine}</div>
+      ${stagebar}
+    </div>
+    <div class="cpbody">
+      <div class="block"><div class="blab">What this is</div><div class="summary">${m.summary}</div></div>
+      <div class="block"><div class="blab">Signals <span class="pill">#5 tracking</span></div><div class="signal">${m.signals.map(s=>`<div class="sg"><span class="dot ${s[0]}"></span>${s[1]}</div>`).join('')}</div></div>
+      ${fieldBlock(m)}
+      <div class="block">
+        <div class="blab">Suggested reply ${m.lead?`· <span style="color:var(--copilot)">${state.replyCh==='wa'?'WhatsApp':'Email'}</span>`:''} <span class="pill">#7 compose</span></div>
+        <div class="draft"><div class="dh">✦ Drafted from context</div><div class="dtext" id="drafttext">${m.draft}</div>${chans}
+          <div class="dacts"><button class="btn p" data-act="send">Approve &amp; Send</button><button class="btn" data-act="book">📅 Insert booking link</button><button class="btn" data-act="discard">Discard</button></div>
+        </div>
+      </div>
+      <div class="block"><div class="blab">Next best action <span class="pill">#8</span></div><div class="nba">${m.nba.map(n=>`<button class="nbtn" data-act="nba" data-t="${n[1]}"><span class="k">${n[0]}</span>${n[1]}</button>`).join('')}</div></div>
+    </div></div>`;
+}
+
+/* ───────── OVERVIEW ───────── */
+function renderOverview(){
+  $('#ov-rail').innerHTML=`<p class="ch">Pipeline</p>`+PIPE.map(p=>`<div class="bk ${p.on?'on':''}"><span>${p.lab}<br><small>${p.sub}</small></span><span class="n">${p.n}</span></div>`).join('')+`<p class="ch sp">Buckets</p><div class="bk"><span>CRM senders</span><span class="n">${MAIL.crm.length}</span></div><div class="bk"><span>Normal</span><span class="n">${MAIL.normal.length}</span></div>`;
+  $('#ov-center').innerHTML=`<p class="ch">Acme AG — channel-blended timeline <span style="color:var(--copilot)">· sent replies land here (#2)</span></p><div class="tl">${TIMELINE.acme.map((r,idx)=>`<div class="row flat ${idx===0&&r.justSent?'fresh':''}"><span class="dot ${r.dot}" style="margin-top:5px"></span><div class="tx"><div class="h">${r.h}</div><div class="s">${r.s}</div></div><span class="tag ${r.tc}">${r.tag}</span></div>`).join('')}</div>`;
+  $('#ov-deck').innerHTML=`<p class="ch">Flight Deck — ROI-ranked</p>`+DECK.map(d=>`<div class="dc ${d.new?'new':''}"><div class="top"><span class="vb">${d.vb}</span><span>${d.new?'NEW':''}</span></div><div class="ti">${d.ti}</div><div class="rs">${d.rs}</div><div class="ex">${d.acts.map(a=>`<button class="${a[0]}" data-act="deck">${a[1]}</button>`).join('')}</div></div>`).join('');
+}
+
+/* ───────── PAINT ───────── */
+function paint(){
+  renderNav(); renderLanes(); renderIntro();
+  $('#screen-email').classList.toggle('hidden',state.screen!=='email');
+  $('#screen-overview').classList.toggle('hidden',state.screen!=='overview');
+  if(state.screen==='email'){renderMailList();renderCopilot();} else renderOverview();
+}
+
+/* ───────── EVENTS ───────── */
+document.addEventListener('click', e=>{
+  const nav=e.target.closest('#nav button[data-scr]');
+  if(nav&&nav.dataset.scr!=='x'){state.screen=nav.dataset.scr;paint();return;}
+  const lane=e.target.closest('[data-bucket]');
+  if(lane){state.bucket=lane.dataset.bucket;const f=(MAIL[state.bucket]||[])[0];state.sel=f?f.id:null;paint();return;}
+  const act=e.target.closest('[data-act]'); if(!act) return;
+  const a=act.dataset.act, m=curMail();
+
+  if(a==='mail'){state.sel=act.dataset.id;paint();}
+  else if(a==='ch'){state.replyCh=act.dataset.c;renderCopilot();}
+  else if(a==='advance'){ if(m){toast(`Stage advanced · <b>${m.stageCur} → ${m.stageNext}</b> on ${m.lead} (#10)`); m.stageCur=m.stageNext; m.stage=m.stageNext; m.stageNext=null; renderCopilot();} }
+  else if(a==='book'){ const d=document.getElementById('drafttext'); if(d){d.textContent=d.textContent.replace(/\n\nHerzliche|\n\nBeste|\n\nGruss|\n\nFreundliche/, x=>'\n\n📅 Termin buchen: cal.atelier.ch/silke/15min'+x);} toast('Booking link inserted into draft (#10)'); }
+  else if(a==='send'){
+    if(m&&m.tlKey&&TIMELINE[m.tlKey]){TIMELINE[m.tlKey].unshift({dot:'d-em',h:'Re: '+m.subj.replace(/^Re:\s*/,'')+' (sent)',s:'out · co-pilot draft · '+(state.replyCh==='wa'?'WhatsApp':'Email'),tag:state.replyCh==='wa'?'WhatsApp':'Email',tc:state.replyCh==='wa'?'t-wa':'t-em',justSent:true});}
+    toast(`Sent via ${state.replyCh==='wa'?'WhatsApp':'Email'} · <b>logged to ${m&&m.lead?m.lead:(m&&m.from)} timeline ✓</b> (#2)`);
+    if(m){m.unread=false;}
+  }
+  else if(a==='discard'){toast('Draft discarded');}
+  else if(a==='nba'){ if(act.dataset.t&&act.dataset.t.toLowerCase().includes('booking')){document.querySelector('[data-act="book"]').click();} else toast(act.dataset.t);}
+  else if(a==='goov'){state.screen='overview';paint();toast('Jumped to Acme AG in Overview');}
+  else if(a==='deck'){toast('Flight-deck action fired');}
+  else if(a==='mute'){toast('Sender muted — won’t surface again');}
+  else if(a==='newlead'){toast('New lead created from sender');}
+  else if(a==='resolve'){
+    /* Sender Ledger #1: move from normal → crm, route to the lead */
+    const i=MAIL.normal.findIndex(x=>x.id===m.id);
+    if(i>-1){
+      const moved=MAIL.normal.splice(i,1)[0];
+      moved.unresolved=false; moved.lead=moved.resolveTo; moved.stage='Proposal · CHF 24k'; moved.stageCur='Proposal'; moved.stageNext='Closing'; moved.tlKey='acme'; moved.from='Acme AG · '+moved.from; moved.init='AC'; moved.tag=['t-sl','● linked'];
+      moved.extract=[['Sentiment','Engaged','→ Deal'],['Intent','Internal alignment','→ Deal'],['Contact','office@acme.ch','→ Contacts']];
+      moved.draft='Guten Tag,\n\ngerne — was braucht das Team für die Abstimmung? Ich liefere die Angaben heute noch.\n\nBeste Grüsse\nSilke';
+      moved.nba=[['↵','Answer the question'],['📅','Insert booking link']];
+      MAIL.crm.unshift(moved);
+      state.bucket='crm'; state.sel=moved.id; state.freshId=moved.id;
+      paint();
+      toast(`Resolved · <b>office@acme.ch → Acme AG</b>. Routed to CRM — future mail auto-links (#1)`);
+    }
+  }
+});
+
+paint();
+</script>
+</body>
+</html>

@@ -15,7 +15,6 @@ import type { CaseFlow } from './types';
 const ALL_FLOWS: CaseFlow[] = [
   'discovery-question-form',
   'discovery-direction-pick',
-  'todo-write-unfinished',
   'tool-card-render-cd-tools',
   'vibe-build-3',
   'vibe-build-failed',

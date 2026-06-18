@@ -1,0 +1,539 @@
+{
+  "slugs": [
+    "essstoerung",
+    "praxis-weitegasse",
+    "linkedin",
+    "psychologiech",
+    "upendo-praxis",
+    "ch-linkedin",
+    "praxis-z",
+    "zhaw",
+    "si-ng",
+    "praxis37",
+    "psychologie",
+    "kispi-uzh",
+    "therapieamzuerichberg",
+    "curanima",
+    "psychologie-uzh",
+    "zismed",
+    "psychotherapiezentrum-fluntern"
+  ],
+  "moves": [
+    {
+      "from": "5400/essstoerung/charlotte-2.jpg",
+      "to": "_shared/essstoerung/charlotte-2.jpg"
+    },
+    {
+      "from": "5400/essstoerung/charlotte-inner.jpg",
+      "to": "_shared/essstoerung/charlotte-inner.jpg"
+    },
+    {
+      "from": "5400/essstoerung/charlotte.jpg",
+      "to": "_shared/essstoerung/charlotte.jpg"
+    },
+    {
+      "from": "8004/essstoerung/irene-2.jpg",
+      "to": "_shared/essstoerung/irene-2.jpg"
+    },
+    {
+      "from": "8004/essstoerung/irene-inner.jpg",
+      "to": "_shared/essstoerung/irene-inner.jpg"
+    },
+    {
+      "from": "8004/essstoerung/irene.jpg",
+      "to": "_shared/essstoerung/irene.jpg"
+    },
+    {
+      "from": "5400/praxis-weitegasse/christian-inner.jpg",
+      "to": "_shared/praxis-weitegasse/christian-inner.jpg"
+    },
+    {
+      "from": "5400/praxis-weitegasse/christian.jpg",
+      "to": "_shared/praxis-weitegasse/christian.jpg"
+    },
+    {
+      "from": "5400/praxis-weitegasse/nahid-inner.jpg",
+      "to": "_shared/praxis-weitegasse/nahid-inner.jpg"
+    },
+    {
+      "from": "5400/praxis-weitegasse/nahid.jpg",
+      "to": "_shared/praxis-weitegasse/nahid.jpg"
+    },
+    {
+      "from": "7031/praxis-weitegasse/theo-inner.jpg",
+      "to": "_shared/praxis-weitegasse/theo-inner.jpg"
+    },
+    {
+      "from": "7031/praxis-weitegasse/theo.jpg",
+      "to": "_shared/praxis-weitegasse/theo.jpg"
+    },
+    {
+      "from": "8000/linkedin/fanny-2.jpg",
+      "to": "_shared/linkedin/fanny-2.jpg"
+    },
+    {
+      "from": "8000/linkedin/fanny.jpg",
+      "to": "_shared/linkedin/fanny.jpg"
+    },
+    {
+      "from": "8001/linkedin/carol-2.jpg",
+      "to": "_shared/linkedin/carol-2.jpg"
+    },
+    {
+      "from": "8001/linkedin/carol.jpg",
+      "to": "_shared/linkedin/carol.jpg"
+    },
+    {
+      "from": "8002/linkedin/patrizia-2.jpg",
+      "to": "_shared/linkedin/patrizia-2.jpg"
+    },
+    {
+      "from": "8002/linkedin/patrizia.jpg",
+      "to": "_shared/linkedin/patrizia.jpg"
+    },
+    {
+      "from": "8006/linkedin/denise-2.jpg",
+      "to": "_shared/linkedin/denise-2.jpg"
+    },
+    {
+      "from": "8006/linkedin/denise.jpg",
+      "to": "_shared/linkedin/denise.jpg"
+    },
+    {
+      "from": "8001/psychologiech/rahel-profile.jpg",
+      "to": "_shared/psychologiech/rahel-profile.jpg"
+    },
+    {
+      "from": "8001/psychologiech/rahel.jpg",
+      "to": "_shared/psychologiech/rahel.jpg"
+    },
+    {
+      "from": "8001/psychologiech/rahel.meta.json",
+      "to": "_shared/psychologiech/rahel.meta.json"
+    },
+    {
+      "from": "8002/psychologiech/sandra.jpg",
+      "to": "_shared/psychologiech/sandra.jpg"
+    },
+    {
+      "from": "8002/psychologiech/sandra.meta.json",
+      "to": "_shared/psychologiech/sandra.meta.json"
+    },
+    {
+      "from": "8001/upendo-praxis/stefania-2.jpg",
+      "to": "_shared/upendo-praxis/stefania-2.jpg"
+    },
+    {
+      "from": "8001/upendo-praxis/stefania-profile.jpg",
+      "to": "_shared/upendo-praxis/stefania-profile.jpg"
+    },
+    {
+      "from": "8001/upendo-praxis/stefania.jpg",
+      "to": "_shared/upendo-praxis/stefania.jpg"
+    },
+    {
+      "from": "8001/upendo-praxis/stefania.meta.json",
+      "to": "_shared/upendo-praxis/stefania.meta.json"
+    },
+    {
+      "from": "8003/upendo-praxis/melvin-2.jpg",
+      "to": "_shared/upendo-praxis/melvin-2.jpg"
+    },
+    {
+      "from": "8003/upendo-praxis/melvin.jpg",
+      "to": "_shared/upendo-praxis/melvin.jpg"
+    },
+    {
+      "from": "8002/ch-linkedin/ania-2.jpg",
+      "to": "_shared/ch-linkedin/ania-2.jpg"
+    },
+    {
+      "from": "8002/ch-linkedin/ania.jpg",
+      "to": "_shared/ch-linkedin/ania.jpg"
+    },
+    {
+      "from": "8008/ch-linkedin/yana-2.jpg",
+      "to": "_shared/ch-linkedin/yana-2.jpg"
+    },
+    {
+      "from": "8008/ch-linkedin/yana.jpg",
+      "to": "_shared/ch-linkedin/yana.jpg"
+    },
+    {
+      "from": "8002/praxis-z/tanja-2.jpg",
+      "to": "_shared/praxis-z/tanja-2.jpg"
+    },
+    {
+      "from": "8002/praxis-z/tanja-3.jpg",
+      "to": "_shared/praxis-z/tanja-3.jpg"
+    },
+    {
+      "from": "8002/praxis-z/tanja-4.jpg",
+      "to": "_shared/praxis-z/tanja-4.jpg"
+    },
+    {
+      "from": "8002/praxis-z/tanja-5.jpg",
+      "to": "_shared/praxis-z/tanja-5.jpg"
+    },
+    {
+      "from": "8002/praxis-z/tanja-profile.jpg",
+      "to": "_shared/praxis-z/tanja-profile.jpg"
+    },
+    {
+      "from": "8002/praxis-z/tanja.jpg",
+      "to": "_shared/praxis-z/tanja.jpg"
+    },
+    {
+      "from": "8002/praxis-z/tanja.meta.json",
+      "to": "_shared/praxis-z/tanja.meta.json"
+    },
+    {
+      "from": "8006/praxis-z/sandra-2.jpg",
+      "to": "_shared/praxis-z/sandra-2.jpg"
+    },
+    {
+      "from": "8006/praxis-z/sandra-3.jpg",
+      "to": "_shared/praxis-z/sandra-3.jpg"
+    },
+    {
+      "from": "8006/praxis-z/sandra-4.jpg",
+      "to": "_shared/praxis-z/sandra-4.jpg"
+    },
+    {
+      "from": "8006/praxis-z/sandra-5.jpg",
+      "to": "_shared/praxis-z/sandra-5.jpg"
+    },
+    {
+      "from": "8006/praxis-z/sandra-profile.jpg",
+      "to": "_shared/praxis-z/sandra-profile.jpg"
+    },
+    {
+      "from": "8006/praxis-z/sandra.jpg",
+      "to": "_shared/praxis-z/sandra.jpg"
+    },
+    {
+      "from": "8006/praxis-z/sandra.meta.json",
+      "to": "_shared/praxis-z/sandra.meta.json"
+    },
+    {
+      "from": "8032/praxis-z/bettina-2.jpg",
+      "to": "_shared/praxis-z/bettina-2.jpg"
+    },
+    {
+      "from": "8032/praxis-z/bettina-3.jpg",
+      "to": "_shared/praxis-z/bettina-3.jpg"
+    },
+    {
+      "from": "8032/praxis-z/bettina-4.jpg",
+      "to": "_shared/praxis-z/bettina-4.jpg"
+    },
+    {
+      "from": "8032/praxis-z/bettina-5.jpg",
+      "to": "_shared/praxis-z/bettina-5.jpg"
+    },
+    {
+      "from": "8032/praxis-z/bettina.jpg",
+      "to": "_shared/praxis-z/bettina.jpg"
+    },
+    {
+      "from": "8032/praxis-z/bettina.meta.json",
+      "to": "_shared/praxis-z/bettina.meta.json"
+    },
+    {
+      "from": "8032/praxis-z/daniela-2.jpg",
+      "to": "_shared/praxis-z/daniela-2.jpg"
+    },
+    {
+      "from": "8032/praxis-z/daniela-3.jpg",
+      "to": "_shared/praxis-z/daniela-3.jpg"
+    },
+    {
+      "from": "8032/praxis-z/daniela-4.jpg",
+      "to": "_shared/praxis-z/daniela-4.jpg"
+    },
+    {
+      "from": "8032/praxis-z/daniela-5.jpg",
+      "to": "_shared/praxis-z/daniela-5.jpg"
+    },
+    {
+      "from": "8032/praxis-z/daniela-profile.jpg",
+      "to": "_shared/praxis-z/daniela-profile.jpg"
+    },
+    {
+      "from": "8032/praxis-z/daniela.jpg",
+      "to": "_shared/praxis-z/daniela.jpg"
+    },
+    {
+      "from": "8032/praxis-z/daniela.meta.json",
+      "to": "_shared/praxis-z/daniela.meta.json"
+    },
+    {
+      "from": "8032/praxis-z/stefan-2.jpg",
+      "to": "_shared/praxis-z/stefan-2.jpg"
+    },
+    {
+      "from": "8032/praxis-z/stefan-3.jpg",
+      "to": "_shared/praxis-z/stefan-3.jpg"
+    },
+    {
+      "from": "8032/praxis-z/stefan-4.jpg",
+      "to": "_shared/praxis-z/stefan-4.jpg"
+    },
+    {
+      "from": "8032/praxis-z/stefan-5.jpg",
+      "to": "_shared/praxis-z/stefan-5.jpg"
+    },
+    {
+      "from": "8032/praxis-z/stefan-profile.jpg",
+      "to": "_shared/praxis-z/stefan-profile.jpg"
+    },
+    {
+      "from": "8032/praxis-z/stefan.jpg",
+      "to": "_shared/praxis-z/stefan.jpg"
+    },
+    {
+      "from": "8032/praxis-z/stefan.meta.json",
+      "to": "_shared/praxis-z/stefan.meta.json"
+    },
+    {
+      "from": "8032/praxis-z/vera-2.jpg",
+      "to": "_shared/praxis-z/vera-2.jpg"
+    },
+    {
+      "from": "8032/praxis-z/vera-3.jpg",
+      "to": "_shared/praxis-z/vera-3.jpg"
+    },
+    {
+      "from": "8032/praxis-z/vera-4.jpg",
+      "to": "_shared/praxis-z/vera-4.jpg"
+    },
+    {
+      "from": "8032/praxis-z/vera-5.jpg",
+      "to": "_shared/praxis-z/vera-5.jpg"
+    },
+    {
+      "from": "8032/praxis-z/vera-profile.jpg",
+      "to": "_shared/praxis-z/vera-profile.jpg"
+    },
+    {
+      "from": "8032/praxis-z/vera.jpg",
+      "to": "_shared/praxis-z/vera.jpg"
+    },
+    {
+      "from": "8032/praxis-z/vera.meta.json",
+      "to": "_shared/praxis-z/vera.meta.json"
+    },
+    {
+      "from": "8004/zhaw/andrea-2.jpg",
+      "to": "_shared/zhaw/andrea-2.jpg"
+    },
+    {
+      "from": "8004/zhaw/andrea-3.jpg",
+      "to": "_shared/zhaw/andrea-3.jpg"
+    },
+    {
+      "from": "8004/zhaw/andrea.jpg",
+      "to": "_shared/zhaw/andrea.jpg"
+    },
+    {
+      "from": "8004/zhaw/jan-2.jpg",
+      "to": "_shared/zhaw/jan-2.jpg"
+    },
+    {
+      "from": "8004/zhaw/jan-3.jpg",
+      "to": "_shared/zhaw/jan-3.jpg"
+    },
+    {
+      "from": "8004/zhaw/jan.jpg",
+      "to": "_shared/zhaw/jan.jpg"
+    },
+    {
+      "from": "8006/zhaw/laura-2.jpg",
+      "to": "_shared/zhaw/laura-2.jpg"
+    },
+    {
+      "from": "8006/zhaw/laura-3.jpg",
+      "to": "_shared/zhaw/laura-3.jpg"
+    },
+    {
+      "from": "8006/zhaw/laura.jpg",
+      "to": "_shared/zhaw/laura.jpg"
+    },
+    {
+      "from": "8005/si-ng/martina.jpg",
+      "to": "_shared/si-ng/martina.jpg"
+    },
+    {
+      "from": "8037/si-ng/alexander.jpg",
+      "to": "_shared/si-ng/alexander.jpg"
+    },
+    {
+      "from": "8006/praxis37/giulia-2.jpg",
+      "to": "_shared/praxis37/giulia-2.jpg"
+    },
+    {
+      "from": "8006/praxis37/giulia.jpg",
+      "to": "_shared/praxis37/giulia.jpg"
+    },
+    {
+      "from": "8006/praxis37/marlin-2.jpg",
+      "to": "_shared/praxis37/marlin-2.jpg"
+    },
+    {
+      "from": "8006/praxis37/marlin.jpg",
+      "to": "_shared/praxis37/marlin.jpg"
+    },
+    {
+      "from": "8037/praxis37/isabelle-2.jpg",
+      "to": "_shared/praxis37/isabelle-2.jpg"
+    },
+    {
+      "from": "8037/praxis37/isabelle.jpg",
+      "to": "_shared/praxis37/isabelle.jpg"
+    },
+    {
+      "from": "8037/praxis37/jacqueline-2.jpg",
+      "to": "_shared/praxis37/jacqueline-2.jpg"
+    },
+    {
+      "from": "8037/praxis37/jacqueline.jpg",
+      "to": "_shared/praxis37/jacqueline.jpg"
+    },
+    {
+      "from": "8037/praxis37/manuel-2.jpg",
+      "to": "_shared/praxis37/manuel-2.jpg"
+    },
+    {
+      "from": "8037/praxis37/manuel.jpg",
+      "to": "_shared/praxis37/manuel.jpg"
+    },
+    {
+      "from": "8006/psychologie/alice-2.jpg",
+      "to": "_shared/psychologie/alice-2.jpg"
+    },
+    {
+      "from": "8006/psychologie/alice.jpg",
+      "to": "_shared/psychologie/alice.jpg"
+    },
+    {
+      "from": "8048/psychologie/alexandra-2.jpg",
+      "to": "_shared/psychologie/alexandra-2.jpg"
+    },
+    {
+      "from": "8048/psychologie/alexandra.jpg",
+      "to": "_shared/psychologie/alexandra.jpg"
+    },
+    {
+      "from": "8008/kispi-uzh/alexandra-2.jpg",
+      "to": "_shared/kispi-uzh/alexandra-2.jpg"
+    },
+    {
+      "from": "8008/kispi-uzh/alexandra.jpg",
+      "to": "_shared/kispi-uzh/alexandra.jpg"
+    },
+    {
+      "from": "8032/kispi-uzh/alice-2.jpg",
+      "to": "_shared/kispi-uzh/alice-2.jpg"
+    },
+    {
+      "from": "8032/kispi-uzh/alice.jpg",
+      "to": "_shared/kispi-uzh/alice.jpg"
+    },
+    {
+      "from": "8008/therapieamzuerichberg/mario-2.jpg",
+      "to": "_shared/therapieamzuerichberg/mario-2.jpg"
+    },
+    {
+      "from": "8008/therapieamzuerichberg/mario.jpg",
+      "to": "_shared/therapieamzuerichberg/mario.jpg"
+    },
+    {
+      "from": "8008/therapieamzuerichberg/mario.meta.json",
+      "to": "_shared/therapieamzuerichberg/mario.meta.json"
+    },
+    {
+      "from": "8032/therapieamzuerichberg/ermenela-2.jpg",
+      "to": "_shared/therapieamzuerichberg/ermenela-2.jpg"
+    },
+    {
+      "from": "8032/therapieamzuerichberg/ermenela.jpg",
+      "to": "_shared/therapieamzuerichberg/ermenela.jpg"
+    },
+    {
+      "from": "8032/therapieamzuerichberg/nora-2.jpg",
+      "to": "_shared/therapieamzuerichberg/nora-2.jpg"
+    },
+    {
+      "from": "8032/therapieamzuerichberg/nora.jpg",
+      "to": "_shared/therapieamzuerichberg/nora.jpg"
+    },
+    {
+      "from": "8044/therapieamzuerichberg/maria-2.jpg",
+      "to": "_shared/therapieamzuerichberg/maria-2.jpg"
+    },
+    {
+      "from": "8044/therapieamzuerichberg/maria.jpg",
+      "to": "_shared/therapieamzuerichberg/maria.jpg"
+    },
+    {
+      "from": "8044/therapieamzuerichberg/priscilla-2.jpg",
+      "to": "_shared/therapieamzuerichberg/priscilla-2.jpg"
+    },
+    {
+      "from": "8044/therapieamzuerichberg/priscilla.jpg",
+      "to": "_shared/therapieamzuerichberg/priscilla.jpg"
+    },
+    {
+      "from": "8032/curanima/antonia.jpg",
+      "to": "_shared/curanima/antonia.jpg"
+    },
+    {
+      "from": "8044/curanima/andreas.jpg",
+      "to": "_shared/curanima/andreas.jpg"
+    },
+    {
+      "from": "8032/psychologie-uzh/irina-2.jpg",
+      "to": "_shared/psychologie-uzh/irina-2.jpg"
+    },
+    {
+      "from": "8032/psychologie-uzh/irina.jpg",
+      "to": "_shared/psychologie-uzh/irina.jpg"
+    },
+    {
+      "from": "8050/psychologie-uzh/guy-2.jpg",
+      "to": "_shared/psychologie-uzh/guy-2.jpg"
+    },
+    {
+      "from": "8050/psychologie-uzh/guy.jpg",
+      "to": "_shared/psychologie-uzh/guy.jpg"
+    },
+    {
+      "from": "8032/zismed/nadja-2.jpg",
+      "to": "_shared/zismed/nadja-2.jpg"
+    },
+    {
+      "from": "8032/zismed/nadja.jpg",
+      "to": "_shared/zismed/nadja.jpg"
+    },
+    {
+      "from": "8055/zismed/annette-2.jpg",
+      "to": "_shared/zismed/annette-2.jpg"
+    },
+    {
+      "from": "8055/zismed/annette.jpg",
+      "to": "_shared/zismed/annette.jpg"
+    },
+    {
+      "from": "8044/psychotherapiezentrum-fluntern/dina.jpg",
+      "to": "_shared/psychotherapiezentrum-fluntern/dina.jpg"
+    },
+    {
+      "from": "8044/psychotherapiezentrum-fluntern/dina.meta.json",
+      "to": "_shared/psychotherapiezentrum-fluntern/dina.meta.json"
+    },
+    {
+      "from": "8050/psychotherapiezentrum-fluntern/tamara.jpg",
+      "to": "_shared/psychotherapiezentrum-fluntern/tamara.jpg"
+    }
+  ]
+}

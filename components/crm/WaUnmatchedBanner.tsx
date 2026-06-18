@@ -16,8 +16,31 @@
 // without burial, and each sender opens on demand.
 // ============================================================================
 
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
 import { ChevronDown, ChevronRight, UserPlus, X } from 'lucide-react'
+
+// Render message text with clickable hyperlinks. WhatsApp bodies routinely
+// carry URLs; rendered as plain text they were dead. Split on http(s) URLs and
+// wrap each in an <a>; stopPropagation so a link click doesn't toggle the row.
+const URL_RE = /(https?:\/\/[^\s]+)/g
+function linkify(text: string): ReactNode {
+  return text.split(URL_RE).map((part, i) =>
+    /^https?:\/\//.test(part) ? (
+      <a
+        key={i}
+        href={part}
+        target="_blank"
+        rel="noopener noreferrer"
+        onClick={(e) => e.stopPropagation()}
+        style={{ color: '#fb7185', textDecoration: 'underline', wordBreak: 'break-all' }}
+      >
+        {part}
+      </a>
+    ) : (
+      part
+    ),
+  )
+}
 
 // (Removed: an inner "Show / Hide" toggle that duplicated the outer one in
 // app/crm/page.tsx. Ralph 2026-06-01.)
@@ -61,6 +84,10 @@ export function WaUnmatchedBanner({ refreshKey, onCreateLead }: Props) {
   // Per-sender expand state. The parent (app/crm/page.tsx) controls whether
   // this component is mounted at all via its outer Show/Hide button.
   const [expandedSenders, setExpandedSenders] = useState<Set<string>>(() => new Set())
+  // Reply box state, keyed by sender. Draft text + send status so the box can
+  // show Sending…/✓ Sent without a timer.
+  const [replyDrafts, setReplyDrafts] = useState<Record<string, string>>({})
+  const [replyBusy, setReplyBusy] = useState<Record<string, 'sending' | 'sent' | 'error'>>({})
 
   const load = useCallback(async () => {
     try {
@@ -155,6 +182,30 @@ export function WaUnmatchedBanner({ refreshKey, onCreateLead }: Props) {
     void load()
   }, [onCreateLead, load])
 
+  // Reply to an unmatched sender — sends a WhatsApp straight to their number
+  // (no lead needed; the route accepts a raw phone). Clears the draft on success.
+  const sendReply = useCallback(async (g: SenderGroup) => {
+    const text = (replyDrafts[g.key] || '').trim()
+    if (!text || !g.phone || replyBusy[g.key] === 'sending') return
+    setReplyBusy((prev) => ({ ...prev, [g.key]: 'sending' }))
+    try {
+      const res = await fetch('/api/admin/crm/activities/wa-outbound', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone: g.phone, body: text }),
+      })
+      if (!res.ok) {
+        const e = (await res.json().catch(() => ({}))) as { error?: string }
+        throw new Error(e.error || `HTTP ${res.status}`)
+      }
+      setReplyDrafts((prev) => ({ ...prev, [g.key]: '' }))
+      setReplyBusy((prev) => ({ ...prev, [g.key]: 'sent' }))
+    } catch (err) {
+      setReplyBusy((prev) => ({ ...prev, [g.key]: 'error' }))
+      alert('WhatsApp reply failed: ' + (err instanceof Error ? err.message : String(err)))
+    }
+  }, [replyDrafts, replyBusy])
+
   if (messages.length === 0) return null
 
   return (
@@ -180,6 +231,9 @@ export function WaUnmatchedBanner({ refreshKey, onCreateLead }: Props) {
       <div>
           {groups.map((g) => {
             const isExpanded = expandedSenders.has(g.key)
+            const draft = replyDrafts[g.key] || ''
+            const busy = replyBusy[g.key]
+            const canSend = !!draft.trim() && !!g.phone && busy !== 'sending'
             const latest = g.messages[0]
             const ts = (latest?.timestamp || '').slice(0, 16).replace('T', ' ')
             const body = latest?.body || ''
@@ -227,6 +281,56 @@ export function WaUnmatchedBanner({ refreshKey, onCreateLead }: Props) {
                   </div>
                 </div>
 
+                {/* Level 2 — reply box (top) + messages, only when expanded. */}
+                {isExpanded && (
+                  <div
+                    style={{
+                      marginLeft: 14,
+                      paddingLeft: 36,
+                      paddingRight: 12,
+                      paddingTop: 10,
+                      paddingBottom: 10,
+                      borderLeft: '2px solid rgba(255,106,77,0.15)',
+                      display: 'flex',
+                      gap: 8,
+                      alignItems: 'flex-end',
+                    }}
+                  >
+                    <textarea
+                      value={draft}
+                      onChange={(e) => setReplyDrafts((prev) => ({ ...prev, [g.key]: e.target.value }))}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); void sendReply(g) }
+                      }}
+                      placeholder={g.phone ? `Reply to ${g.displayName} on WhatsApp…  (Enter to send)` : 'No phone number — cannot reply'}
+                      disabled={!g.phone}
+                      rows={4}
+                      style={{
+                        flex: 1, resize: 'vertical', minHeight: 88, maxHeight: 220,
+                        padding: '8px 10px', fontSize: 12, lineHeight: 1.4, fontFamily: 'inherit',
+                        color: 'var(--text-main)', background: 'var(--bg-app)',
+                        border: '1px solid var(--border-card)', borderRadius: 8, outline: 'none',
+                      }}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => { void sendReply(g) }}
+                      disabled={!canSend}
+                      style={{
+                        flexShrink: 0, padding: '8px 14px', borderRadius: 8, border: 'none',
+                        background: '#25D366', color: '#06281a', fontSize: 11, fontWeight: 800,
+                        letterSpacing: '0.04em', textTransform: 'uppercase',
+                        cursor: canSend ? 'pointer' : 'default', opacity: canSend ? 1 : 0.5,
+                      }}
+                    >
+                      {busy === 'sending' ? 'Sending…' : 'Send'}
+                    </button>
+                    {busy === 'sent' && !draft.trim() && (
+                      <span style={{ alignSelf: 'center', fontSize: 11, color: '#25D366', fontWeight: 700 }}>✓ Sent</span>
+                    )}
+                  </div>
+                )}
+
                 {/* Level 2 — messages from this sender (only when sender expanded) */}
                 {isExpanded && g.messages.map((m) => {
                   const mts = (m.timestamp || '').slice(0, 16).replace('T', ' ')
@@ -238,6 +342,11 @@ export function WaUnmatchedBanner({ refreshKey, onCreateLead }: Props) {
                       className="crm-overview-row"
                       style={{ paddingLeft: 36, borderLeft: '2px solid rgba(255,106,77,0.15)', marginLeft: 14 }}
                     >
+                      {/* Grid col 1 — the 4px rail. The sender-header row has its
+                          .crm-overview-rail span here; without this placeholder the
+                          .crm-overview-main below lands in the 4px column and long
+                          bodies wrap to ~1 char/line (a 13k-px-tall garbage column). */}
+                      <span className="crm-overview-rail" style={{ background: 'transparent' }} />
                       <div className="crm-overview-main">
                         <div style={{ fontSize: 10, fontFamily: 'var(--font-mono, monospace)', color: 'var(--text-muted)' }}>
                           {mts}
@@ -246,7 +355,7 @@ export function WaUnmatchedBanner({ refreshKey, onCreateLead }: Props) {
                           )}
                         </div>
                         <div style={{ fontSize: 12, color: 'var(--text-main)', marginTop: 2, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
-                          {mbody.trim() ? `"${mbody}"` : <span style={{ fontStyle: 'italic', color: 'var(--text-muted)' }}>(empty)</span>}
+                          {mbody.trim() ? <>{'"'}{linkify(mbody)}{'"'}</> : <span style={{ fontStyle: 'italic', color: 'var(--text-muted)' }}>(empty)</span>}
                         </div>
                       </div>
                       <div className="crm-overview-actions" onClick={(e) => e.stopPropagation()}>

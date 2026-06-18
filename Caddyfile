@@ -12,15 +12,15 @@
 #
 # Setup (one time):    brew install caddy
 # Run:
-#   npm run dev         # next dev on :3000 (your terminal, as today)
-#   npm run dev:proxy   # this proxy (separate terminal, or background it)
-# Then open  https://localhost:8443   (NOT :3000)
+#   npm run dev:all     # starts BOTH next dev (:3000) + this proxy together
+#   (or two terminals:  npm run dev   AND   npm run dev:proxy  — separate logs)
+# Then open  https://localhost:2000   (Caddy front door; Next stays on :3000)
 #
 # First `dev:proxy` run installs Caddy's local root CA into your login keychain
-# (one password prompt) so https://localhost:8443 is trusted — green lock, no
-# cert warning. Port 8443 (not 443) so it never needs sudo.
+# (one password prompt) so https://localhost:2000 is trusted — green lock, no
+# cert warning. Port 2000 (not 443) so it never needs sudo; Next keeps :3000.
 
-localhost:8443 {
+localhost:2000 {
 	tls internal
 	reverse_proxy localhost:3000 {
 		# SSE / streaming must flush each chunk immediately (the /api/events

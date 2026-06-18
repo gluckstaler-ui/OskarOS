@@ -42,6 +42,8 @@ import {
   MessageCircle as MessageCircleIcon,
 } from 'lucide-react'
 import type { Prospect } from '@/lib/crm-store'
+import { legacyBudgetTo5, VERDICT_TONES, type VerdictTone } from '@/lib/verdict'
+import { VerdictCard } from './VerdictCard'
 import type { CrmActivity } from '@/app/crm/crm-data'
 import styles from './LeadDetail.module.css'
 
@@ -52,12 +54,16 @@ interface LeadDetailProps {
   onReload: () => void
   registerUndo?: (label: string, action: () => void | Promise<void>) => void
   onWhatsApp?: (id: string) => void
+  /** Initial focus state on open: Overview passes true (MINIMIZED), Kanban
+   *  false (MAXIMIZED). The F toggle overrides it afterward. Ralph 2026-06-16. */
+  defaultMinimized?: boolean
 }
 
 // ─── Constants mirrored from crm.html ───────────────────────────────────────
-type Tone = 'good' | 'mid' | 'bad' | 'info'
+// 'low' (orange) joined the vocabulary with the 2026-06-10 TASTED redesign —
+// the unified verdict tag WATCH carries it. The lamp click-cycle stays 4-tier.
+type Tone = 'good' | 'mid' | 'low' | 'bad' | 'info'
 const CRM_TONES: Tone[] = ['info', 'good', 'mid', 'bad']
-const CRM_BUDGETS = ['—', 'LOW', 'MID', 'HIGH']
 const CRM_EMP_BUCKETS = ['1–4', '5–9', '10–24', '25–49', '50+']
 
 // Role taxonomy — decisive bit drives the amber row styling (crmRoleIsDecisive).
@@ -208,7 +214,7 @@ const cx = (...c: (string | false | undefined)[]) => c.filter(Boolean).join(' ')
 const toneClass = (tone: Tone): string =>
   tone === 'good' ? "tone-good" : tone === 'mid' ? "tone-mid" : tone === 'bad' ? "tone-bad" : ""
 
-export function LeadDetail({ prospect, activities, onClose, onReload, registerUndo, onWhatsApp }: LeadDetailProps) {
+export function LeadDetail({ prospect, activities, onClose, onReload, registerUndo, onWhatsApp, defaultMinimized }: LeadDetailProps) {
   // Local editable mirror of the prospect — seeded from props, re-synced when
   // the selected lead changes. Vanilla mutates the prospect in place + re-renders;
   // React needs state so blur edits show immediately before onReload lands.
@@ -557,16 +563,24 @@ export function LeadDetail({ prospect, activities, onClose, onReload, registerUn
     },
     [intel, persistIntel],
   )
-  const cycleBudget = useCallback(() => {
-    const cur = str(intel.verdict_budget) || '—'
-    const next = CRM_BUDGETS[(CRM_BUDGETS.indexOf(cur) + 1) % CRM_BUDGETS.length]
-    persistIntel({ ...intel, verdict_budget: next })
-  }, [intel, persistIntel])
+  // BUDGET went 0–5 with the 2026-06-10 TASTED redesign (was the LOW/MID/HIGH
+  // tier). Click-to-set like BUYING below; legacy string values read-map via
+  // legacyBudgetTo5 (LOW→1 · MID→3 · HIGH→5) until the first click rewrites.
+  const setBudget = useCallback(
+    (n: number) => {
+      const cur = legacyBudgetTo5(intel.verdict_budget) ?? 0
+      const next = cur === n ? n - 1 : n
+      persistIntel({ ...intel, verdict_budget: Math.max(0, Math.min(5, next)) })
+    },
+    [intel, persistIntel],
+  )
+  // Unified key (Ralph 2026-06-10): `buying` on both blobs — Scout seeds it,
+  // Kanban ripens it. Legacy verdict_buying stays readable, never written.
   const setBuying = useCallback(
     (n: number) => {
-      const cur = Number(intel.verdict_buying) || 0
+      const cur = Number(intel.buying ?? intel.verdict_buying) || 0
       const next = cur === n ? n - 1 : n
-      persistIntel({ ...intel, verdict_buying: Math.max(0, Math.min(5, next)) })
+      persistIntel({ ...intel, buying: Math.max(0, Math.min(5, next)) })
     },
     [intel, persistIntel],
   )
@@ -574,25 +588,54 @@ export function LeadDetail({ prospect, activities, onClose, onReload, registerUn
     (bucket: string) => persistIntel({ ...intel, facts_employees: bucket }),
     [intel, persistIntel],
   )
-  const rescan = useCallback(
-    () => persistIntel({ ...intel, intel_scan_at: new Date().toISOString().slice(0, 10) }),
-    [intel, persistIntel],
-  )
+  // WP-22 tone setter — clicking the VERDICT kicker cycles the stored
+  // four-value (good → mid → low → bad) without a re-scan. 'info' (no
+  // stored tone yet) enters the cycle at good.
+  const cycleVerdictTone = useCallback(() => {
+    const cur = str(intel.verdict_tone) as VerdictTone
+    const idx = VERDICT_TONES.indexOf(cur)
+    persistIntel({ ...intel, verdict_tone: VERDICT_TONES[(idx + 1) % VERDICT_TONES.length] })
+  }, [intel, persistIntel])
+  // WP-23 (2026-06-10): the Scan button is no longer a stamp-only stub — it
+  // POSTs the row to the Consular research route, which injects
+  // [OSKAR-SYSTEM RESEARCH-COMPANY] into the __crm__ session. The teardown
+  // runs async (60–120s); progress + failure arrive as snackbars via the
+  // /crm SSE bridge (app/crm/page.tsx); findings land in intel_json. The
+  // intel_scan_at stamp stays — it's the "scan <date>" display.
+  const rescan = useCallback(() => {
+    void fetch('/api/admin/crm/consular/research', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: prospect.id, name: prospect.company, surface: 'kanban' }),
+    }).catch((e) => console.error('[LeadDetail] research trigger failed:', e))
+    persistIntel({ ...intel, intel_scan_at: new Date().toISOString().slice(0, 10) })
+  }, [intel, persistIntel, prospect.id, prospect.company])
 
   // ── Derived display values (crmRenderOpp) ────────────────────────────────────
   const scan = str(intel.intel_scan_at)
   const verdictTag = str(intel.verdict_tag) || 'QUIET LEAD'
   const verdictSubline = str(intel.verdict_subline) || 'No strong signals yet. Worth a discovery call to qualify.'
   const verdictProse = str(intel.verdict_prose)
-  const chf = intel.verdict_chf_est ?? ''
+  // Unified keys with legacy fallbacks (chf_est ← verdict_chf_est, buying ←
+  // verdict_buying). close_pct stays Kanban-only under its old name.
+  const chf = intel.chf_est ?? intel.verdict_chf_est ?? ''
+  // WP-22 · the CHF working — sections carried from Scout at promote; the
+  // per-section rate derives from the data (chf ÷ sections, WP-21); the
+  // hover title carries the per-page breakdown (sections_detail — "/ 7 ·
+  // /angebot 4 · /team 3"), falling back to the raw label ("18 · 5 pages").
+  const sectionsDetail = str(intel.sections_detail) || str(intel.sections)
+  const sectionsLabel = str(intel.sections)
+  const secCount = sectionsLabel ? parseInt(sectionsLabel, 10) : NaN
+  const chfNum = Number(String(chf).replace(/[^\d.]/g, ''))
+  const secRate = Number.isFinite(chfNum) && chfNum > 0 && Number.isFinite(secCount) && secCount > 0
+    ? Math.round(chfNum / secCount)
+    : 300
   const closePct = intel.verdict_close_pct ?? ''
-  const budget = str(intel.verdict_budget) || '—'
-  const buying = Math.max(0, Math.min(5, Number(intel.verdict_buying) || 0))
+  const budget5 = legacyBudgetTo5(intel.verdict_budget)
+  const buying = Math.max(0, Math.min(5, Number(intel.buying ?? intel.verdict_buying) || 0))
   const verdictTone = (str(intel.verdict_tone) || 'info') as Tone
-  const budgetLevel = CRM_BUDGETS.indexOf(budget)
   const emp = str(intel.facts_employees)
   const industryHint = ((prospect.tags || '').split(',')[0] || '').trim().toUpperCase() || 'UNK'
-  const proseRows = verdictProse ? verdictProse.split('\n').filter(Boolean) : []
 
   // Keyword chip tone: rank ≤5 good · ≤20 mid · else dim (no rank → dim).
   const keywordChips = keywordList.map((entry, i) => {
@@ -609,6 +652,8 @@ export function LeadDetail({ prospect, activities, onClose, onReload, registerUn
       ? prospect.website
       : 'https://' + prospect.website
     : ''
+  // Display form for the header weblink — domain without scheme / trailing slash.
+  const webDisplay = prospect.website ? prospect.website.replace(/^https?:\/\//i, '').replace(/\/+$/, '') : ''
 
   // NEXT MOVE strip state (crmComputeNextAction).
   const nextAction = computeNextAction(prospect)
@@ -624,16 +669,17 @@ export function LeadDetail({ prospect, activities, onClose, onReload, registerUn
 
   // Header interactivity (crm-expanded-header): status buttons, star, focus
   // mode (body.crm-focus-mode hides [data-focus-hide] via crm.css), delete.
-  const [focusMode, setFocusMode] = useState(false)
-  const toggleFocus = useCallback(() => {
-    setFocusMode((f) => {
-      const next = !f
-      document.body.classList.toggle('crm-focus-mode', next)
-      return next
-    })
-  }, [])
-  // Always strip the body class when the detail unmounts (back to queue).
-  useEffect(() => () => { document.body.classList.remove('crm-focus-mode') }, [])
+  // Per-view default (Ralph 2026-06-16): Overview opens MINIMIZED (focus mode
+  // on), Kanban opens MAXIMIZED. The parent passes `defaultMinimized`.
+  const [focusMode, setFocusMode] = useState(!!defaultMinimized)
+  const toggleFocus = useCallback(() => setFocusMode((f) => !f), [])
+  // Sync the body class to focusMode — the [data-focus-hide] CSS keys off
+  // `body.crm-focus-mode`, so this applies on the initial mount too — and strip
+  // it when the detail unmounts (back to the queue).
+  useEffect(() => {
+    document.body.classList.toggle('crm-focus-mode', focusMode)
+    return () => { document.body.classList.remove('crm-focus-mode') }
+  }, [focusMode])
   const setStatus = useCallback((status: string) => {
     const oldStatus = prospect.status
     void patchProspect({ status })
@@ -717,7 +763,22 @@ export function LeadDetail({ prospect, activities, onClose, onReload, registerUn
         <span>{prospect.stage}</span>
         <span className={"sep"}>·</span>
         <span>{prospect.status}</span>
-        {phaseIdx >= 0 && (
+        {/* Right side of the subline: the website link, replacing the old
+            stage-progress "INCOMING 1/4" indicator (Ralph 2026-06-15). Falls
+            back to the phase bars only when the lead has no website. */}
+        {webHref ? (
+          <a
+            className={"crm-hdr-weblink"}
+            href={webHref}
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={(e) => e.stopPropagation()}
+            title={webHref}
+            style={{ marginLeft: 'auto', textTransform: 'none', color: 'var(--accent)', textDecoration: 'none', maxWidth: '55%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+          >
+            {webDisplay}
+          </a>
+        ) : phaseIdx >= 0 ? (
           <span className={"stage-bars"}>
             <span className={"crm-phase-crm"} title="Sales stage progress">
               {[1, 2, 3, 4].map((n) => (
@@ -730,11 +791,13 @@ export function LeadDetail({ prospect, activities, onClose, onReload, registerUn
               <span className={"crm-phase-label"}>{phaseLabel}</span>
             </span>
           </span>
-        )}
+        ) : null}
       </div>
 
-      {/* NEXT MOVE — urgency-coded hero strip (crmComputeNextAction). */}
-      <div className={styles.focusHide} data-focus-hide="1">
+      {/* NEXT MOVE — urgency-coded hero strip (crmComputeNextAction). Stays
+          VISIBLE in minimize (focus) mode — the scheduling row is part of the
+          always-on summary block. Ralph 2026-06-15. */}
+      <div>
         {!nextAction || nextAction.kind === 'static' ? (
           <div className={cx("crm-urgent-hero", "is-empty")}>
             <div className={"uh-main"}>
@@ -779,8 +842,10 @@ export function LeadDetail({ prospect, activities, onClose, onReload, registerUn
         )}
       </div>
 
-      {/* MONEY hero — CHF amount · win confidence · sub-stage (crmPatchEcon). */}
-      <div className={cx("crm-money-hero", styles.focusHide)} data-focus-hide="1">
+      {/* MONEY hero — CHF amount · win confidence · sub-stage (crmPatchEcon).
+          Stays VISIBLE in minimize (focus) mode — part of the always-on summary
+          block. Ralph 2026-06-15. */}
+      <div className={"crm-money-hero"}>
         <label className={"mh-cell"} title="Deal amount (CHF). Click to edit, Enter or Tab to save.">
           <span className={"mh-label"}>CHF</span>
           <input
@@ -828,8 +893,14 @@ export function LeadDetail({ prospect, activities, onClose, onReload, registerUn
             ))}
           </span>
         </label>
-        <span className={"mh-divider"} />
-        <label className={"mh-cell"} title="Sub-stage: where this deal is WITHIN its sales stage.">
+        {/* "saved ✓" econ-edit confirmation, moved ahead of the sub-stage so the
+            sub-stage can be the rightmost (flush-right) element. Ralph 2026-06-15. */}
+        <span className={cx("mh-saved", econSaved && "is-visible")}>saved ✓</span>
+        {/* Sub-stage control (label + dropdown) right-aligned to the right edge of
+            the money hero — marginLeft:auto on the cell absorbs the free space, so
+            it sits flush right whether the row is one line or wraps. The old divider
+            before it is dropped (the gap separates it now). Ralph 2026-06-15. */}
+        <label className={"mh-cell"} title="Sub-stage: where this deal is WITHIN its sales stage." style={{ marginLeft: 'auto' }}>
           <span className={"mh-label"}>Sub-stage</span>
           <span className={"mh-combo"}>
             <input
@@ -851,7 +922,6 @@ export function LeadDetail({ prospect, activities, onClose, onReload, registerUn
             <ChevronDown width={14} height={14} className={"mh-combo-chev"} />
           </span>
         </label>
-        <span className={cx("mh-saved", econSaved && "is-visible")}>saved ✓</span>
       </div>
 
       {/* OPP DASHBOARD canvas (.crm-opp-card) — INTEL → PAIN/PITCH. */}
@@ -870,94 +940,87 @@ export function LeadDetail({ prospect, activities, onClose, onReload, registerUn
         </button>
       </div>
 
-      {/* VERDICT block */}
-      <div className={cx("crm-opp-verdict", "crm-opp-verdict--" + verdictTone)}>
-        <div>
-          <div className={"crm-opp-verdict-head"}>
-            <span className={"crm-opp-verdict-tag"}>VERDICT</span>
-            <h3
-              className={cx("crm-opp-verdict-headline", "crm-opp-edit")}
-              contentEditable
-              suppressContentEditableWarning
-              onBlur={(e) => setIntelField('verdict_tag', e.currentTarget.textContent?.trim() ?? '')}
-            >
-              {verdictTag}
-            </h3>
-          </div>
-          <div
-            className={cx("crm-opp-verdict-subline", "crm-opp-edit")}
-            contentEditable
-            suppressContentEditableWarning
-            onBlur={(e) => setIntelField('verdict_subline', e.currentTarget.textContent?.trim() ?? '')}
-          >
-            {verdictSubline}
-          </div>
-          <textarea
-            className={cx("crm-opp-edit", "crm-opp-verdict-prose-edit")}
-            placeholder="One bullet per line — scan findings, signals, anything Filippo should see at a glance."
-            defaultValue={verdictProse}
-            key={`prose-${prospect.id}-${verdictProse}`}
-            onBlur={(e) => setIntelField('verdict_prose', e.target.value)}
-          />
-          {proseRows.length > 0 && (
-            <div className={"crm-opp-verdict-prose"}>
-              {proseRows.map((line, i) => (
-                <div className={"crm-opp-verdict-prose-row"} key={i}>
-                  <span>›</span>
-                  <span>{line}</span>
-                </div>
-              ))}
+      {/* VERDICT — the SHARED card (components/crm/VerdictCard), same file
+          Scout's TASTED panel renders. Kanban fills the stat stack with
+          CHF est · Close % · BUDGET · BUYING. */}
+      <VerdictCard
+        tone={verdictTone}
+        onToneCycle={cycleVerdictTone}
+        tag={verdictTag}
+        onTag={(v) => setIntelField('verdict_tag', v)}
+        subline={verdictSubline}
+        onSubline={(v) => setIntelField('verdict_subline', v)}
+        prose={verdictProse}
+        onProse={(v) => setIntelField('verdict_prose', v)}
+        prosePlaceholder="One bullet per line — scan findings, signals, anything Filippo should see at a glance."
+        proseKey={`prose-${prospect.id}-${verdictProse}`}
+        stats={
+          <>
+            <div>
+              <span className={"crm-opp-verdict-stat-label"} title={sectionsDetail || undefined}>
+                CHF est.{Number.isFinite(secCount) ? ` · ${secCount} SECTIONS × ${secRate}` : ''}
+              </span>
+              <input
+                className={cx("crm-opp-edit", "crm-opp-verdict-stat-value")}
+                defaultValue={str(chf)}
+                key={`chf-${prospect.id}-${str(chf)}`}
+                placeholder="—"
+                onBlur={(e) => setIntelField('chf_est', e.target.value)}
+              />
             </div>
-          )}
-        </div>
-        <div className={"crm-opp-verdict-stack"}>
-          <div>
-            <span className={"crm-opp-verdict-stat-label"}>CHF est.</span>
-            <input
-              className={cx("crm-opp-edit", "crm-opp-verdict-stat-value")}
-              defaultValue={str(chf)}
-              key={`chf-${prospect.id}-${str(chf)}`}
-              placeholder="—"
-              onBlur={(e) => setIntelField('verdict_chf_est', e.target.value)}
-            />
-          </div>
-          <div>
-            <span className={"crm-opp-verdict-stat-label"}>Close %</span>
-            <input
-              className={cx("crm-opp-edit", "crm-opp-verdict-stat-value", "is-amber")}
-              defaultValue={str(closePct)}
-              key={`close-${prospect.id}-${str(closePct)}`}
-              placeholder="—"
-              onBlur={(e) => setIntelField('verdict_close_pct', e.target.value)}
-            />
-          </div>
-          <div>
-            <span className={"crm-opp-verdict-stat-label"}>BUDGET · {budget}</span>
-            <div className={"crm-opp-verdict-budget"}>
-              {[0, 1, 2].map((i) => (
-                <button
-                  key={i}
-                  className={cx("crm-opp-verdict-budget-bar", i >= budgetLevel && "is-off")}
-                  onClick={cycleBudget}
-                  title="Click to cycle LOW → MID → HIGH"
-                />
-              ))}
+            <div>
+              <span className={"crm-opp-verdict-stat-label"}>Close %</span>
+              <input
+                className={cx("crm-opp-edit", "crm-opp-verdict-stat-value", "is-amber")}
+                defaultValue={str(closePct)}
+                key={`close-${prospect.id}-${str(closePct)}`}
+                placeholder="—"
+                onBlur={(e) => setIntelField('verdict_close_pct', e.target.value)}
+              />
             </div>
-          </div>
-          <div>
-            <span className={"crm-opp-verdict-stat-label"}>BUYING · {buying}/5</span>
-            <div className={"crm-opp-verdict-buying"}>
-              {[0, 1, 2, 3, 4].map((i) => (
-                <button
-                  key={i}
-                  className={cx("crm-opp-verdict-dot", i >= buying && "is-off")}
-                  onClick={() => setBuying(i + 1)}
-                  title={`${i + 1} of 5`}
-                />
-              ))}
+            <div>
+              {/* WP-22 · BUDGET → PALAT: one name on both surfaces, the alias dies. */}
+              <span className={"crm-opp-verdict-stat-label"}>PALAT · {budget5 == null ? '—' : `${budget5}/5`}</span>
+              <div className={"crm-opp-verdict-budget"}>
+                {[0, 1, 2, 3, 4].map((i) => (
+                  <button
+                    key={i}
+                    className={cx("crm-opp-verdict-budget-bar", i >= (budget5 ?? 0) && "is-off")}
+                    onClick={() => setBudget(i + 1)}
+                    title={`${i + 1} of 5 — PALAT, the budget band (CHF est ÷ heads); one scale on both surfaces`}
+                  />
+                ))}
+              </div>
             </div>
-          </div>
-        </div>
+            <div>
+              <span className={"crm-opp-verdict-stat-label"}>BUYING · {buying}/5</span>
+              <div className={"crm-opp-verdict-buying"}>
+                {[0, 1, 2, 3, 4].map((i) => (
+                  <button
+                    key={i}
+                    className={cx("crm-opp-verdict-dot", i >= buying && "is-off")}
+                    onClick={() => setBuying(i + 1)}
+                    title={`${i + 1} of 5`}
+                  />
+                ))}
+              </div>
+            </div>
+          </>
+        }
+      />
+
+      {/* WHO — the portrait, on its own line BETWEEN the verdict card and the
+          big lamps (Ralph 2026-06-10, second pass). Scout seeds it from
+          palate_choice at promote; free text after that. */}
+      <div className={"crm-opp-prose-card crm-opp-who"}>
+        <div className={"crm-opp-prose-label"}>WHO</div>
+        <textarea
+          className={cx("crm-opp-edit", "crm-opp-prose-body-edit")}
+          placeholder="Who this maker is — the taste they already show, the one visual decision they already made."
+          defaultValue={str(intel.who)}
+          key={`who-${prospect.id}-${str(intel.who)}`}
+          onBlur={(e) => setIntelField('who', e.target.value)}
+        />
       </div>
 
       {/* 6 big lamps */}
@@ -967,6 +1030,11 @@ export function LeadDetail({ prospect, activities, onClose, onReload, registerUn
           <Lamp k="hosting" label="HOSTING" icon="globe" intel={intel} onState={setIntelField} onTone={cycleTone} />
           <Lamp k="stack" label="STACK" icon="layers" intel={intel} onState={setIntelField} onTone={cycleTone} />
           <Lamp k="photo" label="PHOTO" icon="sparkles" intel={intel} onState={setIntelField} onTone={cycleTone} />
+          {/* DESIGN promoted to a lamp (Ralph 2026-06-10) — evidence lamp, not
+              decision lamp; Scout's 0–5 design score maps to the tone and its
+              citation lands in the sub at promote. prose_design stops being
+              written; the legacy card below stays readable. */}
+          <Lamp k="design" label="DESIGN" icon="pen-tool" intel={intel} onState={setIntelField} onTone={cycleTone} />
           <Lamp k="performance" label="PERFORMANCE" icon="zap" isScore intel={intel} onState={setIntelField} onTone={cycleTone} />
           <Lamp k="seo" label="SEO" icon="search" isScore intel={intel} onState={setIntelField} onTone={cycleTone} />
         </div>
@@ -987,26 +1055,34 @@ export function LeadDetail({ prospect, activities, onClose, onReload, registerUn
         <StripCell k="booking" label="BOOK" intel={intel} onState={setIntelField} onTone={cycleTone} />
       </div>
 
-      {/* DESIGN QUALITY + SEO prose */}
+      {/* Prose cards. WP-22: prose_design stops RENDERING for new rows — the
+          card only appears while legacy content exists (still editable there);
+          new teardowns put that read into who/pitch + the DESIGN lamp cite. */}
       <div className={"crm-opp-prose"}>
+        {str(intel.prose_design) ? (
+          <div className={"crm-opp-prose-card"}>
+            <div className={"crm-opp-prose-label"}>DESIGN QUALITY</div>
+            <textarea
+              className={cx("crm-opp-edit", "crm-opp-prose-body-edit")}
+              placeholder="One to two sentences on the site's visual register, recency, and displacement difficulty."
+              defaultValue={str(intel.prose_design)}
+              key={`pd-${prospect.id}-${str(intel.prose_design)}`}
+              onBlur={(e) => setIntelField('prose_design', e.target.value)}
+            />
+          </div>
+        ) : null}
+        {/* SWITCHING PAIN — the old "SEO & DISPLACEMENT PAIN" card, renamed
+            (Ralph 2026-06-10): how dug-in the incumbent is. Writes the
+            unified switching_pain field that travels from Scout; legacy
+            prose_seo text stays readable as the fallback display. */}
         <div className={"crm-opp-prose-card"}>
-          <div className={"crm-opp-prose-label"}>DESIGN QUALITY</div>
+          <div className={"crm-opp-prose-label"}>SWITCHING PAIN</div>
           <textarea
             className={cx("crm-opp-edit", "crm-opp-prose-body-edit")}
-            placeholder="One to two sentences on the site's visual register, recency, and displacement difficulty."
-            defaultValue={str(intel.prose_design)}
-            key={`pd-${prospect.id}-${str(intel.prose_design)}`}
-            onBlur={(e) => setIntelField('prose_design', e.target.value)}
-          />
-        </div>
-        <div className={"crm-opp-prose-card"}>
-          <div className={"crm-opp-prose-label"}>SEO &amp; DISPLACEMENT PAIN</div>
-          <textarea
-            className={cx("crm-opp-edit", "crm-opp-prose-body-edit")}
-            placeholder="One to two sentences on authority, rankings, and displacement difficulty."
-            defaultValue={str(intel.prose_seo)}
-            key={`ps-${prospect.id}-${str(intel.prose_seo)}`}
-            onBlur={(e) => setIntelField('prose_seo', e.target.value)}
+            placeholder="How dug-in is the incumbent — booking systems wired in, rankings they'd fear losing, a webmaster relationship."
+            defaultValue={str(intel.switching_pain) || str(intel.prose_seo)}
+            key={`sp-${prospect.id}-${str(intel.switching_pain) || str(intel.prose_seo)}`}
+            onBlur={(e) => setIntelField('switching_pain', e.target.value)}
           />
         </div>
       </div>
@@ -1049,11 +1125,6 @@ export function LeadDetail({ prospect, activities, onClose, onReload, registerUn
           <span className={"crm-opp-facts-value"}>{industryHint}</span>
         </span>
         <span className={"crm-opp-strip-sep"}>│</span>
-        <span className={"crm-opp-facts-cell"}>
-          <span className={"crm-opp-facts-label"}>LOCATION</span>
-          <span className={"crm-opp-facts-value"}>{prospect.address_ort || '—'}</span>
-        </span>
-        <span className={"crm-opp-strip-sep"}>│</span>
         <span className={"crm-opp-facts-label"}>EMPLOYEES</span>
         <div className={"crm-opp-emp-row"}>
           {CRM_EMP_BUCKETS.map((b) => (
@@ -1064,18 +1135,11 @@ export function LeadDetail({ prospect, activities, onClose, onReload, registerUn
         </div>
       </div>
 
-      {/* PAIN POINTS / WHAT TO PITCH */}
+      {/* WHAT TO PITCH — full width. PAIN POINTS retired (Ralph 2026-06-10):
+          SWITCHING PAIN above already carries the pain read; the freed space
+          gives the pitch the full row. Legacy intel.pain stays on disk,
+          unrendered. */}
       <div className={"crm-opp-pp"}>
-        <div>
-          <div className={cx("crm-opp-pp-label", "is-pain")}>PAIN POINTS</div>
-          <textarea
-            className={cx("crm-opp-edit", "crm-opp-pp-edit")}
-            placeholder="One bullet per line — what's broken / latent need / fear."
-            defaultValue={str(intel.pain)}
-            key={`pain-${prospect.id}-${str(intel.pain)}`}
-            onBlur={(e) => setIntelField('pain', e.target.value)}
-          />
-        </div>
         <div>
           <div className={cx("crm-opp-pp-label", "is-pitch")}>WHAT TO PITCH</div>
           <textarea

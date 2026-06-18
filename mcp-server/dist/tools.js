@@ -122,7 +122,6 @@ const CD_ALLOWED = new Set([
     // entry. Sync with lib/mcp-config.ts whenever you add/remove a tool here.
     'tc_descent_selection',
     'propose_image_prompt',
-    'todo_write',
     'preview_card',
     'build_done', 'build_fail', 'build_progress',
     'submit_critique',

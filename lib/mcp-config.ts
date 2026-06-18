@@ -143,10 +143,6 @@ export const CD_ALLOWED_TOOLS = [
   // allowlist; CD's calls were rejected by the spawn-time `--allowed-tools`
   // gate even though the server happily dispatched. Added 2026-05-06.
   `mcp__${MCP_SERVER_NAME}__propose_image_prompt`,
-  // WP-66 (Ralph 2026-05-06): TodoWrite persistence layer. Registered in
-  // mcp-server/tools-cd.ts; allowlist entry needed so CD can actually
-  // fire writes (otherwise the spawn flag rejects).
-  `mcp__${MCP_SERVER_NAME}__todo_write`,
   // Ralph 2026-05-06: on-demand card preview. CD calls this when user
   // asks to "show me [a card]" so they see a visual instance instead of
   // pasted React source. Both allowlists (this one + mcp-server/tools.ts
@@ -217,11 +213,10 @@ export const CD_ALLOWED_TOOLS = [
   // change"). Names are bare (no `mcp__` prefix) — that's how Claude Code
   // identifies its own built-ins.
   //
-  // `TodoWrite` (Claude Code built-in) is INTENTIONALLY OMITTED — the MCP
-  // `todo_write` above is the single write path, since it persists to
-  // SESSION.md (WP-66). One source of truth; no duplicate stream-parser
-  // path to keep in sync. `NotebookEdit` is omitted because the project
-  // has no Jupyter notebooks.
+  // `TodoWrite` (Claude Code built-in) is OMITTED — the project has no
+  // todo-list feature (the MCP `todo_write` persistence layer was removed
+  // 2026-06-13; it corrupted SESSION.md's log via a fragile section splice).
+  // `NotebookEdit` is omitted because the project has no Jupyter notebooks.
   'Bash',
   'Read',
   'Write',

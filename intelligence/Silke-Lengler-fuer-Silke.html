@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Für Silke — ein paar Türen zur Auswahl</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800;900&family=Archivo+Expanded:wght@600;700;800&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#FBFAF6; --paper-2:#F2F0E9; --ink:#16171B; --ink-2:#3A3B40;
+  --grey:#9A9A93; --line:#D9D7CD; --line-2:#E7E5DC;
+  --cobalt:#1E2BD6; --cobalt-pale:#AEB2E6; --warm:#C2603F;
+  --sans:"Archivo",-apple-system,system-ui,sans-serif;
+  --exp:"Archivo Expanded","Archivo",sans-serif;
+  --serif:"Newsreader",Georgia,serif;
+  --mono:"IBM Plex Mono",ui-monospace,monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--paper);color:var(--ink);font-family:var(--serif);font-size:18px;line-height:1.55;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
+.wrap{max-width:760px;margin:0 auto;padding:0 28px}
+@media(max-width:640px){.wrap{padding:0 18px}}
+.eyebrow{font-family:var(--mono);font-size:11.5px;letter-spacing:.22em;text-transform:uppercase;color:var(--cobalt);font-weight:500}
+h1,h2{font-family:var(--exp);font-weight:800;line-height:1.0;letter-spacing:-0.015em}
+a{color:var(--cobalt);text-decoration:none;border-bottom:1px solid var(--cobalt-pale)}
+a:hover{border-color:var(--cobalt)}
+
+.mast{border-bottom:2px solid var(--ink);padding:40px 0 34px}
+.mast .eyebrow{margin-bottom:26px}
+.headline{font-size:clamp(30px,5.5vw,52px)}
+.headline em{font-style:normal;color:var(--cobalt)}
+.dek{font-size:clamp(18px,2.2vw,21px);line-height:1.45;margin-top:22px;color:var(--ink-2)}
+.dek b{color:var(--ink);font-weight:500}
+
+.sec{padding:42px 0;border-top:1px solid var(--line)}
+.sec-k{font-family:var(--mono);font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--grey);margin-bottom:16px}
+.sec p{color:var(--ink-2);max-width:62ch}
+.sec p+p{margin-top:14px}
+.sec p b{color:var(--ink);font-weight:500}
+.sec p em{font-style:italic;color:var(--ink)}
+
+.doors{display:flex;flex-direction:column;gap:1px;background:var(--line);border:1px solid var(--line);margin-top:6px}
+.door{background:var(--paper);padding:22px 22px 24px;display:grid;grid-template-columns:1fr auto;gap:6px 18px;align-items:baseline}
+.door .dt{font-family:var(--exp);font-weight:800;font-size:21px;letter-spacing:-0.01em}
+.door .dl{font-family:var(--mono);font-size:11px;letter-spacing:.04em;justify-self:end;white-space:nowrap}
+.door .dd{grid-column:1/-1;font-size:16.5px;line-height:1.46;color:var(--ink-2);max-width:60ch}
+.door .dd b{color:var(--ink);font-weight:500}
+.door.fav{background:#F4F4FB;outline:1px solid var(--cobalt-pale);outline-offset:-1px}
+.door .fav-tag{font-family:var(--mono);font-size:9.5px;font-weight:500;letter-spacing:.06em;text-transform:uppercase;background:var(--cobalt);color:#fff;padding:2px 6px;border-radius:2px;margin-left:9px;vertical-align:middle}
+
+.ask{list-style:none;counter-reset:a;margin-top:6px}
+.ask li{counter-increment:a;position:relative;padding:14px 0 14px 42px;border-bottom:1px solid var(--line-2);font-size:17px;color:var(--ink-2)}
+.ask li:last-child{border-bottom:none}
+.ask li::before{content:counter(a);position:absolute;left:0;top:13px;font-family:var(--mono);font-size:13px;font-weight:500;color:var(--cobalt);width:26px;height:26px;border:1px solid var(--cobalt-pale);border-radius:50%;display:flex;align-items:center;justify-content:center}
+.ask li b{color:var(--ink);font-weight:600}
+.ask li span{display:block;font-size:14.5px;color:var(--grey);margin-top:2px}
+
+.close{border:1.5px solid var(--ink);padding:26px 28px;background:#fff;margin-top:8px}
+.close p{font-size:18px;color:var(--ink);line-height:1.5}
+.close .sig{font-family:var(--exp);font-weight:800;font-size:22px;color:var(--cobalt);margin-top:14px}
+footer{border-top:2px solid var(--ink);margin-top:8px;padding:22px 0 60px;font-family:var(--mono);font-size:11px;letter-spacing:.06em;color:var(--grey)}
+</style>
+</head>
+<body>
+
+<header class="mast">
+  <div class="wrap">
+    <div class="eyebrow">Für Silke · ein Zwischenstand</div>
+    <h1 class="headline">Du hast eine Warteliste. Die Seite muss also nicht <em>mehr</em> bringen — sondern die <em>Richtigen</em>.</h1>
+    <p class="dek">Ein paar Varianten für deine Website, gebaut zum Anschauen und Aussuchen. <b>Nichts ist fix</b> — deine Stimme entscheidet, welche Tür sich nach dir anfühlt.</p>
+  </div>
+</header>
+
+<section class="sec">
+  <div class="wrap">
+    <div class="sec-k">Der Gedanke</div>
+    <p>Deine Praxis ist voll. Eine Website muss dir deshalb keine <em>weiteren</em> Anfragen bringen — eher die <b>passenden</b>: Menschen, die zu deiner Arbeit gemacht sind. Jemand, der Tiefe, Langsamkeit und das Aushalten von Stille sucht, statt einer schnellen Lösung.</p>
+    <p>Genau das kann eine Seite leisten. Sie spricht die an, für die analytische Arbeit gedacht ist — und lässt die anderen ruhig weiterziehen, ohne dass du jede unpassende Anfrage von Hand absagen musst. Jede der Varianten unten tut das auf ihre Weise. Sie öffnet eine andere Tür.</p>
+  </div>
+</section>
+
+<section class="sec">
+  <div class="wrap">
+    <div class="sec-k">Vier Türen</div>
+    <div class="doors">
+
+      <div class="door fav">
+        <div class="dt">Stille &amp; Creme <span class="fav-tag">mein Favorit</span></div>
+        <div class="dl"><a href="https://awesome-ux.ch/2026-04-25-silke-lengler/vibe-1-hara-emptiness.html" target="_blank" rel="noopener">ansehen ↗</a></div>
+        <div class="dd">Warme Creme, echte Fotografie, viel Ruhe. Eine Seite aus Stille und Langsamkeit — wer sie geniesst statt wegzuklicken, bringt genau das Temperament für deine Arbeit mit. Sie <b>beruhigt und wählt zugleich</b>.</div>
+      </div>
+
+      <div class="door">
+        <div class="dt">Das Manifest</div>
+        <div class="dl"><a href="https://awesome-ux.ch/2026-04-25-silke-lengler/Silke%20Lengler%20-%20Bierut.dc.html" target="_blank" rel="noopener">ansehen ↗</a></div>
+        <div class="dd">Editorial, klar, eine Haltung in Worten. Spricht Menschen an, die <b>nach Überzeugung</b> wählen und Tiefe suchen — nicht die schnelle Lösung. Der entschiedenste Ton.</div>
+      </div>
+
+      <div class="door">
+        <div class="dt">Schweizer Ruhe</div>
+        <div class="dl"><a href="https://awesome-ux.ch/2026-04-25-silke-lengler/Silke%20Lengler%20-%20Brockmann.dc.html" target="_blank" rel="noopener">ansehen ↗</a></div>
+        <div class="dd">Raster, kühl, ein einziges Rot. Zurückhaltung als Haltung. Zieht die <b>Diskreten</b> an — Menschen, die Seriosität und Ruhe suchen, keine «Vibes».</div>
+      </div>
+
+      <div class="door">
+        <div class="dt">Das Objekt</div>
+        <div class="dl"><a href="https://awesome-ux.ch/2026-04-25-silke-lengler/vibe-20-sagmeister-objekt.html" target="_blank" rel="noopener">ansehen ↗</a></div>
+        <div class="dd">Editorial und gehoben, ein ruhiger, kultivierter Ton. Für ein Publikum, das <b>Gestaltung und Sorgfalt</b> bemerkt und schätzt.</div>
+      </div>
+
+    </div>
+    <p style="margin-top:18px">Mein Bauchgefühl: führen mit <em>Stille &amp; Creme</em>. Aber das ist Geschmack — und deiner zählt mehr als meiner.</p>
+  </div>
+</section>
+
+<section class="sec">
+  <div class="wrap">
+    <div class="sec-k">Was ich noch von dir bräuchte</div>
+    <p style="margin-bottom:8px">Damit ich's fertig bauen kann — kein Stress, gerne auch einzeln über die Zeit:</p>
+    <ol class="ask">
+      <li><b>Ein gutes Porträtfoto von dir.</b><span>Das trägt die ganze Seite — der wichtigste Baustein.</span></li>
+      <li><b>Ein paar Bilder der Praxis</b> an der Rütistrasse 2.<span>Raum, Sessel, Licht — gerne mit dem Handy, ich richte das.</span></li>
+      <li><b>Per Du oder per Sie</b> auf der Seite?<span>Daran hängt der ganze Ton.</span></li>
+      <li><b>Aarau:</b> die Adresse — und ab wann?<span>Damit beide Standorte stimmen.</span></li>
+      <li><b>Eine Seite, die dir gefällt</b> (oder gar nicht).<span>Nur als Anhaltspunkt — muss keine Therapie-Seite sein.</span></li>
+      <li><b>Ein paar Sätze von dir.</b><span>Was sollen Menschen wissen, bevor sie zu dir kommen?</span></li>
+    </ol>
+  </div>
+</section>
+
+<section class="sec">
+  <div class="wrap">
+    <div class="close">
+      <p>Es eilt nicht. Schau in Ruhe, was sich für dich richtig anfühlt — und wenn Schreiben grad mühsam ist, gehen wir's einfach am Telefon zusammen durch.</p>
+      <div class="sig">f</div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">Entwürfe · Zwischenstand · nichts davon ist fix</div>
+</footer>
+
+</body>
+</html>

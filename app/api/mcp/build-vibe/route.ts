@@ -38,7 +38,7 @@ import { readdir, readFile, writeFile } from 'fs/promises'
 import path from 'path'
 import { runWebDev } from '@/lib/run-webdev'
 import { publish } from '@/lib/event-bus'
-import { enqueueBuild, withWebdevMutex } from '@/lib/build-escrow'
+import { enqueueBuild } from '@/lib/build-escrow'
 import { resolveWebDevExecution } from '@/lib/session-config'
 import { matchField } from '@/lib/markdown-fields'
 
@@ -161,7 +161,7 @@ export async function POST(req: NextRequest) {
     sessionId?: string
     slugs?: string[]
     mode?: 'smpl' | 'cli' | 'api'
-    model?: 'claude-opus-4-8' | 'claude-sonnet-4-6' | 'gemini-3.1-pro-preview'
+    model?: 'claude-sonnet-4-6' | 'claude-opus-4-8' | 'gemini-3.1-pro-preview'
   }
   if (!sessionId) return NextResponse.json({ error: 'sessionId required' }, { status: 400 })
   if (!Array.isArray(slugs) || slugs.length === 0) {
@@ -228,8 +228,7 @@ export async function POST(req: NextRequest) {
       sessionId,
       kind: 'build_vibe',
       target,
-      runner: ({ signal }) =>
-        withWebdevMutex(sessionId, async () => {
+      runner: async ({ signal }) => {
           // Audit-log entry
           try {
             const existing = await readFile(buildMdPath, 'utf-8').catch(() => '# Build Log\n')
@@ -241,9 +240,9 @@ export async function POST(req: NextRequest) {
             )
           } catch {}
 
-          // Stage transition queued → html for THIS row. The mutex
-          // serializes WebDev spawns, so each iteration here marks the
-          // moment its row's runner actually starts.
+          // Stage transition queued → html for THIS row. Each row's runner
+          // now executes in parallel (Ralph 2026-06-05 — withWebdevMutex
+          // ripped: build_vibe spawns are independent, no need to serialize).
           publish(sessionId, { type: 'build_progress', target, stage: 'html' })
 
           try {
@@ -380,7 +379,7 @@ export async function POST(req: NextRequest) {
             })
             return { ok: false as const, error: msg }
           }
-        }),
+        },
     })
 
     jobs.push({

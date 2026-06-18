@@ -1,0 +1,642 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Email in the Overview · Five Proposals · OskarOS CRM Specification</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800;900&family=Archivo+Expanded:wght@600;700;800&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#FBFAF6; --paper-2:#F2F0E9; --ink:#16171B; --ink-2:#3A3B40;
+  --grey:#9A9A93; --line:#D9D7CD; --line-2:#E7E5DC;
+  --cobalt:#1E2BD6; --cobalt-deep:#141DA0; --cobalt-mid:#5B64E8; --cobalt-pale:#AEB2E6; --cobalt-bg:#F4F4FB;
+  --green:#2E7D54; --amber:#C98A1E; --red:#C2603F; --wa:#1FAA55;
+  --sans:"Archivo",-apple-system,system-ui,sans-serif;
+  --exp:"Archivo Expanded","Archivo",sans-serif;
+  --serif:"Newsreader",Georgia,serif;
+  --mono:"IBM Plex Mono",ui-monospace,monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{-webkit-text-size-adjust:100%;scroll-behavior:smooth}
+body{background:var(--paper);color:var(--ink);font-family:var(--serif);font-size:16.5px;line-height:1.55;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
+.wrap{max-width:1100px;margin:0 auto;padding:0 32px}
+@media(max-width:640px){.wrap{padding:0 18px}}
+.eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--cobalt);font-weight:500}
+.kicker{font-family:var(--mono);font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--grey)}
+h1,h2,h3,h4{font-family:var(--exp);font-weight:800;line-height:1.0;letter-spacing:-0.01em}
+.mono{font-family:var(--mono);font-variant-numeric:tabular-nums}
+.sans{font-family:var(--sans)}
+a{color:var(--cobalt);text-decoration:none;border-bottom:1px solid var(--cobalt-pale)}
+a:hover{border-color:var(--cobalt)}
+
+/* masthead */
+.mast{border-bottom:2px solid var(--ink);padding:38px 0 32px}
+.mast .toprow{display:flex;justify-content:space-between;align-items:baseline;gap:16px;flex-wrap:wrap;margin-bottom:46px}
+.brand{font-family:var(--exp);font-weight:800;letter-spacing:.02em;font-size:15px}
+.brand b{color:var(--cobalt)}
+.mast-meta{font-family:var(--mono);font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-2);text-align:right;line-height:1.7}
+.headline{font-size:clamp(32px,5.5vw,62px);max-width:18ch}
+.headline em{font-style:normal;color:var(--cobalt)}
+.dek{font-size:clamp(17px,2.1vw,21px);line-height:1.42;max-width:64ch;margin-top:22px;color:var(--ink-2)}
+.dek b{color:var(--ink);font-weight:500}
+
+/* toc */
+.toc{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:1px;background:var(--line);border:1px solid var(--line);margin:34px 0 0}
+.toc a{background:var(--paper);padding:13px 15px;border-bottom:none;display:block}
+.toc a:hover{background:var(--cobalt-bg)}
+.toc .tn{font-family:var(--mono);font-size:10px;color:var(--cobalt);letter-spacing:.1em}
+.toc .tt{font-family:var(--sans);font-weight:600;font-size:13.5px;color:var(--ink);margin-top:3px;letter-spacing:-0.01em;line-height:1.2}
+
+/* section scaffold */
+.sec{padding:54px 0;border-top:1px solid var(--line)}
+.sec-head{display:grid;grid-template-columns:minmax(0,2.6fr) minmax(0,7fr);gap:26px;align-items:start;margin-bottom:30px}
+@media(max-width:760px){.sec-head{grid-template-columns:1fr;gap:8px}}
+.sec-num{font-family:var(--mono);font-size:12px;color:var(--cobalt);letter-spacing:.1em}
+.sec-title{font-family:var(--exp);font-weight:800;font-size:clamp(22px,3vw,32px);letter-spacing:-0.01em;line-height:1.04}
+.sec-intro{font-size:17px;color:var(--ink-2);max-width:62ch}
+.sec-intro p+p{margin-top:13px}
+.sec-intro b{color:var(--ink);font-weight:500}
+.body{font-size:16.5px;color:var(--ink-2);max-width:70ch}
+.body p+p{margin-top:14px}
+.body b{color:var(--ink);font-weight:500}
+.body em{font-style:italic;color:var(--ink)}
+
+/* status-quo grid */
+.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--line);border:1px solid var(--line)}
+@media(max-width:760px){.grid3{grid-template-columns:1fr}}
+.cellx{background:var(--paper);padding:18px 18px 20px}
+.cellx .cn{font-family:var(--mono);font-size:10px;color:var(--grey);letter-spacing:.1em}
+.cellx h4{font-family:var(--sans);font-weight:700;font-size:15px;margin:6px 0 6px;letter-spacing:-0.01em}
+.cellx p{font-size:14px;line-height:1.42;color:var(--ink-2)}
+.cellx code{font-family:var(--mono);font-size:12px;color:var(--cobalt-deep);background:var(--cobalt-bg);padding:1px 4px;border-radius:2px}
+
+/* proposal block */
+.prop{border-top:2px solid var(--ink);margin-top:0;padding-top:30px}
+.prop-hd{display:flex;align-items:baseline;gap:14px;flex-wrap:wrap;margin-bottom:6px}
+.prop-tag{font-family:var(--mono);font-size:12px;font-weight:600;letter-spacing:.06em;background:var(--cobalt);color:#fff;padding:3px 9px;border-radius:2px}
+.prop-name{font-family:var(--exp);font-weight:800;font-size:clamp(24px,3.4vw,36px);letter-spacing:-0.015em;line-height:1.0}
+.prop-thesis{font-family:var(--serif);font-size:19px;line-height:1.4;color:var(--ink);max-width:70ch;margin:10px 0 22px;font-style:italic}
+.prop-thesis b{font-style:normal;color:var(--cobalt);font-weight:500}
+.lab{font-family:var(--mono);font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--cobalt);margin:24px 0 11px;display:block;border-bottom:1px solid var(--line-2);padding-bottom:6px}
+ul.feat{list-style:none;margin:0}
+ul.feat li{position:relative;padding:7px 0 7px 22px;font-size:15.5px;color:var(--ink-2);line-height:1.45;border-bottom:1px solid var(--line-2)}
+ul.feat li:last-child{border-bottom:none}
+ul.feat li::before{content:"▸";position:absolute;left:0;top:7px;color:var(--cobalt);font-size:12px}
+ul.feat li b{color:var(--ink);font-weight:600}
+
+/* integration table */
+table.intg{width:100%;border-collapse:collapse;margin-top:4px;font-size:14px}
+table.intg th{font-family:var(--mono);font-size:9.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--grey);text-align:left;padding:8px 12px;border-bottom:1.5px solid var(--ink);vertical-align:bottom}
+table.intg td{padding:9px 12px;border-bottom:1px solid var(--line-2);color:var(--ink-2);line-height:1.4;vertical-align:top}
+table.intg td.sf{font-family:var(--mono);font-size:12px;color:var(--cobalt-deep);white-space:nowrap}
+table.intg tr:hover td{background:var(--cobalt-bg)}
+
+/* mock */
+.mock{border:1px solid var(--line);background:#fff;margin-top:6px;font-family:var(--sans);overflow:hidden}
+.mock-bar{background:var(--ink);color:#fff;font-family:var(--mono);font-size:10px;letter-spacing:.1em;padding:7px 14px;text-transform:uppercase;display:flex;justify-content:space-between}
+.mock-body{padding:16px 16px 18px}
+.mline{display:flex;align-items:center;gap:10px;padding:9px 10px;border:1px solid var(--line);background:var(--paper);margin-bottom:8px;border-radius:3px}
+.mline:last-child{margin-bottom:0}
+.mdot{width:8px;height:8px;border-radius:50%;flex:none}
+.d-wa{background:var(--wa)}.d-em{background:var(--cobalt)}.d-red{background:var(--red)}.d-amb{background:var(--amber)}.d-grn{background:var(--green)}
+.mtxt{flex:1;min-width:0}
+.mtxt .mt-h{font-weight:700;font-size:13px;color:var(--ink);letter-spacing:-0.01em}
+.mtxt .mt-s{font-size:12px;color:var(--ink-2);line-height:1.3}
+.mtag{font-family:var(--mono);font-size:9.5px;letter-spacing:.04em;padding:2px 6px;border-radius:2px;white-space:nowrap;text-transform:uppercase}
+.tg-em{background:var(--cobalt-bg);color:var(--cobalt-deep)}
+.tg-wa{background:#E6F6EC;color:var(--green)}
+.tg-cta{background:var(--cobalt);color:#fff}
+.tg-warn{background:#FBEFD9;color:var(--amber)}
+.mcol{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media(max-width:620px){.mcol{grid-template-columns:1fr}}
+.mcol h5{font-family:var(--mono);font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--grey);margin-bottom:8px}
+
+/* pros cons */
+.pc{display:grid;grid-template-columns:1fr 1fr 1fr;gap:1px;background:var(--line);border:1px solid var(--line);margin-top:6px}
+@media(max-width:760px){.pc{grid-template-columns:1fr}}
+.pc .pcell{background:var(--paper);padding:15px 16px}
+.pc .pl{font-family:var(--mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;margin-bottom:8px}
+.pc .pl.win{color:var(--green)}.pc .pl.cost{color:var(--red)}.pc .pl.eff{color:var(--cobalt)}
+.pc ul{list-style:none}
+.pc li{font-size:14px;color:var(--ink-2);line-height:1.4;padding:3px 0 3px 13px;position:relative}
+.pc li::before{content:"·";position:absolute;left:2px;color:var(--grey);font-weight:700}
+.effort{font-family:var(--exp);font-weight:800;font-size:20px;color:var(--ink)}
+.effort span{font-family:var(--mono);font-size:11px;font-weight:500;color:var(--grey);text-transform:uppercase;letter-spacing:.08em;display:block;margin-top:3px}
+
+/* matrix */
+table.mx{width:100%;border-collapse:collapse;font-size:13.5px;margin-top:6px}
+table.mx th{font-family:var(--mono);font-size:10px;letter-spacing:.04em;text-transform:uppercase;color:var(--ink-2);padding:10px 10px;border-bottom:2px solid var(--ink);text-align:center}
+table.mx th:first-child{text-align:left}
+table.mx td{padding:11px 10px;border-bottom:1px solid var(--line-2);text-align:center;color:var(--ink-2)}
+table.mx td:first-child{text-align:left;font-family:var(--sans);font-weight:700;color:var(--ink);font-size:13.5px}
+table.mx td .sub{display:block;font-size:11px;color:var(--grey);font-weight:400}
+.score{font-family:var(--mono);font-weight:600}
+.s-hi{color:var(--green)}.s-md{color:var(--amber)}.s-lo{color:var(--red)}
+
+/* recommendation */
+.rec{border:1.5px solid var(--ink);padding:30px 30px 32px;background:#fff;margin-top:6px}
+.rec .rh{font-family:var(--mono);font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--cobalt);margin-bottom:14px}
+.rec .big{font-family:var(--exp);font-weight:800;font-size:clamp(20px,2.6vw,28px);letter-spacing:-0.01em;line-height:1.1;margin-bottom:16px}
+.rec .big em{font-style:normal;color:var(--cobalt)}
+.rec p{font-size:16.5px;line-height:1.5;color:var(--ink-2);max-width:72ch}
+.rec p+p{margin-top:13px}
+.rec b{color:var(--ink);font-weight:600}
+.phase{display:grid;grid-template-columns:64px 1fr;gap:18px;margin-top:18px;border-top:1px solid var(--line);padding-top:16px}
+.phase .pn{font-family:var(--mono);font-size:12px;color:var(--cobalt);letter-spacing:.06em}
+.phase .pb{font-size:15px;color:var(--ink-2);line-height:1.45}
+.phase .pb b{color:var(--ink);font-weight:600}
+
+/* appendix code */
+pre.code{background:#16171B;color:#E7E5DC;font-family:var(--mono);font-size:12.5px;line-height:1.5;padding:18px 20px;overflow-x:auto;border-radius:4px;margin-top:8px}
+pre.code .c{color:#8B8C84}
+pre.code .k{color:#8AB4FF}
+pre.code .s{color:#C9A06B}
+
+/* open questions */
+.oq{counter-reset:q;list-style:none;margin-top:6px}
+.oq li{counter-increment:q;position:relative;padding:14px 0 14px 44px;border-bottom:1px solid var(--line-2);font-size:16px;color:var(--ink-2);line-height:1.46}
+.oq li::before{content:"Q" counter(q);position:absolute;left:0;top:13px;font-family:var(--mono);font-size:11px;font-weight:600;color:var(--cobalt);border:1px solid var(--cobalt-pale);border-radius:3px;padding:2px 5px}
+.oq li b{color:var(--ink);font-weight:600}
+
+footer{border-top:2px solid var(--ink);margin-top:14px;padding:26px 0 64px}
+footer .cols{display:flex;justify-content:space-between;gap:20px;flex-wrap:wrap;font-family:var(--mono);font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-2)}
+footer .cols b{color:var(--ink)}
+:focus-visible{outline:2px solid var(--cobalt);outline-offset:2px}
+@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+</style>
+</head>
+<body>
+
+<header class="mast">
+  <div class="wrap">
+    <div class="toprow">
+      <div class="brand">Oskar<b>OS</b> · CRM Specification</div>
+      <div class="mast-meta">Email in the Overview<br>Five fine-grained proposals<br>Author: Consular · for Filippo<br>Status: for decision</div>
+    </div>
+    <h1 class="headline">Email belongs <em>in the Overview</em>. The only question is which shape.</h1>
+    <p class="dek">The CRM already runs WhatsApp end to end: inbound matched to a lead, an activity feed, a Consular that drafts in Filippo's voice, an outbox that sends. <b>Email is the missing second channel.</b> This document proposes five distinct ways to bring it into the Overview, each fully integrated with the surfaces that already exist, each with a different organizing idea about what email <em>is</em>. One of them is the recommendation; all five are real.</p>
+    <nav class="toc" aria-label="Contents">
+      <a href="#ctx"><span class="tn">00</span><span class="tt">What exists today</span></a>
+      <a href="#found"><span class="tn">01</span><span class="tt">The shared foundation</span></a>
+      <a href="#a"><span class="tn">A</span><span class="tt">One Thread</span></a>
+      <a href="#b"><span class="tn">B</span><span class="tt">The Triage Lane</span></a>
+      <a href="#c"><span class="tn">C</span><span class="tt">Consular Co-Pilot</span></a>
+      <a href="#d"><span class="tn">D</span><span class="tt">Flight Deck Native</span></a>
+      <a href="#e"><span class="tn">E</span><span class="tt">Deal-Health Signal</span></a>
+      <a href="#mx"><span class="tn">07</span><span class="tt">Comparison</span></a>
+      <a href="#rec"><span class="tn">08</span><span class="tt">Recommendation</span></a>
+      <a href="#data"><span class="tn">09</span><span class="tt">Data model</span></a>
+      <a href="#oq"><span class="tn">10</span><span class="tt">Open decisions</span></a>
+    </nav>
+  </div>
+</header>
+
+<!-- 00 CONTEXT -->
+<section class="sec" id="ctx">
+  <div class="wrap">
+    <div class="sec-head">
+      <div><div class="sec-num">00 / Status quo</div></div>
+      <div>
+        <div class="sec-title">The surfaces email has to plug into.</div>
+        <p class="sec-intro" style="margin-top:12px">No proposal is judged in a vacuum. Each one is judged by how cleanly it sits on top of the machinery the CRM already runs. Here is that machinery, named, so every integration claim below can be checked against something real.</p>
+      </div>
+    </div>
+    <div class="grid3">
+      <div class="cellx"><div class="cn">SURFACE 01</div><h4>The Overview</h4><p>The daily home screen. A time-of-day greeting, then buckets: <b>overdue</b>, <b>due today</b>, <b>stuck in stage</b>, <b>unmatched WhatsApp</b>. A single SQL pass at open. The opening is a statement plus an arrow, not a menu.</p></div>
+      <div class="cellx"><div class="cn">SURFACE 02</div><h4>The Flight Deck</h4><p>The strip above the chat. 1 to 6 picks written to <code>db/flight-deck.json</code>, ranked by ROI-per-minute, rendered as cards (hero, arrears, agenda, soft, gauge, tag). Each card carries a verb, channel, why, duration, deadline, tone.</p></div>
+      <div class="cellx"><div class="cn">SURFACE 03</div><h4>The activity feed</h4><p>The <code>activities</code> table. Types already include <code>E-mail In</code>, <code>E-mail Out</code>, <code>WhatsApp In/Out</code>, Call, Meeting, Note. Fields for message id, delivery status, media. Email is half-modelled already.</p></div>
+      <div class="cellx"><div class="cn">SURFACE 04</div><h4>The WhatsApp pipeline</h4><p>Baileys runtime: inbound matched to a lead by phone, the unmatched ones surfaced, outbound sent and status-tracked (sent / delivered / read). The pattern email should mirror.</p></div>
+      <div class="cellx"><div class="cn">SURFACE 05</div><h4>The Consular</h4><p>Drafts in Filippo's voice from the corpus. Classifies inbound (warm / ambiguous / cold), picks a trust level, proofreads, issues verdicts. Already speaks per contact-role.</p></div>
+      <div class="cellx"><div class="cn">SURFACE 06</div><h4>The outbox</h4><p>Scheduled sends with a <code>scheduled_for</code> timestamp, and the ten-minute countdown that lets a queued reply be pulled back before it leaves.</p></div>
+      <div class="cellx"><div class="cn">SURFACE 07</div><h4>Prospects</h4><p>Stage (Incoming → Closing), status (incl. <b>Awaiting reply</b>), <code>next_action_date</code> / label, <code>amount_chf</code>, <code>confidence_pct</code>, and <code>intel_json</code> with the verdict and lamps.</p></div>
+      <div class="cellx"><div class="cn">SURFACE 08</div><h4>Contacts roster</h4><p>1-to-many per lead with roles: champion, gatekeeper, blocker, decision maker. The draft changes with who receives it. Today matched by phone; email adds a second identity key.</p></div>
+      <div class="cellx"><div class="cn">SURFACE 09</div><h4>Event-sourced store</h4><p>Log-first, then SQLite projection. Every write is an event; the log is the truth and replay rebuilds the cache. Any email write obeys the same invariant.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- 01 FOUNDATION -->
+<section class="sec" id="found">
+  <div class="wrap">
+    <div class="sec-head">
+      <div><div class="sec-num">01 / Foundation</div></div>
+      <div>
+        <div class="sec-title">What all five share, and what they do not.</div>
+      </div>
+    </div>
+    <div class="body">
+      <p>Three things are common to every proposal, so they are settled once here and not re-argued five times.</p>
+      <p><b>1. The schema is already most of the way there.</b> <code>activities</code> carries <code>E-mail In</code> and <code>E-mail Out</code> as first-class types with status and media fields. What is missing is not the data model, it is the <em>transport</em>: a way for mail to arrive and leave. Transport is a separate decision (Gmail API two-way is the leading candidate, because email from a relationship-selling rep must come from his real inbox and identity, not a <code>crm@</code> sending domain). The five proposals below are about <b>shape in the Overview</b>, not transport. Any of them runs on any transport.</p>
+      <p><b>2. One new column, the rest is composition.</b> Email and WhatsApp differ in cadence (email is slower, longer, threaded, often to a named role) but they are the same primitive: a message, on a channel, to a contact, about a deal. A single <code>channel</code> field on <code>activities</code> turns the existing feed bi-channel. Whether that field is surfaced as <em>one merged stream</em> or <em>two parallel lanes</em> is precisely what separates the proposals.</p>
+      <p><b>3. The Consular is the multiplier in all five.</b> The reason to put email <em>inside</em> the CRM rather than leave it in Gmail is that the Consular can read the thread, know the deal, know the contact's role, and draft the reply in Filippo's voice. Every proposal leans on that. They differ in how visible the drafting is and where it sits.</p>
+      <p>Where they genuinely diverge is the <b>organizing idea</b>: is email an inbox, a triage queue, a draft pile, a set of ranked cards, or a deal-health signal? That choice cascades into the entire Overview UX. That is the real decision in front of you.</p>
+    </div>
+  </div>
+</section>
+
+<!-- PROPOSAL A -->
+<section class="sec" id="a">
+  <div class="wrap">
+    <div class="prop">
+      <div class="prop-hd"><span class="prop-tag">PROPOSAL A</span><span class="prop-name">One Thread</span></div>
+      <p class="prop-thesis">Email is not a new screen. It is a new <b>bubble in the conversation you already have.</b> WhatsApp and email merge into one per-lead thread, and the Overview stops caring which channel a message arrived on.</p>
+
+      <span class="lab">The core idea</span>
+      <div class="body" style="max-width:none">
+        <p>Today a lead has a WhatsApp thread and, separately, email scattered in Gmail. Proposal A collapses that: a lead has <em>one conversation</em>, and each message is tagged with the channel it travelled on. The <b>unmatched WhatsApp</b> bucket becomes <b>unmatched inbound</b>, holding both channels. A lead detail shows a single chronological timeline with green bubbles for WhatsApp and blue for email. The rep stops thinking in inboxes and starts thinking in relationships, which is how a good salesperson already thinks.</p>
+      </div>
+
+      <span class="lab">In the Overview</span>
+      <div class="mock">
+        <div class="mock-bar"><span>OVERVIEW · INBOUND</span><span>ONE THREAD</span></div>
+        <div class="mock-body">
+          <div class="mline"><span class="mdot d-red"></span><div class="mtxt"><div class="mt-h">Bistrot Le Petit · Marco</div><div class="mt-s">"können wir diese Woche unterschreiben?"</div></div><span class="mtag tg-em">EMAIL · 2H</span></div>
+          <div class="mline"><span class="mdot d-amb"></span><div class="mtxt"><div class="mt-h">Praxiskollektiv Güterstrasse · Boesch</div><div class="mt-s">reply to your proposal, mixed thread</div></div><span class="mtag tg-wa">WA + EMAIL</span></div>
+          <div class="mline"><span class="mdot d-grn"></span><div class="mtxt"><div class="mt-h">Weingut Barbazza · Marin</div><div class="mt-s">"danke, schaue es heute Abend an"</div></div><span class="mtag tg-em">EMAIL · 5H</span></div>
+        </div>
+      </div>
+
+      <span class="lab">Features</span>
+      <ul class="feat">
+        <li><b>Channel-tagged unified timeline.</b> One stream per lead, every entry stamped WhatsApp or Email, ordered by time, not by channel.</li>
+        <li><b>Identity merge.</b> A contact's email address joins their phone as a matching key in the contacts roster, so a reply from <code>marco@bistrot.ch</code> lands on the same person as the WhatsApp number.</li>
+        <li><b>Channel-agnostic compose.</b> The Consular drafts once; the rep picks the send channel at the last moment. The draft register adjusts: longer and signed for email, short for WhatsApp.</li>
+        <li><b>One reply clock.</b> "Awaiting reply" and the ten-minute pull-back countdown span both channels with no duplication.</li>
+        <li><b>Cross-channel context for the Consular.</b> When drafting, the Consular sees the whole thread, so it will not email a question the lead already answered on WhatsApp.</li>
+      </ul>
+
+      <span class="lab">Integration map</span>
+      <table class="intg">
+        <thead><tr><th>Surface</th><th>How A touches it</th></tr></thead>
+        <tbody>
+          <tr><td class="sf">activities</td><td>Adds <code>channel</code>; the feed renders mixed, no schema split.</td></tr>
+          <tr><td class="sf">Overview buckets</td><td>"unmatched WhatsApp" generalises to "unmatched inbound"; one fewer bucket, not one more.</td></tr>
+          <tr><td class="sf">contacts</td><td>Email becomes a second identity key alongside phone; merge logic lives here.</td></tr>
+          <tr><td class="sf">Consular</td><td>Reads the merged thread; <code>EVAL-INBOUND</code> runs channel-agnostic.</td></tr>
+          <tr><td class="sf">Flight Deck</td><td>REPLY cards carry a channel chip; otherwise unchanged.</td></tr>
+          <tr><td class="sf">outbox</td><td>Channel-agnostic; the row stores which transport carried it.</td></tr>
+        </tbody>
+      </table>
+
+      <span class="lab">Trade-offs</span>
+      <div class="pc">
+        <div class="pcell"><div class="pl win">Wins</div><ul><li>Cleanest mental model</li><li>Fewest surfaces to learn</li><li>The Consular never double-asks</li><li>Future channels (SMS, IG) slot in free</li></ul></div>
+        <div class="pcell"><div class="pl cost">Costs</div><ul><li>Identity merge is fuzzy: which email is which contact</li><li>Hides email's slower cadence inside a fast-feeling stream</li><li>A misrouted merge is a privacy footgun</li></ul></div>
+        <div class="pcell"><div class="pl eff">Effort</div><div class="effort">M-L<span>data merge is the cost</span></div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- PROPOSAL B -->
+<section class="sec" id="b">
+  <div class="wrap">
+    <div class="prop">
+      <div class="prop-hd"><span class="prop-tag">PROPOSAL B</span><span class="prop-name">The Triage Lane</span></div>
+      <p class="prop-thesis">Email has its own rhythm: slower, longer, threaded, often to a named decision-maker. <b>Do not merge it, give it lanes.</b> Email gets dedicated Overview buckets and a triage-first workflow beside the existing ones.</p>
+
+      <span class="lab">The core idea</span>
+      <div class="body" style="max-width:none">
+        <p>Where A blends, B separates on purpose. Email is treated as a distinct workflow with its own buckets in the Overview, sitting next to the WhatsApp and stage buckets. The argument is honesty: email and WhatsApp are <em>not</em> the same act. A WhatsApp ping is a tap; an email is a letter, often to a gatekeeper or a buyer who took days to reply. Collapsing them, as A does, flattens a real difference. B keeps the difference and turns it into a clean triage rhythm: open the Overview, clear the email lane, clear the WhatsApp lane, move on.</p>
+      </div>
+
+      <span class="lab">In the Overview</span>
+      <div class="mock">
+        <div class="mock-bar"><span>OVERVIEW · EMAIL LANE</span><span>TRIAGE</span></div>
+        <div class="mock-body mcol">
+          <div>
+            <h5>Needs you</h5>
+            <div class="mline"><span class="mdot d-red"></span><div class="mtxt"><div class="mt-h">Unmatched · 3</div><div class="mt-s">no lead found, assign or discard</div></div></div>
+            <div class="mline"><span class="mdot d-amb"></span><div class="mtxt"><div class="mt-h">Awaiting reply · 5</div><div class="mt-s">client wrote, you have not</div></div></div>
+          </div>
+          <div>
+            <h5>Moving</h5>
+            <div class="mline"><span class="mdot d-grn"></span><div class="mtxt"><div class="mt-h">Drafted, ready · 4</div><div class="mt-s">Consular wrote, review and send</div></div></div>
+            <div class="mline"><span class="mdot d-amb"></span><div class="mtxt"><div class="mt-h">Gone quiet · 6</div><div class="mt-s">you wrote, 5+ days silent</div></div></div>
+          </div>
+        </div>
+      </div>
+
+      <span class="lab">Features</span>
+      <ul class="feat">
+        <li><b>Four email buckets:</b> Unmatched, Awaiting reply, Drafted-ready, Gone-quiet. Each is a queue with bulk actions.</li>
+        <li><b>SLA timers.</b> A client email unanswered past a threshold (say 24h) climbs the bucket and turns amber then red, so nothing rots.</li>
+        <li><b>Inbound classification reused.</b> The <code>EVAL-INBOUND</code> machinery (warm / ambiguous / cold + trust level) runs on email exactly as on WhatsApp, no new classifier.</li>
+        <li><b>Bulk triage.</b> Select-all-cold, archive; select warm, send-to-Consular for drafts.</li>
+        <li><b>Lane independence.</b> A noisy email day does not bury the WhatsApp lane and vice versa; each has its own count and rhythm.</li>
+      </ul>
+
+      <span class="lab">Integration map</span>
+      <table class="intg">
+        <thead><tr><th>Surface</th><th>How B touches it</th></tr></thead>
+        <tbody>
+          <tr><td class="sf">Overview buckets</td><td>Adds an email column with four buckets, mirroring the existing bucket pattern and SQL-pass.</td></tr>
+          <tr><td class="sf">Consular</td><td><code>EVAL-INBOUND</code> + trust levels reused verbatim; the only new thing is the channel it reads from.</td></tr>
+          <tr><td class="sf">activities</td><td><code>channel</code> filter drives each bucket's query; no merge logic needed.</td></tr>
+          <tr><td class="sf">prospects</td><td>"Gone quiet" reads <code>next_action_date</code> against last outbound email.</td></tr>
+          <tr><td class="sf">outbox</td><td>"Drafted-ready" is the email slice of the outbox, surfaced as a bucket.</td></tr>
+          <tr><td class="sf">Flight Deck</td><td>Untouched; the deck stays the cross-channel highlight reel above the lanes.</td></tr>
+        </tbody>
+      </table>
+
+      <span class="lab">Trade-offs</span>
+      <div class="pc">
+        <div class="pcell"><div class="pl win">Wins</div><ul><li>Respects email's real cadence</li><li>Strongest pure-triage flow</li><li>Reuses the inbound-eval machinery whole</li><li>Lowest data risk, no identity merge</li></ul></div>
+        <div class="pcell"><div class="pl cost">Costs</div><ul><li>Two inboxes to watch, not one</li><li>More Overview real estate</li><li>A lead's two channels read as two things</li></ul></div>
+        <div class="pcell"><div class="pl eff">Effort</div><div class="effort">M<span>buckets + filters</span></div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- PROPOSAL C -->
+<section class="sec" id="c">
+  <div class="wrap">
+    <div class="prop">
+      <div class="prop-hd"><span class="prop-tag">PROPOSAL C</span><span class="prop-name">Consular Co-Pilot</span></div>
+      <p class="prop-thesis">The point of email-in-CRM is not an inbox. It is that <b>the replies are already written</b> when you arrive. The Overview leads with a queue of Consular-drafted answers, not with raw mail.</p>
+
+      <span class="lab">The core idea</span>
+      <div class="body" style="max-width:none">
+        <p>A and B both still ask the rep to read mail and decide. C inverts the work. Every inbound email immediately triggers the Consular to draft a reply, voice-matched, aware of the deal stage and the contact's role. By the time Filippo opens the Overview, the headline is not "12 emails," it is <em>"12 in, 9 already answered for you, 3 need a human."</em> Raw, undrafted email is the exception the system flags, not the default the rep wades through. This is the proposal most aligned with the entire reason the Consular exists: volume that outgrew one human, handled in his voice.</p>
+      </div>
+
+      <span class="lab">In the Overview</span>
+      <div class="mock">
+        <div class="mock-bar"><span>OVERVIEW · READY TO SEND</span><span>CO-PILOT</span></div>
+        <div class="mock-body">
+          <div class="mline"><span class="mdot d-grn"></span><div class="mtxt"><div class="mt-h">Re: Offerte → Marco (Bistrot)</div><div class="mt-s">draft: "ciao Marco, ja, Donnerstag passt…"</div></div><span class="mtag tg-cta">SEND</span></div>
+          <div class="mline"><span class="mdot d-grn"></span><div class="mtxt"><div class="mt-h">Re: Anfrage → Frau Boesch</div><div class="mt-s">draft ready, Sie-form, signed f</div></div><span class="mtag tg-cta">SEND</span></div>
+          <div class="mline"><span class="mdot d-amb"></span><div class="mtxt"><div class="mt-h">Re: Vertrag → legal@acme</div><div class="mt-s">flagged: pricing claim, needs you</div></div><span class="mtag tg-warn">REVIEW</span></div>
+        </div>
+      </div>
+
+      <span class="lab">Features</span>
+      <ul class="feat">
+        <li><b>Auto-draft on arrival.</b> Inbound email fires a Consular draft immediately, with the thread, the lead's <code>intel_json</code>, and the contact's role as context.</li>
+        <li><b>Role-aware register.</b> A reply to the champion opens warm; to the gatekeeper, brief and routing; to the blocker, never a pitch. The roster already encodes this.</li>
+        <li><b>Proofread gate.</b> Every draft runs the <code>PROOFREAD</code> + <code>VERDICT</code> pass before it reaches the queue; anything with a fact-not-in-lore or a banned phrase is held with a reason.</li>
+        <li><b>Trust-zone auto-send.</b> For low-stakes, high-trust replies (a "danke, passt"), the same trust-level mechanism that auto-sends WhatsApp can auto-send email, with the ten-minute pull-back.</li>
+        <li><b>One-tap review.</b> Approve, edit-in-place, or snooze. The rep's job shrinks to judgment, not composition.</li>
+      </ul>
+
+      <span class="lab">Integration map</span>
+      <table class="intg">
+        <thead><tr><th>Surface</th><th>How C touches it</th></tr></thead>
+        <tbody>
+          <tr><td class="sf">Consular</td><td>Inbound email auto-invokes a draft turn; reuses voice corpus, role logic, <code>EVAL-INBOUND</code>.</td></tr>
+          <tr><td class="sf">outbox</td><td>Becomes the "ready to send" queue, each row a drafted email with the countdown.</td></tr>
+          <tr><td class="sf">Overview</td><td>The lead surface is the drafts queue; raw email is a flagged minority.</td></tr>
+          <tr><td class="sf">contacts</td><td>Role drives the draft register, drawn straight from the roster.</td></tr>
+          <tr><td class="sf">intel_json</td><td>Read for deal context, written back with any new email-derived lore.</td></tr>
+          <tr><td class="sf">trust zones</td><td>The WhatsApp auto-send trust model extends to email verbatim.</td></tr>
+        </tbody>
+      </table>
+
+      <span class="lab">Trade-offs</span>
+      <div class="pc">
+        <div class="pcell"><div class="pl win">Wins</div><ul><li>Maximal leverage, 10x volume</li><li>True to why the Consular exists</li><li>Rep does judgment, not typing</li><li>Reuses voice, role, proofread machinery</li></ul></div>
+        <div class="pcell"><div class="pl cost">Costs</div><ul><li>Email is higher-stakes than WA; a bad auto-draft costs more</li><li>Needs a hard proofread gate</li><li>Rep must learn to trust the queue</li></ul></div>
+        <div class="pcell"><div class="pl eff">Effort</div><div class="effort">M-L<span>orchestration, not UI</span></div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- PROPOSAL D -->
+<section class="sec" id="d">
+  <div class="wrap">
+    <div class="prop">
+      <div class="prop-hd"><span class="prop-tag">PROPOSAL D</span><span class="prop-name">Flight Deck Native</span></div>
+      <p class="prop-thesis">Email does not need a surface of its own. <b>Email actions become Flight Deck cards,</b> ranked by ROI-per-minute next to calls and WhatsApp. Email earns attention on merit or it waits.</p>
+
+      <span class="lab">The core idea</span>
+      <div class="body" style="max-width:none">
+        <p>The Flight Deck already answers "what should I do right now" with 1 to 6 ranked picks. D says email is just more input to that ranker, not a parallel world. A hot client email that says "can we sign this week" is a higher ROI-per-minute move than a cold WhatsApp nudge, so it should out-rank it on the same deck, as a REPLY card with a <b>▸ DRAFT</b> action. A proposal emailed seven days ago with no reply is an <code>arrears</code>-style chase card. This is the proposal most faithful to the prioritization philosophy already in the product: do not show the rep an inbox, show him the next best move, regardless of channel.</p>
+      </div>
+
+      <span class="lab">In the Overview (the deck)</span>
+      <div class="mock">
+        <div class="mock-bar"><span>FLIGHT DECK · TODAY</span><span>+9 IN QUEUE</span></div>
+        <div class="mock-body">
+          <div class="mline"><span class="mdot d-red"></span><div class="mtxt"><div class="mt-h">REPLY · Bistrot · Marco</div><div class="mt-s">"sign this week?" · 2 min · email</div></div><span class="mtag tg-cta">▸ DRAFT</span></div>
+          <div class="mline"><span class="mdot d-amb"></span><div class="mtxt"><div class="mt-h">CHASE · Acme · proposal</div><div class="mt-s">emailed 7d ago, opened 2x, silent</div></div><span class="mtag tg-cta">▸ DRAFT</span></div>
+          <div class="mline"><span class="mdot d-grn"></span><div class="mtxt"><div class="mt-h">CALL · Güterstrasse · Boesch</div><div class="mt-s">champion warm · 5 min · phone</div></div><span class="mtag tg-cta">▸ CALL</span></div>
+        </div>
+      </div>
+
+      <span class="lab">Features</span>
+      <ul class="feat">
+        <li><b>Email feeds the ranker.</b> Inbound and stalled emails become candidate cards, scored by ROI-per-minute exactly like every other move.</li>
+        <li><b>Channel drives the action.</b> <code>channel: "email"</code> renders a <b>▸ DRAFT</b> button that opens a Consular email draft; phone renders <b>▸ CALL</b>.</li>
+        <li><b>Reuses card archetypes.</b> <code>arrears</code> for email dunning (proposal sent → reminder → final), <code>agenda</code> for a scheduled email follow-up, <code>tag</code> for a quick reply.</li>
+        <li><b>Overflow chip.</b> The deck stays curated at 1 to 6; the rest sit behind the <code>queueCount</code> chip, so high email volume does not break the deck.</li>
+        <li><b>One file, no new surface.</b> Everything flows through <code>db/flight-deck.json</code> and the archetypes in <code>flight-deck.jsx</code>.</li>
+      </ul>
+
+      <span class="lab">Integration map</span>
+      <table class="intg">
+        <thead><tr><th>Surface</th><th>How D touches it</th></tr></thead>
+        <tbody>
+          <tr><td class="sf">Flight Deck</td><td>Email cards added to <code>db/flight-deck.json</code>; <code>channel</code> drives the action button.</td></tr>
+          <tr><td class="sf">ROI ranker</td><td>Email events scored on the same per-minute basis as calls and WhatsApp.</td></tr>
+          <tr><td class="sf">flight-deck.jsx</td><td>Reuses <code>arrears</code> / <code>agenda</code> / <code>tag</code>; a new archetype only if a card earns it.</td></tr>
+          <tr><td class="sf">Consular</td><td>▸ DRAFT opens a Consular email draft for that lead in the composer.</td></tr>
+          <tr><td class="sf">Overview</td><td>No new bucket; email lives inside the deck the rep already reads first.</td></tr>
+          <tr><td class="sf">activities</td><td>Card "done" writes an <code>E-mail Out</code> activity on send.</td></tr>
+        </tbody>
+      </table>
+
+      <span class="lab">Trade-offs</span>
+      <div class="pc">
+        <div class="pcell"><div class="pl win">Wins</div><ul><li>Zero new surface to learn</li><li>True to the deck philosophy you designed</li><li>Email competes on value, not noise</li><li>Smallest build, reuses everything</li></ul></div>
+        <div class="pcell"><div class="pl cost">Costs</div><ul><li>The deck is curated 1-6, not a full inbox</li><li>Needs an overflow path for bulk triage</li><li>Not where you read a long thread</li></ul></div>
+        <div class="pcell"><div class="pl eff">Effort</div><div class="effort">S-M<span>mostly composition</span></div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- PROPOSAL E -->
+<section class="sec" id="e">
+  <div class="wrap">
+    <div class="prop">
+      <div class="prop-hd"><span class="prop-tag">PROPOSAL E</span><span class="prop-name">Deal-Health Signal</span></div>
+      <p class="prop-thesis">Email matters only as evidence of where a deal stands. <b>Do not build an inbox, build deal-health detection.</b> The Overview surfaces deals whose email state is a risk, not a list of messages.</p>
+
+      <span class="lab">The core idea</span>
+      <div class="body" style="max-width:none">
+        <p>The most radical reframe. E argues that a rep does not want an email client at all, he wants to know which deals are slipping. So email is consumed for <em>signal</em> and thrown away as a surface. "Proposal emailed seven days ago, opened twice, no reply" is a stalling deal; "champion went warm then silent" is a cooling one. Those become entries in the Overview's risk panel and drive <code>confidence_pct</code> and <code>next_action</code> automatically. The Consular proposes the nudge when a thread cools. Reading and writing full threads still happens in Gmail; the CRM's job is to watch the pulse and tell the rep where to push.</p>
+      </div>
+
+      <span class="lab">In the Overview</span>
+      <div class="mock">
+        <div class="mock-bar"><span>OVERVIEW · DEALS AT RISK</span><span>EMAIL SIGNAL</span></div>
+        <div class="mock-body">
+          <div class="mline"><span class="mdot d-red"></span><div class="mtxt"><div class="mt-h">Acme · CHF 12k · Closing</div><div class="mt-s">proposal opened 3x, no reply, 7d · confidence ↓</div></div><span class="mtag tg-warn">NUDGE</span></div>
+          <div class="mline"><span class="mdot d-amb"></span><div class="mtxt"><div class="mt-h">Güterstrasse · champion cooling</div><div class="mt-s">warm thread, then silent 5d</div></div><span class="mtag tg-warn">NUDGE</span></div>
+          <div class="mline"><span class="mdot d-grn"></span><div class="mtxt"><div class="mt-h">Bistrot · re-engaged</div><div class="mt-s">replied after 2 opens · confidence ↑</div></div></div>
+        </div>
+      </div>
+
+      <span class="lab">Features</span>
+      <ul class="feat">
+        <li><b>Email state as a deal vital.</b> Sent / opened / replied / silent feeds <code>confidence_pct</code> and flips <code>status</code> to "Awaiting reply" automatically.</li>
+        <li><b>Stall detection.</b> An emailed proposal with opens but no reply past N days surfaces as a risk with a named cause.</li>
+        <li><b>Cooling detection.</b> A warm thread that goes quiet drops confidence and prompts a Consular-drafted nudge.</li>
+        <li><b>Lore capture.</b> Email-derived signals ("opened the offer 3 times, never replied") write to <code>intel_json</code> so the next turn inherits them.</li>
+        <li><b>No inbox to maintain.</b> The CRM never becomes a mail client; it stays a pipeline instrument.</li>
+      </ul>
+
+      <span class="lab">Integration map</span>
+      <table class="intg">
+        <thead><tr><th>Surface</th><th>How E touches it</th></tr></thead>
+        <tbody>
+          <tr><td class="sf">prospects</td><td><code>confidence_pct</code>, <code>status</code>, <code>next_action_date</code> driven by email state.</td></tr>
+          <tr><td class="sf">intel_json</td><td>Email signals written as lore; the verdict reflects deal pulse.</td></tr>
+          <tr><td class="sf">Overview</td><td>A "deals at risk (email)" panel instead of an inbox.</td></tr>
+          <tr><td class="sf">Consular</td><td>Drafts the nudge when a thread cools; does not manage a queue.</td></tr>
+          <tr><td class="sf">activities</td><td>Logs send / open / reply as lightweight events, not full bodies.</td></tr>
+          <tr><td class="sf">Flight Deck</td><td>A stalling deal can be promoted to a CHASE card automatically.</td></tr>
+        </tbody>
+      </table>
+
+      <span class="lab">Trade-offs</span>
+      <div class="pc">
+        <div class="pcell"><div class="pl win">Wins</div><ul><li>Ties email straight to revenue</li><li>Surfaces risk, not noise</li><li>Rep sees deals, not mail</li><li>Lightest data footprint</li></ul></div>
+        <div class="pcell"><div class="pl cost">Costs</div><ul><li>Not a place to read or write full threads</li><li>Needs open-tracking, with privacy and deliverability nuance</li><li>Leaves composition in Gmail</li></ul></div>
+        <div class="pcell"><div class="pl eff">Effort</div><div class="effort">M<span>tracking + signal logic</span></div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- COMPARISON -->
+<section class="sec" id="mx">
+  <div class="wrap">
+    <div class="sec-head">
+      <div><div class="sec-num">07 / Comparison</div></div>
+      <div><div class="sec-title">The five, side by side.</div>
+      <p class="sec-intro" style="margin-top:12px">Scored on what matters for a one-person sales operation that already lives in WhatsApp and the Flight Deck.</p></div>
+    </div>
+    <table class="mx">
+      <thead><tr><th>Dimension</th><th>A · One Thread</th><th>B · Triage Lane</th><th>C · Co-Pilot</th><th>D · Deck Native</th><th>E · Deal Signal</th></tr></thead>
+      <tbody>
+        <tr><td>Organizing idea<span class="sub">what email IS</span></td><td>a conversation</td><td>an inbox</td><td>a draft pile</td><td>a ranked move</td><td>a vital sign</td></tr>
+        <tr><td>Build effort</td><td><span class="score s-md">M-L</span></td><td><span class="score s-md">M</span></td><td><span class="score s-md">M-L</span></td><td><span class="score s-hi">S-M</span></td><td><span class="score s-md">M</span></td></tr>
+        <tr><td>Reuses existing machinery</td><td><span class="score s-md">good</span></td><td><span class="score s-hi">high</span></td><td><span class="score s-hi">high</span></td><td><span class="score s-hi">highest</span></td><td><span class="score s-md">good</span></td></tr>
+        <tr><td>Leverage per rep-minute</td><td><span class="score s-md">med</span></td><td><span class="score s-md">med</span></td><td><span class="score s-hi">highest</span></td><td><span class="score s-hi">high</span></td><td><span class="score s-md">med</span></td></tr>
+        <tr><td>Data risk</td><td><span class="score s-lo">merge</span></td><td><span class="score s-hi">low</span></td><td><span class="score s-md">draft</span></td><td><span class="score s-hi">low</span></td><td><span class="score s-md">tracking</span></td></tr>
+        <tr><td>Full-thread read/write</td><td><span class="score s-hi">yes</span></td><td><span class="score s-hi">yes</span></td><td><span class="score s-hi">yes</span></td><td><span class="score s-md">partial</span></td><td><span class="score s-lo">no</span></td></tr>
+        <tr><td>Fidelity to product philosophy</td><td><span class="score s-md">good</span></td><td><span class="score s-md">good</span></td><td><span class="score s-hi">high</span></td><td><span class="score s-hi">highest</span></td><td><span class="score s-md">good</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- RECOMMENDATION -->
+<section class="sec" id="rec">
+  <div class="wrap">
+    <div class="sec-head">
+      <div><div class="sec-num">08 / The call</div></div>
+      <div><div class="sec-title">Recommendation.</div></div>
+    </div>
+    <div class="rec">
+      <div class="rh">Recommendation</div>
+      <div class="big">Ship <em>D as the surface</em> and <em>C as the engine</em>, on the channel-agnostic activities model. Keep B's lane as the overflow, not the default.</div>
+      <p>The honest synthesis is not one proposal, it is two that fit together and one held in reserve. <b>D (Flight Deck Native)</b> is the right surface because it is faithful to the philosophy already in the product and costs the least: email earns attention by value on the deck the rep already reads first, no new screen to learn. <b>C (Consular Co-Pilot)</b> is the right engine underneath it, because the entire reason to pull email into the CRM is that the Consular drafts the reply before the rep arrives. A deck card that says REPLY should open a draft that is already written, not a blank box.</p>
+      <p>Hold <b>B (the Triage Lane)</b> in reserve as the overflow surface for the days when email volume exceeds what a 1-to-6 deck can hold. It reuses the same buckets-and-eval machinery, so it is cheap to add later and does not need to ship first. <b>A (One Thread)</b> is the eventual destination once identity-merge is trustworthy, but its data risk means it should not lead. <b>E (Deal Signal)</b> is a powerful layer to fold into <code>intel_json</code> over time, not a v1 surface.</p>
+      <div class="phase">
+        <div class="pn">PHASE 1</div>
+        <div class="pb"><b>Transport + model.</b> Gmail API two-way (his real inbox, his identity). Add <code>channel</code> to <code>activities</code> and the outbox. Inbound matched to a lead by from-address, logged as <code>E-mail In</code>. This is CD-specced, Code-wired.</div>
+      </div>
+      <div class="phase">
+        <div class="pn">PHASE 2</div>
+        <div class="pb"><b>Engine (C).</b> Inbound email auto-fires a Consular draft, role-aware, proofread-gated, into the outbox queue with the ten-minute pull-back.</div>
+      </div>
+      <div class="phase">
+        <div class="pn">PHASE 3</div>
+        <div class="pb"><b>Surface (D).</b> Email moves become Flight Deck cards: REPLY, CHASE, SEND, ranked by ROI-per-minute, ▸ DRAFT opens the pre-written reply.</div>
+      </div>
+      <div class="phase">
+        <div class="pn">PHASE 4</div>
+        <div class="pb"><b>Overflow (B) + signal (E).</b> Add the email triage lane for high-volume days, and begin folding email pulse into <code>confidence_pct</code> and the lore.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- DATA MODEL -->
+<section class="sec" id="data">
+  <div class="wrap">
+    <div class="sec-head">
+      <div><div class="sec-num">09 / Appendix</div></div>
+      <div><div class="sec-title">Data model and the one new column.</div>
+      <p class="sec-intro" style="margin-top:12px">What actually changes in the store. The point of the appendix is to show the build is small: the schema already speaks email, this adds a channel discriminator and a transport.</p></div>
+    </div>
+    <div class="body" style="max-width:none">
+      <p>The <code>activities</code> table already carries the email types and the status and media fields. The single structural addition is a <code>channel</code> discriminator, written event-first like every other mutation so replay rebuilds it.</p>
+    </div>
+    <pre class="code"><span class="c">// activities: the one new column, everything else exists</span>
+<span class="k">ALTER TABLE</span> activities <span class="k">ADD COLUMN</span> channel <span class="k">TEXT</span> <span class="k">DEFAULT</span> <span class="s">'whatsapp'</span>;
+<span class="c">// values: 'whatsapp' | 'email' | 'call' | 'note'</span>
+<span class="c">// E-mail In / E-mail Out types already exist; channel just makes</span>
+<span class="c">// the feed and the buckets queryable per channel.</span>
+
+<span class="c">// outbox row, channel-agnostic</span>
+{
+  prospect_id: <span class="s">'P033'</span>,
+  channel:     <span class="s">'email'</span>,        <span class="c">// drives transport at send</span>
+  to:          <span class="s">'silke.lengler@gmail.com'</span>,
+  subject:     <span class="s">'...'</span>,
+  body:        <span class="s">'...'</span>,            <span class="c">// Consular draft, voice-matched</span>
+  scheduled_for: <span class="s">'2026-06-14T18:10:00Z'</span>, <span class="c">// 10-min pull-back</span>
+  drafted_by:  <span class="s">'consular'</span>,
+  status:      <span class="s">'queued'</span>          <span class="c">// queued|sent|delivered|opened|replied</span>
+}
+
+<span class="c">// transport: Gmail API two-way (Phase 1)</span>
+<span class="k">inbound</span>:  watch → match from-address to contact → <span class="k">appendEvent</span>(E-mail In)
+<span class="k">outbound</span>: outbox row → Gmail API send → <span class="k">appendEvent</span>(E-mail Out, threadId)
+<span class="c">// log-first, then SQLite projection. Same [SYNC-L] invariant as WhatsApp.</span></pre>
+    <div class="body" style="max-width:none;margin-top:18px">
+      <p>Identity matching (the cost centre for Proposal A) lives in <code>contacts</code>: a contact gains an <code>email</code> key beside <code>phone</code>, and inbound matching tries email first, then domain, then falls to the unmatched bucket, exactly as unmatched WhatsApp works today. Nothing here is a new subsystem. It is the WhatsApp pattern, run a second time, on a second transport, surfaced through the deck the rep already reads.</p>
+    </div>
+  </div>
+</section>
+
+<!-- OPEN DECISIONS -->
+<section class="sec" id="oq">
+  <div class="wrap">
+    <div class="sec-head">
+      <div><div class="sec-num">10 / Decisions</div></div>
+      <div><div class="sec-title">What I need from you before CD specs the build.</div></div>
+    </div>
+    <ol class="oq">
+      <li><b>Surface choice.</b> Confirm the recommendation (D surface + C engine, B in reserve), or pick a different lead proposal. This is the one decision that scopes everything else.</li>
+      <li><b>Transport.</b> Gmail API two-way (your real inbox, recommended) versus a transactional provider (a <code>crm@</code> identity). For relationship selling I read this as Gmail, but it is your call.</li>
+      <li><b>Auto-send appetite.</b> Should the trust-zone auto-send that exists for WhatsApp extend to low-stakes email, or must every email be human-approved at first? Email is higher-stakes, so I lean human-approved until trust is earned.</li>
+      <li><b>Open-tracking.</b> Proposal E and the "opened 3x" signals need read-tracking pixels. Useful, but some clients and privacy norms dislike them. In or out for v1.</li>
+      <li><b>Identity merge timing.</b> Ship channels as parallel lanes first (B/D), or invest in the contact identity-merge now so One Thread (A) is reachable sooner.</li>
+    </ol>
+    <div class="body" style="max-width:none;margin-top:20px">
+      <p>Pick a lead proposal and answer the five, and I will write the spec to CD, who specs the build for Jedi Code to wire. I propose, they build. Nothing here touches the database without your sign-off on the surface first.</p>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <div class="cols">
+      <span><b>OskarOS CRM</b> · Email in the Overview</span>
+      <span>5 proposals · A One Thread · B Triage · C Co-Pilot · D Deck · E Signal</span>
+      <span>Author: <b>Consular</b> · for Filippo</span>
+      <span>Status: for decision · build routes CD → Jedi Code</span>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>

@@ -191,11 +191,17 @@ export function SnackbarProvider({ children }: { children: ReactNode }) {
           break
 
         case 'error':
+          // Errors stay until the user dismisses them. Ralph 2026-06-03 ·
+          // confirmed sticky-by-default after a brief detour to auto-dismiss:
+          // a batch of 20 failures SHOULD stack visibly so Ralph can review
+          // every one before they evaporate. The 8-deep cap on auto-dismiss
+          // snackbars is sticky-exempt, so the stack grows vertically until
+          // dismissed manually (or via dismissAll).
           show('error', event.data.message || 'Something went wrong', {
             actions: [
               { label: 'Retry', onClick: () => {} }
             ],
-            duration: 0  // Errors stay until dismissed
+            duration: 0
           })
           break
 
@@ -274,7 +280,16 @@ export function SnackbarProvider({ children }: { children: ReactNode }) {
             | 'info' | 'success' | 'progress' | 'warn' | 'warning' | 'error'
             | undefined
           const sev = sevRaw === 'warn' ? 'warning' : sevRaw
-          // Default sticky-ness per severity.
+          // Default sticky-ness per severity. Ralph 2026-06-03 (re-confirmed):
+          //   progress → sticky (in-flight op; only the caller knows when to
+          //                      dismiss)
+          //   warning  → sticky (something needs attention; don't let it
+          //                      vanish before read)
+          //   error    → sticky (failures must be reviewed; a batch of 20
+          //                      should stack visibly until dismissed)
+          //   info/success → auto-dismiss (5 s)
+          // Callers can still pass `sticky: false` explicitly when they
+          // really need it.
           const defaultSticky = sev === 'warning' || sev === 'error' || sev === 'progress'
           const sticky = typeof event.data.sticky === 'boolean'
             ? event.data.sticky

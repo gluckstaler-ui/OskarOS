@@ -46,25 +46,14 @@ Verticals (law-firm websites, brand assets, decks) are first revenue paths on to
 
 ---
 
-## §1 — Status Snapshot
+## §1 — Shipped Record
 
-Status legend (6 states with icons):
+This is the **shipped + retired/superseded record.** Every open / pending work-package — plus the file manifest, implementation sequence, gate-checklists, and open decisions — moved to **`docs/feature-xx.md`** (its §1, §1.2-§1.4, §9). Per-item build detail lives in §3-§18.
 
-```
-✅ SHIPPED   — committed, in production, working
-❌ PARTIAL   — works but has known gaps; gap noted on sub-line (covers UNCOMMITTED, IN-PROGRESS)
-   PENDING   — defined work package, not started
-⚠️ BLOCKED   — depends on another PENDING package (note dep on sub-line)
-   DEFERRED  — out of scope this cycle (trigger condition noted)
-🗑️ RETIRED   — explicitly killed before completion (scope tightened, doctrine
-              shift, or Darth Scaffolder caught at review). Cite who, when, and why.
-              Distinct from DEFERRED (will return) and PENDING (will be done).
-```
-
-Norm: 1 line per item, max 3. Detail moves to §3-§8.
+Legend: ✅ SHIPPED · 🗑️ RETIRED (killed before completion) · ⤳ SUPERSEDED (replaced by a later WP) · ❌ PARTIAL (shipped with a tracked open tail → feature-xx.md).
 
 ```
-PROVIDER ROUTING & MODEL TRUTH (2026-05-04/05 — Bugs L–N + tri-toggle + Z.ai audit)
+PROVIDER ROUTING & MODEL TRUTH (2026-05-04/05)
 ─────────────────────────────────────────────────────────────────
 ✅ SHIPPED   Bug L  Per-model context window lookup (lib/providers/model-context.ts)
 ✅ SHIPPED   Bug M  Active Model badge + actualModel cache + 'auto' sentinel
@@ -72,590 +61,137 @@ PROVIDER ROUTING & MODEL TRUTH (2026-05-04/05 — Bugs L–N + tri-toggle + Z.ai
 ✅ SHIPPED   Bug N  Per-mode $ + context fill (UsageBadge; per-mode rollups in usage-tracker)
 ✅ SHIPPED   SMPL/CLI/API tri-toggle (TopBar; settings.json owns model resolution)
 ✅ SHIPPED   Init-event shape fix (system/init both shapes detected) + Z.ai compat-layer audit
-   DEFERRED  Z.ai weekly limit operational finding — cross-doc to INSTITUTIONAL-MEMORY.md.
-             GLM Coding Plan's "3× Pro" claim doesn't survive heavy debugging.
 
 
-FOUNDATION (post-MCP-Phase-3 hardening)
-─────────────────────────────────────────────────────────────────
-❌ PARTIAL   Phase 2/3 MCP refactor — code in tree (8.7k ins / 1.9k del / 70 files); uncommitted.
-             Resolve before WP-1.
-   PENDING   WP-1   Persistent bus + bridge replacement (MCP Phase 4)
-   PENDING   WP-2   Agent-prompt validation (schema + CI gate; ~200 LOC)
-   PENDING   WP-3   Replay test framework
-   (Brand-lint v1/v2 moved to SENTINEL TI block; Sage 240/40 moved to SAGE block;
-    WebDev verification floor moved to SENTINEL TI as WP-53.)
-
-
-SUBSTRATE (multi-tenancy)
-─────────────────────────────────────────────────────────────────
-❌ PARTIAL   Token usage tracking — events captured (lib/usage-tracker.ts), no billing wiring,
-             no per-tenant attribution; completion owned by WP-6.
-   PENDING   WP-5   Identity + persistent storage (auth + DB schema, coupled)
-   PENDING   WP-6   Billing + onboarding (BYOK moved to WP-39)
-   PENDING   WP-7   Per-tenant Order instantiation
-
-
-ORDER (agent doctrine + infrastructure — cross-cutting only; Sage and Sentinel Ti
-       have their own blocks below)
+ORDER (agent doctrine + infrastructure)
 ─────────────────────────────────────────────────────────────────
 ✅ SHIPPED   INSTITUTIONAL-MEMORY.md project-wide 3-turn-bug log
-   PENDING   WP-87  INSTITUTIONAL-MEMORY doctrine entry — distill the Goldfish
-                    lessons from 2026-05-09/10 (curate-don't-extract; backfill
-                    failure cascade; phantom-file detection — when a WP cites a
-                    filename, `find` it before reviewing). ~50 lines of doctrine.
 ✅ SHIPPED   Order 66 + cinematic compaction overlay (public/compaction-overlay.html)
 ✅ SHIPPED   RESURRECTION.md per-project pattern (.claude/RESURRECTION.md)
-🗑️ RETIRED   WP-8   Lumberjack stage-graph as data. Target architecture (multi-stage
-                   pipeline runtime in lib/memory/lumberjack.ts) was retired by WP-67
-                   on 2026-05-09. Current Lumberjack is a single padawan agent reading
-                   lumberjack-padawan.md — no pipeline to declare as typed data.
-   PENDING   WP-9   Death Protocol generalized (lift Order 66 / Sage cut / bridge respawn)
-   PENDING   WP-11  Structural audit agent (counter-trained vs external-auditor blind spots)
-   PENDING   WP-48  Doctrine versioning + diff visibility (per-agent frontmatter; tenant
-                    delta-pass on upgrade; ~200 LOC). NEW from FEATURE-X2 absorption.
+🗑️ RETIRED   WP-8   Lumberjack stage-graph as data — retired by WP-67 2026-05-09 (single
+                   padawan agent reading lumberjack-padawan.md replaced the pipeline).
 
 
-SAGE / MEMORY AGENT (Lumberjack stages + 240/40 cut + portrait subsystem)
+SAGE / MEMORY AGENT
 ─────────────────────────────────────────────────────────────────
-✅ SHIPPED   Sage portrait subsystem v1 (paints user portrait into agents/CD-MEMORY.md +
-             per-session user.md; runs each Lumberjack pass)
-✅ SHIPPED   Lumberjack 7-stage externalization to agents/lumberjack-stages/*.md
-             (runtime that consumed the pipeline retired by WP-67 2026-05-09;
-             current Lumberjack is the lumberjack-padawan.md single agent;
-             stage .md files left on disk for reference)
-✅ SHIPPED   Sage 240/40 24h pre-prune snapshot retention (mitigation, not fix)
-❌ PARTIAL   Sage 240/40 cut — heuristic; destructive 2026-04-30 (433KB→67KB, recovered).
-             Deterministic version owned by WP-49. Recovery .bak still on disk.
-❌ PARTIAL   Lumberjack stage pipeline — markdown-loaded; typed graph runner owned by WP-51
-✅ SHIPPED   WP-49  Sage 240/40 deterministic cut — anchor logic in
-                   lib/memory/dreamer.ts:1382-1396 (cut.{stage}.anchor / no-anchor
-                   tracing); regression tests at lib/memory/sage-240-cut.test.ts
-                   (Ralph 2026-05-02 fix); doctrine in agents/sage-240-40.md.
-                   Pre-write validation gate
-                    (replace heuristic Block summarization; ~150 LOC + agent-prompt rewrite)
-   PENDING   WP-50  Sage portrait — versioning + audit trail + user-edit support
-                    (each pass writes a versioned diff; user can correct Sage's reading)
-🗑️ RETIRED   WP-51  Lumberjack typed pipeline declaration. Same target architecture
-                   as WP-8; multi-stage pipeline runtime retired by WP-67 2026-05-09.
-   PENDING   WP-10  Sage portrait UI (dashboard tab, version history; ~250 LOC + UX;
-                    surface artifact of agent substrate; tied to WP-7 per-tenant Order)
-   PENDING   WP-52  Sage doctrine-version awareness (cross-tenant delta-pass on doctrine upgrade;
-                    pairs with WP-48)
+✅ SHIPPED   Sage portrait subsystem v1 (paints into agents/CD-MEMORY.md + per-session user.md)
+✅ SHIPPED   Lumberjack 7-stage externalization to agents/lumberjack-stages/*.md (reference only)
+✅ SHIPPED   Sage 240/40 24h pre-prune snapshot retention
+✅ SHIPPED   WP-49  Sage 240/40 deterministic cut — anchor logic in lib/memory/dreamer.ts;
+                   regression tests lib/memory/sage-240-cut.test.ts; doctrine agents/sage-240-40.md.
+⤳ SUPERSEDED Sage 240/40 heuristic cut → by WP-49 (deterministic).
+🗑️ RETIRED   WP-51  Lumberjack typed pipeline declaration — same target as WP-8; retired by WP-67.
+⤳ SUPERSEDED Lumberjack stage pipeline (typed graph runner) → retired with WP-51 / WP-67.
 
 
-SENTINEL TI / VERIFICATION + CRITIQUE (the audit agent — render quality + brand discipline)
+SENTINEL TI / VERIFICATION + CRITIQUE
 ─────────────────────────────────────────────────────────────────
-✅ SHIPPED   critique-guide.md (5-dimension rubric: Philosophy / Hierarchy / Craft /
-             Function / Originality; referenced in TIER 2 of CD agent)
-✅ SHIPPED   verification.md (render-and-watch protocol; mandatory before declaring build complete)
-✅ SHIPPED   submit_critique tool — defined in MCP server; ToolCard render PENDING (WP-22)
-❌ PARTIAL   Brand-lint v1 — frozen 2 rules (lib/__tests__/brand-lint-scope.test.ts);
-             content-guidelines.md integration is ZERO code; owned by WP-55.
-❌ PARTIAL   content-guidelines.md (referenced TIER 2 of CD agent; lint integration TBD)
-   PENDING   WP-53  Sentinel Ti verification floor (post-build smoke test:
-                    JSDOM <img> data-slot/data-usage check, src-exists check, parse errors,
-                    title/meta presence; ~120 LOC; reuses brand-lint-rules infrastructure)
-   PENDING   WP-54  Critique workflow + radar chart UI (5-dim score viz + Keep/Fix/Quick-wins
-                    list; WP-22 Tier-3 ToolCard for submit_critique; ~120 LOC card)
-   PENDING   WP-55  Brand-lint v1.5 — content-guidelines integration
-                    (banned phrases + voice-locking + anti-slop rules wired into lint runner)
-   PENDING   WP-4   Brand-lint v2 — perceptual diff (SSIM/LPIPS via small ONNX model;
-                    ~400 LOC including dep; first non-trivial native dep — see §9 decision #5)
-   PENDING   WP-56  Sentinel Ti animation audit gate (cross-doc to HUASHU v4 §C1;
-                    integrates animation-pitfalls.md into per-build audit)
+✅ SHIPPED   critique-guide.md (5-dimension rubric; TIER 2 of CD agent)
+✅ SHIPPED   verification.md (render-and-watch protocol; mandatory before build-complete)
+✅ SHIPPED   submit_critique tool (MCP server) + Tier-3 ToolCard
+✅ SHIPPED   WP-54  Critique radar UI — components/chat/CritiqueCard.tsx (2026-05-18); radar +
+                   recommendations; wired ConversationPanel.tsx:648; bus event critique_submitted.
 
 
-DOCTRINE (huashu / skills integration — active backlog at HUASHU-INTEGRATION-PROPOSAL.md v4)
+DOCTRINE (skills integration)
 ─────────────────────────────────────────────────────────────────
 ✅ SHIPPED   skills/references/ vendored (21 files, ~8,139 lines)
 ✅ SHIPPED   Matrix landing 2026-04-30 (slide-decks.md 20×9 matrix; workflow.md Phase 1-GATED)
 ✅ SHIPPED   creative-director-agent.md TIER 1/2/3 (Animation TRIO + Audio + Presentations + cta-manual)
-✅ SHIPPED   webdev-agent.md TIER reference table (verified 2026-05-05; v4 §C3 cross-doc)
+✅ SHIPPED   webdev-agent.md TIER reference table (verified 2026-05-05)
 ✅ SHIPPED   cta-manual.md / design-styles.md / critique-guide.md / verification.md
-             (critique-guide + verification also tracked under SENTINEL TI block)
-❌ PARTIAL   content-guidelines.md (referenced TIER 2; lint integration owned by SENTINEL TI WP-55)
-❌ PARTIAL   export-formats.md (renamed from editable-pptx.md; absorbed Path A/Path B + slide labels)
-❌ PARTIAL   Animation refs (5 files, ~1,576 lines; integration owned by v4 + SENTINEL TI WP-56)
-   PENDING   v4 carry-forwards: §C5 (audio gate), §C6 (cross-vibe coherence), §C7 (5-10-2-8),
-             §C8 (Sage promotion), §C9 (cull list), §C10 (legacy vibe triage), §A1 (BRANDING tab),
-             §A2 (scene-templates), §A4 (image-slot vocab), §B1 (content templates), §B2 (per-format)
 
 
-OPEN-DESIGN PORT PLAN (chat UI migration — see §3)
+OPEN-DESIGN PORT (chat UI — see §3)
 ─────────────────────────────────────────────────────────────────
-                    PHASE 0 — DOCTRINE
 ✅ SHIPPED   WP-12  TodoWrite-emit doctrine (creative-director-agent.md:93)
-✅ SHIPPED   WP-66  TodoWrite persistence layer (lib/runtime/todos-store.ts; 235 LOC,
-                    2026-05-06). Tier-3 panel renders in overlay only; agent-message
-                    anchors it.
-✅ SHIPPED   WP-13  ToolCard custom-card surface spec — docs/toolcards-mockup.html
-                    (3,721 lines, 119 annotations). Documents the 4 archetypes
-                    (Job / Diff / Verdict / Control+ambient), Discovery panel
-                    contract, Snackbar surface, TodoWrite narration, Visual
-                    Hierarchy discipline, Confirm Understanding card, 4-Phase
-                    Junior Pass cards. The 17 ToolCards in WP-22 were built
-                    against this spec; the contract held end-to-end.
-   DEFERRED  WP-14  Skill-folder shape decision (trigger: multi-tenant productization push)
-
-                    PHASE 1 — VENDOR
-✅ SHIPPED   WP-15  srcdoc font-preload audit (DONE 2026-05-02; no change needed)
-
-                    PHASE 2 — CHAT UI
-✅ SHIPPED   WP-16  SSE typed contracts (lib/types/chat-sse.ts)
-✅ SHIPPED   WP-17  SSE frame parser (lib/providers/sse.ts + sse.test.ts)
-✅ SHIPPED   WP-18  Hand-rolled markdown renderer (components/MarkdownRenderer.tsx)
-✅ SHIPPED   WP-19  QuestionForm + Discovery cards (components/chat/{QuestionForm, Discovery, Confirm})
-   PENDING   WP-20  AssistantMessage scaffold (sequenced after WP-22 pre-pass)
-✅ SHIPPED   WP-21  Loading primitives (components/chat/Loading.tsx)
-✅ SHIPPED   WP-22  ToolCard render + 17 custom cards (verified 2026-05-10):
-                    ApplyPatchCard, BuildJobCard, BuildOverlayRow, ConfirmUnderstandingCard,
-                    DesignDirectionsCard, DesignSystemCard, DiagnosticChip,
-                    DiscoveryQuestionsCard, ImageStrategyCard, LiveOverlay, Loading,
-                    MentionPopover, QuestionForm, ScreenshotCard, UnfinishedTodosPanel,
-                    UploadEvalBatchCard, UploadEvalCard. ConversationPanel renders 12+
-                    card kinds end-to-end. ~3,854 LOC across the 17 components.
-                    Earlier "BLOCKED on WP-13" tag was stale — work shipped against
-                    docs/toolcards-mockup.html (WP-13's mockup-form spec).
-✅ SHIPPED   WP-23  Card design pre-pass — CD reviewed cards through iterative dev
-                   sessions; 17 polished card components reflect that review
-                   (~3,854 LOC across the suite, evolved over months 2026-04 → 2026-05).
-   PENDING   WP-24  Card visual regression baselines (after all 13 ship)
-✅ SHIPPED   WP-25  TodoWrite parser + UnfinishedTodosPanel (verified 2026-05-10):
-                    UI ships at components/chat/UnfinishedTodosPanel.tsx (385 LOC);
-                    parsers ship at lib/session.ts:563 (parseTodosSection) and
-                    lib/runtime/todos.ts (parseTodoWriteInput) with test coverage at
-                    lib/runtime/todos.test.ts. "Parser TBD" tag was stale.
-
-                    PHASE 3 — TESTING + COMPOSER
-✅ SHIPPED   WP-26  UICase types + index registry — e2e/cases/types.ts (UICase shape
-                   adapted from open-design 2026-05-02) + e2e/cases/index.ts (378 LOC,
-                   19 flows registered with category/flow/seed/mockStrategy/prompt/
-                   expectedEvents). Spec called for 24; 19 live with extension points
-                   for remaining 5.
-✅ SHIPPED   WP-27  Markdown reporter (e2e/reporters/markdown-reporter.ts)
-✅ SHIPPED   WP-28  Reporter format pre-pass — CD reviewed reporter output during
-                   dev sessions; WP-27 shipped the reporter (349 LOC) with the
-                   pre-pass review baked into the iteration cycle.
-✅ SHIPPED   WP-29  Route-mocking helpers — e2e/helpers/mock-routes.ts (232 LOC,
-                   2026-05-02). Earlier "mocks partial" tag was stale.
-✅ SHIPPED   WP-30  @-mention popover (components/chat/MentionPopover.tsx + test)
-✅ SHIPPED   WP-32  PasteTextDialog (components/PasteTextDialog.tsx)
-
-                    PHASE 4 — ACTIVE SCOPE (promoted 2026-05-02)
-   PENDING   WP-34  hyperframes integration (HTML→MP4 motion graphics; 2-3 weeks)
+✅ SHIPPED   WP-66  TodoWrite persistence layer (lib/runtime/todos-store.ts; 235 LOC)
+✅ SHIPPED   WP-13  ToolCard custom-card surface spec (docs/toolcards-mockup.html; 3,721 lines)
+✅ SHIPPED   WP-15  srcdoc font-preload audit (no change needed)
+✅ SHIPPED   WP-16  SSE typed contracts · WP-17  SSE frame parser · WP-18  markdown renderer
+✅ SHIPPED   WP-19  QuestionForm + Discovery cards · WP-21  Loading primitives
+✅ SHIPPED   WP-22  ToolCard render + 17 custom cards (~3,854 LOC; verified 2026-05-10)
+✅ SHIPPED   WP-23  Card design pre-pass · WP-25  TodoWrite parser + UnfinishedTodosPanel
+✅ SHIPPED   WP-26  UICase types + index registry · WP-27  Markdown reporter · WP-28  reporter pre-pass
+✅ SHIPPED   WP-29  Route-mocking helpers · WP-30  @-mention popover · WP-32  PasteTextDialog
 ✅ SHIPPED   WP-35  SketchEditor integration (components/director/SketchEditor.tsx + test)
 
-                    DEFERRED (trigger-based)
-   DEFERRED  Open-design original skills (magazine-poster + image-poster + social-carousel —
-             trigger: FF or Aequitas commits to brand-asset deliverables)
-   DEFERRED  Lewislulu html-ppt-skill (31 layouts + runtime.js + 6-8 themes — trigger: deck output
-             as real customer deliverable)
 
-
-JUNIOR DESIGNER WORKFLOW (build-time discipline — see §4)
+JUNIOR DESIGNER WORKFLOW (see §4)
 ─────────────────────────────────────────────────────────────────
-✅ SHIPPED   2-page showcase universal rule (workflow.md Aft
-
-   er-Phase-1-GATED — 8 formats)
-❌ PARTIAL   Junior Designer Workflow overall posture
-             → presentations: SHIPPED via 2-page showcase
-             → landing pages: PENDING (4-pass workflow not yet in webdev-agent.md)
-✅ SHIPPED   WP-37  4-pass workflow doctrine — skills/references/workflow.md:557
-                   "Junior Designer Mode — the 4 passes (canonical)". Verified 2026-05-10.
-✅ SHIPPED   WP-38  CD discovery batch-asking rule — agents/creative-director-agent.md:375
-                   "In most cases, ask at least 10 questions before starting." Verified 2026-05-10.
+✅ SHIPPED   2-page showcase universal rule (workflow.md After-Phase-1-GATED — 8 formats)
+✅ SHIPPED   WP-37  4-pass workflow doctrine (skills/references/workflow.md:557)
+✅ SHIPPED   WP-38  CD discovery batch-asking rule (creative-director-agent.md:375)
+❌ PARTIAL   Landing-page 4-pass workflow not yet in webdev-agent.md (open tail → feature-xx.md §3)
 
 
-BRANDING — TENANT IDENTITY + CONFIG (per-tenant level)
+BRANDING — DELIVERABLES CATALOG (see §9)
 ─────────────────────────────────────────────────────────────────
-   PENDING   WP-39  BYOK (Bring Your Own Key) — per-tenant Anthropic API key. Lives in BRANDING tab UI
-             (v4 §A1, currently PENDING in DOCTRINE). Reassigned 2026-05-01 from WP-6 onboarding flow
-             per "your Order runs on your key" thesis.
+✅ SHIPPED   WP-57  BrandData extraction (lib/brand-data.ts) · WP-58  Deliverables Catalog
+                   (lib/brand-deliverables.ts; 7 templates)
+✅ SHIPPED   WP-59  BrandingPanel UI rework (+8 components) · WP-60  Brand Generate API
+✅ SHIPPED   WP-64  Magenta chroma-key (image_ops; tools-capabilities.ts) · WP-65  Preset prompt rewrite
+⤳ SUPERSEDED Brand deliverables "rudimentary" (old WP-16 / WP-B1..B5) → by WP-57..60 / 64 / 65.
 
 
-BRANDING — DELIVERABLES CATALOG (per-vibe brand assets — see §9)
+PORTABILITY (see §4)
 ─────────────────────────────────────────────────────────────────
-❌ PARTIAL   Brand deliverables — WP-16 (in ADVANCED-MODE-PLAN.md §16) RUDIMENTARILY SHIPPED:
-             tab shell + brand data plumbing only. Wrong preset list (8 old draft, not §16.2
-             final 7); slot staging missing; vibe picker hardcoded to vibes[0]; magenta
-             chroma-key postproc not built; preset prompts not rewritten. 5 orphan files
-             from old WP-B1..B5 marked for deletion (BrandingPanel.tsx / BrandDataEditor.tsx /
-             DeliverablePicker.tsx / brand-deliverables.ts / api/brand/generate/route.ts).
-✅ SHIPPED   WP-57  BrandData extraction module — lib/brand-data.ts (113 LOC) with
-                   explicit "WP-B1" tag in header. brandDataFromVibe / brandDataFromFile /
-                   brandDataBlock all live. Was WP-B1.
-✅ SHIPPED   WP-58  Deliverables Catalog + Prompt Builders — lib/brand-deliverables.ts
-                   (306 LOC) with explicit "WP-B2" tag. 7 templates: Logo, Brand Guideline,
-                   Business Card, Pitch Slide, Website Hero, Social Post, Social Story.
-                   Was WP-B2.
-✅ SHIPPED   WP-59  BrandingPanel UI rework — components/advanced/BrandingPanel.tsx +
-                   8 supporting components (AssetGrid, AssignToVibeDrawer, BrandDataEditor,
-                   CanvasPreview, DeliverablePicker, ImageChatPanel, PresetsStaging,
-                   PromptEditor). Was WP-B3.
-✅ SHIPPED   WP-60  Brand Generate API — app/api/brand/generate/route.ts (248 LOC).
-                   POST /api/brand/generate; auto-cataloging to IMAGES.md per spec.
-                   Was WP-B4.
-   DEFERRED  WP-63  Phase 4 — Brand Library View (gallery + ZIP export; trigger: customer ask)
-✅ SHIPPED   WP-64  Magenta chroma-key — CD-fired image_ops operation (verified 2026-05-10).
-                   Operation registered in tools-capabilities.ts:319; full state types
-                   in image-mode/types.ts with #FF00FF default + tolerance + feather
-                   knobs; UI integration in AdvancedMode.tsx. Doctrine in CD agent
-                   lines 525-560 ("Logos are the canonical Image Ops case" — chain:
-                   Layout → slice → chroma-key → crop → tag). Was never intended as
-                   automated postproc — CD fires deliberately via image_ops(filename,
-                   'chroma-key', params), or user fires from Assets panel. Original
-                   line text below preserved.
-                   Magenta chroma-key postproc (per WP-15 principles; required for Logo/Hero
-                    pipeline)
-✅ SHIPPED   WP-65  Preset prompt rewrite — lib/brand-deliverables.ts (306 LOC) ships
-                   all 7 §16.2 deliverables (Logo / Brand Guideline / Business Card /
-                   Pitch Slide / Website Hero / Social Post / Social Story) with
-                   FORMAT/STRUCTURE/CONSTRAINTS prompt structure, brand-data injection,
-                   and image-reference blocks. submit_proofread cycle wired via
-                   tools-cd.ts:104. Verified 2026-05-10. Original line text below.
-                   Preset prompt rewrite per WP-15 principles (the 7 final §16.2 deliverables;
-                    each prompt audited against current quality bar)
+✅ SHIPPED   WP-40  Linux/WSL portability (2026-06-02) — lib/cli-paths.ts (findBinary/safePath);
+                   WSL launcher under windows/.
+✅ SHIPPED   WP-128 Chromium portability (2026-06-02) — both launchers → findBinary('chromium');
+                   .puppeteerrc.cjs skips puppeteer download.
+⤳ SUPERSEDED "OskarOS deployment story (Linux x86)" → by WP-40 + WP-128.
+❌ PARTIAL   WP-41  API-mode deployment — Sub-1/2/3 shipped; Sub-4 (thinking blocks) open
+                   → feature-xx.md §6. See §4.6.
 
 
-PORTABILITY (Linux x86 deployment — see §4)
-─────────────────────────────────────────────────────────────────
-❌ PARTIAL   OskarOS deployment story (Linux x86 hosting)
-✅ DONE      WP-40  Linux/WSL portability — SHIPPED 2026-06-02: lib/cli-paths.ts consolidation
-             (findBinary/safePath + CLAUDE_BIN/GEMINI_BIN/CHROMIUM_BIN), sentinel-ti.ts cwd-relative,
-             cron/banners portable, start.command cd bug fixed, WSL launcher under windows/.
-✅ DONE      WP-128 Chromium portability — SHIPPED 2026-06-02: both launchers (thumbnail-generator.ts +
-             api/mcp/screenshot) → findBinary('chromium'); .puppeteerrc.cjs skips puppeteer download;
-             tsconfig forceConsistentCasingInFileNames ON (full tsc = 0 casing bugs). PORT-READY.
-             Host needs: chromium-browser (or CHROMIUM_BIN) · build-essential+python3 · claude on PATH.
-❌ PARTIAL   WP-41  API-mode deployment (Sub-1/2/3 shipped, Sub-4 PARTIAL = thinking blocks;
-             Sub-5 production-hardening FOLDED INTO WP-91 2026-06-02). See §4.6.
-
-
-PRODUCTIZATION (Vertical #1 — Swiss law-firm websites; gated on first paying customer; see §5)
-─────────────────────────────────────────────────────────────────
-   PENDING   Customer offer (CHF 25-40k year one, CHF 18-30k years after) — when gating ships
-   PENDING   WP-42  SEO Optimization Layer (~1.5 weeks; per-page panel, schema designer, sitemap,
-             validation, programmatic-SEO bulk)
-   PENDING   WP-43  Multilingual Layer (~2.5 weeks; family graph, hreflang, translation pipeline,
-             switcher, per-language sitemap)
-   PENDING   WP-44  Blog, multilingual (~2 weeks; authoring loop + multi-language sync)
-   PENDING   WP-45  AI-Overview / SGE optimization (supporting; ~2-3 weeks; customer-funded)
-   PENDING   WP-46  Static-shadow layer (supporting; ~2 weeks; hybrid-WP migration only)
-
-
-CARRY-FORWARD (smaller packages, audit triage — see §5)
-─────────────────────────────────────────────────────────────────
-✅ SHIPPED   Vibe Resolver / useImagePipeline / ensureSession race / webDevModelRef / handleSend
-             ChatCoordinator / page.tsx refactor (2871→2555) / Director Mode persistence
-❌ PARTIAL   director_save event-bus event from save-edits route (uncommitted; commit alongside MCP)
-❌ PARTIAL   ADVANCED-MODE-PLAN.md (Phases 1-5 SHIPPED; Phase 6 SHIPPED with bugs FIXED 2026-05-01;
-             Phase 7 RUDIMENTARY only — see §5.1)
-✅ SHIPPED   BRANDING-PLAN.md INTEGRATED 2026-05-05 — 17 sections folded into Feature-X §9
-             (canonical) + cross-doc to HUASHU-INTEGRATION-PROPOSAL.md v4 §A1. Original file
-             preserved as historical record. WP-B1..B5 renumbered to WP-57..60 with
-             WP-63..65 added for Phase 4 + chroma-key + prompt rewrite.
-❌ PARTIAL   MEMORY-SYSTEM-IMPLEMENTATION-PLAN.md (Phase 1+3 SHIPPED; 2 SUPERSEDED;
-             4 PARTIAL; 5 unknown; needs SUPERSEDED header)
-   PENDING   ARCHITECTURE-REDESIGN.md close-out (~7 KB older proposal; superseded vs live audit)
-❌ PARTIAL   IMPLEMENTATION-PLAN-API-AGENT.md (Phase 1+2+4 IMPLEMENTED; Phase 3 has WP-41 open)
-
-
-§12.1 — BUILD-PATH RETIREMENT + COO-CLAUDE HARNESS
+§12.1 — BUILD-PATH RETIREMENT + COO HARNESS
 ─────────────────────────────────────────────────────────────────────
-❌ PARTIAL   WP-67  Kill the legacy-CLI cluster (2026-05-09; net −1,308 LOC).
-                   Confirmed gone: app/api/{webdev,claude-code,save-vibe,save-vibes}/,
-                   lib/memory/lumberjack.ts, embedded parseVibes() regex.
-                   Still present: /public/generated-vibes/ archive (Ralph approved
-                   only steps 1, 3, 5 of the original 5-step plan; archive step
-                   was NOT authorized and stays in tree).
-✅ SHIPPED   WP-68  Test-backdoor rewrite + COO.md harness (2026-05-10).
-                   app/api/test-backdoor/ rewritten for current architecture;
-                   test-harness/COO.md (902 LOC) ships 5 stress-test scenarios
-                   (FalCaMel Saudi cliff café, Bareggcenter Wes Anderson, Sindarin
-                   Elrond, etc.). HTTP impersonation surface + MCP polling surface
-                   both kept; earlier "delete and replace" plan corrected.
+✅ SHIPPED   WP-67  Killed the legacy-CLI cluster (net −1,308 LOC). One approved leftover:
+                   /public/generated-vibes/ archive (steps 1/3/5 of 5 authorized).
+✅ SHIPPED   WP-68  Test-backdoor rewrite + COO.md harness (902 LOC, 5 stress scenarios).
 
 
-§12.2 — PHASE-2 TOOLCARDS + NEW BUILD MCP TOOL
+§12.2 — PHASE-2 TOOLCARDS + BUILD MCP TOOL
 ─────────────────────────────────────────────────────────────────────
-✅ SHIPPED   WP-69  build_wireframes MCP tool (2026-05-10). Signature:
-                   build_wireframes(slugs: string[]). Three pieces shipped:
-                   tools-orchestrator dispatch case, app/api/mcp/build-wireframes/
-                   route handler (362 LOC), event-bus wiring per slug
-                   (build_started/build_progress/vibe_built/vibe_failed).
-                   Runtime e2e (CD calls tool, 3 wireframe HTMLs land on disk)
-                   on Ralph's side after Next.js restart + Order 66 respawn.
-✅ SHIPPED   WP-70  present_image_strategy MCP tool + Image Strategy Card
-                   (Webpage Vertical layout; 2026-05-10). Tool registered in
-                   tools-cd.ts:360, dispatch at :847-866, route at
-                   app/api/mcp/present-image-strategy/route.ts, event handler
-                   at page.tsx:1307. Earlier dashboard claim that this was
-                   killed was wrong — narrative claim got out-of-sync with disk.
-✅ SHIPPED   WP-71  Image Strategy Keynote Multi-Row layout extension
-                   (2026-05-10). Same component/tool as WP-70; keynote layout
-                   branch shipped alongside webpage-vertical.
-🗑️ RETIRED   WP-72  Track radio on Confirm Understanding card.
-                   Killed 2026-05-10 — no work needed; ConfirmUnderstandingCard.tsx
-                   already matches mockup §3.5 as-is. Underlying card itself
-                   shipped earlier (independent of WP-72).
-🗑️ RETIRED   WP-73  Universal textarea pattern as standalone WP.
-                   Killed 2026-05-10 — pattern itself shipped via the `freeformText`
-                   field on present_design_directions / present_image_strategy /
-                   discovery_questions response payloads. Standalone WP wasn't
-                   needed; pattern absorbed into WP-74 + WP-70.
-✅ SHIPPED   WP-74  Design Directions ToolCard + present_design_directions MCP
-                   tool (2026-05-10). Tool at tools-orchestrator.ts:183, dispatch
-                   at :568, route at app/api/mcp/present-design-directions/route.ts.
-                   Tier-3 specialty panel; closes Discovery Phase 1 → Phase 2;
-                   multi-select cap of 2.
-✅ SHIPPED   WP-75  Descent Selection ToolCard (2026-05-10) — full lifecycle.
-                   Variable-cap vibe picker: present_descent_selection MCP tool
-                   (tools-cd.ts), dispatch case, route at present-descent-selection,
-                   typed publish (descent_selection added to SessionEventKind),
-                   page handler, ConversationPanel render, DescentSelectionCard.tsx
-                   component, allowlist, response handler at orchestrator:856.
-                   CD passes `cap: number` (1..vibes.length) + `ctaLabel: string`
-                   verbatim. cap=1 → radio (e.g. "Ship This Vibe"); cap=N → multi-
-                   select with that max (e.g. "Advance These 2", "Narrow to Top 3").
-                   Optional `contextLabel` for header sub-line (phase context).
-                   Picks 1..cap; allows partial fills under cap.
-🗑️ RETIRED   WP-76  Mid-iteration Tweak action variant of Descent Selection.
-                   Killed by Ralph 2026-05-10 — mockup has only two-button shape;
-                   tweak action was overkill.
-✅ SHIPPED   WP-77  Design System ToolCard — full lifecycle shipped (verified 2026-05-10):
-                    present_design_system MCP tool (tools-cd.ts:469), dispatch case
-                    (:954), HTTP route (app/api/mcp/present-design-system/route.ts,
-                    76 LOC), page handler (page.tsx:1355), DesignSystemCard component
-                    (components/chat/DesignSystemCard.tsx, 435 LOC), allowlist entry
-                    (lib/mcp-config.ts:175). Tightened 2026-05-10 to drop phase-2-alt.
-                   §12.2 closing hygiene gate: ONE allowlist patch + ONE CD
-                   respawn covers all surviving new tools (69, 74, 75, 77) +
-                   already-existing confirm_understanding.
+✅ SHIPPED   WP-69  build_wireframes MCP tool · WP-70  present_image_strategy + Image Strategy Card
+✅ SHIPPED   WP-71  Image Strategy keynote layout · WP-74  Design Directions ToolCard
+✅ SHIPPED   WP-75  Descent Selection ToolCard · WP-77  Design System ToolCard
+🗑️ RETIRED   WP-72  Track radio on Confirm card · WP-73  Universal textarea standalone ·
+                   WP-76  Mid-iteration Tweak (all killed 2026-05-10).
 
 
-MCP-CUTOVER DEBT — VIBE PARSER + GALLERY (post-2026-04-29 dead-code mutation)
+§12.3 — VIBE PARSER + GALLERY CLEANUP
 ─────────────────────────────────────────────────────────────────────
-✅ SHIPPED   WP-78  Gallery API endpoint at app/api/sessions/[id]/gallery/route.ts
-                    (2026-05-10). HTML-as-source-of-truth + sidecar hunt against
-                    locked `## Gallery Card` schema. Tiers 1-7 of hero resolution
-                    (sidecar Hero → HTML scrape) implemented. Tier 7.5 session-folder
-                    fallback deferred 2026-05-10 (Ralph): all existing session folders
-                    cleaned up by hand so the edge-case doesn't surface; revisit only
-                    when a new session shows null-hero in the wild.
-✅ SHIPPED   WP-79  page.tsx Potemkin cleanup + Gallery lazy-load (2026-05-10).
-                    fallbackColors/fallbackFonts arrays gone, htmlFiles→resolveVibes chain
-                    gone, lazy-load effect with 30s cache + SSE-driven dirty flag wired.
-✅ SHIPPED   WP-80  VibesGallery component degradation (2026-05-10) — onError on hero img,
-                    sparse-data fallbacks (no fake swatches, system-ui when fonts absent).
-✅ SHIPPED   WP-81  lib/vibe-resolver.ts deleted (2026-05-10). FALLBACK_COLOR_SETS Potemkin
-                    + 3-strategy resolveVibes chain gone.
-✅ SHIPPED   WP-82  parseVibesFromFiles retired from build path (2026-05-10). Zero live
-                    callers in build-vibe / build-all-vibes / build-wireframes routes.
-                    Tombstone comments document the retirement.
-✅ SHIPPED   WP-83  Deleted lib/creative-brief-parser.ts (339 LOC) + test file (558 LOC)
-                    + dead buildVibePrompt() in lib/webdev.ts (67 LOC) + orphaned
-                    ParsedVibe type import. ~965 LOC of pure dead-code removal,
-                    zero behavior change. All remaining `parseVibesFromFiles` /
-                    `ParsedVibe` mentions in tree are tombstone comments only.
-                    Shipped 2026-05-10 (verified post-deletion).
-                    Full detail in §12.3. After 2026-04-29 MCP migration, the regex parser
-                    became dead in the agent layer (CD passes identity via MCP args; WebDev
-                    reads VIBE-{n}-*.md directly) but mutated UI surfaces with silent drops,
-                    100+ NOT-FOUND noise lines per load, and FalCaMel-themed fake-data
-                    fallbacks (fallbackColors / fallbackFonts cycle by index % 4).
+✅ SHIPPED   WP-78  Gallery API endpoint · WP-79  page.tsx Potemkin cleanup + lazy-load
+✅ SHIPPED   WP-80  VibesGallery degradation · WP-81  vibe-resolver.ts deleted
+✅ SHIPPED   WP-82  parseVibesFromFiles retired · WP-83  ~965 LOC dead-code removal
 
 
-PROVIDER FOLLOW-ONS (Z.AI / Vertex AI migrations)
+CRM-CONSULAR (see §16)
 ─────────────────────────────────────────────────────────────────────
-   PENDING   WP-88  Migrate Nano Banana image-gen from AI Studio REST to
-                    Vertex AI MCP (mcp-nanobanana-go → aiplatform.googleapis.com).
-                    Hard-gated on a 10-prompt safety-policy spike. (Renumbered
-                    2026-05-09 from prior WP-69 to avoid §12.2 collision.)
-   PENDING   WP-89  SMPL-API path (Z.AI direct messages endpoint, no subprocess
-                    + no compat layer) + integrate Z.AI's three official MCP
-                    servers (vision / web-search / web-reader) into agent spawn
-                    config. (Renumbered 2026-05-09 from prior WP-68.)
+✅ SHIPPED   WP-110 SQL tool · WP-112 Consular runtime + /ask · WP-113 Ask-AI WhatsApp modal
+✅ SHIPPED   WP-114 Order 66 Sage · WP-115 Order 66 gauge · WP-117 Right-rail Consular chat
+✅ SHIPPED   WP-119 Research tools (dns/wayback/pagespeed) · WP-121 People — contacts model + UI
+🗑️ RETIRED   WP-111 Prompt builder (folded into agent) · WP-118 Detail-card field expansion
+                   (the surviving billing fields landed).
 
 
-CRM MULTI-MACHINE SYNC (NEW 2026-05-25 — see §15)
+JEDI SCOUT (see §17)
 ─────────────────────────────────────────────────────────────────────
-Hub-and-spoke daily sync for the CRM. Oskar-Webserver = master + sync hub,
-Ralph + Filippo laptops = spokes. Local SQLite + append-only events.jsonl
-per machine, content-hashed media. WhatsApp socket per laptop (own number);
-db/whatsapp/ is per-laptop-private and does NOT sync. public/ joins the
-sync set so vibes generated on a laptop reach the public server. Group B
-prereqs (xlsx → SQLite + events log, content-hash media, move _whatsapp/
-out of public/, xlsx import/export fallback) tracked in WP-CRM-001.md as
-F20–F25; these five Feature-X WPs are server-dependent only.
-   PENDING   WP-104  Sync architecture spec + Oskar-Webserver setup runbook
-                     (env-var contract on existing Namecheap host, token
-                     rotation; pure design + ops, no code; ~120 LOC runbook)
-   PENDING   WP-105  Sync HTTP endpoints — events + media + public, upload +
-                     download pairs (6 endpoints + auth helper + manifest
-                     reader); path-traversal guard on public/ surface;
-                     ~570 LOC + ~150 LOC tests
-   PENDING   WP-106  Spoke-side `npm run sync` command + LWW merge for
-                     prospects field updates (per-field tracking columns,
-                     deterministic node-id tiebreaker, merge_conflicts
-                     logging); ~650 LOC + ~250 LOC merge-logic tests
-   PENDING   WP-107  merge_conflicts table + admin UI surface ("Sync
-                     conflicts" tab; Accept-winner / Apply-loser buttons;
-                     Apply-loser appends new superseding event); ~340 LOC
-   PENDING   WP-108  Sync health endpoint + Settings status display ("Last
-                     synced, X pending, K unreviewed conflicts" card; 5s
-                     poll); ~260 LOC
+✅ SHIPPED   WP-SCOUT-1..8  Pre-Kanban tasting funnel, end-to-end (git 843b95b).
+                   Caveats: runs as the `cd` role (ROLE-AS-CD workaround), model Sonnet not Opus.
 
 
-TREE-STATE DEBT (resolve before WP-1 starts)
-─────────────────────────────────────────────────────────────────
-~10k LOC in working copy uncommitted as of 2026-05-05. Verified scope via `git diff HEAD --stat`:
-70 files, 8,724 insertions / 1,960 deletions. Includes Phase 2/3 MCP refactor, 12 capability tools,
-vibe_diff snapshot, director_save event, all 2026-05-04/05 PROVIDER ROUTING work. Resolution: ONE
-big snapshot commit, or staged commits per logical section.
+MEDIA REWIRE (see §18)
+─────────────────────────────────────────────────────────────────────
+✅ SHIPPED   WP-129..133 — by-folder media layout shipped 2026-06-05: lib/scout-paths.ts,
+                   scripts/migrate-{scout,whatsapp}-media.ts, auth-gated capture route
+                   (api/admin/scout/capture/[plz]/[slug]/[file]), WhatsApp bucket-on-landing
+                   (lib/wa-runtime.ts). public/__scout__/ retired; media/ is the live layout.
 ```
 
----
-
-### §1.1 — Open Decisions
-
-Six decisions awaiting Ralph's signal. Each carries a trigger condition — most resolve only when a paying customer commits or a specific WP starts. Sorted by trigger urgency.
-
-1. **WP-20 retirement.** *Trigger: 30-day timer.* The AssistantMessage scaffold (~600 LOC port) has been on the books since the OD chat-UI port plan. The "tactical bridge" comment at `components/ConversationPanel.tsx:35` has been there for months while the bridge worked through 17 ToolCards end-to-end. If the bridge IS the architecture now, retire WP-20. If kept PENDING, default-retire if untouched another 30 days.
-
-2. **`docs/ARCHITECTURE-REDESIGN.md` close-out.** *Trigger: any future plan-cleanup pass.* ~7 KB legacy proposal. Mark `[SUPERSEDED]` and link to current architecture, OR migrate live items into Feature-X. One read-and-decide session.
-
-3. **Multi-tenant timing + pillar order.** *Trigger: first paying customer commits.* Track A (productization arc, ~6-8 weeks all-or-nothing) before Track C (customer-funded SEO/Multilingual/etc.) — or fork single-tenant for the first paying customer and defer multi-tenant? B-before-C is cleaner architecturally (per-tenant storage simplifies per-customer asset namespacing). C-first-then-A-as-second-customer trades discipline for near-term revenue. Read: agent-substrate thesis only works at multi-tenant; single-tenant forking compounds debt.
-
-4. **BYOK vs OskarOS-fronted billing (WP-39 + WP-6).** *Trigger: first paying customer commits.* BYOK is faster, lower-liability, lower-margin. OskarOS-fronted needs Anthropic enterprise terms + billing infra but unlocks higher pricing (CHF 25-40k offer doesn't fly if customer also pays Anthropic separately). Pick one, or ship BYOK first and add fronted as paid-tier upgrade.
-
-5. **Death Protocol generalization (WP-9).** *Trigger: 6th agent surfaces, or a serialize bug bites.* Order 66 + Sage cut + bridge respawn each handle context-serialize/deserialize individually today. Lifting to a single `serializeContext` / `bootFromContext` interface is medium-cost (~1 week). Framework wins as N agents grow past 5; ad-hoc wins if N stays small.
-
-6. **Brand-lint v2 perceptual diff (WP-4).** *Trigger: pixel-fidelity regression bites in production.* Adds ~10 MB ONNX model dependency — first time the deploy bus introduces a non-trivial native ML dep. Worth it for the quality signal, but adds deployment complexity. Confirm before take-on; otherwise v1 (structural rules only) is sufficient.
-
----
-
-### §1.2 — File Manifest (pending work only)
-
-Filtered to genuinely-pending work tied to actually-open WPs. Already-shipped manifests removed; HUASHU v4 cross-doc items omitted (not in Feature-X scope).
-
-**Track A — Productization arc (NEW; gated, not started)**
-
-*Foundation Order — WP-1, 2, 3, 9, 11, 48:*
-- New: `lib/persistent-bus.ts` (WP-1; Redis Streams adapter behind same publish/subscribe interface as in-memory bus), `mcp-server/cd-server.ts` + `webdev-server.ts` + `sentinel-server.ts` + `sage-server.ts` (per-agent MCP daemons; WP-1), `lib/death-protocol.ts` (WP-9), `lib/session-recorder.ts` + `lib/replay-runner.ts` (WP-3), `lib/agent-prompt-validator.ts` + `scripts/validate-agent-prompts.ts` (WP-2), `agents/auditor.md` (WP-11)
-- Modified: `lib/event-bus.ts` (delegates to persistent-bus during transition), `lib/bridge-process-manager.ts` (retired post-WP-1), `mcp-server/tools-orchestrator.ts`, every agent prompt frontmatter (WP-48 `doctrineVersion` field)
-
-*Identity / billing / per-tenant Order / BYOK — WP-5, 6, 7, 39:*
-- New: `app/auth/[...nextauth]/route.ts`, `lib/db/schema.ts` + `lib/db/migrations/`, `app/onboarding/`, `lib/usage-billing.ts`, `lib/order-fork.ts`, BrandingPanel BYOK form (WP-39)
-- Modified: every API route taking sessionId (~50 files) — add `userId` resolution + auth gate; filesystem layout `public/{userId}/{sessionId}/`; agent-spawn pipeline injects per-tenant `ANTHROPIC_API_KEY` for BYOK
-
-*Sage cluster (depends on WP-7) — WP-10, 50, 52:*
-- New: `app/(dashboard)/profile/page.tsx` (WP-10; portrait UI), portrait-version storage layer (WP-50)
-- Modified: `lib/memory/dreamer.ts` (versioned writes, audit trail), `agents/sage-portrait.md` (handle doctrine-upgrade context)
-
-**Track B — Quality + chat-UI gaps**
-
-- `lib/sentinel-ti.ts` — WP-53 verification floor (Playwright headless smoke battery); WP-56 animation audit pass against HUASHU §C1
-- `lib/brand-lint-rules.ts` — WP-55 v1.5: content-guidelines parser + rule synthesizer
-- `components/chat/CritiqueCard.tsx` — WP-54: radar chart + Keep/Fix/Quick-wins lists (NEW)
-- `lib/perceptual-diff.ts` + bundled ONNX — WP-4 (~10 MB asset)
-- `docs/INSTITUTIONAL-MEMORY.md` — WP-87: append ~50 lines of doctrine (doc-claims-not-evidence, regex-extraction-wrong-shape, phantom-file-detection)
-- `e2e/baselines/toolcards/` — WP-24: 17 cards × 2 themes = 34 PNG fixtures + Playwright `toMatchSnapshot()` wiring (DEFER candidate)
-- `components/chat/AssistantMessage.tsx` — WP-20 (RETIRE candidate per §1.1)
-
-**Track D — Hygiene + provider follow-ons**
-
-- `lib/cli-paths.ts` — WP-40 (NEW): `findBinary()` + `safePath()` + env-var overrides
-- 13 call-sites — WP-40: replace hardcoded path refs to import from above
-- `start.sh` — WP-40: banner uses `os.hostname()` + IP
-- `.env.example` — WP-40: add `CLAUDE_BIN` / `GEMINI_BIN` / `CHROMIUM_BIN`
-- `lib/nano-banana.ts` — WP-88: swap backend from AI Studio REST to Vertex AI MCP
-- `lib/mcp-config.ts` — WP-89: register Z.AI's vision / web-search / web-reader MCP servers in spawn config
-- API-mode hardening — WP-41 PARTIAL (remaining sub-tasks per route)
-
-**Track C — Customer-funded productization**
-
-Spec targets only. File manifests deferred until a paying customer asks for the feature: `FEATURE-X-SEO.md` (WP-42), `FEATURE-X-MULTILINGUAL.md` (WP-43), `FEATURE-X-BLOG.md` (WP-44), `FEATURE-X-AIOVERVIEW.md` (WP-45), `FEATURE-X-SHADOW.md` (WP-46).
-
----
-
-### §1.3 — Implementation Sequence + Cadence
-
-Four substantive tracks of remaining work, ordered by dependency. Track A is gated on first paying customer; B and D are parallel-loadable any time; C is per-feature customer-gated.
-
-**Track A — Productization arc (gated on first paying customer).**
-The multi-tenancy substrate. Big, all-or-nothing. Do NOT start any single piece without committing to the full arc — WP-1 in isolation = persistent infrastructure for a single-tenant prototype = wasted work. Estimate ~6-8 weeks focused.
-- **Order:** WP-1 (persistent bus + MCP-daemon bridge) → WP-5 (identity + DB schema, coupled) → WP-7 (per-tenant Order) → WP-6 (billing + onboarding) → WP-39 (BYOK).
-- **Sequenced inside or after the arc:** WP-2 (agent-prompt schema validation), WP-3 (replay test framework), WP-9 (Death Protocol generalized), WP-10 (Sage portrait UI), WP-11 (structural audit agent), WP-48 (doctrine versioning), WP-50 (portrait versioning + audit trail), WP-52 (Sage doctrine-version awareness).
-
-**Track B — Quality + chat-UI gaps (parallel-loadable, no productization dependency).**
-Smaller WPs that can ship anytime. Each is contained.
-- WP-87 — INSTITUTIONAL-MEMORY doctrine entry (~50 LOC distilling the 2026-05 Goldfish + parser-cascade lessons; highest leverage).
-- WP-53 — Sentinel verification floor (post-build smoke gate before `vibe_built` fires).
-- WP-54 — Critique radar UI (renders existing `submit_critique` 5-dimension data).
-- WP-55 — Brand-lint v1.5 (parses `## Content Guidelines` from CREATIVE-BRIEF, synthesizes banned-phrase / tone-mismatch rules).
-- WP-56 — Sentinel animation audit gate (cross-doc HUASHU §C1).
-- WP-4 — Brand-lint v2 perceptual diff (gated on §1.1 decision 6).
-- WP-34 — hyperframes integration (HTML→MP4; 2-3 weeks).
-- WP-20 — AssistantMessage scaffold port (RETIRE candidate per §1.1 decision 1).
-- WP-24 — Card visual regression baselines (DEFER candidate).
-
-**Track C — Customer-funded productization (when customer commits).**
-Specs not yet written. File manifests defer until the customer ask lands.
-- WP-42 — SEO Optimization Layer (~1.5 weeks). Spec target: `FEATURE-X-SEO.md`.
-- WP-43 — Multilingual Layer (~2.5 weeks). Spec target: `FEATURE-X-MULTILINGUAL.md`.
-- WP-44 — Blog, multilingual (~2 weeks). Spec target: `FEATURE-X-BLOG.md`.
-- WP-45 — AI-Overview / SGE optimization (~2-3 weeks). Spec target: `FEATURE-X-AIOVERVIEW.md`.
-- WP-46 — Static-shadow layer (~2 weeks; hybrid-WP migration only). Spec target: `FEATURE-X-SHADOW.md`.
-
-**Track D — Hygiene + provider follow-ons (whenever momentum allows).**
-- WP-40 — Linux portability (1 session): consolidate 13 hardcoded path/PATH refs into `lib/cli-paths.ts` with `findBinary()` + `safePath()` + env-var overrides; update `start.sh` banner; add binaries to `.env.example`; verify on Ubuntu 24.04.
-- WP-41 — API-mode deployment hardening (PARTIAL; close out remaining sub-tasks).
-- WP-88 — Vertex AI Nano Banana migration (gated on 10-prompt safety-policy spike).
-- WP-89 — SMPL-API direct path + Z.AI's three official MCP servers (vision / web-search / web-reader).
-
-**Default work order when nothing else is in flight:** Track B (highest leverage WPs first) → Track D (hygiene). When Track A's gate opens, drop Track B/D and focus the arc.
-
----
-
-### §1.4 — Testing Checklists per Track (gate criteria)
-
-Done-means checklists for the still-open tracks. Items tied to shipped or retired WPs are removed; this is a gate criteria list, not a history.
-
-**Track A — Productization arc done means:**
-- [ ] Next.js restart preserves messageLog + queues + orphans (WP-1)
-- [ ] CD respawns from disk after kill -9 with full conversation history (WP-1)
-- [ ] CI fails on agent prompt missing required sections (WP-2)
-- [ ] Recorded session replays to identical state (WP-3)
-- [ ] Order 66 / Sage cut / bridge respawn all use the same `serializeContext` / `bootFromContext` (WP-9)
-- [ ] Auditor agent produces "what should exist but doesn't" + "what to tear out" — at least one concrete answer to each (WP-11)
-- [ ] Doctrine version-bump triggers Sage delta-pass per tenant; tenant can accept / reject (WP-48 + WP-52)
-- [ ] Two users sign up, can't see each other's sessions (WP-5)
-- [ ] Postgres-backed query returns user's full vibe history across sessions (WP-5)
-- [ ] BYOK flow: tenant's API key used, OskarOS doesn't see the cost (WP-39)
-- [ ] New user signs up, completes onboarding, sees vibe-1 within 10 min (WP-6)
-- [ ] Two tenants' Orders have separate INSTITUTIONAL-MEMORYs; doctrine remains shared (WP-7)
-- [ ] Tenant sees portrait in dashboard with version timeline + edit affordance (WP-10 + WP-50)
-- [ ] User edit to portrait persists and is read by next Sage pass (WP-50)
-
-**Track B — Quality + chat-UI done means:**
-- [ ] WebDev build with broken HTML triggers `failed-validation` via Sentinel verification floor (WP-53)
-- [ ] Build with missing `<title>` / orphan `data-slot` fails the smoke test with named violations (WP-53)
-- [ ] `submit_critique` Tier-3 ToolCard renders radar chart + Keep/Fix/Quick-wins lists in chat (WP-54)
-- [ ] Click radar axis expands the dimension's narrative (WP-54)
-- [ ] Banned phrase from `## Content Guidelines` in CREATIVE-BRIEF.md triggers `banned-phrase` lint warning (WP-55)
-- [ ] Voice-mismatch + anti-slop rules surface advisory violations (WP-55)
-- [ ] Perceptual diff catches a 20% color drift on hero; doesn't false-positive on layout-equivalent change (WP-4)
-- [ ] Animation audit catches font-preload race in a vibe with `Animation paired: YES` (WP-56)
-- [ ] INSTITUTIONAL-MEMORY.md doctrine entry exists and reads like operational rules (WP-87)
-
-**Track C — Customer-funded done means:** per dedicated `FEATURE-X-{SEO,MULTILINGUAL,BLOG,AIOVERVIEW,SHADOW}.md` sub-doc, written when the feature kicks off.
-
-**Track D — Hygiene done means:**
-- [ ] All 13 hardcoded path call-sites import from `lib/cli-paths.ts`; Linux deploy passes end-to-end (WP-40)
-- [ ] API-mode deployment hardening checklist closed (WP-41)
-- [ ] Vertex AI Nano Banana migration passes 10-prompt safety spike + swap (WP-88)
-- [ ] SMPL-API direct path live; Z.AI's vision / web-search / web-reader MCPs in agent spawn config (WP-89)
+**→ Open work — WP-1/2/3/5/6/7/9/10/11/39/48/50/52 (Track A), WP-87/53/55/4/56/34/20/24 (Track B), WP-42-46 (Track C), WP-88/89 (Track D), WP-104-108 (Sync), WP-109/116/120 (Consular), the deferred set, and all open decisions — lives in [`docs/feature-xx.md`](./feature-xx.md) (§1 snapshot · §1.2 file manifest · §1.3 sequence · §1.4 gate-checklists · §9 deferred + decisions). _(Media WP-129..133 shipped 2026-06-05 — no longer open.)_**
 
 ---
 
@@ -668,7 +204,7 @@ The five legacy planning docs that fed Feature-X. None is the source of truth fo
 | `docs/ADVANCED-MODE-PLAN.md` | Phases 1-6 SHIPPED. Phase 7 (rudimentary brand-tab work) was absorbed and rebuilt as WP-57..60 + WP-64..65 — all SHIPPED. | This doc §9; WP-57..60 dashboard rows. |
 | `docs/BRANDING-PLAN.md` | INTEGRATED 2026-05-05; 17 sections folded in. WP-B1..B5 renumbered to WP-57..60 (all SHIPPED). 5 orphan precursor files were deleted before the rework. | This doc §9; HUASHU v4 §A1 cross-doc. |
 | `docs/IMPLEMENTATION-PLAN-API-AGENT.md` | Phases 1-2-4 SHIPPED. Phase 3 has WP-41 (API-mode deployment hardening) still PARTIAL. MCP-tools-in-API-mode bridge live via `lib/api-mcp-bridge.ts`. | WP-41 row in dashboard. |
-| `docs/ARCHITECTURE-REDESIGN.md` | ~7 KB legacy proposal; never close-out audited. Either superseded by the post-MCP architecture or genuinely abandoned — needs one read-and-decide pass. | None until decided. Single open decision (see §1.1). |
+| `docs/ARCHITECTURE-REDESIGN.md` | ~7 KB legacy proposal; never close-out audited. Either superseded by the post-MCP architecture or genuinely abandoned — needs one read-and-decide pass. | None until decided. Single open decision → `feature-xx.md` §9. |
 | `docs/MEMORY-SYSTEM-IMPLEMENTATION-PLAN.md` | Phases 1+3 SHIPPED. Phase 2 SCRAPPED (multi-stage Lumberjack runtime retired by WP-67; single-call padawan replaces it). Phases 4-5 partial/unknown. | Sage-240/40 + Sage-Portrait stack (`agents/sage-240-40.md`, `agents/sage-portrait.md`); active rework rows: WP-49 SHIPPED, WP-50 / WP-52 PENDING. |
 
 All five files exist on disk for historical reference. None should be edited as a forward-looking plan.
@@ -1500,198 +1036,11 @@ When each track starts, it gets its own implementation doc:
 ---
 
 
-## §6 — Per-WP Implementation Detail (absorbed from FEATURE-X2 §1-§3)
+## §6 — Per-WP Implementation Detail → moved to `feature-xx.md` §2
 
-Implementation specifics for the WPs in §1's Foundation/Substrate/Order blocks. Too granular for the snapshot, belongs with the WP entries. Read alongside §1 when planning Track A/B/C work. Sage- and Sentinel-Ti-specific reworks are §7 and §8.
+The full implementation specs for the Track A foundation/substrate WPs — **WP-1** (persistent bus + MCP-daemon bridge), **WP-2** (agent-prompt validation), **WP-3** (replay framework), **WP-5/6** (identity + storage + billing), **WP-7** (per-tenant Order), **WP-9** (Death Protocol generalized), **WP-11** (structural audit agent), **WP-39** (BYOK), **WP-48** (doctrine versioning) — all PENDING, gated on first paying customer — live in **[`feature-xx.md`](./feature-xx.md) §2 (Foundation + Multi-Tenancy Substrate).**
 
-**FOUNDATION block thesis.** Three failure modes that compound: the bus resets on restart (lose in-flight messages), agent prompts drift on every refactor (no schema), sessions are non-replayable (can't reproduce bugs deterministically). Fix all three before building further substrate work on top — otherwise every new feature inherits the same three trust deficits. Critical path: §6.0 → §6.1 → §6.3 (WP-2 parallel).
-
-### §6.0 OPERATIONAL — Working-tree decision (BEFORE WP-1)
-
-Working tree carries an uncommitted Phase 2/3 MCP refactor: **+8.7k insertions / −1.9k deletions / 70 files**. This is filesystem state, not "partial work" — it ships, it gets selectively committed, or it reverts. Decision required before WP-1 starts: WP-1 modifies overlapping files (`lib/agent-inbox-bus.ts`, `mcp-server/*`, `app/api/mcp/*`), conflicts inevitable otherwise.
-
-**Three outcomes (Ralph picks one):**
-1. **Commit as-is** — review the diff in 5–8 file batches; one PR per subsystem (`mcp-server/` / `app/api/mcp/` / `lib/` / `scripts/`). Tightest path if the diff is sane.
-2. **Selective commit** — bisect for must-haves, revert the rest. Slowest but safest if the diff has known mistakes.
-3. **Full revert** — discard, restart Phase 2/3 from main with a tighter scope.
-
-**Acceptance:** `git status` clean; `pnpm typecheck` clean (modulo pre-existing `lib/memory/__tests__` stale errors); `pnpm test` clean for tests outside `lib/memory/__tests__`.
-
-This is the single biggest blocker on Foundation work and is owned by Ralph + Jedi Code together; not estimable until the diff is read.
-
-### §6.1 WP-1 — Persistent bus + bridge replacement (Foundation A1+A2)
-
-**A1 — Persistent bus.** `lib/agent-inbox-bus.ts` pins state to `globalThis`. Next.js dev cycle wipes everything. Real-world: every restart costs CD short-term memory of in-flight conversations, every orphan message in flight, every per-instance lastSeenByRole map. The one-to-many fix (2026-05-01) was forward-looking architecture; persistence makes it permanent.
-
-**Fix:** SQLite per session at `public/{session}/.cache/bus.sqlite` (`better-sqlite3` — synchronous, embedded, single .db file per session, clean teardown via session-dir delete). Three tables:
-- `messages` — full messageLog, with body + metadata + threadId; includes `originator: { role, instanceId }`, `replyTo`, `targetRole`, `targetInstance`, `created_at`, `drained_at` (nullable)
-- `queues` — per-(role, instance) pending lines; FK to `messages.id`; uniqueness on (role, instance, message_id) prevents double-enqueue under retry
-- `live_instances` — registered instances per (session, role), updated on `registerInstance` / `unregisterInstance`; cleared on stale TTL (10 min without ping)
-- `orphans` — fan-out misses + dead-instance targets; same shape as messages but with a `claimed_by` nullable column for atomic `claim_orphan` transfer
-
-Bus reads/writes hit SQLite synchronously inside the existing API surface — no new async boundaries, no Promise chain rewrites in the routes. `drainInbox`, `notify`, `claimOrphan`, `registerInstance`, `unregisterInstance` keep their signatures. Migration path for in-flight: bus boots empty after a restart (no transition state to preserve from `globalThis`), but persisted rows from before the restart survive — the only loss is open SSE connections, which had to reconnect anyway.
-
-**Retention:** `messages` rows with non-null `drained_at` get a 7-day TTL via a sweep that runs on first request after each hour boundary (cheap; SQLite indexed scan). Orphans indefinite (manual cleanup via `claim_orphan`). Live-instance registry self-heals via the 10-min TTL.
-
-**Pre-WP spike required:** ~80 LOC throwaway — verify `better-sqlite3` survives Next.js dev's HMR cleanly. The module is loaded once per worker; SQLite file lock must survive HMR cycles without corrupting the DB. If it doesn't, fallback is `sql.js` (slower, in-memory + serialized to disk on snapshot — acceptable for our scale).
-
-~250 LOC for the storage layer rewrite + ~80 LOC for the retention sweep + ~40 LOC for the migration helper = ~370 LOC.
-
-**A2 — Bridge replacement.** `lib/bridge-process-manager.ts` spawns CD as `claude --print` subprocess. State lives in stdin/stdout streams + in-memory bridge map. Crashes lose context. Code edits to support files can break the live process. The model-toggle path requires kill+respawn ceremony (one-turn delay surfaced via snackbar).
-
-**Fix:** Run CD/WebDev/Sentinel/Sage as MCP-server peers — same shape as orchestrator's HTTP route, but each agent role gets its own. State persists in agent's own SQLite store (per-session per-role) at `public/{session}/.cache/{role}.sqlite`. Restart respawns from disk; no `--resume` magic, no bridge mapping file, no stdio framing fragility. Inter-agent comms still through orchestrator bus (which is now persistent per A1). Model selection becomes a normal request parameter — no respawn needed.
-
-~600 LOC across `mcp-server/cd-server.ts`, `webdev-server.ts`, `sentinel-server.ts`, `sage-server.ts`.
-
-**Acceptance gates (A1 + A2 combined):**
-- Send messages via `notify_agent`, restart Next.js, drain inbox → messages still there.
-- Orphans persist across restart and can still be claimed atomically (existing one-to-many test passes against new storage).
-- Concurrent `drainInbox` from two instances of the same role does NOT double-deliver.
-- CD operates without spawning a Claude Code subprocess; model toggle is instant (no kill+respawn).
-- File `.cache/bus.sqlite` size grows ≤ 50MB across a typical 7-day session window; retention sweep visibly trims it.
-- `lib/bridge-process-manager.ts` is gone or marked deprecated (opt-in via `?cli=1` for diagnostics only).
-
-After §6.0. Total WP-1: ~970 LOC + ~80 LOC throwaway spike. **Difficulty: HARD** — touches the message bus that all agents depend on; race conditions; migration of in-flight messages.
-
-**Sub-note — A3: stable session UUID (Ralph 2026-05-06).** Today the bus is keyed by the session DIRECTORY name (`2026-01-27-debug` etc.). Every place that touches sessionId — bus, MCP proxy URL, SESSION.md path, IMAGES.md path, every API route — uses that string. Renaming a session directory therefore breaks bus state mid-flight (the bus still has messages keyed by the OLD name; new traffic routes to the new name; the two never join). Option A landed 2026-05-06 (sidecar `.runtime/active-session` + proxy re-read on each request) unsticks the *session-switch* pain but does NOT fix renames at the bus layer. The right fix is to generate a stable UUID at session creation, store it in SESSION.md frontmatter as `**SessionUUID:** {uuid}`, and route the bus on UUID instead of directory name. Disk paths stay human-readable (the directory name); the routing key stops moving. ~150 LOC change but touches every API route taking sessionId. **Bundle this into WP-1** — both the persistence rewrite and the keying scheme touch the same files; do them in one breath.
-
-### §6.2 WP-2 — Agent-prompt validation (Foundation A4)
-
-Agent prompts (`agents/*.md`) are freeform Markdown. The contract between renderer and emitter (chat-surface doctrine, MCP Tool registry, boot sequences) is enforced by READ-IT-AND-DON'T-DRIFT discipline. Doctrine drift is in the INSTITUTIONAL-MEMORY Don't-Do List for a reason — every drift costs Ralph's bandwidth ferrying diagnoses across two contexts.
-
-**Fix:** Schema-validate every agent prompt at PR-time. Per-agent Zod schemas declare required structure; a shared base captures cross-agent invariants:
-- **All agents:** BOOT SEQUENCE block, ALLOWED TOOLS list, KNOWN SITH section, polling rule mentioning `agent_inbox` + `replay_events`.
-- **CD:** Path 3-Sheet section, Pre-Flight Asset Checks section, INSTITUTIONAL-MEMORY.md cross-reference.
-- **WebDev:** Required Reading block, workflow.md cross-reference, Vibe build pipeline section.
-- **Sentinel Ti:** Audit pipeline section, huashu reference table.
-- **Sage (Padawan):** file-map block, APPEND responsibilities, skill-promotion triage section.
-
-**Highest-leverage check (the one to ship even if everything else slips):** the agent's claimed tool list cross-validates against what `mcp-server/tools-*.ts` actually registers. Catches "agent calls a tool the server doesn't expose" drift before it ships — same shape as the build_vibe wrapper drift that's logged in INSTITUTIONAL-MEMORY.
-
-Validator runs in CI on every prompt change (`pnpm validate-prompts`, exit 1 on failure) AND on Next.js startup as smoke check (warns, doesn't crash dev). Surface drift as build failure at PR-time, not runtime regression in production.
-
-~220 LOC across `lib/agent-prompt-validator.ts` (parser + schemas), `agents/_schemas/*.zod.ts` (one per agent), and `scripts/validate-prompts.ts` (CI entry point) + per-agent test cases for currently-shipping prompts.
-
-**Acceptance gates:**
-- Removing a section from an agent prompt fails CI with a clear message naming the missing section + line range.
-- Adding a tool name not in the MCP registry fails CI; the error names the missing tool and the suggested registry entry.
-- Removing a tool from the MCP registry while an agent still references it fails CI (cross-direction — keeps both sides honest).
-- All currently-shipping `agents/*.md` files validate clean (no false positives on existing content).
-- Startup smoke logs a warning per drifted prompt; never crashes the dev server.
-
-Parallel with WP-1 (independent — no shared files). **Difficulty: medium.** Mechanical work; the design conversation is "what counts as required."
-
-(Was kitchen-sinked together with Sage 240/40 + WebDev smoke test in earlier revision. Sage 240/40 → WP-49 in §7. WebDev smoke test → WP-53 under Sentinel Ti in §8.)
-
-### §6.3 WP-3 — Replay test framework (Foundation A6)
-
-"Reproduce the bug" is currently impossible above the unit-test layer. A session that crashed CD yesterday can't be replayed against today's code — the bus state, the inbox, the event log, the SESSION.md, all of it lives in disjoint files (or in-memory). To verify a fix, Ralph runs the same prompts manually and HOPES the failure surfaces. WP-3 makes regressions deterministic.
-
-**Fix:** Three pieces.
-
-**1. Capture.** Middleware on the bus (post-WP-1, the SQLite store IS the capture surface). Append a `recording_session_id` field to every message; capture is opt-in per-session via `?record=1` URL flag or `notify_agent({record: true})`. Existing `/api/mcp/replay-events` extends to filter by `recording_session_id`.
-
-**2. Storage.** Recordings live at `.recordings/{rec-id}/log.jsonl` — append-only JSONL, one line per event (timestamp, source-role+instance, target, payload, tool name, tool result). Versioned schema header line at top; future schema changes write a migrator.
-
-**3. Replay harness.** `lib/replay/runner.ts` plus a vitest integration. Boot a fresh bus + agent in an isolated test orchestrator, feed log events through in original order with relative timestamps preserved (deterministic clock — `MockClock` injected at the bus boundary), snapshot final state (bus + inbox + IMAGES.md + SESSION.md tails), diff against an expected golden snapshot.
-
-**Pre-WP spike required:** ~100 LOC throwaway — verify deterministic replay under Next.js dev. The agent's tool-call stream depends on Anthropic API latency; tests need to either mock the API at the transport boundary OR use a recorded API response stream. The spike picks the strategy. Mock-API is simpler but loses fidelity on streaming-token edge cases; recorded-stream is faithful but adds ~30s of replay time per test. Both are valid — the choice changes test-write ergonomics significantly.
-
-~640 LOC across `lib/session-recorder.ts` (capture middleware + recording_id plumbing, ~100), `.recordings/` storage layout + JSONL header + migrator (~80), `lib/replay-runner.ts` (event-pump + deterministic clock, ~180), snapshot serializer (bus + inboxes + outputs, ~120), diff + golden-file format (~80), vitest integration + 3 known-good golden recordings (~80).
-
-**Acceptance gates:**
-- Capture a 30-message session; replay produces an identical final state snapshot (bus + inboxes + IMAGES.md + SESSION.md tails).
-- Intentionally regress an agent prompt; replay catches the diff (output differs from golden, test fails with a clear file-level diff).
-- Mock-API replay runs in <30s per recording in CI.
-- One example recording lives in `examples/recordings/` so future contributors have a reference for the format.
-- Recording capture has zero perf impact on live sessions when `record=false` (the default).
-
-After WP-1. **Difficulty: HARD** — deterministic clock + API boundary mocking + state serialization that round-trips through golden files. Each piece individually understood; the integration is the dragon.
-
-**Total estimate (Foundation block):** ~1,830 LOC + ~180 LOC throwaway spikes. Critical path: §6.0 → §6.1 → §6.3 (parallel §6.2). The dragon is §6.1; if Foundation slips, it slips here.
-
-### §6.5 WP-5 + WP-6 — Multi-tenant identity + storage (Substrate B1+B2)
-
-**B1 — Multi-tenant identity.** Authentication layer (NextAuth or similar) — email + password OR OAuth. Every session owned by exactly one user. URLs: `/u/{userId}/s/{sessionId}/...`. Filesystem: `public/{userId}/{sessionId}/...`. Bus state keys: `${userId}|${sessionId}|...`. Cross-user access blocked at every API route. ~600 LOC + database for user accounts.
-
-**B2 — Persistent storage.** Postgres or SQLite (depending on deployment scale). Minimal schema:
-- `users` (id, email, plan, created_at, ...)
-- `sessions` (id, user_id, status, created_at, ...)
-- `vibes` (id, session_id, vibe_n, status, html_path, created_at, ...)
-- `images` (id, session_id, filename, status, slot, vibe, ...)
-- `messages` (the bus messageLog, persistent)
-- `agent_state` (per (user_id, agent_role) — boot prompt version, last-seen, scar tissue from INSTITUTIONAL-MEMORY hits)
-- `portraits` (per user_id — Sage's painted user-portrait, versioned)
-
-Filesystem holds binary assets (images, generated HTML); DB holds metadata + relations. ~800 LOC including migration scripts.
-
-### §6.6 WP-6 + WP-39 — Token usage + billing (Substrate B3)
-
-**Two modes:**
-
-**BYOK (Bring Your Own Key)** — tenant configures their `CLAUDE_CODE_OAUTH_TOKEN` or Anthropic API key in settings. Bridge subprocess uses their token. OskarOS charges flat platform fee. ~2 weeks. Faster, lower-liability, lower-margin.
-
-**OskarOS-fronted** — OskarOS uses its own org token, tracks per-tenant usage via stream-json's usage events (already captured in `lib/usage-tracker.ts`), bills monthly. ~+2 weeks on top of BYOK. Higher margin, higher liability. Needs Anthropic enterprise terms + billing infra.
-
-Track usage in `usage_events` table per-(user, session, agent, model). Surface in tenant dashboard. ~400 LOC base.
-
-**Open decision:** ship BYOK first, add OskarOS-fronted as upgrade — OR pick one upfront.
-
-### §6.7 WP-6 — Onboarding flow (Substrate B4)
-
-Web-native flow:
-1. Sign up / log in
-2. (BYOK) connect Claude account OR (OskarOS-fronted) confirm plan + payment
-3. First-session wizard: business name, what you're designing (landing/deck/multi-page), upload assets (logo, brand colors)
-4. Sage's first portrait pass: "Tell me about your taste in 3 sentences" → portrait stub created
-5. CD's first interaction: greeting + initial discovery questions
-6. Vibe-1 fires automatically with collected context
-
-Each step is a page in `app/onboarding/`. Background agents do their work; user sees progress. ~500 LOC + UX design.
-
-### §6.8 WP-7 — Order instantiation per tenant (Substrate B5)
-
-Tenant signup forks the canonical Order:
-- `users/{userId}/agents/CD/CD-MEMORY.md` (initially empty)
-- `users/{userId}/agents/CD/RESURRECTION.md` (templated from canonical)
-- Per-tenant `INSTITUTIONAL-MEMORY.md` (initially empty — fills as their Order encounters its own 3-turn bugs)
-
-Agent boot sequences read tenant-scoped paths. Doctrine layer (`agents/SHARED/`, `skills/references/`) remains canonical truth, read-only across tenants. ~300 LOC + filesystem layout migration.
-
-This is the substrate translation made real: each tenant's Order accumulates *their* scar tissue, paints *their* portrait, develops *their* lineage. The product is **"your Order, with persistent memory of you."**
-
-### §6.9 WP-9 — Death Protocol generalized (Order C2)
-
-(Lumberjack typed pipeline detail moved to §7 — SAGE rework block, WP-51.)
-
-Order 66 is one specific instance of a pattern: agent dies, doctrine + state must survive. Order 65 is softer cut; Sage 240/40 is different cut; bridge respawn is yet another. Each handles death individually. No shared abstraction.
-
-**Fix:** lift to framework. `lib/death-protocol.ts` defines contract — every agent provides `serializeContext()` (returns durable state) + `bootFromContext(context)` (rehydrates). Death triggers (Order 66, idle-eviction, Next.js restart, explicit `/die`) call contract uniformly. The cinematic overlay (`public/compaction-overlay.html`) and resurrection-prompt write are pluggable consumers. ~400 LOC + agent-by-agent retrofit.
-
-(WP-10 Sage portrait UI moved to §7 — SAGE rework block.)
-
-### §6.10 WP-11 — Structural audit agent (Order C4)
-
-External auditors miss structural leaps. They read .md files, look at file sizes, anchor on prior audits. Never recommend the architectural bet that unlocks the next phase.
-
-**New agent role: Auditor.** Boot prompt explicitly counter-trains:
-- ❌ Don't read prior audit reports first
-- ❌ Don't measure file size as a quality proxy
-- ✅ Read SESSION.md to understand operational reality, not just code structure
-- ✅ Required output: "What should exist but doesn't?" + "What would you tear out and rebuild?" — at least one concrete answer to each, named precisely
-- ✅ Required: name the architectural bet that would unlock the next phase
-- ❌ Banned: any score above 7/10 without naming three specific issues
-- ❌ Banned: any "this is impressive" framing — replace with "what's at risk"
-
-Lives at `agents/auditor.md`. Invoked by `mcp__oskar-orchestrator__run_audit`. Output written to `docs/AUDIT-{date}-{model}.md`. ~200 LOC + agent prompt + tool definition.
-
-### §6.11 WP-48 — Doctrine versioning (Order C5)
-
-Agent prompts evolve. CD-2026-04-15.md ≠ CD-2026-05-01.md. Doctrine is in git but no agent reads `git log`. If Sage paints portrait under old CD doctrine and CD upgrades, portrait may reference rules that no longer exist.
-
-**Fix:** doctrine versioning. Each agent prompt has `doctrine-version: 2026-05-01` frontmatter. INSTITUTIONAL-MEMORY entries tagged with doctrine version active when written. Per-tenant Order tracks which doctrine version they're on; on upgrade, Sage diffs old vs new and notes deltas in tenant's CD-MEMORY. ~200 LOC + per-agent frontmatter.
-
-Multi-tenant accelerates doctrine evolution (more eyes, more bugs). Without versioning, tenants drift on different rule sets without anyone noticing. Pairs with WP-52 (Sage doctrine-version awareness) in §7 below.
+> The old §6.0 "working-tree decision" (commit the +8.7k-LOC uncommitted MCP refactor before WP-1) is **stale** — that refactor was committed long ago; it is not a live blocker.
 
 ---
 
@@ -4086,488 +3435,7 @@ Reuses the existing `UploadEvalBatchCard` chassis (status pills, STAR/B-ROLL/TRA
 
 ---
 
-## §14 — Blog Implementation (decomposes WP-44)
-
-WP-44 ("Blog, Multilingual ~2 weeks", §5.4) is the umbrella. This section breaks it into **shippable sub-WPs**: WP-88 (foundation, template-design track) + WP-96..101 (core authoring + listing + AI + multilingual + deploy) + WP-102..103 (specced, build when prioritized). Each is independently revertable; together they deliver the customer offer line "blog they can post into in 20 minutes."
-
-**Architectural baseline (Ralph 2026-05-13).** Posts are HTML files (Option 1 of three architectures considered — markdown source and block-composition both rejected per the design-ceiling and editor-reuse constraints). Editor is the existing Director Mode. Listing reuses WP-78's gallery endpoint with a `parentDir` filter. AI augmentation goes through Next.js API routes that call CD/Sentinel Ti bridges, NOT through MCP tools (blog actions are user-initiated, not agent-callable; MCP overhead is dead weight here). Deploy is single-server stage→deploy via local rsync to the webserver's document root — no external CDN, no GitHub Pages, no S3, no managed-hosting integration. If a client ever needs SSH-remote deploy, spec it as a one-off then.
-
-**Two distinct modes** of blog work:
-1. **Template-design (one-time, per client)** — CD produces ONE blog master template as part of the **existing webpage Phase 4 build**. Not a separate track; not a separate set of vibes; not 4 templates. The master is a single HTML file with structural placeholders (`<div data-blog-post-list>`, JSON-LD slots, hreflang block, RSS link). Drives **WP-88** (collapsed to doctrine deltas only).
-2. **Post-authoring (ongoing)** — adds individual posts against the locked template. Drives **WP-96..101**.
-
-**Cross-WP decisions (all resolved per Ralph 2026-05-13).** These were the [DECIDE-A..J] open questions in the prior WP-89..95 plan; they're now answered:
-
-- **[DECIDE-A] Filesystem layout** → `public/{sessionId}/blog/{lang}/post-{slug}.html` + `post-{slug}.md` sidecar at session-root-relative path. Subfolder-per-language scope (variant of original option (a)). Plays well with WP-78's recursive readdir + Tier 0 sidecar hunt.
-- **[DECIDE-B] Sidecar shape** → existing OskarOS `## Post Card` block (original option (b)). Reuses `matchField` parser. No YAML, no second parser path.
-- **[DECIDE-C] Permalink rule** → slug-only (original option (a)), with uniqueness check at write time. `POST /api/blog/new` returns 409 on collision; auto-suffix `-2`/`-3` is opt-in.
-- **[DECIDE-D] Index regen trigger** → hybrid: listing endpoint is dynamic (gallery endpoint extension reads sidecars at request time, no rebuild step); static export rebuilds the bundle on `POST /api/blog/publish`. Drafts never appear in either surface.
-- **[DECIDE-E] Authoring surface** → Director Mode UI only (original option (a)). **API routes, not MCP tools** (refinement per Ralph 2026-05-13 — blog actions are user-clicked buttons, not agent-callable).
-- **[DECIDE-F]** N/A — there are NO 4 templates to choose between. ONE master template; index/tag/RSS are runtime-rendered by WP-97.
-- **[DECIDE-G]** N/A — blog inherits from the webpage track by definition; no separate blog discovery, no separate `start_blog_track` tool.
-- **[DECIDE-J] Scheduled publish** → specced as WP-103, build when a client asks. `Status: scheduled` enum value reserved from WP-96.
-
----
-
-#### WP-88 — Blog as a track: template-design lifecycle
-
-**Problem.** A blog needs a locked master template before any author hits "+ New Post" (WP-96). That template should match the rest of the website's brand — typography, palette, layout grammar, voice.
-
-**Architectural decision (Ralph 2026-05-13, supersedes prior WP-88 scope).** Blog is **NOT a separate track**. There are NO blog vibes, NO blog wireframes, NO blog descent-selection, NO blog design-system toolcards. CD produces **ONE** blog master template file (`public/{sessionId}/blog/_templates/post.html`) as part of the same Phase 4 build that produces the homepage. The blog inherits the website's locked design system entirely; the master template carries the page-level structural placeholders the runtime fills (`<div data-blog-post-list>`, JSON-LD slots, hreflang block, RSS link, language switcher, author block, social share row).
-
-**Why no separate track.** The prior scope proposed 4 templates × 5 vibes through a full blog-specific Phase 1–5 cycle (~400 LOC of new schemas + build routes + toolcard validators). That's overkill for a deliverable that conceptually is "another page in the website." A blog visually matches the site; the master template falls out of the webpage track naturally. The index, tag, category, and RSS surfaces are NOT separate template files — they're rendered at request time by WP-97's listing endpoint, which composes them from the listing data and the master template's `<div data-blog-post-list>` placeholder.
-
-**Scope.**
-- **CREATE `skills/references/blog-master-template.md`** (~60 LOC, doctrine artifact) — sibling of `skills/references/cd-design-system-and-multipage.md`, `critique-guide.md`, `cta-manual.md`. Defines the locked placeholder set for the blog master: `<div data-blog-post-list>`, JSON-LD slots for Article + Person + ItemList + CollectionPage + BreadcrumbList, hreflang block placeholder, `<link rel="alternate" type="application/rss+xml">` in `<head>`, language switcher chrome, post-metadata zone, author block, social share row, reading-time `<span data-reading-time>`. CD reads this when Phase 4 discovery includes blog; WebDev reads it when emitting the master template.
-- **CD doctrine update** (`agents/creative-director-agent.md`, ~10 LOC pointer + ~20 LOC Phase 4 trigger) — TIER 2 entry pointing at `skills/references/blog-master-template.md`. Phase 4 doctrine: when discovery surfaces "the customer wants a blog," CD's Phase 4 brief explicitly includes `_templates/post.html` as a deliverable alongside the homepage HTML, **with an explicit `READ skills/references/blog-master-template.md` instruction** so the doctrine file gets pulled on every blog Phase 4 build (not "consistently" — *always*).
-- **WebDev doctrine update** (`agents/webdev-agent.md`, ~10 LOC pointer + ~10 LOC build instruction) — TIER 2 entry pointing at `skills/references/blog-master-template.md`. When the brief references the blog deliverable, emit `public/{sessionId}/blog/_templates/post.html` with the placeholder set defined in the doctrine file. Same brand assets, same design system, same vibe as the rest of the build. Uses existing Phase 4 / Phase 5 build infrastructure unchanged.
-- **No track enum change.** No additions to `present_design_directions`, `present_descent_selection`, `present_design_system`, `present_image_strategy`. The existing `'webpage'` track produces the blog master as a sibling output when the brief includes it.
-- **No new build route.** No `build-wireframes`, `build-vibe`, or `build-final` branch for blog. Existing routes handle it via the webpage track.
-- **No new types or validators.** `BlogTemplateBundle`-style types are not needed; the file is just another HTML output of the webpage Phase 5 build.
-
-**Files affected.**
-- `skills/references/blog-master-template.md` (NEW, ~60 LOC) — doctrine artifact, locked placeholder set.
-- `agents/creative-director-agent.md` (~30 LOC delta) — TIER 2 pointer + Phase 4 trigger doctrine.
-- `agents/webdev-agent.md` (~20 LOC delta) — TIER 2 pointer + build instruction.
-
-**Resolves [DECIDE-F].** No longer relevant — there are no 4 templates to choose between. ONE master template; index/tag/RSS are runtime-rendered by WP-97.
-
-**Resolves [DECIDE-G].** No longer relevant — blog inherits from the webpage track by definition; there is no separate blog discovery.
-
-**Dependencies.** Existing webpage track Phase 4 / Phase 5 build infrastructure (already shipped). No WP-96 dependency — the doctrine artifact lives in WP-88's deliverables (corrected: prior draft had ownership inverted).
-
-**Risk.** Low. Doctrine-only update; no code changes, no route changes, no schema changes.
-
-**LOC estimate.** ~110 LOC (skill file ~60 + CD agent delta ~30 + WebDev agent delta ~20).
-
----
-
-#### WP-96 — Blog post foundation (HTML + sidecar + scaffolding + "+ New Post")
-
-**Architecture (load-bearing).** Posts are HTML files at `public/{sessionId}/blog/{lang}/post-{slug}.html`. The HTML file IS the source of truth — no markdown render step, no two-source-of-truth fork. Editing happens in Director Mode (the existing HTML editor); no new authoring surface.
-
-**Resolves [DECIDE-A..E].** Subfolder-per-language nested layout (variant of [DECIDE-A](a) with per-language scope); existing OskarOS `## Post Card` block ([DECIDE-B](b)); slug-only permalinks with uniqueness check ([DECIDE-C](a)); listing endpoint dynamic at edit-save, static rebuild on deploy ([DECIDE-D] hybrid); Director Mode UI only with **API routes, not MCP tools** ([DECIDE-E](a) — refined per Ralph 2026-05-13: blog actions are user-initiated buttons, not agent-callable; MCP overhead is dead weight here).
-
-**Sidecar shape — `## Post Card` block** in `post-{slug}.md` (same parser as Gallery Card via `matchField`):
-
-```markdown
-## Post Card
-
-Title: Wie wir vibe-Design machen
-Excerpt: Drei Generationen, ein Preis, vier Sterbliche auf Court 3...
-Date Published: 2026-05-13
-Date Modified: 2026-05-13T10:32:00Z
-Hero: hero.jpg
-Tags: design, brand, methodology
-Category: design-methodology
-Author: Ralph Lengler
-Slug: vibe-design-methode
-Lang: de
-Status: draft
-Canonical: /blog/de/vibe-design-methode
-Translations:
-  - it: /blog/it/metodologia-vibe-design
-  - fr: /blog/fr/methodologie-vibe-design
-  - en: /blog/en/vibe-design-methodology
-Last-Sync: 2026-05-13T10:32:00Z
-
-## Versions
-
-- 2026-05-13T10:32:00Z — Ralph Lengler — Initial draft
-- 2026-05-13T11:15:00Z — Ralph Lengler — Tightened intro, added CTA
-```
-
-**Field details:**
-- `Status: draft | published | scheduled | archived` — required. Listing (WP-97) + RSS + sitemap + static export (WP-100) filter to `published` only. Drafts visible in Director Mode + Blog View tab; invisible to public surfaces.
-- `Date Published` vs `Date Modified` — `Date Published` is the canonical publish date (drives sort + RSS `<pubDate>` + Schema.org `datePublished`). `Date Modified` is auto-updated by Director Mode on every save (drives RSS `<lastBuildDate>` + Schema.org `dateModified`).
-- `Excerpt:` is the canonical field name (used for RSS `<description>`, index card subhead, OG description, Twitter card text). Keep consistent across all surfaces.
-- `Author:` is a string that resolves to an entry in `BLOG-AUTHORS.md` (per-session author registry; see below).
-- `## Versions` is a metadata trail — every Director Mode save appends `{timestamp} {author} — {auto-summary or empty}`. Full HTML rollback is git's job (the HTML file stays current; the metadata trail records who/when). Sibling files (`post-{slug}.{timestamp}.html`) are NOT written.
-
-**Author registry — `BLOG-AUTHORS.md`** at session root. One `## Author` block per person:
-
-```markdown
-## Author Ralph Lengler
-
-Bio: Founder of FalCaMel. Designs systems where the typography knows what it's doing.
-Photo: ralph-portrait.jpg
-JobTitle: Founder, Creative Director
-Wikidata: Q123456789
-Email: ralph@falcamel.com
-
-## Author Donatella Reuss
-
-Bio: Partner. Runs the kitchen. Doesn't post often.
-Photo: donatella-portrait.jpg
-JobTitle: Partner
-```
-
-Sidecar `Author:` is just the name; the registry lookup fills bio + photo + JobTitle + Wikidata (for Schema.org Person `sameAs`). Critical for multi-author clients (law firms, agencies).
-
-**Template clone — NOT a stub.** "+ New Post" clones the **locked blog master template** produced by WP-88's Phase 5 build (`public/{sessionId}/blog/_templates/post.html`). Zero new build pipeline; reuses CD's Phase-4 deliverable.
-
-**Doctrine: what a good blog master template needs** (locked at `skills/references/blog-master-template.md` — created in WP-88, read by CD + WebDev on every Phase 4 blog build):
-- `<div data-blog-post-list>` placeholder for index pages — runtime fills from sidecar scan
-- Language switcher chrome in header (per-lang links surfaced from sidecar `Translations:`)
-- Tag + category navigation (sidebar or footer)
-- Post metadata zone (inline author bio block, date, reading time, social share row)
-- `<script type="application/ld+json">` placeholders for Article + Person schema (filled by WP-98 SEO pass)
-- `<link rel="alternate" type="application/rss+xml">` in `<head>` pointing at the language-specific feed
-- Hreflang block placeholder in `<head>` (filled by WP-98 SEO pass from sidecar `Translations:`)
-- Reading time `<span data-reading-time>` placeholder (filled by WP-98 from word count)
-
-CD designs the master once per client; every post inherits it.
-
-**Slug uniqueness — fail loudly.** `POST /api/blog/new` checks the proposed slug against existing posts in `{sessionId}/blog/{lang}/`. Auto-derive from title (kebab-case, transliterate, remove diacritics) with `-2`/`-3` dedupe suffix. If caller forces a colliding slug, 409 — never silently overwrite a previously-published post.
-
-**Tag controlled vocabulary in "+ New Post" UI.** Surface existing session tags as a picker (chips with "create new" affordance). Prevents `design + Design + designing` fragmentation. Ties into the WP-100 linter's tag-fragmentation warning.
-
-**Files affected.**
-- `lib/blog/post-card-parser.ts` (NEW, ~120 LOC) — parses `## Post Card` block + `## Versions` trail via `matchField`. Same shape as Gallery Card parser.
-- `lib/blog/authors-parser.ts` (NEW, ~80 LOC) — parses `BLOG-AUTHORS.md` registry; lookup by name; returns `{name, bio, photo, jobTitle, wikidata, email}`.
-- `lib/blog/slug-utils.ts` (NEW, ~40 LOC) — slugify + collision check + auto-suffix.
-- `app/api/blog/new/route.ts` (NEW, ~120 LOC) — POST → clones locked template, creates sidecar with `Status: draft` + initial `## Versions` entry, returns new post URL. Fails 409 on slug collision.
-- `app/api/blog/save/route.ts` (NEW, ~80 LOC) — atomic write of HTML + sidecar update + `Date Modified` bump + `## Versions` append. Replaces legacy Director Mode save for posts.
-- `skills/references/blog-master-template.md` — doctrine artifact (created in WP-88, NOT duplicated here). WP-96's "+ New Post" code references it indirectly via the locked `_templates/post.html` it clones; no direct read.
-- UI: "+ New Post" button + tag controlled-vocabulary picker (~40 LOC delta in OskarOS top bar).
-
-**Dependencies.** WP-78 corrected (recursive readdir + Tier 0 hunt + `parentDir` filter — shipped 2026-05-13), WP-88 (locked blog master template).
-
-**Risk.** Low-medium. Slug collision + author registry lookup are the bug-prone spots; both have explicit failure modes (409 + missing-author warning).
-
-**LOC estimate.** ~480 LOC (parsers ~200, routes ~200, slug utils ~40, UI ~40).
-
----
-
-#### WP-97 — Listing endpoint + RSS 2.0 + sitemap + Blog View tab
-
-**Problem.** Posts on disk need to surface as: (a) language-scoped listing pages, (b) per-tag + per-category pages, (c) RSS feeds, (d) sitemap.xml with hreflang, (e) a Blog View tab in OskarOS for the author to see what they've published.
-
-**Extend the WP-78 gallery endpoint** with blog-aware filters:
-- `parentDir=blog/{lang}` — scopes to a language's blog folder.
-- `tag=design`, `category=design-methodology` — filter on sidecar fields.
-- `status=published` (default for public consumption) or `status=all` (Blog View shows drafts too).
-- `sort=date-published-desc` — reads `Date Published` field (NOT mtime; mtime drifts on file moves).
-
-**WP-78 regex extension callout.** Current gallery filename classifier matches `^vibe-(\d+)…\.html$`. Extend to also match `^post-(.+)\.html$` under any `blog/{lang}/` subdirectory. Single regex addition; trivial change to `app/api/sessions/[id]/gallery/route.ts`. Trivial to do, easy to miss — name it in the spec.
-
-**RSS 2.0 generator** at `app/api/sessions/[id]/blog/feed.xml/route.ts`. Channel: `<title>`, `<link>`, `<description>`, `<language>`, `<lastBuildDate>` (max `Date Modified`), `<generator>OskarOS</generator>`. Per-item: `<title>`, `<link>`, `<guid isPermaLink="true">`, `<pubDate>` (RFC 822 from `Date Published`), `<description>` (from `Excerpt`), `<author>` (registry lookup → `email (Name)`), `<category>` (one element per tag). Validates against W3C feed validator at test time.
-
-**Sitemap.xml** at `app/api/sessions/[id]/blog/sitemap.xml/route.ts`. Per `<url>`: `<loc>`, `<lastmod>` (Date Modified), `<changefreq>monthly</changefreq>`, plus `<xhtml:link rel="alternate" hreflang="..." href="..."/>` for every language variant declared in sidecar `Translations:` AND present on filesystem. `x-default` points at source language.
-
-**No pagination — lazy-load.** Index pages render all published posts in a virtual scroll / IntersectionObserver pattern. No `/blog/page/2/` URLs. Cleaner for static export, simpler for the deploy step, better UX for readers. ~50 LOC for the lazy-load script in the master template; route delta to support batched fetches (`?offset=20&limit=20` returns next batch as JSON for client-side append). Net LOC saving vs paginated approach (~80 LOC was the paginated branch).
-
-**Per-tag AND per-category index pages.** `/blog/{lang}/tag/{slug}/` and `/blog/{lang}/category/{slug}/`. Same listing template; different filter + header. ~40 LOC for the category route.
-
-**Blog View tab in OskarOS UI.** Distinct from Gallery View; modeled on it. `components/BlogView.tsx` extends `VibesGallery.tsx` patterns: different sort default (Date Published desc), different filter chips (Language, Status, Tag, Category, Author), different card layout (cover image, title, language flag, excerpt, date, tags, status pill), different "+ New Post" affordance. ~250 LOC for the tab + filter chips + blog-card variant.
-
-**Files affected.**
-- `app/api/sessions/[id]/gallery/route.ts` — extend with blog filters + regex extension (~120 LOC delta).
-- `app/api/sessions/[id]/blog/feed.xml/route.ts` (NEW, ~80 LOC).
-- `app/api/sessions/[id]/blog/sitemap.xml/route.ts` (NEW, ~80 LOC).
-- `app/blog/[lang]/page.tsx` (NEW, ~40 LOC) — language index (dev preview only; production blog served from static export).
-- `app/blog/[lang]/tag/[slug]/page.tsx`, `app/blog/[lang]/category/[slug]/page.tsx` (NEW, ~60 LOC).
-- `components/BlogView.tsx` (NEW, ~250 LOC).
-- `components/BlogPostCard.tsx` (NEW, ~80 LOC).
-
-**Dependencies.** WP-78 corrected, WP-96.
-
-**Risk.** Low. RSS spec is well-defined; lazy-load IntersectionObserver pattern is mature.
-
-**LOC estimate.** ~370 LOC (gallery extension ~120, feed.xml ~80, sitemap.xml ~80, frontend routes ~100, BlogView ~250 — folded as net ~370 because gallery extension absorbs much of the listing logic).
-
----
-
-#### WP-98 — AI augmentation routes + SEO Health Panel + JSON-LD templates
-
-**Problem.** Authors want AI to help: rewrite paragraphs in brand voice, run SEO pass, critique the post. All three are user-clicked buttons → POST to API route → return result. **No MCP tools** — blog actions are user-initiated, not agent-callable; MCP overhead (allowlist, collector, replay buffer) is dead weight.
-
-**Critical doctrine: every AI route goes through the agent bridge, not raw `lib/claude-api-loop.ts`.** The bridge inherits brand voice + glossary + banned phrases + session history for free. Raw claude-api-loop would require fragile context re-injection on every call.
-
-| Route | Bridge | Why |
-|---|---|---|
-| `improve-section` | CD | Brand voice + tone calibration |
-| `seo-pass` | CD | Meta description / OG / Twitter card text IS brand voice; technical JSON-LD mechanics are inline |
-| `translate` Sentinel Ti | CD | Brand glossary fluency: "Padel Mafia" stays as proper noun, "Sammath Ann-thennas" stays untranslated |
-| `critique` | Sentinel Ti | 5-dimension radar (Philosophy / Hierarchy / Craft / Function / Originality). **Per-format dimension override: Function → Reader Orientation** for blog format. |
-
-Because the bridge already loaded the brand doctrine, each AI route is a thin pipe (deliver request + HTML chunk to bridge, receive response, write back). ~30 LOC per route, not ~80.
-
-**API routes:**
-
-| Route | What it does | UI surface |
-|---|---|---|
-| `POST /api/blog/improve-section` | CD bridge rewrites selected HTML node with brand voice. Validates output tag-count matches input. | Director Mode right-click → "Improve this paragraph" |
-| `POST /api/blog/seo-pass` | CD bridge regenerates `<head>` (title, meta description, OG, Twitter, canonical, robots), emits JSON-LD (Article + Person, see schema templates below), validates heading hierarchy, fills missing image alt text via image_ops, emits hreflang block from sidecar `Translations:`. Idempotent — re-run anytime. | "SEO Pass" button on post toolbar + auto-fire on Director Mode save |
-| `POST /api/blog/critique` | Sentinel Ti bridge runs 5-dim rubric (Function→Reader Orientation override for blog). Returns scorecard + per-paragraph flags. | "Critique" button → opens panel in OskarOS overlay |
-
-**SEO Health Panel (Path-B requirement).** The seo-pass route returns a structured report; the panel displays it interactively per-post — the API route alone is a batch operation, authors need an interactive surface that shows, per-post, "this post is missing: meta description, hero alt text, hreflang for FR, breadcrumb schema." Director Mode side panel; shares the seo-pass endpoint's report format. ~150 LOC.
-
-**Full JSON-LD checklist** — schema templates at `lib/schema-templates/blog-*.json`:
-- `blog-article.json` — `@type: BlogPosting`; fields `headline`, `author`, `datePublished`, `dateModified`, `image`, `keywords`, `articleSection`, `publisher`, `mainEntityOfPage`.
-- `blog-person.json` — `@type: Person`; fields `name`, `jobTitle`, `worksFor`, `image`, `sameAs` (Wikidata Q-URL when present in author registry).
-- `blog-itemlist.json` — `@type: ItemList` (for index pages); list of `BlogPosting` references.
-- `blog-collectionpage.json` — `@type: CollectionPage` (for tag/category pages).
-- `blog-breadcrumblist.json` — `@type: BreadcrumbList` (for nested URLs: home → blog → tag → post).
-
-~80 LOC of JSON templates. Schema-template substitution happens inside the seo-pass route (reads template, fills from sidecar + registry, embeds as `<script type="application/ld+json">` block in `<head>`).
-
-**Internal linking helper.** Director Mode side affordance: when writing a post, surface a "link to existing post" picker that pulls from the WP-97 listing index across all published posts in the session. Click to insert `<a href="/blog/{lang}/{slug}/">{title}</a>`. ~80 LOC; reduces orphan posts.
-
-**Reading time estimate.** Derived from word count inside seo-pass route. Fills `<span data-reading-time>` in the post template ("5 min read"). ~10 LOC.
-
-**Cover image flow.** Reuses existing AssetsPanel + image_ops infrastructure (no new picker). Note: the existing picker's "generate from scratch" path may need polish — flag as parallel UX track, not a blocker for WP-96..101.
-
-**Doctrine artifacts (skill-shaped, NOT in code paths).**
-- **CREATE `skills/references/blog-authoring.md`** (~80 LOC) — sibling of `cta-manual.md`. Holds the brand-voice rules specific to blog prose, SEO checklist (what `seo-pass` regenerates and why), the 20-minute author flow narrative, the Reading-time rule, and the JSON-LD slot reference (sibling to the schema-template JSON files in `lib/`). Read by CD when any of the four blog AI routes fire (`improve-section`, `seo-pass`, `translate`, `critique`).
-- **EXTEND `skills/references/critique-guide.md`** (~30 LOC delta — file already exists, used by Sentinel Ti TIER 2) — add a "Blog format dimension override" section: when critiquing a blog post, the 5-dimension rubric replaces **Function → Reader Orientation**. Document why (Function is layout-craft-shaped; for a blog post, the question is "does the reader land cleanly, scan well, finish the article?"). Read by Sentinel Ti when `/api/blog/critique` fires.
-
-**Agent pointer requirements.**
-- `agents/creative-director-agent.md` (~15 LOC delta) — TIER 2 entry: "when a blog AI route fires (`improve-section` / `seo-pass` / `translate` / `critique`), READ `skills/references/blog-authoring.md` first." Explicit READ instruction; not "consult"-shaped weasel doctrine.
-- `agents/sentinel-ti.md` (~10 LOC delta) — TIER 2 entry: "when critiquing a blog post (format=blog), apply the Function → Reader Orientation override per `skills/references/critique-guide.md` §Blog Format Override."
-
-**Files affected.**
-- `app/api/blog/improve-section/route.ts` (NEW, ~30 LOC) — thin pipe to CD bridge.
-- `app/api/blog/seo-pass/route.ts` (NEW, ~80 LOC) — orchestrates CD bridge call + schema-template substitution + reading time + alt-text fill + hreflang emission.
-- `app/api/blog/critique/route.ts` (NEW, ~30 LOC) — thin pipe to Sentinel Ti bridge.
-- `lib/schema-templates/blog-{article,person,itemlist,collectionpage,breadcrumblist}.json` (NEW, ~80 LOC).
-- `components/director/SEOHealthPanel.tsx` (NEW, ~150 LOC).
-- `components/director/InternalLinkPicker.tsx` (NEW, ~80 LOC).
-- `skills/references/blog-authoring.md` (NEW, ~80 LOC) — brand voice + SEO checklist + 20-min flow + JSON-LD slot reference.
-- `skills/references/critique-guide.md` (~30 LOC delta) — Blog Format Override section.
-- `agents/creative-director-agent.md` (~15 LOC delta) — TIER 2 pointer to `blog-authoring.md`.
-- `agents/sentinel-ti.md` (~10 LOC delta) — TIER 2 pointer to critique-guide.md Blog Format Override.
-
-**Dependencies.** WP-96 (posts exist), WP-97 (listing index drives internal-link picker), CD bridge + Sentinel Ti bridge (already shipped).
-
-**Risk.** Low. Bridges absorb context; schema templates are well-defined JSON-LD types Google documents publicly.
-
-**LOC estimate.** ~445 LOC (routes ~140 + panel ~150 + link picker ~80 + schemas ~80 + skill files ~110 + agent pointers ~25 — corrected upward from earlier ~310 to include doctrine artifacts + agent pointers that the prior draft mistakenly netted out).
-
----
-
-#### WP-99 — Multilingual sync (auto-translate on edit-save + hreflang + attribute preservation)
-
-**Problem.** Per §5.4: Swiss studio with DACH + Romandie audience. Author writes DE primary; IT/FR/EN auto-drafted from the same edit-save cycle. No manual "translate now" button; no staleness badges to chase.
-
-**Auto-translate on edit-save (Ralph's call).** Source-language Director Mode save triggers immediate retranslation to all configured target languages. Eliminates the staleness-reconciliation surface entirely. Trade-off: every save fires N CD-bridge calls. Mitigation: **debounce 2-3 seconds** — don't fire translation until 2-3 seconds after last keystroke. For 4 target languages, that's one burst per editing session, not one per keystroke. ~10 LOC.
-
-**Translation route** at `app/api/blog/translate/route.ts`. POST receives `{ sourcePath, targetLangs }`. For each target:
-1. Read source HTML + sidecar.
-2. Call CD bridge with a **structural-preservation prompt** ("Translate text nodes within tags. Preserve every tag, class, id, attribute, image reference, inline style, data-* attribute. Output valid HTML with identical DOM shape.").
-3. **Attribute-preservation validator** (heavier than just tag-count): walk source/target DOM in parallel, verify identical attribute-key sets per node. Specifically preserve: `data-editable` (Director Mode depends on these — without them, translated post can't be edited), `class` (CSS), `id` (anchor links), `src`/`href` (asset refs), all `data-*` attributes. Refuse write on attribute-key divergence per node. ~80 LOC for the parallel walker.
-4. Generate target sidecar: translate `Title`, `Excerpt`, `Tags`, `Category`; rewrite `Slug` from slugified translated title; copy `Date Published`, `Date Modified`, `Hero`, `Author`; set `Lang: <target>`; populate `Translations:` with siblings (incl. back-pointer to source).
-5. Update source's sidecar `Translations:` field.
-6. Set `Last-Sync:` on all variants to current time.
-
-**Hreflang emission** lives inside WP-98's `seo-pass` route — reads sidecar `Translations:` as **declarative intent**, validates against filesystem (`filesByPath` from WP-78 lookup map), emits `<link rel="alternate" hreflang="..." href="..."/>` block + `x-default` pointing at source language. **Drift surface:** when sidecar declares an IT translation that's missing from filesystem, the Blog View card shows "🟡 IT declared, file missing" warning. Hreflang still only emits for present-on-filesystem languages; declared-but-missing entries are skipped (don't ship broken hreflang to crawlers).
-
-**Doctrine artifact (skill-shaped).**
-- **CREATE `skills/references/blog-multilingual.md`** (~60 LOC) — sibling of `skills/references/blog-authoring.md`. Holds the structural-preservation rules (tag count, attribute-key set parity, `data-editable` / `class` / `id` / `src` / `href` / `data-*` preservation), brand-glossary rules ("Padel Mafia" stays as proper noun, "Sammath Ann-thennas" stays untranslated, "FalCaMel" never translated, etc.), per-language slug-translation conventions, hreflang declarative-vs-present reconciliation rules, and the auto-translate debounce policy. CD reads this when `/api/blog/translate` fires.
-
-**Agent pointer.**
-- `agents/creative-director-agent.md` (~10 LOC delta) — TIER 2 entry: "when `/api/blog/translate` fires, READ `skills/references/blog-multilingual.md` first. The structural-preservation prompt the route sends references this file's rule set; without this read, brand-glossary terms get translated."
-
-**Files affected.**
-- `app/api/blog/translate/route.ts` (NEW, ~120 LOC) — POST handler + per-target loop + sidecar generation.
-- `lib/blog/translation-validator.ts` (NEW, ~120 LOC) — parallel DOM walker, attribute-key set comparison per node.
-- `lib/blog/edit-save-translate.ts` (NEW, ~60 LOC) — debounce + auto-fire hook wired into Director Mode save path.
-- `app/api/blog/save/route.ts` — extend with auto-translate trigger when post `Lang` equals session primary lang (~30 LOC delta).
-- `app/api/blog/seo-pass/route.ts` — extend with hreflang emission + declared-vs-present reconciliation (~50 LOC delta).
-- `components/BlogView.tsx` — surface drift warnings in card chrome (~30 LOC delta).
-- `lib/markdown-fields.ts` — extend matchField to handle the `Translations:` multi-line list shape if not already supported (~30 LOC delta).
-- `skills/references/blog-multilingual.md` (NEW, ~60 LOC) — structural-preservation + brand-glossary + slug-translation rules.
-- `agents/creative-director-agent.md` (~10 LOC delta) — TIER 2 pointer to `blog-multilingual.md`.
-
-**Dependencies.** WP-96 (posts + sidecars), WP-98 (CD bridge, SEO pass with hreflang emission, blog-authoring skill file).
-
-**Risk.** Medium. Translation quality is the CD bridge's problem (the doctrine artifact gates it — brand glossary lives in the skill file, not in route code); the attribute-preservation validator is the load-bearing safety net at the code layer. A wrong-language post served from a Swiss-law-firm URL is customer-visible failure; the validator's refuse-on-divergence policy is the gate.
-
-**LOC estimate.** ~520 LOC (route ~120, validator ~120, debounce/auto-fire ~60, save extension ~30, seo-pass extension ~50, BlogView delta ~30, matchField delta ~30, skill file ~60, agent pointer ~10, tests ~10).
-
----
-
-#### WP-100 — Static-export bundle + local-fs deploy + blog linter + clean URLs + 404 + robots
-
-**Problem.** The blog has to actually publish to a public URL. OskarOS (port 3000) writes a static bundle to the webserver's document root (port 80/443) on the same machine. Caddy/nginx serves it. No external services, no CDN adapters — single-server stage→deploy.
-
-**Bundle generator** at `app/api/blog/publish/route.ts`. POST receives `{ sessionId, config? }` (config defaults from `public/{sessionId}/blog/blog-config.md`). Steps:
-
-1. Run blog linter (see below). Refuse deploy on errors.
-2. Scan `blog/{lang}/*` sidecars + HTMLs via WP-97 listing endpoint (parentDir-scoped per language).
-3. Filter `Status: published` only. **Drafts excluded from static export** — critical safety. ~10 LOC.
-4. Pre-render language index pages (one HTML per language) — template + sidecar list, filling the `<div data-blog-post-list>` placeholder server-side (so static export doesn't depend on the runtime lazy-load).
-5. Pre-render tag + category pages per (lang, tag/category).
-6. Generate `feed.xml` per language.
-7. Generate `sitemap.xml` (all languages + hreflang).
-8. Generate `robots.txt` — `User-agent: *` + `Allow: /` + `Sitemap: <full-sitemap-URL>`. ~10 LOC.
-9. Generate `404.html` for broken URLs. Static, brand-styled, links back to `/blog/{default-lang}/`. ~20 LOC.
-10. Walk every HTML for asset refs (`<img src>`, `background-image: url()`, `srcset`); copy assets to bundle's `/assets/` and rewrite paths.
-11. Rewrite internal links to **clean URLs**: `/de/vibe-design-methode/` instead of `/blog/de/vibe-design-methode.html`. Bundler writes `{slug}/index.html` inside per-slug folders. Cleaner URLs, better SEO, plays nicer with future hosting moves. ~30 LOC.
-12. Output to `/tmp/blog-export-{ts}/`.
-13. Deploy: write to webserver's document root (see below).
-
-**Deploy: stage:3000 → deploy:80 (same server).** ~30 LOC total:
-
-```bash
-rsync -a --delete --link-dest=/var/www/blog.{domain}/ \
-      /tmp/blog-export-{ts}/ \
-      /var/www/blog.{domain}/
-```
-
-`--link-dest` hard-links unchanged files (atomic, free dedup). `--delete` removes stale files. rsync is single-process so partial writes don't leak to readers. Caddy/nginx picks up new content on next request — no reload, no cache flush.
-
-Config in `public/{sessionId}/blog/blog-config.md`:
-
-```markdown
-## Deploy
-
-Doc-Root: /var/www/blog.falcamel.com
-Default-Lang: de
-Languages: de, it, fr, en
-Custom-Domain: blog.falcamel.com
-```
-
-**Blog linter at `app/api/blog/lint/route.ts`** — pre-deploy gate. Walks the blog tree, checks:
-
-| Check | Severity |
-|---|---|
-| **Internal** `<a href="/blog/...">` resolve to existing files on disk | error |
-| **External** `<a href="https://...">` — URL parses; hostname looks real (reject `https://lorem`, `https://example.com` defaults, `http://localhost`, malformed URLs). **Well-formedness only.** NO HTTP GETs at edit-save or publish time — link-rot detection is a separate monthly cron, NOT the publish gate (Ralph 2026-05-13). | warning |
-| All `<img src="...">` resolve to existing assets | error |
-| Every sidecar `Translations:` entry exists on filesystem | warning |
-| Every `Author:` matches an entry in `BLOG-AUTHORS.md` | error |
-| Every `Tag:` and `Category:` consistent across posts (no `design` + `Design` + `designing` fragmentation) | warning |
-| Heading hierarchy sound per post (H1 → H2 → H3, no skips) | warning |
-| Hero image present and resolvable | error |
-| OG image dimensions ≥ 1200×630 | warning |
-| Meta description present | warning |
-| Author registry's required fields populated for cited authors | warning |
-
-Structured report: errors block deploy; warnings notify but allow. Surface as a panel in Director Mode + in the Blog View tab. Pre-publish run is the gate — refuse `/api/blog/publish` if errors exist. Linter also fires on Director Mode save (warnings appear inline as the author writes — early signal, not just publish-gate). ~200 LOC for the linter + ~80 LOC for the panel UI.
-
-**UI surface.** "Publish" button in OskarOS toolbar; progress SSE; "Last published: {ts}" footer; "View live →" link; lint-panel popover.
-
-**Files affected.**
-- `app/api/blog/publish/route.ts` (NEW, ~100 LOC) — orchestrates bundle + lint + deploy.
-- `lib/blog/bundler.ts` (NEW, ~150 LOC) — pre-render + asset walk + clean-URL rewrite + 404 + robots.
-- `lib/blog/deploy-local-fs.ts` (NEW, ~30 LOC) — rsync wrapper.
-- `lib/blog/linter.ts` (NEW, ~200 LOC) — checks above.
-- `app/api/blog/lint/route.ts` (NEW, ~30 LOC) — thin wrapper exposing linter to UI.
-- `components/director/BlogLintPanel.tsx` (NEW, ~80 LOC).
-- `public/{sessionId}/blog/blog-config.md` — per-session config (authored once per blog).
-
-**Dependencies.** WP-96 (posts), WP-97 (listing infrastructure, RSS, sitemap), WP-98 (SEO pass for fully-populated `<head>` before bundle).
-
-**Risk.** Low for the local-fs deploy itself (rsync is robust). Medium for the bundler (asset-walk + URL rewriting are bug-prone — test against a real session with subfolders and `srcset` edge cases). Linter must be correct or it'll cry-wolf and authors will disable it.
-
-**LOC estimate.** ~440 LOC (publish route ~100, bundler ~150, deploy ~30, linter ~200, lint panel ~80, lint route ~30, minus shared utilities ~150 net).
-
----
-
-#### WP-101 — Stage→deploy (folded into WP-100; kept as a line item)
-
-**Problem.** Earlier scope assumed multi-target deploy (rsync-remote / github-pages / s3 / Cloudflare). Ralph's actual deploy model is single-server stage→deploy: OskarOS Node server on port 3000 writes to webserver document root on the same hosting server. No SSH, no S3 credentials, no Cloudflare API.
-
-**Scope.** WP-101 is the ~30 LOC inside WP-100's deploy step that resolves the doc-root path from `blog-config.md` and runs the local rsync. Already covered in WP-100. This line item exists for accounting clarity, not as a separate work package.
-
-**If a future client needs SSH-remote deploy:** spec it as a one-off addition then. Don't pre-build adapters speculatively. The WP-100 architecture supports adapter plug-in via `lib/blog/deploy-*.ts` siblings (local-fs is the first; a hypothetical rsync-remote would be the second).
-
-**LOC estimate.** ~30 (already in WP-100).
-
----
-
-#### WP-102 (specced now, build later) — Social Share Preview
-
-**Problem.** Authors want to see what their post will look like when shared to Twitter / LinkedIn / Facebook before publishing. The OG meta tags + Twitter card markup are correct (WP-98's SEO pass handles emission) but invisible until someone actually shares the URL.
-
-**Scope.** Standalone panel in Director Mode: renders the OG meta tags as Twitter card preview, LinkedIn card preview, Facebook preview. Validates that the meta tags are correct (size, length, dimensions, alt text). Lives next to the SEO Health Panel from WP-98.
-
-**Why spec it now:** a real authoring affordance, but distinct concern from WP-96..101 core. The SEO Health Panel's architecture leaves a slot for this — the panel reads the seo-pass route's report; the social preview is a different rendering of the same data.
-
-**Files affected (when built).**
-- `components/director/SocialSharePreview.tsx` (~150 LOC) — three preview cards (Twitter / LinkedIn / Facebook) + validation chips.
-- `app/api/blog/seo-pass/route.ts` — extend report shape to include social-preview-relevant fields (dimensions, character counts) (~20 LOC delta).
-
-**Dependencies.** WP-98.
-
-**LOC estimate.** ~150 LOC.
-
-**Status.** PENDING — specced, build when prioritized.
-
----
-
-#### WP-103 (specced now, build later) — Scheduled Publish
-
-**Problem.** PR-coordinated content (law firm announcing on a specific date, café announcing seasonal menu, product launch tied to an embargo) is a real client requirement. Posts with `Status: scheduled` + `Date Published > now()` wait; cross the publish date, deploy automatically.
-
-**Scope.** A scheduler (Node interval, cron-shaped) periodically checks: if any post in any session has `Status: scheduled` and `Date Published <= now()`, flip status to `published` and trigger `/api/blog/publish`.
-
-**Edge cases the spec must handle when built:**
-- Server restart between checks (scheduler queries on boot — catches missed crossings)
-- Timezone handling — `Date Published` is ISO with offset; comparison is UTC-correct
-- Deploy failure — retry with exponential backoff; surface as notification in OskarOS
-- Concurrent scheduler runs (single-instance lock)
-- Author edits a scheduled post — keeps `scheduled` status; updates `Date Published` if changed
-
-**Why spec it now:** the Node server already runs; adding a 1-minute interval check is cheap (~50 LOC core). But the spec needs to think through edge cases now so the implementation isn't a surprise.
-
-**Files affected (when built).**
-- `lib/blog/scheduler.ts` (NEW, ~80 LOC) — interval check + lock + per-post evaluation.
-- `app/api/blog/save/route.ts` — handle `Status: scheduled` writes (already a valid Status enum value from WP-96).
-- `lib/server-init.ts` (or equivalent boot file) — wire scheduler interval on startup.
-
-**Dependencies.** WP-96, WP-100.
-
-**LOC estimate.** ~120 LOC including edge-case handling.
-
-**Status.** PENDING — specced, build when prioritized.
-
----
-
-### §14.1 Sequencing
-
-**Critical path (one engineer, serial):** WP-88 (doctrine deltas, ~80 LOC) → WP-96 → (WP-97 ∥ WP-98) → WP-100. ~2 weeks (down from ~2.5 weeks after the WP-88 collapse — no new routes, no schema additions, no track enum). Customer can author + publish in their primary language with AI assistance + SEO + Schema.org + clean URLs. **MVP ships here.** No external service dependencies (WP-100 is local-fs deploy on the same machine).
-
-**Add-on chain:**
-- **Multilingual:** WP-99. Depends on WP-96 + WP-98. ~3-4 days. No external translation dependency — CD bridge handles the work.
-
-**Optional / future:**
-- **WP-101** is folded into WP-100 (single-server stage→deploy = ~30 LOC, not a separate WP).
-- **WP-102** (Social Share Preview): specced, build when prioritized. ~1 day.
-- **WP-103** (Scheduled Publish): specced, build when a customer asks. ~2 days including edge cases.
-
-**Total (full §5.4 scope, all built):** WP-88 + WP-96..100 + WP-99 = ~3-3.5 weeks serial. WP-78-correction is a prereq, already shipped 2026-05-13.
-
-### §14.2 What's NOT in scope
-
-- **CMS-style multi-author publishing workflow** (per-author permissions, draft review chains, editorial calendar). v1 trusts the single Director-Mode operator. Multi-author posts ARE supported (via `BLOG-AUTHORS.md` registry); review chains are not.
-- **Comments.** Out of scope — refer customers to Disqus/Hyvor/etc. as drop-in.
-- **Analytics integration.** Customer brings their own (GA4 / Plausible / Fathom snippet pasted into the template).
-- **Block editor (BlockNote/Tiptap).** Director Mode IS the editor. No separate markdown or block authoring surface — that's by design per the Option-1 architecture choice (HTML files as source of truth).
-- **Markdown source files.** Posts are HTML. The earlier WP-89..95 plan proposed `blog-post-{slug}.md` markdown source → render to HTML — explicitly rejected per Ralph 2026-05-13: markdown contradicts "reuse the HTML editor" and caps the design ceiling.
-- **MCP tools for blog actions.** All blog routes are user-initiated POST endpoints (`/api/blog/*`). Not MCP. Blog actions are user-clicked buttons, not agent-callable; MCP overhead is dead weight.
-- **External CDN deploy adapters** (rsync-remote / github-pages / S3 / Cloudflare). Deploy model is single-server stage→deploy. If a future client needs SSH-remote, spec then.
-- **AMP variants.** Dead format.
-- **Push notifications / email subscriptions.** Wire to ConvertKit/Buttondown as drop-in; not built in OskarOS.
-- **Scheduled publish** (live cron). Specced as WP-103; build when prioritized. The `Status: scheduled` enum value exists from WP-96 onward, so the data model is ready when the scheduler ships.
-- **Social share preview rendering.** Specced as WP-102; the OG/Twitter meta tags are correctly emitted by WP-98's SEO pass — only the in-OskarOS preview UI is deferred.
-
-### §14.3 The "20 minutes" claim verification
-
-§5.7 says "blog they can post into in 20 minutes." That clock is:
-- 0:00 — open OskarOS, click "+ New Post" (WP-96 button; clones locked master template).
-- 0:02 — type 800-word post body directly in Director Mode (existing HTML editor; same flow as vibe editing).
-- 0:09 — fill in sidecar form (Title, Excerpt, Tags via controlled-vocab picker, Category, Author from registry dropdown, Date Published, Status). Slug auto-derived from title.
-- 0:11 — generate or pick cover image (image_ops, ~2 min for a fresh generate).
-- 0:13 — preview, edit, save → Director Mode autosaves via `POST /api/blog/save`; `Date Modified` + `## Versions` entry update atomically; auto-translation fires after 2-3s debounce (WP-99) if other languages configured.
-- 0:14 — `POST /api/blog/seo-pass` auto-fires on save → `<head>`, JSON-LD, hreflang, alt-text fill (WP-98). ~5s for one post.
-- 0:15 — flip `Status: draft` → `Status: published` in sidecar.
-- 0:16 — click "Publish" → `POST /api/blog/publish` runs linter (WP-100), rejects if errors. Lint clean → bundle + rsync to `/var/www/blog.{domain}/` (~30s).
-- 0:17 — Caddy serves the new content on next request; click "View live →" to confirm.
-- 0:18 — live URL.
-
-The 20-minute claim holds IF: WP-96's "+ New Post" doesn't fight the author, WP-98's SEO pass is fast (<10s per post), WP-100's bundle + rsync stays under 60s, the linter doesn't false-flag. Tight but achievable. The single biggest accelerator vs. the original WP-89..95 plan: no markdown render step, no MCP build queue — the HTML file IS the artifact, written directly by Director Mode.
+> **Blog implementation (WP-44) → moved to [`feature-xx.md`](./feature-xx.md) §5.** The full decomposition (the WP-88 template-design track + WP-96..103 authoring / listing / AI-overview / multilingual / deploy) is open work; it ships with the productization vertical (§5). _This was a duplicate `## §14` heading — removed to resolve the numbering collision; §14 above is solely Web import / brand-asset acquisition._
 
 ---
 
@@ -5895,3 +4763,229 @@ CSV/XLSX-into-pool falls out of the same flow for free.
 6. **Discard reason** — v2 is one-click (no prompt). Keep it, or add an *optional* later "why?" into `rejected_reason` for funnel analytics? (Lean: keep one-click.)
 
 **Locked this session:** the pool is `raw_prospects` (not columns on `prospects`) · the v2 screen is `real-pool-2.html` (one row/lead · inline taste · expand-dossier · onyx/polar) · result in `scout_json` (taste + nine ◐ lamps) · three-tier heat derived server-side · `puppeteer` full-page+inner capture · the ◐ Queried tools shared with the Consular (`lib/consular/`) · `scout` role aliased to CD's surface · Promote mints a real `'Incoming'` prospect.
+
+---
+
+## §18 — MEDIA REWIRE — by-folder grouping for Scout captures + WhatsApp (WP-129..133)
+
+**Status (Ralph 2026-06-05):** Planning. Today the Scout writes every screenshot to `public/__scout__/<sha256-urlhash>/full.png` — **publicly served** by Next.js static, **named by URL hash** (no human signal), and **collapsed by URL** (one capture per website even when N practitioners share that site). WhatsApp media has the *right intent* — `media/<phone>/` per-number buckets — but the **landing path lands flat** at `media/<hash>.<ext>` and only buckets on a successful Promote, so the unmatched / never-promoted long tail accumulates 50+ flat files at the root. Both cost the same fix: stop letting media live by accident.
+
+**The feature, in Ralph's words (2026-06-05).** *"The screencaptures need to be stored in /media and they need to be grouped by PLZ and then by website (if there are several names by website we need to dedup this, but dedup is a fall-back not a default — we don't collapse anything EVER). For multi-practitioner sites we have more pictures — at least one main, then one more, then the practitioner page. Update the jedi-scout for this. First do the migration (build the dirs), then change the DB pointers. WhatsApp media should already be grouped by telephone number — this is the right shape, but the codepath isn't doing it. Fix that too."*
+
+**The layout, end to end.**
+
+```
+media/
+  <plz-or-region>/<slug>/<firstname>.jpg            ← main page
+                        /<firstname>-inner.jpg      ← Sip 2 (optional)
+                        /<firstname>-profile.jpg    ← the practitioner-specific page
+                                                      (only when ≥2 practitioners share this site)
+  8050/psychotherapiezentrum-fluntern/
+     tamara.jpg  tamara-inner.jpg  tamara-profile.jpg
+     david.jpg   david-inner.jpg   david-profile.jpg
+     patrick.jpg patrick-inner.jpg patrick-profile.jpg
+  zuerich/some-solo-praxis-zh/                      ← region fallback when PLZ unknown
+     anna.jpg  anna-inner.jpg
+
+  <normalized-phone>/<hash>.<ext>                      ← WhatsApp per-number bucket
+  unmatched/<normalized-phone>/<hash>.<ext>            ← WhatsApp before promote/match
+
+Where <slug> = website hostname with `www.` and TLD stripped
+  (e.g. https://www.psychotherapiezentrum-fluntern.ch/foo → "psychotherapiezentrum-fluntern")
+
+Served via auth-gated routes — NEVER from public/.
+  GET /api/admin/scout/capture/<plz-or-region>/<slug>/<file>
+  GET /api/admin/media/<hash>                          ← already exists
+```
+
+> **Why the redesign.** Hash-named dirs in `public/` were the path of least resistance — `<img src>` worked without a route. The cost was real: **368 publicly-fetchable screenshots** the moment a URL leaks, **zero practitioner attribution** in the filesystem (debugging a wrong capture means cross-referencing meta.json), and **no captures of the practitioner's page** on shared sites (the Sip 2 picks "any internal link" — usually `/team` or `/preise`, not `/team/tamara-klain`). The Scout's whole reason for visiting the site is to taste what *this specific practitioner* shows — and on a shared site that lives on a subpage we currently don't capture. The new layout fixes all three.
+
+### §18.0 — No stubs (Definition of Done)
+
+Per Ralph (§ 17.0): **scoped correctly, no stubs.** A WP is "done" only when the migration is complete on a real dev `media/` directory (368 captures relocated, DB pointers updated, `public/__scout__/` deleted) AND a fresh Scout taste batch lands files under the new layout AND the dossier renders them through the auth-gated route AND a fresh WhatsApp inbound from a new number lands in `media/unmatched/<number>/`, NOT flat at root. `npx tsc --noEmit` clean. Boot replay still works. No `TODO` paths, no fallback to the old layout, no "we'll migrate later".
+
+### Cross-WP decisions (locked this session)
+
+- **[MEDIA-A] Migration is dirs-first, then DB pointers (Ralph 2026-06-05).** Build every new `media/<plz-or-region>/<slug>/<firstname>.jpg` from the existing PNG sources first, verify the file count, then in a single pass rewrite the DB pointers (`scout_json.capture.fullPageUrl` etc.). The DB never points at a half-migrated state — at any point the row's URL either resolves to the OLD path (pre-migration) or the NEW one (post-migration), never to nothing.
+- **[MEDIA-B] PLZ comes from FSP-scraped data; fallback is by region — NEVER `_unknown`.** A row's PLZ is `raw_payload.plz` (FSP-scraped rows have it). If absent, try regex-extract from `raw_payload.adr` / `adresse` (`/\b(\d{4})\s+[A-ZÄÖÜ]/`). If still absent, fall back to `raw_payload.bezirk || raw_payload.region` lowercased + ASCII-folded (e.g. `zuerich`, `baden`, `freiamt`). The migration script **lists every row that fell back so Ralph can decide whether to enrich**; nothing silently goes to `_unknown`.
+- **[MEDIA-C] No collapse, EVER.** Each practitioner with a website gets their OWN `<firstname>.jpg` even when N practitioners share that website. Identical bytes copied N times is fine — `media/` is on-disk dev data, not a CDN bill. (The earlier "dedup as a fall-back when >2" wording is rescoped to **filesystem-level hardlinking**: same inode, N filenames; the user-facing list still shows three files, disk holds one. Filed under WP-129 — implementation detail, not UX. The behavioral contract is: every practitioner sees their named file.)
+- **[MEDIA-D] Multi-practitioner sites capture MORE, not less (Ralph 2026-06-05).** When ≥2 prospects in the pool share the same website domain, Scout captures THREE pages per practitioner instead of one: (1) the main page (`<firstname>.jpg`), (2) one inner page — the existing Sip 2 (`<firstname>-inner.jpg`), and (3) the practitioner's specific profile on that site (`<firstname>-profile.jpg`). The practitioner-page resolution is heuristic: search the `<a href>` graph for links whose text or path contains the practitioner's last name OR firstname (ASCII-folded), prefer same-origin paths, take the first match. If no match, log it and ship 2 pages instead of 3 (graceful degrade — never a hard fail).
+- **[MEDIA-E] `agents/jedi-scout.md` is updated to teach the new ritual.** The persona's "Sip 2" rule expands: *"On a shared practice site, ALSO open the practitioner's own page on that site (link text or path matches their name) — that's where their taste lives, not the homepage's. The homepage is the practice; the profile page is the person."* (Implementation lives in `captureUrl`, but the agent file is canon for the persona.)
+- **[MEDIA-F] Auth-gated serving via `/api/admin/scout/capture/[plz]/[slug]/[file]`.** Mirrors the existing `media/[hash]` WhatsApp route. Path components validated as `^[a-z0-9_-]+$` (no traversal, no spaces); file extension whitelisted (`jpg|png|webp`); 404 on miss. `meta.json.fullPageUrl` rewritten to that route; `ScoutDossier.tsx` `<img src>` updated. No public-static path survives the migration.
+- **[MEDIA-G] WhatsApp lands in per-number buckets ON ARRIVAL, not on Promote.** Today the inbound dispatch writes flat to `media/<hash>.<ext>` and only calls `moveMediaByHashes(...)` on a successful Promote. Result: 50+ flat files at root for messages that never got promoted (typical for cold leads). The fix lifts the bucketing into the inbound write itself: known phone → `media/<phone>/<hash>.<ext>`; unknown phone → `media/unmatched/<phone>/<hash>.<ext>`. The promote-time move stays as a safety net for the rare known-after-the-fact case. **`resolveMediaFile(hash)` already walks both layers** — no read-path change needed.
+- **[MEDIA-H] Migration dedup is content-first, names-second (Ralph 2026-06-05).** Multiple source dirs in `public/__scout__/` can map to the SAME target `media/<plz>/<slug>/<firstname>.jpg` — e.g. two captures of `praxis-z.ch` taken on different days (different URL hashes, same slug), or two URL spellings that slugify to the same value. For every target slot the migration finds more than one candidate JPEG, it runs a content sha256 over the converted bytes: **identical bytes → keep one, delete the rest** (the visual is the same — N copies on disk is just noise); **different bytes → keep ALL, but disambiguate filenames** with a numeric suffix (`tamara.jpg`, `tamara-2.jpg`, `tamara-3.jpg`). The manifest logs every dedup decision so deletes can be reversed and Ralph can see *"two captures of the same site looked different — why?"* (usually layout shift over time; sometimes a real site redesign worth keeping both for). No perceptual-hash fuzzy match — exact bytes only, simple to audit.
+
+---
+
+#### WP-129 — Migration script: build `media/<plz>/<slug>/` dirs, then rewrite DB pointers
+
+**Problem.** 368 capture dirs sit under `public/__scout__/<hash>/` with PNG files and meta.json — publicly served, hash-named, URL-collapsed. The DB stores those URLs in `raw_prospects.scout_json.capture.fullPageUrl` / `innerPageUrl`. A move-then-rewrite has to be ordered carefully or rows will briefly point at nothing.
+
+**Architectural decision (Ralph 2026-06-05).** Two-phase migration:
+
+1. **Phase A — build the new dirs from the old ones.** For each `public/__scout__/<hash>/meta.json`: read its `url`; find EVERY pool row (live + rejected + promoted) where `domainOf(p.website) === domainOf(meta.url)`; compute `(plz_or_region, slug, firstname)` per row; convert PNG→JPEG via `sharp` quality=85 and **stage the result in a per-target candidate list** (the script writes to a tmp dir keyed by target path so the dedup pass sees every candidate before any final file lands). After every source dir has been processed, walk each target slot:
+    - **One candidate** → move it into place as `<firstname>.jpg` (+ `-inner.jpg` if present). Done.
+    - **N candidates per [MEDIA-H]** → sha256 each converted JPEG. **Identical content** → keep one, delete the rest, log the dedup. **Different content** → write them all with numeric suffixes (`tamara.jpg`, `tamara-2.jpg`, `tamara-3.jpg`); the lowest-suffix file is the one the DB pointer will point at, the others are kept as audit trail (the manifest records each `(prospect_id, kept_path, secondary_paths[])`).
+    - For shared sites (≥2 prospects on this URL), the **profile-page** capture is missing in the source dirs (legacy URL-keyed captures never grabbed per-practitioner pages); the migration tags those rows for a Phase-B backfill — see WP-130's runtime.
+    - Build a manifest (`media/_scout-migration.json`) of `{ hash → [ {prospect_id, kept_path, secondary_paths[], dedup_decision } ] }`. **No DB writes in Phase A.**
+2. **Phase B — rewrite DB pointers in one pass.** For each prospect in the manifest: parse `scout_json`, set `capture.fullPageUrl` to the new auth-gated URL, set `capture.innerPageUrl` similarly, drop `capture.fullPagePath` (absolute fs path becomes meaningless after the move), append a `raw_prospect.update` event via `patchRawProspect`. After the whole pass succeeds, delete `public/__scout__/`. **If Phase B fails mid-pass, the old dirs survive** — rerun from the manifest.
+
+**The practitioner-page backfill** is a separate Scout-Backfill-Profile job (WP-131's runtime): for rows on shared sites where the migration left `<firstname>-profile.jpg` missing, queue a single Puppeteer pass per practitioner to fetch JUST the profile page. No taste re-run.
+
+**Files affected.**
+- `scripts/migrate-scout-media.ts` (NEW) — Phase A + Phase B + manifest.
+- `lib/scout-paths.ts` (NEW) — single source for the `(plz, slug, firstname) → fs path` mapping. Imported by the migration script, `captureUrl`, and the serve route.
+- `db/crm.db` — pointer rewrites via the existing event log (no schema change).
+- `public/__scout__/` — DELETED after success.
+
+**Dependencies.** Needs `sharp` for PNG→JPEG conversion (already a project dependency via Next.js image optimization). Reads pool via `readRawProspects()` (live) plus a direct SQL query for promoted/rejected rows the migration also needs to cover.
+
+**Risk.** Medium. Two classes of break: (a) a row's `website` doesn't match any meta.json (orphan capture or orphan row — manifest logs both, manual triage); (b) a row's `<firstname>` collides at the practice level ("Dr. Anna Schmidt" + "Anna Müller" both at `praxis-x.ch` → both compute `anna.jpg`). Disambiguator: when the firstname collides within a `(plz, slug)` bucket, append the last-name initial (`anna.jpg`, `anna-m.jpg`). Manifest logs every disambiguation so Ralph can see what happened.
+
+**Acceptance.** `public/__scout__/` is gone. `media/<plz>/<slug>/` mirrors the new shape with 368 main captures (or more, when shared-site practitioners multiply files). `raw_prospects.scout_json.capture.fullPageUrl` resolves through the new auth-gated route for every previously-captured row. Boot replay produces the same pool state. Dossier renders captures in dev without any 404.
+
+---
+
+#### WP-130 — `captureUrl` rewrite: prospect-aware paths, shared-site detection
+
+**Problem.** `captureUrl(url)` returns a URL-keyed result; the caller wraps it into the scout pipeline. The new layout requires the *prospect context* (firstname, PLZ, slug) AT capture time so the file lands directly where it belongs.
+
+**Architectural decision (Ralph 2026-06-05).** Two-part change:
+
+1. **Signature.** `captureUrl(url, ctx)` where `ctx = { firstname, plzOrRegion, slug, sharedSiteCount }`. The function builds the destination from `lib/scout-paths.ts`, writes JPEG (q=85), and returns `{ fullPagePath, fullPageUrl, innerPagePath, innerPageUrl, profilePagePath, profilePageUrl, …, capturedAt }`. The URL hash directory disappears from the codebase.
+2. **Shared-site detection.** Before capture, the scout taste route counts pool rows sharing this website domain (`domainOf(website)`). If `count >= 2`, sets `ctx.sharedSiteCount = count`. `captureUrl` then ALSO navigates to the practitioner's profile page: search the rendered page's `<a>` graph for a link whose text or path (case-insensitive ASCII-fold) contains the practitioner's last name OR firstname; same-origin only; first match wins. If the homepage doesn't expose the profile, try `<a>`s on `<firstname>-inner.jpg`'s page too (the existing Sip 2). If still nothing, write `<firstname>-profile.jpg` is skipped (graceful — no fail).
+
+**Files affected.**
+- `lib/screenshot.ts` (MODIFIED) — new signature, JPEG output, profile-page capture branch.
+- `lib/scout-paths.ts` (NEW) — same module as WP-129.
+- `app/api/admin/crm/scout/taste/route.ts` (MODIFIED) — compute `ctx` from the prospect + a quick pool-side count, pass it into `captureUrl`.
+
+**Dependencies.** WP-129 (path module).
+
+**Risk.** Medium-low. The profile-page heuristic can mis-target on a poorly-built site (e.g. names hidden in JS-rendered routes). Guard: only follow same-origin paths, cap link-graph traversal at 50 candidates, log the chosen URL into `capture.profilePageSourceUrl` for audit.
+
+**Acceptance.** A fresh scout batch on a known-good single-practice site (e.g. `psychotherapie-fricker.ch`) writes `media/5400/psychotherapie-fricker/deborah.jpg` (+ `-inner.jpg` if Sip 2 found one). A fresh batch on a known-good multi-practice site (e.g. `praxis-z.ch` with 3+ prospects) writes 3 files per practitioner — `tamara.jpg`, `tamara-inner.jpg`, `tamara-profile.jpg` (and same for david/patrick). Dossier renders all three. No file ever lands under `public/__scout__/`.
+
+---
+
+#### WP-131 — `agents/jedi-scout.md` update: the shared-practice ritual
+
+**Problem.** The persona file currently teaches Sip 1 (homepage glance) and Sip 2 ("scroll to the bottom, open one more page"). It says nothing about a shared practice — the persona doesn't know the practitioner's own page exists or matters.
+
+**Architectural decision (Ralph 2026-06-05).** Add a "Shared practice" sub-section to the ritual:
+
+> **On a shared practice site (Gemeinschaftspraxis), the homepage is the *practice*, not the *person*. Tasting the homepage is necessary but insufficient — open the practitioner's own page on that site (the link whose name matches the practitioner you're tasting). That page is where their voice, their photograph, their choice of words actually lives. Score the practitioner's PALATE from THEIR page (when available), not from the practice's collective shell. EXECUTION still scores the whole site — that's the practice's commitment, shared.**
+
+**Files affected.**
+- `agents/jedi-scout.md` (MODIFIED) — add the sub-section after "Sip 2". Mirror the existing "Sip" voice and structure.
+
+**Dependencies.** None. Independent of WP-130's code path — this is persona doctrine. (WP-130 implements the capture; this file explains the meaning to the agent reading the screenshots.)
+
+**Risk.** Low. Worst case the agent ignores the new instruction; we lose nothing.
+
+**Acceptance.** The Scout's verdicts on shared-practice rows reference the practitioner's specific page (e.g. *"her own page is plainer than the practice's hero — she's the conservative half"*) rather than averaging the practice's brand into one verdict.
+
+---
+
+#### WP-132 — Auth-gated serving route
+
+**Problem.** The dossier needs to render `media/...` files. They can't be served from `public/` per the whole point of this chapter.
+
+**Architectural decision (Ralph 2026-06-05).** New route: `GET /api/admin/scout/capture/[plz]/[slug]/[file]`.
+
+Validation: each path component matches `^[a-z0-9_-]+$` (no traversal, no `..`, no spaces, no Unicode); `file` ends in `.jpg`, `.png`, or `.webp`. Resolves to `<repo>/media/<plz>/<slug>/<file>`. Returns 404 on any miss. Sets `Cache-Control: private, max-age=86400` (per-user cacheable, dev-friendly).
+
+Auth is the same pattern as `/api/admin/media/[hash]` — the route lives under `/api/admin/`, which is already gated by the project's admin middleware (no new auth code).
+
+**Files affected.**
+- `app/api/admin/scout/capture/[plz]/[slug]/[file]/route.ts` (NEW).
+
+**Dependencies.** None (uses existing admin middleware).
+
+**Risk.** Low. The path-component regex must be strict; a single missed escape opens directory traversal. Test: `GET /api/admin/scout/capture/8050/..%2F..%2Fetc%2Fpasswd` → 400.
+
+**Acceptance.** The dossier renders captures via this route in dev. 404 on a path component containing a `.` or `/`. 200 on a real capture. The migrated dirs are otherwise unreachable from outside (no static-file leak).
+
+---
+
+#### WP-133 — WhatsApp: bucket-on-landing, dir = the actual phone number in E.164
+
+**Problem.** Two bugs stacked on top of each other:
+
+1. **Bucket-on-promote, not on landing.** Inbound WhatsApp media writes to `media/<hash>.<ext>` flat, then `moveMediaByHashes` only buckets the file on a successful Promote. The unmatched / never-promoted long tail accumulates 50+ flat files at root.
+2. **The dir names currently in `media/unmatched/` are NOT phone numbers.** Today they look like `126139246858419`, `88008208474235`, `52544730624158` — 14-15 digit strings, longer than any real phone. These come from WhatsApp **JIDs** (linked-device JIDs `phone:deviceId@s.whatsapp.net`, group JIDs `<group-id>@g.us`, business-account JIDs). When `normalizeWhatsAppNumber` strips non-digits from a JID, it produces this junk. **The dir name must be the actual phone number** — formatted so a human reading the path immediately sees a phone, not a barcode.
+
+**Architectural decision (Ralph 2026-06-05).**
+
+- **The dir name IS the phone number in E.164 format with a leading `+`:** `+41791234567`, `+49301234567`, `+12025550100`. Not raw digits, not internal normalized forms, not JIDs. The format the address book stores (`+41 21 311 09 22`) without spaces. `+` is filesystem-safe on macOS/Linux/Windows; URL-encode as `%2B` in the auth-gated route's path parameter — straightforward.
+- **JIDs are parsed BEFORE bucketing.** The inbound dispatch must:
+  1. Look at the WhatsApp `jid` (the canonical sender ID, format `<digits>@<server>`).
+  2. **Reject non-phone JIDs explicitly** — anything ending in `@g.us` (group), `@broadcast` (broadcast list), or `@lid` (linked-device hidden ID). These files go to `media/_non_phone/<jid-safe>/` (separate top-level bucket, NOT in `unmatched/`) so they're visible but never confused with leads.
+  3. For phone JIDs (`<digits>@s.whatsapp.net`), strip the suffix, strip any device-id suffix (`:NN` before the `@`), run a country-code validator (digits start with a known 1-3 digit country code; total length 8-15 per E.164), prepend `+`.
+  4. **If validation fails** (truncated number, unknown country code) → goes to `media/_invalid_phone/<raw-digits>/` (third quarantine bucket, never confused with `_non_phone` or unmatched).
+
+The bucketing path then:
+
+1. **At inbound write time**, compute `e164 = jidToE164(jid)`. Returns either `+CC…NNN` (valid) or `{quarantine: '_non_phone'|'_invalid_phone', raw: …}`.
+2. **Valid phone, prospect exists**: write to `media/+<digits>/<hash>.<ext>` (e.g. `media/+41791234567/abc...jpg`).
+3. **Valid phone, no prospect**: write to `media/unmatched/+<digits>/<hash>.<ext>`.
+4. **JID isn't a phone**: write to `media/_non_phone/<safe-jid>/<hash>.<ext>`.
+5. **JID is a phone but doesn't validate**: write to `media/_invalid_phone/<digits>/<hash>.<ext>`.
+6. **The existing on-Promote `moveMediaByHashes`** stays — safety net when a number becomes known after media already landed.
+
+**Migration of the existing buckets.**
+
+- The 51 flat files at root: lookup activity by hash → recover the JID → run the new `jidToE164` → land it in the right bucket.
+- The current `media/unmatched/<14-15-digit-junk>/` dirs: same treatment. Run each existing dirname through `jidToE164`; if it parses as a phone, the dir is RENAMED to the `+<digits>` form. If it parses as a JID class (group, etc.), the dir is MOVED to `_non_phone/`. If neither, MOVED to `_invalid_phone/`. Manifest logs every rename/move.
+- Activities table's `media_path` URLs already key by `<hash>` only (no phone in the URL); `resolveMediaFile` walks every bucket, so no DB rewrite needed.
+
+**Files affected.**
+- `lib/wa-inbound-dispatch.ts` (MODIFIED) — call `jidToE164` BEFORE the existing matching; pass the bucket-classified result into the media-write path.
+- `lib/wa-jid.ts` (NEW) — `jidToE164(jid: string)` returning `{ok: true, phone: '+CC…'} | {ok: false, kind: '_non_phone'|'_invalid_phone', safe: string}`. Pure function, fully unit-testable.
+- `lib/media-store.ts` (MODIFIED) — `saveMediaForBucket(hash, ext, bytes, bucket)` where `bucket` is one of `+CC…` | `unmatched/+CC…` | `_non_phone/<safe>` | `_invalid_phone/<digits>`. `resolveMediaFile` extends its lookup to the two new quarantine roots.
+- `scripts/migrate-whatsapp-buckets.ts` (NEW) — one-shot: flat-files-at-root rehome + existing `unmatched/<junk>/` rename/move pass.
+
+**Dependencies.** None for the runtime change. The migration script depends on activity-table rows for hash→JID lookup; orphaned hashes (no activity) go to `_invalid_phone/_orphan/`.
+
+**Risk.** Medium. Two sharp edges: (1) the country-code validator — a wrong table of valid CCs would over-reject legitimate phones (mitigation: use the standard E.164 country-code set from libphonenumber's data table, NOT a hand-rolled regex); (2) the migration must be idempotent — running it twice on the same `media/` must not double-move or lose files (mitigation: manifest with content hashes pre/post; refuse to start if manifest exists without `--force`).
+
+**Acceptance.**
+- `ls media/` shows ONLY: `<+CC...digits>/` dirs for matched prospects, `unmatched/<+CC...digits>/` for known-format-but-no-prospect, `_non_phone/<safe>/` for group/broadcast/linked-device JIDs, `_invalid_phone/<digits>/` for the rest. **No raw 14-15-digit JID-shaped dirnames remain anywhere.**
+- A fresh inbound from `+41 79 123 45 67` lands the file at `media/+41791234567/<hash>.<ext>` (matched) or `media/unmatched/+41791234567/<hash>.<ext>` (no prospect yet).
+- A fresh inbound from a WhatsApp group goes to `media/_non_phone/<safe-jid>/` — never to `unmatched/`.
+- `media/` root has zero `<hash>.<ext>` flat files after the migration.
+- `resolveMediaFile(hash)` finds every file regardless of bucket; the existing `/api/admin/media/[hash]` URLs all still resolve 200.
+- The auth-gated route handles `%2B`-encoded `+` in path params (a quick test: `curl /api/admin/media/<hash>` still works because hashes are bucket-agnostic; the new Scout route from WP-132 doesn't touch phone paths).
+
+---
+
+### §18.6 — Sequencing
+
+1. **WP-129** (migration: dirs → DB pointers) — must land first. Builds the new layout from existing captures. Nothing breaks because old paths stay until the rewrite pass completes.
+2. **WP-132** (auth-gated route) — second. Now files exist under `media/<plz>/<slug>/`; the route makes them reachable.
+3. **WP-130** (captureUrl rewrite) — third. Fresh captures land in the new layout via the new path module.
+4. **WP-131** (jedi-scout.md ritual) — fourth, can land in parallel with WP-130 since it's a doc-only change.
+5. **WP-133** (WhatsApp bucket-on-landing) — independent of the Scout track; can land anytime. Sequencing is whenever it gets prioritised.
+
+### §18.7 — Acceptance criteria (whole-feature)
+
+- `ls public/__scout__/` → no such directory.
+- `find media -name '*.jpg' | grep -vE '/[0-9a-f]{64}\.jpg$' | wc -l` ≥ 368 (more if shared-practice multipliers kicked in).
+- Every live `raw_prospects.scout_json.capture.fullPageUrl` starts with `/api/admin/scout/capture/` and returns 200 in dev.
+- A fresh scout batch on a single-practice site writes one `<firstname>.jpg` (+ optional `-inner.jpg`).
+- A fresh scout batch on a known multi-practitioner site writes three files per practitioner: `<firstname>.jpg`, `<firstname>-inner.jpg`, `<firstname>-profile.jpg` (the third gracefully missing when the profile-link heuristic finds nothing).
+- A row whose PLZ couldn't be resolved (FSP-less, no `\d{4}` in address) is grouped under `media/<region>/...`, NEVER `_unknown/`, and the migration log names every such row for Ralph's triage.
+- A WhatsApp inbound from a fresh number writes to `media/unmatched/<phone>/`, not to `media/` root.
+- `find media -maxdepth 1 -name '*.jpg' -o -name '*.mp4' -o -name '*.webp' -o -name '*.ogg' | wc -l` → 0 (no flat files remain).
+- `npx tsc --noEmit` clean.
+- Boot replay produces the same pool state as before the migration.
+
+### §18.8 — Open decisions
+
+1. **Filesystem hardlinks vs byte copies** for the same screenshot reused across N practitioners on a shared site. (Lean: byte copies — disk is cheap on dev, hardlinks complicate the migration backout. Confirm.)
+2. **`<firstname>` collision disambiguator** within a `(plz, slug)` bucket — append last-name initial, last-name full, or the prospect id? (Lean: last-name initial first (`anna-m.jpg`), full last name if THAT also collides, prospect id as the never-collides fallback. Confirm.)
+3. **Profile-page heuristic when the homepage doesn't expose the link** — open the Impressum / Team page first and search THAT graph, or give up and ship 2 files? (Lean: give up cleanly — the agent file already documents that single-page captures are the graceful state. Confirm.)
+4. **PLZ-less region fallback granularity** — `bezirk` (city, e.g. `aarau`) vs `region` (broader, e.g. `aarau-suhrental`)? (Lean: `bezirk` for specificity; `region` only if `bezirk` is also missing. Confirm.)
+5. **`media/_scout-migration.json` retention** — keep it forever as an audit trail, or delete after a successful Phase B? (Lean: keep — it's the only record of how 368 hashed dirs became practitioner-named files.)
+
+**Locked this session:** the new layout (`media/<plz-or-region>/<slug>/<firstname>.jpg`) · PLZ from FSP, region fallback, never `_unknown` · no collapse ever · multi-practitioner sites capture three pages per practitioner (main + inner + profile) · `agents/jedi-scout.md` learns the shared-practice ritual · auth-gated `/api/admin/scout/capture/` route · migration is dirs-first then DB-pointers · WhatsApp media buckets on landing, not on promote · `public/__scout__/` is deleted at the end.

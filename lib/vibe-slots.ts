@@ -857,7 +857,10 @@ function swapBareImage(
       attrName = 'src'
     }
     if (!srcMatch) return tag
-    if (srcMatch[1] !== targetSrc) return tag
+    // Match by FILENAME, not exact string — the slot's src may be absolute
+    // (/sess/foo.jpg, http://host/…, with ?cb=…) while the file holds a relative
+    // `foo.jpg`. Both reduce to the same basename. Ralph 2026-06-16.
+    if (slotBasename(srcMatch[1]) !== slotBasename(targetSrc)) return tag
 
     occ += 1
     if (occ !== targetOccurrence) return tag
@@ -908,29 +911,40 @@ function swapBgImage(
   slot: string,
   newImage: string
 ): { swapped: boolean; oldImage: string | null; newHtml: string } {
-  const targetSrc = slot.slice(6)
-  if (!targetSrc) {
+  let targetSrc = slot.slice(6)
+  // The director builds the slot from the computed style, so targetSrc may be
+  // the full `url("http://host/sess/foo.jpg")`. Unwrap to the inner URL, then
+  // compare by basename so it matches the file's relative `url(foo.jpg)`.
+  const wrapped = targetSrc.match(/url\(\s*['"]?([^'")]+)['"]?\s*\)/i)
+  if (wrapped) targetSrc = wrapped[1]
+  const targetBase = slotBasename(targetSrc)
+  if (!targetBase) {
     return { swapped: false, oldImage: null, newHtml: html }
   }
 
   let swapped = false
   let oldImage: string | null = null
 
-  // Match url('src'), url("src"), or url(src) — preserve quote style
-  const escaped = escapeRegex(targetSrc)
-  const urlPattern = new RegExp(
-    `(url\\()(['"]?)(${escaped})(['"]?)(\\))`,
-    'g'
-  )
-
+  // Match url('src'), url("src"), or url(src); replace the first whose basename
+  // matches, preserving quote style. Ralph 2026-06-16.
+  const urlPattern = /(url\(\s*)(['"]?)([^'")]+)(['"]?)(\s*\))/gi
   const newHtml = html.replace(urlPattern, (full, prefix, q1, src, q2, suffix) => {
     if (swapped) return full // only replace first occurrence
+    if (slotBasename(src) !== targetBase) return full
     oldImage = src
     swapped = true
     return `${prefix}${q1}${newImage}${q2}${suffix}`
   })
 
   return { swapped, oldImage, newHtml }
+}
+
+/** Reduce any image reference — absolute path, full URL, with query/hash/cache-
+ *  bust — to its bare filename, so a slot's `/sess/foo.jpg?cb=1` matches the
+ *  file's relative `foo.jpg`. Exact-string matching was the source of the
+ *  recurring "Slot not found" errors. Ralph 2026-06-16. */
+function slotBasename(s: string): string {
+  return (s || '').split('?')[0].split('#')[0].split('/').pop() || s
 }
 
 /** Escape a string for safe inclusion in a RegExp source. */

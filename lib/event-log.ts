@@ -58,7 +58,15 @@ export interface Event {
   source: EventSource
 }
 
-const MAX_EVENT_BYTES = 4096   // events stay <4 KB to preserve append atomicity
+// Ralph 2026-06-11: the byte-size cap is GONE — no event is "too big" to write.
+// It claimed to "preserve append atomicity," but atomicity is already guaranteed
+// by proper-lockfile (appends are serialized) + crm-replay's torn-tail skip on
+// boot. So the cap was belt-and-suspenders that only ever did harm: the
+// TASTED-redesign blobs (who portrait · pitch rows · cites · queried + capture;
+// `prev` AND `next` both ride the UPDATE envelope, doubling the weight) crossed
+// 4 KB and the throw stamped good verdicts FAILED
+// (R868/R1039/R1100/R1107/R1118/R1082, 2026-06-10). An event is whatever the
+// agent needs to write. The Consular's SQL authority writes home unobstructed.
 
 function assertEnvelopeShape(event: Event): void {
   if (event.schema_version !== 1) {
@@ -93,13 +101,6 @@ function assertEnvelopeShape(event: Event): void {
 export async function appendEvent(event: Event): Promise<void> {
   assertEnvelopeShape(event)
   const line = JSON.stringify(event) + '\n'
-  const byteLen = Buffer.byteLength(line, 'utf-8')
-  if (byteLen > MAX_EVENT_BYTES) {
-    throw new Error(
-      `event-log: event ${event.id} is ${byteLen} bytes (>${MAX_EVENT_BYTES}). ` +
-      `Split the payload or store large fields as separate files.`,
-    )
-  }
   // Ensure the file exists before locking (lockfile.lock on a non-existent
   // path can fail under some implementations).
   if (!existsSync(LOG_PATH)) {

@@ -416,6 +416,7 @@ export function KanbanBoard({ prospects, activities, onSelect, onReload, onToggl
                 onReload={onReload}
                 registerUndo={registerUndo}
                 onWhatsApp={onWhatsApp}
+                defaultMinimized={false}
               />
             </div>
           )

@@ -1,0 +1,1246 @@
+{
+  "jobId": "1cebce04-3f96-41fa-a0f9-e296dce5edf8",
+  "generatedAt": "2026-06-05T09:49:27.464Z",
+  "summary": {
+    "processed": 271,
+    "resolved": 188,
+    "updated": 186,
+    "unresolved": 83,
+    "notFound": 0,
+    "errors": 0,
+    "total": 271
+  },
+  "rows": [
+    {
+      "id": "R015",
+      "name": "Marie-Anne Rahelder raum",
+      "town": "Zürich",
+      "reason": "no-match",
+      "nearMisses": []
+    },
+    {
+      "id": "R027",
+      "name": "Caroline Ratz",
+      "town": "Zürich",
+      "reason": "no-match",
+      "nearMisses": []
+    },
+    {
+      "id": "R042",
+      "name": "Erich Schmuckiraum&praxis",
+      "town": "Uster",
+      "reason": "no-match",
+      "nearMisses": []
+    },
+    {
+      "id": "R066",
+      "name": "Sophie Christen",
+      "town": "Horgen",
+      "reason": "ambiguous",
+      "nearMisses": [
+        {
+          "slug": "sophie-christen",
+          "score": 18,
+          "matched": [
+            "sophie",
+            "christen"
+          ]
+        },
+        {
+          "slug": "sophie-christen-cochand",
+          "score": 18,
+          "matched": [
+            "sophie",
+            "christen"
+          ]
+        },
+        {
+          "slug": "stefan-christen",
+          "score": 13,
+          "matched": [
+            "christen"
+          ]
+        },
+        {
+          "slug": "sibylle-christen",
+          "score": 13,
+          "matched": [
+            "christen"
+          ]
+        },
+        {
+          "slug": "andrea-christen",
+          "score": 13,
+          "matched": [
+            "christen"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "R068",
+      "name": "Helena RickenbacherPsychotherapeutische Praxis für Kinder & Jugendliche",
+      "town": "Horgen",
+      "reason": "no-firstname",
+      "nearMisses": [
+        {
+          "slug": "helen-rickenbacher",
+          "score": 13,
+          "matched": [
+            "rickenbacher"
+          ]
+        },
+        {
+          "slug": "bruno-rickenbacher",
+          "score": 13,
+          "matched": [
+            "rickenbacher"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "R071",
+      "name": "Tanja Theiler-SchiesserPsychotherapie Theiler",
+      "town": "Thalwil",
+      "reason": "no-firstname",
+      "nearMisses": [
+        {
+          "slug": "pascale-schiesser",
+          "score": 13,
+          "matched": [
+            "schiesser"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "R077",
+      "name": "Liana Sadiku",
+      "town": "Regensdorf",
+      "reason": "no-match",
+      "nearMisses": []
+    },
+    {
+      "id": "R-aargau-191",
+      "name": "Dr. med. Yvonne Imlauer Kuhn",
+      "town": "Würenlos",
+      "reason": "no-firstname",
+      "nearMisses": [
+        {
+          "slug": "sarah-kuhn",
+          "score": 13,
+          "matched": [
+            "kuhn"
+          ]
+        },
+        {
+          "slug": "rebekka-kuhn",
+          "score": 13,
+          "matched": [
+            "kuhn"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "R-aargau-192",
+      "name": "Dr. med. Renata Moukhtieva",
+      "town": "Würenlos",
+      "reason": "no-match",
+      "nearMisses": []
+    },
+    {
+      "id": "R-aargau-190",
+      "name": "Dr. med. Reshat Spahija",
+      "town": "Kleindöttingen",
+      "reason": "no-match",
+      "nearMisses": []
+    },
+    {
+      "id": "R-aargau-189",
+      "name": "Dr. med. Jens Acker (KSM Schlafmedizin)",
+      "town": "Bad Zurzach",
+      "reason": "no-match",
+      "nearMisses": []
+    },
+    {
+      "id": "R-aargau-188",
+      "name": "Werner Entenmann (Praxis Neuhus)",
+      "town": "Bad Zurzach",
+      "reason": "no-match",
+      "nearMisses": []
+    },
+    {
+      "id": "R-aargau-187",
+      "name": "Dr. med. Elmar Abel",
+      "town": "Bad Zurzach",
+      "reason": "no-match",
+      "nearMisses": []
+    },
+    {
+      "id": "R-aargau-185",
+      "name": "Dr. med. Havus Murati Tahiri",
+      "town": "Stein",
+      "reason": "no-match",
+      "nearMisses": []
+    },
+    {
+      "id": "R-aargau-181",
+      "name": "Dr. med. David Walther",
+      "town": "Rheinfelden",
+      "reason": "no-firstname",
+      "nearMisses": [
+        {
+          "slug": "alexandra-walther",
+          "score": 13,
+          "matched": [
+            "walther"
+          ]
+        },
+        {
+          "slug": "tatiana-walther",
+          "score": 13,
+          "matched": [
+            "walther"
+          ]
+        },
+        {
+          "slug": "tanja-walther",
+          "score": 13,
+          "matched": [
+            "walther"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "R-aargau-183",
+      "name": "Dr. med. Corinne Reichenstein",
+      "town": "Möhlin",
+      "reason": "no-match",
+      "nearMisses": []
+    },
+    {
+      "id": "R-aargau-180",
+      "name": "Krasimira Kenarova",
+      "town": "Rheinfelden",
+      "reason": "no-match",
+      "nearMisses": []
+    },
+    {
+      "id": "R-aargau-178",
+      "name": "Dr. med. Irène Ghirlanda",
+      "town": "Rheinfelden",
+      "reason": "no-firstname",
+      "nearMisses": [
+        {
+          "slug": "luca-ghirlanda",
+          "score": 13,
+          "matched": [
+            "ghirlanda"
+          ]
+        },
+        {
+          "slug": "francesca-bianchi-ghirlanda",
+          "score": 13,
+          "matched": [
+            "ghirlanda"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "R-aargau-182",
+      "name": "Dr. med. Werner Trüb (Salmenpark)",
+      "town": "Rheinfelden",
+      "reason": "no-match",
+      "nearMisses": []
+    },
+    {
+      "id": "R-aargau-177",
+      "name": "med. pract. Michael Fithal",
+      "town": "Rheinfelden",
+      "reason": "no-firstname",
+      "nearMisses": [
+        {
+          "slug": "michael-ramp",
+          "score": 13,
+          "matched": [
+            "michael"
+          ]
+        },
+        {
+          "slug": "michael-f-gschwind",
+          "score": 13,
+          "matched": [
+            "michael"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "R-aargau-175",
+      "name": "Birgit Quennoz",
+      "town": "Rheinfelden",
+      "reason": "no-match",
+      "nearMisses": []
+    },
+    {
+      "id": "R-aargau-174",
+      "name": "Sara Lucatuorto",
+      "town": "Rheinfelden",
+      "reason": "no-match",
+      "nearMisses": []
+    },
+    {
+      "id": "R-aargau-164",
+      "name": "Dr. med. Hans-Ulrich Baur",
+      "town": "Zofingen",
+      "reason": "no-firstname",
+      "nearMisses": [
+        {
+          "slug": "brigitte-baur",
+          "score": 13,
+          "matched": [
+            "baur"
+          ]
+        },
+        {
+          "slug": "renate-maile-baur",
+          "score": 13,
+          "matched": [
+            "baur"
+          ]
+        },
+        {
+          "slug": "sarah-baur",
+          "score": 13,
+          "matched": [
+            "baur"
+          ]
+        },
+        {
+          "slug": "fanny-baur",
+          "score": 13,
+          "matched": [
+            "baur"
+          ]
+        },
+        {
+          "slug": "andreas-baur",
+          "score": 13,
+          "matched": [
+            "baur"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "R-aargau-162",
+      "name": "Dr. med. Marion Christoph",
+      "town": "Zofingen",
+      "reason": "no-firstname",
+      "nearMisses": [
+        {
+          "slug": "christoph-gerbig",
+          "score": 13,
+          "matched": [
+            "christoph"
+          ]
+        },
+        {
+          "slug": "marc-christoph-huber",
+          "score": 13,
+          "matched": [
+            "christoph"
+          ]
+        },
+        {
+          "slug": "christoph-kramm",
+          "score": 13,
+          "matched": [
+            "christoph"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "R-aargau-165",
+      "name": "Matthias Aurin",
+      "town": "Strengelbach",
+      "reason": "no-match",
+      "nearMisses": []
+    },
+    {
+      "id": "R-aargau-163",
+      "name": "Dr. med. Thomas Glinz",
+      "town": "Zofingen",
+      "reason": "no-match",
+      "nearMisses": []
+    },
+    {
+      "id": "R-aargau-161",
+      "name": "Klaas Puls (Psychiatrie-Praxis Zofingen)",
+      "town": "Zofingen",
+      "reason": "no-match",
+      "nearMisses": []
+    },
+    {
+      "id": "R-aargau-151",
+      "name": "Dr. med. Claudia Mössinger (Praxisgem. Suhrental)",
+      "town": "Schöftland",
+      "reason": "no-match",
+      "nearMisses": []
+    },
+    {
+      "id": "R-aargau-149",
+      "name": "Dr. med. Paul Hartman",
+      "town": "Reinach",
+      "reason": "no-match",
+      "nearMisses": []
+    },
+    {
+      "id": "R-aargau-147",
+      "name": "Dr. med. Adem Bejrami",
+      "town": "Egliswil",
+      "reason": "no-match",
+      "nearMisses": []
+    },
+    {
+      "id": "R-aargau-146",
+      "name": "Dr. med. Gerhard Krautstrunk",
+      "town": "Niederlenz",
+      "reason": "no-match",
+      "nearMisses": []
+    },
+    {
+      "id": "R-aargau-145",
+      "name": "Dr. med. Dieter Steubing",
+      "town": "Lenzburg",
+      "reason": "no-match",
+      "nearMisses": []
+    },
+    {
+      "id": "R-aargau-144",
+      "name": "Dr. med. Thomas Lüddeckens",
+      "town": "Lenzburg",
+      "reason": "no-match",
+      "nearMisses": []
+    },
+    {
+      "id": "R-aargau-143",
+      "name": "Dr. med. Piotr Jedrysiak",
+      "town": "Lenzburg",
+      "reason": "no-match",
+      "nearMisses": []
+    },
+    {
+      "id": "R-aargau-141",
+      "name": "Jorge Alfredo Coutiño",
+      "town": "Lenzburg",
+      "reason": "no-match",
+      "nearMisses": []
+    },
+    {
+      "id": "R-aargau-142",
+      "name": "Dr. med. Annett-Kathrin Hass",
+      "town": "Lenzburg",
+      "reason": "no-match",
+      "nearMisses": []
+    },
+    {
+      "id": "R-aargau-114",
+      "name": "Wiedmer-Zöbeli (Praxis KJP)",
+      "town": "Wohlen",
+      "reason": "no-tokens",
+      "nearMisses": []
+    },
+    {
+      "id": "R-aargau-121",
+      "name": "Dr. med. Guido Winkler",
+      "town": "Berikon",
+      "reason": "no-firstname",
+      "nearMisses": [
+        {
+          "slug": "katrin-winkler",
+          "score": 13,
+          "matched": [
+            "winkler"
+          ]
+        },
+        {
+          "slug": "sonja-bitterli-winkler",
+          "score": 13,
+          "matched": [
+            "winkler"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "R-aargau-117",
+      "name": "Dr. med. Gerhard Withalm",
+      "town": "Bremgarten",
+      "reason": "no-match",
+      "nearMisses": []
+    },
+    {
+      "id": "R-aargau-116",
+      "name": "Dr. med. David Kabashi",
+      "town": "Bremgarten",
+      "reason": "no-match",
+      "nearMisses": []
+    },
+    {
+      "id": "R-aargau-115",
+      "name": "Dr. med. Violetta Drögsler",
+      "town": "Muri",
+      "reason": "no-match",
+      "nearMisses": []
+    },
+    {
+      "id": "R-aargau-113",
+      "name": "Dr. med. Sevdije Shala",
+      "town": "Wohlen",
+      "reason": "no-match",
+      "nearMisses": []
+    },
+    {
+      "id": "R-aargau-118",
+      "name": "Dr. med. Katerina Lackmann",
+      "town": "Bremgarten",
+      "reason": "no-match",
+      "nearMisses": []
+    },
+    {
+      "id": "R-aargau-112",
+      "name": "Dr. med. Elizabeta Coneva",
+      "town": "Wohlen",
+      "reason": "no-match",
+      "nearMisses": []
+    },
+    {
+      "id": "R-aargau-108",
+      "name": "Thekla Schneider (Praxis f. PT u. Beratung Muri)",
+      "town": "Muri",
+      "reason": "no-firstname",
+      "nearMisses": [
+        {
+          "slug": "rebekka-schneider",
+          "score": 13,
+          "matched": [
+            "schneider"
+          ]
+        },
+        {
+          "slug": "brigitte-schneider-miller",
+          "score": 13,
+          "matched": [
+            "schneider"
+          ]
+        },
+        {
+          "slug": "jutta-schneider-stroer",
+          "score": 13,
+          "matched": [
+            "schneider"
+          ]
+        },
+        {
+          "slug": "sina-schneider",
+          "score": 13,
+          "matched": [
+            "schneider"
+          ]
+        },
+        {
+          "slug": "cornelia-schneider",
+          "score": 13,
+          "matched": [
+            "schneider"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "R-aargau-111",
+      "name": "Tamara Klain Guti",
+      "town": "Berikon",
+      "reason": "no-match",
+      "nearMisses": []
+    },
+    {
+      "id": "R-aargau-110",
+      "name": "Anne Schlunegger (Psych. Praxis Mutschellen)",
+      "town": "Berikon",
+      "reason": "no-match",
+      "nearMisses": []
+    },
+    {
+      "id": "R-aargau-105",
+      "name": "Philipp Lütolf (Praxis Lütolf)",
+      "town": "Bremgarten",
+      "reason": "no-match",
+      "nearMisses": []
+    },
+    {
+      "id": "R-aargau-100",
+      "name": "Ingo Ulrich (Nervenheilkundliche Praxis)",
+      "town": "Windisch",
+      "reason": "no-firstname",
+      "nearMisses": [
+        {
+          "slug": "ulrich-frischknecht",
+          "score": 13,
+          "matched": [
+            "ulrich"
+          ]
+        },
+        {
+          "slug": "ulrich-gerber",
+          "score": 13,
+          "matched": [
+            "ulrich"
+          ]
+        },
+        {
+          "slug": "sylvie-ulrich-huguenot",
+          "score": 13,
+          "matched": [
+            "ulrich"
+          ]
+        },
+        {
+          "slug": "doris-marti-ulrich",
+          "score": 13,
+          "matched": [
+            "ulrich"
+          ]
+        },
+        {
+          "slug": "ulrich-rosenzweig",
+          "score": 13,
+          "matched": [
+            "ulrich"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "R-aargau-099",
+      "name": "Dr. med. Marco Gfeller",
+      "town": "Windisch",
+      "reason": "no-firstname",
+      "nearMisses": [
+        {
+          "slug": "patrick-gfeller",
+          "score": 13,
+          "matched": [
+            "gfeller"
+          ]
+        },
+        {
+          "slug": "veronique-gfeller",
+          "score": 13,
+          "matched": [
+            "gfeller"
+          ]
+        },
+        {
+          "slug": "veronika-gfeller",
+          "score": 13,
+          "matched": [
+            "gfeller"
+          ]
+        },
+        {
+          "slug": "marietta-gfeller",
+          "score": 13,
+          "matched": [
+            "gfeller"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "R-aargau-107",
+      "name": "Praxis f. Psychotherapie u. Beratung Freiamt GmbH",
+      "town": "Bremgarten",
+      "reason": "no-match",
+      "nearMisses": []
+    },
+    {
+      "id": "R-aargau-096",
+      "name": "med. pract. Christian Seifried (Praxis-Rössli)",
+      "town": "Brugg",
+      "reason": "no-firstname",
+      "nearMisses": [
+        {
+          "slug": "christian-fichter",
+          "score": 13,
+          "matched": [
+            "christian"
+          ]
+        },
+        {
+          "slug": "christian-follack",
+          "score": 13,
+          "matched": [
+            "christian"
+          ]
+        },
+        {
+          "slug": "christian-wurster",
+          "score": 13,
+          "matched": [
+            "christian"
+          ]
+        },
+        {
+          "slug": "christian-astre",
+          "score": 13,
+          "matched": [
+            "christian"
+          ]
+        },
+        {
+          "slug": "christian-gerber",
+          "score": 13,
+          "matched": [
+            "christian"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "R-aargau-097",
+      "name": "Dr. med. Slobodan Spasic",
+      "town": "Brugg",
+      "reason": "no-match",
+      "nearMisses": []
+    },
+    {
+      "id": "R-aargau-093",
+      "name": "Dr. med. Angelika Curti (Praxis im Zentrum)",
+      "town": "Brugg",
+      "reason": "no-firstname",
+      "nearMisses": [
+        {
+          "slug": "saskia-curti",
+          "score": 13,
+          "matched": [
+            "curti"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "R-aargau-095",
+      "name": "Dr. med. Branka Knezevic-Kovac",
+      "town": "Brugg",
+      "reason": "no-match",
+      "nearMisses": []
+    },
+    {
+      "id": "R-aargau-094",
+      "name": "Dr. med. Dejan Golic",
+      "town": "Brugg",
+      "reason": "no-match",
+      "nearMisses": []
+    },
+    {
+      "id": "R-aargau-091",
+      "name": "Françoise Marchand (Psychotherapie am Wasser)",
+      "town": "Windisch",
+      "reason": "no-match",
+      "nearMisses": []
+    },
+    {
+      "id": "R-aargau-082",
+      "name": "Dr. med. Stefan Lienhard",
+      "town": "Spreitenbach",
+      "reason": "no-firstname",
+      "nearMisses": [
+        {
+          "slug": "catherine-lienhard-dormond",
+          "score": 13,
+          "matched": [
+            "lienhard"
+          ]
+        },
+        {
+          "slug": "gioia-lienhard",
+          "score": 13,
+          "matched": [
+            "lienhard"
+          ]
+        },
+        {
+          "slug": "fabian-lienhard",
+          "score": 13,
+          "matched": [
+            "lienhard"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "R-aargau-089",
+      "name": "Barbara Schlepütz",
+      "town": "Brugg",
+      "reason": "no-match",
+      "nearMisses": []
+    },
+    {
+      "id": "R-aargau-080",
+      "name": "Dr. med. Thomas Meier",
+      "town": "Wettingen",
+      "reason": "no-firstname",
+      "nearMisses": [
+        {
+          "slug": "barbara-meier",
+          "score": 13,
+          "matched": [
+            "meier"
+          ]
+        },
+        {
+          "slug": "katrin-meier",
+          "score": 13,
+          "matched": [
+            "meier"
+          ]
+        },
+        {
+          "slug": "antonia-meier",
+          "score": 13,
+          "matched": [
+            "meier"
+          ]
+        },
+        {
+          "slug": "regina-meier",
+          "score": 13,
+          "matched": [
+            "meier"
+          ]
+        },
+        {
+          "slug": "gregory-andre-meier",
+          "score": 13,
+          "matched": [
+            "meier"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "R-aargau-078",
+      "name": "Sandra Binder Jazbec",
+      "town": "Wettingen",
+      "reason": "no-firstname",
+      "nearMisses": [
+        {
+          "slug": "andreas-binder",
+          "score": 13,
+          "matched": [
+            "binder"
+          ]
+        },
+        {
+          "slug": "rosa-binder",
+          "score": 13,
+          "matched": [
+            "binder"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "R-aargau-081",
+      "name": "Dr. med. Helen Zimmer",
+      "town": "Wettingen",
+      "reason": "no-match",
+      "nearMisses": []
+    },
+    {
+      "id": "R-aargau-079",
+      "name": "Dr. med. Hans-Ulrich Karli",
+      "town": "Wettingen",
+      "reason": "no-match",
+      "nearMisses": []
+    },
+    {
+      "id": "R-aargau-070",
+      "name": "Dr. med. Bernhard E. Müller",
+      "town": "Baden",
+      "reason": "no-firstname",
+      "nearMisses": [
+        {
+          "slug": "maria-luisa-muller",
+          "score": 13,
+          "matched": [
+            "muller"
+          ]
+        },
+        {
+          "slug": "heinz-peter-muller",
+          "score": 13,
+          "matched": [
+            "muller"
+          ]
+        },
+        {
+          "slug": "lukas-muller",
+          "score": 13,
+          "matched": [
+            "muller"
+          ]
+        },
+        {
+          "slug": "marianne-muller",
+          "score": 13,
+          "matched": [
+            "muller"
+          ]
+        },
+        {
+          "slug": "aline-muller-guidetti",
+          "score": 13,
+          "matched": [
+            "muller"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "R-aargau-069",
+      "name": "Dr. med. Georgia Brunner",
+      "town": "Baden",
+      "reason": "no-firstname",
+      "nearMisses": [
+        {
+          "slug": "albert-renato-brunner",
+          "score": 13,
+          "matched": [
+            "brunner"
+          ]
+        },
+        {
+          "slug": "sibylle-brunner",
+          "score": 13,
+          "matched": [
+            "brunner"
+          ]
+        },
+        {
+          "slug": "marie-aimee-pretti-brunner",
+          "score": 13,
+          "matched": [
+            "brunner"
+          ]
+        },
+        {
+          "slug": "ernst-brunner",
+          "score": 13,
+          "matched": [
+            "brunner"
+          ]
+        },
+        {
+          "slug": "martin-brunner-1",
+          "score": 11,
+          "matched": [
+            "brunner"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "R-aargau-072",
+      "name": "Dr. med. René Treier (Praxisgem. Langhaus)",
+      "town": "Baden",
+      "reason": "no-match",
+      "nearMisses": []
+    },
+    {
+      "id": "R-aargau-071",
+      "name": "Dr. med. Ariana Ramisch (Praxisgem. Langhaus)",
+      "town": "Baden",
+      "reason": "no-match",
+      "nearMisses": []
+    },
+    {
+      "id": "R-aargau-062",
+      "name": "PD Dr. med. Monika Ridinger",
+      "town": "Baden",
+      "reason": "no-firstname",
+      "nearMisses": [
+        {
+          "slug": "monika-ambauen",
+          "score": 13,
+          "matched": [
+            "monika"
+          ]
+        },
+        {
+          "slug": "monika-bengueddah",
+          "score": 13,
+          "matched": [
+            "monika"
+          ]
+        },
+        {
+          "slug": "monika-bunter-honegger",
+          "score": 13,
+          "matched": [
+            "monika"
+          ]
+        },
+        {
+          "slug": "monika-wullschleger-zangerl",
+          "score": 13,
+          "matched": [
+            "monika"
+          ]
+        },
+        {
+          "slug": "monika-zimmermann-knobel",
+          "score": 13,
+          "matched": [
+            "monika"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "R-aargau-061",
+      "name": "Dr. med. Nikolaj Reber",
+      "town": "Baden",
+      "reason": "no-firstname",
+      "nearMisses": [
+        {
+          "slug": "fabienne-reber",
+          "score": 13,
+          "matched": [
+            "reber"
+          ]
+        },
+        {
+          "slug": "carmen-reber-gysi",
+          "score": 13,
+          "matched": [
+            "reber"
+          ]
+        },
+        {
+          "slug": "isabelle-hamzic-reber",
+          "score": 13,
+          "matched": [
+            "reber"
+          ]
+        },
+        {
+          "slug": "coralie-brossard-reber",
+          "score": 13,
+          "matched": [
+            "reber"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "R-aargau-064",
+      "name": "Dr. med. Eduard Zander",
+      "town": "Baden",
+      "reason": "no-match",
+      "nearMisses": []
+    },
+    {
+      "id": "R-aargau-063",
+      "name": "Dr. med. Carole Kherfouche",
+      "town": "Baden",
+      "reason": "no-match",
+      "nearMisses": []
+    },
+    {
+      "id": "R-aargau-066",
+      "name": "Dr. med. Ulrich Geissendörfer",
+      "town": "Dättwil",
+      "reason": "no-match",
+      "nearMisses": []
+    },
+    {
+      "id": "R-aargau-052",
+      "name": "Maya Schnelli",
+      "town": "Baden",
+      "reason": "no-match",
+      "nearMisses": []
+    },
+    {
+      "id": "R-aargau-051",
+      "name": "Andrea Hugentobler",
+      "town": "Baden",
+      "reason": "no-match",
+      "nearMisses": []
+    },
+    {
+      "id": "R-aargau-028",
+      "name": "Dr. med. Mirjam Oertli",
+      "town": "Aarau",
+      "reason": "no-firstname",
+      "nearMisses": [
+        {
+          "slug": "adrian-oertli",
+          "score": 13,
+          "matched": [
+            "oertli"
+          ]
+        },
+        {
+          "slug": "rahel-oertli",
+          "score": 13,
+          "matched": [
+            "oertli"
+          ]
+        },
+        {
+          "slug": "esther-jennifer-oertli",
+          "score": 13,
+          "matched": [
+            "oertli"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "R-aargau-027",
+      "name": "Dr. med. Sabina Müller-Guske",
+      "town": "Aarau",
+      "reason": "no-firstname",
+      "nearMisses": [
+        {
+          "slug": "maria-luisa-muller",
+          "score": 13,
+          "matched": [
+            "muller"
+          ]
+        },
+        {
+          "slug": "heinz-peter-muller",
+          "score": 13,
+          "matched": [
+            "muller"
+          ]
+        },
+        {
+          "slug": "marianne-muller",
+          "score": 13,
+          "matched": [
+            "muller"
+          ]
+        },
+        {
+          "slug": "lukas-muller",
+          "score": 13,
+          "matched": [
+            "muller"
+          ]
+        },
+        {
+          "slug": "aline-muller-guidetti",
+          "score": 13,
+          "matched": [
+            "muller"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "R-aargau-031",
+      "name": "Dr. med. Lienhard Maeck (Praxis im Suhre-Park)",
+      "town": "Suhr",
+      "reason": "no-match",
+      "nearMisses": []
+    },
+    {
+      "id": "R-aargau-029",
+      "name": "Dr. med. Patrick Perrenoud (Aare Praxis)",
+      "town": "Aarau",
+      "reason": "no-match",
+      "nearMisses": []
+    },
+    {
+      "id": "R-aargau-025",
+      "name": "Dr. med. André Lichter",
+      "town": "Aarau",
+      "reason": "no-match",
+      "nearMisses": []
+    },
+    {
+      "id": "R-aargau-026",
+      "name": "Dr. med. Sandro Magliozzi",
+      "town": "Aarau",
+      "reason": "no-match",
+      "nearMisses": []
+    },
+    {
+      "id": "R-aargau-024",
+      "name": "Dr. med. Kornelia Acton",
+      "town": "Aarau",
+      "reason": "no-match",
+      "nearMisses": []
+    },
+    {
+      "id": "R-aargau-019",
+      "name": "Claudia Schmid-Schüller",
+      "town": "Aarau",
+      "reason": "no-firstname",
+      "nearMisses": [
+        {
+          "slug": "christine-schmid",
+          "score": 13,
+          "matched": [
+            "schmid"
+          ]
+        },
+        {
+          "slug": "alessia-schmid",
+          "score": 13,
+          "matched": [
+            "schmid"
+          ]
+        },
+        {
+          "slug": "nuria-schmid",
+          "score": 13,
+          "matched": [
+            "schmid"
+          ]
+        },
+        {
+          "slug": "marion-schmid",
+          "score": 13,
+          "matched": [
+            "schmid"
+          ]
+        },
+        {
+          "slug": "christina-schmid",
+          "score": 13,
+          "matched": [
+            "schmid"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "R-aargau-022",
+      "name": "Kathrin Bollok",
+      "town": "Aarau",
+      "reason": "no-match",
+      "nearMisses": []
+    }
+  ]
+}

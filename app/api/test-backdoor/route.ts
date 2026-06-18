@@ -40,7 +40,6 @@ import { readFile, copyFile, mkdir, stat } from 'fs/promises'
 import { existsSync } from 'fs'
 import path from 'path'
 import { createSession, getSession } from '@/lib/session'
-import { readTodos } from '@/lib/runtime/todos-store'
 import { getImageManifestsAction } from '@/lib/session-actions'
 
 export const runtime = 'nodejs'
@@ -349,8 +348,7 @@ async function handleGetState(sessionId: string) {
   const session = await getSession(sessionId)
   if (!session) return err(`session "${sessionId}" not found`, 404)
 
-  const [todos, manifestsResult, galleryResp] = await Promise.all([
-    readTodos(sessionId).catch(() => []),
+  const [manifestsResult, galleryResp] = await Promise.all([
     getImageManifestsAction(sessionId).catch(() => ({ success: false as const, manifests: [] })),
     fetch(`${BASE_URL()}/api/sessions/${encodeURIComponent(sessionId)}/gallery`)
       .then((r) => (r.ok ? r.json() : { cards: [] }))
@@ -364,7 +362,6 @@ async function handleGetState(sessionId: string) {
   return ok({
     sessionId,
     sessionMdTail: sessionTail,
-    todos,
     manifests: ('manifests' in manifestsResult ? manifestsResult.manifests : []) || [],
     vibes: (galleryResp as { cards?: unknown[] }).cards || [],
     backdoorState: STATES.get(sessionId) ?? null,

@@ -49,6 +49,7 @@ interface PsiResult {
   performance: number | null
   seo: number | null
   cruxCategory: string | null   // 'FAST' | 'AVERAGE' | 'SLOW' | null
+  cruxLcpMs: number | null      // raw 75th-percentile LCP in ms (continuous; feeds the 4-tier traffic lamp)
 }
 interface PsiFail { ok: false }
 
@@ -67,12 +68,15 @@ async function callPsi(
   try {
     const r = await fetch(u.toString(), { signal: AbortSignal.timeout(timeoutMs) })
     if (!r.ok) return { ok: false }
+    type CruxMetric = { percentile?: number; category?: string }
+    type CruxBlock = {
+      overall_category?: string
+      metrics?: { LARGEST_CONTENTFUL_PAINT_MS?: CruxMetric }
+    }
     const j = (await r.json()) as {
-      lighthouseResult?: {
-        categories?: Record<string, { score?: number }>
-      }
-      loadingExperience?: { overall_category?: string }
-      originLoadingExperience?: { overall_category?: string }
+      lighthouseResult?: { categories?: Record<string, { score?: number }> }
+      loadingExperience?: CruxBlock
+      originLoadingExperience?: CruxBlock
     }
     const cats = j.lighthouseResult?.categories || {}
     // Lighthouse scores are 0-1 floats; ×100 → 0-100 integer for display.
@@ -80,17 +84,31 @@ async function callPsi(
     const seo = typeof cats.seo?.score === 'number' ? Math.round(cats.seo.score * 100) : null
     // Prefer page-specific CrUX cohort; fall back to origin cohort. Either
     // tells us "real users visit this often enough to be measurable".
-    const cruxCategory = j.loadingExperience?.overall_category
-      ?? j.originLoadingExperience?.overall_category
+    const pageCrux = j.loadingExperience
+    const origCrux = j.originLoadingExperience
+    const cruxCategory = pageCrux?.overall_category ?? origCrux?.overall_category ?? null
+    // Ralph 2026-06-03 · also extract LCP 75th-percentile (ms) — Google's
+    // overall_category is only 3 buckets (FAST/AVG/SLOW), so for our 4-tier
+    // lamp we need the continuous metric underneath. LCP is the most
+    // representative single number (it's also what dominates Google's own
+    // ranking signal). Same cohort precedence: page first, origin fallback.
+    const cruxLcpMs = pageCrux?.metrics?.LARGEST_CONTENTFUL_PAINT_MS?.percentile
+      ?? origCrux?.metrics?.LARGEST_CONTENTFUL_PAINT_MS?.percentile
       ?? null
-    return { ok: true, performance: perf, seo, cruxCategory }
+    return { ok: true, performance: perf, seo, cruxCategory, cruxLcpMs }
   } catch {
     return { ok: false }
   }
 }
 
 export async function lookupPagespeed(url: string, timeoutMs = 25_000): Promise<PagespeedSignals> {
-  const apiKey = process.env.GOOGLE_API_KEY || ''
+  // Ralph 2026-06-03 · key fallback chain. PAGESPEED_API_KEY (dedicated)
+  // wins so a key with looser API restrictions can be dropped in without
+  // touching the shared GOOGLE_API_KEY that other integrations use (Images,
+  // Maps, etc.). Falls back to GOOGLE_API_KEY for backwards compatibility.
+  // Diagnostic: the previous setup hit `API_KEY_SERVICE_BLOCKED` because
+  // GOOGLE_API_KEY had an API-restriction list that excluded PageSpeed.
+  const apiKey = process.env.PAGESPEED_API_KEY || process.env.GOOGLE_API_KEY || ''
   if (!apiKey) {
     return { performance: null, seo: null, traffic: null, failed: true, noApiKey: true }
   }
@@ -119,9 +137,26 @@ export async function lookupPagespeed(url: string, timeoutMs = 25_000): Promise<
   // CrUX presence — prefer mobile's signal (where real users live for SMB sites);
   // fall back to desktop's. Either means "site has enough traffic to be measured".
   const crux = (mobile.ok && mobile.cruxCategory) || (desktop.ok && desktop.cruxCategory) || null
-  const traffic = crux
-    ? `measured · ${crux}`            // 'FAST' / 'AVERAGE' / 'SLOW'
-    : 'thin · below CrUX threshold'   // No real-user data = low-traffic site
+  // Ralph 2026-06-03 · 4-tier traffic label driven by raw LCP percentile.
+  // Google's `overall_category` only gives 3 buckets; the continuous LCP
+  // value below subdivides the messy "AVERAGE" range (2.5-4.0s) into two
+  // halves so 2.8s (almost fast) reads visibly different from 3.8s (almost
+  // slow). Thresholds use Google's own LCP cutoffs for good/poor (2.5s,
+  // 4.0s); the 3.25s split is the midpoint of the in-between band.
+  const lcpMs = (mobile.ok && mobile.cruxLcpMs) || (desktop.ok && desktop.cruxLcpMs) || null
+  let traffic: string
+  if (lcpMs != null) {
+    const sec = (lcpMs / 1000).toFixed(1)
+    if (lcpMs < 2500)      traffic = `LCP ${sec}s · fast`
+    else if (lcpMs < 3250) traffic = `LCP ${sec}s · ok`
+    else if (lcpMs < 4000) traffic = `LCP ${sec}s · slow`
+    else                   traffic = `LCP ${sec}s · poor`
+  } else if (crux) {
+    // No LCP percentile but we have an overall category — keep it informative.
+    traffic = `measured · ${crux}`
+  } else {
+    traffic = 'thin · below CrUX threshold'
+  }
 
   return { performance: perf, seo, traffic, failed: false, noApiKey: false }
 }
@@ -130,17 +165,21 @@ export async function lookupPagespeed(url: string, timeoutMs = 25_000): Promise<
  * Compact lamp formatters. Numbers stay raw for downstream sorts; the string
  * form is what the row's strip displays.
  */
+// Ralph 2026-06-03 · 4-tier labels mirror the 4-tier tone in types.ts:
+//   ≥90 fast/clean (green) · 70-89 ok (yellow) · 50-69 slow/low (orange) · <50 poor (red)
 export function formatPerformanceLamp(s: PagespeedSignals): string {
   if (s.performance == null) return ''
   if (s.performance >= 90) return `${s.performance} · fast`
-  if (s.performance >= 50) return `${s.performance} · ok`
-  return `${s.performance} · slow`     // green tone: more to sell into
+  if (s.performance >= 70) return `${s.performance} · ok`
+  if (s.performance >= 50) return `${s.performance} · slow`
+  return `${s.performance} · poor`
 }
 export function formatSeoLamp(s: PagespeedSignals): string {
   if (s.seo == null) return ''
   if (s.seo >= 90) return `${s.seo} · clean`
   if (s.seo >= 70) return `${s.seo} · ok`
-  return `${s.seo} · low`              // green tone: SEO room to grow
+  if (s.seo >= 50) return `${s.seo} · low`
+  return `${s.seo} · poor`
 }
 export function formatTrafficLamp(s: PagespeedSignals): string {
   return s.traffic || ''

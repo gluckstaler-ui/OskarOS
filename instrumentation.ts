@@ -23,6 +23,21 @@ export async function register() {
   // WhatsApp socket while compiling — skip unless we're actually serving.
   if (process.env.NEXT_PHASE === 'phase-production-build') return
 
+  // Ralph 2026-06-05 — push the WHOLE dev server to the highest scheduling
+  // priority the OS will grant. On systems with more Performance cores than
+  // Efficiency cores (Apple Silicon, modern desktops, most CI runners), a
+  // high-priority process biases toward the faster cores. Cross-platform
+  // via Node's built-in os.setPriority — no shell-outs, no taskpolicy /
+  // renice wrappers. Mac is not special-cased anywhere. Failures (e.g.
+  // Linux without CAP_SYS_NICE rejecting negative nice) gracefully fall
+  // back through priority tiers until one is accepted.
+  try {
+    const { elevateCurrentProcess } = await import('./lib/process-scheduling')
+    elevateCurrentProcess()
+  } catch (err) {
+    console.warn('[instrumentation] priority elevation failed:', err)
+  }
+
   // WP-CRM-F22 (2026-05-25): boot the CRM SQLite + event-log layer FIRST.
   // crm-boot opens db/crm.db, runs schema DDL, optionally bootstraps from
   // the legacy xlsx on first boot, and replays the event log to bring the

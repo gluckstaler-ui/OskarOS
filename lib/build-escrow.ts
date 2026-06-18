@@ -49,7 +49,9 @@
 
 import { randomUUID } from 'crypto'
 
-export type JobKind = 'build_vibe' | 'build_wireframes' | 'generate_image' | 'scout_taste'
+// WP-23 (2026-06-10): + 'consular_research' — the Research button's async
+// teardown turn (app/api/admin/crm/consular/research/route.ts).
+export type JobKind = 'build_vibe' | 'build_wireframes' | 'generate_image' | 'scout_taste' | 'scout_discover' | 'scout_backfill' | 'consular_research'
 
 export type JobStatus = 'running' | 'complete' | 'failed' | 'cancelled' | 'stuck'
 

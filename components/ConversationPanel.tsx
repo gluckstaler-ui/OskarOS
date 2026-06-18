@@ -26,12 +26,6 @@ import { DescentSelectionCard } from './chat/DescentSelectionCard'
 // Ralph 2026-05-18: Critique Card — WF-mode self-critique (WebDev). Fires from
 // the build-wireframes route's onToolCall when submit_critique lands. Read-only.
 import { CritiqueCard } from './chat/CritiqueCard'
-// WP-22 (Ralph 2026-05-06): top-right ambient overlay surface.
-import { LiveOverlay } from './chat/LiveOverlay'
-import {
-  RECOMMEND_TODO_EVENT,
-  type RecommendTodoEventDetail,
-} from './chat/UnfinishedTodosPanel'
 import { splitOnQuestionForms } from '@/lib/artifacts/question-form'
 import { ConversationMessage, LayoutMode, StreamingProgress } from '@/lib/types'
 
@@ -107,14 +101,8 @@ interface ConversationPanelProps {
    * model changes (NOT WebDev — that's a separate model). Ralph 2026-05-04.
    */
   currentModel?: string | null
-  /**
-   * WP-22 / WP-66 (Ralph 2026-05-06): the active session id, used by the
-   * top-right LiveOverlay to subscribe to `todos_updated` events and to
-   * read the persisted `## Todos` section of SESSION.md. Optional — when
-   * null, the overlay never mounts (pre-session state, no surface to push
-   * onto). Builds in-flight pass through the parent state and arrive via
-   * a future prop wave; v1 ships todos-only.
-   */
+  /** The active session id — used for staging pasted text into the
+   *  session's uploads. Optional (null pre-session). */
   sessionId?: string | null
 }
 
@@ -206,36 +194,6 @@ export function ConversationPanel({
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages, streamingText, streamingProgress])
 
-  // WP-25 (Ralph 2026-05-06, cowork.jpg pattern): the TodoWrite panel is
-  // read-only, but each non-completed row has a "recommend a change" button
-  // that fires a window CustomEvent. Listen for it here and prefill the
-  // chat textarea with `recommend: <content> — `, then focus the input so
-  // the user can finish the sentence and send. CD picks it up and encodes
-  // the change as a TodoWrite next turn. Read-only panel; chat is the
-  // write path. Single-writer rule preserved.
-  useEffect(() => {
-    const handler = (event: Event) => {
-      const detail = (event as CustomEvent<RecommendTodoEventDetail>).detail
-      if (!detail || !inputRef.current) return
-      const { todo, position } = detail
-      const label =
-        todo.status === 'in_progress' && todo.activeForm
-          ? todo.activeForm
-          : todo.content
-      const prefill = `recommend on item ${position} (${label}) — `
-      inputRef.current.value = prefill
-      inputRef.current.focus()
-      // Place caret at end so the user starts typing immediately after the
-      // dash without having to manually click past the prefill.
-      const len = prefill.length
-      inputRef.current.setSelectionRange(len, len)
-    }
-    window.addEventListener(RECOMMEND_TODO_EVENT, handler)
-    return () => {
-      window.removeEventListener(RECOMMEND_TODO_EVENT, handler)
-    }
-  }, [])
-
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     const value = inputRef.current?.value.trim() ?? ''
@@ -273,10 +231,6 @@ export function ConversationPanel({
       // anchor. Doesn't affect any existing flex children.
       position: 'relative',
     }}>
-      {/* WP-22 (Ralph 2026-05-06): top-right ambient strip — TodoWrite
-          queue + in-flight build mirrors. Renders nothing when empty;
-          subscribes to `todos_updated` SSE for live updates. */}
-      <LiveOverlay sessionId={sessionId} />
       {/* ================================================================== */}
       {/* HEADER - h-14 (56px), flexShrink: 0                              */}
       {/* ================================================================== */}
@@ -1024,7 +978,9 @@ function ChatBubble({
       alignItems: isUser ? 'flex-end' : 'flex-start'
     }}>
       <div style={{
-        maxWidth: '85%',
+        // Fill to the chat-log's 20px padding (Ralph 2026-06-09): bubbles stop
+        // 20px before the panel border instead of wasting ~100px (was 85%).
+        maxWidth: '100%',
         padding: '16px',
         borderRadius: '16px',
         borderTopRightRadius: isUser ? '4px' : '16px',
@@ -1057,9 +1013,9 @@ function ChatBubble({
 // 2026-05-03 (Ralph) — the form must BE its own bubble, not embedded
 // inside a text bubble. QuestionFormView has its own .question-form chrome
 // (rounded card, border, background, header strip) — FormBubble is just
-// the alignment wrapper + role label. Wider max-width than ChatBubble
-// (95% vs 85%) because forms need room for option chips and direction
-// cards to lay out.
+// the alignment wrapper + role label. Both bubbles fill to the chat-log's 20px
+// padding (Ralph 2026-06-09 — stop 20px before the border, not ~100px), giving
+// forms the full column for option chips and direction cards.
 // ============================================================================
 function FormBubble({
   role,
@@ -1109,7 +1065,7 @@ function FormBubble({
       )}
       <div
         className={preview ? 'tool-card-bubble-preview' : undefined}
-        style={{ maxWidth: fullWidth ? '100%' : '95%', width: '100%' }}
+        style={{ maxWidth: '100%', width: '100%' }}
       >
         {children}
       </div>
@@ -1204,7 +1160,9 @@ function StreamingBubble({
 
       {/* Streaming text */}
       <div style={{
-        maxWidth: '85%',
+        // Fill to the chat-log's 20px padding (Ralph 2026-06-09): bubbles stop
+        // 20px before the panel border instead of wasting ~100px (was 85%).
+        maxWidth: '100%',
         padding: '16px',
         borderRadius: '16px',
         borderTopLeftRadius: '4px',

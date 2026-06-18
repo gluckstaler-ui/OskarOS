@@ -1,0 +1,436 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CRM · Overview + Email — matched to design system (v5)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+/* ── REAL design-system tokens (polar shell + onyx flight deck) ── */
+:root{
+  --bg:#ffffff; --card:#f7f2e2; --card-hover:#efe7d0; --sunken:#fbf8ee;
+  --border:#d0c098; --border-strong:#806a3a;
+  --ink:#1a1408; --muted:#453620; --dim:#a09078;
+  --amber:#e89e16; --amber-dim:#8a5a18; --amber-glow:rgba(232,158,22,.12);
+  --green:#1f880e; --red:#d62012;
+  /* flight deck = dark canvas even in light mode */
+  --f-bg:#0a0907; --f-card:#171410; --f-border:#2a2519;
+  --f-ink:#ece1c5; --f-muted:#7a6f5a; --f-dim:#42392a;
+  --f-amber:#ffb84a; --f-green:#c8ee7a; --f-red:#ff6a4d;
+  --mono:'JetBrains Mono',ui-monospace,monospace; --sans:'Inter',sans-serif;
+  --gap:16px; --r:12px;
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%}
+body{background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:14px;height:100vh;overflow:hidden;-webkit-font-smoothing:antialiased}
+.app{height:100vh;display:flex;flex-direction:column}
+.mono{font-family:var(--mono)}
+.k{font-family:var(--mono);font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--dim)}
+
+/* top bar */
+.top{flex:none;display:flex;align-items:center;gap:24px;height:52px;padding:0 20px;border-bottom:1px solid var(--border);background:var(--bg)}
+.brand{font-weight:800;font-size:14px;letter-spacing:-.01em;display:flex;align-items:baseline;gap:7px}
+.brand .c{font-family:var(--mono);font-size:9.5px;letter-spacing:.16em;color:var(--amber);font-weight:700}
+.tabs{display:flex;gap:6px}
+.tab{border:1px solid transparent;background:none;font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--dim);padding:6px 12px;border-radius:7px;cursor:pointer}
+.tab:hover{color:var(--muted)}
+.tab.on{color:var(--amber);border-color:var(--amber);background:var(--amber-glow);font-weight:700}
+.topmeta{margin-left:auto;display:flex;align-items:center;gap:20px;font-family:var(--mono);font-size:10px;color:var(--dim);letter-spacing:.04em}
+.topmeta b{color:var(--ink);font-weight:700}
+.topmeta .ovd{color:var(--red)}
+.topmeta .clk{color:var(--amber)}
+
+/* main grid: 400 | 1fr | 420 (the real fp-grid) */
+.grid{flex:1;min-height:0;display:grid;grid-template-columns:400px minmax(0,1fr) 420px;gap:var(--gap);padding:var(--gap)}
+
+/* LEFT rail */
+.rail{display:flex;flex-direction:column;gap:18px;min-height:0;overflow:auto}
+.greet{font-family:var(--mono);font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--dim)}
+.hl{font-size:25px;line-height:1.18;font-weight:600;color:var(--ink);letter-spacing:-.015em;margin:6px 0 4px}
+.hl b{color:var(--amber);font-weight:700}
+.triage{display:flex;flex-direction:column;gap:8px;margin-top:6px}
+.tcard{display:flex;align-items:center;gap:14px;padding:13px 15px;border:1px solid var(--border);border-radius:var(--r);background:var(--card);cursor:pointer;transition:.12s}
+.tcard:hover{background:var(--card-hover)}
+.tcard.on{border-left:3px solid var(--amber);background:var(--card-hover)}
+.tcard.red.on{border-left-color:var(--red)}
+.tcard .num{font-family:var(--mono);font-size:34px;font-weight:700;line-height:1;color:var(--amber);min-width:46px;text-align:left}
+.tcard.red .num{color:var(--red)}
+.tcard .body .lab{font-weight:700;font-size:13.5px;color:var(--ink)}
+.tcard .body .sub{font-family:var(--mono);font-size:10.5px;color:var(--dim);margin-top:2px;letter-spacing:.02em}
+.tcard .arr{margin-left:auto;color:var(--dim);font-size:15px}
+.railfoot{margin-top:auto;display:flex;gap:26px;padding-top:14px;border-top:1px solid var(--border);font-family:var(--mono);font-size:10px;letter-spacing:.04em}
+.railfoot .lab{color:var(--dim);text-transform:uppercase}
+.railfoot .v{color:var(--amber);font-weight:700;margin-left:7px}
+
+/* MIDDLE */
+.mid{display:flex;flex-direction:column;gap:var(--gap);min-height:0}
+.hero{border:1px solid var(--border);border-left:3px solid var(--green);border-radius:var(--r);background:var(--bg);padding:15px 17px;flex:none}
+.hero .hr{display:flex;align-items:center;gap:8px}
+.hero .hlab{font-family:var(--mono);font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--dim)}
+.hero .hlab .g{color:var(--green)}
+.hero .dismiss{margin-left:auto}
+.hero .ti{font-size:21px;font-weight:600;color:var(--ink);letter-spacing:-.01em;margin:9px 0 7px}
+.hero .meta{display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-family:var(--mono);font-size:11px;color:var(--dim)}
+.hero .meta .co{color:var(--ink);font-weight:700;font-family:var(--sans);font-size:13px}
+.hero .meta .pe{color:var(--amber)}
+.hero .meta .ovd{color:var(--red);font-weight:700}
+.hero .acts{display:flex;gap:8px;flex-wrap:wrap;margin-top:13px}
+
+/* filter bar */
+.fbar{display:flex;align-items:center;gap:12px;flex:none}
+.fbar .ftit{font-family:var(--mono);font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--amber);font-weight:700;white-space:nowrap}
+.fbar input,.fbar select{font-family:var(--mono);font-size:11px;color:var(--muted);background:var(--card);border:1px solid var(--border);border-radius:8px;padding:7px 11px;outline:none}
+.fbar input{flex:1}
+.fbar input::placeholder{color:var(--dim)}
+
+/* bucket lanes (email, on top) */
+.lanes{display:flex;gap:2px;border-bottom:1px solid var(--border);flex:none}
+.lane{flex:none;border:none;background:none;font-family:var(--mono);font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--dim);padding:11px 14px;cursor:pointer;border-bottom:2px solid transparent;display:flex;align-items:center;gap:8px;white-space:nowrap}
+.lane:hover{color:var(--muted)}
+.lane.on{color:var(--ink);font-weight:700;border-bottom-color:var(--amber)}
+.lane .ct{font-family:var(--mono);font-size:10px;font-weight:700;background:var(--card);color:var(--muted);padding:1px 7px;border-radius:9px;min-width:18px;text-align:center;border:1px solid var(--border)}
+.lane.on .ct{background:var(--amber);color:var(--bg);border-color:transparent}
+.lane .cpdot{width:5px;height:5px;border-radius:50%;background:var(--green)}
+
+/* rows (leads + mail share the language) */
+.list{display:flex;flex-direction:column;gap:0;overflow:auto;min-height:0;flex:1}
+.lrow{display:flex;align-items:center;gap:13px;padding:12px 14px;border-bottom:1px solid var(--border);cursor:pointer;transition:.1s}
+.lrow:hover{background:var(--card-hover)}
+.lrow.sel{background:var(--amber-glow);box-shadow:inset 3px 0 0 var(--amber)}
+.score{font-family:var(--mono);font-size:12px;font-weight:700;color:var(--amber);min-width:34px}
+.av{width:30px;height:30px;border-radius:50%;flex:none;display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:11px;font-weight:700;color:var(--amber);background:transparent;border:1.5px solid var(--amber)}
+.av.cp{border-color:var(--green);color:var(--green)}
+.av.un{border-color:var(--red);color:var(--red)}
+.av.q{border-color:var(--dim);color:var(--dim)}
+.who{flex:1;min-width:0}
+.who .nm{font-size:13px;color:var(--ink);font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.who .nm.un{font-weight:800}
+.who .meta{font-family:var(--mono);font-size:10.5px;color:var(--dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;letter-spacing:.01em}
+.who .prev{font-size:11.5px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:1px}
+.icons{display:flex;gap:9px;color:var(--dim);flex:none}
+.icons svg{width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:1.6}
+.rmeta{display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex:none;min-width:64px}
+.rmeta .val{font-family:var(--mono);font-size:11.5px;color:var(--ink)}
+.rmeta .pct{font-family:var(--mono);font-size:11px;color:var(--amber);font-weight:700}
+.rmeta .time{font-family:var(--mono);font-size:10px;color:var(--dim)}
+.tag{font-family:var(--mono);font-size:9px;letter-spacing:.04em;text-transform:uppercase;padding:2px 7px;border-radius:4px;font-weight:700;white-space:nowrap}
+.t-amber{background:var(--amber-glow);color:var(--amber-dim)}.t-green{background:rgba(31,136,14,.12);color:var(--green)}.t-red{background:rgba(214,32,18,.12);color:var(--red)}.t-dim{background:var(--card);color:var(--dim);border:1px solid var(--border)}
+
+.bulk{display:flex;gap:8px;align-items:center;padding:10px 14px;border-bottom:1px solid var(--border);color:var(--dim);font-family:var(--mono);font-size:10.5px;letter-spacing:.04em}
+
+/* DETAIL (email + co-pilot) */
+.detail{flex:1;min-height:0;border:1px solid var(--border);border-radius:var(--r);background:var(--bg);display:flex;flex-direction:column;overflow:hidden}
+.dback{font-family:var(--mono);font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:var(--dim);padding:11px 15px;border-bottom:1px solid var(--border);cursor:pointer;flex:none}
+.dback:hover{color:var(--amber)}
+.dscroll{flex:1;overflow:auto;min-height:0}
+.mhead{padding:15px 17px;border-bottom:1px solid var(--border)}
+.mhead .subj{font-size:16px;font-weight:600;color:var(--ink);margin-bottom:5px;letter-spacing:-.01em}
+.mhead .frm{font-family:var(--mono);font-size:11px;color:var(--dim)}
+.mbody{padding:15px 17px;font-size:13px;color:var(--muted);line-height:1.6;white-space:pre-wrap;border-bottom:1px solid var(--border)}
+
+/* co-pilot */
+.cp{padding:15px 17px;background:var(--sunken)}
+.cphd{display:flex;align-items:center;gap:8px;margin-bottom:13px}
+.cphd .lab{font-family:var(--mono);font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--amber);font-weight:700;display:flex;align-items:center;gap:7px}
+.cphd .pulse{width:7px;height:7px;border-radius:50%;background:var(--amber);animation:pl 2s infinite}
+@keyframes pl{0%{box-shadow:0 0 0 0 var(--amber-glow)}70%{box-shadow:0 0 0 7px rgba(232,158,22,0)}100%{box-shadow:0 0 0 0 rgba(232,158,22,0)}}
+.cphd .lk{margin-left:auto;font-family:var(--mono);font-size:9.5px;text-transform:uppercase;color:var(--muted);border:1px solid var(--border);border-radius:6px;padding:3px 8px;cursor:pointer;background:var(--card)}
+.cphd .lk:hover{border-color:var(--border-strong);color:var(--ink)}
+.stage{display:flex;align-items:center;gap:8px;font-family:var(--mono);font-size:10px;color:var(--muted);margin-bottom:13px;padding:8px 11px;border:1px solid var(--border);border-radius:8px;background:var(--card)}
+.stage .cur{color:var(--ink);font-weight:700}
+.stage .adv{margin-left:auto;border:1px solid var(--amber);color:var(--amber);background:transparent;border-radius:6px;padding:4px 9px;cursor:pointer;font-family:var(--mono);font-size:9px;letter-spacing:.04em;text-transform:uppercase}
+.stage .adv:hover{background:var(--amber-glow)}
+.blk{margin-bottom:14px}
+.blab{font-family:var(--mono);font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--dim);margin-bottom:7px;display:flex;align-items:center;gap:7px}
+.blab .pill{font-size:8px;color:var(--green);border:1px solid var(--green);border-radius:3px;padding:1px 5px}
+.summary{font-size:12.5px;color:var(--ink);line-height:1.5;background:var(--card);border:1px solid var(--border);border-radius:8px;padding:11px}
+.sig{display:flex;flex-direction:column;gap:6px}
+.sg{display:flex;align-items:center;gap:9px;font-size:12px;color:var(--muted)}
+.sdot{width:7px;height:7px;border-radius:50%;flex:none}.dg{background:var(--green)}.da{background:var(--amber)}.dr{background:var(--red)}.ds{background:var(--dim)}
+.fields{display:flex;flex-direction:column;gap:5px}
+.field{display:flex;align-items:center;gap:9px;font-size:12px;background:var(--card);border:1px solid var(--border);border-radius:6px;padding:6px 10px}
+.field .fk{font-family:var(--mono);font-size:9px;text-transform:uppercase;letter-spacing:.04em;color:var(--dim);width:78px;flex:none}
+.field .fv{font-weight:600;color:var(--ink)}
+.field .syn{margin-left:auto;font-family:var(--mono);font-size:8.5px;color:var(--green);text-transform:uppercase}
+.resolve{border:1px solid var(--amber);background:var(--amber-glow);border-radius:9px;padding:12px;margin-bottom:14px}
+.resolve .rh{font-family:var(--mono);font-size:9px;text-transform:uppercase;letter-spacing:.06em;color:var(--amber-dim);font-weight:700;margin-bottom:6px}
+.resolve .rt{font-size:12.5px;color:var(--ink);line-height:1.45;margin-bottom:10px}
+.resolve .rt b{color:var(--amber-dim)}
+.draft{border:1px solid var(--border-strong);border-radius:9px;background:var(--card);overflow:hidden}
+.draft .dh{padding:8px 11px;background:var(--sunken);border-bottom:1px solid var(--border);font-family:var(--mono);font-size:9.5px;text-transform:uppercase;letter-spacing:.04em;color:var(--amber-dim);font-weight:700}
+.draft .dtext{padding:11px;font-size:12.5px;color:var(--muted);line-height:1.55;white-space:pre-wrap}
+.chrow{display:flex;gap:6px;padding:0 11px 9px}
+.chip{font-family:var(--mono);font-size:9.5px;text-transform:uppercase;letter-spacing:.03em;padding:4px 9px;border-radius:5px;border:1px solid var(--border);background:var(--bg);color:var(--dim);cursor:pointer}
+.chip.on{border-color:var(--amber);color:var(--amber-dim);background:var(--amber-glow);font-weight:700}
+.dacts{display:flex;gap:6px;padding:0 11px 11px;flex-wrap:wrap}
+.nba{display:flex;flex-direction:column;gap:6px}
+.nbtn{text-align:left;border:1px solid var(--border);border-radius:7px;background:var(--card);padding:8px 10px;font-size:12px;color:var(--muted);cursor:pointer;display:flex;gap:9px;align-items:center}
+.nbtn:hover{border-color:var(--amber);color:var(--ink)}
+.nbtn .ic{font-family:var(--mono);color:var(--amber)}
+.cpoff{padding:34px;text-align:center;color:var(--dim);display:flex;flex-direction:column;gap:9px;align-items:center}
+.cpoff .big{font-size:13px;color:var(--muted);font-weight:600}
+
+/* buttons */
+.btn{font-family:var(--mono);font-size:9.5px;letter-spacing:.04em;text-transform:uppercase;padding:7px 11px;border-radius:7px;border:1px solid var(--border);background:var(--bg);color:var(--muted);cursor:pointer;font-weight:700}
+.btn:hover{border-color:var(--border-strong);color:var(--ink)}
+.btn.amber{background:var(--amber);color:var(--bg);border-color:var(--amber)}
+.btn.green{background:var(--green);color:#fff;border-color:var(--green)}
+
+/* RIGHT — flight deck (dark canvas) */
+.flightwrap{background:var(--f-bg);border:1px solid var(--f-border);border-radius:var(--r);padding:16px 16px 12px;display:flex;flex-direction:column;min-height:0;overflow:hidden}
+.fhead{display:flex;align-items:baseline;gap:10px;margin-bottom:3px}
+.fhead .ft{font-family:var(--mono);font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--f-amber);font-weight:700}
+.fhead .fc{margin-left:auto;font-family:var(--mono);font-size:9.5px;color:var(--f-dim)}
+.fsub{font-family:var(--mono);font-size:9.5px;color:var(--f-dim);letter-spacing:.06em;text-transform:uppercase;margin-bottom:14px}
+.tl{flex:1;overflow:auto;min-height:0;border-left:1px solid var(--f-border);margin-left:6px;padding-left:0}
+.tlrow{display:grid;grid-template-columns:42px 1fr;gap:10px;padding:9px 0 9px 0;position:relative}
+.tlrow .tm{font-family:var(--mono);font-size:10px;color:var(--f-dim);padding-left:12px}
+.tlrow::before{content:'';position:absolute;left:-4px;top:13px;width:7px;height:7px;border-radius:50%;background:var(--f-amber);border:1px solid var(--f-bg)}
+.tlrow.dim::before{background:var(--f-dim)}
+.tlrow .nm{font-family:var(--mono);font-size:11.5px;color:var(--f-amber);font-weight:700}
+.tlrow .mt{font-family:var(--mono);font-size:9.5px;color:var(--f-muted);text-transform:uppercase;letter-spacing:.04em;margin-top:2px}
+.tlrow .vl{font-family:var(--mono);font-size:9.5px;color:var(--f-dim);margin-top:1px}
+.fchat{margin-top:10px;border-top:1px solid var(--f-border);padding-top:10px;display:flex;gap:7px}
+.fchat input{flex:1;background:var(--f-card);border:1px solid var(--f-border);border-radius:8px;padding:8px 11px;color:var(--f-ink);font-family:var(--sans);font-size:12px;outline:none}
+.fchat .fb{font-family:var(--mono);font-size:11px;background:var(--f-amber);color:var(--f-bg);border:none;border-radius:8px;padding:0 12px;cursor:pointer;font-weight:700}
+
+.hidden{display:none!important}
+#toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(40px);background:var(--ink);color:#fff;font-family:var(--mono);font-size:11px;letter-spacing:.02em;padding:10px 16px;border-radius:9px;opacity:0;transition:.25s;pointer-events:none;z-index:60;box-shadow:0 12px 34px rgba(120,90,30,.3)}
+#toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
+#toast b{color:var(--amber)}
+.empty{text-align:center;color:var(--dim);font-size:12.5px;padding:40px;font-family:var(--mono)}
+.empty b{display:block;font-size:14px;color:var(--green);margin-bottom:5px}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <div class="top">
+    <div class="brand">OskarOS<span class="c">CRM</span></div>
+    <div class="tabs" id="tabs">
+      <button class="tab" data-scr="overview">Overview</button>
+      <button class="tab on" data-scr="email">Email</button>
+      <button class="tab" data-scr="x" style="opacity:.45;cursor:default">Kanban</button>
+      <button class="tab" data-scr="x" style="opacity:.45;cursor:default">Scout</button>
+    </div>
+    <div class="topmeta"><span>2026·06·15 <b>SUN</b></span><span><b>20</b> LEADS</span><span class="ovd">11 OVERDUE</span><span class="clk">14:09:22</span></div>
+  </div>
+
+  <!-- ░ OVERVIEW ░ -->
+  <div class="grid" id="view-overview" style="display:none">
+    <div class="rail">
+      <div>
+        <div class="greet">Good morning · Sun 15 Jun</div>
+        <div class="hl">14 items need you. Start with the <b>11 overdue.</b></div>
+      </div>
+      <div class="triage" id="ov-triage"></div>
+      <div class="railfoot"><span><span class="lab">Pipeline</span><span class="v">CHF 327'700</span></span><span><span class="lab">Weighted</span><span class="v">CHF 186'895</span></span></div>
+    </div>
+    <div class="mid">
+      <div class="hero">
+        <div class="hr"><div class="hlab"><span class="g">▸</span> Next move · Inbound WhatsApp · Needs reply · P#17</div><button class="btn dismiss">Dismiss</button></div>
+        <div class="ti">Reply to inbound WhatsApp.</div>
+        <div class="meta"><span class="co">Caffè Sant'Ambrogio</span><span class="pe">Marco Rossi</span><span>2026·06·14 · 1d</span><span>CHF 12'400 · 45%</span><span class="ovd">OVERDUE</span></div>
+        <div class="acts"><button class="btn amber">● Reply on WhatsApp</button><button class="btn">Log call</button><button class="btn">Log email</button><button class="btn">AI draft</button><button class="btn">Open ▸</button></div>
+      </div>
+      <div class="fbar"><span class="ftit">Overdue · 11 leads</span><input placeholder="Search company, contact…"><select><option>All open · 20</option></select></div>
+      <div class="list" id="ov-list"></div>
+    </div>
+    <div class="flightwrap" id="ov-flight"></div>
+  </div>
+
+  <!-- ░ EMAIL ░ -->
+  <div class="grid" id="view-email">
+    <div class="rail">
+      <div>
+        <div class="greet">Inbox · Sun 15 Jun</div>
+        <div class="hl">12 need a reply. <b>5 are CRM.</b></div>
+      </div>
+      <div class="triage">
+        <div class="tcard on"><div class="num" style="font-size:28px">12</div><div class="body"><div class="lab">Inbox</div><div class="sub">unread across buckets</div></div><span class="arr">→</span></div>
+        <div class="tcard"><div class="num" style="font-size:28px;color:var(--green)">2</div><div class="body"><div class="lab">Drafts</div><div class="sub">co-pilot, awaiting send</div></div><span class="arr">→</span></div>
+      </div>
+      <div class="tcard" style="cursor:default"><div class="body"><div class="lab" style="font-size:12px">Co-Pilot</div><div class="sub" style="font-family:var(--sans);text-transform:none;font-size:11.5px;color:var(--muted);line-height:1.5;margin-top:4px">On for <b style="color:var(--amber-dim)">CRM</b> &amp; <b style="color:var(--amber-dim)">Normal</b>. Off for Promo / Social / Updates — bulk lanes.</div></div></div>
+      <div class="railfoot"><span><span class="lab">Unread</span><span class="v">12</span></span><span><span class="lab">Co-pilot</span><span class="v">ON</span></span></div>
+    </div>
+    <div class="mid">
+      <div class="lanes" id="lanes"></div>
+      <div class="list" id="mail-list"></div>
+      <div class="detail hidden" id="mail-detail"></div>
+    </div>
+    <div class="flightwrap" id="em-flight"></div>
+  </div>
+</div>
+<div id="toast"></div>
+
+<script>
+/* icons */
+const IC={
+ phone:'<svg viewBox="0 0 24 24"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3 19.5 19.5 0 0 1-6-6 19.8 19.8 0 0 1-3-8.6A2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1.9.4 1.8.7 2.7a2 2 0 0 1-.5 2.1L8.1 9.9a16 16 0 0 0 6 6l1.4-1.2a2 2 0 0 1 2.1-.5c.9.3 1.8.6 2.7.7a2 2 0 0 1 1.7 2z"/></svg>',
+ chat:'<svg viewBox="0 0 24 24"><path d="M21 11.5a8.4 8.4 0 0 1-9 8.4 8.4 8.4 0 0 1-3.8-.9L3 20l1.3-3.8A8.4 8.4 0 0 1 12 3a8.4 8.4 0 0 1 9 8.5z"/></svg>',
+ mail:'<svg viewBox="0 0 24 24"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m2 6 10 7 10-7"/></svg>',
+ star:'<svg viewBox="0 0 24 24"><path d="m12 2 3 6.5 7 .6-5.3 4.7 1.6 6.9L12 17l-6 3.7 1.6-6.9L2 9l7-.6z"/></svg>'
+};
+const ICONROW=`<span class="icons">${IC.phone}${IC.chat}${IC.mail}${IC.star}</span>`;
+
+/* OVERVIEW data (from screenshot) */
+const TRIAGE=[
+ {n:'11',lab:'Overdue follow-ups',sub:'Past due · prioritize calls first',red:1,on:1},
+ {n:'03',lab:'Due today',sub:'On the docket for Sun 15 Jun'},
+ {n:'04',lab:'Stuck in Closing',sub:'≥2d no movement · unblock'},
+ {n:'03',lab:'Unmatched WhatsApp',sub:'Inbound waiting for routing'},
+];
+const LEADS=[
+ {sc:'+50',nm:'Ristorante La Pergola',meta:'Carlo Bianchi · Referral',val:"14'200",pct:'60%'},
+ {sc:'+40',nm:'Trattoria Da Luigi',meta:'Luigi Bianchi · Cold-call',val:"8'600",pct:'90%'},
+ {sc:'+30',nm:'Atelier Frau Weber',meta:'Lisa Weber · Inbound',val:"24'500",pct:'90%'},
+ {sc:'+30',nm:'Restaurant Du Lac',meta:'Pierre Dubois · Referral',val:"19'800",pct:'80%'},
+ {sc:'+30',nm:'Bistrot Le Petit',meta:'François Martin · Referral',val:"13'200",pct:'95%'},
+];
+const FLIGHT=[
+ {t:'09:00',nm:"Caffè Sant'Ambrogio",mt:'Call · Marco Rossi',vl:"CHF 12'400 · 45%"},
+ {t:'10:30',nm:'Hotel Splendid',mt:'Demo · Erika Vogel',vl:"CHF 47'300 · 55%"},
+ {t:'11:15',nm:'Atelier Frau Weber',mt:'Email · Lisa Weber',vl:"CHF 24'500 · 90%"},
+ {t:'14:00',nm:'Sporthotel Olimpia',mt:'Negot. · Roberto Greco',vl:"CHF 41'200 · 85%"},
+ {t:'15:30',nm:'Ristorante La Pergola',mt:'F-up · Carlo Bianchi',vl:"CHF 14'200 · 60%",dim:1},
+ {t:'17:00',nm:'Bistrot Le Petit',mt:'Close · François Martin',vl:"CHF 13'200 · 95%",dim:1},
+];
+
+/* EMAIL data */
+const BUCKETS=[{id:'normal',name:'Normal',cp:1},{id:'crm',name:'CRM senders',cp:1},{id:'promo',name:'Promo',cp:0},{id:'social',name:'Social',cp:0},{id:'updates',name:'Updates',cp:0}];
+const MAIL={
+ normal:[
+  {id:'n4',unread:1,from:'office@acme.ch',init:'?',cp:1,unresolved:1,resolveTo:'Acme AG',subj:'Projektablauf — interne Abstimmung',prev:'Wir stimmen das Angebot intern ab…',time:'09:31',body:'Guten Tag\n\nWir stimmen das Angebot gerade intern ab. Eine kurze Rückfrage zum Projektablauf — können Sie die Phasen nochmals kurz umreissen?\n\nDanke',
+   resolveWhy:'Domain <b>acme.ch</b> matches lead <b>Acme AG</b> (Jan Muster). Same thread family as "Angebot Webseite."',
+   summary:'Internal Acme address with a clarifying question. Not yet linked — resolve once and every future mail from this address routes to the lead silently.',signals:[['da','Unmatched · domain → Acme AG (98%)']]},
+  {id:'n1',unread:1,from:'Notariat Weber',init:'NW',cp:1,subj:'Beglaubigung Kaufvertrag',prev:'Unterlagen bereit — Donnerstag 14:00?',time:'08:40',body:'Guten Morgen\n\nDie Unterlagen liegen zur Unterschrift bereit. Passt Ihnen Donnerstag um 14:00? Tel. 056 222 14 80.\n\nFreundliche Grüsse\nNotariat Weber',
+   summary:'Weber confirms the deed is ready and proposes Thu 14:00. A time and a phone number to capture.',signals:[['dg','Direct ask — awaiting slot confirmation']],
+   extract:[['Meeting','Thu 14:00 — signing','→ Calendar'],['Phone','+41 56 222 14 80','→ Contact'],['Next step','Confirm slot','→ Tasks']],
+   draft:'Guten Morgen Herr Weber,\n\nDonnerstag 14:00 passt mir. Ich bringe die Ausweise mit.\n\nHerzliche Grüsse\nSilke',nba:[['↵','Confirm Thu 14:00'],['📅','Send booking link']]},
+  {id:'n2',from:'Maria · Treuhand',init:'MT',cp:1,subj:'MwSt-Abrechnung Q1 — Freigabe?',prev:'Freigabe bis Freitag…',time:'Gestern',body:'Hallo Silke\n\nBitte um Freigabe der Q1-Abrechnung bis Freitag.\n\nGruss Maria',
+   summary:'Maria needs sign-off on Q1 VAT by Friday or submission slips.',signals:[['da','Deadline Friday — blocks her filing']],
+   extract:[['Sentiment','Neutral · procedural','→ Contact'],['Next step','Approve by Fri','→ Tasks']],draft:'Hallo Maria,\n\nFreigabe erteilt — die Zahlen stimmen. Danke fürs Dranbleiben.\n\nGruss Silke',nba:[['↵','Approve filing']]},
+ ],
+ crm:[
+  {id:'c1',unread:1,from:'Jan Muster · Acme AG',init:'JM',cp:1,subj:'Re: Angebot Webseite',prev:'Danke, sieht gut aus — Team schaut…',time:'09:14',body:'Hallo Silke\n\nDanke, das Angebot sieht gut aus. Ich schaue es mir mit dem Team an und melde mich.\n\nGruss Jan',
+   lead:'Acme AG',stageCur:'Proposal',stageNext:'Closing',tlKey:'acme',tag:['t-amber','opened 3×'],val:"24'000",pct:'45%',
+   summary:'Jan likes the proposal but is routing it through his team — opened 3× without replying. Price hesitation, not disinterest.',
+   signals:[['dr','Offer opened 3× · no reply · 7d · confidence ↓'],['ds','R. Vogt (CFO) silently on CC']],
+   extract:[['Sentiment','Hesitant · price','→ Deal'],['Intent','Evaluating budget','→ Deal'],['Stakeholder','R. Vogt (CFO) · CC','→ Contacts'],['Next step','Offer 15-min call','→ Tasks']],
+   draft:'Hallo Jan,\n\nfreut mich, dass das Angebot überzeugt. Falls beim Team eine Frage zum Budget aufkommt: Ich gehe die Positionen gerne in 15 Minuten mit Ihnen durch.\n\nPasst Mittwoch kurz?\n\nBeste Grüsse\nSilke',
+   nba:[['↵','Send reassurance'],['👤','Address CFO directly'],['📅','Insert booking link']]},
+  {id:'c2',unread:1,from:'Marco · Bistrot SA',init:'MB',cp:1,subj:'können wir diese Woche unterschreiben?',prev:'Budget passt, finalisieren…',time:'Mo',body:'Hoi Silke\n\nBudget passt — lass uns das diese Woche unterschreiben.\n\nGruss Marco',
+   lead:'Bistrot SA',stageCur:'Closing',stageNext:'Won',tag:['t-green','ready to sign'],val:"9'000",pct:'90%',
+   summary:'Marco is ready to sign this week. Budget agreed on WhatsApp Friday. Send the contract, don’t re-sell.',
+   signals:[['dg','Replied after 2 opens · confidence ↑'],['ds','Budget agreed · WhatsApp · Fri']],
+   extract:[['Sentiment','Positive · ready','→ Deal'],['Intent','Sign this week','→ Deal'],['Next step','Send contract + e-sign','→ Tasks']],
+   draft:'Hoi Marco,\n\nperfekt! Ich schicke dir heute den Vertrag zur Unterschrift — Konditionen wie auf WhatsApp besprochen.\n\nGruss Silke',nba:[['↵','Send contract'],['✍','Insert e-sign link']]},
+  {id:'c3',from:'P. Bär · Bär GmbH',init:'PB',cp:1,subj:'Rechnung März',prev:'Anbei Rechnung. Phase 2…',time:'Fr',body:'Guten Tag\n\nAnbei die Rechnung für März. Bezüglich Phase 2 melde ich mich.\n\nFreundliche Grüsse\nP. Bär',
+   lead:'Bär GmbH',stageCur:'Cooling',stageNext:'Discovery',tag:['t-dim','silent 5d'],val:"6'500",pct:'30%',
+   summary:'Invoice mail, but Phase-2 talk went silent 5 days after a warm thread. Champion cooling — low-key re-engage.',
+   signals:[['da','Warm thread, then silent 5d']],extract:[['Sentiment','Cooling','→ Deal'],['Phone','+41 31 511 09 22','→ Contact'],['Next step','Hold May slot','→ Tasks']],
+   draft:'Hallo Herr Bär,\n\nbesten Dank für die Rechnung. Wie sieht es bei Ihnen mit Phase 2 aus? Ich halte Ihnen den Slot im Mai gerne frei.\n\nFreundliche Grüsse\nSilke',nba:[['↵','Gentle re-engage'],['🗓','Hold May slot']]},
+ ],
+ promo:[{id:'p1',from:'Figma',init:'F',q:1,subj:'New in Figma: AI layouts',prev:'Generate full layouts…',time:'07:10'},{id:'p2',from:'Webflow',init:'W',q:1,subj:'Black Friday: 40% off',prev:'Biggest savings…',time:'Gestern'}],
+ social:[{id:'s1',from:'LinkedIn',init:'in',q:1,subj:'5 people viewed your profile',prev:'See who…',time:'10:02'},{id:'s2',from:'Xing',init:'X',q:1,subj:'Marco endorsed you',prev:'Web Design…',time:'Mo'}],
+ updates:[{id:'u1',from:'Stripe',init:'St',q:1,subj:'Payout CHF 8’400 on the way',prev:'Expected Mar 14…',time:'06:30'},{id:'u2',from:'Google Cal',init:'GC',q:1,subj:'Reminder: Notariat Thu 14:00',prev:'Beglaubigung…',time:'Di'}],
+};
+const TIMELINE={acme:[
+ {dot:'da',h:'Re: Angebot Webseite',s:'in · "sieht gut aus…" — opened 3×',tag:'Email'},
+ {dot:'da',h:'Offer PDF sent',s:'out · CHF 24k · CFO CC’d',tag:'Email'},
+ {dot:'dg',h:'"Budget Frage?"',s:'in · WhatsApp · answered',tag:'WA'},
+ {dot:'ds',h:'Discovery call · 22 min',s:'champion warm',tag:'Call'},
+]};
+
+const state={screen:'email',bucket:'crm',sel:null,replyCh:'email',freshId:null};
+const $=s=>document.querySelector(s);
+function toast(t){const e=$('#toast');e.innerHTML=t;e.classList.add('on');clearTimeout(e._t);e._t=setTimeout(()=>e.classList.remove('on'),2300);}
+function curB(){return BUCKETS.find(b=>b.id===state.bucket);}
+function curM(){return (MAIL[state.bucket]||[]).find(m=>m.id===state.sel);}
+
+function flightHtml(){
+ return `<div class="fhead"><span class="ft">▸ Flight plan · today</span><span class="fc">6/6</span></div><div class="fsub">${FLIGHT.length} things around</div>
+  <div class="tl">${FLIGHT.map(f=>`<div class="tlrow ${f.dim?'dim':''}"><div class="tm">${f.t}</div><div><div class="nm">${f.nm}</div><div class="mt">${f.mt}</div><div class="vl">${f.vl}</div></div></div>`).join('')}</div>
+  <div class="fchat"><input placeholder="Ask the Consular…"><button class="fb">↵</button></div>`;
+}
+
+/* OVERVIEW */
+function renderOverview(){
+ $('#ov-triage').innerHTML=TRIAGE.map(t=>`<div class="tcard ${t.red?'red':''} ${t.on?'on':''}"><div class="num">${t.n}</div><div class="body"><div class="lab">${t.lab}</div><div class="sub">${t.sub}</div></div><span class="arr">→</span></div>`).join('');
+ $('#ov-list').innerHTML=LEADS.map(l=>`<div class="lrow"><span class="score">${l.sc}</span><div class="who"><div class="nm">${l.nm}</div><div class="meta">${l.meta}</div></div>${ICONROW}<div class="rmeta"><span class="val">${l.val}</span><span class="pct">${l.pct}</span></div></div>`).join('');
+ $('#ov-flight').innerHTML=flightHtml();
+}
+
+/* EMAIL */
+function renderLanes(){
+ $('#lanes').innerHTML=BUCKETS.map(b=>{const it=MAIL[b.id]||[];const u=it.filter(m=>m.unread).length;return `<button class="lane ${b.id===state.bucket?'on':''}" data-bucket="${b.id}">${b.cp?'<span class="cpdot"></span>':''}${b.name}<span class="ct">${u||it.length}</span></button>`;}).join('');
+}
+function mailRow(m){
+ const av=m.unresolved?'un':(m.cp?'cp':(m.q?'q':''));
+ const right=m.unresolved?`<span class="tag t-red">resolve</span>`:(m.lead?`<div class="rmeta"><span class="val">CHF ${m.val}</span><span class="pct">${m.pct}</span></div>`:`<span class="time mono" style="color:var(--dim);font-size:10px">${m.time}</span>`);
+ const tag=m.tag?`<span class="tag ${m.tag[0]}">${m.tag[1]}</span>`:'';
+ return `<div class="lrow ${m.id===state.sel?'sel':''}" data-act="mail" data-id="${m.id}"><div class="av ${av}">${m.init}</div><div class="who"><div class="nm ${m.unread?'un':''}">${m.from}</div><div class="meta">${m.subj}</div><div class="prev">${m.prev}</div></div>${tag}${right}</div>`;
+}
+function renderList(){
+ const b=curB();const it=MAIL[state.bucket]||[];
+ let head=b.cp?'':`<div class="bulk">Bulk lane · <span class="btn">Select all</span><span class="btn">Archive read</span><span class="btn">Unsubscribe</span></div>`;
+ $('#mail-list').innerHTML=head+(it.length?it.map(mailRow).join(''):`<div class="empty"><b>Inbox zero</b>Nothing in ${b.name}.</div>`);
+ state.freshId=null;
+}
+function fieldBlock(m){if(!m.extract)return'';return `<div class="blk"><div class="blab">AI captured → written to record <span class="pill">#3</span></div><div class="fields">${m.extract.map(f=>`<div class="field"><span class="fk">${f[0]}</span><span class="fv">${f[1]}</span><span class="syn">${f[2]} ✓</span></div>`).join('')}</div></div>`;}
+function copilot(m){
+ if(m.unresolved){return `<div class="cp"><div class="cphd"><span class="lab"><span class="pulse"></span> Co-Pilot · Sender Ledger</span></div>
+  <div class="resolve"><div class="rh">● Resolve once — #1</div><div class="rt">${m.resolveWhy}</div><div style="display:flex;gap:7px"><button class="btn amber" data-act="resolve">Resolve → ${m.resolveTo}</button><button class="btn" data-act="newlead">New lead</button><button class="btn" data-act="mute">Mute</button></div></div>
+  <div class="blk"><div class="blab">What this is</div><div class="summary">${m.summary}</div></div>
+  <div class="blk"><div class="blab">Signals</div><div class="sig">${m.signals.map(s=>`<div class="sg"><span class="sdot ${s[0]}"></span>${s[1]}</div>`).join('')}</div></div></div>`;}
+ const stage=m.stageNext?`<div class="stage"><span>Stage</span><span class="cur">${m.stageCur}</span><span>→ ${m.stageNext}?</span><button class="adv" data-act="advance">Advance ▸ ${m.stageNext}</button></div>`:'';
+ const chans=m.lead?`<div class="chrow"><button class="chip ${state.replyCh==='email'?'on':''}" data-act="ch" data-c="email">Email</button><button class="chip ${state.replyCh==='wa'?'on':''}" data-act="ch" data-c="wa">WhatsApp</button></div>`:'';
+ return `<div class="cp">
+  <div class="cphd"><span class="lab"><span class="pulse"></span> Co-Pilot · ${m.lead?'CRM':'Normal'}</span>${m.lead?`<span class="lk" data-act="goov">Open in Overview →</span>`:''}</div>
+  ${stage}
+  <div class="blk"><div class="blab">What this is</div><div class="summary">${m.summary}</div></div>
+  <div class="blk"><div class="blab">Signals <span class="pill">#5</span></div><div class="sig">${m.signals.map(s=>`<div class="sg"><span class="sdot ${s[0]}"></span>${s[1]}</div>`).join('')}</div></div>
+  ${fieldBlock(m)}
+  <div class="blk"><div class="blab">Suggested reply ${m.lead?`· <span style="color:var(--amber-dim)">${state.replyCh==='wa'?'WhatsApp':'Email'}</span>`:''} <span class="pill">#7</span></div>
+   <div class="draft"><div class="dh">✦ Drafted from context</div><div class="dtext" id="drafttext">${m.draft}</div>${chans}<div class="dacts"><button class="btn amber" data-act="send">Approve & Send</button><button class="btn" data-act="book">📅 Booking link</button><button class="btn" data-act="discard">Discard</button></div></div></div>
+  <div class="blk"><div class="blab">Next best action <span class="pill">#8</span></div><div class="nba">${m.nba.map(n=>`<button class="nbtn" data-act="nba" data-t="${n[1]}"><span class="ic">${n[0]}</span>${n[1]}</button>`).join('')}</div></div>
+ </div>`;
+}
+function renderDetail(){
+ const host=$('#mail-detail');const m=curM();const b=curB();
+ if(!m){host.classList.add('hidden');$('#mail-list').classList.remove('hidden');return;}
+ host.classList.remove('hidden');$('#mail-list').classList.add('hidden');
+ const cp=b.cp?copilot(m):`<div class="cpoff"><div class="k">Co-pilot off</div><div class="big">${b.name} is a bulk lane.</div><div style="font-size:12px;max-width:32ch">No drafting here — scan, archive, unsubscribe.</div></div>`;
+ host.innerHTML=`<div class="dback" data-act="back">‹ Back to ${b.name}</div><div class="dscroll"><div class="mhead"><div class="subj">${m.subj}</div><div class="frm">${m.from} · ${m.time}</div></div><div class="mbody">${m.body||m.prev}</div>${cp}</div>`;
+}
+function renderEmail(){renderLanes();renderList();renderDetail();$('#em-flight').innerHTML=flightHtml();}
+
+function paint(){
+ document.querySelectorAll('#tabs .tab[data-scr]').forEach(b=>b.classList.toggle('on',b.dataset.scr===state.screen));
+ $('#view-overview').style.display=state.screen==='overview'?'grid':'none';
+ $('#view-email').style.display=state.screen==='email'?'grid':'none';
+ if(state.screen==='overview')renderOverview(); else renderEmail();
+}
+
+document.addEventListener('click',e=>{
+ const tab=e.target.closest('#tabs .tab[data-scr]');if(tab&&tab.dataset.scr!=='x'){state.screen=tab.dataset.scr;state.sel=null;paint();return;}
+ const lane=e.target.closest('[data-bucket]');if(lane){state.bucket=lane.dataset.bucket;state.sel=null;paint();return;}
+ const act=e.target.closest('[data-act]');if(!act)return;const a=act.dataset.act,m=curM();
+ if(a==='mail'){state.sel=act.dataset.id;renderEmail();}
+ else if(a==='back'){state.sel=null;renderEmail();}
+ else if(a==='ch'){state.replyCh=act.dataset.c;renderDetail();}
+ else if(a==='advance'){if(m){toast(`Stage advanced · <b>${m.stageCur} → ${m.stageNext}</b> on ${m.lead} (#10)`);m.stageCur=m.stageNext;m.stageNext=null;renderDetail();}}
+ else if(a==='book'){const d=document.getElementById('drafttext');if(d)d.textContent=d.textContent.replace(/\n\n(Herzliche|Beste|Gruss|Freundliche)/,x=>'\n\n📅 Termin buchen: cal.atelier.ch/silke/15min'+x);toast('Booking link inserted (#10)');}
+ else if(a==='send'){if(m&&m.tlKey&&TIMELINE[m.tlKey])TIMELINE[m.tlKey].unshift({dot:state.replyCh==='wa'?'dg':'da',h:'Re: '+m.subj.replace(/^Re:\s*/,'')+' (sent)',s:'out · co-pilot · '+(state.replyCh==='wa'?'WhatsApp':'Email'),tag:'Email'});toast(`Sent via ${state.replyCh==='wa'?'WhatsApp':'Email'} · <b>logged to ${m&&m.lead?m.lead:(m&&m.from)} ✓</b> (#2)`);if(m)m.unread=0;}
+ else if(a==='discard'){toast('Draft discarded');}
+ else if(a==='nba'){if(act.dataset.t&&act.dataset.t.toLowerCase().includes('booking')){const bb=document.querySelector('[data-act="book"]');if(bb)bb.click();}else toast(act.dataset.t);}
+ else if(a==='goov'){state.screen='overview';state.sel=null;paint();toast('Jumped to Acme AG in Overview');}
+ else if(a==='mute'){toast('Sender muted');}else if(a==='newlead'){toast('New lead created');}else if(a==='deck'){toast('Flight-deck action fired');}
+ else if(a==='resolve'){const i=MAIL.normal.findIndex(x=>x.id===m.id);if(i>-1){const mv=MAIL.normal.splice(i,1)[0];mv.unresolved=0;mv.lead=mv.resolveTo;mv.stageCur='Proposal';mv.stageNext='Closing';mv.tlKey='acme';mv.from='Acme AG · office@acme.ch';mv.init='AC';mv.tag=['t-dim','● linked'];mv.val="24'000";mv.pct='45%';mv.extract=[['Sentiment','Engaged','→ Deal'],['Intent','Internal alignment','→ Deal'],['Contact','office@acme.ch','→ Contacts']];mv.draft='Guten Tag,\n\ngerne — was braucht das Team für die Abstimmung? Ich liefere die Angaben heute noch.\n\nBeste Grüsse\nSilke';mv.nba=[['↵','Answer question'],['📅','Booking link']];MAIL.crm.unshift(mv);state.bucket='crm';state.sel=mv.id;renderEmail();toast(`Resolved · <b>office@acme.ch → Acme AG</b>. Routed to CRM (#1)`);}}
+});
+paint();
+</script>
+</body>
+</html>

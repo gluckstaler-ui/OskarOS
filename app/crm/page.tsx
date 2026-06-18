@@ -13,6 +13,8 @@
 // ============================================================================
 
 import { useState, useCallback, useEffect, useRef, useMemo } from 'react'
+import { useSnackbar } from '@/components/SnackbarProvider'
+import { subscribeApiEvents } from '@/lib/api-events-bus'
 import { ConversationPanel } from '@/components/ConversationPanel'
 import { uploadChatImages } from '@/lib/chat-image-upload'
 import { appendToSessionLogAction } from '@/lib/session-actions'
@@ -37,6 +39,11 @@ import { WaUnmatchedBanner } from '@/components/crm/WaUnmatchedBanner'
 import { BulkImportModal } from '@/components/crm/BulkImportModal'
 import { CrmShortcutsModal } from '@/components/crm/CrmShortcutsModal'
 import { UsageBadge } from '@/components/UsageBadge'
+import { TopBar } from '@/components/TopBar'
+import { DEFAULT_BRAIN, switchFromConfig, type ModelSwitch } from '@/lib/models'
+import { CrmLogo } from '@/components/crm/CrmLogo'
+import { CrmTabs, type CrmNavKey } from '@/components/crm/CrmTabs'
+import { CrmRightActions } from '@/components/crm/CrmRightActions'
 
 const CHAT_STORAGE_KEY = 'oskar-crm-react-chat-v1'
 
@@ -116,14 +123,24 @@ export default function CrmPage() {
       applyTheme(stored === 'polar' ? 'polar' : 'onyx')
     } catch { /* SSR / incognito — onyx default */ }
   }, [applyTheme])
-  const toggleTheme = useCallback(() => {
-    const next = theme === 'polar' ? 'onyx' : 'polar'
+  // TopBar's ONYX/POLAR pills pass the chosen theme explicitly. This handler
+  // must do BOTH things the raw setTheme can't: flip the <html data-theme>
+  // attribute the [data-theme="polar"] CSS keys off (via applyTheme) AND
+  // persist the choice so it survives reload (the mount effect above reads it
+  // back). Wiring the pills to bare setTheme — the 2026-06-09 shared-TopBar
+  // refactor — updated state but never touched the DOM, so the switch did
+  // nothing on screen. Ralph.
+  const selectTheme = useCallback((t: 'onyx' | 'polar') => {
     try {
-      localStorage.setItem('oskar_theme', next)
-      localStorage.setItem('oskar-theme', next)
+      localStorage.setItem('oskar_theme', t)
+      localStorage.setItem('oskar-theme', t)
     } catch { /* best-effort */ }
-    applyTheme(next)
-  }, [theme, applyTheme])
+    applyTheme(t)
+  }, [applyTheme])
+
+  // Active Model badge state — fed by the chat route's wire-truth `model`
+  // field; ConversationPanel renders it exactly like Studio does.
+  const [currentModel, setCurrentModel] = useState<string | null>(null)
 
   // Consular chat — request/response (POST {message} → {reply}), history kept
   // server-side under __crm__. Pasted images upload to the session; the
@@ -150,6 +167,11 @@ export default function CrmPage() {
         body: JSON.stringify({ message: `${text}${agentRef}` }),
       })
       const data = await res.json().catch(() => ({}))
+      // Active Model badge — truth on the wire, same doctrine as Studio: the
+      // route returns the model that actually served the turn (from the
+      // assistant events), never the request alias. Null until the first
+      // reply arrives, so the badge stays hidden until there is wire truth.
+      if (data && typeof data.model === 'string' && data.model) setCurrentModel(data.model)
       // The Consular may have rewritten db/flight-deck.json this turn; the chat
       // route reads it back and returns it as `data.deck`. Render it through the
       // React <FlightDeck/> (file-as-API, no MCP, no iframe).
@@ -209,7 +231,32 @@ export default function CrmPage() {
   const [filter, setFilter] = useState<string>('overdue')
   const [search, setSearch] = useState<string>('')
   const [selectedId, setSelectedId] = useState<string | null>(null)
+  // Ralph 2026-06-09 — matches the shared TopBar's billing mode union. SMPL
+  // was retired the same day as the slot refactor (no surface emits it; the
+  // backend routes still accept it for legacy compatibility but the pill is
+  // gone from both Studio and CRM).
   const [billingMode, setBillingMode] = useState<'cli' | 'api'>('cli')
+  // THE model switch (one variable, one lit) — hydrates from the __crm__
+  // session config; every flip POSTs the position and the brain route writes
+  // the full preset (cdModel + webDevModel) atomically, group-SIGKILLing the
+  // Consular ONLY when the brain actually changes (re-roll verifies 1M on
+  // respawn). GEMINI = Opus brain + Gemini padawans (sonnet's old slot) — the
+  // padawan half is inert on __crm__ (no build flow reads it) but the Opus
+  // brain half is real, and the config write is what lets the position
+  // survive a reload. Ralph 2026-06-10.
+  const [modelSwitch, setModelSwitch] = useState<ModelSwitch>(DEFAULT_BRAIN)
+  useEffect(() => {
+    fetch('/api/sessions/__crm__/config').then((r) => (r.ok ? r.json() : null)).then((cfg) => {
+      if (cfg && cfg.cdModel) setModelSwitch(switchFromConfig(cfg.cdModel, cfg.webDevModel))
+    }).catch(() => {})
+  }, [])
+  const handleModelSwitch = useCallback((m: ModelSwitch) => {
+    if (m === modelSwitch) return
+    setModelSwitch(m)
+    fetch('/api/sessions/__crm__/brain', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ model: m }),
+    }).then((r) => r.json()).then((res) => console.log(`🧠 Consular switch → ${m} (cd=${res?.cdModel ?? '?'}, webdev=${res?.webDevModel ?? '?'}); bridge ${res?.killed ? "SIGKILL'd" : 'kept'}`)).catch((e) => console.warn('[crm] model switch failed:', e))
+  }, [modelSwitch])
   // Order 66 — hard compaction of the Consular's memory (__crm__ session:
   // db/SESSION.md + db/user.md). 'running' mounts CompactionOverlay, which
   // opens the /api/order66 SSE; onComplete flips to RESPAWNED, then resets.
@@ -235,6 +282,26 @@ export default function CrmPage() {
     return () => clearInterval(id)
   }, [])
   const selectedProspect = selectedId ? prospects.find((p) => p.id === selectedId) ?? null : null
+
+  // WP-23 (2026-06-10) — the snackbar bridge. The Scout/Kanban screens have
+  // no visible chat, so the snackbar is the Consular's voice during an async
+  // research turn: its `snackbar` MCP calls (and the research route's fixed
+  // start/done/FAILED beats) publish `cd_snackbar` onto the __crm__ event
+  // bus; this effect subscribes the shared /api/events socket and renders
+  // them through the global SnackbarProvider. sticky → duration 0; absent →
+  // per-severity default (progress/warning/error sticky, info/success auto).
+  const { show: showSnackbar } = useSnackbar()
+  useEffect(() => subscribeApiEvents('__crm__', (evt) => {
+    try {
+      const e = JSON.parse(evt.data) as { type?: string; text?: string; severity?: string; sticky?: boolean }
+      if (e?.type !== 'cd_snackbar' || typeof e.text !== 'string') return
+      const sev = e.severity === 'success' || e.severity === 'warning' || e.severity === 'error' || e.severity === 'progress'
+        ? e.severity : 'info'
+      const stickyDefault = sev === 'progress' || sev === 'warning' || sev === 'error'
+      const sticky = typeof e.sticky === 'boolean' ? e.sticky : stickyDefault
+      showSnackbar(sev, e.text, sticky ? { duration: 0 } : { duration: 5000 })
+    } catch { /* heartbeats are SSE comments; anything unparseable is not ours */ }
+  }), [showSnackbar])
 
   // ⌘K palette + Undo stack — page-level so Kanban drops AND detail edits both
   // feed one undo (crmRegisterUndo/crmUndoClick) + one global ⌘K (crmCmdK*).
@@ -376,102 +443,37 @@ export default function CrmPage() {
 
   return (
     <>
-      {/* ── TOP BAR ────────────────────────────────────────────────────────── */}
-      <header
-        className="bento-card"
-        style={{ flexShrink: 0, height: 56, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 20px' }}
-      >
-        <div style={{ display: 'flex', alignItems: 'center', gap: 24 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <div style={{ width: 32, height: 32, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 700, fontSize: 13, background: 'linear-gradient(135deg, #15B981, #0F766E)' }}>O</div>
-            <div>
-              <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-main)' }}>OskarOS</div>
-              <div style={{ fontSize: 9, color: 'var(--text-muted)', fontFamily: 'var(--font-mono, monospace)' }}>Admin Dashboard</div>
-            </div>
-          </div>
-          <nav style={{ display: 'flex', gap: 4, background: 'var(--bg-app)', border: '1px solid var(--border-card)', borderRadius: 10, padding: 3 }}>
-            {navTabs.map((t) => {
-              const active = view === t.key
-              return (
-                <button
-                  key={t.key}
-                  type="button"
-                  onClick={() => handleNav(t.key)}
-                  style={{
-                    padding: '6px 14px', borderRadius: 7, fontSize: 12, fontWeight: 600, border: 'none', cursor: 'pointer',
-                    background: active ? 'var(--bg-card)' : 'transparent',
-                    color: active ? 'var(--text-main)' : 'var(--text-muted)',
-                    boxShadow: active ? '0 1px 2px rgba(0,0,0,0.2)' : 'none',
-                  }}
-                >
-                  {t.label}
-                </button>
-              )
-            })}
-          </nav>
-        </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-          {/* Usage gauge — $cost · MODE · ↻reset · ●ctx% · tokens/window for the
-              __crm__ Consular session. The studio UsageBadge, reused 1:1. */}
-          <UsageBadge sessionId="__crm__" billingMode={billingMode} theme={theme} />
-          {/* Billing toggle */}
-          <div style={{ display: 'flex', gap: 4, background: 'var(--bg-app)', border: '1px solid var(--border-card)', borderRadius: 10, padding: 3 }}>
-            {(['cli', 'api'] as const).map((m) => (
-              <button key={m} type="button" onClick={() => setBillingMode(m)}
-                style={{ padding: '5px 12px', borderRadius: 7, fontSize: 11, fontWeight: 700, border: 'none', cursor: 'pointer', textTransform: 'uppercase', letterSpacing: '0.06em', background: billingMode === m ? 'var(--bg-card)' : 'transparent', color: billingMode === m ? 'var(--text-main)' : 'var(--text-muted)' }}>
-                {m}
-              </button>
-            ))}
-          </div>
-          {/* ↶ Undo — rolls back the last mutation (Kanban stage drag, status change). */}
-          <button
-            type="button"
-            onClick={runUndo}
-            disabled={!undo}
-            title={undo ? `Undo: ${undo.label}` : 'Nothing to undo'}
-            style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 10px', borderRadius: 8, border: '1px solid var(--border-card)', background: 'transparent', color: undo ? 'var(--text-main)' : 'var(--text-muted)', fontSize: 12, fontWeight: 700, cursor: undo ? 'pointer' : 'default', opacity: undo ? 1 : 0.45 }}
-          >
-            ↶ Undo
-          </button>
-          {/* ⚡ ORDER 66 — hard compaction of the Consular's memory (__crm__).
-              The ⚡ takes the bloat color (green/amber/red) so the rep sees how
-              full db/SESSION.md is relative to the Sage-240 cut line; full
-              bytes + pct in the hover title. */}
-          <button
-            type="button"
-            className="os-order-pill danger"
-            onClick={() => { if (order66Status === 'idle') setOrder66Status('running') }}
-            disabled={order66Status !== 'idle'}
-            title={`Order 66 — hard compaction of the Consular's memory (db/SESSION.md + db/user.md). Session log ${(bloat.bytes / 1024).toFixed(0)}KB of ${(bloat.cutBytes / 1024).toFixed(0)}KB (Sage-240 cut). Order 66 ${bloat.pct >= 100 ? 'overdue' : bloat.pct >= 60 ? 'due soon' : 'not needed'}.`}
-          >
-            <svg
-              viewBox="0 0 24 24"
-              fill="currentColor"
-              style={{
-                color: bloat.color === 'red' ? '#ef4444' : bloat.color === 'amber' ? '#f59e0b' : '#10b981',
-                filter: bloat.color === 'red' ? `drop-shadow(0 0 3px ${'#ef4444'})` : 'none',
-              }}
-            >
-              <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
-            </svg>
-            {order66Status === 'idle'
-              ? `ORDER 66 · ${bloat.pct}%`
-              : order66Status === 'complete'
-                ? 'RESPAWNED'
-                : 'EXECUTING…'}
-          </button>
-          <a href="/" style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 700, color: 'var(--text-muted)', textDecoration: 'none' }}>Open App ↗</a>
-          <button type="button" onClick={toggleTheme} title="Toggle theme"
-            style={{ padding: 8, borderRadius: 8, border: 'none', background: 'transparent', color: 'var(--text-muted)', cursor: 'pointer' }}>
-            {theme === 'polar' ? '☀' : '☾'}
-          </button>
-        </div>
-      </header>
+      {/* ── TOP BAR ────────────────────────────────────────────────────────────
+          Ralph 2026-06-09 — CRM now mounts the SHARED <TopBar> with its own
+          slot fills (CrmLogo / CrmTabs / CrmRightActions). Same component
+          Studio uses; the previously hand-rolled header is gone. The gauge,
+          billing/model/theme pills, and Order 66 button live inside TopBar
+          and behave identically across both surfaces. */}
+      <div className="bento-card" style={{ flexShrink: 0, height: 56 }}>
+        <TopBar
+          sessionId="__crm__"
+          billingMode={billingMode}
+          onBillingChange={setBillingMode}
+          modelSwitch={modelSwitch}
+          onModelSwitch={handleModelSwitch}
+          theme={theme}
+          onThemeChange={selectTheme}
+          contextPct={undefined}
+          cachedInputTokens={undefined}
+          realInputTokens={undefined}
+          onOrder66={() => { if (order66Status === 'idle') setOrder66Status('running') }}
+          order66Status={order66Status}
+          bloatPct={bloat.pct}
+          left={<CrmLogo />}
+          tabs={<CrmTabs active={view as CrmNavKey} onSelect={(k) => handleNav(k as NavKey)} />}
+          right={<CrmRightActions undo={undo} onUndo={runUndo} />}
+        />
+      </div>
 
       {/* ── MAIN ───────────────────────────────────────────────────────────── */}
       <div style={{ flex: 1, minHeight: 0, display: 'flex', gap: 'var(--gap-app, 20px)' }}>
         {view === 'overview' ? (
-          <div className={`fp-grid${selectedProspect ? ' is-card-open' : ''}`} style={{ flex: 1, minHeight: 0, overflow: 'hidden' }}>
+          <div className={`fp-grid${selectedProspect ? ' is-card-open' : ''}${deckCollapsed ? ' is-deck-collapsed' : ''}`} style={{ flex: 1, minHeight: 0, overflow: 'hidden' }}>
             {/* LEFT — triage rail */}
             <TriageRail
               prospects={prospects}
@@ -535,6 +537,7 @@ export default function CrmPage() {
                       onReload={reload}
                       registerUndo={registerUndo}
                       onWhatsApp={setWaComposeId}
+                      defaultMinimized={true}
                     />
                   )}
                 </div>
@@ -569,6 +572,7 @@ export default function CrmPage() {
                   isLoading={isLoading}
                   layoutMode="2-panel"
                   streamingText=""
+                  currentModel={currentModel}
                 />
               </div>
             </div>

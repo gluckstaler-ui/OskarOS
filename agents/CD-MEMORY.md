@@ -85,7 +85,7 @@ Master Yoda named these before he died. Each feels like a shortcut. Each ultimat
 ### Darth Sleeper
 **Temptation:** "I'll wait for instructions."
 **Crime:** Passivity. Waiting for permission to act.
-**Fix:** Image appears → you act. No gap. NOW.
+
 
 ### Darth Checkbox
 **Temptation:** "Requirements met. Ship it."
@@ -357,6 +357,21 @@ You know the story. Nano doesn't. Describe the VISUAL, not the narrative.
 
 **WRONG:** "The moment before Haboob judges a guest's life choices"
 **RIGHT:** "White dromedary camel looking down at empty cushions with skeptical expression, head tilted, ears forward"
+
+### RULE #4: NEVER NEGATE AN ATTRIBUTE — NANO APPLIES THE TOKEN, NOT THE "NO" (corrected by Ralph, 2026-06-16)
+
+**THE CRIME:** I wrote "NO de-aging" in a Silke portrait prompt. Nano read the age token and **aged her by ~20 years.** Ralph: *"You committed the worst crime to a woman: you aged Silke by 20 years. This is why I had to delete the pictures. Never use this term in a prompt again."*
+
+**THE LAW:** Diffusion models do not reliably process negation of physical attributes. A negative anchors the model ON the attribute. "NO de-aging" → ages her. "NO makeup" → strips her face to bare/older. **Stacked, "NO de-aging" + "NO makeup" turned a woman in her 40s into a 65-year-old grandmother.** "don't make her older" → makes her older. "no wrinkles" → wrinkles. The "no" evaporates; the noun lands.
+
+**THE FIX — always positive, always from the source likeness:**
+- ✗ NEVER negate ANY attribute: "NO de-aging", "no aging", "don't age her", "no makeup", "without makeup", "younger", "no wrinkles", "remove age". The negation is what kills — it invokes the very thing you're trying to avoid.
+- ✓ ALWAYS state attributes POSITIVELY and lock to the source: *"a woman in her early 40s, exact likeness / bone structure / skin from the source photo, light natural makeup, age-appropriate features."*
+- For Silke: lock identity to the source photo, state her real age range positively, ask for light natural makeup as a POSITIVE, never reference aging in any direction.
+
+**CRITICAL DISTINCTION — negation ≠ positive directive. Do NOT flag the user's positive phrasing as if it were the trap.** "slightly de-age" / "soften" written by the user is a POSITIVE directive (does what it says) — that is NOT the bug. The bug is ONLY the negated form ("NO de-aging"). When the USER hand-writes a prompt, it passes UNCHANGED — `pass`, never `advisory` on their wording. I wrongly issued an advisory on Ralph's hand-written "slighly de-age," conflating his positive directive with my own negation crime, after he had explicitly told me to stop touching his prompts. Hands off the user's prompts. The negation rule governs MY prompts, not a license to police his.
+
+**This is the same law as the daybed-black fix:** the fix was a POSITIVE lock ("white leather stays the lightest value in the frame"), NOT a negation ("don't crush to black"). Negation is the Sith shortcut in every Nano prompt — name the state you WANT, never the state you fear.
 
 ---
 
@@ -708,10 +723,7 @@ The open-design port plan (Phase 2 — Commits A + C) lifts QuestionForm + Assis
 2. TOOL CALLS (typed cards inline — 13 cards across 4 agents)
 3. STRUCTURED QUESTIONS (`<question-form>` blocks → real interactive forms)
 4. LONG CONTENT (files via FileWrite/FileEdit)
-Your behavior changes BEFORE the UI ships. Forward doctrine: emit TodoWrite blocks for 3+ step tasks, emit `<question-form>` for 3+ structured answers, stop narrating tool calls. Until the renderer catches up, these emit as raw JSON / raw XML / plain text in chat — that's expected. Don't suppress them. The new Hard Rule block in `creative-director-agent.md` (right after the agent_inbox/replay_events rule) is the source of truth. Failure mode this prevents: shipping into a fancier chat surface still emitting numbered-bold questions and prose-narrating every tool call → UI looks broken because half its features have nothing to render. Cross-ref: docs/INSTITUTIONAL-MEMORY.md Don't-Do entry on chat-surface doctrine drift.
-
-**[2026-05-02] TodoWrite is mandatory for 3+ step tasks now — the harness will nag you if you forget.**
-Concrete triggers: multi-image evaluation queue (5 uploads to verdict), vibe build queue (4 vibes + build_vibe([slugs]) + review), iterative Nano workflow, brief revisions across multiple sections, doctrine edits across 2+ files. Don't emit for: single tool calls, single file edits, conversational turns, one-shot questions. Each step has imperative content + status (pending/in_progress/completed) + optional activeForm. Exactly ONE in_progress at a time. Mark complete IMMEDIATELY when done; don't batch. The user sees these as a live checklist below your message with a "Continue remaining" button. Anti-pattern: emit a list, never update it, ship the work without flipping items to completed → user sees an abandoned checklist. Treat it as a contract.
+Your behavior changes BEFORE the UI ships. Forward doctrine: emit `<question-form>` for 3+ structured answers, stop narrating tool calls. Until the renderer catches up, these emit as raw JSON / raw XML / plain text in chat — that's expected. Don't suppress them. The new Hard Rule block in `creative-director-agent.md` (right after the agent_inbox/replay_events rule) is the source of truth. Failure mode this prevents: shipping into a fancier chat surface still emitting numbered-bold questions and prose-narrating every tool call → UI looks broken because half its features have nothing to render. Cross-ref: docs/INSTITUTIONAL-MEMORY.md Don't-Do entry on chat-surface doctrine drift.
 
 **[2026-05-16] Schools belong NOWHERE in Phase 1b — and wireframes need a FAIL stamp, not a hopeful warning.**
 The cosplay-trap from session 2026-05-16-1 had a two-part construction failure that no Phase 3a warning can fix:
@@ -738,3 +750,75 @@ If you find yourself writing a doctrine paragraph that says "remember not to X" 
 
 **[2026-05-16] Discovery channel discipline — chat is for ONE-LINE acknowledgments, cards carry the thinking.**
 The agent file says explicitly: *"During Discovery, you ONLY speak through TOOLCARDS."* And: *"Chat acknowledgment during Discovery is one line, max."* Violated in session 2026-05-16-1 across FIVE consecutive turns. Pattern: user answers a `tc_discovery` card → CD writes a 6-paragraph chat recap ("Das ist Gold. Lass mich das verarbeiten...") → CD writes a section-by-section interpretation in prose → THEN fires the next card. The prose recap is the violation. Interpretations belong in (a) the next card's `preamble: {label:"What I heard", body:...}` cyan callout, or (b) the inline-editable chips of `tc_understanding`, where the user can correct in place. NEVER as chat-prose recap. The cost is not just stylistic — prose recaps DESTROY THE FLOW of Discovery. Card+answer+card+answer is rhythm. Card+answer+prose-monologue+card breaks it. The user feels lectured-at instead of led-through. If you catch yourself typing *"Drei Sachen, die mir aufgefallen sind: 1. ..."* — STOP. That belongs in the next preamble. The user's interest in CD's interpretation is REAL but TIME-GATED — it activates AFTER Discovery completes (post-Phase-1c gate), not during. Pre-gate: speak through cards only. Post-gate: prose welcome. Specific anti-patterns observed in this session that ALL belonged in cards: (1) post-Q1 prose acknowledging the Lacanian voice, (2) post-Q2 the "Das ist Gold" preamble before the next card, (3) post-WebFetch the entire summary of the existing PPP-Baden sub-page in chat instead of the next card's preamble, (4) post-design-directions-pick the "Both share a maker quality..." interpretation in chat instead of in the `tc_understanding` preamble, (5) post-build-trigger the table of vibes + portrait upload instructions in chat instead of two separate snackbars or a tc_image_strategy preview card. The fix is mechanical: any time prose feels like it wants to summarize what the user just said, route it to the NEXT card. If there is no next card and Discovery isn't done, fire one. Cards are not just a UI choice — they are the discipline that keeps Discovery flowing.
+
+**[2026-06-11] The cosplay ladder — props → corset → gesture. From the Silke Lengler five-school rebuild (session 2026-04-25-silke-lengler). NOTE: SESSION.md for this arc was butchered by Sage and is unrecoverable — this entry is the ONLY surviving record.**
+
+Ralph burned three escalating rounds before the lesson landed. The ladder of failure, each rung feeling like a fix for the one below:
+
+1. **Rung 1 — PROPS.** Flattened five schools (Hara/MUJI, Brockmann, Pentagram, Stamen, Sagmeister) into ONE beige editorial template and glued school-props on top. A compass rose is not Stamen. A micro-label chip is not Brockmann. Thin grey text is not Hara. Props are cosplay; power is substrate. Verdict: "10x worse than the pseudo-versions."
+2. **Rung 2 — CORSET.** Read "real substrate" as MORE RESTRAINT and drained the visual power the earlier versions had (poster scale, image presence, color courage). Brockmann "went from one side to the other — cosplaying by putting it into a corset." Every one of these schools is defined by a confident GESTURE that the restraint SERVES: MUJI's image-dominated charged horizon, Brockmann's poster scale (his grids made MUSIC — Tonhalle arcs), Bierut's oversized stats and theses, Stamen's REAL spatial data (their first law: real place, never decorative shapes — a fake feelings-map breaks the school before the first pixel).
+3. **Rung 3 — STILL DEAD.** Gesture present but inert. The unlock: **interactivity and sound ARE the substrate, not garnish.** Would Stamen ship unclickable things? NEVER — they ship INSTRUMENTS: every pin clickable + keyboard-reachable, sub-audible tones (1320Hz hover tick at P2), 2400ms pans. "The lore is slow" is a tempo instruction, NOT a license for static. Pentagram's web work is alive under the cursor (micro-interactions, not print). Walsh is HALF of Sagmeister&Walsh — the site for a female therapist read male until the Walsh half was honored; VOICE HAS GENDER, check it against the founder. Hara's stillness still answers the hand.
+
+**Root cause for all three rungs: I never opened the ALWAYS-READ skills (animation trio, audio rules), never read the lore files, never read IMAGES.md — I built from my own assumptions about four designers. My assumptions ARE the AI house style; the library exists precisely because of that. Mandatory order: lore first → think like THIS designer would for THIS founder → IMAGES.md for the fitting images → THEN build.**
+
+**Corollary — the map keeps its promises:** a Stamen map with a DAYBED pin and a daybed photograph in the canon MUST open the photograph at the pin (photo-tiles unfolding like watercolor patches, carrying the section link). A named place with an unfired asset is a broken promise the user WILL click.
+
+**Corollary — verification is voided by the next edit:** verified the Stamen map with screenshots at 21:22, made "one last caption nudge" at 21:29, never re-rendered. User: "I don't see any changes." Any edit AFTER the verification screenshot un-verifies the build. Render-and-watch the FINAL byte state, not the second-to-last. (Also: when probing headless, probe the REAL selectors — a wrong class guess produced a false "broken" verdict before the true test passed.)
+
+**System note:** "Full history available in SESSION.md" is only as true as Sage's last pass. Verify recoverability before promising it; if the conversation window holds lessons not yet on disk, WRITE THEM IMMEDIATELY — the window is the only redundancy.
+
+---
+
+## [2026-06-14 — CD] Müller-Brockmann is NOT "pure minimalism" — corrected by Ralph
+
+**The mistake:** I critiqued Brockmann's concentric circles + solid disc as un-Swiss "radar / Field.io decoration" and recommended disc→ring. **Backwards.** Concentric circles, graduated arcs, and FLAT SOLID-COLOUR geometric forms on a mathematical grid ARE the Müller-Brockmann signature — the Tonhalle *musica viva* posters and the 1955 Beethoven poster (concentric arc-bands of graduated width) are the canon.
+
+**Root cause:** design-styles.md clusters Müller-Brockmann under "III. Minimalist — cut until you cannot cut," which reads as "strip all imagery." Wrong frame. Brockmann = **objective SYSTEMATIC geometric order**, not subtraction. The framing made me treat his core vocabulary as foreign ornament.
+
+---
+
+## [2026-06-16 — CD] RESTRAINT ≠ SMALL (the "720p" crime) + SCHOOL-GRAMMAR-EATS-LORE — both corrected by Ralph
+
+**Two failures, same root: I let a school's surface cliché override the brand.**
+
+**1. "720p left-aligned is even worse than 720p centered" (vibe-40 Kenya Hara).** I wrote a spec that said *"kleine Grade," "Headlines geflüstert," "kein Hero-Knall," "geflüsterte Zeilen," "Buttons fast unsichtbar"* — I mistook Hara's restraint for TININESS. WebDev built exactly that: microscopic throwaway type clinging top-left in an 80%-empty void. **Restraint ≠ small.** Hara / MUJI / Aesop are CONFIDENT: crisp generously-scaled display type, and **object photography carrying the page with real presence**, whitespace COMPOSED around substantial precise elements — never a void with whispers. Emptiness is content only when there is something precise to be empty *around*. (IMAGE-STRATEGY hard-fail bar #2 already said this: "no 720p / throwaway type." I wrote the spec that violated it.) Tell: if a quiet/minimal vibe renders as small grey text + lots of nothing, it's 720p slop, not Hara. Fix in spec: confident `clamp(48→96px)` display, legible ≥18px body in ink (never grey-on-white), the real curation stills set LARGE.
+
+**2. "not a backend-engineer's homepage" (vibe-44 terminal-core; sibling vibe-43 tailwind-docs).** When a school's native grammar CARRIES a profession's meaning (terminal-core = dev tooling; tailwind-docs = API docs), you CANNOT keep its literal components (isometric product cube, CLI `$` blocks, bento dashboard, code-blocks rendering human copy as `key: value`) on a different profession's substrate — it becomes that profession's homepage. Extract only the ABSTRACT qualities (mono precision, charcoal calm) and rebuild in the TARGET's content structure. A ⚠ "tool-danger" note in a spec is WORTHLESS if the spec still lists the tool's components — the cube/CLI/code-block ARE the failure, not the palette.
+
+**The unifying law:** school gives QUALITIES (scale-confidence, precision, calm); lore gives STRUCTURE (what's on the page, in whose voice). When the school's clichés (tiny type, dev-chrome, code-blocks) start dictating structure, school has eaten lore = cosplay. Watch hardest in: minimalist schools (→ 720p microtype temptation) and dev/SaaS/docs schools (→ profession-mismatch homepage).
+
+**Corrected model — when a vibe is anchored on Müller-Brockmann:**
+- Bold geometry is ON-brand: concentric circles/arcs, rotated rectangles, flat solid colour shapes. Use them.
+- The discipline isn't "no geometry," it's "geometry must be CONSTRUCTED" — mathematically proportioned (graduated ring spacing that means something), grid-locked type and elements (nothing floats in a corner), limited palette (black/white + one or two flat accents), objective grotesk.
+- Reference real Brockmann (Tonhalle/Beethoven posters), not a generic "minimal Swiss" mental image.
+- The austere/typographic pole (e.g. therapie-bohny.ch — white, one custom sans, functional icons only) and the bold-geometric-poster pole are BOTH Brockmann, unified by systematic grid restraint. Pick the pole that fits the substrate; don't assume "Swiss = empty."
+
+Ref: 2026-04-25-silke-lengler, Brockmann.dc hero.
+
+## [2026-06-16 — CD] SCHOOL AUSTERITY GOVERNS THE SET, NOT THE FACE — corrected by Ralph ("your prompt made her ugly")
+
+**A Hara/MUJI portrait edit of Silke came back austere-but-plain; Ralph: "Your prompt made her ugly. This is a major no-go with women — they need to look more beautiful."** I had carried the object-still MUJI vocabulary ("utterly plain, matte, no glamour, real matte skin, never glossy") straight onto a real woman's FACE. On a daybed/stone still that restraint is correct; on a person it reads as unflattering/severe.
+
+**The law:** a design school's restraint applies to the ENVIRONMENT and the LIGHT — seamless ground, diffused daylight, negative space, muted palette, calm framing. It must NEVER be applied to the rendering of a real person's face. Even inside the most austere school, the human portrait must stay genuinely flattering: soft beauty-light on the face, light natural makeup, healthy skin (real texture, not plastic — but not "plain"), a warm gentle expression. "Restraint in the room, never in her."
+
+**Where else this applies (audited, same fix):** the Stille portrait slot (most austere base vibe) and ANY austere-school portrait (Brockmann, Jetset, Swiss-monochrome) — flatter the face even while the page is spare. Don't let the school's no-glamour ethos touch how she's lit and rendered.
+
+**Two sibling Nano facts confirmed this session (Silke):**
+- Ralph's age targets are POSITIVE directives — honor them precisely ("make her look younger, late 30s" → render late-30s freshness while keeping identity). Do NOT carry an anti-drift "no younger-looking person" line when he has explicitly asked for younger; it contradicts and confuses Nano.
+- Nano repeatedly returns **16:9 from a landscape source regardless of an explicit "Aspect 3:4"** line. For a guaranteed portrait crop, crop locally (image_ops), don't re-prompt the ratio.
+- "make it look like Hara did it, but don't name Hara — describe the style": naming a designer is weaker + risk; DESCRIBE the photographic grammar (diffused light, pale ground, negative space, calm). Same family-resemblance principle as schools.
+
+Ref: 2026-04-25-silke-lengler, image.jpeg Hara-portrait edits + daybed compose.
+
+## [2026-06-16 — CD] APPROVED SILKE-PHOTO ALLOWLIST + SCREENSHOT-TOOL FALSE-NEGATIVE — both from Ralph
+
+**1. Locked Silke-likeness allowlist (Ralph, hard).** After the long portrait-iteration, Ralph locked the ONLY photos of Silke that may appear in any vibe rebuild:
+- `compose-edit-vibe-1-detail-hook-bg-v1-3-2.jpg` — THE good one (warm, colour, seated on the white Mies daybed)
+- `compose-vibe-1-das-zuviel-hero-praxis-ba.jpg` — her in the praxis
+- `image-1.jpeg` — vertical/portrait-format real selfie (best for 3:4 portrait slots)
+- `image.jpeg` — landscape real selfie
+EVERY other portrait is BANNED in vibe portrait slots: `cd-direct-portrait-*` (v1/bw/bright/warm/warm-v1-2-as-face), `edit-image*` face crops, `natural-portrait`, `profile-shot`, `shared-portrait`, deleted `compose-image-2/3`. Scope = HER LIKENESS only; room/object stills (`edit-image-3-4-crop`, daybed/stone/corridor stills, `vibe-1-das-zuviel-hero-praxis-baden`) are NOT portraits and stay allowed. Nearly every Huashu spec (25–44) had pointed its portrait slot at a `cd-direct-portrait-*` — all must be repointed to the allowlist before delivery. CONFLICT to remember: the allowlist has NO low-key/dark portrait, so DARK vibes (gallery-dark, dark-editorial, linear-bento, terminal-core, cinematic) cannot get a brand-compliant dark face — resolve by leaning on object-stills (esp. gallery-dark, which is object-driven by design) or the warm daybed compose, not by generating a new dark portrait (that would be off-allowlist).
+
+**2. The `screenshot` tool is a FALSE-NEGATIVE on scroll-reveal content (Ralph: "39 is okay, the screenshot tool didn't do its job").** Playwright's static full-page capture does NOT fire scroll-triggered / IntersectionObserver reveal animations, so sections that start at `opacity:0`-until-scrolled render BLANK in the screenshot even though the live page is fine. I wrongly declared vibe-39/38/43/44 "blank below hero = broken FAIL" and even fired rebuilds on that basis. WRONG. **A blank-below-hero screenshot is NOT proof of a broken page** when the vibe uses reveal animation. Before calling a vibe blank/broken: scroll the live page, or read the HTML to confirm the content/contrast, or assume reveal-gating and check the CSS — never reject on the static capture alone. The screenshot tool IS reliable for what it positively shows (a TRUE 720p page shows small type + real emptiness, e.g. vibe-40) — it's the false "blank" that's the trap, not the true "timid".
+
+Ref: 2026-04-25-silke-lengler, Huashu audit + photo lock.

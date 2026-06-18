@@ -36,9 +36,15 @@
 /* funnel header */
 .scout-head{padding:2px 2px 0;}
 .scout-funnel{display:flex;align-items:center;gap:10px;margin-top:2px;font-family:var(--font-mono,monospace);font-size:11px;color:var(--text-muted);flex-wrap:wrap;}
-.scout-pill{display:inline-flex;align-items:center;gap:6px;background:var(--bg-card);border:1px solid var(--border-card);border-radius:999px;padding:4px 11px;}
+.scout-pill{display:inline-flex;align-items:center;gap:6px;background:var(--bg-card);border:1px solid var(--border-card);border-radius:999px;padding:4px 11px;font:inherit;color:inherit;}
 .scout-pill b{color:var(--text-main);font-weight:600;}
 .scout-pill.hot b{color:var(--brand-red);}.scout-pill.green b{color:var(--sv-violet);}
+/* Ralph 2026-06-03 · funnel pills are clickable filter triggers. Hover lifts
+   the border; .on stamps the active state matching the chip strip below so
+   both surfaces visually agree on which filter is engaged. */
+.scout-pill.clickable{cursor:pointer;transition:border-color .12s ease, background .12s ease;}
+.scout-pill.clickable:hover{border-color:var(--border-active);}
+.scout-pill.clickable.on{border-color:var(--border-active);background:var(--bg-card-hover);}
 .scout-arw{color:var(--text-dim);}
 
 /* toolbar */
@@ -94,37 +100,132 @@
            row reads as "done-and-still-glanceable" not "completely-faded".
    Border also gets a phosphor tint at low opacity in both themes — a 1px
    accent that says "this row's already been judged" without screaming. */
-/* Default = ONYX (no data-theme attribute is set; app/crm/page.tsx:103
-   REMOVES the attribute for onyx and only SETS it for polar). The polar
-   override below uses [data-theme="polar"]. Earlier draft had `[data-theme=
-   "onyx"]` which never matched → onyx silently fell through to the polar
-   dark-mix → near-invisible. Fixed Ralph 2026-06-03. */
+/* Ralph 2026-06-04 · polar background logic INVERTED to match the mockup.
+   Was: unscouted = --bg-card (cream), scouted = color-mix with black (grey).
+   Now: SCOUTED = cream (--bg-card, the default warm tone for "ready"),
+   UNSCOUTED = white (a cleaner, untouched state). The mockup uses cream
+   for done/scouted rows and white for raw/greenfield/unscouted — cream is
+   the "warmth-applied" color, white is the "blank slate" color.
+   Also DROPPED the green-tinted border on scouted rows — the mockup uses
+   the same border color across both states; the bg shift carries the
+   signal alone. Onyx (default block below) keeps a subtle lift for
+   scouted since dark mode needs the contrast going the other way. */
+
+/* ONYX (default — no data-theme attribute) */
 .scout-lc.scouted{
   background:color-mix(in srgb, var(--bg-card) 65%, #fff);
-  border-color:color-mix(in srgb, var(--border-card) 50%, var(--brand-phosphor));
+}
+
+/* POLAR — flipped: white = unscouted, cream (--bg-card) = scouted */
+[data-theme="polar"] .scout-lc{
+  background:#ffffff;
 }
 [data-theme="polar"] .scout-lc.scouted{
-  background:color-mix(in srgb, var(--bg-card) 78%, #000);
-  border-color:color-mix(in srgb, var(--border-card) 60%, var(--brand-phosphor));
+  background:var(--bg-card);
 }
+
 .scout-lc.scouted:hover{background:color-mix(in srgb, var(--bg-card) 55%, #fff);}
-[data-theme="polar"] .scout-lc.scouted:hover{background:color-mix(in srgb, var(--bg-card) 70%, #000);}
+[data-theme="polar"] .scout-lc:hover{background:color-mix(in srgb, #ffffff 92%, #000);}
+[data-theme="polar"] .scout-lc.scouted:hover{background:color-mix(in srgb, var(--bg-card) 92%, #000);}
+/* Ralph 2026-06-04 · disable hover-darken when the row is expanded.
+   An open dossier is the row's engaged state — re-applying the hover bg
+   while the user reads the expansion makes the whole card grey out and
+   competes with the panel content. The expanded card stays at its
+   resting background regardless of mouse position. */
+.scout-lc.open:hover,
+.scout-lc.open.scouted:hover,
+[data-theme="polar"] .scout-lc.open:hover,
+[data-theme="polar"] .scout-lc.open.scouted:hover{
+  background:inherit;
+}
+/* Restore the resting background per state, since `inherit` would pick up
+   the body/container background instead. We want the row's own base color. */
+.scout-lc.open:hover{background:var(--bg-card);}
+.scout-lc.open.scouted:hover{background:color-mix(in srgb, var(--bg-card) 65%, #fff);}
+[data-theme="polar"] .scout-lc.open:hover{background:#ffffff;}
+[data-theme="polar"] .scout-lc.open.scouted:hover{background:var(--bg-card);}
 .scout-lc.sel{border-color:var(--sv-green);background:rgba(16,185,129,.05);}
 /* Selection wins over scouted shade — sel + scouted should still read green-tinted. */
 .scout-lc.scouted.sel{background:rgba(16,185,129,.07);}
 .scout-lc.open{border-color:var(--border-active);}
 
-.scout-lc-body{padding:13px 16px;cursor:pointer;}
+/* Ralph 2026-06-05 (v6) · padding matches the mockup exactly: 12 top + 7
+   bottom (was 13/13). Cuts ~7 px off the row height. The bottom is shorter
+   because the strip sits flush below the contact line — the strip carries
+   its own top breathing room from its own padding. */
+.scout-lc-body{padding:12px 16px 7px;cursor:pointer;}
 .scout-lc-top{display:flex;align-items:center;gap:16px;}
-.scout-lc-id{flex:1;min-width:0;}
-.scout-nm{font-weight:600;font-size:14px;color:var(--text-main);line-height:1.2;}
-.scout-typ{font-size:11px;color:var(--text-muted);margin-top:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-.scout-reg{font-size:9px;color:var(--text-muted);background:var(--bg-sunken);border:1px solid var(--border-card);padding:2px 8px;border-radius:999px;letter-spacing:.04em;text-transform:uppercase;margin-right:7px;}
+/* Ralph 2026-06-03 · single-line identity row. Name + Company + Region +
+   Industry inline. Was a 2-line stack with name on top, region+industry
+   below — now mirrors the canonical mockup (one tight horizontal line). */
+.scout-lc-id{flex:1;min-width:0;display:flex;align-items:center;gap:9px;overflow:hidden;white-space:nowrap;}
+.scout-nm{font-weight:600;font-size:13px;color:var(--text-main);line-height:1.2;flex-shrink:0;}
+.scout-co{font-weight:400;font-size:12px;color:var(--text-muted);line-height:1.2;overflow:hidden;text-overflow:ellipsis;min-width:0;}
+/* Ralph 2026-06-04 · industry in green phosphor per mockup — was muted gray,
+   killed the visual rhythm of the row. Phosphor reads as a clear semantic
+   accent against the cream/dark name+company text. */
+.scout-ind{font-size:11px;color:var(--brand-phosphor);line-height:1.2;flex-shrink:0;}
+.scout-reg{font-size:9px;color:var(--text-muted);background:var(--bg-sunken);border:1px solid var(--border-card);padding:2px 7px;border-radius:4px;letter-spacing:.04em;text-transform:uppercase;flex-shrink:0;}
+/* Ralph 2026-06-05 · Verfügbarkeit chip (row-level). Same pill chassis as
+   .scout-reg but tinted by accept/reject. Green = "✓ nimmt auf", red =
+   "✗ keine neuen". Higher visual weight than .scout-reg because it's a
+   live business signal (triage at a glance), not a metadata tag. */
+.scout-verf-chip{font-size:9px;line-height:1.2;padding:2px 8px;border-radius:999px;border:1px solid;letter-spacing:.04em;text-transform:uppercase;flex-shrink:0;font-weight:600;}
+.scout-verf-chip.on{color:var(--sv-green);border-color:var(--sv-green);background:rgba(16,185,129,.10);}
+.scout-verf-chip.off{color:var(--brand-red);border-color:var(--brand-red);background:rgba(239,68,68,.08);}
+/* Ralph 2026-06-05 · Gemeinschaftspraxis chip. Amber palette so it doesn't
+   collide with verf-chip green/red. STRONG (≥2 in pool) = filled, count in
+   the chip. SOFT (text only) = outlined, "?" — softer signal, weaker visual
+   weight. Both pill chips at the same font/padding as scout-reg/verf-chip
+   so the header reads as a single horizontal chip strip. */
+.scout-gem-chip{font-size:9px;line-height:1.2;padding:2px 8px;border-radius:999px;border:1px solid;letter-spacing:.04em;text-transform:uppercase;flex-shrink:0;font-weight:600;display:inline-flex;align-items:center;gap:3px;}
+.scout-gem-chip.strong{color:#fff;border-color:#d97706;background:#d97706;}
+.scout-gem-chip.soft{color:#d97706;border-color:#d97706;background:rgba(217,119,6,.08);}
+/* Ralph 2026-06-09 · Praxis-Typ-Chip (SOLO/GROUP) — boxed (gleicher Radius wie
+   die Region-Box). GROUP = gefüllt amber + Count-Box; SOLO = umrandet, gedämpft.
+   Labels SOLO/GROUP bleiben Englisch. */
+/* Ralph 2026-06-09 · EXAKT wie Mockup: NUR das Zahlen-QUADRAT, KEIN Pill um den
+   Chip. Quadrat GEFÜLLT = GROUP, UMRANDET = SOLO. Sonst identisch. */
+.scout-prac-chip{font-size:9px;line-height:1.2;letter-spacing:.05em;text-transform:uppercase;font-weight:700;flex-shrink:0;display:inline-flex;align-items:center;gap:5px;color:var(--text-muted);}
+.scout-prac-chip .prac-n{display:inline-flex;align-items:center;justify-content:center;min-width:15px;height:15px;padding:0 2px;border:1px solid var(--text-muted);border-radius:2px;font-weight:700;color:var(--text-muted);}
+.scout-prac-chip.solo .prac-n{background:transparent;}
+.scout-prac-chip.group .prac-n{background:var(--text-main);color:var(--bg-app);border-color:var(--text-main);}
+/* Ralph 2026-06-09 · "alle Scout-Icons → Feather" — Inline-Feather im Zeilentext
+   (Telefon/E-Mail/Link/Pfeile): an Textbaseline ausrichten, Farbe erben. */
+.scout-ci{vertical-align:-2px;flex-shrink:0;opacity:.85;}
+.scout-lc-contact .scout-ci{opacity:.7;}
+.scout-web .scout-ci{opacity:.85;}
+/* Ralph 2026-06-09 · Queried-Fakten-Zeile (Zeile 2): Status · Alter · Stack ·
+   Hosting. Mono, gedämpft, mittengetrennt. Ersetzt Palate/Exec-Meter + Zitat. */
+.scout-q-facts{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-family:var(--font-mono,monospace);font-size:11px;color:var(--text-muted);min-width:0;flex:1;}
+.scout-q-facts > *:not(:first-child)::before{content:"·";color:var(--text-dim);margin-right:8px;}
+.scout-q-fact{color:var(--text-main);white-space:nowrap;}
+.scout-q-status{font-weight:600;white-space:nowrap;}
+.scout-q-status.on{color:var(--sv-green);}
+.scout-q-status.off{color:var(--brand-red);}
+/* Helena-Mockup · 3 Verfügbarkeits-Zustände: OFFEN GRÜN ● · Warteliste ORANGE ◐ · VOLL ROT ○. */
+.scout-q-status.open{color:var(--sv-green);}
+.scout-q-status.wait{color:#ff8a4d;}
+.scout-q-status.full{color:var(--brand-red);}
+/* Ralph 2026-06-09 (Helena-Mockup) · zweiteiliger Status (OPEN grün / "accepting
+   now" gedämpft), "age unknown" kursiv, Stack mit tone-Punkt. */
+.scout-q-status .sub{color:var(--text-muted);font-weight:400;}
+.scout-q-fact.unknown{font-style:italic;color:var(--text-dim);}
+.scout-q-fact .qdot{display:inline-block;width:7px;height:7px;border-radius:999px;background:var(--text-muted);vertical-align:0;margin-right:2px;}
+.scout-q-fact .qdot.tone-good{background:var(--brand-green-bright);}
+.scout-q-fact .qdot.tone-mid{background:var(--brand-phosphor);}
+.scout-q-fact .qdot.tone-low{background:#ff8a4d;}
+.scout-q-fact .qdot.tone-bad{background:var(--brand-red);}
+.scout-q-fact .qdot.tone-info{background:var(--text-muted);}
+/* (Old) .scout-typ container kept for any legacy consumer — unused now. */
+.scout-typ{font-size:11px;color:var(--text-muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 .scout-lc-contact{font-family:var(--font-mono,monospace);font-size:11px;color:var(--text-muted);display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end;max-width:62%;}
 .scout-lc-contact .dot{color:var(--text-dim);}
 .scout-lc-contact .adr{color:var(--text-main);}
 .scout-ct{color:var(--text-main);}.scout-ct.none{color:var(--text-dim);}
-.scout-web{color:var(--sv-blue);text-decoration:none;border-bottom:1px dotted var(--border-active);cursor:pointer;}
+/* Ralph 2026-06-09 · Domain NICHT abschneiden — volle Domain zeigen. */
+.scout-web{color:var(--sv-blue);text-decoration:none;border-bottom:1px dotted var(--border-active);cursor:pointer;display:inline-flex;align-items:center;gap:3px;}
+.scout-web .dom{white-space:nowrap;}
 .scout-web:hover{color:var(--text-main);}
 .scout-gftag{font-size:9px;font-weight:700;color:var(--sv-violet);background:rgba(124,92,208,.12);padding:2px 8px;border-radius:999px;text-transform:uppercase;letter-spacing:.04em;}
 .scout-gftag.low{color:var(--text-muted);background:var(--bg-sunken);}
@@ -135,31 +236,145 @@
 /* meters / gap / heat */
 .scout-meter{display:inline-flex;align-items:center;gap:7px;}
 .scout-segs{display:flex;gap:3px;}
-.scout-seg{width:6px;height:14px;border-radius:2px;background:var(--border-active);}
+/* Ralph 2026-06-05 (v5) · 14 px segments — matches ScoreSegMeter (PERF/SEO/
+   TRAFFIC) so all 5 meters on the strip read at the same density. */
+.scout-seg{width:6px;height:14px;border-radius:2px;background:color-mix(in srgb, var(--border-card) 70%, transparent);}
+/* Ralph 2026-06-04 (revert) · single-color-per-meter per mockup. I tried
+   a per-segment gradient (red→orange→amber→light-amber→phosphor) but the
+   mockup uses ONE color across all lit segments — palate = phosphor green,
+   execution = amber. The count of lit segments IS the score; the number
+   "3/5" is right next to it for confirmation. Per-theme adaptation flows
+   through --brand-phosphor / --brand-amber automatically. */
 .scout-meter.pal .scout-seg.on{background:var(--brand-phosphor);}
 .scout-meter.exe .scout-seg.on{background:var(--brand-amber);}
 .scout-meter .n{font-family:var(--font-mono,monospace);font-size:12px;font-weight:600;}
 .scout-meter .n .mx{color:var(--text-dim);font-weight:400;}
 .scout-gap{font-family:var(--font-mono,monospace);font-size:17px;font-weight:700;}
 .scout-gap.hot{color:var(--brand-red);}.scout-gap.warm{color:var(--brand-amber);}.scout-gap.cold{color:var(--text-dim);}
-.scout-vchip{display:inline-flex;align-items:center;gap:4px;padding:2px 9px;border-radius:999px;font-family:var(--font-mono,monospace);font-size:10px;font-weight:700;letter-spacing:.04em;}
+/* Ralph 2026-06-10 · the verdict tag chip is a SLIM inline tag — the old
+   two-rows-high sizing matched the meter strip that used to sit next to it;
+   the meters moved into the verdict card, so the chip shrinks to row-text
+   scale (like the LUGANO header chip). */
+.scout-vchip{display:inline-flex;align-items:center;gap:3px;padding:2px 6px;border-radius:4px;font-family:var(--font-mono,monospace);font-size:9px;font-weight:700;letter-spacing:.06em;}
+/* Ralph 2026-06-10 (TASTED redesign) · the VERDICT TAG chip reuses the old
+   heat chip's slot — GREEN·HOT / YELLOW·PURSUE / ORANGE·WATCH / RED·SKIP.
+   Class = t-<tone> from verdictTagTone(); legacy hot/warm/cold kept below
+   for any straggler markup until every surface re-renders on the tag. */
+.scout-vchip.t-good{background:color-mix(in srgb, var(--brand-green-bright) 18%, transparent);color:var(--brand-green-bright);}
+.scout-vchip.t-mid{background:color-mix(in srgb, var(--brand-phosphor) 18%, transparent);color:var(--brand-phosphor);}
+.scout-vchip.t-low{background:rgba(255,138,77,.16);color:#ff8a4d;}
+.scout-vchip.t-bad{background:rgba(255,106,77,.16);color:var(--brand-red);}
+.scout-vchip.t-pend{background:var(--bg-sunken);color:var(--text-muted);}
 .scout-vchip.hot{background:rgba(255,106,77,.16);color:var(--brand-red);}
 .scout-vchip.warm{background:rgba(255,184,74,.16);color:var(--brand-amber);}
 .scout-vchip.cold{background:rgba(59,130,246,.15);color:var(--sv-blue);}
 .scout-vchip.pend{background:var(--bg-sunken);color:var(--text-muted);}
 
+/* TASTED redesign rows — meter+citation lamp rows · Re-Taste alignment.
+   The verdict card itself is the SHARED component (components/crm/VerdictCard,
+   chrome from crm.css .crm-opp-verdict*). */
+.scout-d-lamp-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+/* Section-head row — Re-Taste rides top-right on the 03/TASTED line (mockup). */
+.scout-d-head-row{display:flex;align-items:center;gap:12px;}
+.scout-d-head-row .scout-d-h{flex:1;min-width:0;}
+
+/* Scout skin for the shared VerdictCard (Ralph 2026-06-10 — "this looks
+   awful" fix). crm.css scopes the prose-editor styling under .crm-opp-card,
+   which the dossier doesn't have — so the textarea fell back to the raw
+   browser default (white box, monospace, resize grip). Same DOM, surface
+   skin via cascade: prose reads as editorial body text and only reveals its
+   editability on hover/focus; the stat inputs lose the form-field underline
+   until hovered. */
+.scout-d-tasted .crm-opp-verdict-prose-edit{
+  width:100%;margin-top:8px;min-height:72px;resize:none;
+  background:transparent;border:1px solid transparent;border-radius:6px;
+  font-family:'Inter','Inter Tight',sans-serif;font-size:13px;line-height:1.55;
+  color:var(--text-main);padding:2px 4px;
+}
+.scout-d-tasted .crm-opp-verdict-prose-edit:hover{border-color:var(--border-card);}
+.scout-d-tasted .crm-opp-verdict-prose-edit:focus{outline:none;border-color:var(--brand-amber);background:var(--bg-card);}
+.scout-d-tasted .crm-opp-verdict-stat-value{
+  border-bottom:1px solid transparent;font-size:20px;
+}
+.scout-d-tasted .crm-opp-verdict-stat-value:hover,
+.scout-d-tasted .crm-opp-verdict-stat-value:focus{border-bottom-color:var(--border-card);outline:none;}
+/* HEADS (EditableText) matches the CHF stat scale instead of body-text size. */
+.scout-d-tasted .crm-opp-verdict-stack .scout-edsp{
+  font-family:'JetBrains Mono',monospace;font-size:20px;font-weight:500;
+  line-height:1.1;display:inline-block;padding:2px 0;
+}
+
+/* Clickable meter segments (ScoutMeter onSet) — buttons share the <i> seg
+   look; reset the button chrome so only the colored bar shows. */
+.scout-segs button.scout-seg{
+  appearance:none;-webkit-appearance:none;border:none;padding:0;margin:0;
+  cursor:pointer;display:inline-block;
+}
+
+/* Card columns in the narrower TASTED panel — keep the mockup's ~62/38 split
+   (the kanban base 1fr/220px starves the text column here). */
+.scout-d-tasted .crm-opp-verdict{grid-template-columns:1fr 230px;gap:20px;}
+.scout-d-tasted .crm-opp-verdict-stack{grid-template-columns:1fr 1fr;gap:14px;row-gap:18px;}
+
+/* Card stat stack (mockup): CHF EST. spans both grid columns; the four
+   meters (PALAT·BUYING / DESIGN·PHOTOS) show BARS ONLY — no n/5 text. */
+.scout-d-tasted .crm-opp-verdict-stack > .scout-d-stat-span{grid-column:1 / -1;}
+.scout-d-tasted .crm-opp-verdict-stack .scout-meter .n{display:none;}
+.scout-d-tasted .crm-opp-verdict-stack .scout-meter{display:flex;}
+.scout-d-tasted .crm-opp-verdict-stack .crm-opp-verdict-stat-label{display:block;margin-bottom:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+
+/* WHO — the portrait renders as an italic quote (mockup). */
+.scout-d-who .scout-sc-vline{font-style:italic;}
+.scout-d-who .scout-sc-vline::before{content:'“';}
+.scout-d-who .scout-sc-vline::after{content:'”';}
+
+/* PHOTO QUALITY | DESIGN QUALITY — 2-col prose row (mockup). */
+.scout-d-quality{display:grid;grid-template-columns:1fr 1fr;gap:24px;}
+@media(max-width:980px){.scout-d-quality{grid-template-columns:1fr;}}
+
+/* › bullet rows (verdict signals + WHAT TO PITCH) — trailing price green. */
+.scout-d-rows{display:flex;flex-direction:column;gap:6px;cursor:text;}
+.scout-d-row{display:flex;align-items:baseline;gap:8px;font-size:13px;line-height:1.45;color:var(--text-main);}
+.scout-d-row-ch{color:var(--brand-amber);flex-shrink:0;}
+.scout-d-row-t{flex:1;min-width:0;}
+.scout-d-row-price{font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:600;color:var(--brand-green-bright);white-space:nowrap;}
+
 /* scout summary strip (inside card) */
-.scout-lc-scout{display:flex;align-items:center;gap:20px;flex-wrap:wrap;margin-top:11px;padding:11px 14px;background:var(--bg-sunken);border-radius:9px;}
+/* Ralph 2026-06-04 · scout strip is TRANSPARENT — no inner band against
+   the row card. Ralph 2026-06-05 (v5) · compacted: padding 11→5 vert,
+   margin-top 11→6, so the strip is ~25 px tall instead of ~50 px,
+   matching the mockup density. */
+/* Ralph 2026-06-05 (v7) · strip is bottom-aligned so the quote text sits on
+   the same baseline as the bottom row of the meters (segments + scores).
+   Meters and chip are 2-rows-high; quote is 1-row of text aligned to the
+   bottom row. */
+.scout-lc-scout{display:flex;align-items:flex-end;gap:14px;flex-wrap:wrap;margin-top:0;padding:4px 0;background:transparent;}
 .scout-sc-verdict{display:flex;align-items:center;gap:9px;flex-shrink:0;}
-.scout-sc-meters{display:flex;gap:16px;flex-shrink:0;}
-.scout-m{display:flex;align-items:center;gap:8px;}
-.scout-ml{font-family:var(--font-mono,monospace);font-size:9px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.06em;}
+.scout-sc-meters{display:flex;gap:14px;flex-shrink:0;align-items:flex-end;}
+/* Ralph 2026-06-05 (v7) · TWO ROWS HIGH — label on top, segments + score
+   below. Bottom row aligns with the quote text and PERF/SEO/TRAFFIC
+   meters across the strip. */
+.scout-m{display:inline-flex;flex-direction:column;align-items:flex-start;gap:3px;line-height:1;}
+.scout-ml{font-family:var(--font-mono,monospace);font-size:8.5px;color:var(--text-dim);text-transform:uppercase;letter-spacing:.07em;}
 .scout-sc-choice{flex:1;min-width:220px;font-size:12.5px;color:var(--text-main);line-height:1.35;}
 .scout-sc-choice .q{color:var(--text-dim);}
-.scout-sc-intel{display:flex;align-items:center;gap:7px;flex-shrink:0;}
+/* Ralph 2026-06-04 · row-strip intel section now hosts 3 mini score-lamps
+   (PERF / SEO / TRAFFIC) replacing the prior fake 5-dot Lampstrip. Wider
+   gap to give each lamp some breathing room; flex-shrink:0 keeps them from
+   collapsing when the verdict text wants more space. */
+.scout-sc-intel{display:flex;align-items:center;gap:14px;flex-shrink:0;}
 .scout-lampstrip{display:flex;gap:4px;}
 .scout-ld{width:8px;height:8px;border-radius:999px;background:var(--border-active);}
-.scout-ld.good{background:var(--brand-phosphor);}.scout-ld.mid{background:var(--brand-amber);}.scout-ld.bad{background:var(--brand-red);}.scout-ld.info{background:var(--text-muted);}
+/* Ralph 2026-06-04 (v3) · 5-color palette: RED · ORANGE · PHOSPHOR · GREEN · GREY.
+   This is the traffic-light progression the user specified — RED (worst)
+   → ORANGE → PHOSPHOR (lime/chartreuse, mid) → GREEN (saturated, best)
+   → GREY (no data). Was warm-only (phosphor/light-amber/amber/red) which
+   collapsed mid and good into similar yellow tones. */
+.scout-ld.good{background:var(--brand-green-bright);}            /* GREEN  — 90-100, excellent */
+.scout-ld.mid {background:var(--brand-phosphor);}                /* PHOSPHOR (lime) — 70-89, ok */
+.scout-ld.low {background:#ff8a4d;}                              /* ORANGE — 50-69, slow / WordPress */
+.scout-ld.bad {background:var(--brand-red);}                     /* RED    — 0-49, poor / Jimdo */
+.scout-ld.info{background:var(--text-muted);}                    /* GREY   — no data / none */
 .scout-sc-intel .il{font-family:var(--font-mono,monospace);font-size:9px;color:var(--text-dim);text-transform:uppercase;letter-spacing:.05em;}
 .scout-lc-scout.raw .rawmsg{font-family:var(--font-mono,monospace);font-size:11.5px;color:var(--text-muted);}
 .scout-lc-scout.raw .pickhint{font-family:var(--font-mono,monospace);font-size:10.5px;color:var(--brand-amber);opacity:.85;margin-left:auto;}
@@ -176,7 +391,11 @@
 .scout-dgrid2{display:grid;grid-template-columns:1fr 1fr;gap:32px;padding:16px;}
 @media(max-width:980px){.scout-dgrid2{grid-template-columns:1fr;}}
 .scout-dlabel{font-family:var(--font-mono,monospace);font-size:8.5px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--text-dim);margin-bottom:11px;}
-.scout-shot{min-height:80px;max-width:520px;border-radius:8px;border:1px solid var(--border-card);background:linear-gradient(135deg,var(--bg-sunken),var(--bg-app));position:relative;overflow:hidden;margin-top:14px;padding:10px 12px 28px;display:flex;flex-direction:column;gap:8px;}
+/* Ralph 2026-06-04 · screenshot caps lifted so EVIDENCE fills the new wide
+   left column. Was max-width:520 / img max-height:240 (sized for the old
+   2-col grid where Evidence got <50% width). Now max-width:none and tall
+   enough to actually read the page. */
+.scout-shot{min-height:80px;max-width:none;border-radius:8px;border:1px solid var(--border-card);background:linear-gradient(135deg,var(--bg-sunken),var(--bg-app));position:relative;overflow:hidden;margin-top:6px;padding:10px 12px 28px;display:flex;flex-direction:column;gap:8px;}
 .scout-shot .lbl{position:absolute;bottom:6px;right:8px;font-family:var(--font-mono,monospace);font-size:9px;color:var(--text-dim);display:flex;gap:6px;align-items:baseline;}
 .scout-shot .lbl .ts{font-size:8px;color:var(--text-dim);opacity:.7;}
 .scout-shot .empty{font-family:var(--font-mono,monospace);font-size:10px;color:var(--text-dim);font-style:italic;padding-top:4px;}
@@ -185,11 +404,14 @@
    render the SSRF/timeout reason in muted red — visible but not alarming. */
 .scout-shot.ok{padding:0;height:auto;background:#0c0c10;}
 .scout-shot.ok .lbl{background:rgba(0,0,0,.55);padding:3px 6px;border-radius:0 0 0 6px;top:6px;right:6px;bottom:auto;}
-.scout-shot-imgs{display:grid;grid-template-columns:1fr 1fr;gap:6px;padding:6px;}
+/* Ralph 2026-06-05 — 2-column grid per mockup: practitioner page LEFT, main
+ * site RIGHT. Single child collapses to full width (solo-site case). */
+.scout-shot-imgs{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;padding:6px;}
 .scout-shot-imgs:has(> *:only-child){grid-template-columns:1fr;}
-.scout-shot-img{display:block;border:1px solid var(--border-card);border-radius:4px;overflow:hidden;background:#fff;text-decoration:none;}
-.scout-shot-img img{display:block;width:100%;height:auto;max-height:240px;object-fit:cover;object-position:top;transition:transform .25s ease;}
+.scout-shot-img{position:relative;display:block;border:1px solid var(--border-card);border-radius:4px;overflow:hidden;background:#fff;text-decoration:none;}
+.scout-shot-img img{display:block;width:100%;height:auto;max-height:560px;object-fit:cover;object-position:top;transition:transform .25s ease;}
 .scout-shot-img:hover img{transform:scale(1.02);}
+.scout-shot-cap{position:absolute;left:6px;top:6px;font-family:var(--font-mono,monospace);font-size:9px;letter-spacing:.04em;text-transform:uppercase;color:#fff;background:rgba(0,0,0,.55);padding:2px 6px;border-radius:3px;pointer-events:none;}
 .scout-shot.failed{border-color:rgba(200,80,80,.35);background:linear-gradient(135deg,rgba(80,30,30,.15),var(--bg-app));}
 .scout-shot.failed .reason{font-family:var(--font-mono,monospace);font-size:10px;color:#ef9a9a;}
 .scout-lamps2{display:grid;grid-template-columns:repeat(3,1fr);gap:12px 16px;}
@@ -221,6 +443,9 @@
 .scout-act:hover{color:var(--text-main);}
 .scout-act.taste{border-color:var(--brand-amber-dim);color:var(--brand-amber);}
 .scout-act.taste:disabled{opacity:.35;cursor:not-allowed;}
+/* Research → Consular (WP-23) — phosphor accent, distinct from amber Taste. */
+.scout-act.research{border-color:color-mix(in srgb, var(--brand-phosphor) 45%, transparent);color:var(--brand-phosphor);}
+.scout-act.research:disabled{opacity:.35;cursor:not-allowed;}
 .scout-act.promote{background:var(--sv-green);border-color:transparent;color:#fff;}
 .scout-act.discard:hover{border-color:var(--brand-red);color:var(--brand-red);}
 
@@ -233,3 +458,546 @@
 .scout-foot b{color:var(--text-muted);}
 .scout-empty{padding:48px;text-align:center;color:var(--text-dim);font-family:var(--font-mono,monospace);font-size:12px;}
 @keyframes scoutspin{to{transform:rotate(360deg);}}
+
+/* ─── Dossier edit (Ralph 2026-06-03) ─────────────────────────────────────
+   Every value in the dossier becomes editable: click a value → input swaps
+   in, Enter / blur saves, Esc cancels. Theme-aware via existing CSS vars
+   (--bg-card / --border-card / --text-main); no hardwired colors so onyx
+   and polar both inherit cleanly. */
+.scout-dossier{display:flex;flex-direction:column;}
+.scout-dhdr{padding:14px 16px 12px;border-bottom:1px solid var(--border-card);display:flex;align-items:flex-start;gap:18px;}
+.scout-dhdr-grid{flex:1;display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px 18px;}
+@media(max-width:980px){.scout-dhdr-grid{grid-template-columns:repeat(2,1fr);}}
+.scout-dhdr-f{display:flex;flex-direction:column;gap:2px;min-width:0;}
+.scout-dhdr-l{font-family:var(--font-mono,monospace);font-size:8.5px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--text-dim);}
+.scout-dhdr-v{font-size:12px;color:var(--text-main);line-height:1.4;min-width:0;overflow:hidden;text-overflow:ellipsis;}
+.scout-dhdr-v.ro{color:var(--text-muted);font-style:italic;}
+/* Ralph 2026-06-09 · FSP-Titel · Spezialisierung · Angebot zusammen über 3 Spalten.
+   Override .ro blanket-italic + .scout-dhdr-v ellipsis: Titel fett-aufrecht ·
+   Spez. kursiv · Angebot normal, voll umbrechend (nicht abgeschnitten). */
+.scout-dhdr-span3{grid-column:span 3;}
+.scout-profil{font-style:normal;color:var(--text-main);line-height:1.55;overflow:visible;text-overflow:clip;white-space:normal;}
+.scout-profil b{font-weight:600;}
+.scout-profil i{font-style:italic;color:var(--text-dim);}
+/* Ralph 2026-06-05 · Verfügbarkeit + Verband-URL in the dossier.
+   verfuegbarkeit text is color-toned to match the row-chip. Verband
+   link is a phosphor-tinted dotted-underline anchor matching the
+   existing `.scout-web` link rhythm (same family, different role). */
+.scout-verf{font-weight:600;}
+.scout-verf.scout-verf-on{color:var(--sv-green);font-style:normal;}
+.scout-verf.scout-verf-off{color:var(--brand-red);font-style:normal;}
+.scout-verf.scout-verf-mid{color:var(--text-muted);font-style:normal;}
+.scout-verband-link{color:var(--sv-blue);text-decoration:none;border-bottom:1px dotted var(--sv-blue);font-size:12px;word-break:break-all;}
+.scout-verband-link:hover{color:var(--brand-phosphor);border-bottom-color:var(--brand-phosphor);}
+.scout-dhdr-f.ro .scout-dhdr-l{opacity:.6;}
+.scout-dhdr-actions{flex-shrink:0;display:flex;align-items:flex-start;}
+.scout-retaste{display:inline-flex;align-items:center;gap:6px;padding:8px 12px;background:var(--bg-card);border:1px solid var(--border-card);color:var(--text-main);font-family:var(--font-mono,monospace);font-size:11px;letter-spacing:.03em;border-radius:6px;cursor:pointer;transition:all .15s ease;white-space:nowrap;}
+.scout-retaste:hover:not(:disabled){border-color:var(--brand-amber);color:var(--brand-amber);}
+.scout-retaste:disabled{opacity:.4;cursor:not-allowed;}
+
+/* Inline-edit atoms — span in display mode, input/textarea in edit mode.
+   Span gets a subtle hover background to signal "this is clickable". Input
+   matches the value's font/size so the swap is non-jarring. */
+.scout-edsp{cursor:text;padding:1px 4px;margin:-1px -4px;border-radius:3px;transition:background .12s ease;display:inline;}
+.scout-edsp:hover{background:color-mix(in srgb, var(--brand-phosphor) 12%, transparent);}
+.scout-edsp-ml{display:block;}
+.scout-edph{color:var(--text-dim);font-style:italic;}
+.scout-edin{font:inherit;color:var(--text-main);background:var(--bg-app);border:1px solid var(--border-active);border-radius:3px;padding:2px 5px;width:100%;min-width:60px;outline:none;}
+.scout-edin:focus{border-color:var(--brand-phosphor);box-shadow:0 0 0 2px color-mix(in srgb, var(--brand-phosphor) 18%, transparent);}
+.scout-edin:disabled{opacity:.5;cursor:wait;}
+.scout-edta{font:inherit;font-size:13.5px;color:var(--text-main);background:var(--bg-app);border:1px solid var(--border-active);border-radius:5px;padding:6px 9px;width:100%;line-height:1.5;outline:none;resize:vertical;font-family:inherit;}
+.scout-edta:focus{border-color:var(--brand-phosphor);box-shadow:0 0 0 2px color-mix(in srgb, var(--brand-phosphor) 18%, transparent);}
+.scout-edta:disabled{opacity:.5;cursor:wait;}
+.scout-edn{font-family:var(--font-mono,monospace);font-size:11px;color:var(--brand-phosphor);}
+/* Region dropdown (EditableSelect edit mode) — matches the text-input look
+   so the swap between Region (select) and the other identity fields
+   (text inputs) is visually consistent. */
+.scout-edsel{font:inherit;color:var(--text-main);background:var(--bg-app);border:1px solid var(--border-active);border-radius:3px;padding:2px 5px;width:100%;min-width:80px;outline:none;cursor:pointer;}
+.scout-edsel:focus{border-color:var(--brand-phosphor);box-shadow:0 0 0 2px color-mix(in srgb, var(--brand-phosphor) 18%, transparent);}
+.scout-edsel:disabled{opacity:.5;cursor:wait;}
+/* Clickable link inside an editable field's display mode (website / phone /
+   email). Inherits the field's font; underline on hover so it's clear it's
+   actionable, while staying calm at rest. */
+.scout-edlink{color:var(--brand-phosphor);text-decoration:none;}
+.scout-edlink:hover{text-decoration:underline;}
+/* Ralph 2026-06-03 · split-target pattern. The VALUE text is plain (click
+   it to edit — the click bubbles to EditableText's outer span); the small
+   ↗/☎/✉ ICON next to it is the link that opens/dials/composes (it stops
+   propagation so it doesn't trigger edit). Two distinct targets, two
+   distinct actions — and the field is now actually editable. */
+.scout-edlink-text{color:var(--text-main);}
+.scout-edlink-go{display:inline-block;margin-left:6px;color:var(--brand-phosphor);text-decoration:none;font-size:11px;opacity:.7;transition:opacity .12s ease;}
+.scout-edlink-go:hover{opacity:1;text-decoration:none;}
+
+/* ─── Dossier layout (Ralph 2026-06-10 · major redesign, step 1) ──────────
+   01 / QUERIED  — full-width strip on top, lamps in one row
+   02 / EVIDENCE — left column (3fr), big screenshots
+   03 / TASTED   — right column (2fr), Consular's read
+   Was (2026-06-04 v2): Evidence left, Queried+Tasted stacked in a right
+   sidebar. QUERIED moved back up full-width as the redesign's first move. */
+.scout-d-queried{padding:16px 16px 0;}
+.scout-d-body{padding:16px;display:grid;grid-template-columns:3fr 2fr;gap:24px;}
+@media(max-width:980px){.scout-d-body{grid-template-columns:1fr;}}
+.scout-d-section{display:flex;flex-direction:column;gap:11px;min-width:0;}
+
+/* Section header — "01 / QUERIED  CODE FETCHES · CLICK ANY VALUE TO OVERRIDE".
+   Ralph 2026-06-04 · matched to mockup: warm amber prefix + bright label.
+   The "01 /" reads as a sequence marker; the name is the section title. */
+.scout-d-h{display:flex;align-items:baseline;gap:7px;margin:0;padding-bottom:7px;border-bottom:1px solid var(--border-card);}
+.scout-d-num{font-family:var(--font-mono,monospace);font-size:11px;font-weight:700;color:var(--brand-amber);letter-spacing:.06em;}
+.scout-d-sep{font-family:var(--font-mono,monospace);font-size:11px;color:color-mix(in srgb, var(--brand-amber) 55%, transparent);}
+.scout-d-name{font-family:var(--font-mono,monospace);font-size:11px;font-weight:700;color:var(--brand-amber);letter-spacing:.14em;text-transform:uppercase;}
+.scout-d-sub{font-family:var(--font-mono,monospace);font-size:9px;color:var(--text-dim);letter-spacing:.08em;text-transform:uppercase;margin-left:10px;}
+
+/* Ralph 2026-06-10 · QUERIED lamp strip — full-width single row. auto-fit
+   keeps all 11 lamps on one line at desktop width and wraps them cleanly
+   when the viewport narrows (was repeat(3,1fr) for the retired sidebar).
+   Gap between cells is the rhythm; cells carry the color via .tone-* bg. */
+.scout-d-lampstrip{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:10px;padding:4px 2px 2px;}
+
+/* Score lamp (PERF / SEO / TRAFFIC) — 2-row layout per Ralph 2026-06-04 (v3).
+   ROW 1: NAME + value inline (e.g. "PERF  85"). ROW 2: colored fill bar.
+   Was 3 rows (name / 22px number / bar) which made the row strip too tall.
+   Now compact ~26px total height while still showing all three pieces. */
+.scout-d-sl{display:flex;flex-direction:column;gap:4px;min-width:96px;}
+.scout-d-sl-top{display:flex;align-items:baseline;gap:8px;}
+.scout-d-sl-name{font-family:var(--font-mono,monospace);font-size:9px;color:var(--text-dim);letter-spacing:.08em;text-transform:uppercase;flex-shrink:0;}
+.scout-d-sl-val{font-family:var(--font-mono,monospace);font-size:15px;color:var(--text-main);line-height:1;display:flex;align-items:baseline;}
+.scout-d-sl-num b{font-weight:700;font-size:15px;}
+.scout-d-sl-unit{font-size:9px;color:var(--text-dim);margin-left:2px;letter-spacing:.04em;}
+.scout-d-sl-bar{display:block;height:5px;border-radius:2px;background:color-mix(in srgb, var(--border-card) 70%, transparent);overflow:hidden;width:100%;max-width:96px;}
+.scout-d-sl-fill{display:block;height:100%;border-radius:2px;transition:width .25s ease;background:var(--text-muted);}
+/* Same 5-color palette as the dot lamps above — bars and dots always agree. */
+.scout-d-sl-bar.good .scout-d-sl-fill{background:var(--brand-green-bright);}
+.scout-d-sl-bar.mid  .scout-d-sl-fill{background:var(--brand-phosphor);}
+.scout-d-sl-bar.low  .scout-d-sl-fill{background:#ff8a4d;}
+.scout-d-sl-bar.bad  .scout-d-sl-fill{background:var(--brand-red);}
+
+/* Dot lamp cell (AGE / STACK / HOSTING / LANGS / BOOKING / TRACKERS).
+   Ralph 2026-06-05 (v4) · each cell is a tone-tinted panel — the cell
+   color IS the dot signal. No border (was adding visual noise), bigger
+   padding so the cell breathes, name on top in dim caps, value below
+   in mono medium. Grid auto-sizes the cells (1fr each).
+   Color tint: 30 % mix with --bg-card for clearly visible tone; info
+   stays subtler at 14 % so empty/none cells don't compete. */
+.scout-d-dl{
+  display:flex;flex-direction:column;gap:5px;
+  padding:11px 14px;
+  border-radius:6px;
+  min-width:0;          /* let grid size it */
+  transition:background .15s;
+}
+.scout-d-dl-name{font-family:var(--font-mono,monospace);font-size:9px;color:var(--text-dim);letter-spacing:.08em;text-transform:uppercase;}
+.scout-d-dl-val{display:flex;align-items:center;gap:6px;font-family:var(--font-mono,monospace);font-size:12px;color:var(--text-main);}
+.scout-d-dl.tone-good{background:color-mix(in srgb, var(--brand-green-bright) 30%, var(--bg-card));}
+.scout-d-dl.tone-mid {background:color-mix(in srgb, var(--brand-phosphor) 30%, var(--bg-card));}
+.scout-d-dl.tone-low {background:color-mix(in srgb, #ff8a4d 30%, var(--bg-card));}
+.scout-d-dl.tone-bad {background:color-mix(in srgb, var(--brand-red) 30%, var(--bg-card));}
+.scout-d-dl.tone-info{background:color-mix(in srgb, var(--text-muted) 14%, var(--bg-card));}
+
+/* Tasted column — palate/exec/gap header strip + 3 labeled text blocks. */
+.scout-d-tasted{display:flex;flex-direction:column;gap:14px;}
+.scout-d-tasted-scores{display:flex;align-items:center;gap:18px;flex-wrap:wrap;padding:2px 0;}
+/* Re-Taste moved into the tasted scores row (Ralph 2026-06-09) — pushed right, compact. */
+.scout-d-tasted-scores .scout-retaste{margin-left:auto;padding:5px 10px;font-size:10px;}
+.scout-d-tasted-score{display:inline-flex;align-items:center;gap:6px;}
+.scout-d-tasted-l{font-family:var(--font-mono,monospace);font-size:9px;color:var(--text-dim);letter-spacing:.08em;text-transform:uppercase;}
+.scout-d-tasted-gap{display:inline-flex;align-items:center;gap:8px;}
+
+.scout-d-block{display:flex;flex-direction:column;gap:5px;}
+.scout-d-block-l{font-family:var(--font-mono,monospace);font-size:9px;color:var(--text-dim);letter-spacing:.08em;text-transform:uppercase;}
+.scout-d-block-v{font-size:12.5px;color:var(--text-main);line-height:1.55;}
+/* PHOTOS block — amber accent panel per mockup. Ralph 2026-06-04 (v2):
+   prior 14% mix was a whisper; bumped to 28% over --bg-card so it lands as
+   a real panel (visible warm amber tint, not a hint). Border on all four
+   sides + amber label = deliberate callout. */
+.scout-d-block-photos{
+  background:color-mix(in srgb, var(--brand-amber) 28%, var(--bg-card));
+  border:1px solid color-mix(in srgb, var(--brand-amber) 55%, var(--border-card));
+  border-left:3px solid var(--brand-amber);
+  padding:9px 12px;
+  border-radius:4px;
+  margin:3px 0;
+}
+.scout-d-block-photos .scout-d-block-l{color:var(--brand-amber);font-weight:600;}
+
+/* ─── ScoreSegMeter — PERF/SEO/TRAFFIC in the row strip (Ralph 2026-06-05) ─
+   Ralph 2026-06-05 (v7) · TWO ROWS HIGH — name on top, segments + number
+   on the bottom row. Same shape as palate/exec so all 5 meters align. */
+.scout-ssm{display:inline-flex;flex-direction:column;align-items:flex-start;gap:3px;line-height:1;}
+.scout-ssm-name{font-family:var(--font-mono,monospace);font-size:8.5px;color:var(--text-dim);letter-spacing:.07em;text-transform:uppercase;}
+.scout-ssm-bottom{display:inline-flex;align-items:center;gap:6px;}
+.scout-ssm-segs{display:inline-flex;gap:3px;}
+.scout-ssm-seg{width:6px;height:14px;border-radius:2px;background:color-mix(in srgb, var(--border-card) 70%, transparent);}
+.scout-ssm-n{font-family:var(--font-mono,monospace);font-size:11px;font-weight:700;color:var(--text-main);}
+/* Tone-based lit-segment color — single color per meter, matches the
+   queried cell tints + dossier ScoreLamp bar fills. */
+.scout-ssm.tone-good .scout-ssm-seg.on{background:var(--brand-green-bright);}
+.scout-ssm.tone-mid  .scout-ssm-seg.on{background:var(--brand-phosphor);}
+.scout-ssm.tone-low  .scout-ssm-seg.on{background:#ff8a4d;}
+.scout-ssm.tone-bad  .scout-ssm-seg.on{background:var(--brand-red);}
+.scout-ssm.tone-info .scout-ssm-seg.on{background:var(--text-muted);}
+
+/* ── Discover button + modal — Ralph 2026-06-05 ──────────────────────────
+   Sits in the .scout-tools toolbar, left of the .scout-run button. Visually
+   secondary to Run Scout (Run Scout is the green primary action; Discover
+   is an outline button — adding leads is the prelude, not the destination). */
+.scout-discover-btn{
+  display:inline-flex;align-items:center;gap:8px;
+  font-family:var(--font-mono,monospace);font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;
+  background:var(--bg-card);color:var(--text-main);
+  border:1px solid var(--border-card);border-radius:8px;
+  padding:8px 14px;cursor:pointer;
+  transition:transform .12s,border-color .12s,background .12s;
+}
+.scout-discover-btn:hover{transform:translateY(-1px);border-color:var(--border-active);background:var(--bg-card-hover);}
+.scout-discover-btn:active{transform:translateY(0);}
+.scout-discover-btn .lbl{font-size:11px;letter-spacing:.05em;}
+
+/* Re-scrape FSP — secondary, smaller, sits next to Discover. Outline style
+   with a phosphor accent on hover. Pulses while a job is in flight. */
+.scout-refsp-btn{
+  display:inline-flex;align-items:center;gap:7px;
+  font-family:var(--font-mono,monospace);font-size:10.5px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;
+  background:transparent;color:var(--text-dim);
+  border:1px solid var(--border-card);border-radius:8px;
+  padding:7px 12px;cursor:pointer;
+  transition:transform .12s,border-color .12s,color .12s,background .12s;
+}
+.scout-refsp-btn:hover:not(:disabled){transform:translateY(-1px);border-color:var(--brand-phosphor);color:var(--text-main);background:var(--bg-card);}
+.scout-refsp-btn:disabled{cursor:not-allowed;opacity:.75;}
+.scout-refsp-btn.running{
+  border-color:var(--brand-phosphor);color:var(--text-main);
+  animation:scoutRefspPulse 1.4s ease-in-out infinite;
+}
+@keyframes scoutRefspPulse{
+  0%,100%{box-shadow:0 0 0 0 color-mix(in srgb, var(--brand-phosphor) 30%, transparent);}
+  50%{box-shadow:0 0 0 4px color-mix(in srgb, var(--brand-phosphor) 8%, transparent);}
+}
+.scout-refsp-btn .lbl{font-size:10.5px;letter-spacing:.05em;}
+
+/* Backfill Queried — same outline chassis as Re-scrape FSP but tinted blue
+   so the two backfill buttons are distinguishable at a glance. Pulses while
+   a job is in flight (same shadow rhythm, blue ring instead of phosphor).
+   Disabled when totalNeedsBackfill === 0 (the whole pool has its lamps).
+   Ralph 2026-06-05. */
+.scout-backfill-btn{
+  display:inline-flex;align-items:center;gap:7px;
+  font-family:var(--font-mono,monospace);font-size:10.5px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;
+  background:transparent;color:var(--text-dim);
+  border:1px solid var(--border-card);border-radius:8px;
+  padding:7px 12px;cursor:pointer;
+  transition:transform .12s,border-color .12s,color .12s,background .12s;
+}
+.scout-backfill-btn:hover:not(:disabled){transform:translateY(-1px);border-color:var(--sv-blue);color:var(--text-main);background:var(--bg-card);}
+.scout-backfill-btn:disabled{cursor:not-allowed;opacity:.55;}
+.scout-backfill-btn.running{
+  border-color:var(--sv-blue);color:var(--text-main);
+  animation:scoutBackfillPulse 1.4s ease-in-out infinite;
+}
+@keyframes scoutBackfillPulse{
+  0%,100%{box-shadow:0 0 0 0 color-mix(in srgb, var(--sv-blue) 30%, transparent);}
+  50%{box-shadow:0 0 0 4px color-mix(in srgb, var(--sv-blue) 8%, transparent);}
+}
+.scout-backfill-btn .lbl{font-size:10.5px;letter-spacing:.05em;}
+
+/* Verfügbarkeit "Stand: 5.6." inline timestamp — small dimmed annotation
+   on the availability chip. The .stale variant amber-tints when the field
+   is over 14 days old, so an operator sees at a glance which rows need a
+   re-scrape. Pairs with raw_payload.availability_checked_at (M3). */
+.scout-verf-stand{
+  margin-left:6px;font-size:10px;font-family:var(--font-mono,monospace);
+  color:color-mix(in srgb, currentColor 60%, transparent);font-weight:500;
+}
+.scout-verf-stand.stale{color:var(--brand-amber);}
+
+/* ── Ralph 2026-06-05 · Ambient job overlay ──────────────────────────────
+   Right side of the viewport, one bento per in-flight scout job. Ralph
+   2026-06-05 (revised): when ANY card is uncollapsed, the panel should
+   fill viewport height — so a 200-row activity feed isn't crammed into
+   a tiny scroll window.
+
+   Layout strategy:
+   - Overlay container: anchored top→bottom on the right side, fixed
+     width (420px). Column flex so cards stack top-down (newest at top).
+   - Collapsed cards: flex:0 0 auto (natural header height).
+   - Expanded cards: flex:1 1 0 (share remaining vertical space evenly
+     if multiple are open; one expanded card fills the whole panel).
+   - Card body + activity list flex:1 1 0 with overflow:hidden / auto
+     so the list scrolls inside the card, not the page.
+   - pointer-events:none on the container so clicks fall through to the
+     pool surface; auto on each card so clicks INSIDE the card work. */
+.scout-jobs-overlay{
+  position:fixed;
+  right:18px;
+  bottom:18px;
+  width:420px;max-width:calc(100% - 36px);
+  /* Default — collapsed. Panel hugs the bottom-right corner at the
+     natural height of its (collapsed) card headers. */
+  display:flex;flex-direction:column-reverse;align-items:stretch;gap:10px;
+  z-index:60;
+  pointer-events:none;
+}
+/* Ralph 2026-06-05 — when ANY card is uncollapsed, the panel claims
+   nearly the full viewport height. Small 18px breathing room at the top
+   (matches the bottom inset) so the panel doesn't touch the screen edge;
+   collapse is the user-controlled "make it small" affordance — no
+   larger cap interferes. When all cards recollapse, the modifier drops
+   and the panel snaps back to its bottom-right footprint. */
+.scout-jobs-overlay.tall{
+  top:18px;
+}
+.scout-job-card{
+  background:var(--bg-card);border:1px solid var(--border-card);border-radius:10px;
+  box-shadow:0 10px 30px rgba(0,0,0,.18);
+  display:flex;flex-direction:column;
+  pointer-events:auto;
+  overflow:hidden;
+  /* Collapsed default — natural header height, no growth. */
+  flex:0 0 auto;
+  min-height:0;
+}
+/* Expanded cards take the available vertical space (shared equally when
+   multiple cards are open). With one expanded card, it fills the whole
+   panel. min-height:200px so a third card with empty feed doesn't get
+   pinched into nothing when two others are also expanded. */
+.scout-job-card:not(.collapsed){
+  flex:1 1 0;
+  min-height:200px;
+}
+/* Per-kind accent rail on the left edge so the eye can tell discover vs refsp vs backfill apart at a glance. */
+.scout-job-card.kind-discover{border-left:3px solid var(--brand-amber);}
+.scout-job-card.kind-refsp{border-left:3px solid var(--brand-phosphor);}
+.scout-job-card.kind-backfill{border-left:3px solid var(--brand-green-bright);}
+.scout-job-head{
+  display:flex;align-items:center;gap:10px;
+  padding:10px 12px;
+  background:transparent;border:0;cursor:pointer;
+  font:inherit;color:inherit;text-align:left;
+  width:100%;
+}
+.scout-job-head:hover{background:var(--bg-card-hover);}
+.scout-job-icon{
+  font-family:var(--font-mono,monospace);font-size:14px;font-weight:700;
+  width:18px;text-align:center;flex-shrink:0;
+  color:var(--text-dim);
+}
+.scout-job-card.kind-discover .scout-job-icon{color:var(--brand-amber);}
+.scout-job-card.kind-refsp    .scout-job-icon{color:var(--brand-phosphor);}
+.scout-job-card.kind-backfill .scout-job-icon{color:var(--brand-green-bright);}
+.scout-job-titles{flex:1;min-width:0;display:flex;flex-direction:column;gap:1px;}
+.scout-job-label{font-size:12px;font-weight:700;color:var(--text-main);letter-spacing:.02em;}
+.scout-job-sublabel{
+  font-family:var(--font-mono,monospace);font-size:10px;color:var(--text-dim);
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+}
+.scout-job-count{
+  font-family:var(--font-mono,monospace);font-size:11px;font-weight:700;color:var(--text-main);
+  background:var(--bg-base);border:1px solid var(--border-card);border-radius:4px;
+  padding:2px 8px;flex-shrink:0;
+}
+.scout-job-chev{
+  color:var(--text-dim);font-size:10px;flex-shrink:0;width:14px;text-align:center;
+  transition:transform .12s;
+}
+/* Progress bar — always visible, top of the body (above the collapse fold). */
+.scout-job-bar{
+  height:3px;background:var(--border-card);
+  border-top:1px solid var(--border-card);
+  position:relative;overflow:hidden;
+}
+.scout-job-bar-fill{
+  height:100%;transition:width .35s ease;
+}
+.scout-job-card.kind-discover .scout-job-bar-fill{background:var(--brand-amber);}
+.scout-job-card.kind-refsp    .scout-job-bar-fill{background:var(--brand-phosphor);}
+.scout-job-card.kind-backfill .scout-job-bar-fill{background:var(--brand-green-bright);}
+/* Body — phase line, recent rows, stop action. Slides in/out via collapsed=null.
+   flex:1 + overflow:hidden so the inner activity feed gets all the vertical
+   space and scrolls inside, not the page. */
+.scout-job-body{
+  flex:1 1 0;
+  min-height:0;
+  display:flex;flex-direction:column;gap:8px;
+  padding:10px 12px 12px;
+  border-top:1px solid var(--border-card);
+  overflow:hidden;
+}
+.scout-job-phase{
+  font-family:var(--font-mono,monospace);font-size:10.5px;color:var(--text-dim);
+  line-height:1.4;
+}
+/* Activity feed head — Ralph 2026-06-05. Shows count + status-dot legend
+   so the user instantly understands the green/amber/red coloring below. */
+.scout-job-recent-head{
+  display:flex;justify-content:space-between;align-items:center;
+  font-family:var(--font-mono,monospace);font-size:10px;letter-spacing:.04em;text-transform:uppercase;
+  color:var(--text-dim);
+  padding:6px 0 4px;
+}
+.scout-job-recent-legend{
+  display:inline-flex;align-items:center;gap:6px;
+  font-size:9.5px;letter-spacing:0;text-transform:none;
+}
+.scout-job-recent-legend .dot{width:7px;height:7px;border-radius:999px;display:inline-block;}
+.scout-job-recent{
+  list-style:none;padding:0;margin:0;
+  display:flex;flex-direction:column;gap:1px;
+  /* Ralph 2026-06-05 (revised) — no fixed cap. Card body's flex:1 already
+     bounds this to the card's available height; max-height would override
+     that and re-introduce the cramped feel. Scrolls when content overflows
+     whatever vertical space the parent card has after the head+phase rows. */
+  flex:1 1 0;
+  min-height:0;
+  overflow-y:auto;
+  border-top:1px solid var(--border-card);
+}
+.scout-job-recent-row{
+  display:flex;align-items:center;gap:8px;
+  font-size:11.5px;color:var(--text-main);
+  padding:4px 2px;
+  border-bottom:1px dashed color-mix(in srgb, var(--border-card) 50%, transparent);
+}
+.scout-job-recent-row:last-child{border-bottom:0;}
+.scout-job-recent-dot{
+  width:8px;height:8px;border-radius:999px;flex-shrink:0;
+  background:var(--text-muted);
+}
+.scout-job-recent-dot.inserted,
+.scout-job-recent-legend .dot.inserted{background:var(--brand-green-bright);}
+.scout-job-recent-dot.duplicate,
+.scout-job-recent-legend .dot.duplicate{background:var(--brand-amber);}
+.scout-job-recent-dot.failed,
+.scout-job-recent-legend .dot.failed{background:var(--brand-red);}
+.scout-job-recent-row.status-duplicate .scout-job-recent-name{color:var(--text-dim);}
+.scout-job-recent-row.status-failed .scout-job-recent-name{color:var(--brand-red);}
+.scout-job-recent-name{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-decoration:none;color:inherit;}
+.scout-job-recent-name.link{color:var(--text-main);text-decoration:none;}
+.scout-job-recent-name.link:hover{text-decoration:underline;}
+.scout-job-recent-id{
+  font-family:var(--font-mono,monospace);font-size:10px;color:var(--text-muted);flex-shrink:0;
+}
+.scout-job-recent-detail{
+  font-family:var(--font-mono,monospace);font-size:10px;color:var(--text-dim);
+  flex-shrink:0;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+}
+.scout-job-empty{
+  font-family:var(--font-mono,monospace);font-size:10.5px;color:var(--text-muted);
+  font-style:italic;padding:8px 0;text-align:center;
+}
+.scout-job-actions{display:flex;justify-content:flex-end;}
+.scout-job-stop{
+  background:linear-gradient(135deg,#ef4444,#b91c1c);color:#fff;border:0;border-radius:5px;
+  padding:5px 12px;font-family:var(--font-mono,monospace);font-size:10.5px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;
+  cursor:pointer;
+}
+.scout-job-stop:hover{box-shadow:0 4px 12px rgba(239,68,68,.32);}
+.scout-job-card.collapsed .scout-job-body{display:none;}
+
+/* Modal backdrop — flat z-stack over the whole pool view. */
+.scout-discover-backdrop{
+  position:fixed;inset:0;
+  background:color-mix(in srgb, var(--bg-base) 80%, transparent);
+  backdrop-filter:blur(2px);
+  z-index:100;
+  display:flex;align-items:center;justify-content:center;
+  padding:24px;
+}
+.scout-discover-modal{
+  background:var(--bg-card);border:1px solid var(--border-card);border-radius:12px;
+  width:100%;max-width:640px;
+  box-shadow:0 10px 40px rgba(0,0,0,.25);
+  display:flex;flex-direction:column;
+  max-height:calc(100vh - 48px);
+}
+.scout-discover-head{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:16px 20px;border-bottom:1px solid var(--border-card);
+}
+.scout-discover-head h3{margin:0;font-size:15px;font-weight:600;color:var(--text-main);}
+.scout-discover-close{
+  background:transparent;border:0;cursor:pointer;
+  color:var(--text-muted);font-size:18px;padding:4px 8px;border-radius:4px;
+}
+.scout-discover-close:hover{background:var(--bg-card-hover);color:var(--text-main);}
+.scout-discover-close:disabled{cursor:not-allowed;opacity:.4;}
+
+.scout-discover-body{
+  padding:20px;display:flex;flex-direction:column;gap:16px;overflow-y:auto;
+}
+.scout-discover-criteria{
+  display:grid;grid-template-columns:1fr 1fr;gap:12px;
+}
+.scout-discover-field{display:flex;flex-direction:column;gap:4px;}
+.scout-discover-field label{
+  font-family:var(--font-mono,monospace);font-size:10.5px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;
+  color:var(--text-dim);
+}
+.scout-discover-field label .hint{
+  font-weight:400;text-transform:none;letter-spacing:0;color:var(--text-muted);margin-left:4px;
+}
+.scout-discover-field input,
+.scout-discover-field select{
+  background:var(--bg-base);border:1px solid var(--border-card);border-radius:6px;
+  padding:7px 10px;font:inherit;font-size:13px;color:var(--text-main);
+}
+.scout-discover-field input:focus,
+.scout-discover-field select:focus{outline:none;border-color:var(--border-active);}
+.scout-discover-field input:disabled,
+.scout-discover-field select:disabled{opacity:.5;cursor:not-allowed;}
+
+/* Progress display — appears once Run is clicked. */
+.scout-discover-progress{
+  display:flex;flex-direction:column;gap:6px;
+  padding:12px;background:var(--bg-base);border:1px solid var(--border-card);border-radius:8px;
+}
+.scout-discover-progress.phase-done{border-color:var(--brand-green-bright);}
+.scout-discover-progress.phase-error{border-color:var(--brand-red);}
+.scout-discover-progress-bar{
+  height:4px;background:var(--border-card);border-radius:2px;overflow:hidden;
+}
+.scout-discover-progress-fill{
+  height:100%;background:var(--brand-phosphor);transition:width .4s ease;
+}
+.scout-discover-progress.phase-done .scout-discover-progress-fill{background:var(--brand-green-bright);}
+.scout-discover-progress.phase-error .scout-discover-progress-fill{background:var(--brand-red);}
+.scout-discover-progress-line{
+  display:flex;gap:8px;align-items:baseline;font-size:12px;
+}
+.scout-discover-progress-line .phase{
+  font-family:var(--font-mono,monospace);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--text-dim);
+}
+.scout-discover-progress-line .msg{color:var(--text-main);}
+.scout-discover-progress-stats{
+  display:flex;flex-wrap:wrap;gap:14px;font-family:var(--font-mono,monospace);font-size:10.5px;color:var(--text-dim);
+}
+.scout-discover-progress-stats b{color:var(--text-main);font-weight:700;}
+.scout-discover-progress-stats .err{color:var(--brand-red);}
+
+.scout-discover-foot{
+  display:flex;align-items:center;gap:16px;
+  padding:14px 20px;border-top:1px solid var(--border-card);
+}
+.scout-discover-hint{
+  flex:1;font-size:11px;color:var(--text-muted);line-height:1.4;
+}
+.scout-discover-actions{display:flex;gap:8px;}
+.scout-discover-cancel,
+.scout-discover-reset{
+  background:transparent;border:1px solid var(--border-card);border-radius:6px;
+  padding:7px 14px;font-family:var(--font-mono,monospace);font-size:11px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;
+  color:var(--text-dim);cursor:pointer;
+}
+.scout-discover-cancel:hover,
+.scout-discover-reset:hover{border-color:var(--border-active);color:var(--text-main);}
+.scout-discover-run{
+  background:linear-gradient(135deg,#15B981,#047857);color:#fff;border:0;border-radius:6px;
+  padding:8px 16px;font-family:var(--font-mono,monospace);font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;
+  cursor:pointer;
+}
+.scout-discover-run:hover{box-shadow:0 4px 14px rgba(21,185,129,.28);}
+.scout-discover-stop{
+  background:linear-gradient(135deg,#ef4444,#b91c1c);color:#fff;border:0;border-radius:6px;
+  padding:8px 16px;font-family:var(--font-mono,monospace);font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;
+  cursor:pointer;animation:scoutStopPulse 1.4s ease-in-out infinite;
+}

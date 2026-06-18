@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Email in the Overview — Clickable Prototype (all paths)</title>
+<style>
+  :root{
+    --paper:#F7F5EF; --panel:#fff; --ink:#15161A; --ink2:#3c3d43; --mute:#8b877d; --faint:#b7b2a6;
+    --line:#e4e1d7; --line2:#efece3; --rail:#f1eee7;
+    --accent:#d6402b; --accent-bg:#fbe9e5;
+    --email:#b5721a; --email-bg:#fbf0e1;
+    --wa:#1c9e4f; --wa-bg:#e6f6ec;
+    --slate:#33506e; --slate-bg:#ebf0f6;
+    --red:#bc4a33; --amber:#c9941e; --green:#2e7d54;
+    --sans:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;
+    --mono:'SF Mono',ui-monospace,Menlo,Consolas,monospace;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%}
+  body{background:var(--paper);color:var(--ink);font-family:var(--sans);font-size:14px;line-height:1.5;-webkit-font-smoothing:antialiased;display:flex;flex-direction:column;height:100vh;overflow:hidden}
+
+  /* ── app chrome ── */
+  .chrome{flex:none;border-bottom:1px solid var(--line);background:#fff}
+  .chrome .row1{display:flex;align-items:center;gap:18px;padding:9px 18px}
+  .logo{font-weight:800;font-size:14px;letter-spacing:-.01em}
+  .logo b{color:var(--accent)}
+  .nav{display:flex;gap:3px;font-size:12.5px}
+  .nav span{padding:5px 11px;border-radius:7px;color:var(--mute);cursor:default}
+  .nav .on{background:var(--ink);color:#fff;font-weight:600}
+  .who{margin-left:auto;font-size:12px;color:var(--mute)}
+  .modebar{display:flex;gap:0;padding:0 12px;overflow-x:auto}
+  .mtab{flex:none;border:none;background:none;font-family:var(--sans);font-size:12.5px;color:var(--mute);padding:10px 14px;cursor:pointer;border-bottom:2px solid transparent;white-space:nowrap;display:flex;align-items:center;gap:7px}
+  .mtab .k{font-family:var(--mono);font-size:10px;font-weight:700;background:var(--line2);color:var(--ink2);padding:2px 6px;border-radius:3px}
+  .mtab:hover{color:var(--ink)}
+  .mtab.on{color:var(--ink);font-weight:700;border-bottom-color:var(--accent)}
+  .mtab.on .k{background:var(--accent);color:#fff}
+
+  /* ── mode intro ── */
+  .intro{flex:none;padding:12px 22px;background:var(--paper);border-bottom:1px solid var(--line)}
+  .intro h2{margin:0;font-size:18px;letter-spacing:-.01em}
+  .intro p{margin:3px 0 0;font-size:13px;color:var(--ink2);max-width:110ch}
+  .intro p b{color:var(--ink)} .intro .new{color:var(--accent);font-weight:600}
+  .intro .try{font-family:var(--mono);font-size:10.5px;letter-spacing:.04em;text-transform:uppercase;color:var(--green);margin-top:5px}
+
+  /* ── overview shell ── */
+  .stage{flex:1;min-height:0;padding:16px 22px;overflow:auto}
+  .ov{height:100%;min-height:520px;border:1px solid var(--line);border-radius:11px;overflow:hidden;background:var(--panel);display:flex;flex-direction:column;box-shadow:0 1px 2px rgba(0,0,0,.03)}
+  .ovgrid{display:grid;grid-template-columns:248px minmax(0,1fr) 268px;flex:1;min-height:0}
+  @media(max-width:900px){.ovgrid{grid-template-columns:1fr}}
+  .col{padding:14px;overflow:auto}
+  .col.rail{background:var(--rail);border-right:1px solid var(--line)}
+  .col.right{background:var(--rail);border-left:1px solid var(--line)}
+  .ch{font-family:var(--mono);font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--mute);margin:0 0 9px}
+  .ch.sp{margin-top:18px}
+
+  .bk{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:8px 10px;border-radius:7px;background:#fff;border:1px solid var(--line);margin-bottom:5px;font-size:12.5px;cursor:pointer;transition:.12s}
+  .bk:hover{border-color:var(--faint)}
+  .bk .n{font-variant-numeric:tabular-nums;font-weight:700}
+  .bk small{color:var(--mute);font-size:11px}
+  .bk.on{outline:2px solid var(--accent);background:var(--accent-bg);border-color:transparent}
+  .bk.em.on{outline-color:var(--email);background:var(--email-bg)}
+
+  .row{display:flex;align-items:center;gap:9px;padding:9px 10px;border:1px solid var(--line);border-radius:7px;background:#fff;margin-bottom:6px;transition:.12s;cursor:pointer}
+  .row:hover{border-color:var(--faint);transform:translateY(-1px)}
+  .row.sel{outline:2px solid var(--slate);background:var(--slate-bg);border-color:transparent}
+  .row.flat{cursor:default}.row.flat:hover{transform:none;border-color:var(--line)}
+  .dot{width:8px;height:8px;border-radius:50%;flex:none}
+  .d-em{background:var(--email)}.d-wa{background:var(--wa)}.d-red{background:var(--red)}.d-amb{background:var(--amber)}.d-grn{background:var(--green)}.d-sl{background:var(--slate)}.d-q{background:var(--faint)}
+  .tx{flex:1;min-width:0}
+  .tx .h{font-weight:600;font-size:12.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .tx .s{font-size:11.5px;color:var(--ink2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .tag{font-family:var(--mono);font-size:9px;letter-spacing:.03em;text-transform:uppercase;padding:2px 7px;border-radius:3px;white-space:nowrap;font-weight:600}
+  .t-em{background:var(--email-bg);color:var(--email)}.t-wa{background:var(--wa-bg);color:var(--wa)}.t-sl{background:var(--slate-bg);color:var(--slate)}.t-warn{background:#f6e3c6;color:var(--email)}.t-cta{background:var(--accent);color:#fff}.t-mut{background:#ececec;color:var(--mute)}
+  .acts{display:flex;gap:5px;flex-wrap:wrap}
+  .btn{font-family:var(--mono);font-size:9.5px;letter-spacing:.03em;text-transform:uppercase;padding:4px 8px;border-radius:4px;border:1px solid var(--line);background:#fff;color:var(--ink2);white-space:nowrap;cursor:pointer;transition:.12s}
+  .btn:hover{border-color:var(--ink);color:var(--ink)}
+  .btn.p{background:var(--accent);color:#fff;border-color:var(--accent)} .btn.p:hover{filter:brightness(1.06)}
+  .btn.e{background:var(--email);color:#fff;border-color:var(--email)}
+  .empty{text-align:center;color:var(--mute);font-size:12.5px;padding:38px 12px}
+  .empty b{display:block;font-size:15px;color:var(--green);margin-bottom:4px}
+
+  /* deck */
+  .dc{border:1px solid var(--line);border-radius:8px;background:#fff;padding:10px 11px;margin-bottom:8px;cursor:pointer;transition:.12s}
+  .dc:hover{border-color:var(--faint);transform:translateY(-1px)}
+  .dc .top{display:flex;justify-content:space-between;font-family:var(--mono);font-size:9px;letter-spacing:.05em;text-transform:uppercase;color:var(--mute);margin-bottom:5px}
+  .dc .vb{font-weight:700;color:var(--ink)}
+  .dc .ti{font-weight:700;font-size:13px;margin-bottom:2px}
+  .dc .rs{font-size:11.5px;color:var(--ink2);line-height:1.35;margin-bottom:9px}
+  .dc .ex{display:flex;justify-content:flex-end}
+  .dc.new{outline:2px solid var(--accent);outline-offset:1px}
+  .ro{font-family:var(--mono);font-size:9px;letter-spacing:.05em;text-transform:uppercase;color:var(--mute);margin-top:4px}
+
+  .cons{border:1px dashed var(--line);border-radius:8px;background:#fff;padding:11px;font-size:11.5px;color:var(--ink2);line-height:1.45}
+  .cons .w{font-family:var(--mono);font-size:9px;letter-spacing:.08em;text-transform:uppercase;color:var(--slate);margin-bottom:5px}
+
+  /* deal room */
+  .room{display:grid;grid-template-columns:1fr 76px 1fr;gap:9px;align-items:center;margin-top:4px}
+  .room .side{display:grid;gap:7px}
+  .room .p{border:1px solid var(--line);border-radius:7px;background:#fff;padding:8px 9px;cursor:pointer;transition:.12s}
+  .room .p:hover{border-color:var(--faint)}
+  .room .p .nm{font-weight:600;font-size:12.5px}
+  .room .p .rl{font-family:var(--mono);font-size:9px;text-transform:uppercase;letter-spacing:.04em;color:var(--mute)}
+  .room .p.cc{border-style:dashed;border-color:#e3cfa6;background:var(--email-bg)}
+  .room .p.cc.on{outline:2px solid var(--email)}
+  .room .mid{text-align:center;font-family:var(--mono);font-size:9px;color:var(--email);line-height:1.6}
+  .signal{margin-top:12px;border-left:3px solid var(--email);background:var(--email-bg);padding:10px 13px;font-size:12.5px;color:var(--ink2);border-radius:0 7px 7px 0}
+  .signal b{color:var(--ink)}
+
+  /* composer */
+  .composer{margin-top:10px;border:1px solid var(--accent);background:var(--accent-bg);border-radius:8px;padding:10px 12px}
+  .composer .seg{display:inline-flex;border:1px solid var(--line);border-radius:6px;overflow:hidden;background:#fff;margin-bottom:8px}
+  .composer .seg button{border:none;background:none;font-family:var(--mono);font-size:10px;text-transform:uppercase;letter-spacing:.05em;padding:5px 12px;cursor:pointer;color:var(--mute)}
+  .composer .seg button.on{background:var(--ink);color:#fff}
+  .composer .field{background:#fff;border:1px solid var(--line);border-radius:6px;padding:8px 10px;font-size:12px;color:var(--mute);min-height:46px}
+
+  .switch{display:inline-flex;align-items:center;gap:8px;font-size:12px;cursor:pointer}
+  .sw{width:34px;height:19px;border-radius:99px;background:var(--faint);position:relative;transition:.15s;flex:none}
+  .sw::after{content:'';position:absolute;top:2px;left:2px;width:15px;height:15px;border-radius:50%;background:#fff;transition:.15s}
+  .sw.on{background:var(--green)} .sw.on::after{left:17px}
+
+  /* drawer */
+  .scrim{position:fixed;inset:0;background:rgba(20,21,24,.34);opacity:0;pointer-events:none;transition:.2s;z-index:40}
+  .scrim.on{opacity:1;pointer-events:auto}
+  .drawer{position:fixed;top:0;right:0;height:100%;width:420px;max-width:92vw;background:#fff;border-left:1px solid var(--line);box-shadow:-8px 0 30px rgba(0,0,0,.12);transform:translateX(100%);transition:.22s cubic-bezier(.3,.7,.3,1);z-index:50;display:flex;flex-direction:column}
+  .drawer.on{transform:none}
+  .dh{padding:16px 20px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center}
+  .dh h3{margin:0;font-size:15px}
+  .dh .x{border:none;background:none;font-size:20px;color:var(--mute);cursor:pointer;line-height:1}
+  .db{padding:18px 20px;overflow:auto;flex:1}
+  .meta{font-size:12px;color:var(--ink2);margin-bottom:4px}
+  .meta b{color:var(--ink)}
+  .subject{font-weight:700;font-size:14px;margin:10px 0 8px}
+  .draftbody{border:1px solid var(--line);border-radius:8px;background:var(--paper);padding:14px;font-size:13px;line-height:1.6;white-space:pre-wrap;color:var(--ink)}
+  .firewall{margin-top:14px;border-left:3px solid var(--slate);background:var(--slate-bg);padding:10px 12px;font-size:11.5px;color:var(--ink2);border-radius:0 7px 7px 0}
+  .firewall b{color:var(--ink)}
+  .df{padding:14px 20px;border-top:1px solid var(--line);display:flex;gap:9px;justify-content:flex-end}
+  .big{font-family:var(--sans);font-size:13px;font-weight:600;padding:9px 16px;border-radius:8px;border:1px solid var(--line);background:#fff;cursor:pointer}
+  .big.go{background:var(--accent);border-color:var(--accent);color:#fff}
+
+  /* toast */
+  #toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--ink);color:#fff;font-size:13px;padding:11px 18px;border-radius:9px;opacity:0;pointer-events:none;transition:.2s;z-index:60;box-shadow:0 6px 20px rgba(0,0,0,.2);max-width:80vw}
+  #toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
+  #toast b{color:#ffd9a0}
+</style>
+</head>
+<body>
+
+<div class="chrome">
+  <div class="row1">
+    <span class="logo">Filo<b>Max</b> CRM</span>
+    <span class="nav"><span class="on">Overview</span><span>Kanban</span><span>Scout</span></span>
+    <span class="who">clickable prototype · email-in-overview · all paths</span>
+  </div>
+  <div class="modebar" id="modebar"></div>
+</div>
+
+<div class="intro" id="intro"></div>
+<div class="stage"><div class="ov"><div class="ovgrid" id="grid"></div></div></div>
+
+<div class="scrim" id="scrim" onclick="closeDrawer()"></div>
+<aside class="drawer" id="drawer">
+  <div class="dh"><h3>Draft reply</h3><button class="x" onclick="closeDrawer()">×</button></div>
+  <div class="db" id="db"></div>
+  <div class="df"><button class="big" onclick="closeDrawer()">Discard</button><button class="big go" onclick="sendDraft()">Approve &amp; Send</button></div>
+</aside>
+<div id="toast"></div>
+
+<script>
+/* ──────────────────────────────── DATA ──────────────────────────────── */
+const MODES = [
+  {id:'ledger', k:'1', name:'Sender Ledger', what:'identity-first',
+    h:'Sender Ledger', diff:'A new <span class="new">Senders</span> bucket keeps the unresolved pile at zero. Resolve a human once — every future mail from any of their addresses routes silently. The surface that answers <b>"senders don\'t map to prospects."</b>',
+    try:'▶ Try: click a sender\'s Link / New / Mute — watch the pile shrink to zero.'},
+  {id:'thread', k:'2', name:'Unified Thread', what:'recommended first',
+    h:'Unified Thread', diff:'No email inbox. Email is a row in the lead\'s timeline, <b>interleaved with WhatsApp and calls</b>. Lights up the four already-wired surfaces almost free.',
+    try:'▶ Try: pick a lead, flip the reply channel Email/WhatsApp, hit Send.'},
+  {id:'lane', k:'3', name:'Triage Lane', what:'dedicated inbox',
+    h:'Triage Lane', diff:'The <b>Emails</b> bucket swaps the center into a thread list grouped by counterparty — linked threads show a lead badge, unmatched show resolve actions.',
+    try:'▶ Try: Link an unmatched thread, or click a linked one to reply.'},
+  {id:'deck', k:'4', name:'Flight-Deck Native', what:'nearly free',
+    h:'Flight-Deck Native', diff:'Email becomes ranked deck cards. <b>Verified in code:</b> the deck already renders an Email card as <code>▶ DRAFT</code> (FlightDeck.tsx:29/37/96) — card code is done.',
+    try:'▶ Try: click ▶ DRAFT on an email card (opens a Consular draft) or ▶ CALL.'},
+  {id:'graph', k:'5', name:'Relationship Graph', what:'multi-party',
+    h:'Relationship Graph', diff:'A <b>Deal Room</b> reading From / To / <b>CC</b>. The silently-CC\'d CFO surfaces as intel — the only path that treats the CC list as signal.',
+    try:'▶ Try: click the dashed CC card (R. Vogt), then "Loop in CFO".'},
+  {id:'pulse', k:'L', name:'Deal Vital (Pulse)', what:'a layer',
+    h:'Email as a deal vital', diff:'Not a surface — a strip of <span class="new">deals at risk</span> from email pulse (opened / replied / silent) feeding <code>confidence_pct</code>. Only legible <b>after</b> identity resolution.',
+    try:'▶ Try: toggle open-tracking, then "Nudge" a stalling deal.'},
+];
+
+const LEADS = [
+  {id:'acme', co:'Acme AG', money:'CHF 12k', stage:'Closing', dot:'d-red', contact:'J. Muster'},
+  {id:'bistrot', co:'Bistrot', money:'CHF 6k', stage:'Demo done', dot:'d-amb', contact:'Marco'},
+  {id:'gueter', co:'Güterstrasse', money:'CHF 18k', stage:'Contacted', dot:'d-grn', contact:'Boesch'},
+  {id:'baer', co:'Bär GmbH', money:'CHF 9k', stage:'Proposal', dot:'d-sl', contact:'P. Bär'},
+];
+const TIMELINE = {
+  acme:[
+    {dot:'d-em',h:'09:14 · Re: Angebot Webseite',s:'in · via j.muster@acme.com · "Danke, sieht gut aus…" 📎2',tag:'Email ↩',tc:'t-em'},
+    {dot:'d-sl',h:'Yest 17:02 · Call 12 min',s:'left voicemail',tag:'Call',tc:'t-sl'},
+    {dot:'d-em',h:'Mon 11:30 · Angebot Webseite',s:'out (you) · opened 3×',tag:'Email',tc:'t-em'},
+    {dot:'d-wa',h:'Fri · "Passt das Budget?"',s:'in · ✓ read',tag:'WhatsApp',tc:'t-wa'},
+  ],
+  bistrot:[
+    {dot:'d-em',h:'08:40 · Re: Offerte',s:'in · via marco@bistrot.ch · "können wir diese Woche unterschreiben?"',tag:'Email ↩',tc:'t-em'},
+    {dot:'d-wa',h:'Yest · "super, danke!"',s:'in · ✓ read',tag:'WhatsApp',tc:'t-wa'},
+  ],
+  gueter:[{dot:'d-sl',h:'Mon · Erstgespräch',s:'call 22 min · champion warm',tag:'Call',tc:'t-sl'}],
+  baer:[{dot:'d-em',h:'Last wk · Angebot',s:'out (you) · opened 1×',tag:'Email',tc:'t-em'}],
+};
+const SENDERS0 = [
+  {a:'j.muster@acme.com', s:'"Re: Angebot Webseite" · suggests Acme AG', dot:'d-em', acts:[['Link Acme','p'],['New','']]},
+  {a:'office@acme.com', s:'"Rechnung März" · domain → Acme', dot:'d-em', acts:[['Link',''],['New',''],['Mute','']]},
+  {a:'recruiter@hays.com', s:'"Senior role" · no match', dot:'d-q', acts:[['New lead',''],['Mute','']]},
+  {a:'news@stripe.com', s:'"Changelog" · no match', dot:'d-q', acts:[['New',''],['Mute','']]},
+];
+const THREADS0 = [
+  {co:'Acme AG · j.muster@acme.com', s:'"Re: Angebot" — Danke, sieht gut aus… 09:14', dot:'d-wa', linked:true, n:'2'},
+  {co:'office@acme.com', s:'"Rechnung März"', dot:'d-amb', linked:false},
+  {co:'recruiter@hays.com', s:'"Senior role"', dot:'d-q', linked:false},
+  {co:'Bär GmbH · p.baer@baer.ch', s:'"Termin nächste Woche?"', dot:'d-wa', linked:true},
+];
+const DECK0 = [
+  {id:'d1',n:'1',verb:'REPLY',ch:'email',ti:'Bistrot · Marco',rs:'"sign this week?" · 2 min',meta:'red · today',lead:'bistrot'},
+  {id:'d2',n:'2',verb:'CHASE',ch:'email',ti:'Acme · proposal',rs:'opened 3×, silent 7d',meta:'amber · +2d',lead:'acme'},
+  {id:'d3',n:'3',verb:'CALL',ch:'phone',ti:'Güterstrasse · Boesch',rs:'champion warm · 5 min',meta:'green',lead:'gueter'},
+];
+const PULSE = [
+  {dot:'d-red',h:'Acme · CHF 12k · Closing',s:'offer opened 3×, no reply, 7d · <b style="color:var(--red)">confidence ↓</b>',tag:'Nudge',lead:'acme'},
+  {dot:'d-amb',h:'Güterstrasse · champion cooling',s:'warm thread, then silent 5d',tag:'Nudge',lead:'gueter'},
+  {dot:'d-grn',h:'Bistrot · re-engaged',s:'replied after 2 opens · <b style="color:var(--green)">confidence ↑</b>',tag:null,lead:'bistrot'},
+];
+
+/* ──────────────────────────────── STATE ──────────────────────────────── */
+let state = { mode:'ledger', leadId:'acme', bucket:'senders', view:'room', replyCh:'email',
+  tracking:true, senders:JSON.parse(JSON.stringify(SENDERS0)), threads:JSON.parse(JSON.stringify(THREADS0)),
+  deck:JSON.parse(JSON.stringify(DECK0)), cfoOpen:false };
+
+/* ──────────────────────────────── RENDER ─────────────────────────────── */
+const $=s=>document.querySelector(s);
+function railLead(){return LEADS.map(l=>`<div class="row ${l.id===state.leadId?'sel':''}" data-act="lead" data-id="${l.id}"><span class="dot ${l.dot}"></span><div class="tx"><div class="h">${l.co}</div><div class="s">${l.money} · ${l.stage}</div></div></div>`).join('')}
+function deckCard(d){const cta=d.ch==='phone'?'▶ CALL':'▶ DRAFT';const t=d.ch==='phone'?'t-sl':'t-cta';return `<div class="dc ${d.new?'new':''}" data-act="deck" data-id="${d.id}"><div class="top"><span class="vb">${d.n?d.n+' · ':''}${d.verb} · ${d.ch}</span><span>${d.meta}</span></div><div class="ti">${d.ti}</div><div class="rs">${d.rs}</div><div class="ex"><span class="tag ${t}">${cta}</span></div></div>`}
+
+function renderRail(){
+  const m=state.mode;
+  if(m==='ledger') return `<p class="ch">Urgency</p>
+    <div class="bk flat"><span>Overdue</span><span class="n">3</span></div>
+    <div class="bk flat"><span>Today</span><span class="n">5</span></div>
+    <p class="ch sp">Channel</p>
+    <div class="bk flat"><span>Emails</span><span class="n">7</span></div>
+    <div class="bk flat"><span>WhatsApp</span><span class="n">2</span></div>
+    <div class="bk em on"><span>Senders <small>pending</small></span><span class="n">${state.senders.length}</span></div>`;
+  if(m==='lane') return `<p class="ch">Channel</p>
+    <div class="bk em on"><span>Emails</span><span class="n">${state.threads.length}</span></div>
+    <div class="bk flat"><span>WhatsApp</span><span class="n">2</span></div>
+    <p class="ch sp">Urgency</p>
+    <div class="bk flat"><span>Overdue</span><span class="n">3</span></div>`;
+  if(m==='graph') return `<p class="ch">Leads</p>${railLead()}
+    <p class="ch sp">View</p>
+    <div class="bk ${state.view==='timeline'?'on':''}" data-act="view" data-v="timeline"><span>Timeline</span></div>
+    <div class="bk ${state.view==='room'?'on':''}" data-act="view" data-v="room"><span>Deal Room</span></div>`;
+  if(m==='pulse') return `<p class="ch">Urgency</p>
+    <div class="bk flat"><span>Overdue</span><span class="n">3</span></div>
+    <div class="bk flat"><span>Today</span><span class="n">5</span></div>
+    <p class="ch sp">Channel</p>
+    <div class="bk flat"><span>Emails</span><span class="n">7</span></div>
+    <p class="ch sp">Signal</p>
+    <label class="switch" data-act="track"><span class="sw ${state.tracking?'on':''}"></span> open-tracking</label>`;
+  // thread + deck: leads list
+  return `<p class="ch">Urgency</p>
+    <div class="bk flat"><span>Overdue</span><span class="n">3</span></div>
+    <div class="bk flat"><span>Today</span><span class="n">5</span></div>
+    <p class="ch sp">Channel</p>
+    <div class="bk flat"><span>Emails</span><span class="n">7</span></div>
+    <div class="bk flat"><span>WhatsApp</span><span class="n">2</span></div>
+    <p class="ch sp">Leads</p>${railLead()}`;
+}
+
+function renderCenter(){
+  const m=state.mode;
+  if(m==='ledger'){
+    if(!state.senders.length) return `<p class="ch">Pending senders</p><div class="empty"><b>Inbox clear ✓</b>Every sender resolved. New mail from these addresses now lands straight on the lead — no triage.</div>`;
+    return `<p class="ch">Pending senders — resolve to a contact / lead</p>`+state.senders.map((s,i)=>`<div class="row flat"><span class="dot ${s.dot}"></span><div class="tx"><div class="h">${s.a}</div><div class="s">${s.s}</div></div><div class="acts">${s.acts.map(a=>`<span class="btn ${a[1]}" data-act="resolve" data-i="${i}" data-k="${a[0]}">${a[0]}</span>`).join('')}</div></div>`).join('');
+  }
+  if(m==='thread'){
+    const l=LEADS.find(x=>x.id===state.leadId);const tl=TIMELINE[state.leadId]||[];
+    return `<p class="ch">${l.co} — one conversation, every channel</p>`+
+      tl.map(r=>`<div class="row flat"><span class="dot ${r.dot}"></span><div class="tx"><div class="h">${r.h}</div><div class="s">${r.s}</div></div><span class="tag ${r.tc}">${r.tag}</span></div>`).join('')+
+      `<div class="composer"><div class="seg"><button class="${state.replyCh==='email'?'on':''}" data-act="ch" data-c="email">Email</button><button class="${state.replyCh==='wa'?'on':''}" data-act="ch" data-c="wa">WhatsApp</button></div>
+       <div class="field">Reply to ${l.contact} via ${state.replyCh==='email'?'email — longer, signed':'WhatsApp — short'}…</div>
+       <div style="margin-top:9px;text-align:right"><span class="btn p" data-act="compose">Send ${state.replyCh==='email'?'email':'WhatsApp'} ▸</span></div></div>`;
+  }
+  if(m==='lane'){
+    return `<p class="ch">Email — threads by counterparty</p>`+state.threads.map((t,i)=>`<div class="row ${t.linked?'':'flat'}" ${t.linked?`data-act="thread" data-i="${i}"`:''}><span class="dot ${t.dot}"></span><div class="tx"><div class="h">${t.co}</div><div class="s">${t.s}</div></div>${t.linked?`<span class="tag t-sl">● linked${t.n?' · '+t.n:''}</span>`:`<div class="acts"><span class="btn" data-act="link" data-i="${i}">Link</span><span class="btn" data-act="mute" data-i="${i}">Mute</span></div>`}</div>`).join('');
+  }
+  if(m==='deck'){
+    return `<p class="ch">Lead list — the deck does the deciding</p>`+railLeadFlat();
+  }
+  if(m==='graph'){
+    if(state.view==='timeline'){const tl=TIMELINE.acme;return `<p class="ch">Acme AG — Timeline</p>`+tl.map(r=>`<div class="row flat"><span class="dot ${r.dot}"></span><div class="tx"><div class="h">${r.h}</div><div class="s">${r.s}</div></div><span class="tag ${r.tc}">${r.tag}</span></div>`).join('');}
+    return `<p class="ch">Acme AG — Deal Room</p>
+      <div class="room">
+        <div class="side">
+          <div class="p"><div class="nm">J. Muster</div><div class="rl">decision_maker</div></div>
+          <div class="p"><div class="nm">office@acme.com</div><div class="rl">assistant</div></div>
+          <div class="p cc ${state.cfoOpen?'on':''}" data-act="cfo"><div class="nm">R. Vogt</div><div class="rl">cfo · CC only</div></div>
+        </div>
+        <div class="mid">──"Angebot"──<br>──"Rechnung"──<br>┄┄CC┄┄</div>
+        <div class="side"><div class="p"><div class="nm">Filippo</div><div class="rl">you</div></div></div>
+      </div>
+      ${state.cfoOpen?`<div class="signal">⚠ The economic buyer (<b>CFO R. Vogt</b>) is on the proposal thread but has never replied. <span class="btn p" data-act="loop" style="margin-left:6px">Loop in CFO</span></div>`:`<div class="signal" style="color:var(--mute)">Click the dashed <b>R. Vogt</b> card — the CFO is CC\'d on every thread but has never written.</div>`}`;
+  }
+  if(m==='pulse'){
+    if(!state.tracking) return `<p class="ch">Deals at risk</p><div class="empty">Open-tracking is off.<br>Pulse needs read receipts to tell "opened, silent" from "never seen". Turn it on in the rail — a v1 privacy call.</div>`;
+    return `<p class="ch">Deals at risk — read from email pulse</p>`+PULSE.map(p=>`<div class="row flat"><span class="dot ${p.dot}"></span><div class="tx"><div class="h">${p.h}</div><div class="s">${p.s}</div></div>${p.tag?`<span class="tag t-warn" data-act="nudge" data-lead="${p.lead}" style="cursor:pointer">${p.tag}</span>`:''}</div>`).join('')+
+      `<p class="ch sp">Writes <code style="font-family:var(--mono)">confidence_pct</code>, status='Awaiting reply', lore to intel_json.</p>`;
+  }
+}
+function railLeadFlat(){return LEADS.map(l=>`<div class="row flat"><span class="dot ${l.dot}"></span><div class="tx"><div class="h">${l.co}</div><div class="s">${l.money} · ${l.stage}</div></div></div>`).join('')}
+
+function renderRight(){
+  const m=state.mode;
+  if(m==='deck') return `<p class="ch">Flight Deck — channel-blended, ROI-ranked</p>`+state.deck.map(deckCard).join('')+`<p class="ro">queue · 9 more · cold/filtered · 23 hidden</p>`;
+  // default right rail
+  let deckHtml, cons;
+  if(m==='ledger'){deckHtml=deckCard({verb:'REPLY',ch:'email',ti:'Acme AG',rs:'"…können wir Freitag?"',meta:'red',id:'x',lead:'acme'});cons='4 senders pending — 2 look like Acme. Clear them and the inbox is yours.';}
+  else if(m==='thread'){deckHtml=deckCard({verb:'REPLY',ch:'email',ti:'Acme AG',rs:'they accepted — send contract',meta:'red',id:'x',lead:'acme'});cons='Acme replied on email; you covered budget on WhatsApp Friday — I won\'t re-ask.';}
+  else if(m==='lane'){deckHtml=deckCard({verb:'CHASE',ch:'email',ti:'Acme AG',rs:'quote silent 6d',meta:'amber',id:'x',lead:'acme'});cons='7 threads, 2 unmatched. office@acme is almost certainly Acme.';}
+  else if(m==='graph'){deckHtml=state.deck.filter(d=>d.id==='cfo').map(deckCard).join('')||deckCard({verb:'REPLY',ch:'email',ti:'Acme — loop in CFO',rs:'decision-maker engaged, buyer silent',meta:'amber',id:'x',lead:'acme'});cons='Vogt (CFO) reads every thread, never writes. Address him to unstick Closing.';}
+  else {deckHtml=deckCard({verb:'CHASE',ch:'email',ti:'Acme · proposal',rs:'auto-promoted from a stalling deal',meta:'amber',id:'x',lead:'acme'});cons='Acme opened the offer 3× and went quiet — classic price hesitation. Draft a reassurance?';}
+  return `<p class="ch">Flight Deck</p>${deckHtml}<p class="ch sp">Consular</p><div class="cons"><div class="w">Consular · read-only</div>${cons}</div>`;
+}
+
+function render(){
+  // mode tabs
+  $('#modebar').innerHTML = MODES.map(m=>`<button class="mtab ${m.id===state.mode?'on':''}" data-act="mode" data-m="${m.id}"><span class="k">${m.k}</span>${m.name}</button>`).join('');
+  const m=MODES.find(x=>x.id===state.mode);
+  $('#intro').innerHTML = `<h2>${m.h} <span style="font-family:var(--mono);font-size:11px;color:var(--email);font-weight:400;text-transform:uppercase;letter-spacing:.08em">· ${m.what}</span></h2><p>${m.diff}</p><p class="try">${m.try}</p>`;
+  $('#grid').innerHTML = `<div class="col rail">${renderRail()}</div><div class="col">${renderCenter()}</div><div class="col right">${renderRight()}</div>`;
+}
+
+/* ──────────────────────────────── EVENTS ─────────────────────────────── */
+document.addEventListener('click', e=>{
+  const t=e.target.closest('[data-act]'); if(!t) return;
+  const act=t.dataset.act;
+  if(act==='mode'){state.mode=t.dataset.m; if(state.mode==='graph')state.cfoOpen=false; render();}
+  else if(act==='lead'){state.leadId=t.dataset.id; render();}
+  else if(act==='view'){state.view=t.dataset.v; render();}
+  else if(act==='ch'){state.replyCh=t.dataset.c; render();}
+  else if(act==='track'){state.tracking=!state.tracking; render();}
+  else if(act==='cfo'){state.cfoOpen=true; render();}
+  else if(act==='resolve'){const i=+t.dataset.i; const s=state.senders[i]; const k=t.dataset.k;
+    state.senders.splice(i,1); render();
+    toast(k==='Mute'?`Muted <b>${s.a}</b> — never shown again.`:`Resolved <b>${s.a}</b> → ${k.replace('Link ','Acme ').includes('Acme')?'Acme AG':'new lead'}. Future mail routes silently.`);}
+  else if(act==='link'){const i=+t.dataset.i; state.threads[i].linked=true; state.threads[i].co='Acme AG · '+state.threads[i].co; render(); toast('Linked to <b>Acme AG</b> — added as a contact.');}
+  else if(act==='mute'){const i=+t.dataset.i; const c=state.threads[i].co; state.threads.splice(i,1); render(); toast(`Muted <b>${c}</b>.`);}
+  else if(act==='loop'){ if(!state.deck.find(d=>d.id==='cfo')) state.deck.unshift({id:'cfo',verb:'REPLY',ch:'email',ti:'Acme — loop in CFO',rs:'address the economic buyer directly',meta:'amber · new',lead:'acme',new:true}); toast('Added a <b>REPLY</b> card — loop in the CFO.'); state.mode='deck'; render();}
+  else if(act==='thread'){openDraft('acme','email','Re: Angebot');}
+  else if(act==='compose'){openDraft(state.leadId,state.replyCh, state.replyCh==='email'?'Re: Angebot':null);}
+  else if(act==='nudge'){openDraft(t.dataset.lead,'email','Re: proposal');}
+  else if(act==='deck'){const d=state.deck.find(x=>x.id===t.dataset.id); if(!d)return; if(d.ch==='phone'){toast(`Calling <b>${d.ti}</b>…`);} else {openDraft(d.lead,'email',d.verb==='CHASE'?'Re: proposal (follow-up)':'Re: Angebot');}}
+});
+
+/* ──────────────────────────────── DRAFT DRAWER ───────────────────────── */
+const DRAFTS={
+  acme:`Guten Tag Herr Muster\n\nfreut mich sehr, dass das Angebot passt. Freitag um 14:00 würde mir gut passen — ich sende Ihnen vorab den Vertrag zur Durchsicht.\n\nHerzliche Grüsse\nFilippo`,
+  bistrot:`Ciao Marco\n\nja — diese Woche unterschreiben passt perfekt. Ich schicke dir den Vertrag gleich, ein Klick und wir sind durch.\n\nLiebe Grüsse\nFilippo`,
+  gueter:`Guten Tag Frau Boesch\n\nschön war das Gespräch. Ich fasse die nächsten Schritte kurz zusammen…`,
+  baer:`Guten Tag Herr Bär\n\nich wollte kurz nachfassen zum Angebot von letzter Woche…`,
+};
+function openDraft(leadId, ch, subject){
+  const l=LEADS.find(x=>x.id===leadId)||LEADS[0];
+  const toAddr = ch==='email' ? leadId+'@'+(leadId==='bistrot'?'bistrot.ch':leadId==='gueter'?'gueterstrasse.ch':leadId+'.com') : l.contact+' (WhatsApp)';
+  $('#db').innerHTML=`
+    <div class="meta"><b>To:</b> ${l.contact} &lt;${toAddr}&gt;</div>
+    <div class="meta"><b>Channel:</b> ${ch==='email'?'Email':'WhatsApp'} · <b>Lead:</b> ${l.co} (${l.stage})</div>
+    ${subject?`<div class="subject">${subject}</div>`:''}
+    <div class="draftbody">${(DRAFTS[leadId]||DRAFTS.acme)}</div>
+    <div class="firewall"><b>How this draft was made:</b> the Consular chat is <b>read-only</b> (WP-111). The reply was written by a dedicated server pass and dropped here for you. Sending is a separate, gated route — the agent never sends on its own.</div>`;
+  $('#drawer').classList.add('on'); $('#scrim').classList.add('on');
+}
+function closeDrawer(){$('#drawer').classList.remove('on');$('#scrim').classList.remove('on');}
+function sendDraft(){closeDrawer();toast('Sent ✓ — logged as <b>E-mail Out</b>, threaded, status: sent.');}
+
+/* ──────────────────────────────── TOAST ─────────────────────────────── */
+let tt;
+function toast(msg){const el=$('#toast');el.innerHTML=msg;el.classList.add('on');clearTimeout(tt);tt=setTimeout(()=>el.classList.remove('on'),2800);}
+
+render();
+</script>
+</body>
+</html>

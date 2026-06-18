@@ -14,10 +14,32 @@
 // newest first.
 // ============================================================================
 
-import { useMemo, useState, useCallback } from 'react'
+import { useMemo, useState, useCallback, type ReactNode } from 'react'
 import { MessageCircle, ChevronRight, ChevronDown } from 'lucide-react'
 import type { Prospect } from '@/lib/crm-store'
 import type { CrmActivity } from '@/app/crm/crm-data'
+
+// Render message text with clickable hyperlinks — split on http(s) URLs, wrap
+// each in an <a>; stopPropagation so a link click doesn't open the lead detail.
+const URL_RE = /(https?:\/\/[^\s]+)/g
+function linkify(text: string): ReactNode {
+  return text.split(URL_RE).map((part, i) =>
+    /^https?:\/\//.test(part) ? (
+      <a
+        key={i}
+        href={part}
+        target="_blank"
+        rel="noopener noreferrer"
+        onClick={(e) => e.stopPropagation()}
+        style={{ color: '#25D366', textDecoration: 'underline', wordBreak: 'break-all' }}
+      >
+        {part}
+      </a>
+    ) : (
+      part
+    ),
+  )
+}
 
 interface Props {
   activities: CrmActivity[]
@@ -100,6 +122,34 @@ export function WhatsAppMessageList({ activities, prospects, onSelectProspect, l
     setExpandedSenders(new Set())
   }, [])
 
+  // Reply box state, keyed by prospect_id. These are known leads, so the reply
+  // POSTs with prospect_id — the route sends via WhatsApp AND logs a
+  // `WhatsApp Out` activity (shows in-thread on the next data refresh).
+  const [replyDrafts, setReplyDrafts] = useState<Record<string, string>>({})
+  const [replyBusy, setReplyBusy] = useState<Record<string, 'sending' | 'sent' | 'error'>>({})
+
+  const sendReply = useCallback(async (prospectId: string) => {
+    const text = (replyDrafts[prospectId] || '').trim()
+    if (!text || replyBusy[prospectId] === 'sending') return
+    setReplyBusy((prev) => ({ ...prev, [prospectId]: 'sending' }))
+    try {
+      const res = await fetch('/api/admin/crm/activities/wa-outbound', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prospect_id: prospectId, body: text }),
+      })
+      if (!res.ok) {
+        const e = (await res.json().catch(() => ({}))) as { error?: string }
+        throw new Error(e.error || `HTTP ${res.status}`)
+      }
+      setReplyDrafts((prev) => ({ ...prev, [prospectId]: '' }))
+      setReplyBusy((prev) => ({ ...prev, [prospectId]: 'sent' }))
+    } catch (err) {
+      setReplyBusy((prev) => ({ ...prev, [prospectId]: 'error' }))
+      alert('WhatsApp reply failed: ' + (err instanceof Error ? err.message : String(err)))
+    }
+  }, [replyDrafts, replyBusy])
+
   return (
     <div className="fp-list-card" aria-busy={loading}>
       <div className="fp-list-head" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
@@ -138,6 +188,9 @@ export function WhatsAppMessageList({ activities, prospects, onSelectProspect, l
         )}
         {groups.map((g) => {
           const isExpanded = expandedSenders.has(g.prospectId)
+          const draft = replyDrafts[g.prospectId] || ''
+          const busy = replyBusy[g.prospectId]
+          const canSend = !!draft.trim() && busy !== 'sending'
           const latest = g.messages[0]
           const latestIsInbound = latest?.type === 'WhatsApp In'
           const latestBody = (latest?.notes || latest?.subject || '').trim() || '(empty)'
@@ -235,14 +288,51 @@ export function WhatsAppMessageList({ activities, prospects, onSelectProspect, l
                 </span>
               </button>
 
+              {/* Reply box — pinned to the top of the expanded conversation.
+                  Sends a WhatsApp to this lead and logs a WhatsApp Out activity. */}
+              {isExpanded && (
+                <div style={{ display: 'flex', gap: 8, alignItems: 'flex-end', padding: '10px 18px 10px 38px', borderTop: '1px solid color-mix(in srgb, var(--border-card) 50%, transparent)' }}>
+                  <textarea
+                    value={draft}
+                    onChange={(e) => setReplyDrafts((prev) => ({ ...prev, [g.prospectId]: e.target.value }))}
+                    onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); void sendReply(g.prospectId) } }}
+                    placeholder={`Reply to ${g.company} on WhatsApp…  (Enter to send)`}
+                    rows={4}
+                    style={{
+                      flex: 1, resize: 'vertical', minHeight: 88, maxHeight: 220,
+                      padding: '8px 10px', fontSize: 12, lineHeight: 1.4, fontFamily: 'inherit',
+                      color: 'var(--text-main)', background: 'var(--bg-app)',
+                      border: '1px solid var(--border-card)', borderRadius: 8, outline: 'none',
+                    }}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => { void sendReply(g.prospectId) }}
+                    disabled={!canSend}
+                    style={{
+                      flexShrink: 0, padding: '8px 14px', borderRadius: 8, border: 'none',
+                      background: '#25D366', color: '#06281a', fontSize: 11, fontWeight: 800,
+                      letterSpacing: '0.04em', textTransform: 'uppercase',
+                      cursor: canSend ? 'pointer' : 'default', opacity: canSend ? 1 : 0.5,
+                    }}
+                  >
+                    {busy === 'sending' ? 'Sending…' : 'Send'}
+                  </button>
+                  {busy === 'sent' && !draft.trim() && (
+                    <span style={{ alignSelf: 'center', fontSize: 11, color: '#25D366', fontWeight: 700 }}>✓ Sent</span>
+                  )}
+                </div>
+              )}
+
               {/* Expanded message rows — click any to open that prospect detail. */}
               {isExpanded && g.messages.map((m) => {
                 const isInbound = m.type === 'WhatsApp In'
                 const body = (m.notes || m.subject || '').trim() || '(empty)'
                 return (
-                  <button
+                  <div
                     key={m.id}
-                    type="button"
+                    role="button"
+                    tabIndex={0}
                     onClick={() => onSelectProspect(m.prospect_id || g.prospectId)}
                     style={{
                       display: 'grid',
@@ -286,7 +376,7 @@ export function WhatsAppMessageList({ activities, prospects, onSelectProspect, l
                           fontStyle: body === '[empty message]' || body === '(empty)' ? 'italic' : 'normal',
                         }}
                       >
-                        {body}
+                        {linkify(body)}
                       </div>
                     </div>
                     <span
@@ -300,7 +390,7 @@ export function WhatsAppMessageList({ activities, prospects, onSelectProspect, l
                     >
                       {timeAgo(m.timestamp)}
                     </span>
-                  </button>
+                  </div>
                 )
               })}
             </div>

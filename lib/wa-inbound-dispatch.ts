@@ -238,10 +238,15 @@ export async function promoteUnmatchedForPhone(
   }
 
   // Move this number's media into media/<phone>/ now that it's matched (Ralph
-  // 2026-05-31). Moves by content-hash so it relocates BOTH pre-bucketing flat
-  // files AND new media/unmatched/<phone>/ files. Best-effort — media_path URLs
-  // are content-hash-only, so the serve route still resolves the files even if
-  // the move fails; the stored media_path needs no rewrite.
+  // 2026-05-31). Moves by content-hash so it relocates files wherever they
+  // currently live (unmatched/…, _non_phone/…, flat root). Best-effort —
+  // media_path URLs are content-hash-only and the serve route walks every
+  // bucket, so the stored URL needs no rewrite when the file moves.
+  //
+  // WP-133 (Ralph 2026-06-05): bucket name is now <digits>-<slug> where slug
+  // is the prospect's company || contact_name. The previous digits-only
+  // bucket ("41791234567") didn't read as a phone at a glance; the new form
+  // ("41791234567-filomax-wolf") tells you who it is just from the path.
   try {
     const hashes = matches
       .map((m) => (typeof m.media_path === 'string' ? m.media_path : ''))
@@ -249,8 +254,18 @@ export async function promoteUnmatchedForPhone(
       .map((p) => p.slice('/api/admin/media/'.length))
     if (hashes.length > 0) {
       const { moveMediaByHashes } = await import('./media-store')
-      const moved = moveMediaByHashes(hashes, normalized)
-      if (moved > 0) console.log(`[wa-inbound-dispatch] promote: moved ${moved} media file(s) → media/${normalized}/`)
+      const { bucketFor } = await import('./wa-bucketing')
+      // Re-derive the bucket from the now-matched prospect. The activity
+      // row doesn't carry the original WA remoteJid, but the prospect's
+      // normalized phone is enough — we synthesise a phone-shaped JID so
+      // bucketFor's phone branch fires.
+      const prospect = readSheet().find((p) => p.id === prospect_id)
+      const matchedCtx = prospect
+        ? { company: prospect.company, contact_name: prospect.contact_name }
+        : null
+      const bucket = bucketFor(`${normalized}@s.whatsapp.net`, '', matchedCtx)
+      const moved = moveMediaByHashes(hashes, bucket.dir)
+      if (moved > 0) console.log(`[wa-inbound-dispatch] promote: moved ${moved} media file(s) → media/${bucket.dir}/`)
     }
   } catch (err) {
     console.warn('[wa-inbound-dispatch] promote: media move failed (non-fatal):', err)

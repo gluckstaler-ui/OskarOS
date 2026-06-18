@@ -1,0 +1,41 @@
+Passphrase:
+
+8ESl1OyEruVEXnwmD5kc
+Public key (authorize on the server):
+
+ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIEPECM0x/PjSuojbanoDppoQlvkUXc9a4YUhHsp/Haqi oskar-deploy
+Private key:
+
+-----BEGIN OPENSSH PRIVATE KEY-----
+b3BlbnNzaC1rZXktdjEAAAAACmFlczI1Ni1jdHIAAAAGYmNyeXB0AAAAGAAAABAzmAH6HB
+WZXxGhkdgmyOxGAAAAGAAAAAEAAAAzAAAAC3NzaC1lZDI1NTE5AAAAIEPECM0x/PjSuojb
+anoDppoQlvkUXc9a4YUhHsp/HaqiAAAAkEE113Bm9JczdvsAKlmCea+2r3tuM6Rg0E9MFp
+gwLuWfQFXccrKtSg6MrRyQqkh0KUkYSecbQrn9NdBoIQwCiJtIAlP0Q4E9g96Lv+UI5wdB
+HO4h5WUVUs0Nl5rX/NRiPJ8gMvdVAVf5NxKVhllOt6HVbLPPEelEV+FkNNxENrYUhcv7VH
+f7BacQt8TWiDdARw==
+-----END OPENSSH PRIVATE KEY-----
+Install it locally (terminal):
+
+# 1) write the private key
+cat > ~/.ssh/oskar_key << 'EOF'
+-----BEGIN OPENSSH PRIVATE KEY-----
+b3BlbnNzaC1rZXktdjEAAAAACmFlczI1Ni1jdHIAAAAGYmNyeXB0AAAAGAAAABAzmAH6HB
+WZXxGhkdgmyOxGAAAAGAAAAAEAAAAzAAAAC3NzaC1lZDI1NTE5AAAAIEPECM0x/PjSuojb
+anoDppoQlvkUXc9a4YUhHsp/HaqiAAAAkEE113Bm9JczdvsAKlmCea+2r3tuM6Rg0E9MFp
+gwLuWfQFXccrKtSg6MrRyQqkh0KUkYSecbQrn9NdBoIQwCiJtIAlP0Q4E9g96Lv+UI5wdB
+HO4h5WUVUs0Nl5rX/NRiPJ8gMvdVAVf5NxKVhllOt6HVbLPPEelEV+FkNNxENrYUhcv7VH
+f7BacQt8TWiDdARw==
+-----END OPENSSH PRIVATE KEY-----
+EOF
+chmod 600 ~/.ssh/oskar_key
+
+# 2) write the public key
+echo 'ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIEPECM0x/PjSuojbanoDppoQlvkUXc9a4YUhHsp/Haqi oskar-deploy' > ~/.ssh/oskar_key.pub
+chmod 644 ~/.ssh/oskar_key.pub
+
+# 3) load into the agent + save passphrase to Keychain (it'll ask for the passphrase once)
+ssh-add --apple-use-keychain ~/.ssh/oskar_key
+#   passphrase: 8ESl1OyEruVEXnwmD5kc
+
+# 4) test (after you've authorized the public key on the server)
+ssh -i ~/.ssh/oskar_key -p 21098 aweseybn@198.177.120.118 'whoami'

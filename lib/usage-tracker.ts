@@ -3,9 +3,9 @@
 // Captures CLI output, stores per-session usage
 // ==========================================
 
-import { readFile, writeFile } from 'fs/promises'
+import { readFile, writeFile, mkdir } from 'fs/promises'
 import { existsSync, readFileSync } from 'fs'
-import { join } from 'path'
+import { join, dirname } from 'path'
 
 // ==========================================
 // Types
@@ -397,7 +397,20 @@ export async function appendUsage(
     api: perMode.api,
   }
 
-  // Write back
+  // Write back. Defensive mkdir -p (Ralph 2026-06-05) — appendUsage is
+  // called from a dozen places, and silently throwing ENOENT because the
+  // session's logs/ subdirectory hasn't been created yet is the kind of
+  // bug that surfaces months later as missing dollars in the badge.
+  // mkdir with recursive:true is idempotent and cheap; cost is one stat
+  // call on the hot path.
+  try {
+    await mkdir(dirname(usagePath), { recursive: true })
+  } catch {
+    // Concurrent mkdir from another caller is the common failure here
+    // (EEXIST), which recursive:true should suppress — but if a real
+    // permission issue happens, writeFile below will surface it with a
+    // clearer error. Swallow this one.
+  }
   await writeFile(usagePath, JSON.stringify(sessionUsage, null, 2), 'utf-8')
 
   console.log(`[Usage] ${sessionId} | ${agent} | +${usage.inputTokens}in +${usage.outputTokens}out | turn:$${entryCost.toFixed(4)} | Total: $${sessionUsage.totals.cost} | Context: ${context?.contextPct ?? '?'}%`)

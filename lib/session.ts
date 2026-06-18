@@ -190,11 +190,6 @@ function createInitialSessionMd(businessName: string): string {
 
 ---
 
-## Todos
-*No todos yet*
-
----
-
 ## Discovery Summary
 *Not yet complete*
 
@@ -570,60 +565,6 @@ function parseSessionMd(sessionId: string, content: string): SessionMeta {
 export async function updateSessionMd(sessionId: string, content: string): Promise<void> {
   const sessionPath = getSessionPath(sessionId)
   await writeFile(path.join(sessionPath, 'SESSION.md'), content)
-}
-
-/**
- * WP-66 (2026-05-06): parse the `## Todos` section out of a SESSION.md
- * string. Pure function — caller passes the file content; no I/O.
- *
- * Section format (mockup spec, Feature-X §2.3 WP-66):
- *
- *   ## Todos
- *
- *   - [/] Build vibe-3
- *   - [ ] Review vibe-2 hero
- *   - [x] ~~Read FEATURE-X.md~~
- *
- * Status mapping: `[ ]` → pending, `[/]` → in_progress, `[x]` → completed.
- * Strikethrough on completed items is cosmetic; not required for state.
- *
- * Optional id syntax: `- [/] (id:abc) Build vibe-3` — the parser strips
- * the `(id:...)` token and stores it on `TodoItem.id`. New writes set ids;
- * legacy items without ids parse fine and fall back to content+index for
- * React keys.
- *
- * Tolerance: anything that doesn't match the checkbox-line shape is ignored.
- * Empty section / "*No todos yet*" body returns [].
- */
-import type { TodoItem, TodoStatus } from '@/lib/types/todos'
-
-export function parseTodosSection(sessionMd: string): TodoItem[] {
-  // Section delimited by `## Todos` heading. Matches everything up to the
-  // next `## ` (any depth) heading or end-of-file.
-  const match = sessionMd.match(/## Todos\s*\n([\s\S]*?)(?=\n##\s|$)/)
-  if (!match) return []
-  const body = match[1]
-
-  const items: TodoItem[] = []
-  for (const rawLine of body.split('\n')) {
-    const line = rawLine.trim()
-    if (!line) continue
-    // Match: `- [GLYPH] [(id:STR)] CONTENT`
-    const m = line.match(/^-\s+\[([ x/])\]\s+(?:\(id:([^)]+)\)\s+)?(.+)$/)
-    if (!m) continue
-    const glyph = m[1]
-    const id = m[2]?.trim() || undefined
-    let content = m[3].trim()
-    // Strip cosmetic strikethrough (`~~...~~`) for completed items.
-    content = content.replace(/^~~(.+)~~$/, '$1').trim()
-    if (!content) continue
-    const status: TodoStatus =
-      glyph === 'x' ? 'completed'
-        : glyph === '/' ? 'in_progress'
-          : 'pending'
-    items.push({ id, content, status })
-  }
-  return items
 }
 
 /**

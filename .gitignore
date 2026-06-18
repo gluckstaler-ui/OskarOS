@@ -60,3 +60,4 @@ Fonts/
 logs/
 test-results/
 __pycache__/
+.barbazza-mail.env

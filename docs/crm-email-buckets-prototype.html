@@ -1,0 +1,774 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CRM · Overview + Email screen — on the real design system</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<!-- THE REAL CRM STYLESHEET — same file app/crm/layout.tsx loads. Zero drift:
+     the Overview below is pixel-identical because it is styled by this, not by
+     a copy. The Email screen is built from the same tokens + row vocabulary. -->
+<link rel="stylesheet" href="../app/crm/crm.css">
+<style>
+  /* Base tokens crm.css inherits from _shell.css (not linked here). The warm
+     colour tokens come from crm.css's own .crm-app onyx block; these are only
+     the layout/scale vars it references. */
+  .crm-app{
+    --gap-app:20px; --padding-app:20px; --radius-card:12px;
+    --font-mono:'JetBrains Mono','SF Mono',Monaco,'Consolas',monospace;
+    --accent:#15B981; --accent-dim:rgba(21,185,129,0.15);
+    --text-secondary:var(--text-muted);
+    --email:#f97316;
+    font-family:'Inter',system-ui,-apple-system,sans-serif;
+    background:var(--bg-app);
+  }
+  /* polar wants a deeper orange for AAA contrast on cream — mirrors the
+     reference's #b56500 light-email accent. Onyx keeps the bright #f97316. */
+  html[data-theme="polar"] .crm-app{--email:#c2410c}
+  html,body{margin:0;background:#0a0907;transition:background .2s}
+  *{box-sizing:border-box}
+
+  /* doc chrome (prototype only — not part of the CRM) */
+  .doc-head{padding:24px 26px 16px;border-bottom:1px solid var(--border-card)}
+  .doc-kicker{font-family:var(--font-mono);font-size:10px;letter-spacing:.22em;color:var(--email);text-transform:uppercase}
+  .doc-title{font-size:22px;font-weight:700;letter-spacing:-.4px;margin:8px 0 5px;color:var(--text-main)}
+  .doc-sub{color:var(--text-muted);font-size:13px;max-width:880px;line-height:1.55}
+  .doc-sub b{color:var(--text-main);font-weight:600} .doc-sub .hi{color:var(--email);font-weight:600}
+  .scn-tabs{display:flex;align-items:center;gap:8px;padding:12px 26px;border-bottom:1px solid var(--border-card);flex:none}
+  .scn-tab{appearance:none;border:1px solid var(--border-card);background:var(--bg-card);color:var(--text-muted);
+    font-family:var(--font-mono);font-size:11px;letter-spacing:.06em;padding:10px 16px;cursor:pointer;border-radius:8px;
+    display:flex;align-items:center;gap:8px;transition:.15s}
+  .scn-tab:hover{background:var(--bg-card-hover);color:var(--text-main)}
+  .scn-tab.is-active{border-color:var(--email);color:var(--text-main);background:var(--brand-amber-glow)}
+  /* theme toggle pills (onyx ⇄ polar) — same idiom as the real TopBar */
+  .theme-pills{margin-left:auto;display:flex;border:1px solid var(--border-card);border-radius:8px;overflow:hidden}
+  .theme-pills button{appearance:none;border:none;background:transparent;color:var(--text-muted);font-family:var(--font-mono);
+    font-size:10px;letter-spacing:.1em;text-transform:uppercase;padding:9px 14px;cursor:pointer;transition:.14s}
+  .theme-pills button:hover{color:var(--text-main);background:var(--bg-card-hover)}
+  .theme-pills button.on{background:var(--text-main);color:var(--bg-app)}
+  .scn{display:none;padding:16px 26px 22px;min-height:0;flex:1;flex-direction:column}
+  .scn.is-active{display:flex}
+  .scn-note{font-family:var(--font-mono);font-size:10.5px;letter-spacing:.04em;color:var(--text-dim);margin-bottom:12px;flex:none}
+  .scn-note b{color:var(--email)}
+  /* full-length app frame — fills the viewport like the live /crm */
+  .app-frame{flex:1;display:flex;min-height:0}
+  .app-frame .fp-grid{flex:1;min-height:0}
+
+  /* ── chat column filler (the real ConversationPanel lives here) ─────────── */
+  .fp-chat-fill{flex:1;min-height:0;border:1px solid var(--border-card);border-radius:var(--radius-card);
+    background:var(--bg-app);margin-top:14px;padding:14px;display:flex;flex-direction:column;gap:10px;overflow:hidden}
+  .fp-chat-fill .ch-cap{font-family:var(--font-mono);font-size:9px;letter-spacing:.16em;text-transform:uppercase;color:var(--text-dim)}
+
+  /* ── flight deck rows (in-system; real shapes live in flight-deck.jsx) ──── */
+  .fp-flight-head{display:flex;align-items:baseline;justify-content:space-between;padding-bottom:10px;border-bottom:1px solid var(--border-card)}
+  .fp-flight-head .ttl{font-family:var(--font-mono);font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--text-main);font-weight:700}
+  .fp-flight-head .q{font-family:var(--font-mono);font-size:9.5px;letter-spacing:.08em;color:var(--text-dim);cursor:pointer}
+  .em-fd{position:relative;border:1px solid var(--border-card);border-radius:0 10px 10px 0;background:var(--bg-card);padding:12px 14px 12px 16px;transition:.2s}
+  .em-fd::before{content:'';position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--tone,var(--email))}
+  .em-fd.gone{opacity:0;transform:translateX(36px);height:0;padding:0;margin:0;border:0;overflow:hidden}
+  .em-fd .h{display:flex;justify-content:space-between;align-items:center;font-family:var(--font-mono);font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--tone,var(--email))}
+  .em-fd .h .dl{border:1px solid currentColor;border-radius:4px;padding:2px 6px;opacity:.85}
+  .em-fd .co{font-size:15px;font-weight:700;color:var(--text-main);margin:8px 0 3px}
+  .em-fd .why{font-size:11.5px;color:var(--text-muted);line-height:1.45}
+  .em-fd .ex{margin-top:11px;display:flex;align-items:center;gap:9px}
+  .em-fd .ex .rank{margin-left:auto;font-family:var(--font-mono);font-size:8px;color:var(--text-dim);letter-spacing:.1em}
+  .em-btn{font-family:var(--font-mono);font-size:9.5px;letter-spacing:.06em;font-weight:700;text-transform:uppercase;
+    background:var(--tone,var(--email));color:#150d05;padding:7px 11px;border-radius:6px;border:none;cursor:pointer}
+  .em-btn:hover{filter:brightness(1.12)}
+  .em-dur{font-family:var(--font-mono);font-size:9.5px;color:var(--text-dim)}
+
+  /* email-row content inside the real .crm-overview-row chrome */
+  .crm-overview-row.gone{opacity:0;transform:translateX(40px);height:0;padding:0;margin:0;border:0;overflow:hidden}
+  /* selection ring follows the email register on this screen, not the green CRM accent */
+  .em-screen .crm-overview-row.is-selected{border-color:var(--email);box-shadow:0 0 0 1px var(--email)}
+  .eo-sub{font-size:12.5px;color:var(--text-main);font-weight:500;margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .eo-snip{font-size:11px;color:var(--text-muted);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .eo-when{font-family:var(--font-mono);font-size:9.5px;color:var(--text-dim);white-space:nowrap}
+  .eo-ready{font-family:var(--font-mono);font-size:8px;letter-spacing:.06em;color:var(--email);border:1px solid rgba(249,115,22,.35);background:rgba(249,115,22,.08);padding:2px 5px;border-radius:4px}
+  .eo-ready.warn{color:var(--brand-amber);border-color:rgba(255,184,74,.35);background:var(--brand-amber-glow)}
+  .eo-chk{width:16px;height:16px;border-radius:4px;border:1px solid var(--border-active);display:flex;align-items:center;justify-content:center;font-size:10px;color:var(--brand-phosphor)}
+  .crm-overview-row.checked .eo-chk{background:rgba(200,238,122,.1);border-color:var(--brand-phosphor)}
+
+  /* ── EMAIL SCREEN — built on the design system ──────────────────────────── */
+  .em-screen{border:1px solid var(--border-card);border-radius:var(--radius-card);overflow:hidden;background:var(--bg-app);flex:1;display:flex;flex-direction:column;min-height:0}
+  /* Gmail lanes on top — accent-edge rule (tone bar on top, square top corners) */
+  .em-lanes{display:flex;border-bottom:1px solid var(--border-card);background:var(--bg-app)}
+  .em-lane{flex:1;appearance:none;border:none;border-right:1px solid var(--border-card);background:transparent;
+    color:var(--text-muted);cursor:pointer;padding:15px 16px 13px;text-align:left;transition:.16s;position:relative}
+  .em-lane::before{content:'';position:absolute;left:0;right:0;top:0;height:3px;background:var(--lt,var(--email));opacity:0;transition:.16s}
+  .em-lane:last-child{border-right:none}
+  .em-lane:hover{background:var(--bg-card-hover);color:var(--text-main)}
+  .em-lane.is-active{background:var(--bg-card);color:var(--text-main)}
+  .em-lane.is-active::before{opacity:1}
+  .em-lane .top{display:flex;align-items:center;gap:9px}
+  .em-lane .nm{font-family:var(--font-mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;font-weight:700}
+  .em-lane .ct{font-family:var(--font-mono);font-size:11px;font-weight:700;color:var(--lt,var(--email));border:1px solid var(--border-active);border-radius:20px;padding:1px 8px;min-width:26px;text-align:center}
+  .em-lane.is-active .ct{border-color:var(--lt)}
+  .em-lane .ds{font-size:10px;color:var(--text-dim);margin-top:7px;display:flex;align-items:center;gap:6px}
+  .em-lane .bdg{font-family:var(--font-mono);font-size:7.5px;letter-spacing:.06em;padding:1px 5px;border-radius:4px}
+  .em-lane .bdg.co{color:var(--email);border:1px solid rgba(249,115,22,.35);background:rgba(249,115,22,.08)}
+  .em-lane .bdg.sw{color:var(--text-dim);border:1px solid var(--border-active)}
+  /* 3-column mailbox: left rail (folders + contacts) · list · co-pilot */
+  .em-shell{flex:1;min-height:0;display:grid;grid-template-columns:232px minmax(0,1fr) 440px}
+  .em-rail{border-right:1px solid var(--border-card);padding:13px 11px;display:flex;flex-direction:column;gap:3px;overflow-y:auto;background:var(--bg-app);min-height:0}
+  .em-rail .cp-compose{margin-bottom:10px}
+  .em-main{display:flex;flex-direction:column;min-height:0;min-width:0}
+  .em-listcol{padding:16px;overflow-y:auto;min-width:0;flex:1;min-height:0}
+  .em-pane{padding:18px;background:var(--bg-sunken);border-left:1px solid var(--border-card);overflow-y:auto;min-width:0}
+  /* folders */
+  .em-folder{display:flex;align-items:center;gap:10px;padding:9px 11px;border-radius:8px;cursor:pointer;color:var(--text-muted);font-size:13px;font-weight:600;transition:.12s}
+  .em-folder:hover{background:var(--bg-card-hover);color:var(--text-main)}
+  .em-folder.is-active{background:var(--bg-card);color:var(--text-main);box-shadow:inset 2px 0 0 var(--email)}
+  .em-folder .ic{width:16px;text-align:center;font-size:13px;color:var(--text-dim)}
+  .em-folder.is-active .ic{color:var(--email)}
+  .em-folder .ct{margin-left:auto;font-family:var(--font-mono);font-size:10.5px;color:var(--text-dim)}
+  .em-folder.is-active .ct{color:var(--email)}
+  .em-railsep{height:1px;background:var(--border-card);margin:12px 4px;opacity:.7;flex:none}
+  .em-rail-head{font-family:var(--font-mono);font-size:8.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--text-dim);padding:0 8px 9px;flex:none}
+  /* CRM contacts */
+  .em-contact{display:flex;align-items:center;gap:9px;padding:7px 9px;border-radius:8px;cursor:pointer;transition:.12s}
+  .em-contact:hover{background:var(--bg-card-hover)}
+  .em-contact.is-active{background:var(--bg-card);box-shadow:inset 2px 0 0 var(--email)}
+  .em-contact .av{width:26px;height:26px;border-radius:50%;background:var(--bg-card-hover);color:var(--text-main);font-family:var(--font-mono);font-weight:700;font-size:10px;display:flex;align-items:center;justify-content:center;flex:none}
+  .em-contact.is-active .av{background:var(--brand-amber-glow);color:var(--email)}
+  .em-contact .cbody{min-width:0;flex:1}
+  .em-contact .cn{font-size:12.5px;font-weight:600;color:var(--text-main);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .em-contact .cm{font-family:var(--font-mono);font-size:9.5px;color:var(--text-dim);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .em-colcap{font-family:var(--font-mono);font-size:9px;letter-spacing:.16em;text-transform:uppercase;color:var(--text-dim);margin-bottom:14px;display:flex;align-items:center;gap:8px}
+  .em-colcap .dot{width:5px;height:5px;border-radius:50%;background:var(--email)}
+  .em-rows{display:flex;flex-direction:column;gap:8px}
+  .em-empty{color:var(--text-dim);font-family:var(--font-mono);font-size:10.5px;letter-spacing:.04em;text-align:center;padding:46px 16px;border:1px dashed var(--border-active);border-radius:10px;line-height:1.8}
+
+  /* bulk bar for noise lanes */
+  .em-bulk{display:flex;align-items:center;gap:11px;padding:11px 14px;margin-bottom:12px;border:1px solid var(--border-card);border-radius:10px;background:var(--bg-card)}
+  .em-bulk .t{flex:1;font-family:var(--font-mono);font-size:10.5px;color:var(--text-muted);letter-spacing:.04em}
+  .em-bulk .t b{color:var(--text-main)}
+
+  /* the email you're reading — the actual content, shown before the reply */
+  .mailread{background:var(--bg-card);border:1px solid var(--border-card);border-radius:9px;padding:13px 15px;margin-bottom:13px}
+  .mr-h{font-family:var(--font-mono);font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--text-dim);margin-bottom:9px;display:flex;justify-content:space-between}
+  .mr-body{font-size:13px;line-height:1.7;color:var(--text-main);white-space:pre-wrap}
+  /* inline email reader in the Overview middle column — no modal, no screen switch */
+  .ov-detail{flex:1;min-height:0;display:flex;flex-direction:column;border:1px solid var(--border-card);border-radius:var(--radius-card);background:var(--bg-sunken);overflow:hidden}
+  .ovd-top{display:flex;align-items:center;gap:12px;padding:13px 16px;border-bottom:1px solid var(--border-card);flex:none}
+  .ovd-back{font-family:var(--font-mono);font-size:10px;letter-spacing:.06em;color:var(--text-muted);border:1px solid var(--border-card);background:var(--bg-card);border-radius:7px;padding:7px 11px;cursor:pointer}
+  .ovd-back:hover{color:var(--text-main);background:var(--bg-card-hover)}
+  .ovd-title{font-size:15px;font-weight:700;color:var(--text-main)}
+  .ovd-scroll{flex:1;overflow-y:auto;padding:16px}
+
+  /* co-pilot pane modules — design-system tokens */
+  .cp-cap{font-family:var(--font-mono);font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:var(--email);display:flex;justify-content:space-between;margin-bottom:12px}
+  .cp-compose{width:100%;justify-content:center;margin-bottom:12px}
+  .cp-who{font-size:17px;font-weight:700;color:var(--text-main);margin-bottom:3px;display:flex;align-items:center;gap:9px}
+  .cp-sub{font-size:12px;color:var(--text-muted);margin-bottom:13px}
+  .role{font-family:var(--font-mono);font-size:8.5px;letter-spacing:.04em;text-transform:uppercase;padding:2px 6px;border-radius:4px;border:1px solid var(--border-active);color:var(--text-muted)}
+  .role.champ{color:var(--brand-phosphor);border-color:rgba(200,238,122,.3);background:rgba(200,238,122,.06)}
+  .role.gate{color:var(--brand-amber);border-color:rgba(255,184,74,.3);background:var(--brand-amber-glow)}
+  .bound{font-family:var(--font-mono);font-size:9px;letter-spacing:.04em;color:var(--email);background:rgba(249,115,22,.07);border:1px solid rgba(249,115,22,.3);border-radius:6px;padding:6px 10px;margin-bottom:12px;display:flex;align-items:center;gap:7px}
+  .mod{border:1px solid var(--border-card);border-radius:8px;padding:10px 12px;margin-bottom:11px;background:var(--bg-card)}
+  .mod-h{font-family:var(--font-mono);font-size:8.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--text-dim);display:flex;justify-content:space-between;margin-bottom:9px}
+  .mod-h .feat{color:var(--brand-phosphor);border:1px solid rgba(200,238,122,.3);background:rgba(200,238,122,.06);border-radius:4px;padding:1px 5px;font-size:7.5px}
+  .vital{display:flex;align-items:center;gap:11px}
+  .spark{display:flex;align-items:flex-end;gap:2px;height:26px}
+  .spark i{width:3.5px;border-radius:1px;background:var(--brand-phosphor);opacity:.85}
+  .vital .vt{flex:1}
+  .vpct{font-family:var(--font-mono);font-size:17px;font-weight:700;color:var(--brand-phosphor)}
+  .vpct.flat{color:var(--brand-amber)} .vpct.down{color:var(--brand-red)}
+  .vln{font-size:10.5px;color:var(--text-muted);line-height:1.4;margin-top:3px}
+  .utl{display:flex;flex-direction:column;gap:6px}
+  .utl .ut{display:grid;grid-template-columns:auto auto 1fr;gap:8px;align-items:baseline;font-size:11px;color:var(--text-muted)}
+  .utl .uc{font-family:var(--font-mono);font-size:8px;letter-spacing:.04em;padding:1px 5px;border-radius:3px;text-transform:uppercase;white-space:nowrap}
+  .utl .uc.email{color:var(--email);background:rgba(249,115,22,.1)} .utl .uc.wa{color:#25D366;background:rgba(37,211,102,.1)} .utl .uc.call{color:#5cd6e0;background:rgba(92,214,224,.1)}
+  .utl .uw{font-family:var(--font-mono);font-size:9px;color:var(--text-dim);white-space:nowrap}
+  .utl .ut.cur{color:var(--text-main);font-weight:600}
+  .wb{display:flex;flex-direction:column;gap:6px}
+  .wbr{display:grid;grid-template-columns:96px 1fr;gap:9px;align-items:baseline;font-size:11px}
+  .wbk{font-family:var(--font-mono);font-size:8.5px;letter-spacing:.04em;color:var(--text-dim);text-transform:uppercase}
+  .wbv{color:var(--text-main)} .wbv.empty{color:var(--text-dim)} .wbv.hot{color:var(--brand-phosphor)}
+  .draft{background:var(--bg-card);border:1px solid var(--email);border-radius:9px;padding:13px;margin-bottom:11px}
+  .draft .d-h{display:flex;justify-content:space-between;font-family:var(--font-mono);font-size:9px;letter-spacing:.08em;color:var(--email);text-transform:uppercase;margin-bottom:9px}
+  .draft .d-body{font-size:12.5px;line-height:1.6;color:var(--text-main);background:var(--bg-sunken);border:1px dashed var(--border-active);border-radius:7px;padding:13px 12px 11px;position:relative;outline:none;min-height:84px}
+  .draft .d-body[contenteditable="true"]{border-style:solid;border-color:var(--email);background:var(--bg-card-hover)}
+  .draft .d-body::before{content:"CONSULAR DRAFT · IN YOUR VOICE";position:absolute;top:-8px;left:9px;font-family:var(--font-mono);font-size:7.5px;letter-spacing:.08em;color:var(--email);background:var(--bg-sunken);padding:0 5px}
+  .draft .d-body[contenteditable="true"]::before{content:"EDITING — your words";color:var(--brand-phosphor);background:var(--bg-card-hover)}
+  .draft .cite{font-size:10px;color:var(--brand-phosphor);line-height:1.5;margin-bottom:9px;padding-left:9px;border-left:2px solid rgba(200,238,122,.4)}
+  .draft mark{background:var(--brand-amber-glow);color:var(--brand-amber);padding:0 3px;border-radius:3px;font-weight:600}
+  .acts{display:flex;gap:8px;margin-top:11px;flex-wrap:wrap}
+  .b{font-family:var(--font-mono);font-size:9.5px;letter-spacing:.06em;padding:8px 12px;border-radius:6px;cursor:pointer;text-transform:uppercase;border:1px solid var(--border-active);background:transparent;color:var(--text-muted);transition:.14s}
+  .b:hover{background:var(--bg-card-hover);color:var(--text-main)}
+  .b.go{background:var(--email);color:#1a1006;border-color:var(--email);font-weight:700}
+  .b.go:hover{filter:brightness(1.1)}
+  .b.ok{background:rgba(200,238,122,.08);color:var(--brand-phosphor);border-color:rgba(200,238,122,.3);font-weight:700}
+  .b.alt{color:var(--text-main);background:var(--bg-card-hover)}
+  .held{background:var(--brand-amber-glow);border:1px solid rgba(255,184,74,.35);border-radius:9px;padding:13px;margin-bottom:11px}
+  .held .h-h{font-family:var(--font-mono);font-size:9px;letter-spacing:.08em;color:var(--brand-amber);text-transform:uppercase;margin-bottom:8px}
+  .held .h-q{font-size:13px;color:var(--text-main);line-height:1.5;margin-bottom:11px}
+  .pipeline{display:flex;margin:2px 0 10px}
+  .pst{flex:1;text-align:center;font-family:var(--font-mono);font-size:8px;letter-spacing:.04em;text-transform:uppercase;color:var(--text-dim);padding:6px 2px;border-bottom:2px solid var(--border-active)}
+  .pst.done{color:var(--brand-amber);border-bottom-color:var(--brand-amber)}
+  .pst.on{color:var(--email);border-bottom-color:var(--email);font-weight:700}
+  .stage-acts{display:flex;gap:7px;flex-wrap:wrap}
+  .noisepane{text-align:center;padding:48px 20px}
+  .noisepane .ic{font-size:32px;margin-bottom:14px;opacity:.5}
+  .noisepane h4{margin:0 0 9px;font-size:15px;font-weight:700;color:var(--text-main)}
+  .noisepane p{margin:0 auto 18px;font-size:12.5px;color:var(--text-muted);line-height:1.6;max-width:300px}
+
+  .legend{margin-top:18px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
+  .legend .lg{border:1px solid var(--border-card);border-radius:9px;padding:13px;background:var(--bg-card)}
+  .legend .lg h4{margin:0 0 6px;font-family:var(--font-mono);font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--brand-amber)}
+  .legend .lg.win h4{color:var(--brand-phosphor)} .legend .lg.cost h4{color:var(--brand-red)}
+  .legend .lg p{margin:0;font-size:12px;color:var(--text-muted);line-height:1.55} .legend .lg p b{color:var(--text-main)}
+
+  /* composer overlay (overview deck) */
+  .cov{position:fixed;inset:0;z-index:90;background:rgba(6,5,4,.74);backdrop-filter:blur(3px);display:none;align-items:center;justify-content:center;padding:24px}
+  .cov.open{display:flex}
+  .composer{width:560px;max-width:100%;background:var(--bg-card);border:1px solid var(--border-active);border-radius:14px;box-shadow:0 30px 80px rgba(0,0,0,.6);overflow:hidden}
+  .composer .c-top{display:flex;align-items:center;gap:10px;padding:14px 16px;border-bottom:1px solid var(--border-card);background:var(--bg-sunken)}
+  .composer .c-chan{font-family:var(--font-mono);font-size:9px;letter-spacing:.08em;padding:4px 8px;border-radius:5px;text-transform:uppercase;color:var(--email);background:rgba(249,115,22,.1);border:1px solid rgba(249,115,22,.35)}
+  .composer .c-chan.wa{color:#25D366;background:rgba(37,211,102,.1);border-color:rgba(37,211,102,.35)}
+  .composer .c-title{font-size:13px;font-weight:600;flex:1;color:var(--text-main);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .composer .c-x{cursor:pointer;color:var(--text-dim);font-size:16px;border:none;background:none}
+  .composer .c-fields{padding:12px 16px 0;display:flex;flex-direction:column;gap:8px}
+  .composer .c-field{display:flex;align-items:center;gap:10px}
+  .composer .c-field label{font-family:var(--font-mono);font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--text-dim);width:58px;flex:none}
+  .composer .c-field input{flex:1;background:var(--bg-sunken);border:1px solid var(--border-card);border-radius:6px;padding:8px 11px;color:var(--text-main);font-family:'Inter',sans-serif;font-size:12.5px;outline:none}
+  .composer .c-field input:focus{border-color:var(--email)}
+  .composer .c-incoming{margin:12px 16px 0;border:1px solid var(--border-card);border-radius:8px;background:var(--bg-sunken);overflow:hidden}
+  .composer .c-incoming .ci-h{padding:8px 12px;font-family:var(--font-mono);font-size:8.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--text-dim);border-bottom:1px solid var(--border-card)}
+  .composer .c-incoming .ci-b{padding:12px;font-size:12px;line-height:1.65;color:var(--text-muted);white-space:pre-wrap;max-height:180px;overflow-y:auto}
+  .composer textarea{width:calc(100% - 32px);margin:11px 16px;background:var(--bg-sunken);color:var(--text-main);border:1px solid var(--email);border-radius:9px;padding:13px;font-family:'Inter',sans-serif;font-size:13px;line-height:1.6;min-height:130px;resize:vertical;outline:none}
+  .composer .c-foot{display:flex;align-items:center;gap:10px;padding:13px 16px;border-top:1px solid var(--border-card);background:var(--bg-sunken)}
+  .composer .c-note{font-family:var(--font-mono);font-size:9px;color:var(--text-dim);flex:1;line-height:1.4}
+  .composer .c-note b{color:#5cd6e0}
+
+  .toast-wrap{position:fixed;bottom:22px;left:50%;transform:translateX(-50%);z-index:120;display:flex;flex-direction:column;gap:8px;align-items:center}
+  .toast{font-family:var(--font-mono);font-size:11px;padding:11px 16px;border-radius:9px;background:rgba(200,238,122,.08);border:1px solid rgba(200,238,122,.3);color:var(--brand-phosphor);box-shadow:0 14px 40px rgba(0,0,0,.5);display:flex;gap:9px}
+  .toast.email{background:rgba(249,115,22,.08);border-color:rgba(249,115,22,.35);color:var(--email)}
+  .toast.warn{background:var(--brand-amber-glow);border-color:rgba(255,184,74,.35);color:var(--brand-amber)}
+  .toast b{color:var(--text-main)}
+  .toast.out{opacity:0;transform:translateY(12px);transition:.3s}
+  @media(max-width:1180px){.em-body{grid-template-columns:1fr}.legend{grid-template-columns:1fr}.app-frame{height:auto}}
+</style>
+</head>
+<body>
+<div class="crm-app" style="height:100vh;padding:0;overflow:hidden;display:flex;flex-direction:column">
+
+  <div class="doc-head" style="flex:none;padding:14px 26px 12px">
+    <div class="doc-kicker">◆ CRM prototype · styled by app/crm/crm.css · cross-checked vs the live /crm</div>
+    <div class="doc-title" style="font-size:18px;margin:5px 0 0">Overview + dedicated Email screen <span style="font-family:var(--font-mono);font-size:10px;color:var(--brand-phosphor);letter-spacing:.1em;margin-left:10px">BUILD 9 · Silke fixed + Giulia added</span></div>
+  </div>
+
+  <div class="scn-tabs">
+    <button class="scn-tab is-active" data-scn="ov">◳ Overview</button>
+    <button class="scn-tab" data-scn="em">✉ Email screen</button>
+    <button class="scn-tab" id="g-compose" style="border-color:var(--email);color:var(--email);background:var(--brand-amber-glow)">✎ Compose new</button>
+    <div class="theme-pills">
+      <button class="on" data-theme="onyx">Onyx</button>
+      <button data-theme="polar">Polar</button>
+    </div>
+  </div>
+
+  <!-- ════════════════════════ OVERVIEW (real .fp-grid) ════════════════════════ -->
+  <section class="scn is-active" data-scn="ov">
+    <div class="scn-note">Live <b>.fp-grid</b> shell, rail matched to the implemented TriageRail (urgency · channel · stage). The <b>Emails</b> bento opens the Email screen. Clicking a lead drafts a reply in place — no screen change.</div>
+    <div class="app-frame">
+      <div class="fp-grid">
+
+        <!-- LEFT — the real TriageRail DOM (groups match the live app) -->
+        <div class="fp-rail">
+          <div class="fp-greet">
+            <span class="fp-greet-hello">Good morning</span>
+            <span><span class="fp-greet-date">Mon 15 Jun 2026</span> · <span class="fp-greet-clock" id="clk">09:12:04</span></span>
+          </div>
+          <div class="fp-headline">14 items need you. Start with the <em class="em-overdue">11 overdue</em>.</div>
+
+          <button class="fp-triage" data-tone="all"><span class="num">20</span><div class="body"><span class="lbl">Open</span><span class="sub">All non-terminal leads</span></div><span class="arr">→</span></button>
+          <button class="fp-triage is-active" data-tone="overdue"><span class="num">11</span><div class="body"><span class="lbl">Overdue</span><span class="sub">Past their due date · prioritize first</span></div><span class="arr">→</span></button>
+          <button class="fp-triage" data-tone="today"><span class="num">03</span><div class="body"><span class="lbl">Today</span><span class="sub">On the docket for Mon 15 Jun</span></div><span class="arr">→</span></button>
+          <button class="fp-triage" data-tone="upcoming"><span class="num">05</span><div class="body"><span class="lbl">This week</span><span class="sub">Due in the next 7 days</span></div><span class="arr">→</span></button>
+
+          <div class="fp-rail-sep"></div>
+          <button class="fp-triage" data-tone="email"><span class="num">09</span><div class="body"><span class="lbl">Emails</span><span class="sub">Last activity was email</span></div><span class="arr">→</span></button>
+          <button class="fp-triage" data-tone="wa"><span class="num">06</span><div class="body"><span class="lbl">WhatsApp</span><span class="sub">Last activity was WhatsApp</span></div><span class="arr">→</span></button>
+
+          <div class="fp-rail-sep"></div>
+          <button class="fp-triage" data-tone="stage"><span class="num">08</span><div class="body"><span class="lbl">Incoming</span><span class="sub">Stage 1 · first contact</span></div><span class="arr">→</span></button>
+          <button class="fp-triage" data-tone="stage"><span class="num">05</span><div class="body"><span class="lbl">Contacted</span><span class="sub">Stage 2 · in dialogue</span></div><span class="arr">→</span></button>
+          <button class="fp-triage" data-tone="stage"><span class="num">03</span><div class="body"><span class="lbl">Demo Done</span><span class="sub">Stage 3 · demo delivered</span></div><span class="arr">→</span></button>
+          <button class="fp-triage" data-tone="stage"><span class="num">04</span><div class="body"><span class="lbl">Closing</span><span class="sub">Stage 4 · contract pending</span></div><span class="arr">→</span></button>
+
+          <div class="fp-pipeline"><span class="line"><span class="k">Pipeline</span> <span class="v">CHF 48'400</span> <span class="sep">·</span> <span class="k">Weighted</span> <span class="v">CHF 19'100</span></span></div>
+        </div>
+
+        <!-- MIDDLE — NEXT MOVE hero + the implemented .fp-lead list -->
+        <div class="fp-middle">
+          <div class="fp-next-move" data-tone="email" id="ov-mid-hero">
+            <div class="body">
+              <div class="tag"><span class="marker">●</span> REPLY · EMAIL · HOT</div>
+              <div class="headline">Bistrot Le Petit</div>
+              <div class="meta"><span class="em">CHF 5'200</span><span class="sep">·</span><span>2h</span><span class="sep">·</span><span class="em-overdue">said he'd sign EOW</span></div>
+              <div class="snippet">"perfetto, una domanda sul punto 3…" — a 2-minute reply seals it.</div>
+            </div>
+            <div class="actions">
+              <button class="hero-action-btn is-cta is-email" id="hero-draft">▶ Draft reply</button>
+              <button class="open-btn is-secondary" id="hero-open">Open thread →</button>
+            </div>
+          </div>
+          <div class="fp-list-card" id="ov-mid-list">
+            <div class="fp-list-head">
+              <div class="title">OVERDUE · <span class="em">11</span> LEADS</div>
+              <div class="tools">
+                <input class="search" placeholder="Search…">
+                <select class="filter-sel"><option>Overdue</option><option>All open</option><option>Today</option><option>This week</option></select>
+                <button class="fp-list-action" title="Shortcuts">?</button>
+                <button class="fp-list-action">Bulk</button>
+                <button class="fp-list-action">Export</button>
+              </div>
+            </div>
+            <div class="fp-list-scroll" id="ov-leads"></div>
+          </div>
+          <!-- inline email reader (hidden until a lead is clicked) -->
+          <div class="ov-detail" id="ov-detail" style="display:none"></div>
+        </div>
+
+        <!-- RIGHT — Flight Deck (real .fp-right/.fp-flight) + chat filler -->
+        <div class="fp-right">
+          <div class="fp-flight">
+            <div class="fp-flight-head"><span class="ttl">Flight Deck</span><span class="q" id="ov-q">+9 in queue ▾</span></div>
+            <div id="ov-deck"></div>
+          </div>
+          <div class="fp-chat-fill">
+            <div class="ch-cap">Consular · __crm__</div>
+            <div class="crm-chat-msg consular">Email rides the deck — Bistrot's #1, two minutes on a yes. The inbox itself is one tap away: the Inbox bentos on the rail open the Email screen.</div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- ════════════════════════ EMAIL SCREEN ════════════════════════ -->
+  <section class="scn" data-scn="em">
+    <div class="scn-note">A real mailbox: folders + CRM contacts in the left rail · inbox categories on top · co-pilot reply on the right.</div>
+    <div class="em-screen">
+      <div class="em-shell">
+        <!-- LEFT RAIL — folders + CRM contacts by recency -->
+        <div class="em-rail">
+          <button class="b go cp-compose" id="em-compose">✎ Compose</button>
+          <div class="em-folders" id="em-folders"></div>
+          <div class="em-railsep"></div>
+          <div class="em-rail-head">CRM contacts · by recency</div>
+          <div class="em-contacts" id="em-contacts"></div>
+        </div>
+        <!-- MIDDLE — inbox categories on top + message list -->
+        <div class="em-main">
+          <div class="em-lanes" id="lanes"></div>
+          <div class="em-listcol">
+            <div class="em-colcap" id="el-cap"><span class="dot"></span>—</div>
+            <div class="em-rows" id="el-list"></div>
+          </div>
+        </div>
+        <!-- RIGHT — co-pilot reader -->
+        <div class="em-pane" id="el-pane"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- composer + toasts — INSIDE .crm-app so they inherit the theme tokens
+       (outside it, var(--bg-card) etc. are undefined → transparent modal) -->
+  <div class="cov" id="cov"><div class="composer">
+  <div class="c-top"><span class="c-chan" id="cm-chan">EMAIL</span><span class="c-title" id="cm-title">Reply</span><button class="c-x" id="cm-x">✕</button></div>
+  <div class="c-fields">
+    <div class="c-field"><label>To</label><input id="cm-to" placeholder="name@company.ch"></div>
+    <div class="c-field"><label>Subject</label><input id="cm-subj" placeholder="Subject…"></div>
+  </div>
+  <div class="c-incoming" id="cm-incoming"><div class="ci-h" id="cm-ci-h"></div><div class="ci-b" id="cm-ci-b"></div></div>
+  <textarea id="cm-body" placeholder="Write your message…"></textarea>
+  <div class="c-foot"><span class="c-note">Sends via <b id="cm-route">Gmail API</b> · lands in your real inbox</span><button class="b" id="cm-cancel">Cancel</button><button class="b go" id="cm-send">▶ Send</button></div>
+</div></div>
+<div class="toast-wrap" id="toasts"></div>
+
+</div><!-- /.crm-app -->
+
+<script>
+const $=(s,r=document)=>r.querySelector(s), $$=(s,r=document)=>[...r.querySelectorAll(s)];
+const esc=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+
+function showScn(s){
+  if(typeof ovCloseEmail==='function')ovCloseEmail();  // reset the inline reader
+  $$('.scn-tab[data-scn]').forEach(t=>t.classList.toggle('is-active',t.dataset.scn===s));
+  $$('.scn').forEach(p=>p.classList.toggle('is-active',p.dataset.scn===s));
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+$$('.scn-tab[data-scn]').forEach(t=>t.onclick=()=>showScn(t.dataset.scn));
+$$('.fp-triage.jump').forEach(b=>b.onclick=()=>showScn('em'));
+$('#g-compose').onclick=composeNew;
+
+/* theme toggle — flips <html data-theme>; crm.css keys its onyx/polar token
+   blocks off this exact attribute, so the whole shell + my token-based custom
+   CSS repaint together. body bg can't read the .crm-app-scoped tokens, so set
+   it explicitly. */
+function setTheme(t){
+  document.documentElement.setAttribute('data-theme',t);
+  document.body.style.background = t==='polar' ? '#ffffff' : '#0a0907';
+  $$('.theme-pills button').forEach(b=>b.classList.toggle('on',b.dataset.theme===t));
+}
+$$('.theme-pills button').forEach(b=>b.onclick=()=>setTheme(b.dataset.theme));
+setTheme('onyx');
+
+/* live clock — same as the real .fp-greet-clock */
+setInterval(()=>{const d=new Date();const p=n=>String(n).padStart(2,'0');const c=$('#clk');if(c)c.textContent=`${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`;},1000);
+
+function toast(html,cls=''){const t=document.createElement('div');t.className='toast '+cls;t.innerHTML=html;$('#toasts').appendChild(t);setTimeout(()=>{t.classList.add('out');setTimeout(()=>t.remove(),300);},2600);}
+
+/* composer — reads the incoming email (reply mode) or starts blank (new mode);
+   To/Subject are real editable fields so a completely new email works. */
+let composerSend=null;
+function openComposer({mode='reply',chan='email',title,to,subj,incoming,body,route='Gmail API',onSend}){
+  $('#cm-chan').className='c-chan '+(chan==='wa'?'wa':'');$('#cm-chan').textContent=chan==='wa'?'WHATSAPP':'EMAIL';
+  $('#cm-title').textContent=title||(mode==='new'?'New email':'Reply');
+  $('#cm-to').value=to||'';$('#cm-subj').value=subj||'';
+  const inc=$('#cm-incoming');
+  if(incoming){inc.style.display='block';$('#cm-ci-h').textContent=`${incoming.from} wrote${incoming.when?' · '+incoming.when:''}`;$('#cm-ci-b').textContent=incoming.body;}
+  else inc.style.display='none';
+  $('#cm-route').textContent=route;$('#cm-body').value=body||'';
+  composerSend=onSend;$('#cov').classList.add('open');
+  setTimeout(()=>$(mode==='new'?'#cm-to':'#cm-body').focus(),60);
+}
+function closeComposer(){$('#cov').classList.remove('open');composerSend=null;}
+$('#cm-x').onclick=closeComposer;$('#cm-cancel').onclick=closeComposer;
+$('#cov').addEventListener('click',e=>{if(e.target===$('#cov'))closeComposer();});
+$('#cm-send').onclick=()=>{const v=$('#cm-body').value.trim();const to=$('#cm-to').value.trim();const fn=composerSend;closeComposer();if(fn)fn(v,to);};
+/* Compose a brand-new email from anywhere. */
+function composeNew(){openComposer({mode:'new',to:'',subj:'',body:'',onSend:(v,to)=>toast(`Email sent${to?' to <b>'+to+'</b>':''}`,'email')});}
+
+/* the actual email content — what the person wrote. You read this before you reply.
+   Defined up here so both the Overview deck and the Email pane can reference it. */
+const BODIES={
+  c1:`ciao Filippo,\n\nperfetto, ci siamo quasi. ho solo una domanda sul punto 3 del preventivo: i 10 giorni di consegna partono dalla firma del contratto o dal bonifico dell'acconto?\n\nse chiariamo questo oggi, ti firmo entro fine settimana come detto.\n\ngrazie,\nMarco`,
+  c2:`Buongiorno,\n\nci siamo sentiti la settimana scorsa per il sito. Una domanda prima di procedere: fate anche il CRM oltre al sito? Stiamo valutando di mettere ordine nei contatti e sarebbe comodo avere tutto dallo stesso fornitore.\n\nGrazie,\nStudio Bernasconi`,
+  c3:`Buongiorno,\n\nin riferimento alla vostra proposta da CHF 12'000: i 12k sono comprensivi di tutto o IVA esclusa? Il dott. Bernasconi me lo ha chiesto espressamente prima di dare l'ok.\n\nResto in attesa,\nAvv. G. Conti`,
+  c4:`ciao Filippo,\n\nok, va bene Hara — l'ho rivisto con mio marito e ci piace molto. Quando organizziamo la foto del ritratto per il sito? Vorrei chiudere anche questa parte.\n\nun abbraccio,\nSilke`,
+  c5:`ciao Filippo,\n\nsono Giulia, la figlia di Marco — mi occupo io della parte amministrativa, quindi la firma del contratto passa da me.\n\nse mi giri il contratto e i dati per il bonifico, chiudiamo questa settimana.\n\ngrazie,\nGiulia Rossi`,
+  n1:`ciao Filippo,\n\nper chiudere il Q2 mi manca la fattura del Weingut Barbazza. Me la giri appena puoi? Ho la scadenza IVA giovedì.\n\ngrazie,\nLucia`,
+  n2:`ciao,\n\neccoti il preventivo per 500 biglietti da visita su carta cotone, come d'accordo. Fammi sapere se confermi e in che tempi ti servono.\n\nAndrea — Printwork`
+};
+const bodyOf=m=>BODIES[m.id]||m.quote||m.snip||'';
+
+/* ════════ OVERVIEW · lead list — the IMPLEMENTED .fp-lead row ════════
+   Cross-checked against the live /crm: .fp-list-card > .fp-list-scroll of
+   .fp-lead (sched · subject · .fp-lead-channels · amt · pct). Real lucide
+   icons, real three-state colour classes. */
+const ICON={
+  star:'<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>',
+  phone:'<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>',
+  wa:'<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7.9 20A9 9 0 1 0 4 16.1L2 22z"/></svg>',
+  mail:'<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>'
+};
+const OV_LEADS=[
+  {sched:'-17d',name:'Aequitas Studio',meta:'Prof. Paolo Bernasconi · Incoming',star:0,active:'mail',amt:"CHF 32'000",pct:5},
+  {sched:'-16d',name:'Fricker Füllemann Rechtsanwälte',meta:'Matthias Fricker · Incoming',star:0,active:'',amt:"CHF 22'000",pct:10},
+  {sched:'-13d',name:'Filomax Wolf',meta:'Filomax Wolf · Incoming',star:0,active:'wa',amt:"CHF 15'000",pct:33},
+  {sched:'-13d',name:'Alba Bodenbeläge GmbH',meta:'Familie Alba · Incoming',star:0,active:'',amt:"CHF 9'500",pct:32},
+  {sched:'-12d',name:'Restaurant Du Pont',meta:'Pierre Dubois · Demo done',star:0,active:'',amt:"CHF 19'800",pct:80},
+  {sched:'-12d',name:'Studio Dentistico Bianchi',meta:'Anna Bianchi · Incoming',star:0,active:'',amt:"CHF 8'200",pct:40},
+  {sched:'-11d',name:'Hotel Bellevue Lugano',meta:'Andrea Conti · Demo done',star:1,active:'',amt:"CHF 32'600",pct:75},
+  {sched:'-11d',name:"Caffè Sant'Ambrogio",meta:'Marco Brunetti · Incoming',star:0,active:'',amt:"CHF 12'400",pct:45},
+  {sched:'-11d',name:'Pizzeria Da Mario',meta:'Mario Esposito · Contacted',star:0,active:'phone',amt:"CHF 6'400",pct:65},
+  {sched:'-5d',name:'Microsoft AG, Lugano',meta:'Bill Gates · Closing',star:0,active:'mail',amt:"CHF 50'000",pct:40}
+];
+const chanIcon=(kind,active)=>{
+  const cls={phone:'crm-phone-icon',wa:'crm-whatsapp-icon',mail:'crm-mail-icon'}[kind];
+  // is-active = coloured outline (matches the implemented rows). is-recent
+  // fills the glyph via fill:currentColor — which turns the mail rect into a
+  // solid block, so we don't use it here.
+  const lit=active===kind?' is-active':' is-empty';
+  return `<span class="${cls}${lit}">${ICON[kind]}</span>`;
+};
+$('#ov-leads').innerHTML=OV_LEADS.map((l,i)=>`
+  <div class="fp-lead" data-tone="overdue-deep" data-i="${i}">
+    <span class="sched">${l.sched}</span>
+    <div class="subject"><span class="name">${l.name}</span><span class="meta">${l.meta}</span></div>
+    <div class="fp-lead-channels">
+      <button class="fp-lead-star${l.star?' is-on':''}" type="button">${ICON.star}</button>
+      ${chanIcon('phone',l.active)}${chanIcon('wa',l.active)}${chanIcon('mail',l.active)}
+    </div>
+    <span class="amt">${l.amt}</span>
+    <span class="pct">${l.pct}%</span>
+  </div>`).join('');
+/* Click a lead → read the email + reply INLINE in the middle column. No modal,
+   no screen switch: the list hides, a Back button restores it. */
+function ovOpenEmail(l,opts){
+  opts=opts||{};
+  const first=l.name.split(/[\s,]/)[0];
+  const incoming=opts.incoming||`ciao Filippo,\n\nvolevo sapere a che punto siamo con la proposta per il sito. avevamo lasciato in sospeso un paio di dettagli — quando riusciamo a sentirci per chiudere?\n\ngrazie,\n${first}`;
+  const reply=opts.reply||`ciao ${first}, scusa il ritardo — riprendo il filo. ti propongo una call questa settimana per chiudere gli ultimi dettagli. giovedì o venerdì mattina ti va? f`;
+  $('#ov-detail').innerHTML=`
+    <div class="ovd-top"><button class="ovd-back" id="ovd-back">← Back to list</button><span class="ovd-title">${l.name}</span></div>
+    <div class="ovd-scroll">
+      <div class="mailread"><div class="mr-h"><span>${l.name} wrote</span><span>${l.sched?l.sched.replace('-','')+' overdue':''}</span></div><div class="mr-body">${esc(incoming)}</div></div>
+      <div class="draft"><div class="d-h"><span>↳ Co-pilot reply · Gmail · in-thread</span></div>
+        <div class="d-body" contenteditable="true" id="ovd-body">${esc(reply)}</div>
+        <div class="acts"><button class="b ok" id="ovd-send">✓ Approve · Send</button><button class="b" id="ovd-snooze">⏲ Snooze</button></div></div>
+    </div>`;
+  $('#ov-mid-hero').style.display='none';$('#ov-mid-list').style.display='none';$('#ov-detail').style.display='flex';
+  $('#ovd-back').onclick=ovCloseEmail;
+  $('#ovd-send').onclick=()=>{ovCloseEmail();toast(`Sent to <b>${l.name}</b>`,'email');};
+  $('#ovd-snooze').onclick=()=>toast(`Snoozed <b>${l.name}</b> · back at 14:00`,'warn');
+}
+function ovCloseEmail(){const d=$('#ov-detail');if(d)d.style.display='none';const h=$('#ov-mid-hero');if(h)h.style.display='';const l=$('#ov-mid-list');if(l)l.style.display='';}
+$$('#ov-leads .fp-lead').forEach(el=>el.onclick=()=>ovOpenEmail(OV_LEADS[+el.dataset.i]));
+
+/* ════════ OVERVIEW · Flight Deck ════════ */
+let DECK=[
+  {id:'d1',co:'Bistrot Le Petit',tone:'#ef4444',verb:'REPLY',chan:'email',dl:'2H · HOT',rank:'#1 · CHF/MIN',why:'"punto 3?" — said he\'d sign EOW. 2-min reply seals it.',dur:'2 MIN',to:'m.rossi@bistrot-lepetit.ch',subj:'Re: preventivo sito',incoming:{from:'Marco Rossi',when:'07:05',body:BODIES.c1},draft:"ciao Marco, sul punto 3: partiamo appena confermi, prima bozza in 10 giorni. se firmiamo questa settimana sei online entro fine mese. ti mando i dati per il bonifico? f"},
+  {id:'d2',co:'Aequitas Law',tone:'#f97316',verb:'REPLY',chan:'email',dl:'5H',rank:'#2',why:'opened the proposal 3× then asked on price — buying hesitation. Route to the partner.',dur:'4 MIN',to:'g.conti@aequitas-law.ch',subj:'Re: 12k all-in?',incoming:{from:'Avv. Conti',when:'04:55',body:BODIES.c3},draft:"buongiorno Avv. Conti, le mando il dettaglio voce per voce e una data per una call con il dott. Bernasconi. f"},
+  {id:'d3',co:"Caffè Sant'Ambrogio",tone:'#25D366',verb:'CHASE',chan:'wa',dl:'5D QUIET',rank:'#3',why:'Asked for a slot, then silent 5d. One WhatsApp nudge.',dur:'1 MIN',to:'+41 79 ··· (WhatsApp)',subj:'WhatsApp',draft:"ciao, giovedì o venerdì mattina sono libero per il sito. quale ti va meglio? f"}
+];
+function ov_deck(){
+  $('#ov-deck').innerHTML=DECK.map(c=>`
+    <div class="em-fd" data-id="${c.id}" style="--tone:${c.tone};margin-bottom:9px">
+      <div class="h"><span>${c.verb} · ${c.chan==='wa'?'WHATSAPP':'EMAIL'}</span><span class="dl">${c.dl}</span></div>
+      <div class="co">${c.co}</div><div class="why">${c.why}</div>
+      <div class="ex"><button class="em-btn">▶ ${c.chan==='wa'?'Call/WA':'Draft'}</button><span class="em-dur">${c.dur}</span><span class="rank">${c.rank}</span></div>
+    </div>`).join('')||`<div class="em-empty">✓ Deck cleared.<br>Every move made.</div>`;
+  $$('#ov-deck .em-fd').forEach(el=>el.querySelector('.em-btn').onclick=()=>ov_exec(el.dataset.id));
+}
+function ov_exec(id){
+  const c=DECK.find(x=>x.id===id);if(!c)return;
+  openComposer({chan:c.chan,title:c.verb+' · '+c.co,to:c.to,subj:c.subj,incoming:c.incoming,body:c.draft,route:c.chan==='wa'?'WhatsApp (Baileys)':'Gmail API',
+    onSend:()=>{const card=$(`#ov-deck .em-fd[data-id="${id}"]`);if(card){card.classList.add('gone');setTimeout(()=>{DECK=DECK.filter(x=>x.id!==id);ov_deck();},240);}toast(`Sent to <b>${c.co}</b> · deck re-ranking`,c.chan==='wa'?'':'email');}});
+}
+$('#hero-draft').onclick=()=>ovOpenEmail({name:'Bistrot Le Petit',sched:'-2d'},{incoming:BODIES.c1,reply:DECK[0].draft});
+$('#hero-open').onclick=()=>ovOpenEmail({name:'Bistrot Le Petit',sched:'-2d'},{incoming:BODIES.c1,reply:DECK[0].draft});
+
+/* ════════ EMAIL SCREEN — folders + CRM contacts + inbox categories ════════
+   Inbox categories (CRM lane removed — CRM lives in the left rail as contacts). */
+const CATS=[
+  {id:'normal',name:'Normal',tone:'#c8b88c',copilot:true,desc:'Important · primary'},
+  {id:'promo',name:'Promo',tone:'#a98bff',copilot:false,desc:'Marketing'},
+  {id:'social',name:'Social',tone:'#5cd6e0',copilot:false,desc:'Networks'},
+  {id:'updates',name:'Updates',tone:'#7a6f5a',copilot:false,desc:'Receipts · system'}
+];
+const STAGES=['Lead','Discovery','Proposal','Closing','Won'];
+let MAIL={
+  crm:[
+    {id:'c1',from:'Marco Rossi',addr:'m.rossi@bistrot-lepetit.ch',lead:'Bistrot Le Petit',role:'champ',roleLbl:'Champion',when:'07:05',subj:'Re: preventivo sito',snip:'perfetto, una domanda sul punto 3…',quote:'"perfetto, una domanda sul punto 3 — i 10 giorni partono dalla firma o dal bonifico?"',lore:'Said he\'d <b>sign by EOW</b>. CHF 5\'200. Champion, decides himself.',draft:"ciao Marco, i 10 giorni partono dalla firma, il bonifico lo sistemiamo in parallelo. se firmiamo questa settimana sei online entro fine mese. ti mando i dati? f",vital:{pct:78,dir:'up',line:'opened 3× · replied after 2 opens → confidence ↑',bars:[5,8,6,11,9,14,12,17]},thread:[{chan:'wa',when:'8 Jun',text:'ti mando una mail coi dettagli'},{chan:'email',when:'9 Jun',text:'preventivo inviato · opened 3×'},{chan:'email',when:'today 07:05',text:'punto 3? ← this mail',cur:true}],writeback:{next:'Send bank details + sign link',meeting:'—',phone:'—',stageHint:'Proposal → Closing'},stage:2,booking:true},
+    {id:'c5',from:'Giulia Rossi',addr:'giulia@bistrot-lepetit.ch',lead:'Bistrot Le Petit',role:'dec',roleLbl:'Decision-maker',when:'06:30',subj:'Re: preventivo — la firma',snip:'sono la figlia di Marco, la firma passa da me',quote:'"sono Giulia, mi occupo io della parte amministrativa — la firma passa da me."',lore:'<b>The daughter.</b> Marco is the champion, but the signature actually goes through Giulia. Don\'t close without her.',draft:"ciao Giulia, perfetto. ti giro il contratto da firmare e i dati per il bonifico. se firmi questa settimana siete online entro fine mese. f",vital:{pct:82,dir:'up',line:'decision-maker engaged · close imminent',bars:[6,9,8,12,11,15,14,18]},thread:[{chan:'email',when:'9 Jun',text:'preventivo inviato a Marco'},{chan:'email',when:'today 06:30',text:'la firma passa da me ← this mail',cur:true}],writeback:{next:'Send contract + bank details to Giulia',meeting:'—',phone:'+41 79 ···',stageHint:'Proposal → Closing'},stage:2,booking:true},
+    {id:'c2',from:'Studio Bernasconi',addr:'info@studio-bernasconi.ch',lead:'Studio Bernasconi',role:'dec',roleLbl:'Decision-maker',when:'05:40',subj:'Fate anche il CRM?',snip:'ci sentiamo, fate anche il CRM oltre al sito?',quote:'"ci sentiamo, fate anche il CRM oltre al sito? grazie"',lore:'CHF 8\'900. Came from WhatsApp, now by email — wants the full stack.',draft:"ciao, sì: facciamo sito e CRM insieme, è esattamente il nostro lavoro. le va una call giovedì alle 15? f",vital:{pct:54,dir:'flat',line:'first email after WhatsApp · thread alive',bars:[6,6,7,6,8,7,9,8]},thread:[{chan:'wa',when:'fri',text:'budget intorno ai 9k, mi mandi proposta'},{chan:'email',when:'today 05:40',text:'fate anche il CRM? ← this mail',cur:true}],writeback:{next:'Offer call Thu 15:00',meeting:'Thu 15:00 (proposed)',phone:'+41 91 ···',stageHint:'Discovery → Proposal'},stage:1,booking:true},
+    {id:'c3',from:'Avv. Conti',addr:'g.conti@aequitas-law.ch',lead:'Aequitas Law',role:'gate',roleLbl:'Gatekeeper',when:'04:55',subj:'12k all-in?',snip:'i 12k sono comprensivi di tutto o IVA esclusa?',quote:'"buongiorno, i 12k sono comprensivi di tutto o IVA esclusa? il dott. Bernasconi chiede."',lore:'CHF 12\'000. <b>Gatekeeper</b> — route to the partner, don\'t pitch her.',vital:{pct:61,dir:'up',line:'gatekeeper engaged on price → buying signal',bars:[7,7,9,8,10,9,12,13]},thread:[{chan:'email',when:'2 Jun',text:'proposta 12k inviata'},{chan:'email',when:'today 04:55',text:'12k all-in? ← this mail',cur:true}],writeback:{next:'Confirm IVA basis · route to partner',meeting:'—',phone:'—',stageHint:'Proposal (hold)'},stage:2,booking:false,held:true,heldQ:'Is the CHF 12k quote IVA-inclusive? Not in the lore — I won\'t guess a price on a law firm.'},
+    {id:'c4',from:'Silke Lengler',addr:'silke.lengler@gmail.com',lead:'Lengler Psychotherapie',role:'dec',roleLbl:'Decision-maker',when:'Yesterday',subj:'Re: il ritratto',snip:'quando facciamo la foto per il sito?',quote:'"ok va bene Hara, quando organizziamo la foto del ritratto?"',lore:'<b>Won</b> — chose Hara V1. Beachhead proof. Real portrait shot still pending.',draft:"ciao Silke, contentissimo. per la foto: ti propongo che venga io con il fotografo, mezz'ora basta. la prossima settimana ti va? f",vital:{pct:100,dir:'up',line:'WON · chose Hara V1 after call → closed',bars:[8,10,9,13,12,16,18,20]},thread:[{chan:'call',when:'wed',text:'call · reviewed with husband, chose Hara V1'},{chan:'email',when:'yesterday',text:'quando facciamo la foto? ← this mail',cur:true}],writeback:{next:'Book portrait shoot w/ photographer',meeting:'next week (propose)',phone:'+41 76 478 05 99',stageHint:'Won → Delivery'},stage:3,booking:true}
+  ],
+  normal:[
+    {id:'n1',from:'Lucia · Fiduciaria',addr:'l.belotti@fiduga.ch',roleLbl:'Accountant',when:'08:10',subj:'IVA Q2 — manca una fattura',snip:'manca la fattura Barbazza per chiudere il Q2',quote:'"per chiudere il Q2 mi manca la fattura del Weingut Barbazza. me la giri?"',lore:'Your accountant. Barbazza closed CHF 500 — invoice exists.',draft:"ciao Lucia, te la giro entro oggi pomeriggio. è il Weingut Barbazza, CHF 500, saldata. ti serve altro per il Q2? f"},
+    {id:'n2',from:'Andrea Foletti',addr:'a.foletti@printwork.ch',roleLbl:'Supplier',when:'Yesterday',subj:'Preventivo stampa biglietti',snip:'eccoti il preventivo per i biglietti da visita',quote:'"eccoti il preventivo per 500 biglietti, carta cotone. fammi sapere."',lore:'Print supplier. Routine — confirm or hold.',draft:"ciao Andrea, confermo i 500 su carta cotone. quando li avrei pronti? f"}
+  ],
+  promo:[
+    {id:'p1',from:'Notion',addr:'news@mail.notion.so',when:'06:20',subj:'New in Notion: AI blocks',snip:'Discover what\'s new this month…'},
+    {id:'p2',from:'Figma',addr:'updates@figma.com',when:'Yesterday',subj:'Config 2026 — early bird ends',snip:'Save your seat before prices rise…'},
+    {id:'p3',from:'Webflow',addr:'hello@webflow.com',when:'2d',subj:'Build faster with the new CMS',snip:'Templates, tips, and a 20% offer…'},
+    {id:'p4',from:'Stripe',addr:'news@stripe.com',when:'2d',subj:'Your June product digest',snip:'Six updates worth a look…'},
+    {id:'p5',from:'Linear',addr:'team@linear.app',when:'3d',subj:'Cycle planning, reimagined',snip:'A better way to plan your sprints…'}
+  ],
+  social:[
+    {id:'s1',from:'LinkedIn',addr:'notifications@linkedin.com',when:'07:40',subj:'You appeared in 9 searches',snip:'See who\'s looking at your profile…'},
+    {id:'s2',from:'LinkedIn',addr:'invitations@linkedin.com',when:'Yesterday',subj:'Marco Rossi wants to connect',snip:'Accept or ignore…'},
+    {id:'s3',from:'Instagram',addr:'mail@instagram.com',when:'2d',subj:'bureau.paradiso · 3 new followers',snip:'See your latest activity…'}
+  ],
+  updates:[
+    {id:'u1',from:'Vercel',addr:'noreply@vercel.com',when:'05:00',subj:'Deployment ready · oskar-prototype',snip:'Your production deployment is live…'},
+    {id:'u2',from:'GitHub',addr:'noreply@github.com',when:'Yesterday',subj:'[oskar] 3 new commits to main',snip:'CD pushed to main…'},
+    {id:'u3',from:'Google',addr:'no-reply@accounts.google.com',when:'2d',subj:'Security alert',snip:'New sign-in on Mac…'},
+    {id:'u4',from:'Calendly',addr:'noreply@calendly.com',when:'2d',subj:'Reminder: call with Silke',snip:'Your event is tomorrow…'}
+  ]
+};
+let activeFolder='inbox', activeCat='normal', activeContact=null, checked=new Set();
+const catObj=id=>CATS.find(c=>c.id===id);
+const CONTACTS=()=>MAIL.crm;                 // CRM leads, already in recency order
+const FOLDERS=[
+  {id:'inbox',name:'Inbox',ic:'▣'},{id:'drafts',name:'Drafts',ic:'✎'},
+  {id:'sent',name:'Sent',ic:'➤'},{id:'spam',name:'Spam',ic:'⚠'},{id:'trash',name:'Trash',ic:'␥'}
+];
+const FOLDER_MAIL={
+  drafts:[
+    {id:'dr1',from:'Draft → Marco Rossi',when:'now',subj:'Re: preventivo sito',snip:'ciao Marco, sul punto 3: partiamo appena confermi…'},
+    {id:'dr2',from:'Draft → Studio Bernasconi',when:'1h',subj:'Re: fate anche il CRM?',snip:'ciao, sì: facciamo sito e CRM insieme…'}
+  ],
+  sent:[
+    {id:'se1',from:'To · Weingut Barbazza',when:'Mon',subj:'Il video è pronto',snip:'ciao Marin, ecco il video YouTube come richiesto. f'},
+    {id:'se2',from:'To · Silke Lengler',when:'Wed',subj:'Hara V1 — confermato',snip:'ciao Silke, perfetto, procediamo con Hara V1. f'}
+  ],
+  spam:[
+    {id:'sp1',from:'lottery-winner@win.biz',when:'3d',subj:'You WON CHF 1,000,000',snip:'Click here to claim your prize now…'},
+    {id:'sp2',from:'deals@crypto-x.io',when:'4d',subj:'Double your BTC in 24h',snip:'Limited time offer, act fast…'},
+    {id:'sp3',from:'security@paypa1.com',when:'5d',subj:'Your account is locked',snip:'Verify your identity immediately…'}
+  ],
+  trash:[]
+};
+const initials=s=>(s.replace(/[^A-Za-zÀ-ÿ ]/g,'').split(/\s+/).filter(Boolean).slice(0,2).map(w=>w[0]).join('').toUpperCase())||'·';
+
+/* ── left rail: folders + CRM contacts by recency ── */
+function renderRail(){
+  const inboxCount=CATS.reduce((s,c)=>s+(MAIL[c.id]?MAIL[c.id].length:0),0);
+  const counts={inbox:inboxCount,drafts:FOLDER_MAIL.drafts.length,sent:FOLDER_MAIL.sent.length,spam:FOLDER_MAIL.spam.length,trash:FOLDER_MAIL.trash.length};
+  $('#em-folders').innerHTML=FOLDERS.map(f=>`
+    <div class="em-folder ${(!activeContact&&f.id===activeFolder)?'is-active':''}" data-folder="${f.id}">
+      <span class="ic">${f.ic}</span><span>${f.name}</span>${counts[f.id]?`<span class="ct">${counts[f.id]}</span>`:''}
+    </div>`).join('');
+  $$('#em-folders .em-folder').forEach(el=>el.onclick=()=>{activeFolder=el.dataset.folder;activeContact=null;checked.clear();renderRail();renderMain();});
+  $('#em-contacts').innerHTML=CONTACTS().map(m=>`
+    <div class="em-contact ${activeContact===m.id?'is-active':''}" data-c="${m.id}">
+      <span class="av">${initials(m.from)}</span>
+      <div class="cbody"><div class="cn">${m.from}</div><div class="cm">${m.lead} · ${m.when}</div></div>
+    </div>`).join('')||`<div class="em-empty" style="padding:16px 8px">all caught up</div>`;
+  $$('#em-contacts .em-contact').forEach(el=>el.onclick=()=>{activeContact=el.dataset.c;checked.clear();renderRail();renderMain();});
+}
+
+/* ── inbox category lanes on top (CRM removed) ── */
+function renderCats(){
+  $('#lanes').innerHTML=CATS.map(c=>`
+    <button class="em-lane ${c.id===activeCat?'is-active':''}" data-cat="${c.id}" style="--lt:${c.tone}">
+      <div class="top"><span class="nm">${c.name}</span><span class="ct">${MAIL[c.id]?MAIL[c.id].length:0}</span></div>
+      <div class="ds">${c.desc} ${c.copilot?'<span class="bdg co">✦ CO-PILOT</span>':'<span class="bdg sw">SWEEP</span>'}</div>
+    </button>`).join('');
+  $$('#lanes .em-lane').forEach(el=>el.onclick=()=>{activeCat=el.dataset.cat;checked.clear();renderMain();});
+}
+
+/* ── middle pane router ── */
+function renderMain(){
+  const lanes=$('#lanes');
+  if(activeContact){lanes.style.display='none';renderContact(activeContact);return;}
+  if(activeFolder==='inbox'){lanes.style.display='flex';renderCats();renderInbox();}
+  else{lanes.style.display='none';renderFolder(activeFolder);}
+}
+
+function emailRow(m,o){o=o||{};
+  const ck=checked.has(m.id)?'checked':'';
+  const ready=o.copilot?(m.held?'<span class="eo-ready warn">⚠ NEEDS YOU</span>':'<span class="eo-ready">✦ REPLY DRAFTED</span>'):'';
+  const role=m.roleLbl?`<span class="role ${m.role||''}">${m.roleLbl}</span>`:'';
+  return `<div class="crm-overview-row ${ck} ${o.sel===m.id?'is-selected':''}" data-id="${m.id}">
+    <div class="crm-overview-rail" style="background:${o.rail||'#42392a'}"></div>
+    <div class="crm-overview-main">
+      <div class="crm-overview-name-row"><span class="crm-overview-name">${m.from}</span> ${role}</div>
+      <div class="eo-sub">${m.subj}</div><div class="eo-snip">${m.snip}</div>${ready}
+    </div>
+    <div class="crm-overview-actions"><span class="eo-when">${m.when}</span>${o.check?`<div class="eo-chk">${ck?'✓':''}</div>`:''}</div>
+  </div>`;
+}
+
+function renderInbox(){
+  const c=catObj(activeCat),items=MAIL[activeCat]||[];
+  $('#el-cap').innerHTML=`<span class="dot" style="background:${c.tone}"></span>Inbox · ${c.name} · ${items.length}`;
+  const wrap=$('#el-list');
+  if(!items.length){wrap.innerHTML=`<div class="em-empty">✓ ${c.name} clear.</div>`;$('#el-pane').innerHTML=`<div class="em-empty">← nothing here</div>`;return;}
+  let html='';
+  if(!c.copilot)html+=`<div class="em-bulk"><span class="t"><b>${items.length}</b> in ${c.name} · nothing to reply to</span><button class="b alt" id="bulk-check">Select all</button><button class="b go" id="bulk-sweep">▾ Sweep ${items.length}</button></div>`;
+  html+=items.map(m=>emailRow(m,{copilot:c.copilot,rail:c.copilot?(m.held?'#ffb84a':'#f97316'):'#42392a',check:!c.copilot})).join('');
+  wrap.innerHTML=html;
+  if(!c.copilot){$('#bulk-sweep').onclick=()=>sweepCat(activeCat);$('#bulk-check').onclick=()=>{items.forEach(m=>checked.add(m.id));renderInbox();};}
+  $$('#el-list .crm-overview-row').forEach(el=>el.onclick=()=>{
+    if(c.copilot)pane_copilot(items.find(m=>m.id===el.dataset.id),'Inbox · '+c.name);
+    else{const id=el.dataset.id;checked.has(id)?checked.delete(id):checked.add(id);renderInbox();}
+  });
+  if(c.copilot)pane_copilot(items[0],'Inbox · '+c.name);else pane_noise(c);
+}
+
+function renderFolder(fid){
+  const items=FOLDER_MAIL[fid]||[],name=FOLDERS.find(f=>f.id===fid).name;
+  $('#el-cap').innerHTML=`<span class="dot" style="background:var(--text-dim)"></span>${name} · ${items.length}`;
+  if(!items.length){$('#el-list').innerHTML=`<div class="em-empty">${name} is empty.</div>`;$('#el-pane').innerHTML=`<div class="em-empty">nothing here</div>`;return;}
+  $('#el-list').innerHTML=items.map(m=>emailRow(m,{rail:fid==='spam'?'#ff6a4d':'#42392a'})).join('');
+  $('#el-pane').innerHTML=`<div class="em-empty">← open a ${name.toLowerCase()} message</div>`;
+  $$('#el-list .crm-overview-row').forEach(el=>el.onclick=()=>{
+    const m=items.find(x=>x.id===el.dataset.id);
+    $$('#el-list .crm-overview-row').forEach(r=>r.classList.toggle('is-selected',r.dataset.id===m.id));
+    $('#el-pane').innerHTML=`<div class="cp-cap"><span>${name}</span><span></span></div><div class="cp-who">${m.from}</div><div class="cp-sub">re: ${m.subj} · ${m.when}</div><div class="mailread"><div class="mr-h"><span>message</span><span>${m.when}</span></div><div class="mr-body">${esc(m.snip)}</div></div>`;
+  });
+}
+
+function renderContact(id){
+  const m=MAIL.crm.find(x=>x.id===id);
+  if(!m){activeContact=null;renderMain();return;}
+  $('#el-cap').innerHTML=`<span class="dot" style="background:var(--email)"></span>${m.from} · ${m.lead}`;
+  $('#el-list').innerHTML=emailRow(m,{copilot:true,rail:m.held?'#ffb84a':'#f97316',sel:m.id});
+  $$('#el-list .crm-overview-row').forEach(el=>el.onclick=()=>pane_copilot(m,m.lead));
+  pane_copilot(m,m.lead);
+}
+function markSel(id){$$('#el-list .crm-overview-row').forEach(el=>el.classList.toggle('is-selected',el.dataset.id===id));}
+
+function vitalHTML(v){const cls=v.dir==='down'?'down':v.dir==='flat'?'flat':'';const a=v.dir==='down'?'↓':v.dir==='flat'?'→':'↑';return `<div class="vital"><div class="spark">${v.bars.map(h=>`<i style="height:${h}px"></i>`).join('')}</div><div class="vt"><div class="vpct ${cls}">${v.pct}% ${a}</div><div class="vln">${v.line}</div></div></div>`;}
+function threadHTML(t){return `<div class="utl">${t.map(x=>`<div class="ut ${x.cur?'cur':''}"><span class="uc ${x.chan}">${x.chan==='wa'?'WA':x.chan==='call'?'CALL':'✉'}</span><span class="uw">${x.when}</span><span>${esc(x.text)}</span></div>`).join('')}</div>`;}
+function pipeHTML(st){return `<div class="pipeline">${STAGES.map((s,i)=>`<div class="pst ${i<st?'done':i===st?'on':''}">${s}</div>`).join('')}</div>`;}
+/* The supporting context an Opus read actually surfaces — pulse + the
+   cross-channel thread. NOT a field-extraction grid; the agent uses those
+   facts to write the reply, it doesn't make you read them back. */
+function boundChip(m){return `<div class="bound">● on the lead <b style="color:var(--text-main);margin:0 3px">${m.lead}</b> — opened the record, not the message</div>`;}
+function supportMods(m){return `
+  <div class="mod"><div class="mod-h"><span>Deal pulse</span><span style="color:var(--text-muted)">${m.vital.pct}%</span></div>${vitalHTML(m.vital)}</div>
+  <div class="mod"><div class="mod-h"><span>Thread · all channels</span></div>${threadHTML(m.thread)}</div>`;}
+function stageStrip(m){return `<div class="mod"><div class="mod-h"><span>Pipeline</span></div>${pipeHTML(m.stage)}<div class="stage-acts"><button class="b alt" id="st-adv">▸ Advance stage</button>${m.booking?'<button class="b" id="st-book">📅 Insert booking link</button>':''}</div></div>`;}
+function wireStage(m,label){const a=$('#st-adv');if(a)a.onclick=()=>{if(m.stage<4){m.stage++;toast(`<b>${m.lead}</b> → ${STAGES[m.stage]} · logged on the lead`,'');}pane_copilot(m,label);};const b=$('#st-book');if(b)b.onclick=()=>{const body=$('#cp-body');if(body){body.innerText=body.innerText.replace(/\sf$/,'')+"\n\nprenota qui lo slot: cal.bureauparadiso.dev/f\n\nf";toast('Booking link inserted','email');}};}
+
+function pane_copilot(m,label){
+  if(!m)return;markSel(m.id);
+  label=label||m.lead||'Email';
+  const hasLead=!!m.lead&&!!m.vital;
+  const who=`<div class="cp-who">${m.from} ${m.roleLbl?`<span class="role ${m.role||''}">${m.roleLbl}</span>`:''}</div>
+    <div class="cp-sub">${m.lead?m.lead+' · ':''}${m.addr} · re: ${m.subj}</div>
+    ${hasLead?boundChip(m):''}`;
+  // the email itself — you read the content before the reply
+  const read=`<div class="mailread"><div class="mr-h"><span>${m.from} wrote</span><span>${m.when}</span></div><div class="mr-body">${esc(bodyOf(m))}</div></div>`;
+  // one natural line on what the draft leaned on — cross-channel reasoning.
+  const x=hasLead&&m.thread.find(t=>t.chan==='wa'||t.chan==='call');
+  const note=x?`<div class="cite">drafted off the ${x.chan==='wa'?'WhatsApp':'call'} on ${x.when} — not re-asking what you already settled there.</div>`:'';
+
+  if(m.held){
+    $('#el-pane').innerHTML=`
+      <div class="cp-cap"><span>The email</span><span>${label}</span></div>
+      ${who}
+      ${read}
+      <div class="draft"><div class="d-h"><span>↳ Co-pilot reply · Gmail · in-thread</span></div>
+        <div class="cite" style="color:var(--brand-amber);border-color:rgba(255,184,74,.5)">one blank I won't guess: is the 12k IVA-incl? drop the real value and it ships — I'm not inventing a number on a law firm.</div>
+        <div class="d-body" id="cp-body" contenteditable="false">buongiorno Avv. Conti, <mark>[IVA — da confermare]</mark>. le mando il dettaglio voce per voce e una data per una call con il dott. Bernasconi. f</div>
+        <div class="acts"><button class="b alt" data-fill="i 12k sono IVA esclusa">12k IVA esclusa</button><button class="b alt" data-fill="i 12k sono comprensivi di tutto">12k tutto incluso</button></div></div>
+      ${hasLead?supportMods(m)+stageStrip(m):''}`;
+    $$('#el-pane .acts .b[data-fill]').forEach(btn=>btn.onclick=()=>{m.held=false;m.draft=`buongiorno Avv. Conti, ${btn.dataset.fill}. le mando il dettaglio voce per voce e una data per una call con il dott. Bernasconi. f`;toast('Filled — ready to send','email');pane_copilot(m,label);});
+    if(hasLead)wireStage(m,label);return;
+  }
+
+  $('#el-pane').innerHTML=`
+    <div class="cp-cap"><span>The email</span><span>${label}</span></div>
+    ${who}
+    ${read}
+    <div class="draft"><div class="d-h"><span>↳ Co-pilot reply · Gmail · in-thread</span></div>
+      ${note}
+      <div class="d-body" id="cp-body" contenteditable="false">${esc(m.draft)}</div>
+      <div class="acts"><button class="b ok" id="cp-approve">✓ Approve · Send</button><button class="b alt" id="cp-edit">✎ Edit</button><button class="b" id="cp-snooze">⏲ Snooze</button></div></div>
+    ${hasLead?supportMods(m)+stageStrip(m):`<div class="mod"><div class="mod-h"><span>lore</span></div><div style="font-size:11.5px;color:var(--text-muted);line-height:1.5">${m.lore}</div></div>`}`;
+  const body=$('#cp-body');
+  $('#cp-edit').onclick=()=>{const on=body.getAttribute('contenteditable')==='true';body.setAttribute('contenteditable',on?'false':'true');$('#cp-edit').textContent=on?'✎ Edit':'✓ Done';if(!on){body.focus();const r=document.createRange();r.selectNodeContents(body);r.collapse(false);const s=getSelection();s.removeAllRanges();s.addRange(r);}};
+  $('#cp-approve').onclick=()=>sendMail(m);
+  $('#cp-snooze').onclick=()=>toast(`Snoozed <b>${m.from}</b> · back at 14:00`,'warn');
+  if(hasLead)wireStage(m,label);
+}
+function sendMail(m){
+  if(!m)return;
+  for(const k in MAIL){MAIL[k]=MAIL[k].filter(x=>x.id!==m.id);}
+  toast(`Sent to <b>${m.from}</b>${m.lead?` · logged on <b>${m.lead}</b>`:''}`,'email');
+  activeContact=null;renderRail();renderMain();
+  $('#el-pane').innerHTML=`<div class="em-empty">✓ Sent. Pick another.</div>`;
+}
+function sweepCat(id){const n=(MAIL[id]||[]).length;if(!n)return;MAIL[id]=[];checked.clear();toast(`Swept <b>${n}</b> ${catObj(id).name} mails · clean`,'');renderRail();renderMain();}
+function pane_noise(c){
+  $('#el-pane').innerHTML=`<div class="noisepane"><div class="ic">${c.id==='promo'?'📣':c.id==='social'?'⚲':'⟳'}</div><h4>No co-pilot here — on purpose</h4><p><b style="color:var(--text-main)">${c.name}</b> is noise. Drafting a reply to a newsletter would be theatre. Skim if you want, then clear it in one move.</p><button class="b go" id="np-sweep">▾ Sweep all ${c.name}</button></div>`;
+  $('#np-sweep').onclick=()=>sweepCat(c.id);
+}
+
+/* boot */
+$('#em-compose').onclick=composeNew;
+ov_deck();renderRail();renderMain();
+</script>
+</body>
+</html>

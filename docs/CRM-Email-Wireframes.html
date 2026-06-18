@@ -1,0 +1,511 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CRM · Email in Overview — Wireframes</title>
+<style>
+/* ── Real CRM onyx tokens (app/crm/crm.css) ─────────────────────────────── */
+:root{
+  --bg-app:#0a0907; --bg-card:#171410; --bg-sunken:#13110d; --bg-hover:#1f1a14;
+  --text-main:#ece1c5; --text-muted:#7a6f5a; --text-dim:#42392a;
+  --line:#2a2519; --line-dim:#1a160f;
+  --gold:#c8b88c; --amber:#ffb84a;
+  --email:#f97316;        /* Ralph locked 2026-05-26 · email = orange */
+  --wa:#25D366;           /* WhatsApp green */
+  --overdue:#ef4444; --today:#f97316; --phosphor:#c8ee7a; --cyan:#5cd6e0;
+  --MONO:"JetBrains Mono",ui-monospace,monospace;
+  --SANS:"Inter",system-ui,-apple-system,sans-serif;
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg-app);color:var(--text-main);font-family:var(--SANS)}
+body{padding:0 0 80px}
+a{color:inherit}
+
+/* ── Doc chrome ──────────────────────────────────────────────────────────── */
+.doc-head{padding:34px 40px 22px;border-bottom:1px solid var(--line);background:
+  radial-gradient(120% 140% at 0% 0%, #14110b 0%, var(--bg-app) 60%)}
+.doc-kicker{font-family:var(--MONO);font-size:10px;letter-spacing:2.4px;color:var(--email);text-transform:uppercase}
+.doc-title{font-size:30px;font-weight:600;letter-spacing:-.6px;margin:10px 0 6px}
+.doc-sub{color:var(--text-muted);font-size:14px;max-width:760px;line-height:1.55}
+.doc-sub b{color:var(--text-main);font-weight:600}
+.doc-meta{margin-top:16px;display:flex;gap:18px;flex-wrap:wrap;font-family:var(--MONO);font-size:10.5px;letter-spacing:.4px;color:var(--text-dim)}
+.doc-meta span b{color:var(--gold);font-weight:600}
+
+/* ── Tab nav ─────────────────────────────────────────────────────────────── */
+.tabs{position:sticky;top:0;z-index:40;display:flex;gap:6px;padding:14px 40px;
+  background:rgba(10,9,7,.92);backdrop-filter:blur(8px);border-bottom:1px solid var(--line);flex-wrap:wrap}
+.tab{appearance:none;border:1px solid var(--line);background:var(--bg-card);color:var(--text-muted);
+  font-family:var(--MONO);font-size:11px;letter-spacing:.6px;padding:9px 13px;cursor:pointer;
+  display:flex;align-items:center;gap:9px;transition:.14s;border-radius:7px}
+.tab:hover{background:var(--bg-hover);color:var(--text-main)}
+.tab.active{border-color:var(--email);color:var(--text-main);background:#1c1308}
+.tab .k{font-weight:700;color:var(--email)}
+.tab.active .k{color:var(--email)}
+.tab .rec{font-size:8.5px;letter-spacing:1px;color:var(--phosphor);border:1px solid #2f3a1c;
+  background:#141a0c;padding:2px 5px;border-radius:4px}
+
+/* ── Panel ───────────────────────────────────────────────────────────────── */
+.panel{display:none;padding:28px 40px 0}
+.panel.active{display:block;animation:rise .4s cubic-bezier(.2,.7,.3,1) both}
+@keyframes rise{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+.p-head{display:flex;align-items:baseline;gap:14px;margin-bottom:4px;flex-wrap:wrap}
+.p-num{font-family:var(--MONO);font-size:13px;color:var(--email);font-weight:700;letter-spacing:1px}
+.p-name{font-size:22px;font-weight:600;letter-spacing:-.3px}
+.p-tag{font-family:var(--MONO);font-size:9px;letter-spacing:1.5px;text-transform:uppercase;
+  padding:4px 8px;border-radius:5px;border:1px solid var(--line)}
+.p-tag.rec{color:var(--phosphor);border-color:#2f3a1c;background:#141a0c}
+.p-tag.hold{color:var(--cyan);border-color:#1d3438;background:#0c1618}
+.p-tag.later{color:var(--text-muted)}
+.p-thesis{color:var(--text-muted);font-size:14px;line-height:1.6;max-width:840px;margin:10px 0 22px}
+.p-thesis b{color:var(--text-main);font-weight:600}
+.p-thesis .hi{color:var(--email);font-weight:600}
+
+/* ── The Overview shell (real 3-col grid) ────────────────────────────────── */
+.ov{display:grid;grid-template-columns:400px 1fr 420px;gap:14px;
+  border:1px solid var(--line);border-radius:12px;overflow:hidden;background:var(--bg-app);
+  min-height:560px;box-shadow:0 24px 60px rgba(0,0,0,.45)}
+.ov-col{padding:18px 16px;overflow:hidden}
+.ov-col.mid{background:var(--bg-sunken);border-left:1px solid var(--line-dim);border-right:1px solid var(--line-dim)}
+.col-cap{font-family:var(--MONO);font-size:9px;letter-spacing:1.6px;text-transform:uppercase;
+  color:var(--text-dim);margin-bottom:14px;display:flex;align-items:center;gap:7px}
+.col-cap .dot{width:5px;height:5px;border-radius:50%;background:var(--text-dim)}
+
+/* rail greeting */
+.greet{font-family:var(--MONO);font-size:9.5px;letter-spacing:1px;color:var(--text-dim);
+  display:flex;justify-content:space-between;text-transform:uppercase;margin-bottom:12px}
+.greet b{color:var(--gold);font-weight:600}
+.headline{font-size:15px;line-height:1.45;font-weight:500;margin-bottom:18px;color:var(--text-main)}
+.headline em{font-style:normal;color:var(--overdue);font-weight:600}
+
+/* bento */
+.bento{display:flex;align-items:center;gap:12px;width:100%;text-align:left;
+  border:1px solid var(--line);border-left:3px solid var(--tone,var(--text-dim));
+  background:var(--bg-card);padding:11px 13px;border-radius:8px;margin-bottom:7px;cursor:pointer;
+  transition:.14s}
+.bento:hover{background:var(--bg-hover)}
+.bento.active{border-color:var(--tone);background:#16120b}
+.bento.muted{opacity:.4}
+.bento .num{font-family:var(--MONO);font-size:19px;font-weight:600;color:var(--tone,var(--text-main));min-width:30px}
+.bento .b-body{flex:1;min-width:0}
+.bento .lbl{display:block;font-size:13px;font-weight:600;color:var(--text-main)}
+.bento .sub{display:block;font-size:10.5px;color:var(--text-muted);margin-top:2px}
+.bento .arr{color:var(--text-dim)}
+.bento.new{border-style:dashed}
+.bento.new .lbl::after{content:" NEW";font-family:var(--MONO);font-size:8px;letter-spacing:1px;
+  color:var(--email);vertical-align:middle;margin-left:6px}
+.rail-sep{height:1px;background:var(--line-dim);margin:13px 2px}
+.rail-grp{font-family:var(--MONO);font-size:8.5px;letter-spacing:1.5px;text-transform:uppercase;
+  color:var(--text-dim);margin:0 0 9px 2px}
+.pipe{margin-top:16px;padding-top:13px;border-top:1px solid var(--line-dim);
+  font-family:var(--MONO);font-size:10.5px;color:var(--text-muted);display:flex;gap:8px;flex-wrap:wrap}
+.pipe b{color:var(--gold);font-weight:600}
+
+/* lead rows (mid col) */
+.lead{display:grid;grid-template-columns:4px 1fr auto;gap:11px;align-items:center;
+  background:var(--bg-card);border:1px solid var(--line);border-radius:8px;padding:11px 13px;margin-bottom:8px;cursor:pointer}
+.lead:hover{background:var(--bg-hover)}
+.lead .rail{width:4px;height:34px;border-radius:3px;background:var(--tone,var(--text-dim))}
+.lead .l-name{font-size:13.5px;font-weight:600}
+.lead .l-meta{font-family:var(--MONO);font-size:10px;color:var(--text-muted);margin-top:3px;display:flex;align-items:center;gap:7px;flex-wrap:wrap}
+.lead .l-money{text-align:right;font-family:var(--MONO);font-size:12px;color:var(--gold)}
+.lead .l-money small{display:block;font-size:9px;color:var(--text-dim)}
+.chan{display:inline-flex;align-items:center;gap:4px;font-family:var(--MONO);font-size:9px;
+  letter-spacing:.5px;padding:2px 6px;border-radius:4px;text-transform:uppercase}
+.chan.email{color:var(--email);background:#1d1206;border:1px solid #3a2510}
+.chan.wa{color:var(--wa);background:#08160c;border:1px solid #12381f}
+.chan.dot::before{content:"●";font-size:7px}
+
+/* right panel generic card */
+.rcard{background:var(--bg-card);border:1px solid var(--line);border-radius:10px;padding:14px;margin-bottom:12px}
+.rcard.tone{border-left:3px solid var(--tone,var(--email))}
+.r-cap{font-family:var(--MONO);font-size:9px;letter-spacing:1.4px;text-transform:uppercase;color:var(--tone,var(--email));display:flex;justify-content:space-between;align-items:center}
+.r-cap .when{color:var(--text-dim)}
+.r-name{font-size:15px;font-weight:600;margin:9px 0 3px}
+.r-why{font-size:12px;color:var(--text-muted);line-height:1.5}
+
+/* unified thread (A) */
+.thread{display:flex;flex-direction:column;gap:9px;margin-top:4px}
+.bub{max-width:86%;padding:9px 12px;border-radius:12px;font-size:12px;line-height:1.45}
+.bub .b-h{font-family:var(--MONO);font-size:8.5px;letter-spacing:.6px;margin-bottom:4px;display:flex;gap:7px;align-items:center;text-transform:uppercase}
+.bub.in{align-self:flex-start;background:var(--bg-hover);border:1px solid var(--line)}
+.bub.out{align-self:flex-end;background:#16120b;border:1px solid #3a2510}
+.bub.email .b-h{color:var(--email)}
+.bub.wa .b-h{color:var(--wa)}
+.bub .ch{font-size:8px;padding:1px 5px;border-radius:3px}
+.bub.email .ch{background:#1d1206;color:var(--email)}
+.bub.wa .ch{background:#08160c;color:var(--wa)}
+
+/* draft / copilot (C) */
+.draft{background:var(--bg-card);border:1px solid var(--line);border-left:3px solid var(--email);border-radius:9px;padding:13px;margin-bottom:11px}
+.draft .d-h{display:flex;justify-content:space-between;align-items:center;font-family:var(--MONO);font-size:9px;letter-spacing:1px;color:var(--email);text-transform:uppercase}
+.draft .d-h .stat{color:var(--phosphor)}
+.draft .d-from{font-size:12.5px;font-weight:600;margin:8px 0 2px}
+.draft .d-sub{font-size:11px;color:var(--text-muted);margin-bottom:9px}
+.draft .d-body{font-size:11.5px;line-height:1.55;color:var(--text-main);background:var(--bg-sunken);border:1px dashed var(--line);border-radius:7px;padding:10px;position:relative}
+.draft .d-body::before{content:"CONSULAR DRAFT";position:absolute;top:-8px;left:9px;font-family:var(--MONO);font-size:7.5px;letter-spacing:1px;color:var(--email);background:var(--bg-sunken);padding:0 5px}
+.draft .acts{display:flex;gap:7px;margin-top:10px}
+.btn{font-family:var(--MONO);font-size:9.5px;letter-spacing:.8px;padding:7px 11px;border-radius:6px;cursor:pointer;text-transform:uppercase;border:1px solid var(--line);background:transparent;color:var(--text-muted)}
+.btn.go{background:var(--email);color:#1a1006;border-color:var(--email);font-weight:700}
+.btn.alt{color:var(--text-main);background:var(--bg-hover)}
+
+/* flight deck cards (D) */
+.fd{border:1px solid var(--tone,var(--email));border-left:3px solid var(--tone,var(--email));
+  background:#120e09;border-radius:9px;padding:12px 13px;margin-bottom:9px;position:relative;overflow:hidden}
+.fd .fd-h{display:flex;justify-content:space-between;align-items:center;font-family:var(--MONO);font-size:9px;letter-spacing:1.2px;color:var(--tone,var(--email));text-transform:uppercase}
+.fd .fd-h .dl{border:1px solid currentColor;padding:2px 6px;border-radius:4px;opacity:.85}
+.fd .fd-co{font-size:16px;font-weight:600;margin:9px 0 3px}
+.fd .fd-why{font-size:11.5px;color:var(--text-muted);line-height:1.45}
+.fd .fd-exec{margin-top:11px;display:flex;align-items:center;gap:9px}
+.fd .fd-btn{font-family:var(--MONO);font-size:9.5px;letter-spacing:1px;font-weight:700;text-transform:uppercase;
+  background:var(--tone,var(--email));color:#150d05;padding:7px 11px;border-radius:5px}
+.fd .fd-dur{font-family:var(--MONO);font-size:9.5px;color:var(--text-dim)}
+.fd .rank{position:absolute;top:9px;right:11px;font-family:var(--MONO);font-size:8px;color:var(--text-dim);letter-spacing:1px}
+
+/* deal-health (E) */
+.pulse{display:flex;align-items:flex-end;gap:2px;height:20px}
+.pulse i{width:3px;border-radius:1px;background:var(--tone,var(--email));opacity:.85}
+.health{display:flex;align-items:center;gap:8px;font-family:var(--MONO);font-size:9.5px;color:var(--text-muted)}
+.health .meter{flex:1;height:6px;border-radius:3px;background:var(--bg-hover);overflow:hidden;position:relative}
+.health .meter i{position:absolute;inset:0 auto 0 0;border-radius:3px}
+.vital{display:flex;justify-content:space-between;font-family:var(--MONO);font-size:9px;color:var(--text-dim);text-transform:uppercase;letter-spacing:.8px;margin-top:9px;padding-top:8px;border-top:1px solid var(--line-dim)}
+.vital b{color:var(--text-main)}
+
+/* callout under each mock */
+.legend{margin:16px 0 30px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
+.legend .lg{border:1px solid var(--line);border-radius:9px;padding:13px;background:var(--bg-card)}
+.legend .lg h4{margin:0 0 6px;font-family:var(--MONO);font-size:9px;letter-spacing:1.2px;text-transform:uppercase;color:var(--gold)}
+.legend .lg.win h4{color:var(--phosphor)}
+.legend .lg.cost h4{color:var(--overdue)}
+.legend .lg p{margin:0;font-size:12px;color:var(--text-muted);line-height:1.55}
+.legend .lg p b{color:var(--text-main)}
+@media(max-width:1100px){.ov{grid-template-columns:1fr}.legend{grid-template-columns:1fr}}
+.fnote{font-family:var(--MONO);font-size:10px;color:var(--text-dim);letter-spacing:.4px;margin-bottom:18px}
+</style>
+</head>
+<body>
+
+<div class="doc-head">
+  <div class="doc-kicker">◆ CRM · Email in Overview · Wireframes</div>
+  <div class="doc-title">Five ways email lands in the Overview</div>
+  <div class="doc-sub">Not more prose — the actual surfaces, drawn on the <b>real 3-column Overview shell</b>
+    (400px rail · lead list · 420px panel). Every mock reuses the live tokens: onyx ground, <b style="color:var(--email)">email orange</b>,
+    <b style="color:var(--wa)">WhatsApp green</b>, the existing triage bentos and lead rows. Flip the tabs to compare.
+    My call is flagged: <b style="color:var(--phosphor)">D as the surface, C as the engine</b>, B held as overflow.</div>
+  <div class="doc-meta">
+    <span>SHELL <b>app/crm · TriageRail.tsx + LeadList + Flight Deck</b></span>
+    <span>EMAIL TONE <b>#f97316</b> (Ralph locked 26 May)</span>
+    <span>TRANSPORT <b>Gmail API · greenfield</b></span>
+    <span>STATUS <b>wireframe · pre-spec</b></span>
+  </div>
+</div>
+
+<div class="tabs">
+  <button class="tab active" data-p="A"><span class="k">A</span> One Thread</button>
+  <button class="tab" data-p="B"><span class="k">B</span> Triage Lane <span class="rec">HOLD</span></button>
+  <button class="tab" data-p="C"><span class="k">C</span> Co-Pilot <span class="rec">ENGINE</span></button>
+  <button class="tab" data-p="D"><span class="k">D</span> Flight Deck Native <span class="rec">SURFACE</span></button>
+  <button class="tab" data-p="E"><span class="k">E</span> Deal-Health Signal</button>
+</div>
+
+<!-- ══════════════════════════════ A · ONE THREAD ══════════════════════════ -->
+<section class="panel active" data-p="A">
+  <div class="p-head">
+    <span class="p-num">A</span><span class="p-name">One Thread</span>
+    <span class="p-tag later">eventual destination</span>
+  </div>
+  <div class="p-thesis">Email is <b>not a separate inbox</b> — it's another bubble in the <span class="hi">one conversation</span> you already
+    have with the lead. The channel group collapses email + WhatsApp into a single <b>Conversations</b> count. Open a lead and the
+    right panel shows WA and email interleaved on one timeline, colour-coded by channel. The cleanest end-state — but it needs safe
+    identity-merge (same human across phone + email) before it's trustworthy, so it ships <b>last</b>.</div>
+
+  <div class="ov">
+    <!-- rail -->
+    <div class="ov-col">
+      <div class="greet"><span>GOOD MORNING · <b>MON 15 JUN</b></span><span>09:12:04</span></div>
+      <div class="headline">14 items need you. Start with the <em>11 overdue</em>.</div>
+      <div class="rail-grp">Urgency</div>
+      <button class="bento active" style="--tone:var(--overdue)"><span class="num">11</span><div class="b-body"><span class="lbl">Overdue</span><span class="sub">Past due · prioritise first</span></div><span class="arr">→</span></button>
+      <button class="bento" style="--tone:var(--today)"><span class="num">03</span><div class="b-body"><span class="lbl">Today</span><span class="sub">On the docket for Mon 15</span></div><span class="arr">→</span></button>
+      <div class="rail-sep"></div>
+      <div class="rail-grp">Channel</div>
+      <button class="bento new" style="--tone:var(--gold)"><span class="num">19</span><div class="b-body"><span class="lbl">Conversations</span><span class="sub">Email + WhatsApp, one thread each</span></div><span class="arr">→</span></button>
+      <div class="fnote" style="margin:6px 0 0">└ the two channel bentos merge into one</div>
+      <div class="rail-sep"></div>
+      <div class="rail-grp">Stage</div>
+      <button class="bento" style="--tone:#52525b"><span class="num">04</span><div class="b-body"><span class="lbl">Closing</span><span class="sub">Stage 4 · contract pending</span></div><span class="arr">→</span></button>
+      <div class="pipe"><span>Pipeline <b>CHF 48'400</b></span><span>·</span><span>Weighted <b>CHF 19'100</b></span></div>
+    </div>
+    <!-- mid -->
+    <div class="ov-col mid">
+      <div class="col-cap"><span class="dot"></span>Leads · last touch any channel</div>
+      <div class="lead" style="--tone:var(--overdue)"><span class="rail"></span><div><div class="l-name">Bistrot Le Petit</div><div class="l-meta"><span class="chan email dot">EMAIL IN</span> 2h · re: preventivo</div></div><div class="l-money">5'200<small>CHF</small></div></div>
+      <div class="lead" style="--tone:var(--today)"><span class="rail"></span><div><div class="l-name">Studio Bernasconi</div><div class="l-meta"><span class="chan wa dot">WHATSAPP</span> 5h · "ci sentiamo"</div></div><div class="l-money">8'900<small>CHF</small></div></div>
+      <div class="lead" style="--tone:var(--text-dim)"><span class="rail"></span><div><div class="l-name">Caffè Sant'Ambrogio</div><div class="l-meta"><span class="chan email dot">EMAIL</span><span class="chan wa dot">WA</span> mixed thread</div></div><div class="l-money">3'400<small>CHF</small></div></div>
+    </div>
+    <!-- right: unified thread -->
+    <div class="ov-col">
+      <div class="col-cap"><span class="dot" style="background:var(--email)"></span>Bistrot Le Petit · one conversation</div>
+      <div class="thread">
+        <div class="bub in wa"><div class="b-h"><span class="ch">WA</span> Marco · 8 Jun</div>guarda mando una mail con i dettagli</div>
+        <div class="bub out email"><div class="b-h"><span class="ch">EMAIL ↗</span> you · 9 Jun</div>ciao Marco, ecco il preventivo in allegato. f</div>
+        <div class="bub in email"><div class="b-h"><span class="ch">EMAIL</span> Marco · today 07:05</div>perfetto, una domanda sul punto 3…</div>
+      </div>
+      <div class="rcard tone" style="--tone:var(--email);margin-top:14px">
+        <div class="r-cap"><span>↳ REPLY · EMAIL</span><span class="when">draft ready</span></div>
+        <div class="r-why" style="margin-top:8px">One composer, channel auto-selected from the last inbound. Reply lands in your real Gmail thread.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="legend">
+    <div class="lg win"><h4>What it wins</h4><p>The <b>truest</b> picture of a relationship — one human, one history, channel-agnostic. No "which inbox did they use" mental tax.</p></div>
+    <div class="lg cost"><h4>What it costs</h4><p>Needs <b>identity-merge</b> (phone ↔ email = same person) to be safe. Merge a wrong pair and you leak one lead's thread into another's. High-trust, high-risk.</p></div>
+    <div class="lg"><h4>Integrates with</h4><p>LeadDetail thread view, the <b>channel</b> column on activities, the unified outbox. The bentos simplify rather than grow.</p></div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════ B · TRIAGE LANE ═════════════════════════ -->
+<section class="panel" data-p="B">
+  <div class="p-head">
+    <span class="p-num">B</span><span class="p-name">The Triage Lane</span>
+    <span class="p-tag hold">hold · overflow lane</span>
+  </div>
+  <div class="p-thesis">Email gets its <b>own buckets in the rail</b>, mirroring the WhatsApp pattern exactly: <span class="hi">Unmatched emails</span>,
+    <span class="hi">Awaiting reply</span>. It's the most literal, lowest-surprise build — email becomes a triage lane next to WhatsApp.
+    Good as an <b>overflow valve</b> when volume spikes, but on its own it just adds buckets without changing how you work. <b>Hold it</b>
+    behind D.</div>
+
+  <div class="ov">
+    <div class="ov-col">
+      <div class="greet"><span>GOOD MORNING · <b>MON 15 JUN</b></span><span>09:12:04</span></div>
+      <div class="headline">14 items need you. <em>4 emails</em> are unmatched.</div>
+      <div class="rail-grp">Urgency</div>
+      <button class="bento" style="--tone:var(--overdue)"><span class="num">11</span><div class="b-body"><span class="lbl">Overdue</span><span class="sub">Past due · prioritise first</span></div><span class="arr">→</span></button>
+      <div class="rail-sep"></div>
+      <div class="rail-grp">Channel — Email</div>
+      <button class="bento new active" style="--tone:var(--email)"><span class="num">04</span><div class="b-body"><span class="lbl">Unmatched emails</span><span class="sub">No lead matched the sender yet</span></div><span class="arr">→</span></button>
+      <button class="bento new" style="--tone:var(--email)"><span class="num">07</span><div class="b-body"><span class="lbl">Awaiting reply</span><span class="sub">You owe them an email back</span></div><span class="arr">→</span></button>
+      <div class="rail-sep"></div>
+      <div class="rail-grp">Channel — WhatsApp</div>
+      <button class="bento" style="--tone:var(--wa)"><span class="num">02</span><div class="b-body"><span class="lbl">Unmatched WA</span><span class="sub">No lead matched the number</span></div><span class="arr">→</span></button>
+      <button class="bento" style="--tone:var(--wa)"><span class="num">06</span><div class="b-body"><span class="lbl">Last was WhatsApp</span><span class="sub">Open WA conversations</span></div><span class="arr">→</span></button>
+      <div class="pipe"><span>Pipeline <b>CHF 48'400</b></span><span>·</span><span>Weighted <b>CHF 19'100</b></span></div>
+    </div>
+    <div class="ov-col mid">
+      <div class="col-cap"><span class="dot" style="background:var(--email)"></span>Unmatched emails · 4 · match to a lead</div>
+      <div class="lead" style="--tone:var(--email)"><span class="rail"></span><div><div class="l-name">m.rossi@bistrot-lepetit.ch</div><div class="l-meta"><span class="chan email dot">EMAIL IN</span> 2h · "Re: preventivo sito"</div></div><div class="l-money" style="color:var(--email)">MATCH<small>→ lead?</small></div></div>
+      <div class="lead" style="--tone:var(--email)"><span class="rail"></span><div><div class="l-name">info@studio-bernasconi.ch</div><div class="l-meta"><span class="chan email dot">EMAIL IN</span> 4h · new sender</div></div><div class="l-money" style="color:var(--email)">MATCH<small>→ lead?</small></div></div>
+      <div class="lead" style="--tone:var(--text-dim)"><span class="rail"></span><div><div class="l-name">noreply@calendly.com</div><div class="l-meta"><span class="chan email dot">EMAIL IN</span> 6h · likely noise</div></div><div class="l-money" style="color:var(--text-dim)">DISMISS<small>↓</small></div></div>
+    </div>
+    <div class="ov-col">
+      <div class="col-cap"><span class="dot"></span>Match panel</div>
+      <div class="rcard tone" style="--tone:var(--email)">
+        <div class="r-cap"><span>◎ SUGGESTED MATCH</span><span class="when">94%</span></div>
+        <div class="r-name">Bistrot Le Petit</div>
+        <div class="r-why">Domain <b>bistrot-lepetit.ch</b> matches lead P017's company URL. Same thread subject as the proposal you sent 9 Jun.</div>
+        <div class="draft" style="margin-top:11px;border:none;padding:0;background:none">
+          <div class="acts"><span class="btn go">Link to P017</span><span class="btn alt">Pick another</span><span class="btn">New lead</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="legend">
+    <div class="lg win"><h4>What it wins</h4><p>Zero new mental model — it's the <b>WhatsApp pattern, copied</b>. Cheapest to build, easiest to explain. The unmatched-match flow is genuinely useful.</p></div>
+    <div class="lg cost"><h4>What it costs</h4><p>Adds <b>buckets, not behaviour</b>. More to scan, not less. A triage lane is a place to <i>go</i>; it doesn't push the next move to you.</p></div>
+    <div class="lg"><h4>Integrates with</h4><p>Reuses <b>WaUnmatchedBanner</b> logic, the bento renderer, activity matching. Lowest engineering risk — the reason to keep it as overflow.</p></div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════ C · CO-PILOT ════════════════════════════ -->
+<section class="panel" data-p="C">
+  <div class="p-head">
+    <span class="p-num">C</span><span class="p-name">Consular Co-Pilot</span>
+    <span class="p-tag rec">★ the engine</span>
+  </div>
+  <div class="p-thesis">Every inbound email arrives with a <span class="hi">reply already drafted</span> in your voice. The Overview leads with a
+    <b>reply queue</b> — you read, then Approve / Edit / Send. This isn't a surface, it's the <b>engine</b>: the Consular doing the typing
+    so you do the deciding. Pairs under D's cards or B's lane — wherever email lives, the draft is waiting. <b>This is what makes email in
+    the CRM worth more than email in Gmail.</b></div>
+
+  <div class="ov">
+    <div class="ov-col">
+      <div class="greet"><span>GOOD MORNING · <b>MON 15 JUN</b></span><span>09:12:04</span></div>
+      <div class="headline"><em>5 replies drafted</em> and waiting for your yes.</div>
+      <div class="rail-grp">Reply queue</div>
+      <button class="bento active new" style="--tone:var(--email)"><span class="num">05</span><div class="b-body"><span class="lbl">Drafted · ready</span><span class="sub">Consular wrote it · you approve</span></div><span class="arr">→</span></button>
+      <button class="bento" style="--tone:var(--amber)"><span class="num">02</span><div class="b-body"><span class="lbl">Needs your input</span><span class="sub">Missing a fact to draft</span></div><span class="arr">→</span></button>
+      <div class="rail-sep"></div>
+      <div class="rail-grp">Urgency</div>
+      <button class="bento" style="--tone:var(--overdue)"><span class="num">11</span><div class="b-body"><span class="lbl">Overdue</span><span class="sub">Past due · prioritise first</span></div><span class="arr">→</span></button>
+      <div class="pipe"><span>Pipeline <b>CHF 48'400</b></span><span>·</span><span>Weighted <b>CHF 19'100</b></span></div>
+    </div>
+    <div class="ov-col mid">
+      <div class="col-cap"><span class="dot" style="background:var(--email)"></span>Reply queue · drafted, awaiting your yes</div>
+      <div class="draft">
+        <div class="d-h"><span>↳ RE: PREVENTIVO SITO · BISTROT LE PETIT</span><span class="stat">● READY</span></div>
+        <div class="d-from">Marco Rossi asked about point 3 (timeline)</div>
+        <div class="d-sub">inbound 2h ago · lore: said he'd sign by EOW</div>
+        <div class="d-body">ciao Marco, sul punto 3: partiamo appena confermi, la prima bozza è pronta in 10 giorni. se firmiamo questa settimana sei online entro fine mese. ti mando i dati per il bonifico? f</div>
+        <div class="acts"><span class="btn go">Approve &amp; send</span><span class="btn alt">Edit</span><span class="btn">Snooze</span></div>
+      </div>
+      <div class="draft" style="opacity:.72">
+        <div class="d-h"><span>↳ RE: DISPONIBILITÀ · STUDIO BERNASCONI</span><span class="stat">● READY</span></div>
+        <div class="d-from">Asked if you do CRM as well as the site</div>
+        <div class="d-body">ciao, sì — sito e CRM insieme, è esattamente quello che facciamo…</div>
+        <div class="acts"><span class="btn go">Approve &amp; send</span><span class="btn alt">Edit</span></div>
+      </div>
+    </div>
+    <div class="ov-col">
+      <div class="col-cap"><span class="dot" style="background:var(--amber)"></span>Needs you before I can draft</div>
+      <div class="rcard tone" style="--tone:var(--amber)">
+        <div class="r-cap" style="--email:var(--amber)"><span>? ONE FACT MISSING</span><span class="when">Aequitas</span></div>
+        <div class="r-name">What budget did you quote them?</div>
+        <div class="r-why">They asked "is the 12k all-in?" — I don't have the number in the lore, so I won't guess. Tell me and the draft writes itself.</div>
+        <div class="acts" style="display:flex;gap:7px;margin-top:10px"><span class="btn alt">12k all-in</span><span class="btn alt">+ hosting</span><span class="btn">Type it</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="legend">
+    <div class="lg win"><h4>What it wins</h4><p>Turns email from <b>work into decisions</b>. The volume problem you hired me for — answered. Your voice, my typing. The one feature Gmail can't copy.</p></div>
+    <div class="lg cost"><h4>What it costs</h4><p>The <b>WP-111 read-only firewall</b>: I can't send. A draft card must POST <code>email-outbound</code> around the agent. And trust — auto-send appetite is your call (Q in §10).</p></div>
+    <div class="lg win"><h4>Why it's the engine</h4><p>It's not a place, it's a <b>capability</b> that rides whatever surface wins. Put it under D's cards and the Flight Deck card opens pre-drafted.</p></div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════ D · FLIGHT DECK ═════════════════════════ -->
+<section class="panel" data-p="D">
+  <div class="p-head">
+    <span class="p-num">D</span><span class="p-name">Flight Deck Native</span>
+    <span class="p-tag rec">★ the surface</span>
+  </div>
+  <div class="p-thesis">No new surface at all. Email folds into the <b>Flight Deck you already drive</b> — each actionable email becomes a ranked card,
+    sorted with WhatsApp actions by <span class="hi">ROI-per-minute</span>, not by channel. A 2-minute email that unblocks a CHF 5k signature
+    outranks a 20-minute WA proposal. You wake up, the deck already merged both inboxes into one prioritised stack. <b>This is the surface I'd
+    ship</b> — and each card opens C's draft.</div>
+
+  <div class="ov">
+    <div class="ov-col">
+      <div class="greet"><span>GOOD MORNING · <b>MON 15 JUN</b></span><span>09:12:04</span></div>
+      <div class="headline">Deck merged both inboxes. <em>Bistrot first.</em></div>
+      <div class="rail-grp">Urgency</div>
+      <button class="bento" style="--tone:var(--overdue)"><span class="num">11</span><div class="b-body"><span class="lbl">Overdue</span><span class="sub">Past due · prioritise first</span></div><span class="arr">→</span></button>
+      <button class="bento" style="--tone:var(--today)"><span class="num">03</span><div class="b-body"><span class="lbl">Today</span><span class="sub">On the docket for Mon 15</span></div><span class="arr">→</span></button>
+      <div class="rail-sep"></div>
+      <div class="rail-grp">Channel (unchanged)</div>
+      <button class="bento" style="--tone:var(--email)"><span class="num">09</span><div class="b-body"><span class="lbl">Emails</span><span class="sub">Last activity was email</span></div><span class="arr">→</span></button>
+      <button class="bento" style="--tone:var(--wa)"><span class="num">06</span><div class="b-body"><span class="lbl">WhatsApp</span><span class="sub">Last activity was WhatsApp</span></div><span class="arr">→</span></button>
+      <div class="pipe"><span>Pipeline <b>CHF 48'400</b></span><span>·</span><span>Weighted <b>CHF 19'100</b></span></div>
+    </div>
+    <div class="ov-col mid">
+      <div class="col-cap"><span class="dot" style="background:var(--phosphor)"></span>Lead list · unchanged</div>
+      <div class="lead" style="--tone:var(--overdue)"><span class="rail"></span><div><div class="l-name">Bistrot Le Petit</div><div class="l-meta"><span class="chan email dot">EMAIL</span> 2h · point 3 q</div></div><div class="l-money">5'200<small>CHF</small></div></div>
+      <div class="lead" style="--tone:var(--today)"><span class="rail"></span><div><div class="l-name">Studio Bernasconi</div><div class="l-meta"><span class="chan email dot">EMAIL</span> 4h · CRM too?</div></div><div class="l-money">8'900<small>CHF</small></div></div>
+      <div class="lead" style="--tone:var(--text-dim)"><span class="rail"></span><div><div class="l-name">Caffè Sant'Ambrogio</div><div class="l-meta"><span class="chan wa dot">WA</span> 5h · slot?</div></div><div class="l-money">3'400<small>CHF</small></div></div>
+    </div>
+    <div class="ov-col">
+      <div class="col-cap"><span class="dot" style="background:var(--email)"></span>Flight Deck · email + WA, one rank</div>
+      <div class="fd" style="--tone:var(--email)"><span class="rank">#1 · ROI/min</span>
+        <div class="fd-h"><span>↑ NOW · REPLY · EMAIL</span><span class="dl">SIGN BLOCKS</span></div>
+        <div class="fd-co">Bistrot Le Petit</div>
+        <div class="fd-why">Point-3 answer is the last thing before signature. Draft ready.</div>
+        <div class="fd-exec"><span class="fd-btn">▶ Draft</span><span class="fd-dur">2 MIN · CHF 5'200</span></div>
+      </div>
+      <div class="fd" style="--tone:var(--wa)"><span class="rank">#2</span>
+        <div class="fd-h"><span>CHASE · WHATSAPP</span><span class="dl">6D QUIET</span></div>
+        <div class="fd-co">Caffè Sant'Ambrogio</div>
+        <div class="fd-why">Said yes, went quiet. Confirm the slot.</div>
+        <div class="fd-exec"><span class="fd-btn" style="color:#08160c">▶ Draft</span><span class="fd-dur">2 MIN · CHF 3'400</span></div>
+      </div>
+      <div class="fd" style="--tone:var(--email)"><span class="rank">#3</span>
+        <div class="fd-h"><span>REPLY · EMAIL</span><span class="dl">4H</span></div>
+        <div class="fd-co">Studio Bernasconi</div>
+        <div class="fd-why">Asked if you do CRM too. Easy yes, bigger deal.</div>
+        <div class="fd-exec"><span class="fd-btn">▶ Draft</span><span class="fd-dur">3 MIN · CHF 8'900</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="legend">
+    <div class="lg win"><h4>What it wins</h4><p><b>One stack, both inboxes</b>, ranked by what moves money fastest. No channel-switching, no new surface to learn. It's the deck you already trust.</p></div>
+    <div class="lg cost"><h4>What it costs</h4><p>Ranking is only as good as the <b>ROI signal</b>. Needs deal value + days-quiet + confidence per card — which the CRM already has. Cards must open C's draft to pay off.</p></div>
+    <div class="lg win"><h4>Why it's the surface</h4><p>Email stops being "another inbox to check" and becomes <b>one more card in the morning drive</b>. The Flight Deck was built for exactly this — channel-agnostic ROI triage.</p></div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════ E · DEAL-HEALTH ════════════════════════ -->
+<section class="panel" data-p="E">
+  <div class="p-head">
+    <span class="p-num">E</span><span class="p-name">Deal-Health Signal</span>
+    <span class="p-tag later">fold into lore over time</span>
+  </div>
+  <div class="p-thesis">Email isn't an inbox here — it's a <span class="hi">vital sign</span>. Reply latency, thread cadence and who-spoke-last drive a
+    per-deal <b>pulse</b>. A deal that was emailing daily and went silent <b>cools visibly</b> before you'd ever notice in a list. The pulse
+    feeds <code>confidence_pct</code>, status and the lore. Not a surface you visit — a <b>warning light</b> on the leads you already see.
+    The richest, most invisible layer — fold it in <b>gradually</b>.</div>
+
+  <div class="ov">
+    <div class="ov-col">
+      <div class="greet"><span>GOOD MORNING · <b>MON 15 JUN</b></span><span>09:12:04</span></div>
+      <div class="headline"><em>2 deals cooling.</em> Both were emailing daily.</div>
+      <div class="rail-grp">Deal health</div>
+      <button class="bento active new" style="--tone:var(--overdue)"><span class="num">02</span><div class="b-body"><span class="lbl">Cooling</span><span class="sub">Email cadence dropped sharply</span></div><span class="arr">→</span></button>
+      <button class="bento new" style="--tone:var(--phosphor)"><span class="num">07</span><div class="b-body"><span class="lbl">Warm</span><span class="sub">Replying fast, thread alive</span></div><span class="arr">→</span></button>
+      <button class="bento new" style="--tone:var(--text-muted)"><span class="num">05</span><div class="b-body"><span class="lbl">Flatlined</span><span class="sub">No reply in 14+ days</span></div><span class="arr">→</span></button>
+      <div class="pipe"><span>Pipeline <b>CHF 48'400</b></span><span>·</span><span>Weighted <b>CHF 19'100</b></span></div>
+    </div>
+    <div class="ov-col mid">
+      <div class="col-cap"><span class="dot" style="background:var(--overdue)"></span>Leads · with deal pulse</div>
+      <div class="lead" style="--tone:var(--overdue)"><span class="rail"></span><div style="flex:1"><div class="l-name">Bistrot Le Petit <span style="color:var(--overdue);font-size:10px;font-family:var(--MONO)">▼ COOLING</span></div>
+        <div class="pulse" style="--tone:var(--overdue);margin-top:6px"><i style="height:60%"></i><i style="height:85%"></i><i style="height:100%"></i><i style="height:70%"></i><i style="height:40%"></i><i style="height:25%"></i><i style="height:12%;opacity:.4"></i></div></div><div class="l-money">5'200<small>CHF</small></div></div>
+      <div class="lead" style="--tone:var(--phosphor)"><span class="rail"></span><div style="flex:1"><div class="l-name">Studio Bernasconi <span style="color:var(--phosphor);font-size:10px;font-family:var(--MONO)">▲ WARM</span></div>
+        <div class="pulse" style="--tone:var(--phosphor);margin-top:6px"><i style="height:30%"></i><i style="height:55%"></i><i style="height:60%"></i><i style="height:80%"></i><i style="height:90%"></i><i style="height:100%"></i><i style="height:95%"></i></div></div><div class="l-money">8'900<small>CHF</small></div></div>
+    </div>
+    <div class="ov-col">
+      <div class="col-cap"><span class="dot" style="background:var(--overdue)"></span>Bistrot Le Petit · deal vitals</div>
+      <div class="rcard tone" style="--tone:var(--overdue)">
+        <div class="r-cap"><span>▼ COOLING · ACT NOW</span><span class="when">−38% cadence</span></div>
+        <div class="r-name">Was daily. Now 6 days quiet.</div>
+        <div class="r-why">Reply latency went 2h → 6 days after you sent the proposal. The pulse flagged it before the next-action date did.</div>
+        <div class="health" style="margin-top:11px"><span>HEALTH</span><div class="meter"><i style="width:34%;background:var(--overdue)"></i></div><span style="color:var(--overdue)">34%</span></div>
+        <div class="vital"><span>LAST REPLY <b>them</b></span><span>LATENCY <b>6d ↑</b></span><span>CONF <b>−15%</b></span></div>
+      </div>
+      <div class="rcard" style="border-left:3px solid var(--cyan)">
+        <div class="r-cap" style="--email:var(--cyan)"><span>⟳ FEEDS</span></div>
+        <div class="r-why">Pulse writes to <b>confidence_pct</b>, flips status toward <i>Stalling</i>, appends a cooling note to the lore — automatically.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="legend">
+    <div class="lg win"><h4>What it wins</h4><p>Catches a dying deal <b>before a human would</b>. Turns email metadata you'd never read into the one signal that matters: is this deal alive?</p></div>
+    <div class="lg cost"><h4>What it costs</h4><p>Most <b>inferential</b> of the five — cadence ≠ intent (holidays, vacations). Needs tuning before it drives confidence automatically, or it cries wolf.</p></div>
+    <div class="lg"><h4>Integrates with</h4><p>Writes to <b>confidence_pct</b>, <b>status</b>, <b>intel_json</b> lore. Invisible layer — rides the existing lead rows, no new screen to maintain.</p></div>
+  </div>
+</section>
+
+<!-- recommendation footer -->
+<div style="margin:10px 40px 0;padding:20px 22px;border:1px solid #2f3a1c;border-radius:12px;background:#0e1207">
+  <div style="font-family:var(--MONO);font-size:10px;letter-spacing:1.6px;color:var(--phosphor);text-transform:uppercase;margin-bottom:8px">★ My call</div>
+  <div style="font-size:14px;line-height:1.6;color:var(--text-main);max-width:880px">
+    Ship <b style="color:var(--phosphor)">D as the surface</b> (email rides the Flight Deck you already drive, ranked by ROI-per-minute) with
+    <b style="color:var(--phosphor)">C as the engine</b> (every card opens a reply pre-drafted in your voice). Hold <b style="color:var(--cyan)">B</b>
+    as an overflow lane for volume spikes. Treat <b>A</b> as the eventual destination once identity-merge is safe, and fold <b>E</b>'s pulse into the
+    lore gradually. Transport is <b>Gmail API, two-way</b> — replies must land in your real inbox. One open question gates it all: does that Gmail MCP
+    actually exist outside the repo, or is transport greenfield (it looks greenfield).
+  </div>
+</div>
+
+<script>
+const tabs=[...document.querySelectorAll('.tab')],panels=[...document.querySelectorAll('.panel')];
+tabs.forEach(t=>t.addEventListener('click',()=>{
+  const p=t.dataset.p;
+  tabs.forEach(x=>x.classList.toggle('active',x===t));
+  panels.forEach(x=>x.classList.toggle('active',x.dataset.p===p));
+  window.scrollTo({top:0,behavior:'smooth'});
+}));
+</script>
+</body>
+</html>

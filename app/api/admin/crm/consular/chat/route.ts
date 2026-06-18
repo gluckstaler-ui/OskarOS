@@ -135,6 +135,9 @@ export async function POST(req: NextRequest) {
         reply: card ? '' : (result.text || '(the Consular returned no text)'),
         ...(card ? { card } : {}),
         ...(deck ? { deck } : {}),
+        // Truth on the wire — the model that served this turn (from the
+        // assistant events). Feeds the panel's Active Model badge.
+        ...(result.model ? { model: result.model } : {}),
         durationMs: result.durationMs,
       },
       { headers: NO_CACHE },

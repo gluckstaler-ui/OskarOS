@@ -1,0 +1,712 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Email in the Overview — Five Solutions (Sender-Identity Spec)</title>
+<style>
+  :root{
+    --ink:#1a1916; --ink-soft:#55524a; --mute:#8a867c; --faint:#b8b3a8;
+    --paper:#fbfaf7; --card:#ffffff; --line:#e6e3da; --line-soft:#efece4;
+    --accent:#d6402b; --accent-soft:#fbeae6;
+    --wa:#1f9d55; --wa-soft:#e7f5ec;
+    --email:#2f6df0; --email-soft:#e8f0ff;
+    --warn:#b8860b; --warn-soft:#fbf3df;
+    --ok:#1f9d55; --no:#c0392b;
+    --mono:'SF Mono',ui-monospace,Menlo,Consolas,monospace;
+    --sans:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--sans);
+    line-height:1.62;font-size:16px;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:980px;margin:0 auto;padding:0 28px 140px}
+  header.masthead{padding:72px 0 40px;border-bottom:3px solid var(--ink);margin-bottom:8px}
+  .eyebrow{font-size:12px;letter-spacing:0.18em;text-transform:uppercase;color:var(--mute);margin:0 0 14px}
+  h1{font-size:clamp(30px,4.4vw,50px);line-height:1.08;letter-spacing:-0.02em;font-weight:700;margin:0 0 18px}
+  .sub{font-size:18px;color:var(--ink-soft);max-width:62ch;margin:0}
+  .meta-row{display:flex;flex-wrap:wrap;gap:10px 26px;margin-top:26px;font-size:13px;color:var(--mute)}
+  .meta-row b{color:var(--ink);font-weight:600}
+  h2{font-size:27px;letter-spacing:-0.01em;margin:64px 0 6px;padding-top:18px}
+  h2 .num{color:var(--faint);font-variant-numeric:tabular-nums;margin-right:12px;font-weight:700}
+  h3{font-size:19px;margin:34px 0 6px;letter-spacing:-0.005em}
+  h4{font-size:15px;margin:22px 0 4px;text-transform:uppercase;letter-spacing:0.08em;color:var(--mute)}
+  p{margin:12px 0;max-width:74ch}
+  a{color:var(--accent);text-decoration:none}
+  a:hover{text-decoration:underline}
+  code{font-family:var(--mono);font-size:0.86em;background:#f1eee7;border:1px solid var(--line);
+    border-radius:4px;padding:1px 5px;color:#3c3a34;white-space:nowrap}
+  pre{background:#1c1b18;color:#e8e4da;border-radius:10px;padding:18px 20px;overflow-x:auto;
+    font-family:var(--mono);font-size:13px;line-height:1.6;margin:16px 0}
+  pre code{background:none;border:none;color:inherit;padding:0;white-space:pre}
+  pre .c{color:#8a867c}    /* comment */
+  pre .k{color:#e0917a}    /* keyword */
+  pre .s{color:#9ec79a}    /* string  */
+  pre .t{color:#86b8e0}    /* type    */
+  ul,ol{padding-left:22px;max-width:74ch}
+  li{margin:6px 0}
+  .lead{font-size:18px;color:var(--ink-soft)}
+  hr{border:none;border-top:1px solid var(--line);margin:48px 0}
+
+  /* TOC */
+  nav.toc{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:22px 26px;margin:34px 0}
+  nav.toc h4{margin:0 0 12px}
+  nav.toc ol{margin:0;columns:2;column-gap:38px}
+  nav.toc a{color:var(--ink-soft)}
+  @media(max-width:680px){nav.toc ol{columns:1}}
+
+  /* callouts */
+  .call{border-left:3px solid var(--accent);background:var(--card);border-radius:0 10px 10px 0;
+    padding:14px 20px;margin:20px 0}
+  .call.key{border-color:var(--email);background:var(--email-soft)}
+  .call.warn{border-color:var(--warn);background:var(--warn-soft)}
+  .call.wa{border-color:var(--wa);background:var(--wa-soft)}
+  .call .label{font-size:11px;letter-spacing:0.14em;text-transform:uppercase;font-weight:700;color:var(--mute);margin:0 0 4px}
+  .call p{margin:4px 0;max-width:none}
+
+  /* tags / pills */
+  .pill{display:inline-block;font-size:11px;font-weight:600;letter-spacing:0.04em;padding:2px 9px;
+    border-radius:999px;vertical-align:middle}
+  .pill.wa{background:var(--wa-soft);color:var(--wa)}
+  .pill.email{background:var(--email-soft);color:var(--email)}
+  .pill.new{background:var(--accent-soft);color:var(--accent)}
+  .pill.reuse{background:#eef0f2;color:#5b6470}
+
+  /* proposal card header */
+  .prop{border:1px solid var(--line);border-radius:14px;overflow:hidden;margin:30px 0;background:var(--card)}
+  .prop > .head{padding:22px 26px;border-bottom:1px solid var(--line);background:linear-gradient(180deg,#fff, #fbfaf7)}
+  .prop > .head .tag{font-size:12px;letter-spacing:0.16em;text-transform:uppercase;color:var(--accent);font-weight:700;margin:0 0 6px}
+  .prop > .head h3{margin:0 0 6px;font-size:23px}
+  .prop > .head .one{color:var(--ink-soft);margin:0;font-size:15px}
+  .prop > .body{padding:8px 26px 24px}
+  .gravity{font-size:13px;color:var(--mute);margin:10px 0 0}
+  .gravity b{color:var(--ink)}
+
+  /* feature integration grid */
+  .feat{width:100%;border-collapse:collapse;margin:14px 0;font-size:13.5px}
+  .feat th,.feat td{text-align:left;padding:9px 12px;border-bottom:1px solid var(--line-soft);vertical-align:top}
+  .feat th{font-size:11px;letter-spacing:0.08em;text-transform:uppercase;color:var(--mute);font-weight:700;border-bottom:1px solid var(--line)}
+  .feat td:first-child{font-weight:600;white-space:nowrap;width:190px}
+  .feat tr:last-child td{border-bottom:none}
+
+  /* prose-mockup of an Overview layout */
+  .mock{font-family:var(--mono);font-size:12px;line-height:1.5;background:#23211d;color:#d9d4c8;
+    border-radius:10px;padding:16px 18px;overflow-x:auto;white-space:pre;margin:16px 0}
+  .mock b{color:#f0d9a0}
+  .mock .e{color:#86b8e0}
+  .mock .w{color:#8fce9e}
+
+  /* pros/cons */
+  .pc{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin:16px 0}
+  @media(max-width:620px){.pc{grid-template-columns:1fr}}
+  .pc div{border:1px solid var(--line);border-radius:10px;padding:12px 16px}
+  .pc h5{margin:0 0 6px;font-size:13px;letter-spacing:0.05em;text-transform:uppercase}
+  .pc .pro h5{color:var(--ok)} .pc .con h5{color:var(--no)}
+  .pc ul{margin:6px 0;padding-left:18px;max-width:none}
+  .pc li{font-size:13.5px;margin:4px 0}
+
+  .effort{display:inline-flex;gap:4px;align-items:center;font-size:12px;color:var(--mute)}
+  .dot{width:9px;height:9px;border-radius:50%;background:var(--line);display:inline-block}
+  .dot.on{background:var(--accent)}
+
+  /* comparison matrix */
+  table.matrix{width:100%;border-collapse:collapse;margin:20px 0;font-size:13px}
+  table.matrix th,table.matrix td{border:1px solid var(--line);padding:10px 11px;text-align:center}
+  table.matrix th{background:#f3f0e9;font-size:11px;letter-spacing:0.05em;text-transform:uppercase;color:var(--ink-soft)}
+  table.matrix td:first-child,table.matrix th:first-child{text-align:left;font-weight:600;background:#faf8f3}
+  .y{color:var(--ok);font-weight:700}.n{color:var(--no)}.p{color:var(--warn)}
+
+  footer.end{margin-top:80px;padding-top:26px;border-top:3px solid var(--ink);font-size:13px;color:var(--mute)}
+  .kbd{font-family:var(--mono);font-size:12px;background:#fff;border:1px solid var(--line);border-bottom-width:2px;border-radius:5px;padding:1px 6px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="masthead">
+  <p class="eyebrow">CRM · Overview · Channel Integration · Decision Spec</p>
+  <h1>Email in the Overview</h1>
+  <p class="sub">Five fine-grained, architecturally distinct ways to bring email into the CRM Overview — each built on the proven WhatsApp foundation, each with its own answer to the problem that makes email <em>not</em> WhatsApp: <strong>senders do not map to prospects.</strong></p>
+  <div class="meta-row">
+    <span><b>Status:</b> For decision</span>
+    <span><b>Audience:</b> Product owner + implementer</span>
+    <span><b>Scope:</b> Overview screen (<code>CrmView = 'overview'</code>)</span>
+    <span><b>Supersedes:</b> the identity-thin parts of prior email drafts</span>
+  </div>
+</header>
+
+<p class="lead">The CRM already speaks one inbound channel fluently. WhatsApp arrives, gets normalized, matched to a <code>Prospect</code> by phone, deduped, status-tracked, surfaced in the Overview, and drafted by the Consular. Email looks like "the same again with a different transport." It is not. This document explains precisely why, lays a shared foundation, then offers five complete solutions for the Overview — so you can pick the shape before a line of transport code is written.</p>
+
+<nav class="toc">
+  <h4>Contents</h4>
+  <ol>
+    <li><a href="#why">Why email ≠ WhatsApp</a></li>
+    <li><a href="#sender">The sender-identity problem</a></li>
+    <li><a href="#foundation">Shared foundation (all five)</a></li>
+    <li><a href="#p1">Solution 1 · Sender Ledger</a></li>
+    <li><a href="#p2">Solution 2 · Unified Thread</a></li>
+    <li><a href="#p3">Solution 3 · Triage Lane</a></li>
+    <li><a href="#p4">Solution 4 · Flight-Deck Native</a></li>
+    <li><a href="#p5">Solution 5 · Relationship Graph</a></li>
+    <li><a href="#pulse">Layer · Email as a deal vital</a></li>
+    <li><a href="#matrix">Comparison matrix</a></li>
+    <li><a href="#rec">Recommendation &amp; phasing</a></li>
+    <li><a href="#appendix">Appendix: data &amp; APIs</a></li>
+  </ol>
+</nav>
+
+<!-- ===================================================== -->
+<div class="call key">
+  <p class="label">Ground truth — verified against the live code (2026-06-14)</p>
+  <p>Every integration claim below is checked against source, not assumed. Two sibling specs disagreed on one load-bearing fact (does an email transport already exist?); this settles it.</p>
+</div>
+<table class="feat">
+  <tr><th>Claim</th><th>Verdict</th><th>Where</th></tr>
+  <tr><td>Overview is a 3-column grid (≈400 rail / fluid / ≈420 Consular)</td><td>REAL</td><td><code>app/crm/crm.css</code></td></tr>
+  <tr><td>The Flight Deck already renders an <em>Email</em> card</td><td>REAL — nearly free</td><td><code>FlightDeck.tsx:29</code> (6 shapes hero·dial·ticket·chevron·gauge·tag) · <code>:37–38</code> <code>channel</code> = WhatsApp/Phone/Email · <code>:96</code> <code>execVerb</code> → <code>▶ DRAFT</code> for non-phone</td></tr>
+  <tr><td>Deck picks file (file-as-API)</td><td>REAL — path corrected</td><td><code>public/__crm__/deck.json</code> (<code>lib/memory/paths.ts:37</code>, <code>FlightDeck.tsx:21</code>) — <em>not</em> <code>db/flight-deck.json</code></td></tr>
+  <tr><td><code>E-mail In/Out</code> activity types + <code>Prospect.email</code> + <code>Contact.email</code></td><td>REAL</td><td><code>lib/crm-store.ts</code></td></tr>
+  <tr><td>Email transport (send/receive) exists in the repo</td><td>FALSE — greenfield</td><td>no <code>googleapis</code>/<code>nodemailer</code>/<code>smtp</code>/<code>imap</code> anywhere in <code>lib·app·mcp-server</code> — matches only in docs. A sibling spec assumed a wired "Gmail MCP, 13 tools"; <strong>unconfirmed in-tree.</strong></td></tr>
+  <tr><td>Consular chat is read-only — auto-draft must route around it</td><td>CARRIED (WP-111)</td><td>asserted by both prior specs; honored throughout §07. Confirm the ticket before a build estimate.</td></tr>
+</table>
+<div class="call warn">
+  <p class="label">The one correction that moves the plan</p>
+  <p><strong>Transport is greenfield, not a ready asset.</strong> Phase 0 <em>stands up</em> the email transport (mirroring the proven WhatsApp path), it does not merely "wire an existing engine." If a session-level Gmail MCP exists outside the repo, point to it and Phase 0 shrinks; until then, assume it must be built. Everything in §02–§08 is unaffected — only the critical path starts one step earlier.</p>
+</div>
+
+<h2 id="why"><span class="num">01</span>Why email is not WhatsApp</h2>
+
+<p>The Overview was designed around a simple, load-bearing assumption that holds for WhatsApp and breaks for email:</p>
+
+<div class="call wa">
+  <p class="label">The WhatsApp assumption</p>
+  <p>One inbound number is one counterparty, and that counterparty is (almost always) exactly one <code>Prospect</code>. Matching is a single key lookup: <code>normalizeWhatsAppNumber(phone)</code> → scan <code>prospects.phone</code> → matched or unmatched. Direction is unambiguous: it came from <em>them</em>.</p>
+</div>
+
+<p>Every Overview surface inherits that assumption. <code>NextMoveHero</code> can say "WhatsApp waiting" because <em>a number = a lead</em>. <code>TriageRail</code> can count an <code>activity:WhatsApp</code> bucket because the last activity's type tells the whole story. <code>WhatsAppMessageList</code> groups by sender and each sender row <em>is</em> a lead.</p>
+
+<p>Email violates this assumption in five concrete ways:</p>
+
+<table class="feat">
+  <tr><th>Reality of email</th><th>What it breaks</th></tr>
+  <tr><td>One prospect, many addresses</td><td>The CEO writes from <code>ceo@acme.com</code>, replies later from <code>j.muster@gmail.com</code>, and her assistant chimes in from <code>office@acme.com</code>. A single <code>Prospect.email</code> field cannot hold three identities.</td></tr>
+  <tr><td>One address, many people</td><td><code>info@acme.com</code> is three humans. A match to that address tells you the company, not the person — so it cannot pick a <code>Contact</code> the way a phone number does.</td></tr>
+  <tr><td>Senders who are not prospects at all</td><td>Vendors, recruiters, newsletters, your own accountant, a journalist. WhatsApp inbound is almost always a lead; email inbound is <em>mostly not</em>. The unmatched pile is the default, not the exception.</td></tr>
+  <tr><td>Many parties per message</td><td>From + To + CC + BCC. The counterparty is not "the From" — on an outbound it is the To; on a forwarded intro it is a CC. Direction and counterparty must be <em>derived</em>, not read off one field.</td></tr>
+  <tr><td>Threads, subjects, quoting, attachments</td><td>WhatsApp is a flat message stream. Email is a tree: subjects mutate ("Re: Re: Fwd:"), quoted history balloons each body, signatures repeat, attachments matter. Storing a raw body as <code>Activity.notes</code> the way WhatsApp does will flood the timeline.</td></tr>
+</table>
+
+<div class="call key">
+  <p class="label">The one sentence that drives this whole spec</p>
+  <p>WhatsApp matching answers <em>"which lead is this?"</em> with a single key. Email matching must first answer <em>"who is this human, and do they belong to anyone we track?"</em> — a resolution problem with four possible outcomes, only one of which is "a known prospect." Until that question has a home, every Overview surface that touches email will either lie or drown.</p>
+</div>
+
+<h3>What already exists (and is wasted without identity)</h3>
+<p>The good news: the data model is further along than the transport. From the code audit —</p>
+<ul>
+  <li><code>Prospect.email</code> exists (<code>lib/crm-store.ts</code>) but is <strong>never used for matching</strong> today.</li>
+  <li><code>Contact.email</code> exists, and contacts are already <strong>1:many per prospect</strong> with <code>role</code> (decision_maker, gatekeeper, assistant, …). This is the natural home for sender identity — it is the only place the model can say "this human, this address, belongs to this prospect, in this role."</li>
+  <li><code>ActivityType</code> already includes <code>'E-mail In'</code> and <code>'E-mail Out'</code> with icons (<code>mail</code>, <code>mail-open</code>) wired in <code>LeadDetail</code>.</li>
+  <li><code>NextMoveHero</code> already has an "Email waiting" tier (tone <code>email</code>) that returns empty for lack of data.</li>
+  <li><code>TriageRail</code> already counts an <code>activity:Email</code> bucket.</li>
+</ul>
+<p>So the surfaces are pre-drilled. What is missing is (a) transport, (b) an <strong>identity layer</strong> that turns a raw sender into a resolved counterparty, and (c) the Overview UX for the cases the phone path never had to handle. (a) is the same shape as WhatsApp. (b) and (c) are the actual design work, and where the five solutions differ.</p>
+
+<!-- ===================================================== -->
+<h2 id="sender"><span class="num">02</span>The sender-identity problem, in full</h2>
+
+<p>Before the five solutions, the layer they all sit on. Every inbound email carries an envelope; from it we must derive a <strong>counterparty identity</strong> and a <strong>link</strong> (or non-link) to the CRM. This is the email analogue of <code>normalizeWhatsAppNumber</code> + the prospect scan — but with branches.</p>
+
+<h3>2.1 — Canonicalizing an address</h3>
+<p>Phone numbers normalize to digits. Addresses need their own canonical form so that <code>"John Muster &lt;J.Muster@Acme.COM&gt;"</code>, <code>"j.muster@acme.com"</code>, and (optionally) the Gmail dot/plus variants resolve to one key.</p>
+<pre><code><span class="c">// lib/email-identity.ts  (new — mirrors normalizeWhatsAppNumber)</span>
+<span class="k">export function</span> canonicalizeAddress(raw: <span class="t">string</span>): <span class="t">string</span> | <span class="k">null</span> {
+  <span class="k">const</span> m = String(raw ?? <span class="s">''</span>).match(<span class="s">/&lt;([^&gt;]+)&gt;/</span>)        <span class="c">// strip display name</span>
+  <span class="k">let</span> addr = (m ? m[<span class="s">1</span>] : raw).trim().toLowerCase()
+  <span class="k">if</span> (!addr.includes(<span class="s">'@'</span>)) <span class="k">return</span> <span class="k">null</span>
+  <span class="k">let</span> [user, domain] = addr.split(<span class="s">'@'</span>)
+  user = user.split(<span class="s">'+'</span>)[<span class="s">0</span>]                            <span class="c">// drop +tag</span>
+  <span class="k">if</span> (domain === <span class="s">'gmail.com'</span>) user = user.replace(<span class="s">/\./g</span>, <span class="s">''</span>) <span class="c">// gmail dots</span>
+  <span class="k">return</span> `${user}@${domain}`
+}
+<span class="k">export function</span> domainOf(addr: <span class="t">string</span>): <span class="t">string</span> { <span class="k">return</span> addr.split(<span class="s">'@'</span>)[<span class="s">1</span>] ?? <span class="s">''</span> }</code></pre>
+
+<h3>2.2 — The resolution cascade</h3>
+<p>Given a canonical counterparty address, walk a deterministic cascade. The first hit wins; the confidence of the match falls as we descend.</p>
+
+<table class="feat">
+  <tr><th>Tier</th><th>Match against</th><th>Outcome &amp; confidence</th></tr>
+  <tr><td>1 · Contact exact</td><td><code>contacts.email</code> (canonical)</td><td><span class="y">Resolved → Contact → its Prospect.</span> Highest confidence. Picks the <em>person</em>, not just the company.</td></tr>
+  <tr><td>2 · Prospect exact</td><td><code>prospects.email</code> (canonical)</td><td><span class="y">Resolved → Prospect</span>, person unknown. Offer to also create the Contact.</td></tr>
+  <tr><td>3 · Domain</td><td><code>domainOf(addr)</code> vs prospect <code>website</code> / known company domains</td><td><span class="p">Probable</span> — same company, unknown person. Suggested link, requires one click to confirm (avoids auto-linking <code>@gmail.com</code> — see 2.3).</td></tr>
+  <tr><td>4 · None</td><td>—</td><td><span class="n">Unresolved.</span> Goes to the sender-triage buffer. May be a new lead, a known contact under a personal address, or noise.</td></tr>
+</table>
+
+<div class="call warn">
+  <p class="label">Domain trap</p>
+  <p>Tier 3 must <strong>exclude free-mail domains</strong> (gmail, gmx, bluewin, hotmail, icloud, …). Matching <code>j.muster@gmail.com</code> by domain would link every Gmail user on earth to the first prospect that happens to use Gmail. Maintain a small <code>FREEMAIL</code> set; for those, domain match is disabled and the address can only resolve via Tier 1/2 exact.</p>
+</div>
+
+<h3>2.3 — The four outcomes, and what the Overview must offer for each</h3>
+<ol>
+  <li><b>Resolved to a Contact</b> — behave like WhatsApp: append an <code>E-mail In</code> activity to the prospect, surface it. Done.</li>
+  <li><b>Resolved to a Prospect (no contact)</b> — append activity <em>and</em> offer "save <code>j.muster@acme.com</code> as a contact of Acme" (one click creates the <code>Contact</code> with role <code>other</code>).</li>
+  <li><b>Probable (domain)</b> — hold in triage with a <em>suggestion</em>: "Looks like Acme — link?" Confirm attaches; dismiss demotes to unresolved.</li>
+  <li><b>Unresolved</b> — the genuinely new case email introduces. Three actions: <span class="pill new">Create lead</span> (prospect pre-filled from domain + signature), <span class="pill new">Link to existing</span> (search prospects, attach as new contact), <span class="pill new">Mute sender</span> (newsletters/vendors never ask again — written to a mute list so they never re-enter triage).</li>
+</ol>
+
+<h3>2.4 — Deriving direction &amp; counterparty from a multi-party envelope</h3>
+<p>WhatsApp direction is given. Email direction is derived from whether <em>our own</em> mailbox is the sender:</p>
+<pre><code><span class="c">// our connected mailbox(es), e.g. filippo@filomax.ch</span>
+<span class="k">const</span> isOutbound = OURS.has(canonicalizeAddress(env.from))
+<span class="k">const</span> counterparty = isOutbound
+  ? firstNonOurs(env.to.concat(env.cc))   <span class="c">// who we wrote TO</span>
+  : canonicalizeAddress(env.from)         <span class="c">// who wrote to US</span>
+<span class="k">const</span> type = isOutbound ? <span class="s">'E-mail Out'</span> : <span class="s">'E-mail In'</span></code></pre>
+<p>CC participants who resolve to <em>other</em> contacts of the same prospect are recorded as thread participants (matters most for Solution 5); CC participants who are ours are ignored; CC participants who are unknown spawn their own (low-priority) triage suggestions only if the message itself resolved.</p>
+
+<h3>2.5 — Threading &amp; body hygiene</h3>
+<p>Email is a tree. Store enough to thread, store little enough to keep the timeline readable.</p>
+<ul>
+  <li><b>Thread key:</b> RFC <code>References</code>/<code>In-Reply-To</code> chain → a stable <code>thread_id</code>; fall back to normalized subject (<code>strip "Re:/Fwd:"</code>) + counterparty when headers are missing.</li>
+  <li><b>Body:</b> strip quoted history and signature before writing <code>Activity.notes</code> (keep a pointer to the full raw <code>.eml</code> on disk for "show original"). One activity row = one message's <em>new</em> content, not the accreted quote pile.</li>
+  <li><b>Dedup:</b> reuse the WhatsApp pattern exactly — a <code>email_message_id</code> column mirrors <code>wa_message_id</code>; <code>appendActivity</code> no-ops on a repeat <code>Message-ID</code>.</li>
+</ul>
+
+<!-- ===================================================== -->
+<h2 id="foundation"><span class="num">03</span>Shared foundation — what all five solutions build on</h2>
+
+<p>Identity (§02) plus this transport + model layer is common to every solution. Picking a solution does <em>not</em> change this part; it changes only what the Overview <em>does</em> with it.</p>
+
+<h3>3.1 — Data model additions</h3>
+<p>Stay inside the event-log-first doctrine (<code>db/events.jsonl</code> is truth, <code>db/crm.db</code> is the projection). No new database; new columns and one new buffer file.</p>
+<pre><code><span class="c">// Activity — add three columns alongside the wa_* set (lib/crm-store.ts)</span>
+email_message_id: <span class="t">string</span>   <span class="c">// RFC Message-ID, dedup key (mirrors wa_message_id)</span>
+email_thread_id:  <span class="t">string</span>   <span class="c">// stable thread key (see 2.5)</span>
+email_meta:       <span class="t">string</span>   <span class="c">// JSON: { from, to[], cc[], hasAttachments, rawPath }</span>
+
+<span class="c">// Contact — already has .email; add canonical + secondary addresses</span>
+email_canonical:  <span class="t">string</span>   <span class="c">// canonicalizeAddress(email), the match key</span>
+email_alt:        <span class="t">string</span>   <span class="c">// JSON string[] of additional addresses for this human</span>
+
+<span class="c">// New buffer file (mirrors public/_whatsapp/unmatched.jsonl)</span>
+public/_email/unmatched.jsonl   <span class="c">// one JSON per unresolved inbound</span>
+public/_email/muted.json        <span class="c">// canonical addresses to never surface (vendors/newsletters)</span></code></pre>
+
+<h3>3.2 — Transport &amp; dispatch (mirrors the WhatsApp path)</h3>
+<table class="feat">
+  <tr><th>WhatsApp (exists)</th><th>Email (new, same shape)</th></tr>
+  <tr><td><code>POST …/activities/wa-inbound</code></td><td><code>POST …/activities/email-inbound</code></td></tr>
+  <tr><td><code>lib/wa-inbound-dispatch.ts</code></td><td><code>lib/email-inbound-dispatch.ts</code> — runs §2 cascade</td></tr>
+  <tr><td><code>normalizeWhatsAppNumber()</code></td><td><code>canonicalizeAddress()</code></td></tr>
+  <tr><td><code>POST …/activities/wa-outbound</code> (Baileys)</td><td><code>POST …/activities/email-outbound</code> (Gmail/SMTP)</td></tr>
+  <tr><td><code>public/_whatsapp/unmatched.jsonl</code></td><td><code>public/_email/unmatched.jsonl</code></td></tr>
+  <tr><td><code>WaUnmatchedBanner</code></td><td>per-solution (see §04–§08)</td></tr>
+</table>
+
+<h3>3.3 — Surfaces already half-wired (free wins)</h3>
+<p>Independent of which solution ships, these light up the moment a resolved <code>E-mail In</code> activity exists:</p>
+<ul>
+  <li><code>LeadDetail</code> activity timeline (mail / mail-open icons already mapped).</li>
+  <li><code>NextMoveHero</code> "Email waiting" tier (already coded, returns empty today).</li>
+  <li><code>TriageRail</code> <code>activity:Email</code> count (already filters last-activity type).</li>
+  <li><code>LeadList</code> channel strip (already maps <code>E-mail In/Out</code> → channel "Email").</li>
+</ul>
+<p>The five solutions diverge entirely on the part that has <em>no</em> precedent: how the Overview handles the <strong>unresolved sender</strong>, and how much of email's tree-shaped, multi-party nature it chooses to show.</p>
+
+<hr>
+
+<!-- ===================================================== SOLUTION 1 -->
+<h2 id="p1"><span class="num">04</span>Solution 1 — The Sender Ledger</h2>
+
+<div class="prop">
+  <div class="head">
+    <p class="tag">Identity-first</p>
+    <h3>A standing roster of senders, resolved once, reused forever</h3>
+    <p class="one">Treat the sender as a first-class object. The Overview gains a small "Senders" surface whose only job is to keep the unresolved pile at zero. Once a human is resolved, every future email from any of their addresses flows silently to the right lead.</p>
+    <p class="gravity"><b>Center of gravity:</b> solve the identity problem visibly and permanently, then let the existing surfaces do the rest.</p>
+  </div>
+  <div class="body">
+
+  <h4>The idea</h4>
+  <p>Introduce an <code>EmailIdentity</code> projection: every canonical address ever seen, with its resolution state (<code>contact</code> / <code>prospect</code> / <code>muted</code> / <code>pending</code>). The Overview's left rail gains one bucket under the existing channel group: <span class="pill email">Senders · N</span>, where N is the count of <em>pending</em> identities. Clicking it opens a focused resolution list in the middle column — the same slot <code>WhatsAppMessageList</code> uses today, so no new layout region.</p>
+
+  <div class="mock">TriageRail            Middle (Sender Ledger)              Right
+─────────────         ─────────────────────────────      ────────────
+ Overdue    3          <b>PENDING SENDERS · 4</b>                 Lead detail
+ Today      5          <span class="e">j.muster@acme.com</span>  "Re: Angebot"     (when a row
+ This week  9            ↳ suggests <b>Acme AG</b>  [link][new]    resolves, the
+                       <span class="e">office@acme.com</span>   "Rechnung"        prospect opens
+ Emails     7  ◀         ↳ domain Acme  [link][new][mute]  here as usual)
+ WhatsApp   2          <span class="e">recruiter@hays.com</span> "Opportunity"
+ Senders    4  ◀         ↳ no match  [new][mute]
+                       <span class="e">news@stripe.com</span>    "Changelog"
+ Incoming   6            ↳ no match  [new] <b>[mute]</b></div>
+
+  <h4>How the sender problem is handled</h4>
+  <p>Head-on, and <em>once</em>. Resolution is an explicit, persistent act: linking <code>office@acme.com</code> to the Acme prospect writes a <code>Contact</code> (or an <code>email_alt</code> on an existing contact). The ledger remembers, so the second invoice from that address never appears in triage — it lands as a timeline activity directly. Muting writes to <code>muted.json</code>. The pending count is a real backlog metric the owner can drive to zero.</p>
+
+  <h4>Integration with every existing surface</h4>
+  <table class="feat">
+    <tr><th>Surface</th><th>Change</th></tr>
+    <tr><td>TriageRail <span class="pill reuse">reuse</span></td><td>One new bucket <code>Senders · N</code> under the channel group; counts pending identities.</td></tr>
+    <tr><td>Middle column <span class="pill reuse">reuse</span></td><td>Reuses the <code>WhatsAppMessageList</code> slot pattern; renders <code>SenderLedgerList</code> instead when the bucket is active.</td></tr>
+    <tr><td>NextMoveHero <span class="pill reuse">reuse</span></td><td>Unchanged logic; benefits because resolved email now feeds the existing "Email waiting" tier.</td></tr>
+    <tr><td>LeadDetail <span class="pill reuse">reuse</span></td><td>Timeline shows email activities; contact roster shows the newly-linked addresses with <code>email_alt</code>.</td></tr>
+    <tr><td>Contacts <span class="pill new">extends</span></td><td>Becomes the resolution target; gains <code>email_alt</code> and <code>email_canonical</code>.</td></tr>
+    <tr><td>Flight Deck <span class="pill reuse">reuse</span></td><td>Resolved "needs reply" emails become deck cards exactly like WhatsApp.</td></tr>
+    <tr><td>Consular <span class="pill reuse">reuse</span></td><td>Drafts replies on resolved threads; not involved in resolution.</td></tr>
+  </table>
+
+  <div class="pc">
+    <div class="pro"><h5>Strengths</h5><ul>
+      <li>Permanently fixes identity; the pile trends to zero instead of recurring.</li>
+      <li>Smallest new surface — one bucket, one reused list slot.</li>
+      <li>Makes the multi-address reality explicit and durable (<code>email_alt</code>).</li>
+      <li>Clean separation: triage is a workspace, leads stay clean.</li>
+    </ul></div>
+    <div class="con"><h5>Costs / risks</h5><ul>
+      <li>Adds a recurring chore — someone must work the ledger.</li>
+      <li>Email content is one click away (resolution-first, not reading-first).</li>
+      <li><code>EmailIdentity</code> is a genuinely new projection to maintain.</li>
+    </ul></div>
+  </div>
+
+  <p><span class="effort"><b>Effort</b> &nbsp;<span class="dot on"></span><span class="dot on"></span><span class="dot on"></span><span class="dot"></span><span class="dot"></span> &nbsp;Medium — new projection + one list component; reuses all layout.</span></p>
+  </div>
+</div>
+
+<!-- ===================================================== SOLUTION 2 -->
+<h2 id="p2"><span class="num">05</span>Solution 2 — The Unified Thread</h2>
+
+<div class="prop">
+  <div class="head">
+    <p class="tag">Maximal reuse · channel-merged</p>
+    <h3>Email is just another activity; the timeline already knows how</h3>
+    <p class="one">Refuse to give email its own surface. Fold it into the same per-prospect activity timeline as calls and WhatsApp. The Overview barely changes; the work is all in making one message look right next to a WhatsApp bubble and a call log.</p>
+    <p class="gravity"><b>Center of gravity:</b> one conversation per lead, channel-agnostic. The lead is the unit, never the inbox.</p>
+  </div>
+  <div class="body">
+
+  <h4>The idea</h4>
+  <p>There is no email inbox in the Overview. A resolved email is an <code>Activity</code> of type <code>E-mail In/Out</code> with a subject and a cleaned body, rendered inline in <code>LeadDetail</code>'s timeline interleaved chronologically with every other touch. <code>NextMoveHero</code> and <code>TriageRail</code> already understand email as a last-activity type, so they surface "Email waiting" leads with zero new code. The unresolved pile is handled by the <em>smallest possible</em> mechanism: a thin reuse of the existing <code>WaUnmatchedBanner</code>, renamed to a generic <code>UnmatchedBanner</code> that shows both channels.</p>
+
+  <div class="mock">LeadDetail · Acme AG — timeline (channel-merged)
+─────────────────────────────────────────────
+ Today 09:14  <span class="e">✉ In</span>  "Re: Angebot Webseite"  — via j.muster@acme.com
+              <b>"Danke, sieht gut aus. Können wir Freitag…"</b>  [reply ▸]
+ Yest 17:02   <span class="w">✆</span>  Call 12min — left voicemail
+ Mon 11:30    <span class="e">✉ Out</span> "Angebot Webseite"  (you)  ✓ sent
+ Fri 15:40    <span class="w">◔ In</span>  WhatsApp "Passt das Budget?"  ✓ read</div>
+
+  <h4>How the sender problem is handled</h4>
+  <p>Minimally and inline. When a sender resolves (Tier 1/2), the activity simply carries a "via <code>address</code>" annotation if the address differs from the prospect's primary — so a message from the assistant reads <em>"via office@acme.com"</em> without needing a separate identity surface. Unresolved senders sit in the shared <code>UnmatchedBanner</code> with the three actions from §2.3. Domain-probable matches are auto-attached only at Tier 1/2; Tier 3 stays in the banner as a suggestion. This is the <em>lightest</em> treatment — it accepts that messy multi-address cases are handled per-message rather than in a standing ledger.</p>
+
+  <h4>Integration with every existing surface</h4>
+  <table class="feat">
+    <tr><td>LeadDetail <span class="pill new">extends</span></td><td>Timeline gains a richer email row: subject, cleaned body, "via", attachment chip, inline reply. The one place that grows.</td></tr>
+    <tr><td>NextMoveHero <span class="pill reuse">reuse</span></td><td>Zero change — its "Email waiting" tier activates on real data.</td></tr>
+    <tr><td>TriageRail <span class="pill reuse">reuse</span></td><td>Zero change — <code>activity:Email</code> already counts.</td></tr>
+    <tr><td>LeadList <span class="pill reuse">reuse</span></td><td>Zero change — channel strip already maps email.</td></tr>
+    <tr><td>UnmatchedBanner <span class="pill new">generalize</span></td><td><code>WaUnmatchedBanner</code> → channel-agnostic; renders email + WhatsApp unmatched together.</td></tr>
+    <tr><td>Compose <span class="pill new">fork</span></td><td><code>WaComposeModal</code> → <code>ComposeModal</code> with a channel switch; email send hits <code>email-outbound</code>.</td></tr>
+  </table>
+
+  <div class="pc">
+    <div class="pro"><h5>Strengths</h5><ul>
+      <li>By far the least new UI; ships fastest.</li>
+      <li>The "one conversation per lead" story is genuinely good UX.</li>
+      <li>Leans entirely on surfaces that are already pre-wired.</li>
+    </ul></div>
+    <div class="con"><h5>Costs / risks</h5><ul>
+      <li>No dedicated place to <em>work</em> a noisy inbox; high-volume email feels cramped.</li>
+      <li>Multi-address reality handled per-message, not durably — repeats the resolution.</li>
+      <li>Mixed-channel timeline can get busy on active leads.</li>
+    </ul></div>
+  </div>
+
+  <p><span class="effort"><b>Effort</b> &nbsp;<span class="dot on"></span><span class="dot on"></span><span class="dot"></span><span class="dot"></span><span class="dot"></span> &nbsp;Low — mostly transport + one timeline row + banner generalize.</span></p>
+  </div>
+</div>
+
+<!-- ===================================================== SOLUTION 3 -->
+<h2 id="p3"><span class="num">06</span>Solution 3 — The Triage Lane</h2>
+
+<div class="prop">
+  <div class="head">
+    <p class="tag">Dedicated inbox-in-Overview</p>
+    <h3>A real email workspace, parallel to the lead list</h3>
+    <p class="one">Give email the room it needs: a grouped inbox lane inside the Overview, modeled on <code>WhatsAppMessageList</code> but thread-aware, where resolved and unresolved live side by side and resolution is a drag/click away.</p>
+    <p class="gravity"><b>Center of gravity:</b> email is high-volume and needs a place to <em>process</em>, not just a row in a timeline.</p>
+  </div>
+  <div class="body">
+
+  <h4>The idea</h4>
+  <p>Clicking the <code>Emails</code> bucket swaps the middle column from <code>LeadList</code> to an <code>EmailThreadList</code> — threads grouped by counterparty, newest first, each showing resolution state inline. Resolved threads show the linked lead badge; unresolved threads show the resolve actions. It is the WhatsApp grouped-by-sender pattern, upgraded to threads and to the four-outcome resolution model.</p>
+
+  <div class="mock">Middle (EmailThreadList) — bucket "Emails" active
+──────────────────────────────────────────────────────
+ <b>Acme AG</b>  · j.muster@acme.com         <span class="w">● linked</span>   2 new
+   "Re: Angebot Webseite"      Danke, sieht gut aus…  09:14
+ <b>?</b>  office@acme.com                    <span class="e">suggest Acme</span>   1 new
+   "Rechnung März"             [link Acme][new lead][mute]
+ <b>?</b>  recruiter@hays.com                 <span class="e">unmatched</span>    1 new
+   "Senior role"              [new lead][mute]
+ <b>Bär GmbH</b> · p.baer@baer.ch             <span class="w">● linked</span>   1 new
+   "Termin nächste Woche?"     Hätten Sie Freitag…    Mon</div>
+
+  <h4>How the sender problem is handled</h4>
+  <p>As the primary workflow. The lane is <em>where</em> identity gets resolved, but unlike Solution 1's standing ledger, it is reading-first: you see the subject and snippet <em>while</em> deciding. Linking attaches the contact and (optionally) "always route this address here." Muting removes the thread and the sender. Threads collapse the tree so "Re: Re:" is one row. This is the richest day-to-day email surface of the five.</p>
+
+  <h4>Integration with every existing surface</h4>
+  <table class="feat">
+    <tr><td>TriageRail <span class="pill reuse">reuse</span></td><td><code>Emails</code> bucket already exists; now it drives the lane instead of filtering the list.</td></tr>
+    <tr><td>Middle column <span class="pill new">new</span></td><td><code>EmailThreadList</code> — the one substantial new component.</td></tr>
+    <tr><td>LeadDetail <span class="pill reuse">reuse</span></td><td>Selecting a linked thread opens the prospect; timeline shows the thread.</td></tr>
+    <tr><td>NextMoveHero <span class="pill reuse">reuse</span></td><td>Unchanged; resolved emails feed its tier.</td></tr>
+    <tr><td>Flight Deck <span class="pill reuse">reuse</span></td><td>Unmatched-but-hot threads can be promoted to deck cards.</td></tr>
+    <tr><td>Compose <span class="pill new">fork</span></td><td>Reply opens <code>ComposeModal</code> in the thread context (subject pre-filled, quoted).</td></tr>
+  </table>
+
+  <div class="pc">
+    <div class="pro"><h5>Strengths</h5><ul>
+      <li>Scales to real inbox volume; a true place to process.</li>
+      <li>Reading-first resolution — decide with the content in view.</li>
+      <li>Thread-aware: collapses the "Re: Re: Fwd:" pile.</li>
+      <li>Directly extends a pattern the team already shipped (WA list).</li>
+    </ul></div>
+    <div class="con"><h5>Costs / risks</h5><ul>
+      <li>Biggest single new component; most UI to design + test.</li>
+      <li>Risks becoming "a second email client" — scope discipline needed.</li>
+      <li>Two middle-column modes (list / lane) add state complexity.</li>
+    </ul></div>
+  </div>
+
+  <p><span class="effort"><b>Effort</b> &nbsp;<span class="dot on"></span><span class="dot on"></span><span class="dot on"></span><span class="dot on"></span><span class="dot"></span> &nbsp;Medium-High — a full new list/thread component.</span></p>
+  </div>
+</div>
+
+<!-- ===================================================== SOLUTION 4 -->
+<h2 id="p4"><span class="num">07</span>Solution 4 — Flight-Deck Native</h2>
+
+<div class="prop">
+  <div class="head">
+    <p class="tag">Decision-first · zero inbox</p>
+    <h3>The Overview never shows email — it shows what to do about it</h3>
+    <p class="one">Email never gets a surface of its own. The Consular reads it, resolves it, and distills it into Flight Deck cards and Next-Move tiers. The owner sees decisions ("Reply to Acme — they said yes"), not an inbox.</p>
+    <p class="gravity"><b>Center of gravity:</b> the Overview is a cockpit, not a mailbox. Raw email lives in the agent layer; only the next move surfaces.</p>
+  </div>
+  <div class="body">
+
+  <h4>The idea</h4>
+  <p>Inbound email runs the §2 cascade, then — resolved or not — is handed to the Consular, which classifies (warm / ambiguous / cold), decides whether it deserves a human action, and emits a Flight Deck card (<code>verb: REPLY/CHASE</code>, <code>channel: Email</code>, <code>tone</code>, <code>reason</code>, <code>deadline</code>) into the deck picks file <code>public/__crm__/deck.json</code>. This is the <strong>cheapest surface of the five</strong>: the deck already renders an Email card as <code>▶ DRAFT</code> today (<code>FlightDeck.tsx:29/37/96</code>), so almost no card code is new — only the candidate-feed that scores email moves. Per the read-only-Consular firewall (WP-111), the draft itself is written by a dedicated server pass; the chat agent never sends — send is a separate gated route. Resolution ambiguity is the Consular's job: it proposes the link inside the card ("Likely Acme — confirm?"), so the human resolves <em>in the act of deciding</em>, never in a separate triage. Newsletters and vendors are classified cold and never produce a card.</p>
+
+  <div class="mock">Right column · Flight Deck (email-fed)
+──────────────────────────────────────────────
+ <b>1 · REPLY</b>  <span class="e">Acme AG</span>            <span class="w">red · today</span>
+    They accepted the proposal. Send the contract.
+    [draft ▸]  ·  src: ✉ "Re: Angebot" 09:14
+ <b>2 · CHASE</b>  <span class="e">Bär GmbH</span>           amber · +2d
+    No reply in 6 days to your quote.  [draft ▸]
+ <b>3 · LINK?</b>  <span class="e">office@acme.com</span>    grey
+    New address — likely Acme. [confirm][new][mute]
+
+ queue · 5 more  ·  cold/filtered · 23 hidden</div>
+
+  <h4>How the sender problem is handled</h4>
+  <p>Delegated to the Consular and surfaced only when it needs a human. Confident resolutions (Tier 1/2) never bother anyone. Probable (Tier 3) becomes a lightweight <code>LINK?</code> card. Truly unknown but <em>hot</em> messages become a "new lead?" card; unknown and cold are filtered (counted, hidden, auditable). The owner's triage burden is near-zero — the cost is trust in the classifier and a hidden pile that must remain auditable.</p>
+
+  <h4>Integration with every existing surface</h4>
+  <table class="feat">
+    <tr><td>Flight Deck <span class="pill new">extends</span></td><td>Becomes channel-fed; cards carry <code>src</code> back to the email. Already channel-aware in <code>flight-deck-derive.ts</code>.</td></tr>
+    <tr><td>Consular <span class="pill new">extends</span></td><td>Gains an inbound-email rule (EVAL-INBOUND → card or filter). The heaviest new logic. <strong>Drafting is a dedicated server pass that writes a draft; the read-only chat never sends (WP-111) — send is a separate gated route.</strong></td></tr>
+    <tr><td>NextMoveHero <span class="pill reuse">reuse</span></td><td>Top card mirrors into the hero; "Email waiting" tier still valid.</td></tr>
+    <tr><td>TriageRail <span class="pill reuse">reuse</span></td><td>Counts unchanged; a "filtered" affordance reveals the cold pile.</td></tr>
+    <tr><td>LeadDetail <span class="pill reuse">reuse</span></td><td>Full thread still readable here for context; the deck just points at it.</td></tr>
+  </table>
+
+  <div class="pc">
+    <div class="pro"><h5>Strengths</h5><ul>
+      <li>Lowest cognitive load — the owner sees decisions, not noise.</li>
+      <li>Resolution happens inside the decision; no separate chore.</li>
+      <li>Leans on the deck + Consular the product already bets on.</li>
+    </ul></div>
+    <div class="con"><h5>Costs / risks</h5><ul>
+      <li>Trust: a misclassified hot email that gets hidden is a lost deal.</li>
+      <li>Hidden pile must stay auditable or it becomes a black hole.</li>
+      <li>Heaviest agent-side logic; hardest to get <em>right</em>.</li>
+      <li>No fast "just let me read my inbox" path.</li>
+    </ul></div>
+  </div>
+
+  <p><span class="effort"><b>Effort</b> &nbsp;<span class="dot on"></span><span class="dot on"></span><span class="dot on"></span><span class="dot on"></span><span class="dot on"></span> &nbsp;High — the classifier carries the product's reliability.</span></p>
+  </div>
+</div>
+
+<!-- ===================================================== SOLUTION 5 -->
+<h2 id="p5"><span class="num">08</span>Solution 5 — The Relationship Graph</h2>
+
+<div class="prop">
+  <div class="head">
+    <p class="tag">Multi-party · B2B-native</p>
+    <h3>Model the whole room: who talks to whom, on every thread</h3>
+    <p class="one">Take email's many-parties-per-message reality as the <em>feature</em>. Surface email at the level of the relationship — the deal room — showing every participant (From/To/CC), their role, and the web of contact between the two organizations.</p>
+    <p class="gravity"><b>Center of gravity:</b> B2B deals are multi-stakeholder. The CC list is signal, not noise. Match the existing Contact-roster + <code>role</code> model.</p>
+  </div>
+  <div class="body">
+
+  <h4>The idea</h4>
+  <p>Email participants become edges in a small graph anchored on the prospect. The Overview's detail view gains a "Deal Room" mode: the prospect's contacts down one side, our side down the other, threads as connections, each annotated with who is on it. A CFO silently CC'd on the contract thread is now <em>visible</em> — which is exactly the intel a B2B closer wants. This is the only solution that treats <code>cc</code> as a relationship signal rather than discarding it.</p>
+
+  <div class="mock">LeadDetail · Acme AG — Deal Room
+──────────────────────────────────────────────
+ THEM                          THREADS            US
+ J. Muster  (decision_maker) ──"Angebot"────────  Filippo
+ office@…   (assistant)      ──"Rechnung"───┐
+ R. Vogt    (cfo)  CC only   ┄┄"Angebot"┄┄┄┄┘     (CC'd, never wrote —
+                                                   surfaced as signal)
+ ─────────────────────────────────────────────
+ ⚠ The economic buyer (CFO) is on the proposal
+   thread but has never replied. Loop him in?</div>
+
+  <h4>How the sender problem is handled</h4>
+  <p>Richest of all. Every address resolves to a <code>Contact</code> with a <code>role</code> (the model already has decision_maker / cfo / gatekeeper / assistant / champion …). CC participants who are new spawn "add R. Vogt as a contact?" suggestions; the graph makes the multi-address, multi-person reality the <em>point</em> rather than a problem to flatten. Unresolved senders still flow through the §2 cascade, but the resolution UI is contact-role-aware ("link as: champion / gatekeeper / …").</p>
+
+  <h4>Integration with every existing surface</h4>
+  <table class="feat">
+    <tr><td>Contacts <span class="pill new">elevates</span></td><td>The roster + <code>role</code> + <code>is_decisive</code> become load-bearing; email populates them.</td></tr>
+    <tr><td>LeadDetail <span class="pill new">new mode</span></td><td>A "Deal Room" view alongside the timeline. The major new UI.</td></tr>
+    <tr><td>Intel card <span class="pill new">extends</span></td><td>Gains stakeholder signals ("CFO unresponsive", "champion engaged").</td></tr>
+    <tr><td>Flight Deck <span class="pill reuse">reuse</span></td><td>Can emit "loop in the economic buyer" cards from graph gaps.</td></tr>
+    <tr><td>NextMoveHero / TriageRail <span class="pill reuse">reuse</span></td><td>Unchanged; resolved email still feeds them.</td></tr>
+    <tr><td>Kanban <span class="pill reuse">reuse</span></td><td><code>is_decisive</code> amber styling gains real backing from email participation.</td></tr>
+  </table>
+
+  <div class="pc">
+    <div class="pro"><h5>Strengths</h5><ul>
+      <li>Turns email's hardest trait (many parties) into the killer feature.</li>
+      <li>Uniquely B2B; the only one that reads the CC list.</li>
+      <li>Activates the dormant Contact-<code>role</code> model with real data.</li>
+      <li>Surfaces multi-threaded deal intelligence nothing else can.</li>
+    </ul></div>
+    <div class="con"><h5>Costs / risks</h5><ul>
+      <li>Most ambitious; easy to over-build the graph UI.</li>
+      <li>Pays off only for genuinely multi-stakeholder deals.</li>
+      <li>Needs clean contact data to shine — garbage-in risk.</li>
+      <li>Highest design + test surface of the five.</li>
+    </ul></div>
+  </div>
+
+  <p><span class="effort"><b>Effort</b> &nbsp;<span class="dot on"></span><span class="dot on"></span><span class="dot on"></span><span class="dot on"></span><span class="dot on"></span> &nbsp;High — new view + graph model + role-aware resolution.</span></p>
+  </div>
+</div>
+
+<!-- ===================================================== -->
+<h2 id="pulse"><span class="num">L</span>A cross-cutting layer — email as a deal vital</h2>
+
+<p>The five solutions are all ways to <em>read, resolve, or act on</em> email. One dimension sits above all of them and composes with any: email's <strong>pulse</strong> — sent / opened / replied / silent — read as a signal of where the deal stands and fed into the pipeline automatically, rather than waiting for the owner to notice. (This is the strongest idea in the sibling specs; it is a layer, not a sixth surface.)</p>
+<ul>
+  <li><b>Pulse drives the pipeline.</b> Pulse transitions feed <code>confidence_pct</code> and can auto-flip <code>status</code> to <code>'Awaiting reply'</code> — an existing status, not a new one.</li>
+  <li><b>Stall &amp; cooling detection.</b> A proposal emailed N days ago, opened but unanswered, surfaces as a named risk; a warm thread gone quiet drops confidence and prompts a Consular-drafted re-approach.</li>
+  <li><b>Lore capture.</b> "Opened the offer 3×, never replied" writes to <code>intel_json</code>, so the next teardown inherits it.</li>
+  <li><b>Feeds Solution 4.</b> A stalling deal auto-promotes to a <code>CHASE</code> card on the deck — the pulse layer generates, the deck displays.</li>
+</ul>
+<div class="call key">
+  <p class="label">Why this belongs to the identity layer, not beside it</p>
+  <p>Pulse is only legible <em>after</em> a sender is resolved — you cannot attribute "opened 3×, silent" to a deal until you know whose message it was. §02 is the precondition for this whole layer. It also depends on open-tracking (read pixels), a real privacy/deliverability call for v1. Add it in a later phase atop whichever surface ships — not as a sixth solution.</p>
+</div>
+
+<h2 id="matrix"><span class="num">09</span>Comparison matrix</h2>
+
+<table class="matrix">
+  <tr>
+    <th>Dimension</th>
+    <th>1 · Ledger</th>
+    <th>2 · Thread</th>
+    <th>3 · Lane</th>
+    <th>4 · Deck</th>
+    <th>5 · Graph</th>
+  </tr>
+  <tr><td>New Overview surface</td><td>small</td><td class="y">none</td><td>large</td><td>small</td><td>large</td></tr>
+  <tr><td>Solves identity durably</td><td class="y">yes</td><td class="p">per-msg</td><td class="y">yes</td><td class="p">in-card</td><td class="y">yes+roles</td></tr>
+  <tr><td>Handles high volume</td><td class="p">ok</td><td class="n">weak</td><td class="y">strong</td><td class="y">strong</td><td class="p">ok</td></tr>
+  <tr><td>Reading-first</td><td class="n">no</td><td class="y">yes</td><td class="y">yes</td><td class="n">no</td><td class="y">yes</td></tr>
+  <tr><td>Uses CC / multi-party</td><td class="n">no</td><td class="n">no</td><td class="p">some</td><td class="n">no</td><td class="y">fully</td></tr>
+  <tr><td>Owner triage burden</td><td class="p">medium</td><td class="p">medium</td><td class="p">medium</td><td class="y">lowest</td><td class="p">medium</td></tr>
+  <tr><td>Reliability risk</td><td class="y">low</td><td class="y">low</td><td class="y">low</td><td class="n">high</td><td class="p">med</td></tr>
+  <tr><td>Reuses shipped patterns</td><td class="y">high</td><td class="y">highest</td><td class="y">high</td><td class="p">med</td><td class="p">med</td></tr>
+  <tr><td>Implementation effort</td><td>●●●○○</td><td class="y">●●○○○</td><td>●●●●○</td><td>●●●●●</td><td>●●●●●</td></tr>
+  <tr><td>Time-to-first-value</td><td class="p">medium</td><td class="y">fast</td><td>slow</td><td>slow</td><td>slowest</td></tr>
+</table>
+
+<!-- ===================================================== -->
+<h2 id="rec"><span class="num">10</span>Recommendation &amp; phasing</h2>
+
+<p>These solutions are not mutually exclusive — they share §02–§03 entirely and differ only in the Overview layer. The honest read:</p>
+
+<div class="call key">
+  <p class="label">Recommendation</p>
+  <p><b>Ship Solution 2 (Unified Thread) first</b> — it is the fastest path to email being usefully present, and it lights up the four pre-wired surfaces for almost free. <b>Then layer Solution 1 (Sender Ledger)</b> as the durable identity workbench once volume proves the per-message resolution of Solution 2 is too repetitive. <b>Hold Solution 4 (Flight-Deck Native) and Solution 5 (Relationship Graph) as the ceiling</b>: 4 once the Consular's email classification is trustworthy, 5 once multi-stakeholder deals are common enough to justify the graph. Solution 3 (Triage Lane) is the alternative to 1 if the team prefers reading-first processing over a standing ledger — pick one, not both.</p>
+</div>
+
+<h4>Phasing</h4>
+<ol>
+  <li><b>Phase 0 — Foundation (§02–§03).</b> <code>canonicalizeAddress</code>, the resolution cascade, <code>email-inbound-dispatch</code>, <code>email_message_id/thread_id/meta</code> columns, <code>public/_email/unmatched.jsonl</code>, freemail + mute lists. No Overview change yet; verify with the existing timeline.</li>
+  <li><b>Phase 1 — Solution 2.</b> Email rows in the timeline, generalized <code>UnmatchedBanner</code>, <code>ComposeModal</code> with channel switch + <code>email-outbound</code>. The four pre-wired surfaces go live.</li>
+  <li><b>Phase 2 — Solution 1 or 3.</b> Standing ledger (durable identity) <em>or</em> triage lane (reading-first). Decide from observed volume.</li>
+  <li><b>Phase 3 — Solution 4.</b> Consular EVAL-INBOUND for email → deck cards; keep the hidden/cold pile auditable.</li>
+  <li><b>Phase 4 — Solution 5.</b> Deal Room + CC graph + role-aware resolution, once contacts are rich enough to carry it.</li>
+</ol>
+
+<div class="call">
+  <p class="label">Non-negotiables across all phases</p>
+  <p>(1) Event-log-first — every email mutation is an event before it is a SQLite row. (2) Freemail domains never auto-link. (3) The cold/hidden pile is always countable and openable. (4) Bodies are cleaned of quote-history before they hit <code>Activity.notes</code>; the raw <code>.eml</code> stays on disk. (5) Outbound dedup + status mirror the proven <code>wa_message_id</code>/<code>wa_status</code> machinery.</p>
+</div>
+
+<!-- ===================================================== -->
+<h2 id="appendix"><span class="num">11</span>Appendix — data &amp; API surface</h2>
+
+<h4>New / changed types</h4>
+<pre><code><span class="c">// Activity (lib/crm-store.ts) — add to the existing wa_* family</span>
+email_message_id: <span class="t">string</span>
+email_thread_id:  <span class="t">string</span>
+email_meta:       <span class="t">string</span>   <span class="c">// JSON { from, to[], cc[], hasAttachments, rawPath }</span>
+
+<span class="c">// Contact (lib/crm-store.ts) — .email exists; add</span>
+email_canonical:  <span class="t">string</span>
+email_alt:        <span class="t">string</span>   <span class="c">// JSON string[]</span>
+
+<span class="c">// Solution 1 only — EmailIdentity projection (rebuilt from the log)</span>
+<span class="k">interface</span> <span class="t">EmailIdentity</span> {
+  canonical:  <span class="t">string</span>
+  state:      <span class="s">'contact'</span> | <span class="s">'prospect'</span> | <span class="s">'muted'</span> | <span class="s">'pending'</span>
+  contact_id: <span class="t">string</span>   <span class="c">// when resolved to a person</span>
+  prospect_id:<span class="t">string</span>
+  last_seen:  <span class="t">string</span>
+  subjects:   <span class="t">string</span>[]  <span class="c">// recent, for the ledger preview</span>
+}</code></pre>
+
+<h4>New endpoints (mirroring the WhatsApp set)</h4>
+<table class="feat">
+  <tr><td><code>POST /api/admin/crm/activities/email-inbound</code></td><td>Receives a parsed inbound email; runs the §2 cascade; appends activity or writes to the unmatched buffer.</td></tr>
+  <tr><td><code>POST /api/admin/crm/activities/email-outbound</code></td><td>Sends via Gmail/SMTP; logs <code>E-mail Out</code>; threads on reply.</td></tr>
+  <tr><td><code>GET /api/admin/crm/email-unmatched</code></td><td>Reads <code>public/_email/unmatched.jsonl</code> for the banner / ledger / lane.</td></tr>
+  <tr><td><code>POST /api/admin/crm/email-resolve</code></td><td>Link sender → contact/prospect (writes <code>Contact</code> / <code>email_alt</code>), create lead, or mute.</td></tr>
+</table>
+
+<h4>Files touched (by area)</h4>
+<table class="feat">
+  <tr><td>Identity / transport</td><td><code>lib/email-identity.ts</code> · <code>lib/email-inbound-dispatch.ts</code> · <code>lib/crm-store.ts</code> (columns, <code>appendActivity</code> dedup)</td></tr>
+  <tr><td>Buffers</td><td><code>public/_email/unmatched.jsonl</code> · <code>public/_email/muted.json</code> · raw <code>.eml</code> store</td></tr>
+  <tr><td>Overview (varies by solution)</td><td><code>components/crm/TriageRail.tsx</code> · <code>NextMoveHero.tsx</code> · <code>LeadDetail.tsx</code> · new <code>SenderLedgerList</code> / <code>EmailThreadList</code> / Deal-Room view · generalized <code>UnmatchedBanner</code> · <code>ComposeModal</code></td></tr>
+  <tr><td>Agent</td><td><code>app/api/admin/crm/consular/*</code> (Solution 4) · <code>app/crm/flight-deck-derive.ts</code></td></tr>
+</table>
+
+<footer class="end">
+  <p>Email-in-Overview — Five Solutions · sender-identity spec · for decision. Built on the live CRM (<code>app/crm</code>, <code>lib/crm-store.ts</code>, the WhatsApp dispatch precedent). Read alongside the sibling specs <code>CRM-Email-in-Overview-Proposals.html</code>, <code>crm-email-overview-FINAL.html</code> and <code>CRM-Email-FINAL-Synthesis.html</code> — they converge on the surface set (One Thread / Triage Lane / Consular / Flight-Deck / Deal-Health). This one contributes what they leave thin: the sender-identity resolution layer (§02) and the multi-party Relationship Graph (§08) — and it corrects the transport premise to verified greenfield (no wired Gmail MCP in-tree) and the deck path to <code>public/__crm__/deck.json</code>.</p>
+  <p>Next step: pick a Phase-2 shape (Ledger vs Lane) and confirm the connected-mailbox set so direction derivation (§2.4) is exact.</p>
+</footer>
+
+</div>
+</body>
+</html>

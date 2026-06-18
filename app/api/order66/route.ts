@@ -20,6 +20,7 @@ import { NextRequest } from 'next/server'
 import { runSagePortrait, runSage240_40 } from '@/lib/memory/dreamer'
 import type { ProgressEvent } from '@/lib/memory/dreamer'
 import { bridgeManager } from '@/lib/bridge-process-manager'
+import { getSessionMdPath } from '@/lib/memory/paths'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -59,6 +60,27 @@ export async function GET(req: NextRequest) {
       })
 
       try {
+        // ── Prune protection: one always-surviving SESSION.md.bak ────────────
+        // Reinstated (Ralph): a SINGLE canonical backup that is OVERWRITTEN at
+        // the START of every Order 66 (capturing the pre-compaction state) and
+        // NEVER deleted on completion. Distinct from the rolling
+        // `.pre-prune-{TS}` snapshots (24h sweep, written inside Sage-240/40
+        // only when >240KB): the `.bak` is size-independent and prune-exempt
+        // (the sweep matches `.pre-prune-*`, never `.bak`), so at least one
+        // backup always survives. The old delete-on-success policy is what cost
+        // ~3,000 lines on 2026-04-30 — this is the floor under that.
+        try {
+          const { copyFileSync, existsSync } = require('fs')
+          const sessionMdPath = getSessionMdPath(sessionId)
+          if (existsSync(sessionMdPath)) {
+            copyFileSync(sessionMdPath, sessionMdPath + '.bak')
+            console.log(`[order66] SESSION.md.bak refreshed for ${sessionId}`)
+          }
+        } catch (err) {
+          // Best-effort: a backup failure must never abort the compaction.
+          console.warn(`[order66] SESSION.md.bak write failed for ${sessionId}: ${err}`)
+        }
+
         // Order 66: Kill the bridge — process + disk mapping
         send({ phase: 'bridge-killing' })
         bridgeManager.kill(sessionId)

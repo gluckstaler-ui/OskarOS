@@ -196,7 +196,7 @@ interface WorkerPool {
   waiters: Array<{ resolve: (bp: BridgeProcess) => void; reject: (err: Error) => void; options: BridgeOptions }>
 }
 
-const MAX_WORKERS_PER_SESSION = 32 // Ralph 2026-06-03: raised 5→32 for wider one-shot fan-out (ceiling, not baseline — spawns only up to actual concurrent demand)
+const MAX_WORKERS_PER_SESSION = 64 // Ralph 2026-06-05: raised 32→64. Ceiling, not baseline — spawns only up to actual concurrent demand. Matches the new 64-cap on Discover/refsp/taste so a 64-row taste batch can spin 64 Sonnet bridges in parallel.
 
 function findClaudeBinary(): string {
   // Consolidated into lib/cli-paths.ts (WP-40, 2026-06-02). findBinary returns
@@ -282,7 +282,7 @@ class BridgeProcessManagerImpl {
     // Terminate this worker — one call, then exit. (Its response is already
     // delivered by the time release is called; workers hold no on-disk state.)
     if (!bp.dead) {
-      try { bp.child.kill('SIGTERM') } catch { /* already gone */ }
+      try { this.hardKill(bp.child.pid) } catch { /* already gone */ }
       bp.dead = true
     }
     bp.busy = false
@@ -332,6 +332,9 @@ class BridgeProcessManagerImpl {
 
     const child = spawn(claudePath, args, {
       cwd: options.cwd,
+      // Detached → its own process group, so Order 66 can group-SIGKILL the
+      // claude child AND its MCP-server grandchildren in one shot. Ralph 2026-06-10.
+      detached: true,
       stdio: ['pipe', 'pipe', 'pipe'],
       env: {
         ...process.env,
@@ -482,6 +485,9 @@ class BridgeProcessManagerImpl {
 
     const child = spawn(claudePath, args, {
       cwd: options.cwd,
+      // Detached → its own process group, so Order 66 can group-SIGKILL the
+      // claude child AND its MCP-server grandchildren in one shot. Ralph 2026-06-10.
+      detached: true,
       stdio: ['pipe', 'pipe', 'pipe'],
       env: {
         ...process.env,
@@ -624,8 +630,16 @@ class BridgeProcessManagerImpl {
       }
       bp.child.stdin.write(msg + '\n')
 
-      // Not eligible → behave exactly as before: straight pass-through.
+      // Not eligible → behave exactly as before: straight pass-through. Log WHY
+      // when the caller asked for 1M, so a "it didn't probe" is always explainable
+      // from the server log (resumed session, a live bridge pre-turn, or opt-out).
       if (!eligible) {
+        if (options.ensure1M) {
+          const why = hadLive ? 'a live bridge existed pre-turn'
+            : bp.wasResumed ? 'the CLI session resumed (model unchanged → already verified)'
+            : `caller opted out (ensure1M=${options.ensure1M})`
+          console.log(`[Bridge] ${sessionId} 1M-probe SKIPPED (${why}); streaming without a window check`)
+        }
         yield* this.readResponse(bp)
         return
       }
@@ -658,6 +672,20 @@ class BridgeProcessManagerImpl {
         // Refuse ONLY when the wire EXPLICITLY reports a sub-1M window. If it
         // reports nothing, fail open — never loop on a non-signal.
         reroll = servedWindow !== null && servedWindow < 1_000_000 && attempt < MAX_SPAWNS
+
+        // Visibility (Ralph 2026-06-10): surface EVERY probe outcome — a clean
+        // ≥1M turn used to be silent, which read as "it never probed". The server
+        // log now records the served window for every checked turn, and a verified
+        // ≥1M result pings the UI once so a model switch is visibly confirmed.
+        const servedK = servedWindow !== null ? `${Math.round(servedWindow / 1000)}K` : 'unreported'
+        const verdict = reroll ? 'sub-1M → re-rolling'
+          : servedWindow === null ? 'no window on the wire (fail-open, streamed as-is)'
+          : servedWindow >= 1_000_000 ? 'VERIFIED ≥1M ✓'
+          : `kept at ${servedK} (out of re-rolls)`
+        console.log(`[Bridge] ${sessionId} 1M-probe: ${keptModel ?? '<unknown>'} served ${servedK} on attempt ${attempt}/${MAX_SPAWNS} → ${verdict}`)
+        if (!reroll && servedWindow !== null && servedWindow >= 1_000_000) {
+          void this.warn(sessionId, `✓ ${keptModel ?? 'model'} verified at 1M context`)
+        }
 
         if (!reroll) {
           for (const b of buffered) yield b
@@ -850,7 +878,7 @@ class BridgeProcessManagerImpl {
     const pool = this.workerPools.get(sessionId)
     if (pool) {
       for (const w of pool.workers) {
-        try { w.child.kill('SIGTERM') } catch { /* already dead */ }
+        try { this.hardKill(w.child.pid) } catch { /* already dead */ }
         if (w.systemPromptFile) { try { unlinkSync(w.systemPromptFile) } catch {} }
         w.dead = true
       }
@@ -867,7 +895,7 @@ class BridgeProcessManagerImpl {
     const bp = this.processes.get(sessionId)
     if (bp) {
       console.log(`[Bridge] Killing session ${sessionId} (in-memory pid ${bp.child.pid ?? '?'})`)
-      bp.child.kill('SIGTERM')
+      this.hardKill(bp.child.pid)
       this.cleanup(sessionId)
       return
     }
@@ -889,9 +917,28 @@ class BridgeProcessManagerImpl {
     }
     console.log(`[Bridge] Killing orphaned bridge for ${sessionId} via disk pid ${mapping.pid} (${mapping.agentRole ?? 'unknown role'})`)
     try {
-      process.kill(mapping.pid, 'SIGTERM')
+      this.hardKill(mapping.pid)
     } catch (err) {
       console.error(`[Bridge] Failed to SIGTERM pid ${mapping.pid}:`, err)
+    }
+  }
+
+  /**
+   * Instant, group-wide kill (Ralph 2026-06-10) — supersedes the old SIGTERM+
+   * escalate dance. The bridge is spawned detached (its own process group), so
+   * `process.kill(-pid, 'SIGKILL')` reaps the claude child AND its MCP-server
+   * grandchildren in one uncatchable shot — no grace window, the "instant" the
+   * model switch needs. SIGKILL because a WEDGED `claude --print` ignores SIGTERM
+   * (the 2026-06-08 Consular freeze: the term'd bridge kept the OAuth lock + stdio
+   * pipes, the manager declared it dead, and the respawn inherited the poison).
+   * Falls back to a single-pid SIGKILL if the group send fails (no group leader).
+   */
+  private hardKill(pid: number | undefined): void {
+    if (!pid) return
+    try {
+      process.kill(-pid, 'SIGKILL') // negative pid → entire process group
+    } catch {
+      try { process.kill(pid, 'SIGKILL') } catch { /* already reaped */ }
     }
   }
 
@@ -903,7 +950,7 @@ class BridgeProcessManagerImpl {
     for (const [sessionId, bp] of this.processes) {
       if (bp.dead || now - bp.lastActivity > maxIdleMs) {
         console.log(`[Bridge] Idle cleanup: ${sessionId} (idle ${Math.round((now - bp.lastActivity) / 1000)}s)`)
-        bp.child.kill('SIGTERM')
+        this.hardKill(bp.child.pid)
         this.cleanup(sessionId)
       }
     }
@@ -915,7 +962,7 @@ class BridgeProcessManagerImpl {
         if (w.dead) continue
         if (!w.busy && now - w.lastActivity > maxIdleMs) {
           console.log(`[Bridge:worker:${sessionId}] Idle cleanup (idle ${Math.round((now - w.lastActivity) / 1000)}s)`)
-          try { w.child.kill('SIGTERM') } catch { /* dead */ }
+          try { this.hardKill(w.child.pid) } catch { /* dead */ }
           if (w.systemPromptFile) { try { unlinkSync(w.systemPromptFile) } catch {} }
           w.dead = true
           continue

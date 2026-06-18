@@ -58,11 +58,6 @@ export type SessionEventKind =
   // model-context, but the event is emitted regardless — when CD migrates
   // to MCP-server-peer per WP-F1b, the immediacy will work end-to-end.
   | 'agent_inbox_message'
-  // WP-66 (2026-05-06): TodoWrite write → SESSION.md `## Todos` section
-  // rewritten → broadcast. LiveOverlay (WP-22) subscribes and re-reads the
-  // section so UnfinishedTodosPanel (WP-25) re-renders. Single-writer (CD);
-  // user-add path flows through normal chat → CD encodes as a TodoWrite.
-  | 'todos_updated'
   // WP-22 Phase 1 (2026-05-06): chat-card events for capability tools that
   // produce visible chat-surface artifacts. Each fires after the route's
   // primary work completes; page.tsx subscriber pushes a synthetic assistant

@@ -32,12 +32,23 @@ export function parseHtmlPath(htmlPath?: string | null): {
   pageFilename: string | null
 } {
   if (!htmlPath) return { sessionId: null, pageFilename: null }
-  const m = htmlPath.match(/^\/([^/]+)\/([^/]+\.html)(?:[?#].*)?$/i)
+  // sessionId is the FIRST path segment; the page itself may live in a
+  // subfolder (a deliverable bundle: `/<session>/Silke Lengler/Foo.dc.html`),
+  // so the filename group allows `/`. Without this, every nested vibe parsed to
+  // sessionId:null — which made `canUseDirector` false and hid the Director
+  // button in the gallery for all subfolder vibes (Ralph 2026-06-13).
+  const m = htmlPath.match(/^\/([^/]+)\/(.+\.html)(?:[?#].*)?$/i)
   if (!m) return { sessionId: null, pageFilename: null }
+  // pageFilename is a real on-disk path (the bridge + save-edits join it under
+  // public/<session>/), so decode the URL-encoded match — a subfolder with a
+  // space (`Silke%20Lengler/…`) must resolve to `Silke Lengler/…` or the save
+  // 404s. No-op for the flat ASCII vibe filenames that were the only case before.
+  let pageFilename = m[2]
+  try { pageFilename = decodeURIComponent(m[2]) } catch { /* keep raw on malformed % */ }
   if (m[1].toLowerCase() === 'vibes') {
-    return { sessionId: null, pageFilename: m[2] }
+    return { sessionId: null, pageFilename }
   }
-  return { sessionId: m[1], pageFilename: m[2] }
+  return { sessionId: m[1], pageFilename }
 }
 
 /**

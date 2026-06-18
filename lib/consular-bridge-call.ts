@@ -16,10 +16,17 @@
 
 import { readFileSync } from 'fs'
 import { join } from 'path'
+import { brainSpec, DEFAULT_BRAIN, requires1M } from './models'
 import { bridgeManager, type BridgeOptions, type BridgeEvent } from './bridge-process-manager'
 import { CONSULAR_ALLOWED_TOOLS } from './mcp-config'
 import { CRM_SESSION_ID, getUserMemoryPath } from './memory/paths'
 import { makeToolCollector, type ToolCalls } from './mcp-tool-collector'
+import { extractBridgeUsage } from './bridge-usage'
+import { resolveConfig } from './session-config'
+
+// The bridge-usage helper accepts a loose event shape; alias BridgeEvent
+// to the helper's signature so the cast at the call site is explicit.
+type AnyBridgeEvent = Parameters<typeof extractBridgeUsage>[0] extends (infer E)[] | undefined ? E : never
 
 const CONSULAR_AGENT_FILE = join(process.cwd(), 'agents', 'CONSULAR-agent.md')
 
@@ -57,6 +64,11 @@ export interface ConsularCallResult {
   /** Captured tool_use args, keyed by bare tool name (e.g. `submit_image_prompt`). */
   toolCalls: ToolCalls
   durationMs: number
+  /** Truth on the wire — the model that actually served this turn, read off the
+   *  last assistant event's `message.model` (NOT the request alias). Feeds the
+   *  ConversationPanel's Active Model badge, same doctrine as Studio. Null when
+   *  the wire reported none. */
+  model: string | null
 }
 
 /**
@@ -65,15 +77,19 @@ export interface ConsularCallResult {
  * capture typed tool args — that's how the /ask route gets the committed
  * draft back.
  *
- * Model defaults to `claude-opus-4-8[1m]` (same as CD); overridable, and the
+ * Model defaults to `claude-fable-5` (same as CD); overridable, and the
  * Consular model is still an open decision (§16.7).
  */
 export async function callConsularBridge(
   content: string,
   opts: { model?: string; expectedTools?: readonly string[] } = {},
 ): Promise<ConsularCallResult> {
+  // Resolve the brain from the CRM session config (the FABLE/OPUS badge writes
+  // it to __crm__) → registry default fallback. Bare id; the bridge re-roll
+  // verifies the 1M window. Ralph 2026-06-10.
+  const cdModel = opts.model || resolveConfig('cdModel', null, CRM_SESSION_ID, brainSpec(DEFAULT_BRAIN).id)
   const options: BridgeOptions = {
-    model: opts.model || 'claude-opus-4-8[1m]',
+    model: cdModel,
     systemPrompt: buildConsularPrompt(),
     cwd: process.cwd(),
     agentRole: 'consular',
@@ -81,7 +97,7 @@ export async function callConsularBridge(
     // Refuse 200K models: the upstream sometimes serves a degraded window under
     // the 1M model name. ensure1M makes the bridge re-roll a fresh __crm__ spawn
     // until the wire-reported contextWindow is actually 1M. Ralph 2026-05-29.
-    ensure1M: true,
+    ensure1M: requires1M(cdModel),
   }
   const toolCollector = makeToolCollector(opts.expectedTools || [])
 
@@ -89,10 +105,15 @@ export async function callConsularBridge(
     const start = Date.now()
     const events: BridgeEvent[] = []
     let text = ''
+    let wireModel: string | null = null
     for await (const event of bridgeManager.sendMessage(CRM_SESSION_ID, content, options)) {
       events.push(event)
       toolCollector.consume(event)
       if (event.type === 'assistant' && event.message?.content) {
+        // Truth on the wire: assistant events carry the model that actually
+        // served the turn (the same source bridge-process-manager trusts for
+        // actualModel — init only echoes the request).
+        if (typeof event.message.model === 'string' && event.message.model) wireModel = event.message.model
         for (const block of event.message.content) {
           if (block.type === 'text' && typeof block.text === 'string') text += block.text
         }
@@ -101,45 +122,26 @@ export async function callConsularBridge(
     }
 
     // Record the Consular turn's context-window fill + cost to USAGE.json so
-    // the CRM gauge can MEASURE how full the window is. We use the numbers
-    // Anthropic reports DIRECTLY — no heuristics:
-    //   · window  = result.modelUsage[model].contextWindow (wire truth; the CLI
-    //               reports it per-turn — opus-4-8 = 1M). NO lookup table: if the
-    //               wire doesn't report a window we record 0, never guess from a
-    //               hardcoded model→window map. The agent's result IS the source.
-    //   · fill    = result.usage.{input + cache_read + cache_creation} — the
-    //               EXACT tokens the model read on the final iteration (the
-    //               top-level `usage` IS that iteration, confirmed against
-    //               usage.iterations + the assistant message). We deliberately
-    //               do NOT use modelUsage.cacheReadInputTokens — that one is the
-    //               cumulative roll-up across iterations and would over-count;
-    //               and we do NOT divide by num_turns (that was a stale estimate
-    //               for a cumulative field this one isn't).
-    // Best-effort — never break the chat reply. Ralph 2026-05-29.
+    // the CRM gauge can MEASURE how full the window is. Extraction is
+    // centralised in `lib/bridge-usage.ts` — the formula was previously
+    // duplicated here and in scout-bridge-call.ts, both with the same bug:
+    // `result.usage` is the CUMULATIVE sum across every tool-use iteration,
+    // not the final iteration. A Consular turn with 3 tool calls produced
+    // 226% context fills against a 1M window (mathematically impossible).
+    // The helper now reads the LAST assistant event's `message.usage`,
+    // which is the actual per-iteration fill, bounded by the window.
+    // Best-effort — never break the chat reply.
     try {
-      const result = events.find((e) => e.type === 'result')
-      const u = result?.usage as {
-        input_tokens?: number; output_tokens?: number
-        cache_read_input_tokens?: number; cache_creation_input_tokens?: number
-      } | undefined
-      if (u) {
+      const usage = extractBridgeUsage(events as AnyBridgeEvent[])
+      if (usage) {
         const { appendUsage } = await import('./usage-tracker')
-        const mu = result?.modelUsage as Record<string, { contextWindow?: number }> | undefined
-        const wireKey = mu ? Object.keys(mu)[0] : undefined
-        const contextWindow = (wireKey && mu?.[wireKey]?.contextWindow) || 0
-        const cacheRead = u.cache_read_input_tokens || 0
-        const cacheCreation = u.cache_creation_input_tokens || 0
-        const input = u.input_tokens || 0
-        const contextSize = input + cacheRead + cacheCreation
-        const contextPct = contextWindow > 0 ? Math.round((contextSize / contextWindow) * 100) : 0
-        const bridgeCumulativeCost = result?.total_cost_usd || 0
         await appendUsage(
           CRM_SESSION_ID,
           'CD',
-          { inputTokens: contextSize, outputTokens: u.output_tokens || 0, cost: bridgeCumulativeCost },
+          { inputTokens: usage.contextSize, outputTokens: usage.outputTokens, cost: usage.totalCostUsd },
           'Consular chat (bridge)',
-          { contextPct, contextWindow, contextSize },
-          bridgeCumulativeCost,
+          { contextPct: usage.contextPct, contextWindow: usage.contextWindow, contextSize: usage.contextSize },
+          usage.totalCostUsd,
           'cli',
         )
       }
@@ -147,6 +149,6 @@ export async function callConsularBridge(
       console.warn('[consular-bridge] usage record failed (non-fatal):', err)
     }
 
-    return { text, events, toolCalls: toolCollector.getToolCalls(), durationMs: Date.now() - start }
+    return { text, events, toolCalls: toolCollector.getToolCalls(), durationMs: Date.now() - start, model: wireModel }
   })
 }

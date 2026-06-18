@@ -1,0 +1,234 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CRM · Overview (email-in-overview)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root,[data-theme="onyx"]{--bg:#0a0907;--bgElev:#13110d;--bgSurf:#1c1a13;--bgCard:#13110d;--line:#2a2519;--lineDim:#1a160f;--amber:#ffb84a;--amberHi:#ffd07a;--amberDim:#7a6536;--phosphor:#c8ee7a;--red:#ff6a4d;--bone:#ece1c5;--muted:#7a6f5a;--mutedDim:#42392a;--exec:#0a0805}
+[data-theme="polar"]{--bg:#ffffff;--bgElev:#ffffff;--bgSurf:#ede2c4;--bgCard:#f7f2e2;--line:#806a3a;--lineDim:#d0c098;--amber:#e89e16;--amberHi:#dca612;--amberDim:#8a5a18;--phosphor:#1f880e;--red:#d62012;--bone:#1a1408;--muted:#453620;--mutedDim:#a09078;--exec:#fff}
+*{box-sizing:border-box}html,body{margin:0;height:100%}
+body{background:var(--bg);color:var(--bone);font-family:'Inter',system-ui,sans-serif;font-size:14px;height:100vh;overflow:hidden}
+.screen{height:100vh;display:grid;grid-template-columns:360px minmax(0,1fr) 400px}
+.col{min-height:0;overflow:auto}
+/* rail */
+.rail{border-right:1px solid var(--line);padding:22px 20px;display:flex;flex-direction:column;gap:18px}
+.greet{font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:var(--mutedDim)}
+.hl{font-size:24px;line-height:1.18;font-weight:600;letter-spacing:-.4px;margin:7px 0 0}
+.hl b{color:var(--amber);font-weight:700}
+.triage{display:flex;flex-direction:column;gap:6px;margin-top:4px}
+.tr{display:flex;align-items:center;gap:12px;padding:9px 12px;border:1px solid var(--line);background:var(--bgCard);cursor:pointer;transition:background .12s}
+.tr:hover{background:var(--bgSurf)}
+.tr.on{border-left:3px solid var(--amber);background:var(--bgSurf)}
+.tr.red.on{border-left-color:var(--red)}
+.tr .n{font-family:'JetBrains Mono',monospace;font-size:18px;font-weight:700;color:var(--amber);min-width:30px;text-align:right}
+.tr.red .n{color:var(--red)}
+.tr .l{font-weight:600;font-size:12.5px}
+.tr.cp .l::after{content:' ·';color:var(--phosphor)}
+.tr .cd{width:5px;height:5px;border-radius:50%;background:var(--phosphor);margin-left:auto}
+.foot{margin-top:auto;display:flex;gap:24px;padding-top:14px;border-top:1px solid var(--line);font-family:'JetBrains Mono',monospace;font-size:10px}
+.foot .x{color:var(--mutedDim);text-transform:uppercase}.foot .v{color:var(--amber);font-weight:700;margin-left:6px}
+/* middle */
+.mid{display:flex;flex-direction:column;min-height:0}
+.hero{margin:14px 18px 0;border:1px solid var(--line);border-left:3px solid var(--phosphor);background:color-mix(in srgb,var(--phosphor) 8%,var(--bg));padding:14px 16px;flex:none}
+.hero .k{font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:1.4px;text-transform:uppercase;color:var(--mutedDim);margin-bottom:6px}
+.hero .k b{color:var(--phosphor)}
+.hero .t{font-size:18px;font-weight:600;letter-spacing:-.2px}
+.hero .s{font-size:12px;color:var(--muted);margin-top:5px;line-height:1.45}
+.hero .a{display:flex;gap:7px;margin-top:11px;flex-wrap:wrap}
+.fbar{display:flex;align-items:center;gap:10px;padding:14px 18px 10px;flex:none}
+.fbar .ft{font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:1px;text-transform:uppercase;color:var(--amber);font-weight:700;white-space:nowrap}
+.fbar input{flex:1;font-family:'JetBrains Mono',monospace;font-size:11px;background:var(--bgCard);border:1px solid var(--line);color:var(--muted);padding:7px 11px;outline:none}
+.fbar .new{margin-left:auto}
+.list{flex:1;overflow:auto;min-height:0}
+.lrow{display:flex;align-items:center;gap:12px;padding:11px 18px;border-bottom:1px solid var(--lineDim);cursor:pointer;transition:background .1s}
+.lrow:hover{background:var(--bgSurf)}
+.lrow.sel{background:var(--bgSurf);box-shadow:inset 3px 0 0 var(--amber)}
+.av{width:30px;height:30px;border-radius:50%;flex:none;display:flex;align-items:center;justify-content:center;font-family:'JetBrains Mono',monospace;font-size:10.5px;font-weight:700;color:var(--amber);background:transparent;border:1.5px solid var(--amber)}
+.who{flex:1;min-width:0}.who .nm{font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.who .mt{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--mutedDim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:2px}
+.chip2{font-family:'JetBrains Mono',monospace;font-size:8.5px;letter-spacing:.4px;text-transform:uppercase;padding:2px 6px;border:1px solid var(--line);color:var(--muted);white-space:nowrap}
+.chip2.em{color:var(--amber);border-color:var(--amberDim)}.chip2.wa{color:var(--phosphor);border-color:var(--phosphor)}
+.rm{display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex:none;min-width:62px}
+.rm .v{font-family:'JetBrains Mono',monospace;font-size:11px}.rm .p{font-family:'JetBrains Mono',monospace;font-size:10.5px;color:var(--amber);font-weight:700}
+/* lead detail (email-in-overview) */
+.detail{flex:1;min-height:0;display:flex;flex-direction:column;overflow:hidden}
+.dback{font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:1px;text-transform:uppercase;color:var(--mutedDim);padding:13px 18px;border-bottom:1px solid var(--line);cursor:pointer;flex:none}
+.dback:hover{color:var(--amber)}
+.dscroll{flex:1;overflow:auto;min-height:0}
+.lh{padding:16px 18px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:13px}
+.lh .nm{font-size:17px;font-weight:700}
+.lh .meta{font-family:'JetBrains Mono',monospace;font-size:10.5px;color:var(--muted);margin-top:3px}
+.lh .rm{margin-left:auto}
+.tlhead{font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:1.4px;text-transform:uppercase;color:var(--mutedDim);padding:14px 18px 4px}
+.tlrow{display:flex;align-items:flex-start;gap:11px;padding:11px 18px;border-bottom:1px solid var(--lineDim)}
+.tlrow.click{cursor:pointer}.tlrow.click:hover{background:var(--bgSurf)}
+.tlrow.open{background:var(--bgSurf);box-shadow:inset 3px 0 0 var(--amber)}
+.tdot{width:8px;height:8px;border-radius:50%;flex:none;margin-top:5px}
+.de{background:var(--amber)}.dw{background:var(--phosphor)}.dc{background:var(--muted)}
+.tw{flex:1;min-width:0}.tw .h{font-size:12.5px;font-weight:600}.tw .s{font-size:11.5px;color:var(--muted);margin-top:2px}
+.ttag{font-family:'JetBrains Mono',monospace;font-size:8.5px;letter-spacing:.4px;text-transform:uppercase;padding:2px 7px;font-weight:700;white-space:nowrap;flex:none}
+.tt-em{color:var(--amber);border:1px solid var(--amberDim)}.tt-wa{color:var(--phosphor);border:1px solid var(--phosphor)}.tt-cl{color:var(--muted);border:1px solid var(--line)}
+.ttime{font-family:'JetBrains Mono',monospace;font-size:9.5px;color:var(--mutedDim);flex:none}
+/* the opened email + co-pilot, inline in the timeline */
+.mailopen{border-bottom:1px solid var(--line);background:var(--bgElev)}
+.mo-body{padding:14px 18px;font-size:13px;color:var(--bone);line-height:1.65;white-space:pre-wrap;border-bottom:1px solid var(--lineDim)}
+.cp{padding:15px 18px;background:var(--bgCard)}
+.cph{font-family:'JetBrains Mono',monospace;font-size:9.5px;letter-spacing:1.2px;text-transform:uppercase;color:var(--amber);font-weight:700;display:flex;align-items:center;gap:8px;margin-bottom:11px}
+.cph .pulse{width:7px;height:7px;background:var(--phosphor);box-shadow:0 0 8px var(--phosphor);animation:bl 1.4s infinite}
+@keyframes bl{50%{opacity:.4}}
+.blk{margin-bottom:13px}
+.bl{font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:1px;text-transform:uppercase;color:var(--mutedDim);margin-bottom:7px}
+.read{font-size:13px;color:var(--bone);line-height:1.55;border-left:2px solid var(--amber);padding:1px 0 1px 12px}
+.move{background:var(--bg);border:1px solid var(--line);padding:11px}
+.move .mc{font-weight:700;font-size:13px;color:var(--amber)}
+.move .mw{font-size:12px;color:var(--muted);margin-top:4px;line-height:1.45}
+.draft{border:1px solid var(--line);background:var(--bg);margin-top:4px}
+.draft .h{padding:8px 11px;background:var(--bgSurf);border-bottom:1px solid var(--line);font-family:'JetBrains Mono',monospace;font-size:9px;text-transform:uppercase;letter-spacing:.5px;color:var(--amber);font-weight:700}
+.draft .x{padding:11px;font-size:12.5px;color:var(--muted);line-height:1.55;white-space:pre-wrap}
+.dacts{display:flex;gap:7px;padding:0 11px 11px}
+.wb{font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:.5px;text-transform:uppercase;color:var(--phosphor);margin-top:2px}
+/* flight */
+.flight{border-left:1px solid var(--line);padding:18px 16px 14px;display:flex;flex-direction:column;min-height:0;overflow:hidden}
+.fh{display:flex;align-items:center;gap:9px;margin-bottom:3px}
+.fbadge{width:20px;height:20px;display:flex;align-items:center;justify-content:center;background:color-mix(in srgb,var(--phosphor) 18%,transparent);border:1px solid var(--phosphor);color:var(--phosphor);font:600 11px/1 'JetBrains Mono';animation:bl 2s infinite}
+.fh .ft{font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:1.4px;text-transform:uppercase;color:var(--amber);font-weight:600}
+.fh .live{margin-left:auto;display:flex;align-items:center;gap:6px}.fh .live .d{width:7px;height:7px;background:var(--phosphor);animation:bl 1.4s infinite}.fh .live .t{font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--phosphor);letter-spacing:1px}
+.fsub{font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--mutedDim);letter-spacing:.8px;margin:4px 0 14px}.fsub b{color:var(--amber)}
+.fdeck{display:flex;flex-direction:column;gap:9px}
+.fcard{padding:13px 15px}
+.fcard .pr{font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:2px;font-weight:600;display:flex;justify-content:space-between}
+.fcard .co{font:600 18px/1.1 'Inter';color:var(--bone);margin-top:9px;letter-spacing:-.4px}.fcard.r2 .co{font-size:14px;margin-top:7px}
+.fcard .vc{font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:1.2px;margin-top:6px}
+.fcard .wy{font-size:11px;color:var(--muted);margin-top:6px;line-height:1.4}
+.fcard .ex{display:flex;gap:10px;margin-top:11px;align-items:center}
+.fexec{font:600 9px/1 'JetBrains Mono';letter-spacing:1.2px;color:var(--exec);padding:8px 12px;text-transform:uppercase;cursor:pointer}.fdur{font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--mutedDim)}
+.consular{margin-top:13px;border-top:1px solid var(--line);padding-top:12px}
+.consular .ch2{font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:1.4px;text-transform:uppercase;color:var(--phosphor);margin-bottom:7px}
+.cprose{font-size:12px;color:var(--muted);line-height:1.6}.cprose b{color:var(--amber);font-weight:600}
+.fchat{margin-top:11px;border-top:1px solid var(--line);padding-top:11px;display:flex;gap:7px}
+.fchat input{flex:1;background:var(--bgCard);border:1px solid var(--line);padding:9px 11px;color:var(--bone);font-family:'Inter';font-size:12px;outline:none}.fchat .s{font-family:'JetBrains Mono',monospace;background:var(--amber);color:var(--exec);border:none;padding:0 13px;cursor:pointer;font-weight:700}
+.btn{font-family:'JetBrains Mono',monospace;font-size:9.5px;letter-spacing:.5px;text-transform:uppercase;padding:7px 11px;border:1px solid var(--line);background:var(--bgCard);color:var(--muted);cursor:pointer;font-weight:700}
+.btn:hover{border-color:var(--amber);color:var(--amber)}.btn.am{background:var(--amber);color:var(--exec);border-color:var(--amber)}.btn.ph{background:var(--phosphor);color:var(--exec);border-color:var(--phosphor)}
+.hidden{display:none!important}
+#toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(40px);background:var(--bgSurf);border:1px solid var(--amber);color:var(--bone);font-family:'JetBrains Mono',monospace;font-size:11px;padding:11px 16px;opacity:0;transition:.25s;pointer-events:none;z-index:60}#toast.on{opacity:1;transform:translateX(-50%) translateY(0)}#toast b{color:var(--amber)}
+</style>
+</head>
+<body>
+<div class="screen">
+  <div class="col rail">
+    <div><div class="greet">Good morning · Sun 15 Jun</div><div class="hl">11 items need you. Start with the <b>10 overdue.</b></div></div>
+    <div class="triage" id="triage"></div>
+    <div class="foot"><span><span class="x">Pipeline</span><span class="v">CHF 327'700</span></span><span><span class="x">Weighted</span><span class="v">CHF 186'895</span></span></div>
+  </div>
+  <div class="col mid">
+    <div class="hero">
+      <div class="k"><b>▸</b> Next move · Inbound email · Acme AG · needs a strategic reply</div>
+      <div class="t">Acme opened your offer 3× and went quiet.</div>
+      <div class="s">It's not price — it's the silent CFO on CC. Open the thread; the co-pilot has the play.</div>
+      <div class="a"><button class="btn am" data-act="lead" data-id="L1">Open Acme thread ▸</button><button class="btn">Dismiss</button></div>
+    </div>
+    <div class="fbar"><span class="ft" id="ftit">All open · 12</span><input placeholder="Search company, contact…"><button class="btn ph new">+ New</button></div>
+    <div class="list" id="list"></div>
+    <div class="detail hidden" id="detail"></div>
+  </div>
+  <div class="col flight" id="flight"></div>
+</div>
+<div id="toast"></div>
+<script>
+const theme=new URLSearchParams(location.search).get('theme')||'onyx';
+document.documentElement.setAttribute('data-theme',theme);
+
+const TRIAGE=[['13','Open',''],['10','Overdue','red on'],['03','Today',''],['05','This week',''],['04','Emails','cp'],['02','WhatsApp','cp'],['06','Incoming',''],['03','Contacted','']];
+const LEADS=[
+ {id:'L1',co:'Acme AG',ct:'Jan Muster · Referral',stage:'Proposal',val:"24'000",pct:'45%',ch:'em',
+  tl:[{ch:'em',h:'Re: Angebot Webseite',s:'in · "Danke, sieht gut aus…" — opened 3×',time:'09:14',eid:'e1'},
+      {ch:'em',h:'Angebot Webseite (PDF)',s:'out · CHF 24k · CFO silently CC’d',time:'Thu 12'},
+      {ch:'wa',h:'"Budget Frage?"',s:'in · WhatsApp · answered Fri',time:'Fri'},
+      {ch:'cl',h:'Discovery call · 22 min',s:'champion warm',time:'Tue 10'}]},
+ {id:'L2',co:'Bistrot SA',ct:'Marco Rossi · Cold-call',stage:'Closing',val:"9'000",pct:'90%',ch:'em',
+  tl:[{ch:'em',h:'können wir diese Woche unterschreiben?',s:'in · ready to sign',time:'Mon',eid:'e2'},
+      {ch:'wa',h:'Budget agreed',s:'in · WhatsApp · Fri',time:'Fri'}]},
+ {id:'L3',co:'Bär GmbH',ct:'P. Bär · Referral',stage:'Cooling',val:"6'500",pct:'30%',ch:'em',
+  tl:[{ch:'em',h:'Rechnung März',s:'in · "melde mich zu Phase 2" then silence',time:'Fri',eid:'e3'}]},
+ {id:'L4',co:'Hotel Bellevue Lugano',ct:'Erika Vogel · Inbound',stage:'Demo',val:"47'300",pct:'55%',ch:'cl',tl:[{ch:'cl',h:'Demo booked',s:'On-site · GM',time:'Tue'}]},
+ {id:'L5',co:'Sportcenter Olimpia',ct:'Roberto Greco · Referral',stage:'Closing',val:"41'200",pct:'85%',ch:'em',tl:[{ch:'em',h:'Vertrag in Prüfung',s:'out · awaiting signature',time:'Wed'}]},
+ {id:'L6',co:'Restaurant Du Pont',ct:'Pierre Dubois · Referral',stage:'Proposal',val:"19'800",pct:'80%',ch:'wa',tl:[{ch:'wa',h:'Rückfrage Menükarte',s:'in',time:'Thu'}]},
+];
+const EMAILS={
+ e1:{thread:[{from:'Silke (you)',time:'Thu 12 Jun',dir:'out',body:`Hallo Jan,\n\nanbei das Angebot für die neue Website — Umfang, Zeitplan und Investition auf einer Seite.\n\nBeste Grüsse\nSilke`},{from:'Jan Muster · Acme AG',time:'Today 09:14',dir:'in',body:`Hallo Silke\n\nDanke, das Angebot sieht gut aus. Ich schaue es mir mit dem Team an und melde mich.\n\nGruss Jan`}],
+  read:`Not price — it's the CFO. Jan's sold ("sieht gut aus", twice). Opened 3×, never forwarded: parked on R. Vogt's desk, who reads every thread and never replies.`,
+  move:{call:'Arm Jan to sell it upward',why:`A one-page CFO-facing ROI he can forward — don't make him paraphrase your PDF.`},
+  draft:`Hallo Jan,\n\nfreut mich, dass es überzeugt. Damit die Freigabe intern leicht fällt, hänge ich eine einseitige ROI-Übersicht an — fürs Gremium. Eine 15-Min-Runde mit dem CFO? Ich halte Mittwoch frei.\n\nBeste Grüsse\nSilke`,
+  wb:'Acme updated · blocker = CFO · stage queued'},
+ e2:{thread:[{from:'Marco · Bistrot SA',time:'Mon 09:02',dir:'in',body:`Hoi Silke\n\nBudget passt — lass uns das diese Woche unterschreiben. Wie machen wir das?\n\nGruss Marco`}],
+  read:`Done deal — confirming, not negotiating. Budget agreed on WhatsApp Friday. More selling re-opens a closed question.`,
+  move:{call:'Send the contract today.',why:`Match his speed; don't re-pitch.`},
+  draft:`Hoi Marco,\n\nperfekt — anbei der Vertrag zur Unterschrift, Konditionen wie auf WhatsApp. Soll ich den Kickoff auf Di reservieren?\n\nGruss Silke`,
+  wb:'Bistrot updated · intent = sign · stage → Won queued'},
+ e3:{thread:[{from:'P. Bär · Bär GmbH',time:'Fri',dir:'in',body:`Guten Tag\n\nAnbei die Rechnung für März. Bezüglich Phase 2 melde ich mich.\n\nFreundliche Grüsse\nP. Bär`}],
+  read:`Reads as an invoice, but the signal is the silence: "melde mich zu Phase 2" 5 days ago, then nothing. Cooling, not lost — pushing now looks desperate.`,
+  move:{call:'Re-engage on value, not the sale',why:`Hold a slot; give a reason to come back without pressure.`},
+  draft:`Hallo Herr Bär,\n\nbesten Dank für die Rechnung. Für Phase 2 halte ich Ihnen unverbindlich einen Slot im Mai frei.\n\nFreundliche Grüsse\nSilke`,
+  wb:'Bär updated · status = cooling · next step'},
+};
+const DECK=[
+ {tone:'green',pr:'▸▸ TOP PRIORITY',dl:'12 MIN LEFT',co:"Acme AG",vc:'REPLY · EMAIL',wy:'Opened 3×, quiet 7d. Arm Jan for the CFO.',ex:'● Open',dur:'2 MIN'},
+ {tone:'red',pr:'CALL',dl:'38 MIN LEFT',co:'Sportcenter Olimpia',vc:'CALL · PHONE',wy:'Signature window closes 14:00'},
+ {tone:'amber',pr:'SEND',dl:'DUE TODAY',co:'Hotel Bellevue',vc:'SEND · EMAIL',wy:'Demo recap promised EOD'},
+];
+const TONE={green:'var(--phosphor)',red:'var(--red)',amber:'var(--amber)'};
+const state={lead:null,email:null};
+const $=s=>document.querySelector(s);
+function toast(t){const e=$('#toast');e.innerHTML=t;e.classList.add('on');clearTimeout(e._t);e._t=setTimeout(()=>e.classList.remove('on'),2300);}
+function ini(s){return ((s||'?').match(/[A-ZÄÖÜ]/g)||['?']).slice(0,2).join('');}
+function curLead(){return LEADS.find(l=>l.id===state.lead);}
+
+function renderTriage(){$('#triage').innerHTML=TRIAGE.map(t=>`<div class="tr ${t[2]}">${/cp/.test(t[2])?'':''}<span class="n">${t[0]}</span><span class="l">${t[1]}</span>${/cp/.test(t[2])?'<span class="cd"></span>':''}</div>`).join('');}
+function renderList(){
+ $('#list').innerHTML=LEADS.map(l=>{const c=l.ch==='em'?'<span class="chip2 em">email</span>':l.ch==='wa'?'<span class="chip2 wa">whatsapp</span>':'<span class="chip2">call</span>';
+  return `<div class="lrow ${l.id===state.lead?'sel':''}" data-act="lead" data-id="${l.id}"><div class="av">${ini(l.co)}</div><div class="who"><div class="nm">${l.co}</div><div class="mt">${l.ct} · ${l.stage}</div></div>${c}<div class="rm"><span class="v">CHF ${l.val}</span><span class="p">${l.pct}</span></div></div>`;}).join('');
+}
+function copilot(eid){const e=EMAILS[eid];if(!e)return'';
+ return `<div class="cp"><div class="cph"><span class="pulse"></span> Co-Pilot · this thread</div>
+  <div class="blk"><div class="bl">The read</div><div class="read">${e.read}</div></div>
+  <div class="blk"><div class="bl">Recommended move</div><div class="move"><div class="mc">→ ${e.move.call}</div><div class="mw">${e.move.why}</div></div></div>
+  <div class="blk"><div class="bl">Draft that executes it</div><div class="draft"><div class="h">✦ ${e.move.call}</div><div class="x">${e.draft}</div><div class="dacts"><button class="btn am" data-act="send" data-eid="${eid}">Approve & Send</button><button class="btn">Edit</button></div></div></div>
+  <div class="wb">✓ ${e.wb}</div></div>`;
+}
+function renderDetail(){
+ const host=$('#detail'),l=curLead();
+ if(!l){host.classList.add('hidden');$('#list').classList.remove('hidden');return;}
+ host.classList.remove('hidden');$('#list').classList.add('hidden');
+ const rows=l.tl.map(a=>{
+  const dot=a.ch==='em'?'de':a.ch==='wa'?'dw':'dc';const tag=a.ch==='em'?'<span class="ttag tt-em">email</span>':a.ch==='wa'?'<span class="ttag tt-wa">whatsapp</span>':'<span class="ttag tt-cl">call</span>';
+  const open=a.eid&&a.eid===state.email;
+  let block=`<div class="tlrow ${a.eid?'click':''} ${open?'open':''}" ${a.eid?`data-act="email" data-eid="${a.eid}"`:''}><span class="tdot ${dot}"></span><div class="tw"><div class="h">${a.h}</div><div class="s">${a.s}</div></div>${tag}<span class="ttime">${a.time}</span></div>`;
+  if(open){const e=EMAILS[a.eid];const msgs=e.thread.map(t=>`<div class="mo-body"><b style="color:var(--bone);font-family:'JetBrains Mono';font-size:11px">${t.from} · ${t.time}</b><br>${t.body}</div>`).join('');block+=`<div class="mailopen">${msgs}${copilot(a.eid)}</div>`;}
+  return block;
+ }).join('');
+ host.innerHTML=`<div class="dback" data-act="back">‹ Back to leads</div><div class="dscroll">
+  <div class="lh"><div class="av">${ini(l.co)}</div><div><div class="nm">${l.co}</div><div class="meta">${l.ct} · ${l.stage}</div></div><div class="rm"><span class="v">CHF ${l.val}</span><span class="p">${l.pct}</span></div></div>
+  <div class="tlhead">Channel-blended timeline · click an email to act on it</div>${rows}</div>`;
+}
+function renderFlight(){
+ $('#flight').innerHTML=`<div class="fh"><span class="fbadge">✦</span><span class="ft">▸ Flight Deck</span><span class="live"><span class="d"></span><span class="t">LIVE</span></span></div><div class="fsub">CONSULAR PUSHED <b>${DECK.length}</b> · 14 IN QUEUE ▾</div>
+  <div class="fdeck">${DECK.map((d,i)=>{const c=TONE[d.tone];if(i===0)return `<div class="fcard" style="border:1px solid ${c}55;background:color-mix(in srgb,${c} 14%,transparent)"><div class="pr" style="color:${c}"><span>${d.pr}</span><span>${d.dl}</span></div><div class="co">${d.co}</div><div class="vc" style="color:${c}">${d.vc}</div><div class="wy">${d.wy}</div><div class="ex"><span class="fexec" style="background:${c}" data-act="lead" data-id="L1">${d.ex}</span><span class="fdur">${d.dur}</span></div></div>`;return `<div class="fcard r2" style="border:1px solid var(--line);border-left:2px solid ${c}"><div class="pr" style="color:${c}"><span>${d.vc}</span><span class="fdur">${d.dl}</span></div><div class="co">${d.co}</div><div class="wy">${d.wy}</div></div>`;}).join('')}</div>
+  <div class="consular"><div class="ch2">Consular</div><div class="cprose">Three Closing-stage threads stall at the same step — buyer sold, CFO silent. <b>Acme</b> + two others all went quiet after the proposal hit finance. I've drafted one CFO-facing ROI one-pager that fits all three — say the word and I attach it to each.</div></div>
+  <div class="fchat"><input placeholder="Comment or instruction · paste an image or PDF…"><button class="s">↵</button></div>`;
+}
+function paint(){renderTriage();renderList();renderDetail();renderFlight();}
+document.addEventListener('click',e=>{
+ const act=e.target.closest('[data-act]');if(!act)return;const a=act.dataset.act;
+ if(a==='lead'){state.lead=act.dataset.id;state.email=null;renderList();renderDetail();}
+ else if(a==='back'){state.lead=null;state.email=null;renderDetail();renderList();}
+ else if(a==='email'){state.email=(state.email===act.dataset.eid)?null:act.dataset.eid;renderDetail();}
+ else if(a==='send'){const e=EMAILS[act.dataset.eid];const l=curLead();if(l)l.tl.unshift({ch:'em',h:'Re: '+(l.tl.find(x=>x.eid===act.dataset.eid)||{}).h.replace(/^Re:\s*/,'')+' (sent)',s:'out · co-pilot draft',time:'now'});state.email=null;toast(`Sent + logged to <b>${l?l.co:''}</b> timeline ✓`);renderDetail();}
+});
+paint();
+</script>
+</body>
+</html>

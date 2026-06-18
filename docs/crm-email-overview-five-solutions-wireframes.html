@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Email in the Overview — Wireframes (Five Solutions)</title>
+<style>
+  :root{
+    --paper:#FBFAF6; --panel:#fff; --ink:#16171B; --ink2:#43444a; --mute:#8c887e; --faint:#b9b4a8;
+    --line:#e4e1d8; --line2:#efece4; --rail:#f4f2ec;
+    --accent:#d6402b; --accent-bg:#fbeae6;
+    --email:#b5721a; --email-bg:#fbf1e2;
+    --wa:#1c9e4f; --wa-bg:#e6f6ec;
+    --slate:#33506e; --slate-bg:#edf1f6;
+    --red:#bc4a33; --amber:#c9941e; --green:#2e7d54;
+    --sans:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;
+    --mono:'SF Mono',ui-monospace,Menlo,Consolas,monospace;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--sans);font-size:15px;line-height:1.55;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:1240px;margin:0 auto;padding:0 24px 120px}
+  header.mast{padding:54px 0 30px;border-bottom:3px solid var(--ink);margin-bottom:10px}
+  .eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--mute);margin:0 0 12px}
+  h1{font-size:clamp(28px,4vw,44px);letter-spacing:-0.02em;margin:0 0 14px;line-height:1.08}
+  .sub{font-size:17px;color:var(--ink2);max-width:72ch;margin:0}
+  .legend{display:flex;flex-wrap:wrap;gap:8px 16px;margin-top:22px;font-size:12.5px;color:var(--mute)}
+  .legend span{display:inline-flex;align-items:center;gap:6px}
+  .sw{width:11px;height:11px;border-radius:3px;display:inline-block}
+
+  .fr{margin:54px 0 0}
+  .fr-head{display:flex;align-items:baseline;gap:14px;flex-wrap:wrap;margin-bottom:6px}
+  .fr-tag{font-family:var(--mono);font-size:11px;font-weight:700;letter-spacing:.08em;background:var(--ink);color:var(--paper);padding:3px 9px;border-radius:3px}
+  .fr-name{font-size:23px;letter-spacing:-0.01em;font-weight:700;margin:0}
+  .fr-what{font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--email)}
+  .fr-diff{font-size:14.5px;color:var(--ink2);max-width:92ch;margin:6px 0 14px}
+  .fr-diff b{color:var(--ink)}
+  .fr-diff .new{color:var(--accent);font-weight:600}
+  .uniq{font-family:var(--mono);font-size:10px;letter-spacing:.06em;text-transform:uppercase;background:var(--accent-bg);color:var(--accent);padding:3px 8px;border-radius:3px;font-weight:700}
+
+  .ov{border:1px solid var(--line);border-radius:10px;overflow:hidden;background:var(--panel)}
+  .ov-top{display:flex;align-items:center;gap:18px;padding:10px 16px;border-bottom:1px solid var(--line);background:#fff}
+  .ov-top .logo{font-weight:800;font-size:13px;letter-spacing:-0.01em}
+  .ov-top .logo b{color:var(--accent)}
+  .ov-top .nav{display:flex;gap:4px;font-size:12px}
+  .ov-top .nav span{padding:4px 10px;border-radius:6px;color:var(--mute)}
+  .ov-top .nav .on{background:var(--ink);color:#fff;font-weight:600}
+  .ov-top .search{margin-left:auto;font-size:11px;color:var(--faint);border:1px solid var(--line);border-radius:6px;padding:5px 12px;min-width:160px}
+  .ov-grid{display:grid;grid-template-columns:230px minmax(0,1fr) 250px;min-height:430px}
+  @media(max-width:880px){.ov-grid{grid-template-columns:1fr}}
+  .col{padding:13px;overflow:hidden}
+  .col.rail{background:var(--rail);border-right:1px solid var(--line)}
+  .col.right{background:var(--rail);border-left:1px solid var(--line)}
+  .col-h{font-family:var(--mono);font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--mute);margin:0 0 9px}
+  .col-h.sp{margin-top:16px}
+
+  .bk{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:7px 9px;border-radius:6px;background:#fff;border:1px solid var(--line);margin-bottom:5px;font-size:12.5px}
+  .bk .n{font-variant-numeric:tabular-nums;font-weight:700;color:var(--ink)}
+  .bk.on{outline:2px solid var(--accent);background:var(--accent-bg)}
+  .bk.em{border-color:#e7d4b0}
+  .bk.em.on{outline-color:var(--email);background:var(--email-bg)}
+  .bk small{color:var(--mute);font-size:11px}
+
+  .row{display:flex;align-items:center;gap:9px;padding:8px 9px;border:1px solid var(--line);border-radius:6px;background:#fff;margin-bottom:6px}
+  .row.sel{outline:2px solid var(--slate);background:var(--slate-bg)}
+  .dot{width:8px;height:8px;border-radius:50%;flex:none}
+  .d-em{background:var(--email)}.d-wa{background:var(--wa)}.d-red{background:var(--red)}.d-amb{background:var(--amber)}.d-grn{background:var(--green)}.d-sl{background:var(--slate)}.d-q{background:var(--faint)}
+  .rtx{flex:1;min-width:0}
+  .rtx .h{font-weight:600;font-size:12.5px;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .rtx .s{font-size:11.5px;color:var(--ink2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .tag{font-family:var(--mono);font-size:9px;letter-spacing:.03em;text-transform:uppercase;padding:2px 6px;border-radius:3px;white-space:nowrap;font-weight:600}
+  .t-em{background:var(--email-bg);color:var(--email)}.t-wa{background:var(--wa-bg);color:var(--wa)}.t-cta{background:var(--accent);color:#fff}.t-warn{background:#f6e4c8;color:var(--email)}.t-sl{background:var(--slate-bg);color:var(--slate)}
+  .acts{display:flex;gap:4px;flex-wrap:wrap}
+  .btn{font-family:var(--mono);font-size:9px;letter-spacing:.03em;text-transform:uppercase;padding:3px 7px;border-radius:3px;border:1px solid var(--line);background:#fff;color:var(--ink2);white-space:nowrap}
+  .btn.p{background:var(--accent);color:#fff;border-color:var(--accent)}
+
+  .focus{position:relative;outline:2px dashed var(--accent);outline-offset:3px;border-radius:8px}
+  .focus::after{content:attr(data-note);position:absolute;top:-10px;left:10px;background:var(--accent);color:#fff;font-family:var(--mono);font-size:9px;letter-spacing:.06em;text-transform:uppercase;padding:2px 7px;border-radius:3px;font-weight:700}
+
+  .deck .dc{border:1px solid var(--line);border-radius:7px;background:#fff;padding:9px 10px;margin-bottom:7px}
+  .deck .dc .top{display:flex;justify-content:space-between;align-items:center;font-family:var(--mono);font-size:9px;letter-spacing:.06em;text-transform:uppercase;color:var(--mute);margin-bottom:5px}
+  .deck .dc .vb{font-weight:700;color:var(--ink)}
+  .deck .dc .ti{font-weight:700;font-size:12.5px;color:var(--ink);margin-bottom:2px}
+  .deck .dc .rs{font-size:11px;color:var(--ink2);line-height:1.35;margin-bottom:8px}
+  .deck .dc .ex{display:flex;justify-content:flex-end}
+  .ro{font-family:var(--mono);font-size:8.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--mute);margin-top:6px;display:block}
+
+  .cons{border:1px dashed var(--line);border-radius:7px;background:#fff;padding:10px;font-size:11.5px;color:var(--ink2);line-height:1.4}
+  .cons .who{font-family:var(--mono);font-size:9px;letter-spacing:.08em;text-transform:uppercase;color:var(--slate);margin-bottom:5px}
+
+  .room{display:grid;grid-template-columns:1fr 70px 1fr;gap:8px;align-items:center;font-size:12px}
+  .room .side{display:grid;gap:6px}
+  .room .p{border:1px solid var(--line);border-radius:6px;background:#fff;padding:6px 8px}
+  .room .p .nm{font-weight:600;font-size:12px}
+  .room .p .rl{font-family:var(--mono);font-size:9px;text-transform:uppercase;letter-spacing:.04em;color:var(--mute)}
+  .room .mid{text-align:center;font-family:var(--mono);font-size:9px;color:var(--email);line-height:1.5}
+  .room .cc{border-style:dashed;border-color:#e7d4b0;background:var(--email-bg)}
+  .signal{margin-top:10px;border-left:3px solid var(--email);background:var(--email-bg);padding:8px 11px;font-size:12px;color:var(--ink2);border-radius:0 6px 6px 0}
+  .signal b{color:var(--ink)}
+  .up{color:var(--green)}.dn{color:var(--red)}
+
+  .scale-note{font-family:var(--mono);font-size:10px;color:var(--faint);margin-top:7px;text-align:right}
+  .foot{margin-top:70px;padding-top:24px;border-top:3px solid var(--ink);font-size:13px;color:var(--mute)}
+  code{font-family:var(--mono);font-size:.85em;background:#f1eee7;border:1px solid var(--line);border-radius:4px;padding:1px 5px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="mast">
+  <p class="eyebrow">CRM · Overview · Email integration · Wireframes</p>
+  <h1>Email in the Overview — five wireframes</h1>
+  <p class="sub">Each frame is the real Overview shell — left triage rail, center list/detail, right Flight&nbsp;Deck + Consular — showing how email appears under each solution. The <span style="color:var(--accent);font-weight:600">dashed accent ring</span> marks what changes; everything else ships today. The two marked <span class="uniq">only here</span> — Sender Ledger and Relationship Graph — are this spec's contribution; the sibling wireframe doc (<code>crm-email-wireframes.html</code>) covers the rest.</p>
+  <div class="legend">
+    <span><span class="sw" style="background:var(--email)"></span> Email</span>
+    <span><span class="sw" style="background:var(--wa)"></span> WhatsApp</span>
+    <span><span class="sw" style="background:var(--slate)"></span> Selected / call</span>
+    <span><span class="sw" style="background:var(--accent)"></span> New / changed</span>
+    <span><span class="sw" style="background:var(--faint)"></span> Queue / muted</span>
+  </div>
+</header>
+
+<!-- ============ SOLUTION 1 — SENDER LEDGER ============ -->
+<section class="fr">
+  <div class="fr-head"><span class="fr-tag">SOLUTION 1</span><h2 class="fr-name">Sender Ledger</h2><span class="fr-what">identity-first</span><span class="uniq">only here</span></div>
+  <p class="fr-diff"><b>What's different:</b> a new <span class="new">Senders · 4</span> bucket in the rail; clicking it puts a resolution list in the center — each pending sender shows a suggested link and one-click <b>link / new / mute</b>. Resolve once; every future mail from that address routes silently. This is the answer to "senders don't map to prospects."</p>
+  <div class="ov">
+    <div class="ov-top"><span class="logo">Filo<b>Max</b> CRM</span><span class="nav"><span class="on">Overview</span><span>Kanban</span><span>Scout</span></span><span class="search">Search leads…</span></div>
+    <div class="ov-grid">
+      <div class="col rail">
+        <p class="col-h">Urgency</p>
+        <div class="bk"><span>Overdue</span><span class="n">3</span></div>
+        <div class="bk"><span>Today</span><span class="n">5</span></div>
+        <div class="bk"><span>This week</span><span class="n">9</span></div>
+        <p class="col-h sp">Channel</p>
+        <div class="bk em"><span>Emails</span><span class="n">7</span></div>
+        <div class="bk"><span>WhatsApp</span><span class="n">2</span></div>
+        <div class="focus" data-note="new bucket">
+          <div class="bk em on"><span>Senders <small>pending</small></span><span class="n">4</span></div>
+        </div>
+        <p class="col-h sp">Stage</p>
+        <div class="bk"><span>Incoming</span><span class="n">6</span></div>
+        <div class="bk"><span>Closing</span><span class="n">4</span></div>
+      </div>
+      <div class="col">
+        <p class="col-h">Pending senders — resolve to a contact / lead</p>
+        <div class="focus" data-note="resolution list">
+          <div style="padding:4px 2px">
+            <div class="row"><span class="dot d-em"></span><div class="rtx"><div class="h">j.muster@acme.com</div><div class="s">"Re: Angebot Webseite" · suggests Acme AG</div></div><div class="acts"><span class="btn p">Link Acme</span><span class="btn">New</span></div></div>
+            <div class="row"><span class="dot d-em"></span><div class="rtx"><div class="h">office@acme.com</div><div class="s">"Rechnung März" · domain → Acme</div></div><div class="acts"><span class="btn">Link</span><span class="btn">New</span><span class="btn">Mute</span></div></div>
+            <div class="row"><span class="dot d-q"></span><div class="rtx"><div class="h">recruiter@hays.com</div><div class="s">"Senior role" · no match</div></div><div class="acts"><span class="btn">New lead</span><span class="btn">Mute</span></div></div>
+            <div class="row"><span class="dot d-q"></span><div class="rtx"><div class="h">news@stripe.com</div><div class="s">"Changelog" · no match (freemail/vendor)</div></div><div class="acts"><span class="btn">New</span><span class="btn">Mute</span></div></div>
+          </div>
+        </div>
+        <p class="col-h sp">Resolved → lands as an activity on the lead, never asked again.</p>
+      </div>
+      <div class="col right">
+        <p class="col-h">Flight Deck</p>
+        <div class="deck"><div class="dc"><div class="top"><span class="vb">REPLY · email</span><span>red</span></div><div class="ti">Acme AG</div><div class="rs">"…können wir Freitag?"</div><div class="ex"><span class="tag t-cta">▶ DRAFT</span></div></div></div>
+        <p class="col-h sp">Consular</p>
+        <div class="cons"><div class="who">Consular</div>4 senders pending — 2 look like Acme. Clear them and the inbox is yours.</div>
+      </div>
+    </div>
+  </div>
+  <p class="scale-note">rail ≈400px · center fluid · right ≈420px (live grid; scaled here)</p>
+</section>
+
+<!-- ============ SOLUTION 2 — UNIFIED THREAD ============ -->
+<section class="fr">
+  <div class="fr-head"><span class="fr-tag">SOLUTION 2</span><h2 class="fr-name">Unified Thread</h2><span class="fr-what">channel-merged · recommended first</span></div>
+  <p class="fr-diff"><b>What's different:</b> no email inbox at all. Email becomes a row in the lead's existing activity timeline, <b>interleaved with WhatsApp and calls</b>. The "via" line handles the assistant-wrote-it case inline. Lights up the four already-wired surfaces for almost free.</p>
+  <div class="ov">
+    <div class="ov-top"><span class="logo">Filo<b>Max</b> CRM</span><span class="nav"><span class="on">Overview</span><span>Kanban</span><span>Scout</span></span><span class="search">Search leads…</span></div>
+    <div class="ov-grid">
+      <div class="col rail">
+        <p class="col-h">Urgency</p>
+        <div class="bk"><span>Overdue</span><span class="n">3</span></div>
+        <div class="bk on"><span>Today</span><span class="n">5</span></div>
+        <p class="col-h sp">Channel</p>
+        <div class="bk em"><span>Emails</span><span class="n">7</span></div>
+        <div class="bk"><span>WhatsApp</span><span class="n">2</span></div>
+        <p class="col-h sp">Leads</p>
+        <div class="row sel"><span class="dot d-em"></span><div class="rtx"><div class="h">Acme AG</div><div class="s">CHF 12k · email waiting</div></div></div>
+        <div class="row"><span class="dot d-wa"></span><div class="rtx"><div class="h">Bistrot</div><div class="s">WhatsApp · today</div></div></div>
+      </div>
+      <div class="col">
+        <p class="col-h">Acme AG — one conversation, every channel</p>
+        <div class="focus" data-note="merged timeline">
+          <div style="padding:4px 2px">
+            <div class="row"><span class="dot d-em"></span><div class="rtx"><div class="h">09:14 · Re: Angebot Webseite</div><div class="s">in · via j.muster@acme.com · "Danke, sieht gut aus…" 📎2</div></div><span class="tag t-em">Email ↩</span></div>
+            <div class="row"><span class="dot d-sl"></span><div class="rtx"><div class="h">Yest 17:02 · Call 12 min</div><div class="s">left voicemail</div></div><span class="tag t-sl">Call</span></div>
+            <div class="row"><span class="dot d-em"></span><div class="rtx"><div class="h">Mon 11:30 · Angebot Webseite</div><div class="s">out (you) · opened 3×</div></div><span class="tag t-em">Email</span></div>
+            <div class="row"><span class="dot d-wa"></span><div class="rtx"><div class="h">Fri · "Passt das Budget?"</div><div class="s">in · ✓ read</div></div><span class="tag t-wa">WhatsApp</span></div>
+          </div>
+        </div>
+        <div class="row" style="margin-top:8px;border-color:var(--accent);background:var(--accent-bg)"><div class="rtx"><div class="h">Reply ▾ &nbsp;<b>Email</b> | WhatsApp</div></div><span class="tag t-cta">Send</span></div>
+      </div>
+      <div class="col right">
+        <p class="col-h">Flight Deck</p>
+        <div class="deck"><div class="dc"><div class="top"><span class="vb">REPLY · email</span><span>red</span></div><div class="ti">Acme AG</div><div class="rs">they accepted — send contract</div><div class="ex"><span class="tag t-cta">▶ DRAFT</span></div></div></div>
+        <p class="col-h sp">Consular</p>
+        <div class="cons"><div class="who">Consular</div>Acme replied on email; you already covered budget on WhatsApp Friday — I won't re-ask.</div>
+      </div>
+    </div>
+  </div>
+  <p class="scale-note">reuses LeadDetail timeline (mail / mail-open icons already mapped)</p>
+</section>
+
+<!-- ============ SOLUTION 3 — TRIAGE LANE ============ -->
+<section class="fr">
+  <div class="fr-head"><span class="fr-tag">SOLUTION 3</span><h2 class="fr-name">Triage Lane</h2><span class="fr-what">dedicated inbox-in-Overview</span></div>
+  <p class="fr-diff"><b>What's different:</b> the <code>Emails</code> bucket swaps the center into a real <span class="new">thread list grouped by counterparty</span> — linked threads show the lead badge, unmatched show resolve actions. A place to <b>process</b> volume, reading-first.</p>
+  <div class="ov">
+    <div class="ov-top"><span class="logo">Filo<b>Max</b> CRM</span><span class="nav"><span class="on">Overview</span><span>Kanban</span><span>Scout</span></span><span class="search">Search…</span></div>
+    <div class="ov-grid">
+      <div class="col rail">
+        <p class="col-h">Channel</p>
+        <div class="focus" data-note="drives the lane">
+          <div class="bk em on"><span>Emails</span><span class="n">7</span></div>
+        </div>
+        <div class="bk"><span>WhatsApp</span><span class="n">2</span></div>
+        <p class="col-h sp">Urgency</p>
+        <div class="bk"><span>Overdue</span><span class="n">3</span></div>
+        <div class="bk"><span>This week</span><span class="n">9</span></div>
+      </div>
+      <div class="col">
+        <p class="col-h">Email — threads by counterparty</p>
+        <div class="focus" data-note="EmailThreadList">
+          <div style="padding:4px 2px">
+            <div class="row"><span class="dot d-wa"></span><div class="rtx"><div class="h">Acme AG · j.muster@acme.com</div><div class="s">"Re: Angebot" — Danke, sieht gut aus… 09:14</div></div><span class="tag t-sl">● linked · 2</span></div>
+            <div class="row"><span class="dot d-amb"></span><div class="rtx"><div class="h">office@acme.com</div><div class="s">"Rechnung März"</div></div><div class="acts"><span class="btn">Link Acme</span><span class="btn">New</span></div></div>
+            <div class="row"><span class="dot d-q"></span><div class="rtx"><div class="h">recruiter@hays.com</div><div class="s">"Senior role"</div></div><div class="acts"><span class="btn">New</span><span class="btn">Mute</span></div></div>
+            <div class="row"><span class="dot d-wa"></span><div class="rtx"><div class="h">Bär GmbH · p.baer@baer.ch</div><div class="s">"Termin nächste Woche?"</div></div><span class="tag t-sl">● linked</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="col right">
+        <p class="col-h">Flight Deck</p>
+        <div class="deck"><div class="dc"><div class="top"><span class="vb">CHASE · email</span><span>amber</span></div><div class="ti">Acme AG</div><div class="rs">quote silent 6d</div><div class="ex"><span class="tag t-cta">▶ DRAFT</span></div></div></div>
+        <p class="col-h sp">Consular</p>
+        <div class="cons"><div class="who">Consular</div>7 email threads, 2 unmatched. office@acme is almost certainly Acme.</div>
+      </div>
+    </div>
+  </div>
+  <p class="scale-note">extends the shipped WhatsApp grouped-list pattern</p>
+</section>
+
+<!-- ============ SOLUTION 4 — FLIGHT-DECK NATIVE ============ -->
+<section class="fr">
+  <div class="fr-head"><span class="fr-tag">SOLUTION 4</span><h2 class="fr-name">Flight-Deck Native</h2><span class="fr-what">decision-first · nearly free</span></div>
+  <p class="fr-diff"><b>What's different:</b> email never gets a surface — it becomes ranked deck cards (<code>REPLY</code> / <code>CHASE</code>) the Consular distills. <b>Verified:</b> the deck already renders an Email card as <code>▶ DRAFT</code> today (<code>FlightDeck.tsx:29/37/96</code>), so the card code is done — only the candidate-feed is new.</p>
+  <div class="ov">
+    <div class="ov-top"><span class="logo">Filo<b>Max</b> CRM</span><span class="nav"><span class="on">Overview</span><span>Kanban</span><span>Scout</span></span><span class="search">Search…</span></div>
+    <div class="ov-grid">
+      <div class="col rail">
+        <p class="col-h">Urgency</p>
+        <div class="bk"><span>Overdue</span><span class="n">3</span></div>
+        <div class="bk"><span>Today</span><span class="n">5</span></div>
+        <p class="col-h sp">Channel</p>
+        <div class="bk em"><span>Emails</span><span class="n">7</span></div>
+        <div class="bk"><span>WhatsApp</span><span class="n">2</span></div>
+      </div>
+      <div class="col">
+        <p class="col-h">Lead list (unchanged) — the deck does the deciding</p>
+        <div class="row"><span class="dot d-red"></span><div class="rtx"><div class="h">Acme AG</div><div class="s">CHF 12k · Closing</div></div></div>
+        <div class="row"><span class="dot d-amb"></span><div class="rtx"><div class="h">Bistrot</div><div class="s">CHF 6k · Demo done</div></div></div>
+        <div class="row"><span class="dot d-grn"></span><div class="rtx"><div class="h">Güterstrasse</div><div class="s">CHF 18k · Contacted</div></div></div>
+      </div>
+      <div class="col right">
+        <p class="col-h">Flight Deck — channel-blended, ROI-ranked</p>
+        <div class="deck focus" data-note="email cards (already render)">
+          <div class="dc"><div class="top"><span class="vb">1 · REPLY · email</span><span>red · today</span></div><div class="ti">Bistrot · Marco</div><div class="rs">"sign this week?" · 2 min</div><div class="ex"><span class="tag t-cta">▶ DRAFT</span></div></div>
+          <div class="dc"><div class="top"><span class="vb">2 · CHASE · email</span><span>amber · +2d</span></div><div class="ti">Acme · proposal</div><div class="rs">opened 3×, silent 7d</div><div class="ex"><span class="tag t-cta">▶ DRAFT</span></div></div>
+          <div class="dc"><div class="top"><span class="vb">3 · CALL · phone</span><span>green</span></div><div class="ti">Güterstrasse · Boesch</div><div class="rs">champion warm · 5 min</div><div class="ex"><span class="tag t-sl">▶ CALL</span></div></div>
+        </div>
+        <p class="ro">queue · 9 more · cold/filtered · 23 hidden</p>
+      </div>
+    </div>
+  </div>
+  <p class="scale-note">▶ DRAFT routes around the read-only Consular (WP-111): draft is a server pass, send is gated</p>
+</section>
+
+<!-- ============ SOLUTION 5 — RELATIONSHIP GRAPH ============ -->
+<section class="fr">
+  <div class="fr-head"><span class="fr-tag">SOLUTION 5</span><h2 class="fr-name">Relationship Graph</h2><span class="fr-what">multi-party · B2B-native</span><span class="uniq">only here</span></div>
+  <p class="fr-diff"><b>What's different:</b> a "Deal Room" mode in the lead detail that reads the whole envelope — <b>From / To / CC</b>. The silently-CC'd CFO becomes visible intel. The only solution that treats the CC list as signal, powered by the existing contact <code>role</code> model.</p>
+  <div class="ov">
+    <div class="ov-top"><span class="logo">Filo<b>Max</b> CRM</span><span class="nav"><span class="on">Overview</span><span>Kanban</span><span>Scout</span></span><span class="search">Search…</span></div>
+    <div class="ov-grid">
+      <div class="col rail">
+        <p class="col-h">Leads</p>
+        <div class="row sel"><span class="dot d-red"></span><div class="rtx"><div class="h">Acme AG</div><div class="s">CHF 12k · Closing</div></div></div>
+        <div class="row"><span class="dot d-amb"></span><div class="rtx"><div class="h">Bär GmbH</div><div class="s">CHF 9k</div></div></div>
+        <p class="col-h sp">View</p>
+        <div class="bk"><span>Timeline</span></div>
+        <div class="bk on"><span>Deal Room</span></div>
+      </div>
+      <div class="col">
+        <p class="col-h">Acme AG — Deal Room</p>
+        <div class="focus" data-note="who talks to whom">
+          <div class="room" style="padding:6px 2px">
+            <div class="side">
+              <div class="p"><div class="nm">J. Muster</div><div class="rl">decision_maker</div></div>
+              <div class="p"><div class="nm">office@…</div><div class="rl">assistant</div></div>
+              <div class="p cc"><div class="nm">R. Vogt</div><div class="rl">cfo · CC only</div></div>
+            </div>
+            <div class="mid">──"Angebot"──<br>──"Rechnung"──<br>┄┄CC┄┄</div>
+            <div class="side">
+              <div class="p"><div class="nm">Filippo</div><div class="rl">you</div></div>
+            </div>
+          </div>
+        </div>
+        <div class="signal">⚠ The economic buyer (<b>CFO R. Vogt</b>) is on the proposal thread but has never replied. <b>Loop him in?</b></div>
+      </div>
+      <div class="col right">
+        <p class="col-h">Flight Deck</p>
+        <div class="deck"><div class="dc"><div class="top"><span class="vb">REPLY · email</span><span>amber</span></div><div class="ti">Acme — loop in CFO</div><div class="rs">decision-maker engaged, buyer silent</div><div class="ex"><span class="tag t-cta">▶ DRAFT</span></div></div></div>
+        <p class="col-h sp">Consular</p>
+        <div class="cons"><div class="who">Consular</div>Vogt (CFO) reads every thread, never writes. Address him directly to unstick Closing.</div>
+      </div>
+    </div>
+  </div>
+  <p class="scale-note">activates the dormant Contact-role model with real email participation</p>
+</section>
+
+<!-- ============ LAYER — DEAL-HEALTH PULSE ============ -->
+<section class="fr">
+  <div class="fr-head"><span class="fr-tag">LAYER</span><h2 class="fr-name">Email as a deal vital (pulse)</h2><span class="fr-what">composes with any solution</span></div>
+  <p class="fr-diff"><b>What's different:</b> not a surface — a strip of <span class="new">deals at risk</span> driven by email pulse (sent / opened / replied / silent), feeding <code>confidence_pct</code> and auto-flipping status. Only legible <b>after</b> identity resolution (§02), so it sits atop whichever surface ships.</p>
+  <div class="ov">
+    <div class="ov-top"><span class="logo">Filo<b>Max</b> CRM</span><span class="nav"><span class="on">Overview</span><span>Kanban</span><span>Scout</span></span><span class="search">Search…</span></div>
+    <div class="ov-grid">
+      <div class="col rail">
+        <p class="col-h">Urgency</p>
+        <div class="bk"><span>Overdue</span><span class="n">3</span></div>
+        <div class="bk"><span>Today</span><span class="n">5</span></div>
+        <p class="col-h sp">Channel</p>
+        <div class="bk em"><span>Emails</span><span class="n">7</span></div>
+      </div>
+      <div class="col">
+        <p class="col-h">Deals at risk — read from email pulse</p>
+        <div class="focus" data-note="pulse → pipeline">
+          <div style="padding:4px 2px">
+            <div class="row"><span class="dot d-red"></span><div class="rtx"><div class="h">Acme · CHF 12k · Closing</div><div class="s">offer opened 3×, no reply, 7d · <b class="dn">confidence ↓</b></div></div><span class="tag t-warn">Nudge</span></div>
+            <div class="row"><span class="dot d-amb"></span><div class="rtx"><div class="h">Güterstrasse · champion cooling</div><div class="s">warm thread, then silent 5d</div></div><span class="tag t-warn">Nudge</span></div>
+            <div class="row"><span class="dot d-grn"></span><div class="rtx"><div class="h">Bistrot · re-engaged</div><div class="s">replied after 2 opens · <b class="up">confidence ↑</b></div></div></div>
+          </div>
+        </div>
+        <p class="col-h sp">Writes <code>confidence_pct</code>, <code>status='Awaiting reply'</code>, lore to <code>intel_json</code> — needs open-tracking (a v1 privacy call).</p>
+      </div>
+      <div class="col right">
+        <p class="col-h">Flight Deck</p>
+        <div class="deck"><div class="dc"><div class="top"><span class="vb">CHASE · email</span><span>amber</span></div><div class="ti">Acme · proposal</div><div class="rs">auto-promoted from a stalling deal</div><div class="ex"><span class="tag t-cta">▶ DRAFT</span></div></div></div>
+        <p class="col-h sp">Consular</p>
+        <div class="cons"><div class="who">Consular</div>Acme opened the offer three times and went quiet — classic price hesitation. Draft a reassurance?</div>
+      </div>
+    </div>
+  </div>
+  <p class="scale-note">the pulse layer generates → Solution 4 displays</p>
+</section>
+
+<div class="foot">
+  <p>Wireframes for <code>docs/crm-email-overview-five-solutions.html</code>. Each frame is the live Overview shell (rail / list-detail / Flight-Deck + Consular). Grounded in verified code: the deck already renders Email as <code>▶ DRAFT</code> (<code>FlightDeck.tsx:29/37/96</code>); the Senders bucket + resolution actions implement the §02 sender-identity layer; transport is greenfield (build it, mirror WhatsApp). Sibling: <code>crm-email-wireframes.html</code> (A/B/C/D/E framing) — this doc adds the Sender Ledger and Relationship Graph it lacks.</p>
+  <p><b>Recommended path:</b> Solution 2 (timeline) first → Solution 1 (ledger) for durable identity → pulse layer once open-tracking is decided. Solution 4 is nearly free at any point; Solution 5 once deals go multi-stakeholder.</p>
+</div>
+
+</div>
+</body>
+</html>

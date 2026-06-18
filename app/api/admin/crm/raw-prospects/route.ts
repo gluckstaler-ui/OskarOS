@@ -152,28 +152,28 @@ export async function POST(req: NextRequest) {
     const source = body.source || `html-import:${new Date().toISOString().slice(0, 10)}`
     const defaults = body.defaults ?? {}
 
-    // ── Dedup index. Read both surfaces ONCE up front and merge into a
-    //    single domain-set + contact-set (cheap O(n) lookups).
+    // ── Dedup index. Read both surfaces ONCE up front.
+    // Ralph 2026-06-05 — WEBSITE-ONLY DEDUP REMOVED. Group practices
+    // legitimately share a website (aidmentis.ch, vt-aarau.ch, …);
+    // rejecting on website-match throws away distinct leads. The two
+    // remaining legs (phone|email + name+adresse) catch the real
+    // same-person-twice case without the false-positive group-practice
+    // collateral. Same change landed in lib/raw-prospects-ingest.ts.
     const pool = readRawProspects()                 // pool already filters to live rows
     const prospects = readSheet()
 
-    const dedupDomains = new Set<string>()
     const dedupContacts = new Set<string>()
     const dedupNameAdresse = new Set<string>()
     // Track which surface a match came from so the skip reason can point at
     // pool-vs-prospects without re-scanning the arrays in the hot path.
-    const prospectsDomains = new Set<string>()
     const prospectsContacts = new Set<string>()
     const prospectsNameAdresse = new Set<string>()
     for (const p of pool) {
-      const d = domainOf(p.website); if (d) dedupDomains.add(d)
       const c = contactKey({ phone: p.phone, email: p.email }); if (c) dedupContacts.add(c)
       const na = nameAdresseKey(p.name, extractAdresse(p.raw_payload))
       if (na) dedupNameAdresse.add(na)
     }
     for (const p of prospects) {
-      const d = domainOf(p.website)
-      if (d) { dedupDomains.add(d); prospectsDomains.add(d) }
       const c = contactKey({ phone: p.phone, email: p.email })
       if (c) { dedupContacts.add(c); prospectsContacts.add(c) }
       const prospectAdresse = [p.address_strasse, p.address_plz, p.address_ort].filter(Boolean).join(' ')
@@ -235,23 +235,9 @@ export async function POST(req: NextRequest) {
         return
       }
 
-      // Three-leg dedup. Domain first (strongest), then phone|email, then
-      // name|adresse (catches name-only seed rows that have empty contact
-      // fields — the aargau gap). Each leg is checked independently so a
-      // candidate with website+name+adresse gets all three keys recorded.
-      const domain = domainOf(website)
-      if (domain) {
-        if (dedupDomains.has(domain)) {
-          skipped.push({
-            row: idx,
-            reason: prospectsDomains.has(domain) ? 'duplicate-website-in-prospects' : 'duplicate-website-in-pool',
-            match: domain,
-          })
-          return
-        }
-        dedupDomains.add(domain)
-      }
-
+      // Two-leg dedup (Ralph 2026-06-05): phone|email + name+adresse.
+      // Website-only intentionally NOT a leg — group practices share a
+      // domain. See the index-construction comment above.
       const ck = contactKey({ phone, email })
       if (ck) {
         if (dedupContacts.has(ck)) {

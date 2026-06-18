@@ -71,7 +71,6 @@ import {
   // Selector helpers
   buildSelectorPath,
   buildStablePath,
-  resolveSlotToElement,
   cacheBustSuffix as cacheBustSuffixFromLib,
   // Shared iframe-contract constants
   DIRECTOR_CLASS,
@@ -126,6 +125,31 @@ function writeImageSrc(el: Element, url: string): void {
   if (el.hasAttribute('xlink:href') || el.hasAttributeNS(XLINK_NS, 'href')) {
     el.setAttributeNS(XLINK_NS, 'xlink:href', url)
   }
+}
+
+/** Relativize every `url(...)` in an inline style string to a session-local
+ *  path so it resolves wherever the vibe is served (Studio iframe, the
+ *  webserver, a different mount root). Strips the origin, the cache-bust
+ *  query, and a leading `/<sessionId>/` — mirroring what `readImageSrc` +
+ *  `getSourcePathForEditImage` already do for <img>. Without this, a
+ *  background-image swap baked an ABSOLUTE path (`/<session>/hero.jpg?cb=…`
+ *  or `http://localhost:3000/…`) into the saved HTML that didn't resolve —
+ *  the "Das Zuviel" hero bug. Ralph 2026-06-12. */
+function relativizeStyleUrls(style: string, sessionId: string | null): string {
+  if (!style || !sessionId) return style
+  const prefix = `/${sessionId}/`
+  return style.replace(/url\((['"]?)([^'")]+)\1\)/gi, (full, _q, raw: string) => {
+    if (/^data:/i.test(raw)) return full // inline data-URIs stay verbatim
+    let u = raw
+    try {
+      if (/^https?:/i.test(u)) u = new URL(u).pathname
+    } catch {
+      return full
+    }
+    u = u.split('?')[0] // drop cache-bust / query
+    if (u.startsWith(prefix)) u = u.slice(prefix.length) // → session-relative
+    return `url("${u}")`
+  })
 }
 
 interface LivePreviewWithDirectorProps {
@@ -230,6 +254,12 @@ export const LivePreviewWithDirector = forwardRef<
     }
   }
   const [studioTarget, setStudioTarget] = useState<StudioPickTarget | null>(null)
+  // The EXACT element the "Replace…" picker was opened on, held as a live node.
+  // The swap targets THIS element directly — no re-resolution by src string,
+  // which mis-fired whenever two images shared a src (vibe-40 has two). The save
+  // path already persists by structural selector, so the round-trip is exact
+  // end-to-end. Ralph 2026-06-16.
+  const pickerTargetElRef = useRef<HTMLElement | null>(null)
 
   // Gear overlay: which element is currently being hovered that's a swap target
   // Gear overlay: which element is currently being hovered that's a swap
@@ -418,7 +448,7 @@ export const LivePreviewWithDirector = forwardRef<
         const selector = buildSelectorPath(el)
         return {
           selector,
-          ...(styleChanged ? { style: styleNow } : {}),
+          ...(styleChanged ? { style: relativizeStyleUrls(styleNow, sessionId) } : {}),
           ...(srcChanged && srcNow !== null ? { src: srcNow } : {}),
           ...(parChanged ? { preserveAspectRatio: parNow } : {}),
         }
@@ -430,7 +460,7 @@ export const LivePreviewWithDirector = forwardRef<
         preserveAspectRatio?: string | null
       } => e !== null)
     return { edits, elements: els }
-  }, [])
+  }, [sessionId])
 
   const saveAll = useCallback(async () => {
     // Commit: persist every modified element to disk.
@@ -891,6 +921,7 @@ export const LivePreviewWithDirector = forwardRef<
     // React render each, causing noticeable jank on dense vibes. We store
     // the latest target in a ref and commit it to state once per frame.
     let pendingHoverTarget: HTMLElement | null = null
+    let pendingHoverPoint: { x: number; y: number } | null = null
     let rafHandle: number | null = null
     function flushHover() {
       rafHandle = null
@@ -913,7 +944,17 @@ export const LivePreviewWithDirector = forwardRef<
 
       // Gear — same RAF-batched path. Only updates when target is an
       // image-capable swap target.
-      const swap = t ? findSwapTarget(t) : null
+      let swap = t ? findSwapTarget(t) : null
+      // Full-bleed background images (e.g. a section's <img class="bg">) sit
+      // BEHIND overlays like a vignette/scrim, so walking UP from the topmost
+      // element never reaches them — they're a SIBLING, not an ancestor. Fall
+      // back to the cursor's full hit-stack so an absolutely-positioned bg
+      // image behind an overlay stays selectable (Ralph 2026-06-12 — the hero
+      // bg-picture couldn't be picked because the .vig overlay swallowed it).
+      if (!swap && pendingHoverPoint && currentDoc) {
+        const stack = currentDoc.elementsFromPoint(pendingHoverPoint.x, pendingHoverPoint.y) as HTMLElement[]
+        swap = stack.find((el) => isSwapTarget(el)) || null
+      }
       if (!swap) {
         setGearEl(null)
         return
@@ -931,6 +972,7 @@ export const LivePreviewWithDirector = forwardRef<
       const t = e.target as HTMLElement | null
       if (!t) return
       pendingHoverTarget = t
+      pendingHoverPoint = { x: e.clientX, y: e.clientY }
       if (rafHandle === null) {
         rafHandle = requestAnimationFrame(flushHover)
       }
@@ -1243,6 +1285,28 @@ export const LivePreviewWithDirector = forwardRef<
   const [boxState, setBoxState] = useState<BoxState>(defaultBox)
   const [typeState, setTypeState] = useState<TypeState>(defaultType)
 
+  // ── Edit baselines (Ralph 2026-06-12) ───────────────────────────────────
+  // The values read off the element when it was selected. Box/Type state is
+  // SEEDED FROM COMPUTED STYLE (so the panel shows current values even when a
+  // CSS class — not an inline style — drives them). Without a baseline, the
+  // apply effects below wrote that whole computed snapshot back as INLINE
+  // style on every selection AND on every single-property edit — freezing the
+  // resolved font-family ("Univers"), the computed color, background-position,
+  // etc. onto the element and overriding the vibe's CSS. That is the director
+  // butchering (e.g. vibe-20 body text turned orange in the wrong font).
+  // Fix: each apply effect writes a property ONLY when it differs from this
+  // baseline — so selecting bakes nothing, and editing one control writes only
+  // that one property, never the computed siblings.
+  const typeBaselineRef = useRef<TypeState>(defaultType)
+  const boxBaselineRef = useRef<BoxState>(defaultBox)
+  const transformBaselineRef = useRef<TransformState>(defaultTransform)
+  const filterBaselineRef = useRef<FilterState>(defaultFilters)
+  /** Value-equality for baseline diffing (handles the small plain objects in
+   *  Type/Box state — SizeDim, SpacingQuad, etc.). */
+  const changedFromBaseline = useCallback((a: unknown, b: unknown): boolean => {
+    return JSON.stringify(a) !== JSON.stringify(b)
+  }, [])
+
   // Initialize panel state when a new element is targeted. Filter/transform
   // always reset to defaults (they don't round-trip from element since the
   // vibe's own transforms aren't our editing concern). Box/type DO read the
@@ -1251,24 +1315,34 @@ export const LivePreviewWithDirector = forwardRef<
     if (!styleTarget) return
     // Snapshot before any styling change
     snapshotElement(styleTarget)
+    const box = readBoxFromElement(styleTarget)
+    const type = readTypeFromElement(styleTarget)
+    // Seed the apply-baselines so an UNTOUCHED selection writes nothing —
+    // only later diffs from these values persist as inline style.
+    filterBaselineRef.current = defaultFilters
+    transformBaselineRef.current = defaultTransform
+    boxBaselineRef.current = box
+    typeBaselineRef.current = type
     setFilterState(defaultFilters)
     setTransformState(defaultTransform)
-    setBoxState(readBoxFromElement(styleTarget))
-    setTypeState(readTypeFromElement(styleTarget))
+    setBoxState(box)
+    setTypeState(type)
   }, [styleTarget, snapshotElement])
 
   // Apply filter whenever filterState changes
   useEffect(() => {
     if (!styleTarget) return
     if (skipApplyRef.current) return
+    if (!changedFromBaseline(filterState, filterBaselineRef.current)) return
     const f = buildFilterString(filterState)
     styleTarget.style.filter = f
-  }, [filterState, styleTarget])
+  }, [filterState, styleTarget, changedFromBaseline])
 
   // Apply transform + fit + position + radius whenever transformState changes
   useEffect(() => {
     if (!styleTarget) return
     if (skipApplyRef.current) return
+    if (!changedFromBaseline(transformState, transformBaselineRef.current)) return
     const t = transformState
     const tf = buildTransformString(t)
     const isImg = styleTarget.tagName === 'IMG'
@@ -1333,51 +1407,65 @@ export const LivePreviewWithDirector = forwardRef<
       styleTarget.style.backgroundPosition = posString
       styleTarget.style.backgroundRepeat = t.repeat || ''
     }
-  }, [transformState, styleTarget])
+  }, [transformState, styleTarget, changedFromBaseline])
 
   // Apply box (opacity, size, padding, margin, radius, fill) whenever boxState changes
   useEffect(() => {
     if (!styleTarget) return
     if (skipApplyRef.current) return
     const s = styleTarget.style
-    s.opacity = boxState.opacity === 1 ? '' : String(boxState.opacity)
+    const bb = boxBaselineRef.current
+    // Each block writes ONLY when the user changed it from the select-time
+    // baseline — so an untouched selection (state === computed baseline)
+    // bakes nothing, and editing one control never freezes the others.
+    if (changedFromBaseline(boxState.opacity, bb.opacity)) {
+      s.opacity = boxState.opacity === 1 ? '' : String(boxState.opacity)
+    }
 
     // Width / height — null clears the inline declaration so the element
     // falls back to its natural/flow size. A non-null SizeDim writes
     // `Npx` or `N%`. (Size field added Ralph 2026-04-23.)
-    s.width = serializeSizeDim(boxState.width)
-    s.height = serializeSizeDim(boxState.height)
+    if (changedFromBaseline(boxState.width, bb.width)) s.width = serializeSizeDim(boxState.width)
+    if (changedFromBaseline(boxState.height, bb.height)) s.height = serializeSizeDim(boxState.height)
 
     // Padding — use shorthand when unified, 4-value form when asymmetric.
     // Clear individual-side props first so shorthand isn't double-applied.
-    s.paddingTop = ''; s.paddingRight = ''; s.paddingBottom = ''; s.paddingLeft = ''
-    if (spacingIsZero(boxState.padding)) {
-      s.padding = ''
-    } else {
-      s.padding = serializeQuad(boxState.padding)
+    if (changedFromBaseline(boxState.padding, bb.padding)) {
+      s.paddingTop = ''; s.paddingRight = ''; s.paddingBottom = ''; s.paddingLeft = ''
+      if (spacingIsZero(boxState.padding)) {
+        s.padding = ''
+      } else {
+        s.padding = serializeQuad(boxState.padding)
+      }
     }
 
-    s.marginTop = ''; s.marginRight = ''; s.marginBottom = ''; s.marginLeft = ''
-    if (spacingIsZero(boxState.margin)) {
-      s.margin = ''
-    } else {
-      s.margin = serializeQuad(boxState.margin)
+    if (changedFromBaseline(boxState.margin, bb.margin)) {
+      s.marginTop = ''; s.marginRight = ''; s.marginBottom = ''; s.marginLeft = ''
+      if (spacingIsZero(boxState.margin)) {
+        s.margin = ''
+      } else {
+        s.margin = serializeQuad(boxState.margin)
+      }
     }
 
     // Border-radius — same shorthand vs. 4-corner serialization logic.
-    s.borderTopLeftRadius = ''; s.borderTopRightRadius = ''
-    s.borderBottomRightRadius = ''; s.borderBottomLeftRadius = ''
-    if (radiusIsZero(boxState.radius)) {
-      // Only clear if the transform panel's radius (which uses %) isn't active
-      if (!(transformState.radius > 0)) s.borderRadius = ''
-    } else {
-      s.borderRadius = serializeRadius(boxState.radius)
+    if (changedFromBaseline(boxState.radius, bb.radius)) {
+      s.borderTopLeftRadius = ''; s.borderTopRightRadius = ''
+      s.borderBottomRightRadius = ''; s.borderBottomLeftRadius = ''
+      if (radiusIsZero(boxState.radius)) {
+        // Only clear if the transform panel's radius (which uses %) isn't active
+        if (!(transformState.radius > 0)) s.borderRadius = ''
+      } else {
+        s.borderRadius = serializeRadius(boxState.radius)
+      }
     }
 
-    if (boxState.fill === null) {
-      s.backgroundColor = ''
-    } else {
-      s.backgroundColor = boxState.fill
+    if (changedFromBaseline(boxState.fill, bb.fill)) {
+      if (boxState.fill === null) {
+        s.backgroundColor = ''
+      } else {
+        s.backgroundColor = boxState.fill
+      }
     }
 
     // Href — universal Link behavior (per Ralph 2026-04-20):
@@ -1433,24 +1521,31 @@ export const LivePreviewWithDirector = forwardRef<
       }
     }
     // (existing anchor = null AND wantLink = false) → no-op, consistent state.
-  }, [boxState, styleTarget, transformState.radius])
+  }, [boxState, styleTarget, transformState.radius, changedFromBaseline])
 
-  // Apply typography whenever typeState changes
+  // Apply typography whenever typeState changes.
+  // Each property writes ONLY when changed from the select-time baseline, so
+  // the panel can DISPLAY computed values (font/color seeded from getComputedStyle)
+  // without freezing them inline — which previously baked the resolved fallback
+  // font + computed color onto CSS-styled text and butchered the design.
   useEffect(() => {
     if (!styleTarget) return
     if (skipApplyRef.current) return
     const s = styleTarget.style
     const t = typeState
-    s.fontFamily = t.fontFamily
-      ? (t.fontFamily.includes(' ') ? `"${t.fontFamily}"` : t.fontFamily)
-      : ''
-    s.fontSize = t.fontSize ? `${t.fontSize.value}${t.fontSize.unit}` : ''
-    s.fontWeight = t.fontWeight !== null ? String(t.fontWeight) : ''
-    s.color = t.color || ''
-    s.textAlign = t.textAlign || ''
-    s.lineHeight = t.lineHeight !== null ? String(t.lineHeight) : ''
-    s.letterSpacing = t.letterSpacing ? `${t.letterSpacing.value}${t.letterSpacing.unit}` : ''
-  }, [typeState, styleTarget])
+    const tb = typeBaselineRef.current
+    if (changedFromBaseline(t.fontFamily, tb.fontFamily)) {
+      s.fontFamily = t.fontFamily
+        ? (t.fontFamily.includes(' ') ? `"${t.fontFamily}"` : t.fontFamily)
+        : ''
+    }
+    if (changedFromBaseline(t.fontSize, tb.fontSize)) s.fontSize = t.fontSize ? `${t.fontSize.value}${t.fontSize.unit}` : ''
+    if (changedFromBaseline(t.fontWeight, tb.fontWeight)) s.fontWeight = t.fontWeight !== null ? String(t.fontWeight) : ''
+    if (changedFromBaseline(t.color, tb.color)) s.color = t.color || ''
+    if (changedFromBaseline(t.textAlign, tb.textAlign)) s.textAlign = t.textAlign || ''
+    if (changedFromBaseline(t.lineHeight, tb.lineHeight)) s.lineHeight = t.lineHeight !== null ? String(t.lineHeight) : ''
+    if (changedFromBaseline(t.letterSpacing, tb.letterSpacing)) s.letterSpacing = t.letterSpacing ? `${t.letterSpacing.value}${t.letterSpacing.unit}` : ''
+  }, [typeState, styleTarget, changedFromBaseline])
 
   // ───────────────────────────────────────────────────────────────────────
   // Picker result (fallback modal)
@@ -1458,11 +1553,15 @@ export const LivePreviewWithDirector = forwardRef<
 
   const handlePicked = useCallback(
     (result: { filename: string; slot: string; pageFilename: string; oldImage?: string }) => {
-      const doc = iframeRef.current?.contentDocument
-      if (doc) {
-        const el = resolveSlotToElement(doc, result.slot)
-        if (el) swapImage(el, `/${sessionId}/${result.filename}`)
+      // Swap the EXACT element the picker was opened on (held as a live ref).
+      // No re-resolution by src string — that mis-fired when two images shared a
+      // src. The save then persists this element by structural selector
+      // (buildSelectorPath), so the file change lands on it. Ralph 2026-06-16.
+      const el = pickerTargetElRef.current
+      if (el && el.isConnected) {
+        swapImage(el, `/${sessionId}/${result.filename}`)
       }
+      pickerTargetElRef.current = null
       setStudioTarget(null)
       if (sessionId) {
         onSlotSwapped?.({
@@ -1866,10 +1965,17 @@ export const LivePreviewWithDirector = forwardRef<
                 }
               }
             }
+            const undoBox = readBoxFromElement(styleTarget)
+            const undoType = readTypeFromElement(styleTarget)
+            // Re-baseline to the restored values so the next edit diffs cleanly.
+            filterBaselineRef.current = defaultFilters
+            transformBaselineRef.current = defaultTransform
+            boxBaselineRef.current = undoBox
+            typeBaselineRef.current = undoType
             setFilterState(defaultFilters)
             setTransformState(defaultTransform)
-            setBoxState(readBoxFromElement(styleTarget))
-            setTypeState(readTypeFromElement(styleTarget))
+            setBoxState(undoBox)
+            setTypeState(undoType)
             // Clear the skip flag after React has committed the state
             // updates and fired (and skipped) the apply effects.
             requestAnimationFrame(() => {
@@ -1882,6 +1988,9 @@ export const LivePreviewWithDirector = forwardRef<
             const src = isImg
               ? readImageSrc(styleTarget)
               : window.getComputedStyle(styleTarget).backgroundImage
+            // Hold the exact clicked element so handlePicked swaps IT — not
+            // whatever a src-string match guesses. Ralph 2026-06-16.
+            pickerTargetElRef.current = styleTarget
             setStudioTarget({
               pageFilename,
               slot: isImg ? `img:${src}` : `bgimg:${src}`,

@@ -26,6 +26,7 @@
  */
 
 import { bridgeManager, type BridgeOptions, type BridgeEvent } from './bridge-process-manager'
+import { brainSpec, DEFAULT_BRAIN } from './models'
 import { buildCDPrompt } from './cd-agent-prompt'
 import { makeToolCollector, type ToolCalls } from './mcp-tool-collector'
 
@@ -54,7 +55,7 @@ function withSessionLock<T>(sessionId: string, fn: () => Promise<T>): Promise<T>
 // ─────────────────────────────────────────────────────────────────────────────
 
 export interface CallCDOptions extends Partial<BridgeOptions> {
-  /** Override the default model — defaults to claude-opus-4-8[1m] (Big CD). */
+  /** Override the default model — defaults to claude-fable-5 (Big CD). */
   model?: string
   /**
    * Phase 2 (2026-04-30): structured-response migration. When the caller
@@ -120,7 +121,7 @@ export async function callCDBridge(
     )
 
   const options: BridgeOptions = {
-    model: opts.model || 'claude-opus-4-8[1m]',
+    model: opts.model || brainSpec(DEFAULT_BRAIN).id,
     systemPrompt,
     cwd: opts.cwd || process.cwd(),
     // Ralph 2026-06-01: propagate useWorker so cd-upload-eval (and any

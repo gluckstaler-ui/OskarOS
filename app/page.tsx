@@ -28,9 +28,13 @@ import { AskUserModal } from '@/components/AskUserModal'
 // rendered properly. See components/SnackbarProvider.tsx case 'cd.snackbar'.
 import { ConversationPanel } from '@/components/ConversationPanel'
 import { uploadChatImages } from '@/lib/chat-image-upload'
+import { DEFAULT_BRAIN, switchFromConfig, MODEL_SWITCH_PRESETS, type ModelSwitch } from '@/lib/models'
 import { subscribeApiEvents } from '@/lib/api-events-bus'
 import { useImagePipeline } from '@/lib/hooks/useImagePipeline'
 import { TopBar, type Order66Status } from '@/components/TopBar'
+import { StudioLogo } from '@/components/studio/StudioLogo'
+import { StudioTabs } from '@/components/studio/StudioTabs'
+import { StudioRightActions } from '@/components/studio/StudioRightActions'
 import { CompactionOverlay } from '@/components/CompactionOverlay'
 import { FinalApprovalModal } from '@/components/PhaseGate'
 import {
@@ -297,8 +301,9 @@ export default function Home() {
     message: ''
   })
   const [useStreaming, setUseStreaming] = useState(true) // Toggle streaming mode
-  const [billingMode, setBillingMode] = useState<'smpl' | 'cli' | 'api'>('cli') // Execution mode: SMPL (tier alias), CLI (Claude ID), API (Anthropic direct). Default = CLI (1M context, Claude Code subscription). SMPL/API are opt-in only — API in particular is real out-of-pocket spend and must NEVER be entered silently. Ralph 2026-05-27.
-  const [webDevModel, setWebDevModel] = useState<'claude-opus-4-8' | 'claude-sonnet-4-6' | 'gemini-3.1-pro-preview'>('claude-sonnet-4-6') // WebDev model
+  const [billingMode, setBillingMode] = useState<'cli' | 'api'>('cli') // Execution mode: CLI (Claude ID via Claude Code subscription) vs API (Anthropic direct). Default = CLI (1M context, no per-token cost). API is opt-in only — real out-of-pocket spend, must NEVER be entered silently. SMPL was retired 2026-06-09 (UI gone; backend routes still accept 'smpl' for legacy compatibility but no surface emits it).
+  const [modelSwitch, setModelSwitch] = useState<ModelSwitch>(DEFAULT_BRAIN) // THE model switch — ONE variable, one lit. Position presets (brain + padawan model) live in lib/models; the brain route writes them to session config.
+  const webDevModel = MODEL_SWITCH_PRESETS[modelSwitch].webDevModel // Padawan/WebDev model — derived from the switch position, never set directly.
   const [theme, setThemeState] = useState<'onyx' | 'polar'>('onyx') // Theme: ONYX (dark) or POLAR (light)
 
   // Apply theme synchronously at click time (before React commits). Without
@@ -905,16 +910,9 @@ export default function Home() {
   // 2026-05-04.
   useEffect(() => {
     const saved = localStorage.getItem('oskar_billing_mode')
-    if (saved === 'smpl' || saved === 'cli' || saved === 'api') {
+    // SMPL retired 2026-06-09 — any persisted 'smpl' value falls through and the default 'cli' wins.
+    if (saved === 'cli' || saved === 'api') {
       setBillingMode(saved)
-    }
-    const savedModel = localStorage.getItem('oskar_webdev_model')
-    if (
-      savedModel === 'claude-opus-4-8' ||
-      savedModel === 'claude-sonnet-4-6' ||
-      savedModel === 'gemini-3.1-pro-preview'
-    ) {
-      setWebDevModel(savedModel)
     }
   }, [])
 
@@ -932,12 +930,10 @@ export default function Home() {
       .then((r) => r.ok ? r.json() : null)
       .then((cfg) => {
         if (!cfg) return
-        if (cfg.billingMode === 'smpl' || cfg.billingMode === 'cli' || cfg.billingMode === 'api') setBillingMode(cfg.billingMode)
-        if (
-          cfg.webDevModel === 'claude-opus-4-8' ||
-          cfg.webDevModel === 'claude-sonnet-4-6' ||
-          cfg.webDevModel === 'gemini-3.1-pro-preview'
-        ) setWebDevModel(cfg.webDevModel)
+        // SMPL retired 2026-06-09 — legacy 'smpl' values in stored config fall through; default 'cli' stays.
+        if (cfg.billingMode === 'cli' || cfg.billingMode === 'api') setBillingMode(cfg.billingMode)
+        if (cfg.cdModel) setModelSwitch(switchFromConfig(cfg.cdModel, cfg.webDevModel)) // ONE derivation: brain + padawan model → position
+
         // Bug M (Ralph 2026-05-04): seed the input-bar model badge from
         // session config. CLI mode will override this when Claude CLI's
         // Badge is NOT seeded from config. The badge displays truth-on-wire
@@ -954,34 +950,26 @@ export default function Home() {
   // INSTANT for MCP build routes — no debounce, no startup-load delay
   // (the file is sub-ms to write/read; the next agent action runs after
   // the click so there's no race). Ralph 2026-05-04.
-  // Save billing mode AND cdModel to session config. When mode changes,
-  // cdModel is set to the mode default (SMPL→'opus', CLI→'claude-opus-4-8[1m]',
-  // API→'claude-opus-4-8'). Ralph 2026-05-04.
+  // Save billing mode to session config. billingMode controls EXECUTION
+  // (CLI bridge vs direct API), NOT the model. The model is the brain,
+  // owned solely by the selector (/api/sessions/[id]/brain → cdModel). This
+  // effect used to ALSO write cdModel from a billingMode-keyed map (a
+  // `[1m]` id), which silently CLOBBERED the brain selection on every toggle.
+  // Removed 2026-06-10: one model, one writer.
   useEffect(() => {
     localStorage.setItem('oskar_billing_mode', billingMode)
     if (!sessionId) return
     if (!hydratedFromConfigRef.current) return  // skip the write that would race the hydration GET
-    const modeCdModels = { smpl: 'opus', cli: 'claude-opus-4-8[1m]', api: 'claude-opus-4-8' } as const
     fetch(`/api/sessions/${encodeURIComponent(sessionId)}/config`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ billingMode, cdModel: modeCdModels[billingMode] }),
+      body: JSON.stringify({ billingMode }),
     }).catch((err) => console.warn('[page] session config POST (billingMode) failed:', err))
   }, [billingMode, sessionId])
 
-  // Save WebDev model to localStorage AND to the server-side session
-  // config. Same instant-write pattern as billingMode above. The MCP
-  // build routes read this on every call.
-  useEffect(() => {
-    localStorage.setItem('oskar_webdev_model', webDevModel)
-    if (!sessionId) return
-    if (!hydratedFromConfigRef.current) return
-    fetch(`/api/sessions/${encodeURIComponent(sessionId)}/config`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ webDevModel }),
-    }).catch((err) => console.warn('[page] session config POST (webDevModel) failed:', err))
-  }, [webDevModel, sessionId])
+  // webDevModel has no save effect: the brain route writes it as the preset
+  // half of every switch flip (one model, one writer — same doctrine as
+  // cdModel above). The MCP build routes read it from config on every call.
 
   // Bug M follow-up (Ralph 2026-05-04): on billingMode change, ACTIVELY
   // probe the chosen mode's actual model. CLI mode → backend either
@@ -2278,7 +2266,7 @@ export default function Home() {
         if (last.role === 'user') last.content = `${last.content}${agentRef}`
       }
 
-      // API route for CD chat (CLI/SMPL modes use handleStreamingMessage → chat-stream)
+      // API route for CD chat (CLI mode uses handleStreamingMessage → chat-stream; SMPL retired)
       const endpoint = '/api/chat'
       const response = await fetch(endpoint, {
         method: 'POST',
@@ -2466,8 +2454,10 @@ export default function Home() {
           sessionId: currentSessionId,  // Pass sessionId to API (for file storage)
           cliSessionId,  // Pass CLI session UUID (for --session-id flag)
           isResume: isResumedSession,  // Tell CD agent if this is a resumed session
-          executionMode: billingMode,  // 'smpl' | 'cli' | 'api'
-          cdModel: { smpl: 'opus', cli: 'claude-opus-4-8[1m]', api: 'claude-opus-4-8' }[billingMode],
+          executionMode: billingMode,  // 'cli' | 'api' (SMPL retired 2026-06-09)
+          // cdModel intentionally omitted — chat-stream resolves it from session
+          // config (the brain selection = single source). A hardcoded id here used
+          // to override/clobber the brain selection. Removed 2026-06-10.
           // Read from ref — always latest. If we referenced `webDevModel`
           // directly, the enclosing useCallback would need it in deps, which
           // would re-create the whole 532-line callback on every model toggle.
@@ -3783,6 +3773,24 @@ export default function Home() {
     setShowCompactionOverlay(true)
   }, [sessionId, order66Status])
 
+  // THE model switch (one variable, one lit). Every flip POSTs the position;
+  // the brain route writes the full preset (cdModel + webDevModel) atomically
+  // and group-SIGKILLs the bridge ONLY when the brain actually changes (then
+  // the next turn respawns + re-rolls until the wire is 1M). GEMINI = Opus
+  // brain with Gemini replacing sonnet in the padawan slot. Ralph 2026-06-10.
+  const handleModelSwitch = useCallback((m: ModelSwitch) => {
+    if (!sessionId || m === modelSwitch) return
+    setModelSwitch(m)
+    fetch(`/api/sessions/${encodeURIComponent(sessionId)}/brain`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ model: m }),
+    })
+      .then((r) => r.json())
+      .then((res) => console.log(`🧠 Model switch → ${m} (cd=${res?.cdModel ?? '?'}, webdev=${res?.webDevModel ?? '?'}); bridge ${res?.killed ? "SIGKILL'd" : 'kept'}`))
+      .catch((err) => console.warn('[page] model switch failed:', err))
+  }, [sessionId, modelSwitch])
+
   // Called by CompactionOverlay when bridge-ready fires
   const handleCompactionComplete = useCallback(() => {
     if (compactionEndpoint === 'order65') setOrder65Status('complete')
@@ -3813,47 +3821,49 @@ export default function Home() {
       {/* Top Bar - Wrapped in bento-card container */}
       <div className="bento-card" style={{ height: '64px', flexShrink: 0 }}>
         <TopBar
-          sessionName={businessName || sessionId}
           sessionId={sessionId}
-          layoutMode={layoutMode}
-          onLayoutChange={setLayoutMode}
           billingMode={billingMode}
           onBillingChange={setBillingMode}
-          webDevModel={webDevModel}
-          onModelChange={setWebDevModel}
+          modelSwitch={modelSwitch}
+          onModelSwitch={handleModelSwitch}
           theme={theme}
           onThemeChange={setTheme}
           usageRefreshTrigger={messages.length}
           contextPct={contextPct}
           cachedInputTokens={cachedInputTokens}
           realInputTokens={realInputTokens}
-          onOrder65={handleOrder65}
-          order65Status={order65Status}
           onOrder66={handleOrder66}
           order66Status={order66Status}
-          onSessionRename={async (newName) => {
-            // Persist via the existing rename-session server action. Renames
-            // the folder on disk + updates SESSION.md / CREATIVE-BRIEF.md
-            // titles. The new sessionId is slug-based (date-prefix +
-            // slugified name), so we swap state to it after success.
-            // localStorage stays in sync via setSessionId.
-            if (!sessionId) return
-            const trimmed = newName.trim()
-            if (!trimmed || trimmed === businessName) return
-            try {
-              const result = await renameSessionAction(sessionId, trimmed)
-              if (result.success && result.newSessionId) {
-                setBusinessName(trimmed)
-                if (result.newSessionId !== sessionId) {
-                  setSessionId(result.newSessionId)
+          left={
+            <StudioLogo
+              sessionName={businessName || sessionId}
+              onSessionRename={async (newName) => {
+                // Persist via the existing rename-session server action.
+                // Renames the folder on disk + updates SESSION.md /
+                // CREATIVE-BRIEF.md titles. The new sessionId is slug-based
+                // (date-prefix + slugified name), so we swap state to it on
+                // success. localStorage stays in sync via setSessionId.
+                if (!sessionId) return
+                const trimmed = newName.trim()
+                if (!trimmed || trimmed === businessName) return
+                try {
+                  const result = await renameSessionAction(sessionId, trimmed)
+                  if (result.success && result.newSessionId) {
+                    setBusinessName(trimmed)
+                    if (result.newSessionId !== sessionId) {
+                      setSessionId(result.newSessionId)
+                    }
+                  } else {
+                    console.warn('[page] renameSessionAction failed:', result.error)
+                  }
+                } catch (err) {
+                  console.error('[page] renameSession error:', err)
                 }
-              } else {
-                console.warn('[page] renameSessionAction failed:', result.error)
-              }
-            } catch (err) {
-              console.error('[page] renameSession error:', err)
-            }
-          }}
+              }}
+            />
+          }
+          tabs={<StudioTabs layoutMode={layoutMode} onLayoutChange={setLayoutMode} theme={theme} />}
+          right={<StudioRightActions />}
         />
       </div>
 
@@ -4090,18 +4100,10 @@ export default function Home() {
               onClearAsset={handleClearAsset}
               directorMode={directorMode}
               onToggleDirectorMode={() => setDirectorMode(prev => !prev)}
-              onElementSelect={handleElementSelect}
-              selectedElement={selectedElement}
-              onTextEdit={handleTextEdit}
               availableVibes={availableVibes}
               selectedVibeFile={selectedVibeFile}
               onVibeFileSelect={setSelectedVibeFile}
               onVibeDelete={requestVibeDelete}
-              onImageEditRequest={(imageUrl, instruction) => {
-                // Send image edit request through chat
-                const message = `[Director Mode Image Edit]\n\nEdit this image: ${imageUrl}\n\nInstruction: ${instruction}`
-                handleSend(message)
-              }}
             />
           </div>
         )}
@@ -4133,10 +4135,8 @@ export default function Home() {
             // Claude CLI's system/init event via chat-stream's model_info
             // SSE event; API mode populates from session-config hydration.
             currentModel={currentModel}
-            // WP-22 / WP-66 (Ralph 2026-05-06): TodoWrite + builds overlay
-            // hooks need the active session to subscribe SSE + read the
-            // persisted ## Todos section. Pre-session sessionId is null,
-            // overlay stays unmounted.
+            // The active session id — used by ConversationPanel for staging
+            // pasted text into the session's uploads. Null pre-session.
             sessionId={sessionId}
           />
         </div>

@@ -109,7 +109,7 @@ export const sseFrames = {
  *   await mockChatStreamRoute(page, [
  *     sseFrames.start({ bin: 'claude' }),
  *     sseFrames.textDelta('Hi there.'),
- *     sseFrames.toolUse({ id: 't1', name: 'TodoWrite', input: { todos: [...] } }),
+ *     sseFrames.toolUse({ id: 't1', name: 'build_vibe', input: { slugs: [...] } }),
  *     sseFrames.end({ code: 0, status: 'succeeded' }),
  *   ]);
  */

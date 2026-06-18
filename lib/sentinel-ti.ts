@@ -7,6 +7,7 @@
 
 import { readFile, writeFile, mkdir } from 'fs/promises'
 import { existsSync } from 'fs'
+import { brainSpec, DEFAULT_BRAIN } from './models'
 import { spawn } from 'child_process'
 import path from 'path'
 import { findClaudeBinary } from './webdev'
@@ -186,7 +187,7 @@ to the file path the user prompt specifies. Do not invent file paths.`
     '--verbose',
     '--no-session-persistence',
     '--model',
-    'claude-opus-4-8[1m]',
+    brainSpec(DEFAULT_BRAIN).id,
     '--output-format',
     'stream-json',
     '--permission-mode',

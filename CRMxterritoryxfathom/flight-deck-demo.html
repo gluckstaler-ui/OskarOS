@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Flight Deck · Consular demo</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="stylesheet" href="styles.css" />
+  <style>
+    html, body { margin: 0; padding: 0; min-height: 100%; background: #14110b; }
+    body { font-family: 'Inter', system-ui, sans-serif; display: flex; gap: 24px; padding: 24px; flex-wrap: wrap; }
+    .col { width: 460px; max-width: 100%; }
+    .col h2 { font: 500 11px/1 'JetBrains Mono', monospace; letter-spacing: 2px; color: #7a6f5a; text-transform: uppercase; margin: 0 0 12px; }
+  </style>
+</head>
+<body>
+  <div class="col"><h2>Onyx</h2><div id="deck-onyx"></div></div>
+  <div class="col"><h2>Polar</h2><div id="deck-polar"></div></div>
+
+  <script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+  <script type="text/babel" src="flight-deck.jsx"></script>
+
+  <script type="text/babel">
+    // This is exactly how the Consular calls it.
+    const pushed = [
+      { leadId: 'P017', company: "Caffè Sant'Ambrogio", verb: 'REPLY', channel: 'WhatsApp',
+        why: 'Inbound 59m ago · still warm. Reply before it cools.',
+        dur: '2 MIN REPLY', deadline: '12 MIN LEFT', tone: 'green' },
+      { leadId: 'P014', company: 'Sportcenter Olimpia', verb: 'CALL', channel: 'Phone',
+        why: 'Negotiation window closes 14:00',
+        dur: '10 MIN CALL', deadline: '38 MIN LEFT', tone: 'red', pct: 0.72, mins: 38 },
+      { leadId: 'P010', company: 'Atelier Frau Weber', verb: 'SEND', channel: 'Email',
+        why: 'Proposal v3 promised EOD',
+        dur: '5 MIN EMAIL', deadline: 'DUE TODAY', tone: 'amber' },
+    ];
+
+    const handlers = {
+      queueCount: 14,
+      onExecute:  (a) => alert('EXECUTE → ' + a.verb + ' ' + a.company),
+      onOpenLead: (id) => alert('Open lead ' + id),
+      onShowQueue: () => alert('Show full queue'),
+    };
+
+    const pushedFull = [
+      ...pushed,
+      { leadId: 'P020', company: 'Hotel Splendid', kind: 'DISCOVERY', contact: 'Erika Vogel',
+        why: 'She proposed two times — lock one', tone: 'green', shape: 'propose',
+        slots: ['Tue 10:30', 'Wed 14:00'] },
+      { leadId: 'P012', company: 'Bistrot Le Petit', amount: "13'200", invoice: 'INV-2041',
+        overdueDays: 12, why: 'Signed in April · invoice unpaid past 30d terms',
+        tone: 'red', shape: 'ledger' },
+      { leadId: 'P013', company: 'Hotel Bellevue Lugano', kind: 'DEMO', at: '10:30', where: 'On-site · Lugano',
+        why: 'Second demo with the GM', tone: 'green', shape: 'agenda', nowPct: 0.35 },
+      { leadId: 'P008', company: 'Ristorante La Pergola', contact: 'Carlo Bianchi', occasion: 'turns 52 today',
+        tone: 'amber', shape: 'soft' },
+    ];
+
+    window.FlightDeck.render('#deck-onyx',  { theme: 'onyx',  pushed: pushedFull, queueCount: 14, ...handlers });
+    window.FlightDeck.render('#deck-polar', { theme: 'polar', pushed: pushedFull, queueCount: 14, ...handlers });
+  </script>
+</body>
+</html>

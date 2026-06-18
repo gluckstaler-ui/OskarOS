@@ -398,35 +398,40 @@ export async function POST(req: NextRequest) {
       savedFilename = finalFilename
       console.log(`Edited image saved to: ${savedPath}`)
 
-      // ── WP-15 (added 2026-04-17): Post-generation verdict ──
-      // CD reads the saved image (via FileRead in its own tools) + Nano's
-      // self-description. Returns ✓/≈/✗ + note + optional description fix.
-      // Soft 3s timeout — if CD is busy, we still record the generation but
-      // skip the verdict. ✗ verdicts go to chat per Augenmass; others stay
-      // in snackbars only.
+      // ── WP-15: Post-generation verdict — OFF THE CRITICAL PATH (Ralph 2026-06-12) ──
+      // This used to `await runVerdict(...)` HERE, blocking the entire image
+      // response on a full CD agent turn (buildCDContext + the Big CD bridge —
+      // and despite the comment above there was NO timeout). The image was
+      // already saved to disk by this point, but the user never saw it until
+      // CD finished — and if CD was busy or down, "nothing happened." That is
+      // the hiccup-on-return-from-Nano bug. The verdict is a QA nicety; it must
+      // never gate the image. We now fire it in the BACKGROUND: the UI gets the
+      // image immediately (image_ready + the HTTP response below run without
+      // waiting), and the ✓/≈/✗ lands asynchronously in chat (on ✗) + IMAGES.md.
+      // `verdict` stays null on the synchronous path — every downstream
+      // `verdict ? … : …` fallback already handles that (it was written for the
+      // "bridge timed out → null" case).
       if (sessionId) {
-        verdict = await runVerdict({
-          sessionId,
-          filename: finalFilename,
-          nanoDescription: geminiText || undefined,
-          originalPrompt: actualPrompt,
-          mode: (mode || operation || 'generate') as 'generate' | 'edit' | 'compose' | 'layout',
-        })
-        console.log(
-          `[edit-image] Verdict: ${verdict.verdict} ${verdict.durationMs}ms — note="${verdict.note?.slice(0, 80)}"`
-        )
-        if (verdict.verdict === '✗') {
-          await logToChat(sessionId, {
-            kind: 'cd-verdict-fail',
-            content: `**Verdict:** ✗\n**Note:** ${verdict.note}`,
-            ref: finalFilename,
-            source: `image-mode:${mode || operation}`,
-          })
-        }
-        // CD's adjusted description supersedes Nano's self-description.
-        if (verdict.adjustedDescription) {
-          geminiText = verdict.adjustedDescription
-        }
+        const sid = sessionId
+        const fname = finalFilename
+        const verdictMode = (mode || operation || 'generate') as 'generate' | 'edit' | 'compose' | 'layout'
+        const nanoDesc = geminiText || undefined
+        const srcLabel = `image-mode:${mode || operation}`
+        void (async () => {
+          try {
+            const v = await runVerdict({ sessionId: sid, filename: fname, nanoDescription: nanoDesc, originalPrompt: actualPrompt, mode: verdictMode })
+            console.log(`[edit-image] Verdict (bg): ${v.verdict} ${v.durationMs}ms — note="${v.note?.slice(0, 80)}"`)
+            if (v.verdict === '✗') {
+              await logToChat(sid, { kind: 'cd-verdict-fail', content: `**Verdict:** ✗\n**Note:** ${v.note}`, ref: fname, source: srcLabel })
+            }
+            // Land CD's verdict in IMAGES.md so the record reflects the QA pass.
+            try {
+              await upsertImageMetadata(path.join(process.cwd(), 'public', sid), fname, { status: 'READY', evaluation: `${v.verdict} — ${v.note}`.slice(0, 400) })
+            } catch (e) { console.warn('[edit-image] bg verdict IMAGES.md update failed:', e) }
+          } catch (e) {
+            console.warn('[edit-image] background verdict failed (image already delivered):', e)
+          }
+        })()
       }
 
       // ── WP-6B: Write description to IMAGES.md ──

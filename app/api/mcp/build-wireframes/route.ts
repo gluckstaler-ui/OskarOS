@@ -34,7 +34,7 @@ import { readFile, writeFile, readdir } from 'fs/promises'
 import path from 'path'
 import { runWebDev } from '@/lib/run-webdev'
 import { publish } from '@/lib/event-bus'
-import { enqueueBuild, withWebdevMutex } from '@/lib/build-escrow'
+import { enqueueBuild } from '@/lib/build-escrow'
 import { resolveWebDevExecution } from '@/lib/session-config'
 
 export const runtime = 'nodejs'
@@ -120,7 +120,7 @@ export async function POST(req: NextRequest) {
     sessionId?: string
     slugs?: string[]
     mode?: 'smpl' | 'cli' | 'api'
-    model?: 'claude-opus-4-8' | 'claude-sonnet-4-6' | 'gemini-3.1-pro-preview'
+    model?: 'claude-sonnet-4-6' | 'claude-opus-4-8' | 'gemini-3.1-pro-preview'
   }
   if (!sessionId) return NextResponse.json({ error: 'sessionId required' }, { status: 400 })
   if (!Array.isArray(slugs) || slugs.length === 0) {
@@ -202,11 +202,10 @@ export async function POST(req: NextRequest) {
       // (Pass-1 Reasoning section instructs WebDev), not in the kind.
       kind: 'build_vibe',
       target,
-      // Wrap the runner in the per-session WebDev mutex so all N spawns
-      // serialize. CD sees all N jobIds immediately; only the actual
-      // Claude-CLI / Gemini invocations run one at a time.
-      runner: ({ signal }) =>
-        withWebdevMutex(sessionId, async () => {
+      // Per-slug runner runs in parallel (Ralph 2026-06-05 — withWebdevMutex
+      // ripped, builds are independent). CD sees all N jobIds immediately
+      // and the underlying spawns all proceed concurrently.
+      runner: async ({ signal }) => {
           // Audit-log entry mirroring build-all-vibes' shape, with a
           // wireframes marker so BUILD.md scans can distinguish phases.
           try {
@@ -383,7 +382,7 @@ export async function POST(req: NextRequest) {
             })
             return { ok: false as const, error: msg }
           }
-        }),
+        },
     })
 
     jobs.push({

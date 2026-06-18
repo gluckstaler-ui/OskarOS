@@ -1,4 +1,5 @@
 import { NextRequest } from 'next/server'
+import { brainSpec, DEFAULT_BRAIN, requires1M, bareModelId } from '@/lib/models'
 import { readFile } from 'fs/promises'
 import path from 'path'
 import { buildCDPrompt } from '@/lib/cd-agent-prompt'
@@ -205,12 +206,12 @@ export async function POST(req: NextRequest) {
     // resolved here; the MCP build routes do their own resolveConfig
     // call so this route stays focused on CD.
     const { resolveConfig } = await import('@/lib/session-config')
-    const resolvedCdModel = resolveConfig(
+    const resolvedCdModel = bareModelId(resolveConfig(
       'cdModel',
       cdModel as any,
       effectiveSessionId,
-      'claude-opus-4-8[1m]',  // CLI default — 1M context on Anthropic, never silently demotes to SMPL/API. Ralph 2026-05-27.
-    )
+      brainSpec(DEFAULT_BRAIN).id,  // bare default brain; 1M verified at runtime by the bridge re-roll. Ralph 2026-06-10.
+    ))  // bareModelId: strip any stale `[1m]` from an old on-disk config — bare ids everywhere.
     // Touch the unused destructured vars so TS doesn't complain — they're
     // still accepted in the body for forward-compat (page.tsx sends them).
     void executionMode; void webDevModel
@@ -386,8 +387,9 @@ export async function POST(req: NextRequest) {
             cwd: process.cwd(),
             // CLI-route fence (Ralph 2026-05-28): ONLY this interactive CD
             // chat opts into the 1M re-roll loop. The one-shot CD helpers
-            // (cd-bridge-call) leave this unset and never re-roll.
-            ensure1M: true,
+            // (cd-bridge-call) leave this unset and never re-roll. requires1M()
+            // keeps Gemini out of the Anthropic-only re-roll loop. Ralph 2026-06-10.
+            ensure1M: requires1M(resolvedCdModel),
           })) {
             // Bug M (Ralph 2026-05-04): forward Claude CLI's system/init
             // model field to the client so the input-bar badge shows the
@@ -486,26 +488,17 @@ export async function POST(req: NextRequest) {
               let cachedInputTokens = 0
               let realInputTokens = 0
               let estimatedContextSize = 0
-              // 2026-05-04 (Ralph, Bug L): default fallback uses the
-              // per-model lookup instead of hardcoded 200K. The dynamic
-              // path below (event.modelUsage) overrides this when Claude
-              // Code CLI reports usage; the fallback is only used when
-              // modelUsage is missing/empty (rare but possible during
-              // bridge-respawn windows).
-              const { getContextWindow } = await import('@/lib/providers/model-context')
-              // Trust wire truth, not the request. event.modelUsage keys are
-              // the actual model that served the response (e.g. 'glm-4.7' on
-              // Z.ai, not 'claude-opus-4-8[1m]' from our config). Fall back
-              // to the request identifier only when modelUsage is absent.
+              // Context window comes ONLY from the wire — the actual served
+              // window for the model that answered (event.modelUsage keys are
+              // the real model, e.g. 'glm-4.7' on Z.ai, not our requested id).
+              // 0 when the wire didn't report one (e.g. mid bridge-respawn). We
+              // NEVER fabricate a window from a name-table — that was the Potemkin
+              // (deleted 2026-06-10). This is the same wire value the Order-66
+              // re-roll probe enforces ≥1M. Mirrors lib/bridge-usage.ts.
               const wireModelKey = event.modelUsage && Object.keys(event.modelUsage).length > 0
                 ? Object.keys(event.modelUsage)[0]
                 : resolvedCdModel
-              let contextWindow = getContextWindow(wireModelKey)
-              // event.modelUsage also reports contextWindow directly from the
-              // wire. Use that when available — it's the most accurate.
-              if (event.modelUsage && event.modelUsage[wireModelKey]?.contextWindow) {
-                contextWindow = event.modelUsage[wireModelKey].contextWindow
-              }
+              const contextWindow = event.modelUsage?.[wireModelKey]?.contextWindow ?? 0
 
               // Estimate actual context fill — RESTORED from git
               // (Ralph 2026-05-04: "CLI = to version in GIT").

@@ -1,0 +1,276 @@
+ 
+ <!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Oskar — Preis- & Geschäftsmodell-Analyse (internes Entscheidungsdokument)</title>
+<style>
+  body{font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;line-height:1.5;color:#1a1a1a;max-width:1080px;margin:2rem auto;padding:0 1.2rem;}
+  h1{font-size:1.9rem;border-bottom:3px solid #1a1a1a;padding-bottom:.4rem;}
+  h2{font-size:1.4rem;margin-top:2.2rem;border-bottom:1px solid #ccc;padding-bottom:.2rem;}
+  h3{font-size:1.12rem;margin-top:1.5rem;color:#222;}
+  table{border-collapse:collapse;width:100%;margin:1rem 0;font-size:.9rem;}
+  th,td{border:1px solid #bbb;padding:6px 8px;text-align:left;vertical-align:top;}
+  th{background:#f0f0f0;}
+  .konf{font-size:.85rem;color:#444;font-style:italic;}
+  .flag{background:#fff6e0;border-left:4px solid #e0a000;padding:.5rem .8rem;margin:.6rem 0;font-size:.92rem;}
+  .tldr{background:#eef4fb;border-left:4px solid #2b6cb0;padding:.6rem 1rem;}
+  .src{font-size:.8rem;color:#555;}
+  ol.q li{margin-bottom:.35rem;font-size:.82rem;}
+  .meta{color:#555;font-size:.92rem;}
+  code{background:#f3f3f3;padding:0 3px;border-radius:3px;}
+</style>
+</head>
+<body>
+<h1>Oskar — Preis- und Geschäftsmodell-Analyse</h1>
+<p class="meta"><strong>Internes Entscheidungsdokument für Ralph (Entwicklung & Design) und Filippo (Sales)</strong><br>
+Stand: 30. Mai 2026 · Markt: Deutschschweiz, gewichtet auf Grossraum Zürich · Quellen: 78 (Schweiz priorisiert; internationale Benchmarks markiert)<br>
+Charakter: Entscheidungsgrundlage mit Spannen (min/median/max) und Konfidenzangaben — <em>keine Kundenpräsentation, keine präskriptiven Einzelpreise</em>. Wo Daten dünn oder geschätzt sind, ist dies explizit als <strong>Schätzung</strong> markiert.</p>
+<div class="tldr">
+<h2 style="border:none;margin-top:.3rem;">TL;DR</h2>
+<ul>
+<li><strong>Der Markt trägt für Oskar ein Premium-Komplettpaket</strong> (Website inkl. Foto, Domain, Server-Betrieb + Consular-CRM) im einmaligen Bereich von rund <strong>CHF 9'000–25'000</strong> (Median ≈ CHF 14'000) <em>plus</em> wiederkehrend <strong>CHF 300–1'200/Monat</strong> für Betrieb + CRM-Retainer. Die wiederkehrende Linie ist die eigentliche Geschäftsmaschine — nicht das Einmalprojekt.</li>
+<li><strong>Lead-Service vs. Motor:</strong> Die AI-Website inkl. Deployment ist der <strong>Türöffner</strong> (schneller Erstabschluss, gelernter Markt, Festpreis-Sicherheit). Betriebs-/Hosting-Retainer und Consular-CRM sind der <strong>Recurring-Revenue-Motor</strong>; Oskar-Lizenz und AI-Beratung sind die Skalierungsstufe.</li>
+<li><strong>Engpass ist nicht die Lieferung, sondern der Funnel-Kopf.</strong> Produktion läuft durch den Agentenstack nahe Grenzkosten; bindend sind Aufmerksamkeit, Vertrauen und Abschlusskapazität von 2 Menschen. Das rechtfertigt Premium über <em>Wert & Geschwindigkeit</em> („live in Tagen statt Monaten") — <strong>nicht</strong> über Lieferknappheit.</li>
+</ul>
+</div>
+<h2>1. Preistabellen je Service + Komponente (CH/Zürich, mit Quellen)</h2>
+<h3>1.1 Website-Erstellung — Markt-Benchmarks Deutschschweiz</h3>
+<p class="konf">Konfidenz: <strong>hoch</strong> — gestützt auf eine Marktanalyse von 36 Schweizer Agenturen [8] und die Gryps-Marktpreisstudie [9], beide &lt;12 Monate.</p>
+<table>
+<tr><th>Website-Typ</th><th>Min</th><th>Median / Ø</th><th>Max</th><th>Quelle</th></tr>
+<tr><td>One-Pager (Agentur)</td><td>CHF 500</td><td>CHF 1'200</td><td>CHF 3'000</td><td>[8]</td></tr>
+<tr><td>Einfache KMU-Website (4–10 Seiten)</td><td>CHF 900</td><td>CHF 3'100</td><td>CHF 6'400</td><td>[8]</td></tr>
+<tr><td>KMU-Website Ø (Gryps, 4–8 Seiten, Einzelunternehmen)</td><td>—</td><td>CHF 4'400</td><td>CHF 7'000</td><td>[9]</td></tr>
+<tr><td>Komplexe KMU-Website (≥20 Seiten, individuell)</td><td>CHF 7'500</td><td>CHF 12'000</td><td>CHF 25'000</td><td>[8]</td></tr>
+<tr><td>Webplattform</td><td>CHF 30'000</td><td>CHF 50'000</td><td>CHF 70'000</td><td>[8]</td></tr>
+<tr><td>Agentur-Stundensatz CH</td><td>CHF 120</td><td>CHF 166</td><td>CHF 250</td><td>[8]</td></tr>
+</table>
+<p>Zürcher Premium-Agenturen positionieren am oberen Rand: Bloq Labs (Zug/Zürich) nennt für eine einfache Unternehmenswebsite (5–8 Seiten) <strong>CHF 5'000–15'000</strong> bei einem Stundensatz von CHF 160 [28]; klassische Agenturen erreichen laut Websharks bei Stundensätzen von CHF 180–250 schnell CHF 8'000–12'000 [5]. Fehlendes Branding (kein bestehendes Corporate Design) verursacht 20–55 Zusatzstunden bzw. <strong>CHF 3'200–8'800</strong> Mehrkosten — relevant, weil Oskars Creative Director genau hier Wert schöpft [28].</p>
+<h3>1.2 Komponente: Business-Fotoshooting (Zürich-gewichtet)</h3>
+<p class="konf">Konfidenz: <strong>hoch</strong> — Gryps-Befragung Deutschschweiz [12] plus mehrere Zürcher Studio-Preislisten.</p>
+<table>
+<tr><th>Leistung</th><th>Preis</th><th>Quelle</th></tr>
+<tr><td>Fotograf Stundensatz (DCH)</td><td>CHF 190–300</td><td>[12]</td></tr>
+<tr><td>Fotograf halber Tag (DCH)</td><td>CHF 650–1'100</td><td>[12]</td></tr>
+<tr><td>Fotograf ganzer Tag (DCH)</td><td>CHF 1'000–2'000</td><td>[12]</td></tr>
+<tr><td>Businessportraits + Gruppenbild, Szenario (DCH)</td><td>CHF 730–1'800 (Ø 1'200)</td><td>[12]</td></tr>
+<tr><td>Mitarbeiter-/Business-Portraits-Paket (Zürich, Swiss-Fotoshooting)</td><td>CHF 1'600</td><td>[16]</td></tr>
+<tr><td>Headshot (Zürich, Headshot Factory): Session + pro Bild</td><td>CHF 239 + CHF 89/Bild</td><td>[18]</td></tr>
+<tr><td>Fotografie Halbtag (Agentur-Kalkulation Bloq Labs)</td><td>CHF 800–2'500</td><td>[28]</td></tr>
+</table>
+<div class="flag"><strong>Schätzung für Oskar-Kalkulation:</strong> ein Halbtags-Business-Shooting als interne Kostenposition <strong>CHF 800–1'600</strong>. Im Paketpreis als Wertkomponente (nicht als Durchlaufposten) auszuweisen.</div>
+<h3>1.3 Komponente: Domain / Hosting / Setup (CH)</h3>
+<p class="konf">Konfidenz: <strong>hoch</strong>.</p>
+<table>
+<tr><th>Position</th><th>Preis</th><th>Quelle</th></tr>
+<tr><td>.ch-Domain (Hostpoint)</td><td>CHF 5.90/Jahr</td><td>[27]</td></tr>
+<tr><td>.ch-Domain (Infomaniak, Ø)</td><td>CHF 10–15/Jahr</td><td>[8]</td></tr>
+<tr><td>.com-Domain</td><td>CHF 10–20/Jahr</td><td>[8]</td></tr>
+<tr><td>Webhosting Unternehmenswebsite (1–20 Seiten)</td><td>CHF 150–200/Jahr</td><td>[8]</td></tr>
+<tr><td>Hosting + Domain gesamt (laufend)</td><td>CHF 100–300/Jahr</td><td>[10][27]</td></tr>
+</table>
+<p>Domain/Hosting sind reine Kostenposten (nahe null Marge). Strategisch relevant ist, dass Oskar den <em>Server-Install und Betrieb übernimmt</em> — das ist Teil des Differenzierungsversprechens (siehe 1.5), nicht eine Marge auf Hosting.</p>
+<h3>1.4 Komponente: Text / Copywriting (CH)</h3>
+<p class="konf">Konfidenz: <strong>hoch</strong>.</p>
+<table>
+<tr><th>Position</th><th>Preis</th><th>Quelle</th></tr>
+<tr><td>Webseiten-Texte (Startseite + 4 Unterseiten), Gryps-Szenario</td><td>CHF 1'300–1'800 (Ø 1'600)</td><td>[31]</td></tr>
+<tr><td>Senior-Texter / Junior-Texter (Stundensatz, Gryps)</td><td>CHF 150 / CHF 125 pro Stunde</td><td>[31]</td></tr>
+<tr><td>Freelance-Texter Zürich (textmann): Stundensatz / pro A4-Seite</td><td>CHF 150/h · ~CHF 450–500/Seite</td><td>[32]</td></tr>
+<tr><td>Komplette Website-Texte (Pauschale, ohne/mit SEO)</td><td>CHF 930–1'400 / CHF 1'250–1'900</td><td>[33]</td></tr>
+<tr><td>Professionelles Copywriting 8–12 Seiten (Agentur-Kalkulation)</td><td>CHF 2'000–6'000</td><td>[28]</td></tr>
+</table>
+<p>Oskars Creative Director (Sales-Copy, „uncopyable truth") setzt genau hier an: Copywriting ist im CH-Markt ein eigenständiger Posten von vier- bis fünfstelligem Wert pro Projekt und sollte im Paket als Wert sichtbar gemacht werden.</p>
+<h3>1.5 Komponente: Laufender Betrieb / Wartung als RECURRING (Kern der Differenzierung)</h3>
+<p class="konf">Konfidenz: <strong>hoch</strong>. Dies ist Oskars strategischer Hebel — der CH-Markt akzeptiert eine monatliche Betriebs-/Pflegelinie als Normalität.</p>
+<table>
+<tr><th>Anbieter / Modell</th><th>Preis</th><th>Quelle</th></tr>
+<tr><td>Digital Creators (Website-Pflege, Zeitkontingent)</td><td>CHF 40–150/Monat</td><td>[21]</td></tr>
+<tr><td>Magicline (CMS-Wartungsvertrag)</td><td>CHF 49.50/Monat</td><td>[22]</td></tr>
+<tr><td>Mentrix (Jahresgebühr Unterhalt)</td><td>ab CHF 280/Jahr</td><td>[23]</td></tr>
+<tr><td>HostBott (Wartungspaket: Updates, Backups, Monitoring)</td><td>ab CHF 95/Monat</td><td>[29]</td></tr>
+<tr><td>Bloq Labs (Wartung + Hosting / mit SEO + Content)</td><td>CHF 30–150 / CHF 500–3'500 pro Monat</td><td>[28]</td></tr>
+<tr><td>onlineshopfactory (Wartungspakete)</td><td>CHF 1'400–7'200/Jahr</td><td>[27]</td></tr>
+<tr><td>Beyondweb (einfach → komplex, laufend)</td><td>CHF 300–3'000/Jahr</td><td>[8]</td></tr>
+</table>
+<div class="flag"><strong>Empfehlung Oskar-Betriebsretainer (Spanne, teils Schätzung):</strong> Basis-Care (Server-Betrieb, Monitoring, Sicherheit, kleine Pflege) <strong>CHF 90–250/Monat</strong>; „Care+" (zusätzlich Content/SEO/laufende Anpassungen) <strong>CHF 250–600/Monat</strong>. Die Position „wir betreiben es auf dem Server und halten es live" ist das, was Oskar von reinen Design-/Builder-Tools trennt — der Markt zahlt dafür bereits heute.</div>
+<h3>1.6 CRM — Marktanker: Floor (HubSpot/Pipedrive) und Ceiling (Salesforce)</h3>
+<p class="konf">Konfidenz: <strong>hoch</strong> für Listenpreise (Hersteller-/Primärquellen); <strong>mittel</strong> für CH-Implementierungsaufwand (begrenzte öffentliche Festpreise).</p>
+<p><strong>(a) Defensible Floor — was Filippo im Raum konkret nennen kann:</strong></p>
+<table>
+<tr><th>System / Leistung</th><th>Lizenz</th><th>Setup / Einführung</th><th>Quelle</th></tr>
+<tr><td>HubSpot Starter</td><td>EUR 15–20/User/Monat</td><td>—</td><td>[34][38]</td></tr>
+<tr><td>HubSpot Sales Hub Professional</td><td>USD 90/Sitz/Monat (jährlich), USD 100 monatlich; Zusatzsitze USD 100, Core-Sitze USD 50</td><td>Onboarding USD 1'500 (Pro) bzw. USD 3'500 (Enterprise) — Sales Hub, Herstellerangabe</td><td>[36][34]</td></tr>
+<tr><td>Pipedrive (Lite / Growth / Premium / Ultimate)</td><td>USD 14 / 39 / 49 / 79 pro User/Monat (jährlich, Tier-Rebrand Juli 2025)</td><td>Setup-Gebühren ab Professional/Premium</td><td>[37][38]</td></tr>
+<tr><td>Bexio (CH-Lösung, CRM-Funktionen)</td><td>ab CHF 35/Monat</td><td>—</td><td>[44]</td></tr>
+<tr><td>HubSpot-Implementierung CH (Rocket9)</td><td>+ Software CHF 150–450/Monat</td><td><strong>CHF 8'500–15'000</strong></td><td>[48]</td></tr>
+<tr><td>CRM-Setup CH (Sales4IT)</td><td>—</td><td>ab CHF 500; umfassend „paar tausend"; komplex ab CHF 10'000</td><td>[51]</td></tr>
+<tr><td>Salesforce Quick-Start CH (Cloud Consultants)</td><td>—</td><td>ab CHF 5'000 (30 Tage)</td><td>[47]</td></tr>
+<tr><td>Typisches 5-User-Setup CH (Lizenz p.a.)</td><td>CHF 1'500–6'000/Jahr</td><td>—</td><td>[44]</td></tr>
+</table>
+<p><strong>(b) Value Ceiling — was den Premium rechtfertigt</strong> (Salesforce Sales Cloud, offizielle Hersteller-Preisseite, verifiziert 28.04.2026 [39]):</p>
+<table>
+<tr><th>Salesforce Sales Cloud Edition</th><th>Listenpreis/User/Monat (jährlich)</th><th>Quelle</th></tr>
+<tr><td>Starter Suite</td><td>USD 25</td><td>[39]</td></tr>
+<tr><td>Pro Suite</td><td>USD 100</td><td>[39]</td></tr>
+<tr><td>Enterprise</td><td>USD 175</td><td>[39]</td></tr>
+<tr><td>Unlimited</td><td>USD 350</td><td>[39]</td></tr>
+<tr><td><strong>Agentforce 1 Sales (Top-Tier)</strong></td><td><strong>USD 550</strong></td><td>[39]</td></tr>
+<tr><td>Agentforce-Add-on (auf Enterprise/Unlimited)</td><td>ab USD 125</td><td>[40]</td></tr>
+</table>
+<p>Plus Implementierungs-Tax: Klassische Salesforce-Einführungen dauern in der Schweiz <strong>3–6 Monate und kosten CHF 30'000–80'000</strong> [47][49]. Faustregeln CH: Lizenzkosten ≈ 20 % der Gesamtkosten [50]; Implementierung ≈ das 2–3-Fache der Jahres-Lizenz [44]; 30–70 % der CRM-Projekte scheitern an der Einführung, nicht an der Software [44][47].</p>
+<div class="flag"><strong>Positionierung Consular (Verkaufsstory):</strong> „Das Salesforce-Top-Tier-Ergebnis — Agentforce 1 Sales kostet <strong>USD 550/Sitz/Monat</strong> [39] zuzüglich eines sechsmonatigen Rollouts und einer Integrator-Rechnung von CHF 30'000–80'000 [47] — liefert Consular auf Abruf und in fast keiner Zeit, ohne den 6-Monats-Rollout und ohne die Integrator-Rechnung." <br>Defensibler Nennwert im Raum: HubSpot/Pipedrive-Lizenz + CH-Einführung CHF 5'000–15'000 [47][48]. Wert-Decke: USD 550/Sitz + Integrator-Tax.</div>
+<h3>1.7 Beratung — CH-Tagessätze (Zürich-gewichtet)</h3>
+<p class="konf">Konfidenz: <strong>mittel-hoch</strong> — Mix aus Plattform-Profilen, Boutique-Rate-Cards und einer KMU-Beschaffungsplattform; harte Branchen-Surveys (ASCO/Big-4 CH) sind veraltet bzw. nicht öffentlich.</p>
+<table>
+<tr><th>Segment</th><th>Satz</th><th>Quelle</th></tr>
+<tr><td>Freelancer/Junior AI/IT (CH-Profile)</td><td>CHF 90–130/h</td><td>[61]</td></tr>
+<tr><td>IT-Beratung / Konzepte / Ausbildung (Gryps)</td><td>ab CHF 200/h</td><td>[54]</td></tr>
+<tr><td>Boutique KI-Workflow-Consulting (Tincan, ZG/ZH)</td><td>CHF 200/h = CHF 1'600/Tag</td><td>[56]</td></tr>
+<tr><td>Allgemeines Consulting (Tincan)</td><td>CHF 190/h = CHF 1'500/Tag</td><td>[56]</td></tr>
+<tr><td>Unternehmensberatung CH (Gryps): Consultant / Senior; Range</td><td>ab CHF 1'500 / ab CHF 2'000 pro Tag; gesamt CHF 1'500–3'000</td><td>[77]</td></tr>
+<tr><td>CH IT-Architekt, höchste Skillstufe (Metrics, 2025)</td><td>über CHF 2'400/Tag</td><td>[52]</td></tr>
+<tr><td>Premium CH/DACH AI-Implementierungsberater</td><td>CHF 150–250/h</td><td>[58]</td></tr>
+<tr><td>KI-Workshop SME Zürich (solenthaler.ai, 11.03.2026)</td><td>ab CHF 1'800 (3 h)</td><td>[57]</td></tr>
+<tr><td>KI-Strategieprogramm SME (solenthaler.ai)</td><td>CHF 9'900 fix; Umsetzung CHF 3'000–15'000</td><td>[57]</td></tr>
+<tr><td>AI-Strategie-Workshop 1–2 Tage (ai-automation-hub)</td><td>CHF 3'000–5'000</td><td>[58]</td></tr>
+<tr><td>AI Potenzial-Check / Pilot (ki-kmu-schweiz)</td><td>CHF 2'500 / Pilot CHF 15'000–35'000</td><td>[59]</td></tr>
+</table>
+<div class="flag"><strong>Empfehlung Oskar AI-Consulting (Schätzung, Zürich-positioniert):</strong> Tagessatz <strong>CHF 1'800–2'500</strong>; niederschwelliger Workshop-Einstieg <strong>ab CHF 1'800</strong> (als Funnel-Türöffner und Vertrauensanker, siehe Abschnitt 3).</div>
+<h3>1.8 Oskar-Lizenz — Modelle und Niveaus (international, als Benchmark markiert)</h3>
+<p class="konf">Konfidenz: <strong>mittel</strong> — keine CH-spezifische Lizenz-Vergleichsbasis verfügbar; internationale SaaS/White-Label-Benchmarks. <span style="color:#b00;">Hinweis: CH-Software-Abos sind teils bis zu 113 % teurer als in Deutschland [74] — CH-Preisaufschlag ist marktüblich und vertretbar.</span></p>
+<ul>
+<li><strong>Gängige Modelle (international):</strong> Flat Monthly License, Per-Seat, Revenue-Share (typisch 30–40 % an den Technologieanbieter), Tiered (Bronze/Silver/Gold) [69][63].</li>
+<li><strong>White-Label-Wholesale-Beispiele (international, markiert):</strong> SuiteDash USD 14 / 34 / 69 pro Kundenkonto [64]; GoHighLevel SaaS-Mode ~USD 497/Monat [68]; SPP.co ab USD 129/Monat [67]; Vendasta ab USD 99/Monat [67].</li>
+<li><strong>Margen & Build-vs-Buy:</strong> Reseller-Margen typisch 40–80 % [70]; White-Label-Aufbau USD 20k–80k vs. Eigenbau USD 150k–400k Jahr 1 [65].</li>
+</ul>
+<div class="flag"><strong>Empfehlung Oskar-Lizenz (Schätzung):</strong> Da Oskar das Produkt selbst ist (kein Reselling fremder Software), eignet sich eine <em>Plattformlizenz pro Kunde</em> als wiederkehrende Linie — Spanne <strong>CHF 150–600/Monat</strong> je nach Consular-Funktionsumfang, white-label-fähig als spätere Option für Agentur-Partner. Per-Seat ist für SME-Endkunden verständlich, sollte aber tief gehalten werden, um Salesforce-typische Seat-Explosion bewusst NICHT zu reproduzieren (Teil der Positionierung).</div>
+<h2>2. Preismodell-Empfehlung je Service (Pro/Contra, Spannen)</h2>
+<table>
+<tr><th>Service</th><th>Empfohlenes Modell</th><th>Pro</th><th>Contra</th><th>Recurring?</th></tr>
+<tr><td>Website + Deployment</td><td>Festpreis-Projekt</td><td>DCH-KMU schätzen Planungssicherheit; Risikotransfer zum Anbieter; schneller Abschluss; mehrere CH-Agenturen werben explizit „kein Stundensatz" [5][29]</td><td>Kein wiederkehrender Umsatz; Scope-Creep ohne klaren Leistungsumfang</td><td>Nein</td></tr>
+<tr><td>Betrieb / Hosting</td><td>Monats-Retainer (Abo)</td><td>Recurring; nahe Grenzkosten dank Agentenstack; echte Differenzierung gegenüber Builder-Tools</td><td>Abo-Müdigkeit bei CH-KMU [73]; laufender Wert muss sichtbar bleiben</td><td><strong>Ja</strong></td></tr>
+<tr><td>Consular CRM</td><td>Setup-Fee + Monats-Retainer (optional pro Sitz)</td><td>Backbone des Recurring; hoher wahrgenommener Wert gegen Salesforce-Anker; tiefe Lieferkosten</td><td>Erklärungsbedarf; Lock-in-/Datenexport-Sorge muss adressiert werden</td><td><strong>Ja</strong></td></tr>
+<tr><td>Oskar-Lizenz</td><td>Jahres-/Monatsabo, optional white-label</td><td>Skaliert ohne proportionalen Menschaufwand; planbar</td><td>CH-Abo-Sensibilität; braucht klar abgrenzbaren Funktionswert</td><td><strong>Ja</strong></td></tr>
+<tr><td>AI-Beratung</td><td>Fix-Workshop (Einstieg) oder Tagessatz</td><td>Hohe Marge; Workshop als niederschwelliger Türöffner; positioniert Expertise</td><td>Zeit = Mensch = direkter Engpass; skaliert nicht</td><td>Teilweise</td></tr>
+</table>
+<p><strong>Modell-Fit für DCH-KMU:</strong> Festpreis für Einmalleistungen ist im CH-Markt klar erwartet und wird aktiv als Verkaufsargument genutzt [5][29]. Abos funktionieren, wenn der laufende Wert greifbar ist — aber Vorsicht: der Swisscom-KMU-Fall (erzwungene Abo-Verteuerung +67 %) zeigt, wie empfindlich CH-KMU auf intransparente Abo-Aufschläge reagieren [73]. Konsequenz: Recurring-Linien (Betrieb, CRM, Lizenz) transparent, kündbar und wertbelegt halten.</p>
+<h2>3. Lead-Service, Bündelung & Kapazitätslogik</h2>
+<p><strong>Türöffner:</strong> AI-Website + Deployment — niedrige Schwelle, gelernter Markt (KMU kennen „Website kostet CHF 3'000–12'000" [9]), Festpreis-Sicherheit, schneller erster „Ja". Alternativ als ganz niedrigschwelliger Einstieg: AI-Workshop ab CHF 1'800 [57] zur Vertrauensbildung.</p>
+<p><strong>Revenue-Motor:</strong> Betriebs-/Hosting-Retainer + Consular-CRM-Retainer — wiederkehrend, nahe Grenzkosten, addiert sich über die Zeit zum Bestandsstamm.</p>
+<p><strong>Skalierung:</strong> Oskar-Lizenz + AI-Beratung — höhere Tickets, teils white-label/Partner-fähig.</p>
+<p><strong>Empfohlene Reihenfolge:</strong> (1) Website + Deployment als Einstieg → (2) Betriebs- + Consular-Retainer als Folgeumsatz → (3) Lizenz/Beratung als Ausbau. Jeder Schritt verkauft den nächsten (Land-and-Expand).</p>
+<h3>Kapazitätsrealität: Top-of-Funnel-Engpass, nicht Lieferengpass</h3>
+<p>Da Produktion (Build, Deploy, CRM-Provisionierung) durch den Agentenstack nahe Grenzkosten und auf Abruf erfolgt, ist der bindende Engpass <strong>nicht die Liefermenge</strong>, sondern: (a) Filippos Abschlusskapazität (Aufmerksamkeit, Vertrauen, Closing) und (b) Ralphs Urteils-/Oversight-Zeit pro Projekt (Qualitätskontrolle, „uncopyable truth"-Discovery, Freigabe). Beide skalieren nicht beliebig.</p>
+<p><strong>Preisimplikation:</strong> Knappe menschliche Aufmerksamkeit am Funnel-Kopf → Premium-Preise sind <em>gerechtfertigt und nötig</em>, aber die Begründung lautet <strong>Wert & Geschwindigkeit</strong> („human designed, amplified by AI — live in Tagen statt Monaten"), nicht „wir sind in der Lieferung ausgelastet". Recurring-Linien sind doppelt wertvoll, weil sie Umsatz erzeugen, ohne proportional Sales-/Oversight-Zeit zu binden.</p>
+<div class="flag"><strong>Parallel-Kapazität (Schätzung, ausdrücklich markiert — keine harte CH-Quelle gefunden):</strong> Bei Festpreis-Onboarding und agentengestützter Lieferung erscheinen <strong>4–8 Neuabschlüsse/Monat</strong> und ein wachsender Retainer-Stamm von <strong>~50–150 laufenden Kunden</strong> plausibel, bevor Sales/Oversight zum harten Limit werden. Diese Zahlen sind als Planungsannahme zu validieren, nicht als belegter Benchmark.</div>
+<h2>4. Konkrete Paketvorschläge (Optionen & Spannen — Founders entscheiden)</h2>
+<h3>Paket A — „Start" (Türöffner)</h3>
+<p><strong>Inhalt:</strong> AI-Website (3–5 Seiten, konversionsorientiert) + Halbtags-Business-Fotoshooting + Domain + Server-Install & Go-Live.<br>
+<strong>Modell:</strong> Festpreis (einmalig). Optionaler Betriebsretainer ab CHF 90–150/Monat.<br>
+<strong>Preis-Spanne:</strong> <strong>CHF 6'000–12'000</strong> (Median ≈ CHF 8'500).<br>
+<em>Logik:</em> Liegt oberhalb des CH-Durchschnitts für einfache KMU-Websites (Ø CHF 3'100–4'400 [8][9]), aber gerechtfertigt durch inkludiertes Foto (CHF 800–1'600 [12]), Copy und vollständiges Deployment.</p>
+<h3>Paket B — „Wachstum" (Türöffner + Motor)</h3>
+<p><strong>Inhalt:</strong> erweiterte Website (6–12 Seiten, Copy inkl.) + Foto + Deployment + Consular-CRM-Einrichtung + WhatsApp-/E-Mail-Integration + Terminbuchung.<br>
+<strong>Modell:</strong> Festpreis + Retainer.<br>
+<strong>Preis-Spanne:</strong> einmalig <strong>CHF 12'000–22'000</strong> (Median ≈ CHF 16'000); recurring <strong>CHF 300–700/Monat</strong> (Betrieb + Consular).<br>
+<em>Logik:</em> Einmaliger Teil entspricht komplexer CH-KMU-Website (CHF 7'500–25'000 [8]) plus CRM-Einführung (CH-Floor CHF 5'000–15'000 [47][48]); Retainer ersetzt HubSpot/Pipedrive-Lizenz + Wartung in einer Linie.</p>
+<h3>Paket C — „Flight Deck" (Premium / Skalierung)</h3>
+<p><strong>Inhalt:</strong> vollständiges Branding (Creative Director) + konversionsorientierte Website + Consular-Vollausbau (Lead-/Kundenintelligenz, Flight Deck mit priorisierten Tagesaktionen) + AI-Consulting-Begleitung.<br>
+<strong>Modell:</strong> Festpreis + Lizenz + Retainer; optionale Beratungstage.<br>
+<strong>Preis-Spanne:</strong> einmalig <strong>CHF 22'000–40'000+</strong>; recurring <strong>CHF 600–1'200/Monat</strong>; AI-Beratung CHF 1'800–2'500/Tag.<br>
+<em>Logik:</em> Positioniert gegen die Salesforce-Top-Tier-Realität (Agentforce 1 Sales USD 550/Sitz/Monat + Integrator-Tax CHF 30'000–80'000 [39][47]) — Oskar liefert das Ergebnis ohne Rollout-Monate und Integrator-Rechnung. Branding-Vollausbau rechtfertigt den oberen Rand (CH-Branding mehrere Tausend bis Zehntausend [78]).</p>
+<h2>Caveats (Datenlage & offene Punkte)</h2>
+<ul>
+<li><strong>Hohe Konfidenz:</strong> Website-, Foto-, Text-, Wartungs- und CRM-Listenpreise — mehrere unabhängige CH-Quellen, &lt;12 Monate; Salesforce-Preise aus Hersteller-Primärquelle [39].</li>
+<li><strong>Mittlere Konfidenz / Schätzung (markiert):</strong> CH-Salesforce-Implementierungskosten (wenige öffentliche Festpreise); Oskar-Betriebsretainer- und Lizenzspannen; AI-Tagessatz-Empfehlung.</li>
+<li><strong>Schätzung ohne harte Quelle:</strong> „Kunden pro 2-Personen-Setup" (Abschnitt 3) — als Planungsannahme zu validieren.</li>
+<li><strong>International (kein CH-Anker):</strong> Lizenz-/White-Label-Benchmarks (1.8) sind international; zu beachten ist der CH-Preisaufschlag von bis zu 113 % vs. DE [74], der einen Premium stützt.</li>
+<li><strong>Vendor-Marketing:</strong> Einige Boutique-AI-Preise (solenthaler.ai, ai-automation-hub, ki-kmu-schweiz, Tincan) stammen von Anbieter-Preisseiten mit „ab"-Preisen — als Listenpreise real, aber nicht als unabhängige Benchmarks zu lesen.</li>
+<li><strong>Veraltet:</strong> Einzige survey-basierte CH-Management-Consulting-Tagesrate (ASCO/Statista CHF 2'400/Tag) stammt von 2018; Big-4-CH-Tagessätze nicht öffentlich.</li>
+<li><strong>Bewusst ausgeklammert:</strong> Datenschutz / revDSG / DSGVO und branchenspezifische Vertraulichkeit — als lösbarer Standard behandelt, kein Fokus dieses Dokuments.</li>
+</ul>
+<h2>Quellenverzeichnis</h2>
+<ol class="q">
+<li>WebTree KLG · Website Kosten Schweiz 2025: Was kostet eine professionelle Website wirklich? · 2025 · https://www.webtree.ch/blog/website-kosten-schweiz-2025-preise-webdesign · Zugriff 30.05.2026</li>
+<li>WEBSAGE · Was kostet eine Website in der Schweiz 2025? · 2025 · https://www.websage.io/blog/was-kostet-eine-website-in-der-schweiz-2025 · Zugriff 30.05.2026</li>
+<li>Kühn Webdesign · Was kostet eine Website in 2025 · 2025 · https://kuehn-webdesign.ch/ratgeber/kmu-webdesign/was-kostet-eine-website/ · Zugriff 30.05.2026</li>
+<li>Webagentur Yahya · Was kostet eine Website in der Schweiz? · 2025 · https://www.webagentury.ch/blog/was-kostet-eine-website-in-der-schweiz · Zugriff 30.05.2026</li>
+<li>Websharks · Webdesign Preise Schweiz: Festpreis-Garantie ab 599 CHF · 2026 · https://www.webagentur-websharks.ch/webdesign-preise-schweiz/ · Zugriff 30.05.2026</li>
+<li>SwitzerlandWeb · Website Kosten Schweiz 2025 – Preise & Faktoren · 2025 · https://switzerlandweb.ch/de-website-kosten-schweiz-2025/ · Zugriff 30.05.2026</li>
+<li>Garçon Studios · Eigenbau vs. Webagentur: Der Vergleich für KMU · 2025 · https://garcon-studios.ch/artikel/eigenentwicklung-vs-webagentur/ · Zugriff 30.05.2026</li>
+<li>Beyondweb · Was kostet eine Webseite in der Schweiz 2026: Preisvergleich (36 Agenturen) · 22.12.2025 (akt. 04.05.2026) · https://www.beyondweb.ch/blog/was-kostet-eine-webseite-in-der-schweiz/ · Zugriff 30.05.2026</li>
+<li>Garçon Studios / Gryps-Marktpreisstudie · Website-Kosten 2026: Preise für Schweizer Unternehmen · 2026 · https://garcon-studios.ch/artikel/kosten-hochwertige-unternehmenswebsite-2026/ · Zugriff 30.05.2026</li>
+<li>Peakline Webdesign · Website erstellen lassen Kosten Schweiz 2026 · 2026 · https://peakline-agency.ch/behind-the-peaks/website-erstellen-lassen-kosten-in-der-schweiz-einfach-erklart-2025 · Zugriff 30.05.2026</li>
+<li>Sören Funk · Businessfotograf Preise | Zürich | Schweiz · 2025 · https://www.soerenfunk.com/business/businessfotograf-preise/ · Zugriff 30.05.2026</li>
+<li>Gryps · Fotograf Preise, Kosten für Business Fotografen · 2025 · https://www.gryps.ch/produkte/fotograf-41/kosten/ · Zugriff 30.05.2026</li>
+<li>Photo-Motions · Preise Businessfotos – Business Fotograf Zürich · 2025 · https://business-fotograf.photo-motions.ch/preise-businessfotos/ · Zugriff 30.05.2026</li>
+<li>Fotomentum · Angebot | Preise | Corporate Business Fotografie Zürich · 2025 · https://fotomentum.ch/dienstleistungen/angebot-preise/ · Zugriff 30.05.2026</li>
+<li>Carole Fleischmann / business-fotografie.ch · Preise · 2025 · https://www.business-fotografie.ch/preise/ · Zugriff 30.05.2026</li>
+<li>Swiss-Fotoshooting · Mitarbeiter Business Portraits (CHF 1'600) · 2025 · https://swiss-fotoshooting.ch/product/mitarbeiter-business-portraits/ · Zugriff 30.05.2026</li>
+<li>Photoart · Business Portraits Zürich – Mitarbeiterfotos · 2025 · https://photoart.ch/fotograf-zuerich/business-portraits/ · Zugriff 30.05.2026</li>
+<li>Headshot Factory · Corporate Headshots & Business Portraits (CHF 239 + 89) · 2025 · https://www.headshot-factory.ch/ · Zugriff 30.05.2026</li>
+<li>Frederic Diserens · Outdoor Business Fotoshooting Zürich · 2025 · https://www.fredericdiserens.ch/store/p/business-foto-shooting · Zugriff 30.05.2026</li>
+<li>Boesinger Fotografie · Preise (Tagessätze) · 2025 · https://boesinger.ch/preise · Zugriff 30.05.2026</li>
+<li>Digital Creators · Website Betreuung in der Schweiz · 2025 · https://digitalcreators.ch/services/website-betreuung-schweiz/ · Zugriff 30.05.2026</li>
+<li>Magicline Webagentur · Website Wartung & Betreuung (CHF 49.50) · 2025 · https://magicline-webagentur.ch/leistungen/website-wartung-pflege-support/ · Zugriff 30.05.2026</li>
+<li>Mentrix Websolution · Jahresgebühr Unterhalt Website ab CHF 280 · 2025 · https://www.mentrix.ch/preise-unterhalt-website/ · Zugriff 30.05.2026</li>
+<li>Webpflege.ch (OH BLUM) · Webseitenbetreuung und SEO · 2025 · https://webpflege.ch/ · Zugriff 30.05.2026</li>
+<li>VA-Godart · Professionelle Website-Betreuung aus der Schweiz · 2025 · https://va-godart.ch/website-betreuung/ · Zugriff 30.05.2026</li>
+<li>Webspatz · WordPress Wartungsservice · 2025 · https://webspatz.ch/webdesign-angebote/wordpress-wartungsvertrag/ · Zugriff 30.05.2026</li>
+<li>Onlineshop Factory · Webseiten Kosten Schweiz 2026 (Hosting/Wartung) · 2026 · https://onlineshopfactory.ch/ratgeber/webseiten-kosten/ · Zugriff 30.05.2026</li>
+<li>Bloq Labs · Website Kosten Schweiz 2026 (Stundensatz, Wartung, Foto, Copy) · 2026 · https://www.bloqlabs.ch/blog/website-kosten-schweiz · Zugriff 30.05.2026</li>
+<li>HostBott · Webdesign Kosten Schweiz 2026 (Wartung ab CHF 95) · April 2026 · https://hostbott.ch/webdesign/kosten-schweiz · Zugriff 30.05.2026</li>
+<li>Heise Homepages · Was ist/kostet Website-Pflege? (DE-Benchmark) · 2025 · https://www.heise-homepages.de/website-pflege-was-ist-das/ · Zugriff 30.05.2026</li>
+<li>Gryps · Texter Kosten und Anbieter vergleichen · 2025 · https://www.gryps.ch/produkte/texter-25/kosten-texter/ · Zugriff 30.05.2026</li>
+<li>Textmann Zürich · Texter-Tarif / Pauschalpreis · 2025 · https://textmann.ch/texter-tarif/ · Zugriff 30.05.2026</li>
+<li>Andreas Hobi · So viel kostet ein professioneller Texter (CH-Werte) · 2025 · https://www.andreashobi.com/kosten-professioneller-texter/ · Zugriff 30.05.2026</li>
+<li>marketingautomation.tech · HubSpot Preise 2026 (Onboarding-Gebühren) · 2026 · https://www.marketingautomation.tech/hubspot-pricing/ · Zugriff 30.05.2026</li>
+<li>blog.hubspot.com/sales · HubSpot Sales Hub Pricing (Onboarding USD 1'500 / 3'500) · 2026 · https://blog.hubspot.com/sales/hubspot-sales-hub-pricing · Zugriff 30.05.2026</li>
+<li>Cargas · HubSpot Pricing Guide 2026 (Sales Hub Pro USD 100/Sitz) · 2026 · https://www.cargas.com/ · Zugriff 30.05.2026</li>
+<li>basicthinking.de · HubSpot vs. Pipedrive (Pipedrive-Tarife) · 15.12.2025 · https://www.basicthinking.de/blog/2025/12/15/hubspot-vs-pipedrive/ · Zugriff 30.05.2026</li>
+<li>checkthat.ai / Pipedrive KB · Pipedrive Tier-Rebrand Juli 2025 (Lite/Growth/Premium/Ultimate) · 2025 · https://checkthat.ai/ · Zugriff 30.05.2026</li>
+<li>Salesforce · Sales Pricing (offizielle Preisseite, verifiziert) · akt. 28.04.2026 · https://www.salesforce.com/sales/pricing/ · Zugriff 30.05.2026</li>
+<li>Salesforce News · Pricing Update 2025 (Agentforce-Add-on ab USD 125) · 2025 · https://www.salesforce.com/news/stories/pricing-update-2025/ · Zugriff 30.05.2026</li>
+<li>Capterra · Salesforce Sales Cloud Pricing Guide · 2025 · https://www.capterra.com/p/61368/Salesforce/pricing/ · Zugriff 30.05.2026</li>
+<li>salesforcenegotiations.com · Einstein GPT/Copilot/AI Cloud Pricing (Einstein 1 ~USD 500) · 2025 · https://salesforcenegotiations.com/salesforce-einstein-gpt-copilot-and-ai-cloud-pricing/ · Zugriff 30.05.2026</li>
+<li>oliv.ai · Salesforce Einstein Pricing 2025 (TCO USD 500+/User) · 2025 · https://www.oliv.ai/blog/salesforce-einstein-pricing-tiers-explained · Zugriff 30.05.2026</li>
+<li>Cloud Consultants · CRM Schweiz für KMU: Vergleich, Kosten & Einführung 2026 (5-User CHF 1'500–6'000/J.) · 17.02.2026 · https://cloudconsultants.ch/crm-fuer-kmu-in-der-schweiz/ · Zugriff 30.05.2026</li>
+<li>Gryps · CRM-System-Kosten · 2025 · https://www.gryps.ch/produkte/crm-system-27/kosten/ · Zugriff 30.05.2026</li>
+<li>IAPME Suisse · CRM-Implementierung KMU Schweiz 2026 (Budget ab CHF 8'000–15'000) · 2026 · https://iapmesuisse.ch/de/blog/crm-implementierung-kmu-schweiz-beispiel · Zugriff 30.05.2026</li>
+<li>Cloud Consultants · Salesforce Beratung Schweiz (Quick Start ab CHF 5'000; klassisch CHF 30'000–80'000) · 2026 · https://cloudconsultants.ch/ · Zugriff 30.05.2026</li>
+<li>Rocket9 · HubSpot CRM Implementierung Schweiz (CHF 8'500–15'000) · 2026 · https://rocket9.ch/services/hubspot-crm-implementierung/ · Zugriff 30.05.2026</li>
+<li>Cloud Consultants · Was ist Salesforce? Definition, Clouds & Kosten · 2026 · https://cloudconsultants.ch/salesforce-was-ist-das/ · Zugriff 30.05.2026</li>
+<li>Cloud Consultants · CRM-Beratung: Wann sich ein externer Partner lohnt (Lizenz ≈ 20 %) · 31.03.2026 · https://cloudconsultants.ch/crm-beratung/ · Zugriff 30.05.2026</li>
+<li>Sales4IT · Smartes CRM für Akquise, Verkauf, Marketing (Setup ab CHF 500) · 2025 · https://www.sales4it.ch/de/kernkompetenzen/crm.html · Zugriff 30.05.2026</li>
+<li>Metrics.biz · Tagessätze für IT-Berater bleiben 2025 hoch (CH IT-Architekt > CHF 2'400/Tag) · 2025 · https://www.metrics.biz/en/blog-post/daily-rates-2025-for-it-consultants-remain-high.html · Zugriff 30.05.2026</li>
+<li>CIO.de · IT-Berater-Tagessätze 2026 (CH-Rückgang, CHF 2'400 Referenz) · 2026 · https://www.cio.de/article/4141771/it-berater-tagessaetze-2026-das-ende-der-preisrallye.html · Zugriff 30.05.2026</li>
+<li>Gryps · IT-Services: Kosten für KMU (Beratung ab CHF 200/h) · 2025 · https://www.gryps.ch/produkte/it-services-12/kosten/ · Zugriff 30.05.2026</li>
+<li>junior//consultant · Honorare und Tagessätze im Consulting – Update 2025 · 2025 · https://juniorconsultant.net/karrierefragen/einstieg-gehalt/honorare-und-tagessaetze-im-consulting-das-update-2025/ · Zugriff 30.05.2026</li>
+<li>Tincan AG (Zug/Zürich) · Rates (KI-Workflows CHF 200/h = CHF 1'600/Tag) · gültig 2023–2026 · https://tincan.ch/rates · Zugriff 30.05.2026</li>
+<li>solenthaler.ai (Zürich) · KI-Beratung KMU Zürich (Workshop ab CHF 1'800; Programm CHF 9'900) · 11.03.2026 · https://www.solenthaler.ai/blog/ki-beratung-kmu-zuerich · Zugriff 30.05.2026</li>
+<li>ai-automation-hub.ch · AI-Automation KMU: Kosten & ROI (Berater 150–250 CHF/h; Workshop CHF 3'000–5'000) · 2026 · https://ai-automation-hub.ch/ai-automation-kmu/kosten-roi · Zugriff 30.05.2026</li>
+<li>ki-kmu-schweiz.ch · KI für Schweizer KMU (Potenzial-Check CHF 2'500; Pilot CHF 15'000–35'000) · 2026 · https://ki-kmu-schweiz.ch/ · Zugriff 30.05.2026</li>
+<li>ki-beratung.ch · KI-Beratung Schweiz – Festpreise · 2026 · https://ki-beratung.ch/ · Zugriff 30.05.2026</li>
+<li>Freelancer-Schweiz.ch · IT- & Berater-Profile (CHF/h, CH) · 2025/2026 · https://www.freelancer-schweiz.ch/c/IT · Zugriff 30.05.2026</li>
+<li>getmonetizely.com · White-Label Pricing Models (Revenue-Share 30–40 %) · 2025 · https://www.getmonetizely.com/articles/white-label-pricing-models-maximizing-value-when-licensing-your-technology · Zugriff 30.05.2026</li>
+<li>SuiteDash · Best White-Label SaaS Reseller Programs 2026 (Wholesale USD 14/34/69) · 2026 · https://suitedash.com/best-white-label-saas-reseller-programs/ · Zugriff 30.05.2026</li>
+<li>ZTABS · White-Label SaaS Build vs Buy 2026 (USD 20k–80k vs 150k–400k) · 2026 · https://ztabs.co/blog/white-label-saas-guide · Zugriff 30.05.2026</li>
+<li>smartsaas.works · White Label SaaS Pricing Models · 2025 · https://smartsaas.works/blog/post/white-label-saas-pricing-how-to-set-model-for-resellers/118 · Zugriff 30.05.2026</li>
+<li>cameldigital.co · 7 White Label SaaS Platforms 2026 (SPP.co ab USD 129; Vendasta ab USD 99) · 2026 · https://cameldigital.co/blog/white-label-saas-marketplace/ · Zugriff 30.05.2026</li>
+<li>WotNot · White Label SaaS: How It Works (GoHighLevel SaaS-Mode) · 2025 · https://wotnot.io/blog/white-label-saas · Zugriff 30.05.2026</li>
+<li>getchipbot.com · Pricing Models for White Label SaaS · 2024 · https://getchipbot.com/blog/white-label-saas-pricing-model · Zugriff 30.05.2026</li>
+<li>LMS Portals · Reseller Profit Margins in White Label SaaS (40–80 %) · 2025 · https://www.lmsportals.com/post/reseller-profit-margins-in-white-label-saas-what-s-realistic · Zugriff 30.05.2026</li>
+<li>kmu.admin.ch (SECO) · KI in Schweizer KMU auf dem Vormarsch (Adoption 22 %→34 %) · 05.11.2025 · https://www.kmu.admin.ch/kmu/en/home/new/news/2025/ai-gains-ground-swiss-smes.html · Zugriff 30.05.2026</li>
+<li>Beobachter · 67 % teurer! Swisscom zwingt KMU zu teurerem Abo · 2025 · https://beobachter.ch/konsum/swisscom-verteuert-bisherige-kmu-abos-massiv-924751 · Zugriff 30.05.2026</li>
+<li>20 Minuten · Software-Abos in der Schweiz bis zu 113 % teurer als in DE · 2025 · https://www.20min.ch/story/sgeoblocking-bei-software-konsumentenschutz-kritisiert-firmen-103551666 · Zugriff 30.05.2026</li>
+<li>TYTOS · Was kostet Softwareentwicklung Schweiz? Preise 2026 (CH-Stundensatz 150–220) · 2026 · https://tytos.ch/blog/was-kostet-softwareentwicklung-schweiz · Zugriff 30.05.2026</li>
+<li>Connectics · Kosten der IT-Infrastruktur für KMU 2026 (Zürich CHF 190–220/h) · 2026 · https://connectics.ch/blog/kosten-der-it-infrastruktur-fuer-kmu-2026-preis-leitfaden-fuer-schweizer-unternehmen/ · Zugriff 30.05.2026</li>
+<li>Web Artistik · Die 10 besten Webdesign-Agenturen Zürich 2026 (Agentur-Preise/Standorte) · 2026 · https://webartistik.ch/blog/die-besten-webdesign-agenturen-zuerich · Zugriff 30.05.2026</li>
+<li>AgenturFinder · Werbeagentur Preise 2026 (CH Stundensatz CHF 100–250; Branding) · 2026 · https://agenturfinder.com/werbeagentur-preise/ · Zugriff 30.05.2026</li>
+</ol>
+<p class="meta" style="margin-top:1.5rem;"><em>Hinweis Währungen: Salesforce-/HubSpot-/Pipedrive-Listenpreise sind in USD bzw. EUR angegeben (so publiziert). CH-Endkundenpreise liegen tendenziell höher (CH-Software-Aufschlag [74]). Beträge ohne MwSt., sofern Quelle nicht anders ausweist.</em></p>
+</body>
+</html>

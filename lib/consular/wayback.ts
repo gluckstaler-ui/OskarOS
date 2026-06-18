@@ -2,25 +2,49 @@
 // lib/consular/wayback.ts — Age lamp (WP-SCOUT-4 / §16.9 / WP-119)
 //
 // Ralph 2026-06-03 — shared between the Jedi Scout's ◐ Queried prescreen
-// and the Consular research route. Asks Wayback Machine's CDX index when
-// it first saw the domain + how often it was captured since (a proxy for
-// "is this site living or aging-out?").
+// and the Consular research route. Asks Wayback Machine when it first saw
+// the domain + when it last saw it (a proxy for "is this site living or
+// aging-out?").
+//
+// 2026-06-03 (Ralph) — REWRITTEN to use the **Availability API** instead of
+// the CDX index. The CDX endpoint (`web.archive.org/cdx/search/cdx`) is
+// notoriously unreliable — it times out for major domains (apple.com,
+// praxisich.ch, etc.) for stretches of hours. Independent test confirmed
+// every CDX call hangs while the Availability API responds in 1-5 s.
 //
 // Endpoint:
-//   http://web.archive.org/cdx/search/cdx?url=<domain>&output=json&fl=timestamp
-//   → [["timestamp"], ["20040805123456"], ["20050102003000"], ...]
+//   https://archive.org/wayback/available?url=<domain>[&timestamp=YYYYMMDD]
+//   → { "url": "...", "archived_snapshots": { "closest": {
+//         "available": true, "url": "...", "timestamp": "20140312123456",
+//         "status": "200" } } }
 //
-// We pull the FULL series (capped at 5000 records — Wayback's default is
-// 150k, plenty for sub-second responses on a single domain) and derive:
-//   - firstSeenYear   (the founding signal — "site is from 2016")
-//   - lastSeenYear    (recency — gap suggests stale/aging)
-//   - distinctYears   (rough "life" — 12 ≠ "12 captures"; counts unique years)
-//   - totalCaptures   (volume — high count = healthy crawl interest)
+// 2026-06-05 (Ralph) — AGE-empty fix. The previous implementation asked the
+// API for `?timestamp=19990101` to find the earliest capture. The API has
+// an undocumented ~10-year tolerance window: when the request timestamp is
+// more than ~9-10 years before the site's first archive, the API returns
+// `archived_snapshots: {}` even when captures EXIST further forward. So:
+//   - psychologie.ch (first archive 1999-02) → ts=19990101 returns empty;
+//     ts=20000101 returns the actual 1999-02 snapshot.
+//   - psy-bern.ch (first archive 2009-12)   → ts=19990101 + 20000101 both
+//     return empty; ts=20100101 returns the 2009-12 snapshot.
+//   - psychotherapie-diener.ch (only archive 2025-04) → ts=19990101 returns
+//     empty; ts=20000101 returns the 2025 snapshot (only data point).
+//
+// Fix: use a ladder of three anchor timestamps in parallel — 2000 / 2010 /
+// 2020 — then take the EARLIEST snapshot timestamp across whatever the
+// API returned. Plus the no-timestamp call for "latest". 4 parallel calls
+// instead of 2; same wall time (~3-5s), much better recall.
+//
+// What we lose vs CDX: distinctYears + totalCaptures. The Age tone() in
+// types.ts only pattern-matches the *string* (e.g. "stale" / "aging" /
+// year ranges), so losing those numbers is invisible at the lamp level —
+// classification stays correct from firstSeenYear + lastSeenYear alone.
 //
 // Tone is displacement-opportunity:
-//   - old start year (≤ 2018) + few recent captures → stale (green = pitch)
-//   - young site + many captures → healthy (yellow = harder to displace)
-// The classification lives in formatAgeLamp(); the raw numbers stay
+//   - old start year (≤ 2018) + no recent captures → stale (green = pitch)
+//   - old start + recent captures                  → aging (yellow)
+//   - new site with recent captures                → fresh / mature
+// The classification lives in formatAgeLamp(); the raw years stay
 // available for downstream callers.
 // ============================================================================
 
@@ -29,15 +53,61 @@ export interface WaybackAge {
   firstSeenYear: number | null
   /** Most recent capture year, or null. */
   lastSeenYear: number | null
-  /** Distinct years the domain was captured. Crude "alive years" proxy. */
+  /** Kept for the contract — null since Availability gives 1 snapshot per call. */
   distinctYears: number | null
-  /** Total CDX records returned. High = crawl interest = healthier site. */
+  /** Kept for the contract — null since Availability doesn't enumerate captures. */
   totalCaptures: number | null
-  /** True when the CDX call failed (timeout/4xx/parse) — caller renders empty. */
+  /** True when BOTH calls failed (timeout/4xx/parse) — caller renders empty. */
   failed: boolean
 }
 
-const CDX_URL = 'http://web.archive.org/cdx/search/cdx'
+const AVAILABILITY_URL = 'https://archive.org/wayback/available'
+
+/** Shape of one Availability API response. */
+interface AvailResp {
+  url?: string
+  archived_snapshots?: {
+    closest?: {
+      available?: boolean
+      timestamp?: string
+      status?: string
+      url?: string
+    }
+  }
+}
+
+/** Pull the closest snapshot to `targetTs` (YYYYMMDD) for `domain`. Returns null on failure. */
+async function fetchClosest(domain: string, targetTs: string | null, timeoutMs: number): Promise<string | null> {
+  const params = new URLSearchParams({ url: domain })
+  if (targetTs) params.set('timestamp', targetTs)
+  const url = `${AVAILABILITY_URL}?${params.toString()}`
+  try {
+    const r = await fetch(url, { signal: AbortSignal.timeout(timeoutMs) })
+    if (!r.ok) return null
+    const j = (await r.json()) as AvailResp
+    const ts = j.archived_snapshots?.closest?.timestamp
+    return (typeof ts === 'string' && ts.length >= 4) ? ts : null
+  } catch {
+    return null
+  }
+}
+
+/**
+ * Anchor timestamps for finding the EARLIEST snapshot. Covers Wayback's
+ * full operating range (Brewster started archiving in 1996) in three steps
+ * tight enough that no decade of new sites slips through the API's ~10-
+ * year-tolerance window.
+ *
+ *   2000 → catches anything first archived between ~1996 and ~2010
+ *   2010 → catches the missing late-2000s sites + first-archived-2010-2020
+ *   2020 → catches first-archived-after-2020 (when 2000/2010 anchors fail)
+ *
+ * For a site first archived in 1999, ts=2000 returns its 1999 snapshot
+ * (closest available). For a site first archived in 2024, ts=2000 might
+ * return empty (window too far) but ts=2020 returns the 2024 snapshot.
+ * We take the EARLIEST timestamp returned across all three.
+ */
+const EARLIEST_ANCHORS = ['20000101', '20100101', '20200101'] as const
 
 export async function lookupAge(domain: string, timeoutMs = 8000): Promise<WaybackAge> {
   const cleaned = domain.replace(/^https?:\/\//, '').replace(/\/.*$/, '').replace(/^www\./, '').trim()
@@ -45,43 +115,37 @@ export async function lookupAge(domain: string, timeoutMs = 8000): Promise<Wayba
     return { firstSeenYear: null, lastSeenYear: null, distinctYears: null, totalCaptures: null, failed: true }
   }
 
-  try {
-    // `fl=timestamp` → only the 14-digit YYYYMMDDhhmmss column; tiny payload.
-    // `limit=5000` is generous for sub-second response, plenty for a year-walk.
-    const url = `${CDX_URL}?url=${encodeURIComponent(cleaned)}&output=json&fl=timestamp&limit=5000`
-    const r = await fetch(url, { signal: AbortSignal.timeout(timeoutMs) })
-    if (!r.ok) {
-      return { firstSeenYear: null, lastSeenYear: null, distinctYears: null, totalCaptures: null, failed: true }
-    }
-    const rows = (await r.json()) as string[][]
-    // Row 0 is the header (`["timestamp"]`); rows 1..N are data.
-    const data = Array.isArray(rows) ? rows.slice(1) : []
-    if (data.length === 0) {
-      // Wayback knows the domain but has zero captures (rare) — not a failure,
-      // just an empty history.
-      return { firstSeenYear: null, lastSeenYear: null, distinctYears: 0, totalCaptures: 0, failed: false }
-    }
+  // Four parallel calls — 3 anchors for "earliest" (ladder) + 1 no-ts for
+  // "latest". Same wall time as before (one round-trip), much better recall.
+  const [t2000, t2010, t2020, lastTs] = await Promise.all([
+    fetchClosest(cleaned, EARLIEST_ANCHORS[0], timeoutMs),
+    fetchClosest(cleaned, EARLIEST_ANCHORS[1], timeoutMs),
+    fetchClosest(cleaned, EARLIEST_ANCHORS[2], timeoutMs),
+    fetchClosest(cleaned, null,                timeoutMs),
+  ])
 
-    const years = new Set<number>()
-    let firstTs = '99999999999999'
-    let lastTs = '00000000000000'
-    for (const row of data) {
-      const ts = row[0] || ''
-      if (ts.length < 4) continue
-      const year = Number(ts.slice(0, 4))
-      if (Number.isFinite(year)) years.add(year)
-      if (ts < firstTs) firstTs = ts
-      if (ts > lastTs) lastTs = ts
-    }
-    return {
-      firstSeenYear: firstTs !== '99999999999999' ? Number(firstTs.slice(0, 4)) : null,
-      lastSeenYear: lastTs !== '00000000000000' ? Number(lastTs.slice(0, 4)) : null,
-      distinctYears: years.size,
-      totalCaptures: data.length,
-      failed: false,
-    }
-  } catch {
+  // EARLIEST snapshot across all anchor responses. Sort timestamps lexically
+  // (YYYYMMDDHHMMSS strings sort chronologically), filter out nulls, pick [0].
+  const anchorHits = [t2000, t2010, t2020].filter((t): t is string => t !== null).sort()
+  const firstTs = anchorHits[0] ?? null
+
+  if (firstTs == null && lastTs == null) {
     return { firstSeenYear: null, lastSeenYear: null, distinctYears: null, totalCaptures: null, failed: true }
+  }
+
+  // Robustness — if only ONE call succeeded (rare), use it for both ends
+  // so formatAgeLamp can still emit a useful string. A single data point
+  // sets both firstSeen and lastSeen to that year; the lamp tone falls
+  // back to "fresh" or "mature" depending on age vs current year.
+  const effectiveFirst = firstTs ?? lastTs
+  const effectiveLast  = lastTs  ?? firstTs
+
+  return {
+    firstSeenYear: effectiveFirst ? Number(effectiveFirst.slice(0, 4)) : null,
+    lastSeenYear:  effectiveLast  ? Number(effectiveLast.slice(0, 4))  : null,
+    distinctYears: null,
+    totalCaptures: null,
+    failed: false,
   }
 }
 

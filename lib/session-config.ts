@@ -29,6 +29,7 @@
 import { existsSync, readFileSync, writeFileSync, mkdirSync, renameSync, unlinkSync } from 'fs'
 import { join, dirname } from 'path'
 import crypto from 'crypto'
+import { brainSpec, DEFAULT_BRAIN, type BrainId } from './models'
 
 // ──────────────────────────────────────────────────────────────────────
 // Types
@@ -41,21 +42,14 @@ import crypto from 'crypto'
 // the bridge would override the user's intent and make Z.ai-configured
 // CLI sessions report claude-opus-4-8 in the system/init event (which
 // is what we passed, not what they wanted).
-export type CdModel = 'auto' | 'opus' | 'claude-opus-4-8[1m]' | 'claude-opus-4-8' | 'claude-sonnet-4-6'
-export type WebDevModel = 'claude-opus-4-8' | 'claude-sonnet-4-6' | 'gemini-3.1-pro-preview'
+// Bare wire ids only (no `[1m]`); the 1M window is verified at runtime by the
+// bridge re-roll. BrainId derives from the registry (lib/models) — single source.
+export type CdModel = 'auto' | BrainId
+// Sonnet restored 2026-06-10 — it is the padawan default (WebDev, Sage, Sage-240);
+// Gemini takes its slot under the gemini switch preset (lib/models MODEL_SWITCH_PRESETS).
+// Opus stays in the union for legacy on-disk configs written before the preset map.
+export type WebDevModel = 'claude-sonnet-4-6' | 'claude-opus-4-8' | 'gemini-3.1-pro-preview'
 export type ExecutionMode = 'smpl' | 'cli' | 'api'
-
-// Mode → cdModel defaults. When the user toggles execution mode, cdModel
-// is set to the corresponding value here. SMPL passes Claude Code's tier
-// alias 'opus' → resolves via ANTHROPIC_DEFAULT_OPUS_MODEL in settings.json
-// → best available model. CLI uses the full Claude identifier (1M context
-// on Anthropic; Z.ai compat remaps to glm-4.7). API uses the Anthropic
-// endpoint's model ID directly. Ralph 2026-05-04.
-export const MODE_DEFAULTS: Record<ExecutionMode, CdModel> = {
-  smpl: 'opus',
-  cli: 'claude-opus-4-8[1m]',
-  api: 'claude-opus-4-8',
-}
 
 export interface SessionConfig {
   webDevModel: WebDevModel
@@ -87,16 +81,11 @@ export interface SessionConfig {
 }
 
 export const DEFAULT_SESSION_CONFIG: SessionConfig = {
-  webDevModel: 'claude-sonnet-4-6',
+  webDevModel: 'claude-sonnet-4-6', // padawan default = Sonnet → a virgin session sits exactly on the FABLE preset
   webDevMode: 'cli',
-  // CLI default — passes the full Claude identifier with [1m] suffix so
-  // the bridge spawns with 1M context on Anthropic. Ralph 2026-05-27:
-  // the previous SMPL default ('opus' tier alias) could silently demote
-  // to a 200K wire model via the user's ~/.claude/settings.json alias
-  // chain. SMPL and API remain as user-clickable options in TopBar; the
-  // default just never lands there. API in particular is real out-of-
-  // pocket spend and must NEVER be entered without an explicit click.
-  cdModel: MODE_DEFAULTS.cli,
+  // Default brain (Fable) — bare id; 1M is verified at runtime by the bridge
+  // re-roll, not via a suffix. The FABLE/OPUS badge overwrites this per session.
+  cdModel: brainSpec(DEFAULT_BRAIN).id,
   billingMode: 'cli',
   updatedAt: '1970-01-01T00:00:00.000Z',
 }
@@ -187,7 +176,7 @@ export function writeSessionConfig(sessionId: string, partial: Partial<SessionCo
  * Generic so it works for any field of SessionConfig.
  *
  * Example:
- *   const cdModel = resolveConfig('cdModel', req.cdModel, sessionId, 'claude-opus-4-8[1m]')
+ *   const cdModel = resolveConfig('cdModel', req.cdModel, sessionId, brainSpec(DEFAULT_BRAIN).id)
  */
 export function resolveConfig<K extends keyof SessionConfig>(
   field: K,

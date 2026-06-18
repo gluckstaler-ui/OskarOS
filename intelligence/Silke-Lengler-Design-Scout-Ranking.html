@@ -1,0 +1,601 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Silke Lengler — Der Türsteher · OskarOS Design-Scout-Bericht</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800;900&family=Archivo+Expanded:wght@600;700;800&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#FBFAF6; --paper-2:#F2F0E9; --ink:#16171B; --ink-2:#3A3B40;
+  --grey:#9A9A93; --line:#D9D7CD; --line-2:#E7E5DC;
+  --cobalt:#1E2BD6; --cobalt-deep:#141DA0; --cobalt-mid:#5B64E8; --cobalt-pale:#AEB2E6;
+  --warm:#E0E0D6; --neg:#C2603F; --neg-deep:#9E4426;
+  --t1:#141DA0; --t2:#1E2BD6; --t3:#5B64E8; --t4:#A9ABC0; --t5:#C7C6BF;
+  --sans:"Archivo",-apple-system,system-ui,sans-serif;
+  --exp:"Archivo Expanded","Archivo",sans-serif;
+  --serif:"Newsreader",Georgia,serif;
+  --mono:"IBM Plex Mono",ui-monospace,monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{-webkit-text-size-adjust:100%}
+body{background:var(--paper);color:var(--ink);font-family:var(--serif);font-size:17px;line-height:1.55;
+  -webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
+.wrap{max-width:1180px;margin:0 auto;padding:0 32px}
+@media(max-width:640px){.wrap{padding:0 18px}}
+
+/* ---- type ---- */
+.eyebrow{font-family:var(--mono);font-size:11.5px;letter-spacing:.22em;text-transform:uppercase;color:var(--cobalt);font-weight:500}
+.kicker{font-family:var(--mono);font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--grey)}
+h1,h2,h3{font-family:var(--exp);font-weight:800;line-height:0.98;letter-spacing:-0.01em}
+.lead{font-family:var(--serif);font-weight:400}
+.mono{font-family:var(--mono);font-variant-numeric:tabular-nums}
+.sans{font-family:var(--sans)}
+
+/* ---- masthead ---- */
+.mast{border-bottom:2px solid var(--ink);padding:34px 0 30px;margin-bottom:0}
+.mast .wrap{max-width:none}
+.mast .toprow{display:flex;justify-content:space-between;align-items:baseline;gap:16px;flex-wrap:wrap;margin-bottom:54px}
+.brand{font-family:var(--exp);font-weight:800;letter-spacing:.02em;font-size:15px}
+.brand b{color:var(--cobalt)}
+.mast-meta{font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-2);text-align:right}
+.headline{font-size:clamp(34px,6vw,76px);max-width:none;font-family:var(--exp);font-weight:800;letter-spacing:-0.02em}
+.headline em{font-style:normal;color:var(--cobalt)}
+.dek{font-family:var(--serif);font-size:clamp(18px,2.3vw,23px);line-height:1.4;max-width:none;margin-top:24px;color:var(--ink-2)}
+.dek b{color:var(--ink);font-weight:500}
+
+/* ---- section scaffold ---- */
+.sec{padding:60px 0;border-top:1px solid var(--line)}
+.sec-head{display:grid;grid-template-columns:minmax(0,3fr) minmax(0,7fr);gap:28px;align-items:start;margin-bottom:34px}
+@media(max-width:760px){.sec-head{grid-template-columns:1fr;gap:10px}}
+.sec-num{font-family:var(--mono);font-size:12px;color:var(--cobalt);letter-spacing:.1em}
+.sec-title{font-family:var(--exp);font-weight:800;font-size:clamp(22px,3vw,34px);letter-spacing:-0.01em;line-height:1.02}
+.sec-intro{font-size:18px;color:var(--ink-2);max-width:60ch}
+.sec-intro p+p{margin-top:14px}
+.sec-intro b{color:var(--ink);font-weight:500}
+
+/* ---- criteria grid ---- */
+.crit{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--line);border:1px solid var(--line)}
+@media(max-width:760px){.crit{grid-template-columns:1fr}}
+.crit .cell{background:var(--paper);padding:22px 20px 24px}
+.crit .cn{font-family:var(--mono);font-size:11px;color:var(--grey);letter-spacing:.12em}
+.crit .ct{font-family:var(--sans);font-weight:700;font-size:17px;margin:8px 0 7px;letter-spacing:-0.01em;display:flex;align-items:center;gap:8px}
+.crit .cd{font-size:15.5px;line-height:1.45;color:var(--ink-2)}
+.x2{display:inline-block;font-family:var(--mono);font-size:10.5px;font-weight:600;letter-spacing:.05em;background:var(--cobalt);color:#fff;padding:2px 6px;border-radius:2px;vertical-align:middle}
+.crit .cell.dbl{background:#F4F4FB;outline:1px solid var(--cobalt-pale);outline-offset:-1px}
+
+/* ---- method note ---- */
+.note{display:grid;grid-template-columns:minmax(0,3fr) minmax(0,7fr);gap:28px;align-items:start}
+@media(max-width:760px){.note{grid-template-columns:1fr;gap:12px}}
+.note .tag{font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--cobalt)}
+.note p{font-size:17px;color:var(--ink-2);max-width:64ch}
+.note p+p{margin-top:13px}
+.note b{color:var(--ink);font-weight:500}
+.note em{font-style:italic;color:var(--ink)}
+
+/* ---- ranking ---- */
+.legend{display:flex;gap:22px;flex-wrap:wrap;align-items:center;font-family:var(--mono);font-size:11px;letter-spacing:.06em;color:var(--ink-2);text-transform:uppercase;margin-bottom:18px}
+.legend .mk{display:inline-flex;align-items:center;gap:7px}
+.sq{width:11px;height:11px;display:inline-block;border:1.5px solid var(--ink)}
+.sq.fill{background:var(--ink)}
+.scale-row{display:flex;gap:0;margin:2px 0 26px;border:1px solid var(--line)}
+.scale-row .sb{flex:1;padding:7px 9px;font-family:var(--mono);font-size:10px;letter-spacing:.04em;text-transform:uppercase;color:#fff;text-align:center;line-height:1.2}
+.tierband{margin:30px 0 6px;display:flex;align-items:baseline;gap:12px;border-bottom:1.5px solid var(--ink);padding-bottom:6px}
+.tierband .tl{font-family:var(--exp);font-weight:800;font-size:15px;letter-spacing:.02em}
+.tierband .tr{font-family:var(--mono);font-size:11px;color:var(--grey);letter-spacing:.08em;margin-left:auto}
+.tierband .tn{font-family:var(--mono);font-size:11px;color:var(--cobalt)}
+
+.row{display:grid;grid-template-columns:40px 22px minmax(0,1fr) 196px 150px 58px;gap:14px;align-items:center;
+  padding:11px 0;border-bottom:1px solid var(--line-2)}
+.row:hover{background:#F4F4FB}
+.r-rank{font-family:var(--mono);font-size:15px;font-weight:600;color:var(--ink);text-align:right;font-variant-numeric:tabular-nums}
+.r-mk{justify-self:center}
+.r-name{min-width:0}
+.r-name .nm{font-family:var(--sans);font-weight:700;font-size:16px;letter-spacing:-0.01em;line-height:1.12}
+.r-name .nm .pc{font-family:var(--mono);font-weight:500;font-size:10px;letter-spacing:.08em;color:var(--grey);text-transform:uppercase;margin-left:7px}
+.r-name .vd{font-family:var(--serif);font-size:14px;color:var(--ink-2);line-height:1.32;margin-top:2px}
+.r-subs{display:flex;gap:5px}
+.chip{font-family:var(--mono);font-size:11px;font-weight:500;width:23px;height:23px;display:flex;align-items:center;justify-content:center;
+  background:var(--paper-2);color:var(--ink-2);border-radius:2px;font-variant-numeric:tabular-nums}
+.chip.dbl{background:var(--cobalt);color:#fff;font-weight:600;position:relative}
+.chip.dbl::after{content:"×5";position:absolute;top:-8px;right:-6px;font-size:7.5px;color:var(--cobalt);font-weight:600}
+.r-bar{position:relative;height:23px;background:var(--paper-2)}
+.r-bar .fillbar{position:absolute;left:0;top:0;bottom:0;background:var(--cobalt)}
+.r-bar .bv{position:absolute;right:-52px;top:50%;transform:translateY(-50%);font-family:var(--mono);font-size:13px;font-weight:600;color:var(--ink)}
+.r-total{display:none}
+.subhdr{display:grid;grid-template-columns:40px 22px minmax(0,1fr) 196px 150px 58px;gap:14px;align-items:end;
+  font-family:var(--mono);font-size:9.5px;letter-spacing:.04em;text-transform:uppercase;color:var(--grey);padding-bottom:6px}
+.subhdr .h-subs{display:flex;gap:5px}
+.subhdr .h-subs span{width:23px;text-align:center}
+.subhdr .h-bar{padding-left:0}
+@media(max-width:860px){
+  .row{grid-template-columns:34px 18px 1fr;grid-template-areas:"rank mk name" ". . subs" ". . bar";row-gap:9px}
+  .r-rank{grid-area:rank}.r-mk{grid-area:mk}.r-name{grid-area:name}
+  .r-subs{grid-area:subs}.r-bar{grid-area:bar;margin-right:48px}
+  .subhdr{display:none}
+}
+
+/* ---- scatter ---- */
+.scatter-wrap{display:grid;grid-template-columns:minmax(0,1fr) 250px;gap:32px;align-items:start}
+@media(max-width:860px){.scatter-wrap{grid-template-columns:1fr}}
+.scatter-box{border:1px solid var(--line);background:#fff;padding:10px}
+svg{display:block;width:100%;height:auto}
+.scatter-aside h4{font-family:var(--exp);font-weight:700;font-size:16px;margin-bottom:10px;letter-spacing:-0.01em}
+.scatter-aside p{font-size:15.5px;color:var(--ink-2);line-height:1.45}
+.scatter-aside p+p{margin-top:11px}
+.scatter-aside b{color:var(--ink);font-weight:500}
+.gapkey{font-family:var(--mono);font-size:11px;color:var(--cobalt);letter-spacing:.04em;margin-top:14px;border-top:1px solid var(--line);padding-top:12px;display:block}
+
+/* ---- proposals deep dive ---- */
+.prop{border-top:1px solid var(--line);padding:30px 0}
+.prop:first-of-type{border-top:1.5px solid var(--ink)}
+.prop-grid{display:grid;grid-template-columns:64px minmax(0,1fr) 150px;gap:24px;align-items:start}
+@media(max-width:760px){.prop-grid{grid-template-columns:1fr;gap:12px}}
+.prop .pidx{font-family:var(--mono);font-size:13px;color:var(--cobalt);letter-spacing:.06em;padding-top:4px}
+.prop .ptitle{font-family:var(--exp);font-weight:800;font-size:23px;letter-spacing:-0.01em;line-height:1.0}
+.prop .ptitle a{color:var(--ink);border-bottom:1px solid var(--cobalt-pale)}
+.prop .ptitle a:hover{border-color:var(--cobalt)}
+.prop .plens{font-family:var(--mono);font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--grey);margin-top:6px}
+.prop .pbody{font-size:16.5px;color:var(--ink-2);line-height:1.5;margin-top:12px;max-width:62ch}
+.prop .pbody b{color:var(--ink);font-weight:500}
+.prop .pscore{text-align:left}
+.prop .pscore .pst{font-family:var(--mono);font-size:34px;font-weight:600;color:var(--ink);line-height:1;font-variant-numeric:tabular-nums}
+.prop .pscore .psl{font-family:var(--mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--grey);margin-top:4px}
+.prop .pscore .prk{font-family:var(--sans);font-size:12px;font-weight:600;color:var(--cobalt);margin-top:10px}
+.prop .pscore .prk.neg{color:var(--neg-deep)}
+.variant{margin-top:16px;border-left:2px solid var(--cobalt-pale);padding:4px 0 4px 16px;display:grid;grid-template-columns:1fr 1fr;gap:18px}
+@media(max-width:620px){.variant{grid-template-columns:1fr;gap:10px}}
+.variant .v{font-size:15px;color:var(--ink-2);line-height:1.42}
+.variant .v .vh{font-family:var(--sans);font-weight:700;font-size:13.5px;color:var(--ink);display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.variant .v .vh a{color:var(--ink);border-bottom:1px solid var(--cobalt-pale)}
+.variant .v .vh a:hover{border-color:var(--cobalt)}
+.variant .v .vh .vs{font-family:var(--mono);font-weight:600;color:var(--cobalt)}
+.win{font-family:var(--mono);font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:#fff;background:var(--cobalt);padding:1px 5px;border-radius:2px;margin-left:6px}
+
+/* ---- findings ---- */
+.find{display:grid;grid-template-columns:repeat(2,1fr);gap:1px;background:var(--line);border:1px solid var(--line)}
+@media(max-width:760px){.find{grid-template-columns:1fr}}
+.find .f{background:var(--paper);padding:24px 22px}
+.find .f .fn{font-family:var(--mono);font-size:11px;color:var(--cobalt);letter-spacing:.1em}
+.find .f h4{font-family:var(--exp);font-weight:700;font-size:18px;margin:9px 0 9px;letter-spacing:-0.01em;line-height:1.05}
+.find .f p{font-size:15.5px;color:var(--ink-2);line-height:1.48}
+.find .f p b{color:var(--ink);font-weight:500}
+.find .f.span{grid-column:1/-1;background:#F4F4FB}
+
+/* ---- recommendation ---- */
+.rec{border:1.5px solid var(--ink);padding:30px 30px 32px;background:#fff}
+.rec .rh{font-family:var(--mono);font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--cobalt);margin-bottom:14px}
+.rec p{font-size:18px;line-height:1.5;max-width:70ch}
+.rec p+p{margin-top:14px}
+.rec b{color:var(--ink);font-weight:600}
+.rec .big{font-family:var(--exp);font-weight:800;font-size:clamp(20px,2.6vw,28px);letter-spacing:-0.01em;line-height:1.08;margin-bottom:16px}
+.rec .big em{font-style:normal;color:var(--cobalt)}
+
+/* ---- training data ---- */
+.train p{font-size:18px;color:var(--ink-2);line-height:1.55;max-width:66ch}
+.train p+p{margin-top:14px}
+.train b{color:var(--ink);font-weight:500}
+.train .verdict{font-family:var(--exp);font-weight:700;font-size:20px;color:var(--ink);letter-spacing:-0.01em;margin-bottom:8px}
+
+/* ---- footer ---- */
+footer{border-top:2px solid var(--ink);margin-top:20px;padding:30px 0 70px}
+footer .cols{display:flex;justify-content:space-between;gap:20px;flex-wrap:wrap;font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-2)}
+footer .cols b{color:var(--ink)}
+
+a{color:var(--cobalt);text-decoration:none;border-bottom:1px solid var(--cobalt-pale)}
+a:hover{border-color:var(--cobalt)}
+:focus-visible{outline:2px solid var(--cobalt);outline-offset:2px}
+@media(prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+
+/* ---- Anreicherung: Namens-Links, Domain, Studio-Credit ---- */
+.r-name .nm .nml{color:var(--ink);border-bottom:1px solid transparent}
+.r-name .nm .nml:hover{border-color:var(--cobalt)}
+.r-name .nm .dom{font-family:var(--mono);font-weight:500;font-size:10px;letter-spacing:.03em;margin-left:8px;white-space:nowrap}
+.r-name .nm .dom a{color:var(--cobalt);border-bottom:none}
+.r-name .nm .dom a:hover{border-bottom:1px solid var(--cobalt)}
+.r-name .cred{font-family:var(--mono);font-size:10.5px;letter-spacing:.01em;color:var(--grey);line-height:1.35;margin-top:4px}
+.r-name .cred::before{content:"\21B3 ";color:var(--cobalt)}
+.r-name .cred b{color:var(--ink-2);font-weight:600}
+.r-name .cred a{color:var(--ink-2);border-bottom:1px dotted var(--line)}
+.r-name .cred a:hover{border-color:var(--cobalt);color:var(--cobalt)}
+</style>
+</head>
+<body>
+
+<header class="mast">
+  <div class="wrap">
+    <div class="toprow">
+      <div class="brand">Oskar<b>OS</b> · Design Scout</div>
+      <div class="mast-meta">Evaluationsbericht<br>10 Entwürfe × 26 Praxen<br>5 Linsen · Türsteher-Wert · Juni 2026</div>
+    </div>
+    <h1 class="headline">Sie hat bereits eine <em>Warteliste</em>. Die Aufgabe der Website ist also die <em>Vorselektion</em>.</h1>
+    <p class="dek">Sechsunddreissig Psychotherapie-Websites, gelesen für <b>Silke Lengler</b> — eine Badener Psychoanalytikerin, die mit Erwachsenen arbeitet. Eine volle Praxis braucht keine Seite für <b>mehr</b> Anfragen, sondern eine <b>gegen die falschen</b>. Die Seite ist kein Trichter — sie ist ein <b>Türsteher</b>. Und jede Designschule lässt andere Leute durch.</p>
+  </div>
+</header>
+
+<section class="sec">
+  <div class="wrap">
+    <div class="note">
+      <div>
+        <div class="tag">Das Argument</div>
+      </div>
+      <div>
+        <p>Das ist das eigentliche Argument für Silke: Eine volle Praxis braucht keine Website für mehr Anfragen — sie braucht eine <b>gegen die falschen</b>. Jede unpassende Anfrage kostet unbezahlte Adminzeit und die emotionale Arbeit des Absagens. Die jetzige Situation ohne gute Seite heisst nicht «keine Anfragen», sondern <b>«ungefilterte Anfragen»</b> — die Massen-E-Mail an alle FSP-Therapeutinnen im Umkreis.</p>
+      </div>
+    </div>
+    <div class="note" style="margin-top:28px">
+      <div>
+        <div class="tag">Besucher der Website?</div>
+      </div>
+      <div>
+        <p>Wer ist der wichtigste «neue» Besucher der Website? Wie wichtig ist der/die <b>anordnende Hausärzt/in</b>, wie wichtig ist der/die <b>Patient/in</b>? Dies ist eine ungeklärte Frage und ändert die Aufgabe der Website ungemein.</p>
+      </div>
+    </div>
+    <div class="note" style="margin-top:28px">
+      <div>
+        <div class="tag">Funnel vs Bouncer</div>
+      </div>
+      <div>
+        <p>Die Seite verwandelt sich somit vom Trichter zum <b>Türsteher</b>. Und jede Designschule lässt andere Leute durch. Hara bringt die methodisch Passendsten; Bierut den schärfsten Filter; Brockmann die Diskreten; Sagmeister je nach Schnitt die Zahlungskräftigen oder die emotional Intensiven; Collins die Akuten; Linear die Falschen, elegant; Stamen die Systematiker — oder bloss Publikum.</p>
+        <p>Darum wird hier nicht mehr nach Handwerk sortiert, sondern nach <em>Türsteher-Wert</em>: wie entschieden eine Tür die <b>richtige</b> analytische Klientel wählt. Ein makellos gebautes Linear, das die Falschen hereinlässt, ist deshalb keine gute Tür — und steht weit unter einem Türsteher mit halbem Budget.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="sec">
+  <div class="wrap">
+    <div class="rec">
+      <div class="rh">Empfehlung</div>
+      <div class="big">Führe mit <em>Hara V2</em>. Die Tür entscheidest du nach der Klientel, die du willst.</div>
+      <b>Hara V2</b> bringt die methodisch Passendsten und beruhigt sie zugleich — Ku, weichgespült für ein Zürcher Klientel. Wenn der Filter <b>schärfer</b> sein soll: <b>Bierut</b>, das Manifest, oder <b>Sagmeister V2 (Objekt)</b>. Alle drei Seiten sind Eignungstests, getarnt als Ästhetik, welche informierte Patienten bringen, die schon wissen, worauf sie sich einlassen. Alle drei sind gute Wahlen am ende ist dies Geschmackssache.<br><br>
+        Das ganze steht und fällt mit ein paar guten shots der Praxis, der Bürostuhl sollte man wenn möglich durch den <a href="https://stefanodesign.com/en/produit/white-cream-leather-and-chrome-aluminium-design-office-chair-alberto-premium/">Eames Chair</a> ersetzen. Ausserdem bräuchte ich auch noch ein gutes Photo von dir.<br> <br> 
+
+        Wenn <b>Diskretion</b> über Haltung: <b>Brockmann</b> — Ku auf Schweizer Substrat. Oder <b>Hara V1</b>, Ku auf fernöstlichem Substrat. Vier richtige Türen, ein Unterschied nur in der Klientel dahinter.<br>
+      Zwei Dinge, die nicht auf der Seite stehen, aber alles steuern. Erstens: Die Bildwelt, ist das so gut? Zweitens: Die Seite steuert die <b>Zusammensetzung der Warteliste</b> — sie entscheidet, wer in acht Monaten obendrauf liegt. Meiden würde ich, was entschieden die Falschen bringt: <b>Collins</b> (Akute), <b>Sagmeister V1</b> (die emotional intensiven). Wenn du auf Nummer sicher gehen möchtest, ist <b>Linear</b> auch eine Option.<br>
+    </div>
+  </div>
+</section>
+
+
+<section class="sec">
+  <div class="wrap">
+    <div class="sec-head">
+      <div><div class="sec-num">01 / Linsen</div></div>
+      <div>
+        <div class="sec-title">Fünf Handwerks-Linsen — und die Tür-Frage darüber.</div>
+      </div>
+    </div>
+    <div class="crit">
+      <div class="cell"><div class="cn">01</div><div class="ct">Geschmack</div><div class="cd">Geschmack und Reife der Art-Direction. Eine bewusste Haltung — oder die Standardwerte einer Vorlage, hübsch verpackt?</div></div>
+      <div class="cell"><div class="cn">02</div><div class="ct">Umsetzung</div><div class="cd">Handwerk der Realisierung — Typografie, Abstände, Responsivität, Finish. Wie gut die Idee tatsächlich gebaut ist.</div></div>
+      <div class="cell"><div class="cn">03</div><div class="ct">Therapeutische Passung</div><div class="cd">Emotionale Sicherheit. Hält das Design jemanden in Not — oder führt es sich vor ihm auf?</div></div>
+      <div class="cell"><div class="cn">04</div><div class="ct">Klarheit</div><div class="cd">Erfasst eine mögliche Patientin das Angebot — Indikationen, Anordnung &amp; Kosten, Sprache, Ort — und kann sie handeln?</div></div>
+      <div class="cell"><div class="cn">05</div><div class="ct">Unverwechselbarkeit</div><div class="cd">Würde man sie in einem Feld von Nachahmern behalten? Besetzt sie eine Ecke, die kein Konkurrent hat?</div></div>
+      <div class="cell dbl"><div class="cn">06</div><div class="ct">CLIENT FIT <span class="x2">Balken</span></div><div class="cd">Die synthetische Kernfrage und das Sortierkriterium: Wie entschieden wählt die Tür die <em>richtige</em> analytische Klientel — reflektiert, zahlend, regional und sprachlich passend? Dieses Kriterium zählt doppelt.</div></div>
+    </div>
+  </div>
+</section>
+
+<section class="sec">
+  <div class="wrap">
+    <div class="note">
+      <div><div class="tag">Wie gelesen wurde</div></div>
+      <div>
+        <p>Jede der sechsunddreissig Seiten wurde als <b>Vollseiten-Screenshot</b> in Desktop-Breite erfasst und von oben bis unten gelesen — Startseiten und, bei mehrseitigen Praxen, ihre <b>Über-mich- / Angebot- / Kosten</b>-Unterseiten. Seiten mit Scroll-Reveal-Animation wurden <b>mit erzwungen geöffneten Reveals neu erfasst</b>, damit nichts auf einem leeren Band bewertet wurde — der Schritt, der Sagmeisters Schnitte rettete und Vividas, Seeaus und Karin Hammerfalds wahren Inhalt bestätigte.</p>
+        <p>Eine ehrliche Grenze bleibt: <b>Stamen V1s</b> Signatur ist eine scroll-getriebene Raumkarte, die nur unter einem lebendigen Cursor animiert. Inhalt und Layout werden beurteilt; die Bewegung ist als unverifiziert markiert und konservativ gewertet. Keine Seite wurde allein aus dem Markup heraus benotet.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="sec" id="ranking">
+  <div class="wrap">
+    <div class="sec-head">
+      <div><div class="sec-num">02 / Das Feld</div></div>
+      <div>
+        <div class="sec-title">Alle sechsunddreissig, nach Türsteher-Wert.</div>
+        <p class="sec-intro" style="margin-top:12px">Geordnet danach, wie entschieden die Tür die <b>richtige</b> analytische Klientel wählt — nicht nach Handwerk. Der Balken zeigt die Passung zur richtigen Klientel.</p>
+      </div>
+    </div>
+
+    <div class="legend">
+      <span class="mk"><span class="sq fill"></span> Entwurf (für Silke)</span>
+      <span class="mk"><span class="sq"></span> Konkurrenz (echte Praxis)</span>
+      <span class="mk"><span class="chip dbl" style="width:20px;height:20px">82</span> &nbsp;Balken = Türsteher-Wert / 100</span>
+    </div>
+
+    <div class="scale-row" aria-hidden="true">
+      <div class="sb" style="background:var(--t1)">Grand Cru · 90+</div>
+      <div class="sb" style="background:var(--t2)">Türsteher · 76–89</div>
+      <div class="sb" style="background:var(--neg)">Negativ · 1–4</div>
+      <div class="sb" style="background:var(--t3)">Strong · 45–64</div>
+      <div class="sb" style="background:var(--t4)">Trichter · 29–43</div>
+      <div class="sb" style="background:var(--t5);color:#5a5a52">Vorlage · ≤28</div>
+    </div>
+
+    <div class="subhdr">
+      <span style="text-align:right">#</span><span></span><span>Name &amp; Urteil</span>
+      <span class="h-subs"><span>Ges</span><span>Ums</span><span>Pas</span><span>Kla</span><span>Unv</span><span>Kli</span></span>
+      <span class="h-bar">Türsteher-Wert / 100</span><span></span>
+    </div>
+
+    <div id="ranklist"></div>
+  </div>
+</section>
+
+<section class="sec">
+  <div class="wrap">
+    <div class="sec-head">
+      <div><div class="sec-num">03 / Landschaft</div></div>
+      <div>
+        <div class="sec-title">Handwerk ist nicht die Tür.</div>
+        <p class="sec-intro" style="margin-top:12px">Geschmack horizontal, Umsetzung vertikal — die reine Handwerks-Sicht. Sie erklärt, warum sich die Rangliste nicht aus ihr ableiten lässt: Eine Seite kann oben rechts stehen und trotzdem die falsche Tür sein.</p>
+      </div>
+    </div>
+    <div class="scatter-wrap">
+      <div class="scatter-box"><div id="scatter"></div></div>
+      <div class="scatter-aside">
+        <h4>Die Wolke lesen</h4>
+        <p>Die <b>Entwürfe gruppieren sich oben rechts</b> — hoher Geschmack, hohe Umsetzung. Genau das ist der Input der Design-Schul-Linsen. Aber Handwerk ist nicht die Tür.</p>
+        <p>Das ist der Bruch zur Rangliste: <b>Linear</b> baut makellos (oben rechts) und steht trotzdem nur unter «Strong» — weil es <b>beliebiger</b> ist als die anderen.</p>
+        <p>Unten links der Vorlagen-Boden — <b>Zolli, Seestrasse, PP Maile</b> — wo weder Handwerk noch Tür eine Wahl waren.</p>
+        <span class="gapkey">● Entwurf &nbsp; ○ Konkurrenz &nbsp;·&nbsp; gestrichelt = Parität Geschmack − Umsetzung</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="sec">
+  <div class="wrap">
+    <div class="sec-head">
+      <div><div class="sec-num">04 / Die Türen</div></div>
+      <div>
+        <div class="sec-title">Sieben Designschulen, sieben Türen.</div>
+        <p class="sec-intro" style="margin-top:12px">Eine Praxis, eine Kernzeile — <em>„Man muss nicht von Anfang an alles verstanden haben"</em> — eine warme Bildbibliothek. Jede Tür lässt andere Menschen durch. Titel verlinken auf die Live-Demo.</p>
+      </div>
+    </div>
+
+    <div class="prop">
+      <div class="prop-grid">
+        <div class="pidx">04</div>
+        <div>
+          <div class="ptitle"><a href="https://awesome-ux.ch/2026-04-25-silke-lengler/vibe-1-hara-emptiness.html" target="_blank" rel="noopener">Hara / MUJI</a></div>
+          <div class="plens">Ku · Leere als Gefäss · zwei Schnitte · Eignungstest als Ästhetik</div>
+          <div class="pbody"><b>Bringt die methodisch Passendsten.</b> Wer eine Seite aus Stille, Stein und Langsamkeit geniesst, statt wegzuklicken, hat genau das Temperament für Psychoanalyse: Leere aushalten, keine schnelle Belohnung erwarten. Die Seite ist ein Eignungstest, getarnt als Ästhetik. V2 mit den neun erklärten Störungsbildern bringt zusätzlich informierte Patienten, die schon wissen, worauf sie sich einlassen — erschöpfte Hochleister, Burnout-Fälle, internationale Klientel (die MUJI-Sprache liest die ganze Welt), oft Selbstzahler.</div>
+          <div class="variant">
+            <div class="v"><div class="vh">V2 · Editorial-Creme <span class="vs">97</span> <span class="win">umsetzen</span></div>Ku, weichgespült für ein Zürcher Klientel: warme Creme, echte Fotografie, neun erklärte Störungsbilder. Die methodisch Passendsten — und zugleich beruhigt.</div>
+            <div class="v"><div class="vh">V1 · Interaktiv (Klang) <span class="vs">88</span></div>Ku auf östlichem Substrat: Stille, Klang, Langsamkeit. Der reinste Eignungstest — wer bleibt, hat das Temperament.</div>
+          </div>
+        </div>
+        <div class="pscore"><div class="pst">97</div><div class="psl">Türsteher-Wert · bester Schnitt</div><div class="prk">Rang 1 · Grand Cru</div></div>
+      </div>
+    </div>
+
+    <div class="prop">
+      <div class="prop-grid">
+        <div class="pidx">02</div>
+        <div>
+          <div class="ptitle"><a href="https://awesome-ux.ch/2026-04-25-silke-lengler/Silke%20Lengler%20-%20Bierut.dc.html" target="_blank" rel="noopener">Bierut / Pentagram</a></div>
+          <div class="plens">Editoriales Manifest · Serif · warme Fotografie · Terrakotta</div>
+          <div class="pbody"><b>Der schärfste Filter im Set.</b> Ein Manifest zieht Menschen an, die dem Manifest zustimmen, und vergrault alle anderen — genau das soll es. <em>„Wirkt auch dann noch, wenn die App längst gelöscht ist"</em> rekrutiert Leute, die Schnelllösungen schon probiert haben und gescheitert sind — vorqualifiziert für Tiefenarbeit. Verbale, intellektuelle, haltungsgetriebene Patienten, die ihre Therapeutin nach Überzeugung wählen, nicht nach Verfügbarkeit.</div>
+        </div>
+        <div class="pscore"><div class="pst">95</div><div class="psl">Türsteher-Wert</div><div class="prk">Rang 2 · Grand Cru</div></div>
+      </div>
+    </div>
+
+    <div class="prop">
+      <div class="prop-grid">
+        <div class="pidx">05</div>
+        <div>
+          <div class="ptitle">Sagmeister &amp; Walsh</div>
+          <div class="plens">Zwei Schnitte, zwei gegensätzliche Türen</div>
+          <div class="pbody">Derselbe Bilderstock, zwei entgegengesetzte Filter. Der eine bringt die Zahlungskräftigen, der andere die emotional Intensiven — der Unterschied entscheidet, wer in acht Monaten auf der Warteliste obendrauf liegt.</div>
+          <div class="variant">
+            <div class="v"><div class="vh"><a href="https://awesome-ux.ch/2026-04-25-silke-lengler/vibe-20-sagmeister-objekt.html" target="_blank" rel="noopener">V2 · Objekt</a> <span class="vs">93</span> <span class="win">Selbstzahler</span></div>Bringt die Zahlungskräftigen. Knoll-Daybed, Abbildungsverzeichnis, Editorial-Ton: NZZ-Feuilleton-Klientel, für die CHF 170 kein Gesprächsthema ist. Will sie ihre wenigen Plätze mit Selbstzahlern füllen — diese Version.</div>
+            <div class="v"><div class="vh"><a href="https://awesome-ux.ch/2026-04-25-silke-lengler/Silke%20Lengler%20-%20Sagmeister.dc.html" target="_blank" rel="noopener">V1 · Wisch-Reveal</a> <span class="vs">65</span></div>Bringt die emotional Intensiven. <em>„Es darf zu viel sein"</em> als Marquee spricht Menschen an, die sich als «zu viel» erleben — hohe Bedürftigkeit. Mit ihrem DBT-nahen Hintergrund kann sie das, aber als Wartelisten-Komposition die schwerste Caseload. Dazu Design-Touristen, die wischen und nie anrufen.</div>
+          </div>
+        </div>
+        <div class="pscore"><div class="pst">93</div><div class="psl">Türsteher-Wert · bester Schnitt</div><div class="prk">Rang 3 · Grand Cru</div></div>
+      </div>
+    </div>
+
+    <div class="prop">
+      <div class="prop-grid">
+        <div class="pidx">01</div>
+        <div>
+          <div class="ptitle"><a href="https://awesome-ux.ch/2026-04-25-silke-lengler/Silke%20Lengler%20-%20Brockmann.dc.html" target="_blank" rel="noopener">Müller-Brockmann</a></div>
+          <div class="plens">Ku auf Schweizer Substrat · Raster · kühl · ein einziges Rot</div>
+          <div class="pbody"><b>Ku auf Schweizer Substrat.</b> Die reinste Übersetzung der analytischen Haltung ins Visuelle: das leere Gefäss, die Abstinenz, die Neutralität. Die Seite gibt fast nichts vor — wer hier bleibt, bringt seine eigene Bedeutung mit. Das ist exakt die Selbstselektion. Bringt die <b>Diskreten</b>: Anwältinnen, Architekten, Kader, die Seriosität und Zurückhaltung suchen und keine Praxis mit «Vibes». Solide, aber filtert weniger scharf als Bierut — Sachlichkeit schreckt niemanden ab.</div>
+        </div>
+        <div class="pscore"><div class="pst">90</div><div class="psl">Türsteher-Wert</div><div class="prk">Rang 4 · Türsteher</div></div>
+      </div>
+    </div>
+
+    <div class="prop">
+      <div class="prop-grid">
+        <div class="pidx">03</div>
+        <div>
+          <div class="ptitle"><a href="https://awesome-ux.ch/2026-04-25-silke-lengler/Silke%20Lengler%20-%20Collins.dc.html" target="_blank" rel="noopener">Collins</a></div>
+          <div class="plens">Dunkel · filmisch · kinetische Tür &amp; Wort</div>
+          <div class="pbody"><b>Bringt die Akuten.</b> Die dunkle Tür spricht Menschen an dunklen Orten an — poetisch wahr, praktisch riskant: Sie rekrutiert <b>Dringlichkeit</b>, die eine volle Praxis nicht bedienen kann. Genau die Anfragen, die sie absagen müsste. Das Einprägsamste im Set, und der Filter, der am sichersten die Borderliner anzieht — ein starker, aber negativer Türsteher.</div>
+        </div>
+        <div class="pscore"><div class="pst">48</div><div class="psl">Türsteher-Wert</div><div class="prk neg">Rang 13 · Negative Türsteher</div></div>
+      </div>
+    </div>
+
+    <div class="prop">
+      <div class="prop-grid">
+        <div class="pidx">07</div>
+        <div>
+          <div class="ptitle"><a href="https://awesome-ux.ch/2026-04-25-silke-lengler/vibe-12-linear-zuviel.html" target="_blank" rel="noopener">Linear / Saarinen</a></div>
+          <div class="plens">Produkt-Qualität · Kobalt-Akzent · Monospace-Captions</div>
+          <div class="pbody"><b>Bringt die Falschen, elegant.</b> Effizienzmenschen, die einen klaren Prozess, ein SLA und planbare Ergebnisse erwarten. Das Design verspricht Vorhersehbarkeit; Psychoanalyse liefert Ambiguität. Diese Patienten kommen potentiell mit dem <b>falschen Vertrag im Kopf</b> — Enttäuschung eingebaut. Trotzdem die garantiert «sichere» Wahl — aber die garantiert sichere Wahl in der Psychotherapie ist die VT, nicht die Psychoanalyse.</div>
+        </div>
+        <div class="pscore"><div class="pst">58</div><div class="psl">Türsteher-Wert</div><div class="prk">Rang 17 · Strong</div></div>
+      </div>
+    </div>
+
+    <div class="prop">
+      <div class="prop-grid">
+        <div class="pidx">06</div>
+        <div>
+          <div class="ptitle">Stamen</div>
+          <div class="plens">Kartografie · die Praxis als Ort · zwei Schnitte</div>
+          <div class="pbody">Zwei Schnitte, zwei Publika — der eine bringt Patienten mit richtigen Erwartungen, der andere bloss Aufmerksamkeit. Für eine volle Praxis ist der Unterschied alles.</div>
+          <div class="variant">
+            <div class="v"><div class="vh"><a href="https://awesome-ux.ch/2026-04-25-silke-lengler/Silke%20Lengler%20-%20Stamen.dc.html" target="_blank" rel="noopener">V1 · Raumkarte</a> <span class="vs">56</span> <span class="win">stärker</span></div>Bringt die Systematiker: Akademiker, Ingenieure, die den Prozess verstehen wollen, bevor sie eintreten. Weil die Seite Therapie erklärt (Liege, Übertragung, Tempo), kommen sie mit richtigen Erwartungen an. <em>„Auch Psychosen gehören in diese Praxis — nicht vor ihre Tür"</em> rekrutiert gezielt ihr klinisches Spezialgebiet — falls sie das will.</div>
+            <div class="v"><div class="vh"><a href="https://awesome-ux.ch/2026-04-25-silke-lengler/uploads/vibe-24-stamen-raumkarte-dc874011.html" target="_blank" rel="noopener">V2 · 3D-Baden</a> <span class="vs">54</span></div>Bringt Publikum, keine Patienten. Tech-Affine, Design-Blogs, vielleicht virale Aufmerksamkeit. Für eine volle Praxis ist Reichweite das Gegenteil des Ziels.</div>
+          </div>
+        </div>
+        <div class="pscore"><div class="pst">56</div><div class="psl">Türsteher-Wert · bester Schnitt</div><div class="prk">Rang 18 · Strong</div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+<footer>
+  <div class="wrap">
+    <div class="cols">
+      <span><b>OskarOS Design Scout</b> — Evaluationsbericht</span>
+      <span>36 Seiten · Vollbild · Unterseiten · Reveals erzwungen</span>
+      <span>5 Handwerks-Linsen · Türsteher-Wert / 100</span>
+      <span>Gegenstand: <b>Silke Lengler</b>, Baden / Aarau</span>
+    </div>
+  </div>
+</footer>
+
+<script>
+const DATA=[
+ // Entwürfe
+ {n:"Hara · V2 Editorial-Creme",t:"P",tier:"grand",p:9,e:8,f:9,c:8,d:8,tw:97,url:"https://awesome-ux.ch/2026-04-25-silke-lengler/vibe-1-hara-emptiness.html",dom:"awesome-ux.ch",v:"Ku, weichgespült für ein Zürcher Klientel. Bringt die methodisch Passendsten — und beruhigt sie zugleich. Warme Leere als getarnter Eignungstest."},
+ {n:"Bierut / Pentagram",t:"P",tier:"grand",p:9,e:9,f:9,c:9,d:8,tw:95,url:"https://awesome-ux.ch/2026-04-25-silke-lengler/Silke%20Lengler%20-%20Bierut.dc.html",dom:"awesome-ux.ch",v:"Der schärfste Filter im Set. Ein Manifest zieht an, wer zustimmt, und vergrault den Rest — vorqualifiziert für Tiefenarbeit."},
+ {n:"Sagmeister · V2 Objekt",t:"P",tier:"grand",p:9,e:9,f:8,c:8,d:9,tw:93,url:"https://awesome-ux.ch/2026-04-25-silke-lengler/vibe-20-sagmeister-objekt.html",dom:"awesome-ux.ch",v:"Knoll-Daybed, Abbildungsverzeichnis, Editorial-Ton. Bringt die Zahlungskräftigen, für die CHF 170 kein Thema sind."},
+ {n:"Müller-Brockmann",t:"P",tier:"bouncer",p:9,e:9,f:7,c:9,d:8,tw:90,url:"https://awesome-ux.ch/2026-04-25-silke-lengler/Silke%20Lengler%20-%20Brockmann.dc.html",dom:"awesome-ux.ch",v:"Ku auf Schweizer Substrat. Leeres Gefäss, Abstinenz, Neutralität — wer hier bleibt, bringt seine eigene Bedeutung mit. Genau die Selbstselektion."},
+ {n:"Hara · V1 Interaktiv",t:"P",tier:"bouncer",p:9,e:7,f:8,c:6,d:7,tw:88,url:"https://awesome-ux.ch/2026-04-25-silke-lengler/Silke%20Lengler%20-%20Hara.dc.html",dom:"awesome-ux.ch",v:"Ku auf östlichem Substrat. Stille, Stein, Langsamkeit als Eignungstest: Wer sie geniesst statt wegzuklicken, hat das Temperament für Analyse."},
+ {n:"Therapie Bohny",t:"C",tier:"bouncer",p:7,e:8,f:7,c:6,d:6,tw:85,url:"https://therapie-bohny.ch/",dom:"therapie-bohny.ch",cred:"Gestaltung <b>Büro Pyro</b>, Basel · Entwicklung <a href='https://klammerzu.dev' target='_blank' rel='noopener'>klammer zu</a>",v:"Müller-Brockmann, von einem geringeren Studio ausgeführt (Büro Pyro). Dieselbe filternde Strenge, eine Spur weniger Präzision — aber dieselbe richtige Tür."},
+ {n:"Hanna Schilling",t:"C",tier:"bouncer",p:7,e:8,f:7,c:9,d:8,tw:84,url:"https://hannaschilling.ch/",dom:"hannaschilling.ch",v:"Echte Nische — queer & gynäkologisch. Das beste FAQ im Feld beantwortet die Warteliste direkt. Selbstselektion par excellence."},
+ {n:"&Zufriedenheit",t:"C",tier:"bouncer",p:7,e:7,f:7,c:8,d:7,tw:82,url:"https://www.undzufriedenheit.ch/",dom:"undzufriedenheit.ch",cred:"Plattform Jimdo · Illustration <a href='https://flowsofly.art' target='_blank' rel='noopener'>flowsofly.art</a>",v:"Sexualität, Beziehungen, Psyche. Ein Formular, das Kapazität pro Leistung triagiert. Filtert klug — und das auf Jimdo."},
+ {n:"Jing Xu",t:"C",tier:"strong",p:6,e:7,f:7,c:7,d:6,tw:80,url:"https://www.jingxu.ch/",dom:"jingxu.ch",cred:"Erstellt mit v0.app",v:"Chinesischsprachig + Achtsamkeit, plus ehrlicher «nehme keine neuen Patienten»-Hinweis. Sprache und Haltung selektieren von selbst."},
+ {n:"Ana Hermann",t:"C",tier:"strong",p:6,e:6,f:7,c:7,d:5,tw:78,url:"https://www.anahermann.ch/",dom:"anahermann.ch",v:"Jung über einem Alpengrat, drei Monate Wartezeit deklariert. Der nächste Verwandte zu Silkes eigener Tiefe — filtert für Reflexion."},
+ {n:"Spira",t:"C",tier:"strong",p:6,e:7,f:7,c:7,d:6,tw:76,url:"https://www.spira-psychotherapie.ch/",dom:"spira-psychotherapie.ch",v:"Ein handgezeichneter Tanz für die unter 30-Jährigen. Entstigmatisiert und verengt zugleich auf eine junge, bestimmte Klientel."},
+ // Negative Türsteher
+ {n:"Sagmeister · V1 Wisch-Reveal",t:"P",tier:"negbouncer",p:9,e:8,f:8,c:8,d:9,tw:4,url:"https://awesome-ux.ch/2026-04-25-silke-lengler/Silke%20Lengler%20-%20Sagmeister.dc.html",dom:"awesome-ux.ch",v:"«Es darf zu viel sein» als Marquee bringt die emotional Intensiven — hohe Bedürftigkeit. Plus Design-Touristen, die wischen und nie anrufen."},
+ {n:"Collins",t:"P",tier:"negbouncer",p:9,e:9,f:6,c:7,d:9,tw:1,url:"https://awesome-ux.ch/2026-04-25-silke-lengler/Silke%20Lengler%20-%20Collins.dc.html",dom:"awesome-ux.ch",v:"Die dunkle Tür spricht Menschen an dunklen Orten an. Rekrutiert Dringlichkeit, die eine volle Praxis nicht bedienen kann — genau die Absagen."},
+ // Strong
+ {n:"Linear / Saarinen",t:"P",tier:"strong",p:8,e:9,f:7,c:10,d:7,tw:58,url:"https://awesome-ux.ch/2026-04-25-silke-lengler/vibe-12-linear-zuviel.html",dom:"awesome-ux.ch",v:"Die garantiert «sichere» Wahl — aber die sichere Wahl in der Psychotherapie ist die VT, nicht die Psychoanalyse. Für Effizienzmenschen wie überweisende Ärzte."},
+ {n:"Stamen · V1 Raumkarte",t:"P",tier:"bouncer",p:8,e:6,f:6,c:6,d:9,tw:56,url:"https://awesome-ux.ch/2026-04-25-silke-lengler/Silke%20Lengler%20-%20Stamen.dc.html",dom:"awesome-ux.ch",v:"Erklärt Therapie (Liege, Übertragung, Tempo) und bringt die Systematiker mit richtigen Erwartungen — stark, aber die Bewegung bleibt unbewiesen."},
+ {n:"Stamen · V2 3D-Baden",t:"P",tier:"bouncer",p:8,e:7,f:6,c:7,d:9,tw:54,url:"https://awesome-ux.ch/2026-04-25-silke-lengler/uploads/vibe-24-stamen-raumkarte-dc874011.html",dom:"awesome-ux.ch",v:"Isometrisches Baden — bringt Publikum, keine Patienten. Reichweite ist für eine volle Praxis das Gegenteil des Ziels."},
+ {n:"Praxis Niederdorf",t:"C",tier:"strong",p:7,e:8,f:7,c:8,d:7,tw:51,url:"https://www.praxis-niederdorf.ch/",dom:"praxis-niederdorf.ch",cred:"Gestaltung <b>Studio mi</b>",v:"Studio mis ortsverwurzelte Selbstsicherheit, Kosten klar — aber keine Nische. Exzellent gebaut, kaum Tür: lässt fast alle herein."},
+ {n:"Herzwerk",t:"C",tier:"strong",p:7,e:8,f:7,c:7,d:6,tw:49,url:"https://www.herzwerk.ch/",dom:"herzwerk.ch",cred:"Gestaltung <b>Daniel Roth Grafik</b> · Web Felix Michel · Fotografie Christian Jäggi",v:"Die am vollständigsten produzierte Seite des Felds — und genau darum eine glatte Wand ohne Griff. Handwerk ohne Filter."},
+ {n:"Praxis Seeau",t:"C",tier:"strong",p:7,e:8,f:7,c:6,d:6,tw:47,url:"https://www.praxis-seeau.ch/",dom:"praxis-seeau.ch",cred:"Agentur <a href='https://wecatch.agency' target='_blank' rel='noopener'>WeCatch</a>",v:"Selbstsicherheit durch Subtraktion (WeCatch). Beinahe ein Türsteher — aber ohne Haltung, die jemanden abweist."},
+ {n:"Praxis Stauffacher",t:"C",tier:"strong",p:7,e:8,f:7,c:7,d:5,tw:45,url:"https://www.praxisstauffacher.com/",dom:"praxisstauffacher.com",v:"Warm, Serif, poliert — auf dem Praxis-74-System. Gut gebaut, aber die Tür steht für jeden offen."},
+ {n:"Karin Hammerfald",t:"C",tier:"strong",p:5,e:6,f:5,c:5,d:3,tw:64,url:"https://www.karin-hammerfald.com/de/home",dom:"karin-hammerfald.com",v:"Strand, Sand, Selbsthilfe-Blog — Online-Coaching als Therapie. Eine Vorlage ohne Tür, am Thema vorbei statt filternd."},
+ {n:"LM Lifemanagement",t:"C",tier:"strong",p:6,e:7,f:6,c:6,d:4,tw:62,url:"https://lm-lifemanagement.ch/",dom:"lm-lifemanagement.ch",cred:"Webdesign Sarah Kriemler · Entwicklung EO Design",v:"«Life-Management» und Stock-Berg im Hero. Sauber gebaut, aber Coaching-Sprache statt analytischem Filter."},
+ {n:"Balancd",t:"C",tier:"strong",p:7,e:7,f:6,c:7,d:5,tw:60,url:"https://www.balancd.ch/",dom:"balancd.ch",cred:"Agentur <a href='https://webwork-agency.com' target='_blank' rel='noopener'>Webwork Agency</a>",v:"Startup-Wellness, Du-Form, Team-Polaroids. Sauber gebaut, breit gezielt — kaum Tür."},
+ // Trichter
+ {n:"Bartram / Praxis 74",t:"C",tier:"funnel",p:7,e:8,f:7,c:6,d:6,tw:45,url:"https://psychotherapie-bartram.ch",dom:"psychotherapie-bartram.ch",v:"Praxis-74-DNA wie Stauffacher — aber laut DB bewusster gebaut: echte Fotografie der eigenen Praxis, UI-Palette aus den Raumtönen extrahiert, italic-Serif-Akzent. Schön und deliberat, dennoch eine offene Tür: ein gepflegter Trichter (für uns als Lead heiss)."},
+ {n:"June Rogivue",t:"C",tier:"strong",p:7,e:7,f:7,c:6,d:6,tw:68,url:"https://psychotherapie-praxis.ch/de/",dom:"psychotherapie-praxis.ch",v:"Analytisches Renommee — und laut unserer Scout-DB ein sauberer, kommissionierter Auftritt: Porträt-Hero mit Backstein und Wandbild, JR-Monogramm, klare Versal-Navigation. Nicht die «altbackene Spalte»: gut gebaut und seriös, filtert mild über Renommee statt über Haltung."},
+ {n:"Curanima",t:"C",tier:"funnel",p:6,e:7,f:6,c:6,d:5,tw:39,url:"https://www.curanima.org/zuerich",dom:"curanima.org",cred:"Vorlage Templune (Webflow-Template)",v:"Institutionelle Grösse auf einem Templune-Template, niemandes Signatur. Ein Trichter mit drei Standorten."},
+ {n:"Praxiskollektiv 6",t:"C",tier:"funnel",p:6,e:7,f:6,c:6,d:5,tw:37,url:"https://www.praxiskollektiv6.ch/",dom:"praxiskollektiv6.ch",cred:"Umsetzung Stefan Krucker / Psychotext.ch · Fotografie Luca Touvet",v:"Lichtdurchfluteter Raum, warme Porträts (Psychotext.ch). Angenehm und ungefiltert — niemand bleibt draussen."},
+ {n:"Sarah Kühne",t:"C",tier:"strong",p:8,e:7,f:7,c:6,d:6,tw:64,url:"https://sarah-kuehne.ch/",dom:"sarah-kuehne.ch",cred:"Gestaltung & Code <a href='https://sabrinaoettl.at' target='_blank' rel='noopener'>Sabrina Öttl</a> · Fotografie Peter Hauser",v:"Geschmackvolle, kunstgeleitete Hand (Sabrina Öttl): editorialer Triptychon-Hero mit bewusstem Farbbruch in einer S/W-Sequenz — laut DB die am stärksten art-direktete Seite im ganzen Feld, nicht «in 2014 eingefroren». Die Kante ist da, nur leise; filtert über Editorial-Geschmack."},
+ {n:"Furler",t:"C",tier:"funnel",p:7,e:7,f:6,c:6,d:4,tw:34,url:"https://www.psychotherapie-furler.ch/",dom:"psychotherapie-furler.ch",cred:"Gestaltung & Umsetzung <a href='https://genauso.ch' target='_blank' rel='noopener'>Genauso Grafik</a> · Fotografie Beat Baschung",v:"Weiche grüne Knospe (Genauso Grafik), ruhig und sofort vergessen. Ein Trichter in Pastell."},
+ {n:"Praxis am Blumenrain",t:"C",tier:"funnel",p:6,e:7,f:6,c:6,d:4,tw:32,url:"https://www.praxisamblumenrain.ch/",dom:"praxisamblumenrain.ch",cred:"Gestaltung <a href='https://studioreber.ch' target='_blank' rel='noopener'>Studio Reber</a> (Catherine Reber) · Fotografie Christina Bosshart",v:"Sauberes Handwerk von Studio Reber, müde Puzzle-Hirn-Metaphern. Lässt alle gleichermassen durch."},
+ {n:"Vivida",t:"C",tier:"funnel",p:5,e:6,f:6,c:5,d:4,tw:31,url:"https://vivida-praxis.ch/",dom:"vivida-praxis.ch",v:"Salbei und Taupe, brauchbares FAQ — untergraben von einer Browser-Warnung im Hero. Generischer Trichter mit Bug."},
+ {n:"Praxis Felbelle",t:"C",tier:"funnel",p:4,e:5,f:6,c:5,d:4,tw:29,url:"https://www.praxisfelbelle.ch/",dom:"praxisfelbelle.ch",v:"Ein Vogel, eine Serif, ein gestelltes Quintett. Sicher, schlicht, türlos."},
+ // Vorlage
+ {n:"PP Maile",t:"C",tier:"template",p:4,e:5,f:5,c:5,d:3,tw:25,url:"https://www.ppmaile.ch/",dom:"ppmaile.ch",cred:"Umsetzung Jeremias Baur · Theme Anders Norén (WordPress)",v:"Türkise Kästen auf einem Gratis-Theme (Anders Norén), bezahlte Umsetzung — keine Wahl, keine Tür. Aber das Bild ist echt (DB): der reale Therapieraum, warmer Holzboden, Fensterlicht, nur flach wie ein Immobilienfoto. Substanz ohne Art-Direction."},
+ {n:"Zweierplatz",t:"C",tier:"template",p:3,e:4,f:6,c:4,d:4,tw:24,url:"https://www.zweierplatz.ch/",dom:"zweierplatz.ch",v:"«Mehr»-Navigationspunkt, blanke Textseiten, Bau von 2012 — aber laut DB echte, charaktervolle Fotografie: ein Teamporträt der vier und das tatsächliche Gründerzeit-Gebäude, nur flach gesetzt statt für den Bildschirm geschnitten. Substanz vorhanden, Tür keine."},
+ {n:"Praxis Seestrasse",t:"C",tier:"template",p:3,e:4,f:6,c:4,d:4,tw:21,url:"https://www.praxisseestrasse.ch/",dom:"praxisseestrasse.ch",v:"Drei Porträts, Aufzählungslisten, blankes Design — aber kein Stock (DB): ein echtes Ortsbild (Zürcher Strasse, Tram, das reale Haus) ankert den Hero. Glaubwürdig und konkret, ohne Art-Direction. Keine Selektion möglich."},
+ {n:"Psychotherapie Zolli",t:"C",tier:"template",p:3,e:3,f:6,c:4,d:3,tw:22,url:"https://psychotherapie-zolli.ch/",dom:"psychotherapie-zolli.ch",v:"WordPress-Standardtheme, seit 2022 unberührt (DB: Design 1) — handwerklich am Boden. Aber nicht bildlos: ein echtes, warmes Aussen-Teamporträt trägt den Hero, die einzige bewusste Entscheidung. Die Zurückhaltung passt zur eigenen, erschöpft-ängstlichen Klientel — für Silkes analytische bloss zu unspezifisch."}
+];
+
+const TIERS=[
+ {k:"grand", l:"Grand Cru", c:"var(--t1)", note:"filtert richtig und beruhigt zugleich"},
+ {k:"bouncer", l:"Türsteher", c:"var(--t2)", note:"scharfer Filter für die richtige analytische Klientel"},
+ {k:"negbouncer", l:"Negative Türsteher", c:"var(--neg)", note:"starke Tür, falsche Last — filtert entschieden die Falschen herein"},
+ {k:"strong", l:"Strong", c:"var(--t3)", note:"exzellent gebaut, aber kaum Tür — Handwerk ohne Filter"},
+ {k:"funnel", l:"Trichter", c:"var(--t4)", note:"kein Türsteher — lässt ungefiltert alle durch"},
+ {k:"template", l:"Vorlage", c:"var(--t5)", note:"keine Wahl, keine Tür"}
+];
+const TRANK={}; TIERS.forEach((t,i)=>TRANK[t.k]=i);
+// 6. Spalte: Passung zur richtigen Klientel (0–10), zählt ×5. Total = Summe der 5 Handwerks-Spalten + 5×Passung.
+const RCF={"Hara · V2 Editorial-Creme":9,"Bierut / Pentagram":9,"Sagmeister · V2 Objekt":9,"Müller-Brockmann":9,"Hara · V1 Interaktiv":7,"Therapie Bohny":6,"Hanna Schilling":8,"&Zufriedenheit":7,"Jing Xu":7,"Ana Hermann":7,"Spira":6,"Sagmeister · V1 Wisch-Reveal":4,"Collins":1,"Linear / Saarinen":8,"Stamen · V1 Raumkarte":6,"Stamen · V2 3D-Baden":6,"Praxis Niederdorf":7,"Herzwerk":6,"Praxis Seeau":6,"Praxis Stauffacher":7,"Karin Hammerfald":5,"LM Lifemanagement":5,"Balancd":5,"Bartram / Praxis 74":6,"June Rogivue":7,"Curanima":6,"Praxiskollektiv 6":6,"Sarah Kühne":6,"Furler":5,"Praxis am Blumenrain":5,"Vivida":5,"Praxis Felbelle":5,"PP Maile":4,"Zweierplatz":4,"Praxis Seestrasse":4,"Psychotherapie Zolli":4};
+DATA.forEach(d=>{ d.r=RCF[d.n]; d.tot=d.p+d.e+d.f+d.c+d.d+5*d.r; });
+DATA.sort((a,b)=> TRANK[a.tier]-TRANK[b.tier] || b.tot-a.tot || b.e-a.e || b.p-a.p);
+
+const list=document.getElementById('ranklist');
+let pos=0, curTier=null;
+DATA.forEach((d)=>{
+  pos++;
+  const tb=TIERS.find(t=>t.k===d.tier);
+  if(tb.k!==curTier){
+    curTier=tb.k;
+    const band=document.createElement('div'); band.className='tierband';
+    const cnt=DATA.filter(x=>x.tier===tb.k).length;
+    band.innerHTML=`<span class="tl" style="color:${tb.c}">${tb.l}</span><span class="tn">${tb.note}</span><span class="tr">${cnt} von 36</span>`;
+    list.appendChild(band);
+  }
+  const subs=[['Geschmack',d.p],['Umsetzung',d.e],['Therapeutische Passung',d.f],['Klarheit',d.c],['Unverwechselbarkeit',d.d]]
+    .map(s=>`<span class="chip" title="${s[0]}">${s[1]}</span>`).join('')
+    + `<span class="chip dbl" title="Passung zur richtigen Klientel · zählt ×5">${d.r}</span>`;
+  const w=d.tot;
+  const nm=d.url
+    ? `<a class="nml" href="${d.url}" target="_blank" rel="noopener">${d.n}</a><span class="pc">${d.t==='P'?'Entwurf':'Rivale'}</span><span class="dom"><a href="${d.url}" target="_blank" rel="noopener">${d.dom} ↗</a></span>`
+    : `${d.n}<span class="pc">${d.t==='P'?'Entwurf':'Rivale'}</span>`;
+  const cred=d.cred?`<div class="cred">${d.cred}</div>`:'';
+  const row=document.createElement('div'); row.className='row';
+  row.innerHTML=`
+    <div class="r-rank">${pos}</div>
+    <div class="r-mk"><span class="sq ${d.t==='P'?'fill':''}" title="${d.t==='P'?'Entwurf':'Konkurrenz'}"></span></div>
+    <div class="r-name"><div class="nm">${nm}</div><div class="vd">${d.v}</div>${cred}</div>
+    <div class="r-subs">${subs}</div>
+    <div class="r-bar"><div class="fillbar" style="width:${w}%;background:${tb.c}"></div><span class="bv">${d.tot}</span></div>
+    <div class="r-total"></div>`;
+  list.appendChild(row);
+});
+
+/* ---- scatter ---- */
+(function(){
+  const W=560,H=520,m={t:24,r:24,b:46,l:50};
+  const ax=[2.5,10.5];
+  const sx=v=>m.l+(v-ax[0])/(ax[1]-ax[0])*(W-m.l-m.r);
+  const sy=v=>H-m.b-(v-ax[0])/(ax[1]-ax[0])*(H-m.t-m.b);
+  let s=`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Streudiagramm Geschmack gegen Umsetzung, 36 Seiten">`;
+  s+=`<rect x="0" y="0" width="${W}" height="${H}" fill="#fff"/>`;
+  for(let g=3;g<=10;g++){
+    s+=`<line x1="${sx(g)}" y1="${m.t}" x2="${sx(g)}" y2="${H-m.b}" stroke="#EDEBE2" stroke-width="1"/>`;
+    s+=`<line x1="${m.l}" y1="${sy(g)}" x2="${W-m.r}" y2="${sy(g)}" stroke="#EDEBE2" stroke-width="1"/>`;
+    s+=`<text x="${sx(g)}" y="${H-m.b+16}" font-family="IBM Plex Mono,monospace" font-size="9" fill="#9A9A93" text-anchor="middle">${g}</text>`;
+    s+=`<text x="${m.l-9}" y="${sy(g)+3}" font-family="IBM Plex Mono,monospace" font-size="9" fill="#9A9A93" text-anchor="end">${g}</text>`;
+  }
+  // Paritäts-Diagonale
+  s+=`<line x1="${sx(3)}" y1="${sy(3)}" x2="${sx(10)}" y2="${sy(10)}" stroke="#1E2BD6" stroke-width="1" stroke-dasharray="4 4" opacity="0.55"/>`;
+  // Achsentitel
+  s+=`<text x="${m.l}" y="${H-6}" font-family="Archivo,sans-serif" font-weight="700" font-size="11" fill="#16171B">GESCHMACK →</text>`;
+  s+=`<text x="14" y="${m.t+4}" font-family="Archivo,sans-serif" font-weight="700" font-size="11" fill="#16171B" transform="rotate(-90 14 ${m.t+4})">UMSETZUNG →</text>`;
+  // Jitter-Helfer (deterministisch)
+  const seen={};
+  function jit(p,e,i){const k=p+'_'+e; const n=(seen[k]=(seen[k]||0)+1);
+    const ang=(n*2.39963); const rad=(n>1? 5.5+(n*1.3):0);
+    return {x:sx(p)+Math.cos(ang)*rad, y:sy(e)+Math.sin(ang)*rad};}
+  const labelSet={"Hara · V2 Editorial-Creme":"Hara","Bierut / Pentagram":"Bierut","Sagmeister · V2 Objekt":"Sagmeister","Müller-Brockmann":"Brockmann","Linear / Saarinen":"Linear","Collins":"Collins","Stamen · V1 Raumkarte":"Stamen","Hanna Schilling":"Schilling","Praxis Niederdorf":"Niederdorf","&Zufriedenheit":"&Zufrieden.","Therapie Bohny":"Bohny","Psychotherapie Zolli":"Zolli","Praxis Seestrasse":"Seestrasse"};
+  const tierColor={grand:'#141DA0',bouncer:'#1E2BD6',negbouncer:'#C2603F',strong:'#5B64E8',funnel:'#A9ABC0',template:'#C7C6BF'};
+  DATA.forEach((d,i)=>{
+    const pt=jit(d.p,d.e,i);
+    if(d.t==='P'){ s+=`<circle cx="${pt.x}" cy="${pt.y}" r="6" fill="${tierColor[d.tier]}" stroke="#fff" stroke-width="1.3"/>`; }
+    else { s+=`<circle cx="${pt.x}" cy="${pt.y}" r="5" fill="#fff" stroke="#9A9A93" stroke-width="1.6"/>`; }
+    if(labelSet[d.n]){
+      const lx=pt.x+9;
+      s+=`<text x="${lx}" y="${pt.y+3.2}" font-family="Archivo,sans-serif" font-size="9.5" font-weight="${d.t==='P'?700:500}" fill="${d.t==='P'?'#141DA0':'#3A3B40'}">${labelSet[d.n]}</text>`;
+    }
+  });
+  s+=`</svg>`;
+  document.getElementById('scatter').innerHTML=s;
+})();
+</script>
+</body>
+</html>

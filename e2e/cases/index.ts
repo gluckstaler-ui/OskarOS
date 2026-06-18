@@ -63,26 +63,6 @@ export const uiCases: UICase[] = [
   },
 
   {
-    id: 'todo-write-unfinished',
-    title: 'CD emits TodoWrite mid-task → UnfinishedTodosPanel renders → "Continue" re-prompts',
-    category: 'chat',
-    flow: 'todo-write-unfinished',
-    automated: false,
-    description:
-      'Validates the WP-2.8 redesigned panel: agent-Order positioning, sparkle icon, pulse animation on in_progress glyph, "+N more" inline expand, transparent Continue button. After clicking Continue, CD receives a synthesized re-prompt with the unfinished items.',
-    tier: 'merge',
-    mockStrategy: 'mock',
-    seed: {
-      inboxMessages: [],
-    },
-    prompt: 'Build me three vibes for the Berlin café.',
-    notes: [
-      'Verify pulse respects prefers-reduced-motion.',
-      'Verify panel auto-collapses when all items complete.',
-    ],
-  },
-
-  {
     id: 'tool-card-render-cd-tools',
     title: 'All 13 ToolCards render with correct tier + tokens + theme awareness',
     category: 'chat',

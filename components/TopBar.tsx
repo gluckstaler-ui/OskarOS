@@ -1,104 +1,92 @@
 'use client'
 
-import { LayoutMode } from '@/lib/types'
 import { UsageBadge } from './UsageBadge'
 import { Feather } from './Feather'
-import { useState, useEffect, useRef } from 'react'
+import type { ReactNode } from 'react'
+import { type ModelSwitch } from '@/lib/models'
 
 // ============================================================================
-// TOPBAR — 2026-05-03 redesign
-// - Hand-rolled inline SVG icons replaced by <Feather name="..."> component
-//   (zero new dependency; canonical Feather paths in components/Feather.tsx)
-// - All color references move to brand tokens. No raw hex literals for
-//   --brand-* / --warning / --error.
-// - ORDER 65 (label "ORDER 75", soft) and ORDER 66 (hard) now use the
-//   .os-order-pill class with .warn / .danger / .complete state — defined
-//   in app/globals.css. Sibling administrative pills, distinct intensities.
-// - Avatar gradient stripped of the off-palette purple (#a855f7); now
-//   uses brand-green-bright → brand-teal-bright.
+// TOPBAR — 4-slot shared top bar (Ralph 2026-06-09 refactor)
+// ----------------------------------------------------------------------------
+// One component, used by Studio AND CRM. The chrome (gauge / billing / model /
+// theme / Order 66) is OWNED INTERNALLY because it's identical in both surfaces.
+// Everything else flows through 3 slot props:
+//
+//   left   — app identity (logo + project name). Different files per surface
+//            because Studio shows "OSKAR.OS / PROJECT / <name>" with click-to-
+//            rename while CRM shows "OskarOS / Admin Dashboard" static.
+//   tabs   — view tab bar. Studio: BRIEF/STUDIO/IMAGE/GALLERY layout pills.
+//            CRM: Sessions/Kanban/Scout/Overview/Analytics/Settings.
+//   right  — surface-specific trailing actions. Studio: Admin link + avatar.
+//            CRM: Undo button + Open App link.
+//
+// Owned-internal chrome — NEVER duplicated across surfaces:
+//   - UsageBadge (the $cost · ↻ · ●ctx% · tokens gauge)
+//   - Billing mode pills (CLI / API)
+//   - Model selector — ONE switch (FABLE / OPUS / GEMINI), exactly one lit.
+//     FABLE/OPUS switch the big-agent brain; GEMINI selects the WebDev model.
+//   - Theme pills (ONYX / POLAR)
+//   - Order 66 button (hard compaction)
+//
+// Order 65 (formerly labeled "ORDER 75") was deleted from this UI per Ralph
+// 2026-06-09 — button gone, but `lib/` route + helpers are preserved in case
+// it's revived later. The Order 65 props are no longer accepted; Studio's
+// call site has stopped passing them.
+//
+// SMPL mode (the Z.AI compat-layer workaround) was deleted from this UI per
+// Ralph 2026-06-09 — pill gone, billingMode narrowed to 'cli' | 'api'. The
+// backend routes still accept 'smpl' for legacy compatibility but no surface
+// emits it anymore.
 // ============================================================================
-
-type WebDevModel = 'claude-opus-4-8' | 'claude-sonnet-4-6' | 'gemini-3.1-pro-preview'
 
 export type Order66Status = 'idle' | 'running' | 'complete'
 
 interface TopBarProps {
-  sessionName: string | null
+  /** Filled per surface — Studio's logo + project rename vs CRM's identity. */
+  left: ReactNode
+  /** Filled per surface — Studio's layout pills vs CRM's view tabs. */
+  tabs: ReactNode
+  /** Filled per surface — Studio's Admin+avatar vs CRM's Undo+Open App. */
+  right: ReactNode
+  /** Session whose USAGE.json the gauge reads. Studio passes its session id; CRM passes "__crm__". */
   sessionId: string | null
-  layoutMode: LayoutMode
-  onLayoutChange: (mode: LayoutMode) => void
-  billingMode: 'smpl' | 'cli' | 'api'
-  onBillingChange: (mode: 'smpl' | 'cli' | 'api') => void
-  webDevModel: WebDevModel
-  onModelChange: (model: WebDevModel) => void
+  billingMode: 'cli' | 'api'
+  onBillingChange: (mode: 'cli' | 'api') => void
+  /** The model selector — ONE switch, one position lit. 'fable'/'opus' switch the
+   *  big-agent brain (CD/Consular); 'gemini' selects the WebDev build model. */
+  modelSwitch: ModelSwitch
+  onModelSwitch: (m: ModelSwitch) => void
   theme: 'onyx' | 'polar'
   onThemeChange: (theme: 'onyx' | 'polar') => void
   usageRefreshTrigger?: number
   contextPct?: number
   cachedInputTokens?: number
   realInputTokens?: number
-  onOrder65?: () => void
-  order65Status?: Order66Status
   onOrder66?: () => void
   order66Status?: Order66Status
-  /** Persist a new project/business name. Called on blur or Enter when the
-   *  editable title is committed. The handler is responsible for actually
-   *  renaming the session on disk + updating sessionId. */
-  onSessionRename?: (newName: string) => void | Promise<void>
+  /** Optional Consular session bloat percentage. When provided, the idle-state button label becomes "ORDER 66 · {bloatPct}%" — matches the original hand-rolled CRM button. Pass when the surface has a Consular session to track (CRM + Admin); omit on Studio. */
+  bloatPct?: number
 }
 
 export function TopBar({
-  sessionName,
+  left,
+  tabs,
+  right,
   sessionId,
-  layoutMode,
-  onLayoutChange,
   billingMode,
   onBillingChange,
-  webDevModel,
-  onModelChange,
+  modelSwitch,
+  onModelSwitch,
   theme,
   onThemeChange,
   usageRefreshTrigger,
   contextPct,
   cachedInputTokens,
   realInputTokens,
-  onOrder65,
-  order65Status = 'idle',
   onOrder66,
   order66Status = 'idle',
-  onSessionRename,
+  bloatPct,
 }: TopBarProps) {
-  // Editable project title — click the value to edit, Enter / blur commits,
-  // Esc cancels. Local draft state isolated from the prop so partial edits
-  // don't propagate back into the session model until commit.
-  const [isEditingName, setIsEditingName] = useState(false)
-  const [nameDraft, setNameDraft] = useState(sessionName ?? '')
-  const nameInputRef = useRef<HTMLInputElement | null>(null)
-  useEffect(() => {
-    // Keep draft in sync with the prop while NOT editing — once the user
-    // starts editing, the draft is theirs until they commit/cancel.
-    if (!isEditingName) setNameDraft(sessionName ?? '')
-  }, [sessionName, isEditingName])
-  useEffect(() => {
-    if (isEditingName) {
-      nameInputRef.current?.focus()
-      nameInputRef.current?.select()
-    }
-  }, [isEditingName])
-  const commitName = () => {
-    const next = nameDraft.trim()
-    setIsEditingName(false)
-    if (!next || next === (sessionName ?? '')) {
-      setNameDraft(sessionName ?? '')
-      return
-    }
-    onSessionRename?.(next)
-  }
-  const cancelName = () => {
-    setNameDraft(sessionName ?? '')
-    setIsEditingName(false)
-  }
-
   // Pill group wrapper style — light bg in polar, dark in onyx.
   const pillGroupStyle: React.CSSProperties = {
     display: 'flex',
@@ -107,14 +95,12 @@ export function TopBar({
     padding: '4px',
     backgroundColor: theme === 'polar' ? 'var(--bg-card)' : 'rgba(9, 9, 11, 0.5)',
     borderRadius: '8px',
-    border: theme === 'polar' ? '1px solid var(--border-card)' : '1px solid rgba(39, 39, 42, 0.5)'
+    border: theme === 'polar' ? '1px solid var(--border-card)' : '1px solid rgba(39, 39, 42, 0.5)',
   }
 
-  // Pill button base style — active = brand-green-bright, inactive = readable text.
-  // NOTE: `transition` is scoped to box-shadow only — the active/inactive
-  // background swap must be INSTANT. A `transition: all` here makes state
-  // toggles (billing, model, theme) feel laggy because the color animates
-  // over 200ms after the click.
+  // Pill button base — active = brand-green-bright, inactive = readable text.
+  // `transition` scoped to box-shadow only — the active/inactive bg swap must
+  // be INSTANT. A `transition: all` makes state toggles feel laggy.
   const getPillStyle = (isActive: boolean): React.CSSProperties => ({
     padding: '6px 12px',
     fontSize: '10px',
@@ -129,176 +115,34 @@ export function TopBar({
     gap: '6px',
     backgroundColor: isActive ? 'var(--brand-green-bright)' : 'transparent',
     color: isActive ? 'var(--text-on-brand)' : 'var(--text-main)',
-    boxShadow: isActive ? '0 1px 3px color-mix(in srgb, var(--brand-green-bright) 30%, transparent)' : 'none'
+    boxShadow: isActive ? '0 1px 3px color-mix(in srgb, var(--brand-green-bright) 30%, transparent)' : 'none',
   })
 
-  // ORDER pill class derivation — lives in globals.css under `.os-order-pill`
+  // ORDER pill class derivation — lives in globals.css under `.os-order-pill`.
   const orderClass = (severity: 'warn' | 'danger', status: Order66Status) =>
     `os-order-pill ${status === 'complete' ? 'complete' : severity}`
 
   return (
-    <header style={{
-      height: '100%',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      padding: '0 24px',
-      backgroundColor: 'var(--bg-card)',
-      userSelect: 'none',
-    }}>
-      {/* LEFT: Logo + Session */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '24px' }}>
-        {/* Logo */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer' }}>
-          <div style={{
-            width: '32px',
-            height: '32px',
-            backgroundColor: 'var(--text-main)',
-            borderRadius: '8px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            color: 'var(--bg-card)',
-            boxShadow: '0 1px 2px rgba(0,0,0,0.1)'
-          }}>
-            <Feather name="box" size={16} />
-          </div>
-          <span style={{
-            fontFamily: 'Inter Tight, var(--font-display), sans-serif',
-            fontWeight: 700,
-            fontSize: '18px',
-            letterSpacing: '-0.02em',
-            color: 'var(--text-main)'
-          }}>
-            OSKAR<span style={{ opacity: 0.5, fontWeight: 400 }}>.OS</span>
-          </span>
-        </div>
-
-        {/* Divider */}
-        <div style={{ height: '24px', width: '1px', backgroundColor: 'var(--border-card)' }} />
-
-        {/* Session Info — Two lines. The PROJECT label stays static; the
-            value is click-to-edit. Enter or blur commits via onSessionRename;
-            Escape cancels. */}
-        {sessionName && (
-          <div style={{ display: 'flex', flexDirection: 'column' }}>
-            <span style={{
-              fontSize: '9px',
-              color: 'var(--text-muted)',
-              fontFamily: 'JetBrains Mono, var(--font-mono), monospace',
-              textTransform: 'uppercase',
-              letterSpacing: '0.15em',
-              lineHeight: 1,
-              marginBottom: '4px'
-            }}>Project</span>
-            {isEditingName ? (
-              <input
-                ref={nameInputRef}
-                value={nameDraft}
-                onChange={(e) => setNameDraft(e.target.value)}
-                onBlur={commitName}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    e.preventDefault()
-                    commitName()
-                  } else if (e.key === 'Escape') {
-                    e.preventDefault()
-                    cancelName()
-                  }
-                }}
-                style={{
-                  fontSize: '16px',
-                  fontWeight: 700,
-                  letterSpacing: '-0.01em',
-                  lineHeight: 1,
-                  color: 'var(--text-main)',
-                  background: 'transparent',
-                  border: 'none',
-                  borderBottom: '1px solid var(--brand-green-bright)',
-                  outline: 'none',
-                  padding: '1px 0',
-                  fontFamily: 'inherit',
-                  width: `${Math.max(nameDraft.length, 4)}ch`,
-                  minWidth: '6ch',
-                }}
-              />
-            ) : (
-              <span
-                role="button"
-                tabIndex={0}
-                onClick={() => setIsEditingName(true)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' || e.key === ' ') {
-                    e.preventDefault()
-                    setIsEditingName(true)
-                  }
-                }}
-                title="Click to rename project"
-                style={{
-                  fontSize: '16px',
-                  color: 'var(--text-main)',
-                  fontWeight: 700,
-                  letterSpacing: '-0.01em',
-                  lineHeight: 1,
-                  cursor: 'text',
-                  borderBottom: '1px dashed transparent',
-                  transition: 'border-color 0.15s',
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.borderBottomColor = 'var(--border-card)'
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.borderBottomColor = 'transparent'
-                }}
-              >{sessionName}</span>
-            )}
-          </div>
-        )}
+    <header
+      style={{
+        height: '100%',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        padding: '0 24px',
+        backgroundColor: 'var(--bg-card)',
+        userSelect: 'none',
+        gap: '24px',
+      }}
+    >
+      {/* LEFT: identity slot + tabs slot, kept together so they pin to the left. */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: '24px', minWidth: 0 }}>
+        {left}
+        {tabs}
       </div>
 
-      {/* RIGHT: Controls */}
+      {/* RIGHT: owned chrome (gauge + billing + model + theme + Order 66) + surface-specific right slot. */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-        {/* Layout Controls */}
-        <div style={pillGroupStyle}>
-          <button
-            onClick={() => onLayoutChange('2-panel')}
-            style={getPillStyle(layoutMode === '2-panel')}
-            title="Brief Mode (2-panel)"
-          >
-            <Feather name="columns" size={14} />
-            BRIEF
-          </button>
-          <button
-            onClick={() => onLayoutChange('3-panel')}
-            style={getPillStyle(layoutMode === '3-panel')}
-            title="Studio Mode (3-panel)"
-          >
-            <Feather name="grid" size={14} />
-            STUDIO
-          </button>
-          <button
-            onClick={() => onLayoutChange('image')}
-            style={getPillStyle(layoutMode === 'image')}
-            title="Image Mode (Advanced image editor)"
-          >
-            <Feather name="image" size={14} />
-            IMAGE
-          </button>
-          <button
-            onClick={() => onLayoutChange('gallery')}
-            style={getPillStyle(layoutMode === 'gallery')}
-            title="Gallery Mode (vibes grid)"
-          >
-            <Feather name="layers" size={14} />
-            GALLERY
-          </button>
-        </div>
-
-        {/* Usage Badge — Shows session cost. Bug N (Ralph 2026-05-04):
-            billingMode prop makes the badge display mode-specific cost
-            (CLI shows what Claude Code reported; API shows calculateCost
-            cumulative). Toggling billing mode flips the displayed value
-            AND the visible CLI/API label. */}
         <UsageBadge
           sessionId={sessionId}
           refreshTrigger={usageRefreshTrigger}
@@ -309,7 +153,7 @@ export function TopBar({
           billingMode={billingMode}
         />
 
-        {/* Theme Switcher */}
+        {/* Theme — ONYX / POLAR */}
         <div style={pillGroupStyle}>
           <button onClick={() => onThemeChange('onyx')} style={getPillStyle(theme === 'onyx')}>
             <Feather name="moon" size={10} />
@@ -321,49 +165,24 @@ export function TopBar({
           </button>
         </div>
 
-        {/* Billing Mode — 3-way: SMPL (tier alias → best model), CLI (Claude ID), API (Anthropic direct) */}
+        {/* Billing — CLI (Claude ID via Claude Code subscription) vs API (Anthropic direct, out-of-pocket). */}
         <div style={pillGroupStyle}>
-          <button onClick={() => onBillingChange('smpl')} style={getPillStyle(billingMode === 'smpl')}>
-            SMPL
-          </button>
-          <button onClick={() => onBillingChange('cli')} style={getPillStyle(billingMode === 'cli')}>
-            CLI
-          </button>
-          <button onClick={() => onBillingChange('api')} style={getPillStyle(billingMode === 'api')}>
-            API
-          </button>
+          <button onClick={() => onBillingChange('cli')} style={getPillStyle(billingMode === 'cli')}>CLI</button>
+          <button onClick={() => onBillingChange('api')} style={getPillStyle(billingMode === 'api')}>API</button>
         </div>
 
-        {/* Model Switch — always shows all 3, Gemini disabled in CLI mode */}
+        {/* THE model selector — ONE switch, exactly one position lit. FABLE / OPUS
+            switch the BIG-AGENT brain (CD in Studio, Consular in CRM): a click
+            SIGKILLs the bridge and the next turn respawns + re-rolls until the wire
+            is 1M. GEMINI selects the WebDev build model (its path left untouched).
+            SONNET ripped out. Single-select — never two lit. Ralph 2026-06-10. */}
         <div style={pillGroupStyle}>
-          <button onClick={() => onModelChange('claude-opus-4-8')} style={getPillStyle(webDevModel === 'claude-opus-4-8')}>
-            OPUS
-          </button>
-          <button onClick={() => onModelChange('claude-sonnet-4-6')} style={getPillStyle(webDevModel === 'claude-sonnet-4-6')}>
-            SONNET
-          </button>
-          <button onClick={() => onModelChange('gemini-3.1-pro-preview')} style={getPillStyle(webDevModel === 'gemini-3.1-pro-preview')}>
-            GEMINI
-          </button>
+          <button disabled title="Temporarily unavailable" style={{ ...getPillStyle(false), opacity: 0.4, cursor: 'not-allowed' }}>FABLE</button>
+          <button onClick={() => onModelSwitch('opus')} style={getPillStyle(modelSwitch === 'opus')}>OPUS</button>
+          <button onClick={() => onModelSwitch('gemini')} style={getPillStyle(modelSwitch === 'gemini')}>GEMINI</button>
         </div>
 
-        {/* ORDER 75 — soft compaction (no bridge kill) — warning amber */}
-        <button
-          type="button"
-          onClick={onOrder65}
-          disabled={order65Status !== 'idle'}
-          className={orderClass('warn', order65Status)}
-          title="Soft compaction — keeps the bridge alive"
-        >
-          <Feather name="refresh-cw" size={12} strokeWidth={2.5} />
-          {order65Status === 'idle' ? 'ORDER 75' :
-           order65Status === 'complete' ? 'REJUVENATED' :
-           'REJUVENATING…'}
-        </button>
-
-        {/* ORDER 66 — hard compaction (kills bridge) — error red. Icon is
-            `zap` (Sith lightning) per Ralph 2026-05-03 — alert-triangle
-            looked like a road-sign warning, not a kill order. */}
+        {/* ORDER 66 — hard compaction (kills bridge). Icon = `zap` (Sith lightning). */}
         <button
           type="button"
           onClick={onOrder66}
@@ -372,59 +191,12 @@ export function TopBar({
           title="Hard compaction — kills the bridge and wipes screenshots"
         >
           <Feather name="zap" size={12} strokeWidth={2.5} />
-          {order66Status === 'idle' ? 'ORDER 66' :
+          {order66Status === 'idle' ? (typeof bloatPct === 'number' ? `ORDER 66 · ${bloatPct}%` : 'ORDER 66') :
            order66Status === 'complete' ? 'RESPAWNED' :
            'EXECUTING…'}
         </button>
 
-        {/* Admin Link */}
-        <a
-          href="/admin.html"
-          style={{
-            fontSize: '10px',
-            fontWeight: 700,
-            letterSpacing: '0.05em',
-            color: 'var(--text-muted)',
-            textDecoration: 'none',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '4px',
-            transition: 'color 0.2s'
-          }}
-          onMouseOver={(e) => (e.currentTarget.style.color = 'var(--text-main)')}
-          onMouseOut={(e) => (e.currentTarget.style.color = 'var(--text-muted)')}
-        >
-          <Feather name="shield" size={12} />
-          ADMIN
-        </a>
-
-        {/* User Avatar — gradient from brand-green-bright to brand-teal-bright.
-            (Old gradient ended in #a855f7 purple, off-palette.) */}
-        <div style={{
-          width: '36px',
-          height: '36px',
-          borderRadius: '50%',
-          background: 'linear-gradient(to top right, var(--brand-green-bright), var(--brand-teal-bright))',
-          padding: '2px',
-          cursor: 'pointer',
-          transition: 'transform 0.2s'
-        }}>
-          <div style={{
-            width: '100%',
-            height: '100%',
-            borderRadius: '50%',
-            backgroundColor: 'var(--bg-card)',
-            border: '1px solid var(--border-card)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            fontSize: '12px',
-            fontWeight: 700,
-            color: 'var(--text-main)'
-          }}>
-            OS
-          </div>
-        </div>
+        {right}
       </div>
     </header>
   )

@@ -1,0 +1,618 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Oskar · GTM-Intelligence — Teil 4: Kunde, Vertikale & Go-to-Market</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#FBFAF7; --panel:#FFFFFF; --ink:#15181E; --ink-soft:#4B515B; --ink-mute:#838A94;
+    --rule:#E6E2D8; --rule-strong:#D4CFC2;
+    --navy:#163A5F; --navy-soft:rgba(22,58,95,.08); --ember:#C2410C;
+    --w1:#2E7D5B; --w1b:#B7791F; --w2:#3B5BA5; --later:#A8423B;
+    --hoch:#2E7D5B; --mittel:#B7791F; --niedrig:#A8423B;
+    --sans:'Inter',system-ui,sans-serif; --serif:'Fraunces',Georgia,serif; --mono:'JetBrains Mono',monospace;
+  }
+  *{box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  body{
+    background:var(--paper); color:var(--ink); font-family:var(--sans);
+    line-height:1.62; margin:0; -webkit-font-smoothing:antialiased;
+    font-size:16.5px;
+  }
+  .wrap{max-width:860px; margin:0 auto; padding:0 28px 120px;}
+
+  /* ── header ── */
+  header.masthead{padding:64px 0 30px; border-bottom:2px solid var(--ink); margin-bottom:14px;}
+  .kicker{font-family:var(--mono); font-weight:700; font-size:11px; letter-spacing:.28em; text-transform:uppercase; color:var(--navy);}
+  h1{font-family:var(--serif); font-weight:500; font-size:clamp(2.1rem,5vw,3.1rem); line-height:1.04; letter-spacing:-.015em; margin:18px 0 0;}
+  h1 em{font-style:italic; color:var(--navy);}
+  .dek{font-size:1.06rem; color:var(--ink-soft); margin:16px 0 0; max-width:62ch;}
+  .meta-row{display:flex; flex-wrap:wrap; gap:8px 18px; margin-top:22px; font-family:var(--mono); font-size:11px; letter-spacing:.04em; color:var(--ink-mute); text-transform:uppercase;}
+  .meta-row b{color:var(--ink);}
+
+  /* confidence legend */
+  .legend{display:flex; gap:14px; flex-wrap:wrap; margin-top:14px; font-family:var(--mono); font-size:10.5px; letter-spacing:.05em; color:var(--ink-mute);}
+  .pill{display:inline-flex; align-items:center; gap:5px; font-family:var(--mono); font-size:10px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; padding:2px 7px; border-radius:2px;}
+  .pill::before{content:''; width:6px; height:6px; border-radius:50%; background:currentColor;}
+  .k-hoch{color:var(--hoch); background:rgba(46,125,91,.10);}
+  .k-mittel{color:var(--mittel); background:rgba(183,121,31,.12);}
+  .k-niedrig{color:var(--niedrig); background:rgba(168,66,59,.12);}
+
+  /* ── section headers ── */
+  section{margin-top:54px;}
+  .sec-head{display:flex; align-items:baseline; gap:14px; border-top:1px solid var(--rule-strong); padding-top:16px; margin-bottom:6px;}
+  .sec-num{font-family:var(--mono); font-weight:700; font-size:13px; color:var(--navy); letter-spacing:.05em;}
+  h2{font-family:var(--sans); font-weight:700; font-size:1.5rem; letter-spacing:-.01em; margin:0;}
+  h3{font-family:var(--sans); font-weight:700; font-size:1.06rem; margin:30px 0 6px; letter-spacing:-.005em;}
+  p{margin:.7em 0;}
+  strong{font-weight:700;}
+  a{color:var(--navy);}
+
+  /* ── TL;DR feature ── */
+  .tldr{background:var(--panel); border:1px solid var(--rule-strong); border-left:4px solid var(--navy); border-radius:6px; padding:26px 30px; margin:30px 0 8px; box-shadow:0 1px 0 rgba(0,0,0,.02), 0 18px 40px -28px rgba(22,58,95,.30);}
+  .tldr .lbl{font-family:var(--mono); font-weight:700; font-size:11px; letter-spacing:.26em; text-transform:uppercase; color:var(--navy);}
+  .tldr h2{font-family:var(--serif); font-weight:500; font-size:1.5rem; margin:6px 0 14px; letter-spacing:-.01em;}
+  .tldr ul{margin:0; padding:0; list-style:none;}
+  .tldr li{position:relative; padding:14px 0 14px 30px; border-top:1px solid var(--rule);}
+  .tldr li:first-child{border-top:none; padding-top:2px;}
+  .tldr li::before{content:counter(tl); counter-increment:tl; position:absolute; left:0; top:14px; font-family:var(--mono); font-weight:700; font-size:12px; color:var(--navy);}
+  .tldr ul{counter-reset:tl;}
+  .tldr li:first-child::before{top:2px;}
+
+  /* ── callouts ── */
+  .call{display:inline-block; font-family:var(--mono); font-weight:700; font-size:10.5px; letter-spacing:.06em; text-transform:uppercase; color:#fff; background:var(--navy); padding:2px 7px; border-radius:3px; margin-right:4px;}
+  .box{border:1px solid var(--rule-strong); border-radius:6px; padding:18px 22px; margin:22px 0; background:var(--panel);}
+  .box.caveat{background:#FAF7F0; border-left:4px solid var(--mittel);}
+  .box.reco{background:#FCF4EF; border-left:4px solid var(--ember);}
+  .box .bx-lbl{font-family:var(--mono); font-weight:700; font-size:10.5px; letter-spacing:.2em; text-transform:uppercase; color:var(--ink-mute); display:block; margin-bottom:8px;}
+
+  /* ── tables ── */
+  .tbl-scroll{overflow-x:auto; margin:18px 0; border:1px solid var(--rule-strong); border-radius:6px;}
+  table{border-collapse:collapse; width:100%; font-size:.82rem;}
+  thead th{font-family:var(--mono); font-weight:700; font-size:9.5px; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-mute); text-align:left; padding:11px 10px; border-bottom:1.5px solid var(--rule-strong); background:#F4F1EA; white-space:nowrap; vertical-align:bottom;}
+  tbody td{padding:11px 10px; border-bottom:1px solid var(--rule); vertical-align:top;}
+  tbody tr:last-child td{border-bottom:none;}
+  .grp{font-weight:700; font-size:.86rem; line-height:1.3;}
+  .wtag{display:inline-block; font-family:var(--mono); font-weight:700; font-size:9px; letter-spacing:.08em; padding:1px 5px; border-radius:2px; margin-bottom:4px;}
+  .wtag.w1{color:var(--w1); background:rgba(46,125,91,.12);}
+  .wtag.w1b{color:var(--w1b); background:rgba(183,121,31,.14);}
+  .wtag.w2{color:var(--w2); background:rgba(59,91,165,.12);}
+  .wtag.later{color:var(--later); background:rgba(168,66,59,.12);}
+  tr.row-w1 td:first-child{box-shadow:inset 3px 0 0 var(--w1);}
+  tr.row-w1b td:first-child{box-shadow:inset 3px 0 0 var(--w1b);}
+  tr.row-w2 td:first-child{box-shadow:inset 3px 0 0 var(--w2);}
+  tr.row-later td:first-child{box-shadow:inset 3px 0 0 var(--later);}
+  /* score cells */
+  td.sc{text-align:center; font-family:var(--mono); font-weight:700; font-size:.82rem; width:30px; color:var(--ink);}
+  td.s1{background:rgba(22,58,95,.05);} td.s2{background:rgba(22,58,95,.11);}
+  td.s3{background:rgba(22,58,95,.19);} td.s4{background:rgba(22,58,95,.30);}
+  td.s5{background:rgba(22,58,95,.44); color:#fff;}
+  td.sum{text-align:center; font-family:var(--mono); font-weight:700; font-size:1.05rem;}
+  td.sum span{font-size:.6rem; color:var(--ink-mute); font-weight:500;}
+
+  ul.body-list,ol.body-list{margin:.7em 0; padding-left:1.3em;}
+  ul.body-list li,ol.body-list li{margin:.4em 0;}
+  .src-note{font-family:var(--mono); font-size:11px; color:var(--ink-mute); line-height:1.5;}
+  em{color:var(--ink-soft);}
+
+  /* ── NEU / Report II markers ── */
+  .neu{display:inline-flex; align-items:center; gap:5px; font-family:var(--mono); font-weight:700; font-size:9.5px; letter-spacing:.12em; text-transform:uppercase; color:#fff; background:var(--ember); padding:2px 8px; border-radius:3px; vertical-align:middle;}
+  .neu::before{content:''; width:6px; height:6px; border-radius:50%; background:#fff;}
+  .part-divider{margin:96px 0 0; border:none; border-top:2px solid var(--ember);}
+  .part-banner{background:#FCF4EF; border:1px solid var(--rule-strong); border-left:4px solid var(--ember); border-radius:6px; padding:26px 30px; margin:28px 0 0; box-shadow:0 18px 40px -28px rgba(194,65,12,.30);}
+  .part-banner .pb-kicker{font-family:var(--mono); font-weight:700; font-size:11px; letter-spacing:.24em; text-transform:uppercase; color:var(--ember);}
+  .part-banner h2{font-family:var(--serif); font-weight:500; font-size:clamp(1.5rem,3.4vw,1.9rem); margin:10px 0 8px; letter-spacing:-.01em;}
+  .part-banner p{margin:0; color:var(--ink-soft);}
+  section.neu-sec .sec-head{border-top-color:var(--ember);}
+  section.neu-sec .sec-num{color:var(--ember);}
+  .src-list{margin:.7em 0; padding-left:1.4em;}
+  .src-list li{font-family:var(--mono); font-size:10.5px; color:var(--ink-mute); line-height:1.5; margin:.35em 0;}
+  /* batch-2 (Report II) row marker — badge only; never override the heatmap or the wave bar */
+  .src2{display:inline-block; font-family:var(--mono); font-weight:700; font-size:8.5px; letter-spacing:.08em; color:#fff; background:var(--ember); padding:1px 5px; border-radius:2px; margin-left:6px; vertical-align:middle;}
+  footer{margin-top:60px; border-top:2px solid var(--ink); padding-top:16px; font-family:var(--mono); font-size:10.5px; letter-spacing:.04em; color:var(--ink-mute); text-transform:uppercase;}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="masthead">
+  <div class="kicker">Oskar · Go-to-Market Intelligence · 4 von 4</div>
+  <h1>Kunde, Vertikale<br>& <em>Go-to-Market</em></h1>
+  <p class="dek">Wer zuerst, wer später, wer (noch) nicht — ein gestaffelter Beachhead-Plan für ein 2-Personen-Team in der Deutschschweiz.</p>
+  <div class="meta-row">
+    <span>Markt · <b>Deutschschweiz</b></span>
+    <span>Stand · <b>30. Mai 2026</b></span>
+    <span>Team · <b>Ralph (Design) · Filippo (Sales)</b></span>
+    <span>Haltung · <b>chancenorientiert</b></span>
+    <span class="neu">Erweitert · Report II — 10 weitere Verticals</span>
+  </div>
+  <div class="legend">
+    <span class="pill k-hoch">hoch</span>
+    <span class="pill k-mittel">mittel</span>
+    <span class="pill k-niedrig">niedrig</span>
+    <span>Datenschutz/revDSG = gelöster Standard, kein Fokusthema · internationale Daten als Benchmark markiert</span>
+  </div>
+</header>
+
+<div class="tldr">
+  <span class="lbl">TL;DR — Kernantwort in 3 Punkten</span>
+  <h2>Fokussierte Vertical-Beachhead — nicht breit, nicht White-Label.</h2>
+  <ul>
+    <li><strong>Starte als fokussierte Vertical-Beachhead.</strong> Wave 1 = <strong>Psychotherapeut:innen (website-first)</strong> + <strong>Treuhänder/Steuerberater (Full Stack)</strong> + <strong>kleine Anwaltskanzleien (website-first/selektiv CRM)</strong>, parallel <strong>Zahnärzte/Ästhetik/Physio</strong> als buchungsgetriebener Full-Stack-Showcase. Der Markt ist nachfrageseitig reif, angebotsseitig leer: nur <strong>36 %</strong> der Schweizer KMU haben überhaupt eine Website, nur <strong>3 %</strong> bieten Online-Terminbuchung — während <strong>82 %</strong> der Bevölkerung sich online informieren und <strong>77 %</strong> online buchen wollen (localsearch/HSLU «KMU Digital Pulse 2025»).</li>
+    <li><strong>Die Klienten-Hypothese ist überwiegend bestätigt</strong> — mit <em>einer</em> evidenzbasierten Abweichung: Psychotherapeut:innen gehören NICHT nur in «Wave 1b», sondern an die Spitze. Das <strong>Anordnungsmodell (seit 1.7.2022)</strong> zwang Tausende in die Selbständigkeit; die Zahl selbständiger Abrechnungspraxen verdoppelte sich auf <strong>4'834 (Q2 2024)</strong> — ein einzigartiger, zeitkritischer Greenfield-Trigger. Ärzte/Gruppenpraxen und Gastronomie (2,1 % Cashflow-Marge) bleiben korrekt «Later/Meiden».</li>
+    <li><strong>Für Filippo als Einzelverkäufer skaliert nur eines: eine Referral-Engine in engen Berufs-Communities.</strong> 75 % der Bevölkerung folgen Empfehlungen; B2B-Schweiz lebt von Vertrauen und persönlicher Beziehung. Priorität: Vertical-Referral + Verbands-/Sektionskanäle + Vorher-Nachher-Cases + Filippos LinkedIn — Kaltakquise nur als Ergänzung.</li>
+  </ul>
+</div>
+
+<section>
+  <div class="sec-head"><span class="sec-num">01</span><h2>Segmentempfehlung</h2></div>
+  <p><strong>Empfehlung: Fokussierte Vertical-Beachhead-Strategie</strong> — weder breites «DCH-KMU» noch Agentur-/White-Label-Modell.</p>
+  <p>Die Marktstruktur diktiert den Fokus. Laut der repräsentativen Studie <strong>«KMU Digital Pulse 2025» von localsearch und der Hochschule Luzern (HSLU)</strong> (Bevölkerungsbefragung durch intervista, 23.6.–2.7.2025; Website-Analyse einer Zufallsstichprobe von 47'079 KMU aus 948'816) gilt: «Nur rund ein Drittel der Schweizer KMU (36 %) verfügt über eine eigene Website … [bei] Mikrounternehmen … lediglich 33 %.» Bei der Buchung ist die Lücke noch dramatischer: «nur 3 % aller Schweizer KMU bieten diese Möglichkeit auf ihrer Website» (von den KMU <em>mit</em> Website nur 7 %). Dem steht reife Nachfrage gegenüber: «82 % … erachten digitale Informationen zu KMU-Dienstleistungen als wichtig», und «77 % … [sprechen sich] für die Möglichkeit aus, Termine bei KMU online zu reservieren» (18–44-Jährige je 87 %).</p>
+  <p><strong>Warum Vertical statt breit:</strong> Mit 2 Personen ist Fokus die einzige Hebelwirkung. Eine Vertikale erlaubt (a) wiederverwendbare Design-Templates und Datenmodelle, (b) glaubwürdige, branchenspezifische Vorher-Nachher-Cases und (c) referral-getriebenes Wachstum in dichten Berufs-Communities. «Alle KMU» bedeutet, jeden Verkauf bei null zu starten — tödlich bei Einzelverkäufer.</p>
+  <p><strong>Warum kein White-Label/Agentur-Modell:</strong> Es zerstört die Kernpositionierung «human designed, amplified by AI» (die Marke verschwindet hinter dem Reseller), drückt die Marge, und ein Einzelverkäufer kann Agentur-Partnerschaften weder akquirieren noch betreuen, ohne das Kerngeschäft zu vernachlässigen. <span class="pill k-hoch">hoch</span></p>
+</section>
+
+<section>
+  <div class="sec-head"><span class="sec-num">02</span><h2>Gestaffelter Beachhead-Plan — alle 19 Verticals</h2></div>
+  <h3>Bewertungskriterien (Score 1–5)</h3>
+  <ol class="body-list">
+    <li><strong>K1 — Einzel-/Mikro-Entscheider</strong> (kurzer Sales-Cycle, ein «Ja» genügt)</li>
+    <li><strong>K2 — Termin-/Anfrage-getrieben</strong> (Booking + Consular liefern Direktnutzen)</li>
+    <li><strong>K3 — Schwache bestehende Website</strong> (grosser Vorher-Nachher-Effekt)</li>
+    <li><strong>K4 — Kaufkraft + Statussensitivität</strong></li>
+    <li><strong>K5 — Referral-Dichte</strong> (enge Community → Schneeball)</li>
+    <li><strong>K6 — Stack-Deployability</strong> (voller Stack inkl. CRM/WhatsApp/Booking ausrollbar?)</li>
+    <li><strong>K7 — 2-Personen-Eignung</strong> (kein entrenched IT-System, keine Komitee-Entscheide)</li>
+  </ol>
+  <p class="src-note" style="margin-top:6px;">Zeilen mit <span class="src2">II</span> stammen aus Report II und wurden <strong>auf diese Kriterien umbewertet</strong> (Augenmass, keine neue Recherche) — entscheidend ist <strong>K6 = Stack-Deployability</strong>: Portfolio-/Showcase-Verticals fallen dort, weil ein voller CRM/Booking-Stack kaum ausrollbar ist. Welle = neu abgeleitet aus dem vereinheitlichten Score (Wave 1 ≥ 29 · Wave 2 = 23–28 · Meiden ≤ 22).</p>
+
+  <div class="tbl-scroll">
+  <table>
+    <thead>
+      <tr>
+        <th>Welle / Gruppe</th>
+        <th>K1</th><th>K2</th><th>K3</th><th>K4</th><th>K5</th><th>K6</th><th>K7</th>
+        <th>Σ/35</th>
+        <th>Modell</th><th>Marktgrösse (CH)</th><th>Grösste Hürde</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr class="row-w1">
+        <td><span class="wtag w1">Wave 1</span><div class="grp">Psychotherapeut:innen / Psycholog:innen</div></td>
+        <td class="sc s5">5</td><td class="sc s5">5</td><td class="sc s5">5</td><td class="sc s4">4</td><td class="sc s5">5</td><td class="sc s3">3</td><td class="sc s5">5</td>
+        <td class="sum">32<br><span>/35</span></td>
+        <td><strong>Website-first</strong>; CRM bewusst flach (Schweigepflicht, kein WhatsApp-Lead-Tracking)</td>
+        <td>FSP &gt;12'000 Mitgl.; ~9'000 PsyReg-qualifiziert; 4'834 selbst. Praxen (Q2 2024)</td>
+        <td>Lange Wartelisten = wenig Akquisedruck bei etablierten Praxen → Fokus Neu-Selbständige</td>
+      </tr>
+      <tr class="row-w1">
+        <td><span class="wtag w1">Wave 1</span><div class="grp">Treuhänder / Steuerberater</div></td>
+        <td class="sc s5">5</td><td class="sc s3">3</td><td class="sc s4">4</td><td class="sc s5">5</td><td class="sc s5">5</td><td class="sc s5">5</td><td class="sc s4">4</td>
+        <td class="sum">31<br><span>/35</span></td>
+        <td><strong>Full Stack</strong> (CRM, Termin, E-Mail)</td>
+        <td>~12'900 Firmen (NOGA 6920); TREUHAND|SUISSE &gt;4'300 Mitgl.; 80 % ≤10 MA</td>
+        <td>Konservativ, datenschutz-sensibel, lange Vertrauensbildung</td>
+      </tr>
+      <tr class="row-w1">
+        <td><span class="wtag w1">Wave 1</span><div class="grp">Zahnärzte / Ästhetik / Physio</div></td>
+        <td class="sc s5">5</td><td class="sc s5">5</td><td class="sc s4">4</td><td class="sc s5">5</td><td class="sc s4">4</td><td class="sc s4">4</td><td class="sc s3">3</td>
+        <td class="sum">30<br><span>/35</span></td>
+        <td><strong>Full Stack</strong> (Booking + WhatsApp-Reminder = direkter No-Show-ROI)</td>
+        <td>~4'800–6'000 Zahnärzte; ~15'000 Physio; Ästhetik (Selbstzahler) wachsend</td>
+        <td>Zahnärzte oft schon mit Praxissoftware/OneDoc → reiner Ästhetik-Selbstzahlermarkt am attraktivsten</td>
+      </tr>
+      <tr class="row-w1">
+        <td><span class="wtag w1">Wave 1</span><div class="grp">Anwälte / kleine Kanzleien</div></td>
+        <td class="sc s5">5</td><td class="sc s3">3</td><td class="sc s4">4</td><td class="sc s5">5</td><td class="sc s4">4</td><td class="sc s4">4</td><td class="sc s4">4</td>
+        <td class="sum">29<br><span>/35</span></td>
+        <td><strong>Website-first</strong> + selektiv CRM (Mandantenkommunikation)</td>
+        <td>SAV ~11'010 Mitgl.; 9'497 Advokatur-/Notariatsbüros (2022)</td>
+        <td>Konservatismus, Vertraulichkeit, «Branding» als unseriös wahrgenommen</td>
+      </tr>
+      <tr class="row-w2">
+        <td><span class="wtag w2">Wave 2</span><div class="grp">Coaches / Berater</div></td>
+        <td class="sc s5">5</td><td class="sc s4">4</td><td class="sc s4">4</td><td class="sc s3">3</td><td class="sc s3">3</td><td class="sc s4">4</td><td class="sc s5">5</td>
+        <td class="sum">28<br><span>/35</span></td>
+        <td>Full Stack (Booking + Lead)</td>
+        <td>NOGA 70.22 = 21'865 Firmen (2021); kein eigener «Coach»-Code</td>
+        <td>Kaufkraft heterogen, viele Hobby-/Teilzeit-Anbieter</td>
+      </tr>
+      <tr class="row-w2 from2">
+        <td><span class="wtag w2">Wave 2</span><span class="src2">II</span><div class="grp">Augenoptiker / Optometristen</div></td>
+        <td class="sc s5">5</td><td class="sc s4">4</td><td class="sc s4">4</td><td class="sc s4">4</td><td class="sc s3">3</td><td class="sc s4">4</td><td class="sc s4">4</td>
+        <td class="sum">28<br><span>/35</span></td>
+        <td>Website + Booking (Sehtest/Anpassung)</td>
+        <td>~1'050 CH (2020)</td>
+        <td>Stärkster Batch-2: echtes Booking; Ketten (Fielmann/Visilab/McOptik) ausschliessen</td>
+      </tr>
+      <tr class="row-w2 from2">
+        <td><span class="wtag w2">Wave 2</span><span class="src2">II</span><div class="grp">Juweliere/Uhrmacher &amp; Ateliers</div></td>
+        <td class="sc s5">5</td><td class="sc s3">3</td><td class="sc s4">4</td><td class="sc s5">5</td><td class="sc s3">3</td><td class="sc s3">3</td><td class="sc s4">4</td>
+        <td class="sum">27<br><span>/35</span></td>
+        <td>Website-first; opt. Bespoke-Termin</td>
+        <td>~990 Detailhandel CH (2022)</td>
+        <td>Retail-Showcase (kein Booking), lose Community; CI-Vorgaben → inhabergeführte Ateliers</td>
+      </tr>
+      <tr class="row-w2 from2">
+        <td><span class="wtag w2">Wave 2</span><span class="src2">II</span><div class="grp">Kleintier-Tierarztpraxen (unabh.)</div></td>
+        <td class="sc s4">4</td><td class="sc s5">5</td><td class="sc s4">4</td><td class="sc s4">4</td><td class="sc s3">3</td><td class="sc s4">4</td><td class="sc s3">3</td>
+        <td class="sum">27<br><span>/35</span></td>
+        <td>Website + Booking</td>
+        <td>~4'000 Tierärzte, ~60 % Kleintier; ~1'600 Praxen (indik.)</td>
+        <td>Kettenkonsolidierung (VetTrust, IVC Evidensia) + teils Praxis-Software</td>
+      </tr>
+      <tr class="row-w2 from2">
+        <td><span class="wtag w2">Wave 2</span><span class="src2">II</span><div class="grp">Weingüter Deutschschweiz</div></td>
+        <td class="sc s5">5</td><td class="sc s4">4</td><td class="sc s4">4</td><td class="sc s3">3</td><td class="sc s3">3</td><td class="sc s4">4</td><td class="sc s4">4</td>
+        <td class="sum">27<br><span>/35</span></td>
+        <td>Website + Shop/Bestell-Layer (E-Commerce + Event-Buchung)</td>
+        <td>~400 Produzenten DCH (von ~3'000 Winzern)</td>
+        <td>~90 % Nebenerwerb → Budget (nur Premium-Güter zahlungsfähig)</td>
+      </tr>
+      <tr class="row-w2 from2">
+        <td><span class="wtag w2">Wave 2</span><span class="src2">II</span><div class="grp">Innenarchitekt:innen</div></td>
+        <td class="sc s5">5</td><td class="sc s2">2</td><td class="sc s3">3</td><td class="sc s4">4</td><td class="sc s5">5</td><td class="sc s2">2</td><td class="sc s5">5</td>
+        <td class="sum">26<br><span>/35</span></td>
+        <td>Website-first (Portfolio) + Betriebs-Retainer</td>
+        <td>VSI ~500 Mitgl., 276 aktiv; ~800–1'000 Fachpersonen</td>
+        <td>Portfolio statt Booking (K2↓), teils schon gute Sites (K3↓), kein Stack (K6↓); Kaufkraft Architekten-Tier (K4 4)</td>
+      </tr>
+      <tr class="row-w2 from2">
+        <td><span class="wtag w2">Wave 2</span><span class="src2">II</span><div class="grp">Naturheilpraktiker / Komplementärmed.</div></td>
+        <td class="sc s5">5</td><td class="sc s3">3</td><td class="sc s5">5</td><td class="sc s2">2</td><td class="sc s3">3</td><td class="sc s3">3</td><td class="sc s5">5</td>
+        <td class="sum">26<br><span>/35</span></td>
+        <td>Website-first + opt. Booking (CRM flach, Gesundheitsdaten)</td>
+        <td>~2'500 Naturheilpraktiker; ~25'000 KAM-Therapeuten CH</td>
+        <td>Preissensibel + schlanke Pakete (K4↓), low-value Termine (K2↓), fragmentiert (K5↓)</td>
+      </tr>
+      <tr class="row-w2 from2">
+        <td><span class="wtag w2">Wave 2</span><span class="src2">II</span><div class="grp">Bestattungsinstitute</div></td>
+        <td class="sc s5">5</td><td class="sc s3">3</td><td class="sc s5">5</td><td class="sc s3">3</td><td class="sc s2">2</td><td class="sc s3">3</td><td class="sc s5">5</td>
+        <td class="sum">26<br><span>/35</span></td>
+        <td>Website-first (Reputation/Pietät), leichte Lead-Gen</td>
+        <td>SVB ~176 Mitgl. + Nicht-Mitglieder</td>
+        <td>Kein echtes Booking (K2↓), keine Referral-Community (K5↓); Familienbudgets</td>
+      </tr>
+      <tr class="row-w2 from2">
+        <td><span class="wtag w2">Wave 2</span><span class="src2">II</span><div class="grp">Boutique-Hotels &amp; Premium-B&amp;B</div></td>
+        <td class="sc s4">4</td><td class="sc s5">5</td><td class="sc s3">3</td><td class="sc s5">5</td><td class="sc s3">3</td><td class="sc s3">3</td><td class="sc s3">3</td>
+        <td class="sum">26<br><span>/35</span></td>
+        <td>Website + Direktbuchung (ROI vs. OTA-Provision)</td>
+        <td>~4'236 Hotels CH; 2'054 klassiert</td>
+        <td>OTA/Channel-Manager (Booking 75,6 % CH) drückt K6/K7; Referral nur via Verbände, kaum Peer (K5 3)</td>
+      </tr>
+      <tr class="row-w2">
+        <td><span class="wtag w2">Wave 2</span><div class="grp">Immobilienmakler</div></td>
+        <td class="sc s4">4</td><td class="sc s4">4</td><td class="sc s3">3</td><td class="sc s4">4</td><td class="sc s3">3</td><td class="sc s4">4</td><td class="sc s3">3</td>
+        <td class="sum">25<br><span>/35</span></td>
+        <td>Full Stack (lead-getrieben)</td>
+        <td>~6'700 Agenturen; ~3 % Provision</td>
+        <td>Teils Franchise-gebunden, eigene Portale (Homegate etc.)</td>
+      </tr>
+      <tr class="row-w2 from2">
+        <td><span class="wtag w2">Wave 2</span><span class="src2">II</span><div class="grp">Premium-Schreiner / Innenausbau</div></td>
+        <td class="sc s4">4</td><td class="sc s2">2</td><td class="sc s4">4</td><td class="sc s4">4</td><td class="sc s4">4</td><td class="sc s3">3</td><td class="sc s3">3</td>
+        <td class="sum">24<br><span>/35</span></td>
+        <td>Website-first (Projektgalerie) + Retainer</td>
+        <td>VSSM ~1'889 Aktivmitgl. (2023)</td>
+        <td>>10 MA (K1↓), Portfolio statt Booking (K2↓), B2B-lastig</td>
+      </tr>
+      <tr class="row-w2 from2">
+        <td><span class="wtag w2">Wave 2</span><span class="src2">II</span><div class="grp">Professionelle Fotografen / Studios <em>· cautious</em></div></td>
+        <td class="sc s5">5</td><td class="sc s3">3</td><td class="sc s2">2</td><td class="sc s2">2</td><td class="sc s4">4</td><td class="sc s2">2</td><td class="sc s5">5</td>
+        <td class="sum">23<br><span>/35</span></td>
+        <td>Website-first (Portfolio) — primär Referenz/Cross-Sell</td>
+        <td>~700 in Berufsverbänden (SIYU/USPP/vfg)</td>
+        <td>Bauen selbst gute Sites (K3↓), schwache Kaufkraft (K4↓), kein Stack (K6↓)</td>
+      </tr>
+      <tr class="row-w2">
+        <td><span class="wtag w2">Wave 2</span><div class="grp">Architekten</div></td>
+        <td class="sc s4">4</td><td class="sc s2">2</td><td class="sc s3">3</td><td class="sc s4">4</td><td class="sc s4">4</td><td class="sc s2">2</td><td class="sc s4">4</td>
+        <td class="sum">23<br><span>/35</span></td>
+        <td>Website-first (Portfolio)</td>
+        <td>~14'600 Firmen; SIA ~15'000 Mitgl.</td>
+        <td>Visuell anspruchsvoll, aber kaum buchungsgetrieben → wenig CRM-Nutzen</td>
+      </tr>
+      <tr class="row-later">
+        <td><span class="wtag later">Meiden</span><div class="grp">Gastronomie</div></td>
+        <td class="sc s4">4</td><td class="sc s4">4</td><td class="sc s4">4</td><td class="sc s2">2</td><td class="sc s2">2</td><td class="sc s3">3</td><td class="sc s3">3</td>
+        <td class="sum">22<br><span>/35</span></td>
+        <td>—</td>
+        <td>~23'300 Betriebe; Cashflow-Marge nur 2,1 %</td>
+        <td>Web-Volumen ja, aber Marge zu dünn → kein CRM-Premium-Budget</td>
+      </tr>
+      <tr class="row-later">
+        <td><span class="wtag later">Meiden</span><div class="grp">Ärzte (Solo & Gruppe)</div></td>
+        <td class="sc s3">3</td><td class="sc s3">3</td><td class="sc s3">3</td><td class="sc s4">4</td><td class="sc s3">3</td><td class="sc s1">1</td><td class="sc s1">1</td>
+        <td class="sum">18<br><span>/35</span></td>
+        <td>—</td>
+        <td>42'602 Ärzte; 17'233 Praxen/Zentren</td>
+        <td>Entrenched PIS (Vitodata/vitomed); Booking via OneDoc/Medicosearch; Gruppenpraxen = Komitee; niedriger Web-ROI</td>
+      </tr>
+    </tbody>
+  </table>
+  </div>
+
+  <h3>Wave 1 (Start, 0–6 Monate)</h3>
+  <p><strong>Psychotherapeut:innen / Psycholog:innen (Top-Beachhead, website-first).</strong> Die <strong>Föderation der Schweizer Psycholog:innen (FSP)</strong> ist mit über 12'000 Mitgliedern der grösste Berufsverband und umfasst 44 Regional-/Fachverbände — ein engmaschiges, referral-dichtes Netz. Der entscheidende Trigger ist regulatorisch: Mit dem <strong>Anordnungsmodell seit 1.7.2022</strong> können psychologische Psychotherapeut:innen direkt über die OKP abrechnen, mussten sich dafür aber neu selbständig machen. Laut <strong>Obsan-Bericht 07/2025</strong> (Tuch, Fischer &amp; Jörg, im Auftrag des BAG, publ. 19.8.2025) stieg die Zahl selbständiger Abrechnungspraxen (ZSR-Nummern mit mind. CHF 2'500 Jahresabrechnung) von <strong>2'340 (Q3 2022)</strong> auf <strong>4'834 (Q2 2024)</strong>; die OKP-Kosten nahmen «von 2021 bis 2024 um 394 Millionen Franken zu … ein Plus von durchschnittlich 20,4 Prozent pro Jahr». Tausende Therapeut:innen brauchen erstmals einen eigenen Marktauftritt — Greenfield, perfekter Design-Fit, hohe Empfehlungsdichte. <span class="call">Call</span> Website-first; CRM bewusst flach (Schweigepflicht/revDSG, kein WhatsApp-Lead-Tracking). <strong>Hürde:</strong> etablierte Praxen mit langen Wartelisten haben wenig Akquisedruck → Zielfokus auf Neu-Selbständige und Praxisgründer:innen. <span class="pill k-hoch">hoch</span></p>
+  <p><strong>Treuhänder / Steuerberater (Full Stack).</strong> Rund <strong>12'900 Firmen</strong> (NOGA 6920); <strong>TREUHAND|SUISSE &gt;4'300 Mitglieder</strong>. Extrem fragmentiert (80 % ≤10 MA, 50 % ≤5), inhabergeführt — ideale Einzel-Entscheider mit hoher Kaufkraft und dichten Sektions-Netzwerken. <span class="call">Call</span> Full Stack deployable (CRM, Termin, E-Mail). <strong>Hürde:</strong> Konservatismus und KI-Skepsis — allerdings sinkend: TREUHAND|SUISSE hat selbst ein «TREUHAND|SUISSE GPT» lanciert. <span class="pill k-hoch">hoch</span></p>
+  <p><strong>Anwälte / kleine Kanzleien (website-first, selektiv CRM).</strong> Der <strong>SAV zählt ~11'010 Mitglieder</strong>; 2022 gab es <strong>9'497 Advokatur- und Notariatsbüros</strong>. Hohe Kaufkraft, ausgeprägte Statussensitivität, Einzel-Entscheider in kleinen Kanzleien. <span class="call">Call</span> Website-first plus selektiv CRM. <strong>Hürde:</strong> Konservatismus, Vertraulichkeit, «Branding» als potenziell unseriös — mit präzisem, seriösem Design lösbar. <span class="pill k-mittel">mittel-hoch</span></p>
+  <p><strong>Wave 1b parallel — Zahnärzte / Ästhetik / Physio (Full-Stack-Showcase).</strong> ~4'800–6'000 Zahnärzte; ~15'000 Physiotherapeut:innen (Therapiepraxen +20 % in 5 Jahren); Ästhetik/Beauty als wachsender <em>Selbstzahlermarkt</em>. Hier liefert der volle Stack direkten, messbaren ROI: <strong>Online-Booking + WhatsApp-Reminder reduzieren No-Shows</strong> — WhatsApp ist in der Schweiz nahezu universell (Comparis 2024: ~95 %; 20–59-Jährige nahezu 100 %). <span class="call">Call</span> Full Stack. <strong>Hürde:</strong> viele Zahnärzte haben bereits Praxissoftware mit Buchung (OneDoc/Medicosearch/Doctena) → der reine <strong>Selbstzahler-/Ästhetikmarkt</strong> (keine Kassenbindung, hohe Marge, Image-getrieben) ist das attraktivste Sub-Segment. <span class="pill k-mittel">mittel-hoch</span></p>
+
+  <h3>Wave 2 (6–18 Monate, nach Playbook + Cases)</h3>
+  <ul class="body-list">
+    <li><strong>Architekten</strong> (~14'600 Firmen; SIA ~15'000): visuell anspruchsvoll, ideale Portfolios, hohe Statussensitivität — aber kaum buchungsgetrieben, daher Website-first, geringer CRM-Hebel.</li>
+    <li><strong>Coaches / Berater</strong> (NOGA 70.22 = 21'865 Firmen, 2021): Greenfield, booking-affin, aber heterogene Kaufkraft und viele Teilzeit-Anbieter.</li>
+    <li><strong>Immobilienmakler</strong> (~6'700 Agenturen; Provision ~3 %): lead-/CRM-affin, jedoch teils Franchise-gebunden und mit etablierten Portalen (Homegate, ImmoScout).</li>
+    <li><strong>Lokale Premium-Dienstleister / Gewerbe</strong> mit Status- und Buchungsbezug.</li>
+  </ul>
+
+  <h3>Later / Vorsicht / Meiden</h3>
+  <ul class="body-list">
+    <li><strong>Ärzte (Solo- &amp; Gruppenpraxen) — Hypothese BESTÄTIGT.</strong> 42'602 berufstätige Ärzt:innen (FMH 2024), 17'233 Praxen/Zentren (BFS 2021). Aber: <strong>entrenched Praxisinformationssysteme</strong> (Vitodata/vitomed ~5'000 Nutzer, DCH-Marktführer), Booking via OneDoc/Medicosearch/Doctena, Gruppenpraxen entscheiden im Komitee, niedriger Web-ROI. K6 und K7 fallen auf 1. <strong>Meiden.</strong></li>
+    <li><strong>Gastronomie/Restaurants — Hypothese BESTÄTIGT.</strong> ~23'300 Betriebe, hohes Web-Volumen — aber Ø <strong>Cashflow-Marge nur 2,1 %</strong> (GastroSuisse/Gastroconsult via OBT 2024; Vorjahr 2,7 %). Kein Budget für CRM-Premium. <strong>Vorsicht/Meiden.</strong></li>
+  </ul>
+
+  <div class="box">
+    <span class="bx-lbl">Hypothesen-Test des Klienten — mit Daten</span>
+    <ul class="body-list" style="margin:0;">
+      <li><strong>Wave 1 «Treuhänder + Anwälte + Dental/Ästhetik/Physio»:</strong> BESTÄTIGT.</li>
+      <li><strong>Wave 1b «Psychotherapeuten website-first, CRM flach»:</strong> STARK BESTÄTIGT — mit Abweichung: <strong>höher priorisiert</strong>. Hochgestuft auf gleichrangig #1, weil das Anordnungsmodell einen einmaligen, zeitkritischen Selbständigkeits-Trigger erzeugt (Praxenzahl +107 % Q3 2022 → Q2 2024). Genau diese Neu-Selbständigen sind die idealen ersten Kunden.</li>
+      <li><strong>Wave 2 «Architekten, Coaches, Immobilien»:</strong> BESTÄTIGT.</li>
+      <li><strong>Later «Ärzte/Gruppenpraxen»:</strong> BESTÄTIGT (Vitodata-Marktführerschaft, 17'233 Praxen, OneDoc-Integration).</li>
+      <li><strong>Later «Gastronomie»:</strong> BESTÄTIGT (2,1 % Cashflow-Marge).</li>
+    </ul>
+  </div>
+</section>
+
+<section>
+  <div class="sec-head"><span class="sec-num">03</span><h2>Kaufauslöser, Einwände &amp; Entkräftungen</h2></div>
+  <h3>Kaufauslöser — was DCH-KMU JETZT kaufen lässt</h3>
+  <ul class="body-list">
+    <li><strong>Regulatorischer Wechsel:</strong> Anordnungsmodell → erzwungene Neu-Selbständigkeit bei Psychotherapeut:innen (stärkster, datenbelegter Trigger).</li>
+    <li><strong>Praxis-/Kanzlei-/Firmengründung oder -übernahme</strong> — Greenfield ohne Altlasten.</li>
+    <li><strong>Operativer Schmerzpunkt No-Shows / Telefon-Overload</strong> — Booking + WhatsApp-Reminder lösen das messbar (WhatsApp ~95 % CH-Reichweite).</li>
+    <li><strong>Nachfrage-Angebot-Lücke als Wettbewerbsdruck:</strong> 77 % wollen online buchen, nur 3 % bieten es — wer es zuerst hat, gewinnt.</li>
+    <li><strong>Peinlich veraltete Website</strong> bei steigender Kundenerwartung (82 % wollen sich online informieren).</li>
+    <li><strong>KI-Sichtbarkeit:</strong> 13 % suchen bereits zuerst via KI-Assistent; 19 % nutzten KI im letzten Jahr zur KMU-Suche — neuer FOMO-Hebel.</li>
+  </ul>
+
+  <h3>Top-Einwände + konkrete Rebuttals</h3>
+  <div class="tbl-scroll">
+  <table>
+    <thead><tr><th style="width:34%;">Einwand</th><th>Konkrete Entkräftung</th></tr></thead>
+    <tbody>
+      <tr><td><strong>«Kann KI das wirklich?»</strong></td><td><strong>«Human designed, amplified by AI — not pure AI»</strong>: Ralph gestaltet, KI beschleunigt. Live-Referenzfall zeigen; Qualität ist menschlich verantwortet.</td></tr>
+      <tr><td><strong>Kontrollverlust</strong></td><td>Kunde behält Eigentum an Domain, Inhalten und Daten; volle Transparenz über Setup und Betrieb.</td></tr>
+      <tr><td><strong>Preis</strong></td><td>ROI über No-Show-Reduktion und gewonnene Leads; Vergleich mit den Kosten einer halben Empfangsstelle. Schweizer Kunden erwarten <strong>transparente Fixpreise in CHF</strong> statt vager «Ab-Preise».</td></tr>
+      <tr><td><strong>Lock-in</strong></td><td>Klare Exit- und Datenexport-Klausel vertraglich zusichern.</td></tr>
+      <tr><td><strong>«Mein Neffe kann das auch»</strong></td><td>Eine schöne Seite ≠ Betrieb. Server, Installation, Wartung, CRM-/WhatsApp-Integration, laufende Optimierung und Verfügbarkeit sind kein Neffen-Job — Oskar liefert den dauerhaften Betrieb.</td></tr>
+      <tr><td><strong>Datenschutz / Schweigepflicht</strong></td><td>Als gelöster Standard: WhatsApp <strong>Business API</strong> (revDSG-konform, Auftragsverarbeitung); bei Psychotherapie/Recht CRM bewusst flach. Hygienefaktor, kein Fokusthema.</td></tr>
+    </tbody>
+  </table>
+  </div>
+</section>
+
+<section>
+  <div class="sec-head"><span class="sec-num">04</span><h2>GTM-Kanäle — priorisiert für Filippo solo</h2></div>
+  <p>Grundlage: Laut «KMU Digital Pulse 2025» «greift die grosse Mehrheit zuerst zu Suchmaschinen (<strong>80 %</strong>) oder folgt Empfehlungen von Freunden und Bekannten (<strong>75 %</strong>)» (Bewertungsplattformen 37 %, Verzeichnisse 23 %, KI/Social je 13 %). B2B-Schweiz ist Vertrauens- und Beziehungsgeschäft mit langen, persönlichen Entscheidungszyklen.</p>
+  <ol class="body-list">
+    <li><strong>Referral-Engine in der Vertikale (höchste Priorität — skaliert organisch).</strong> Jeder Case erzeugt 2–3 Empfehlungen in dichten Communities. Aktiv um Empfehlungen bitten, Incentives einbauen. Der einzige Kanal, der mit 1 Person überproportional wächst.</li>
+    <li><strong>Eigene Vorher-Nachher-Cases als Verkaufsasset.</strong> Visuell, branchenspezifisch, mit konkreten Resultaten (z. B. No-Show-Reduktion). Wird auch von LLMs als Autorität extrahiert.</li>
+    <li><strong>Verbands- und Sektionskanäle:</strong> TREUHAND|SUISSE-Sektionen, kantonale Anwaltsverbände, FSP-Gliedverbände — gezielte Präsenz statt Streuung. Hohe Vertrauensübertragung.</li>
+    <li><strong>LinkedIn (Filippo persönlich, Thought Leadership):</strong> B2B-Entscheider recherchieren vorab; fachliche Präsenz baut Vertrauen vor dem Gespräch.</li>
+    <li><strong>Lokales/regionales Networking + warme Direktansprache</strong> entlang konkreter Trigger (Neu-Selbständige, Gründungen).</li>
+    <li><strong>Kalte Akquise nur als Ergänzung</strong> — skaliert mit 1 Person schlecht, im vertrauensgetriebenen CH-B2B ineffizient.</li>
+  </ol>
+  <div class="box reco">
+    <span class="bx-lbl">Konkrete Empfehlung + Schwellenwerte, die die Strategie ändern</span>
+    <p style="margin-top:0;">Filippo investiert <strong>~80 % seiner Zeit</strong> in Vertical-Referral + Verbandskanäle + Case-Produktion, nicht in breite Kaltakquise.</p>
+    <ul class="body-list" style="margin:0;">
+      <li><strong>(a)</strong> Bleibt nach ~10 Psychotherapie-Cases die Referral-Rate &lt;1,5 Empfehlungen/Case → Trigger neu bewerten (evtl. zu Treuhand/Dental wechseln).</li>
+      <li><strong>(b)</strong> Dauern Treuhand-Sales-Cycles &gt;4 Monate → Ressourcen auf die schneller schliessende Vertikale verschieben.</li>
+      <li><strong>(c)</strong> Erreicht KI-Suche (aktuell 13 %) &gt;25 % (Gartner-Prognose, als Prognose markiert) → GEO/Generative-Engine-Optimierung in jedes Angebot integrieren.</li>
+    </ul>
+  </div>
+</section>
+
+<section>
+  <div class="sec-head"><span class="sec-num">★</span><h2>Empfohlene Reihenfolge</h2></div>
+  <p><strong>Monate 0–6:</strong> Psychotherapeut:innen (website-first) als Volumen-/Case-Motor + 2–3 Treuhand-Pilotkunden (Full Stack) als Margen-/Referenzanker; 1–2 Ästhetik-/Physio-Cases als Booking-Showcase. <strong>Monate 6–18:</strong> Treuhand/Recht skalieren, dann Architekten/Coaches/Immobilien. <strong>Dauerhaft meiden bis Skalierung:</strong> Arzt-Gruppenpraxen und Gastronomie.</p>
+</section>
+
+<section>
+  <div class="sec-head"><span class="sec-num">§</span><h2>Caveats &amp; Datenqualität</h2></div>
+  <div class="box caveat">
+    <ul class="body-list" style="margin:0;">
+      <li><strong>Verbandszahlen ≠ Unternehmenszahlen.</strong> FSP-Mitglieder (&gt;12'000) umfassen alle Psychologie-Felder; belastbar sind 4'834 selbständige Praxen (ZSR-Nummern, Q2 2024, Obsan) — gezählt als Praxen/Organisationen, nicht Einzelpersonen.</li>
+      <li><strong>Zahnärzte-Zahl unscharf:</strong> ~4'180 registrierte Leistungserbringer (2013) bis SSO-Schätzung ~6'000 aktive; amtliche Einzelzahlen teils nicht fortgeführt.</li>
+      <li><strong>Ästhetik/Beauty:</strong> <em>keine</em> belastbare amtliche Zählung der Dienstleistungsseite; belegt nur Produktmarkt (~CHF 2 Mrd.) und ~1'000 SFK-Mitglieder. <span class="pill k-niedrig">niedrig</span></li>
+      <li><strong>Coach-Count:</strong> kein eigener NOGA-Code; NOGA 70.22 (21'865) ist grober Proxy und überzeichnet.</li>
+      <li><strong>Gastronomie-Marge:</strong> 2,1 % ist <em>Cashflow</em>-Marge (Gastroconsult/GastroSuisse via OBT), kein Reingewinn — stützt aber die Dünnmargen-These.</li>
+      <li><strong>WhatsApp-Reichweite (~95 %):</strong> Comparis 2024, sekundär via Anbieter-Blog zitiert — plausibel, nicht aus Primärquelle verifiziert.</li>
+      <li><strong>NOGA-/STATENT-Zahlen</strong> teils Erhebungsjahr 2021/22 (Verzug ~2 J.). Keine nach DCH getrennten Vertical-Counts — DCH ≈ ~2/3 der nationalen Zahlen.</li>
+    </ul>
+  </div>
+</section>
+
+<hr class="part-divider">
+
+<div class="part-banner">
+  <span class="pb-kicker">Neu · Report II · Stand 31. Mai 2026</span>
+  <h2>10 weitere Beachhead-Verticals</h2>
+  <p>Eine zweite, ergänzende Recherche — <strong>visuell-/reputationsgetriebene Einzelentscheider</strong> mit hoher Kaufkraft und dichter Profi-Community. Kein Overlap mit Report I; alles Folgende ist neu und mit <span class="neu">Neu</span> markiert. Bewertungskriterium K6 prüft hier den Wert einer Premium-Website + Betriebs-Retainer, nicht die CRM-Tauglichkeit.</p>
+</div>
+
+<div class="tldr" style="border-left-color:var(--ember);">
+  <span class="lbl" style="color:var(--ember);">TL;DR — Report II in 3 Punkten</span>
+  <h2>Die Wave-2-Spitze — hochvisuell, statusgetrieben, referral-dicht.</h2>
+  <ul>
+    <li><strong>Stärkster Batch-2-Vertical ist Augenoptiker (28)</strong> — als einziger mit echtem Booking-Motor. Dahinter ein Cluster bei 27 (<strong>Juweliere, Innenarchitekt:innen, Tierärzte, Weingüter</strong>): portfolio- bzw. statusgetrieben, Einzelentscheider, kaufkräftig, ohne entrenched IT. <strong>Nach der Umbewertung auf Report-I-Kriterien erreicht keiner davon Wave 1</strong> — sie bilden die Wave-2-Spitze (siehe Abschnitt 02 + Umbewertungs-Notiz II·2).</li>
+    <li><strong>Sechs Wave-2-Verticals</strong> (6–18 Monate): Naturheilpraktiker/Komplementärmedizin, Premium-Schreiner/Innenausbau, Weingüter Deutschschweiz, unabhängige Kleintier-Tierarztpraxen, Boutique-Hotels/Premium-B&amp;B, Bestattungsinstitute. <strong>Professionelle Fotografen</strong> = perfekter fachlicher Fit, aber wegen schwacher Kaufkraft/DIY-Affinität «Cautious/Later».</li>
+    <li><strong>Makro-Hebel &amp; Pitch-Kern:</strong> localsearch/HSLU «KMU Digital Pulse 2025»: nur 36 % der KMU betreiben eine eigene Website, während 82 % der Bevölkerung sich online informieren wollen — und nur 3 % bieten Online-Terminbuchung, obwohl 77 % sie wünschen. Demonstrierbar mit einem Before/After-Mockup der bestehenden (meist schwachen) Website.</li>
+  </ul>
+</div>
+
+<section class="neu-sec">
+  <div class="sec-head"><span class="sec-num">II·1</span><h2>Kurzempfehlung <span class="neu">Neu</span></h2></div>
+  <p>Für eine zweiköpfige Premium-Web-Agentur mit Solo-Sales ist die stärkste Logik: <strong>visuell-/reputationsgetriebene Einzelentscheider mit hoher Kaufkraft und dichter Profi-Community</strong>. Diese drei sind die thematisch stärksten Batch-2-Kandidaten — nach Umbewertung auf Report-I-Kriterien jedoch <strong>Wave-2-Spitze, nicht Wave 1</strong> (es fehlen die regulatorischen Trigger und die Full-Stack-Deployability):</p>
+  <ul class="body-list">
+    <li><strong>Innenarchitekt:innen</strong> — das Portfolio <em>ist</em> das Geschäft; das Centaur-Narrativ trifft genau deren Selbstverständnis und differenziert gegen reine KI-Baukästen.</li>
+    <li><strong>Juweliere/Uhrmacher &amp; Ateliers</strong> — maximale Statussensibilität und Kaufkraft; eine repräsentative Präsenz ist Pflicht, nicht Kür.</li>
+    <li><strong>Augenoptiker</strong> — Designhandel + lokaler Terminbuchungs-Case; grosse Grundgesamtheit unabhängiger Fachgeschäfte.</li>
+  </ul>
+  <p>In Wave 2 folgen volumenstarke bzw. adjazente Gruppen mit etwas tieferer Kaufkraft oder leicht längeren Zyklen. Der zentrale Verkaufshebel bleibt die <strong>Lücke zwischen Kundenerwartung und KMU-Angebot</strong> — konkret demonstrierbar mit einem Before/After-Mockup der bestehenden Website.</p>
+</section>
+
+<section class="neu-sec">
+  <div class="sec-head"><span class="sec-num">II·2</span><h2>Umbewertung &amp; Zusammenführung <span class="neu">Neu</span></h2></div>
+  <div class="box reco">
+    <span class="bx-lbl">Zusammengeführt</span>
+    <p style="margin-top:0;">Die ursprüngliche, separate Report-II-Tabelle nutzte abweichende Kriterien — vor allem <strong>K6 = Web-/Betriebs-Wert-Fit</strong> statt Report I's <strong>K6 = Stack-Deployability</strong>. Beide Reports wurden deshalb in <strong>eine Gesamttabelle (Abschnitt 02)</strong> zusammengeführt; die 10 Verticals dieses Reports sind dort mit <span class="src2">II</span> markiert und auf Report-I-Kriterien <strong>umbewertet</strong> (Augenmass, keine neue Recherche).</p>
+    <p><strong>Was die Umbewertung verschiebt (alt → neu):</strong> Portfolio-/Showcase-Verticals verlieren stark an K6 (kein CRM/Booking-Stack), K2 und teils K4 — <em>Innenarchitekt:innen 32 → 26</em> (Kaufkraft Architekten-Tier, nicht Luxus), <em>Juweliere 31 → 27</em>, <em>Premium-Schreiner 28 → 24</em>, <em>Fotografen 28 → 23</em>. <strong>Naturheilpraktiker fällt 31 → 26</strong>: keine regulatorische Greenfield-Trigger wie das Anordnungsmodell, ausdrücklich preissensibel (K4 2) mit low-value Terminen (K2 3) und fragmentierter Community (K5 3) — Wave-1-Niveau wäre nicht zu rechtfertigen. <em>Weingüter 30 → 27</em> (~90 % Nebenerwerb-Budget), <em>Bestattung 29 → 26</em> (kein Booking, keine Referral-Community), <em>Boutique-Hotels 27 → 26</em> (entrenched OTA drückt K6/K7; Referral nur via Verbände). <em>Augenoptiker (28)</em> und <em>Tierärzte (27)</em> halten sich als einzige mit echtem Booking-Motor.</p>
+    <p style="margin-bottom:0;"><strong>Ergebnis: kein einziger Report-II-Vertical erreicht Wave 1 (≥ 29).</strong> Höchster ist Augenoptiker mit 28. Der zweite Batch ist überwiegend website-/portfolio-/retail-getrieben — ohne die regulatorischen Trigger, Full-Stack-Deployability oder Premium-plus-Referral-Kombination, die Report I's Spitze (Psychotherapeuten, Treuhänder, Zahn, Anwälte) auf 29–32 hebt.</p>
+  </div>
+
+  <p class="src-note">→ Vollständige, vereinheitlichte Bewertung aller 19 Verticals: <strong>Abschnitt 02</strong>. Die Per-Vertical-Begründungen zu diesen 10 Verticals folgen unverändert unten.</p>
+</section>
+
+<section class="neu-sec">
+  <div class="sec-head"><span class="sec-num">II·3</span><h2>Per-Vertical-Detail <span class="neu">Neu</span></h2></div>
+
+  <h3>1 · Innenarchitekt:innen — Wave 1</h3>
+  <p><strong>Datenlage:</strong> Die VSI.ASAI zählt rund 500 Mitglieder, davon 276 Aktiv- und ~69 Jungmitglieder; gegliedert in Deutschschweiz/Romandie/Tessin, wobei die Deutschschweiz die grösste Region ist. Ex-Präsident Thomas Wachter ordnete die ~200 Aktiven als „ein Fünftel bis ein Viertel aller tätigen Innenarchitekten" ein → Grundgesamtheit grob 800–1'000 Fachpersonen. <span class="pill k-mittel">mittel</span></p>
+  <p><strong>Web-/Betriebs-Fit:</strong> Das Portfolio ist das Kern-Verkaufsinstrument — hochvisuell, projektgetrieben, reputationsabhängig. <span class="call">Call</span> Website-first (Showcase) + laufender Betriebs-/Pflege-Retainer. <strong>Hürde:</strong> Designaffine Zielgruppe mit hohem Qualitätsanspruch, teils bereits ordentlichen Sites — hier ist das „Centaur"-Narrativ ein echtes Differenzierungsargument gegen reine KI-Baukästen.</p>
+
+  <h3>2 · Juweliere/Uhrmacher &amp; Ateliers — Wave 1</h3>
+  <p><strong>Datenlage:</strong> ~990 Unternehmen im Detailhandel mit Uhren und Schmuck (2022, ESTV/Statista); kommerzielle Adresslisten nennen 1'800–2'700 Einträge inkl. kleiner Ateliers. Branchenverband VSGU. <span class="pill k-hoch">hoch</span> (ESTV) · <span class="pill k-mittel">mittel</span> (Adresslisten)</p>
+  <p><strong>Web-/Betriebs-Fit:</strong> Hochvisuelles Produkt, maximale Statussensibilität und Kaufkraft. <span class="call">Call</span> Website-first; optional ein Termin-Layer für Bespoke-/Trauring-Beratung. <strong>Hürde:</strong> bei reinen Markenhändlern teils CI-Vorgaben der Luxusmarken; Diskretionsbedürfnis → Fokus auf inhabergeführte Goldschmiede/Ateliers und unabhängige Bijouterien.</p>
+
+  <h3>3 · Augenoptiker/Optometristen — Wave 1</h3>
+  <p><strong>Datenlage:</strong> ~1'050 Augenoptikunternehmen in der Schweiz (2020). OPTIKSCHWEIZ ist Fachverband. Penetration strukturell hoch: gemäss «Sehen Schweiz 2025» (NIQ GfK, n = 1049) tragen 89 % der 55–74-Jährigen Brillen oder Kontaktlinsen (gesamthaft 81 %). <span class="pill k-hoch">hoch</span></p>
+  <p><strong>Web-/Betriebs-Fit:</strong> Lokaler Designhandel mit klarem Booking-Case (Sehtest/Anpassung). <span class="call">Call</span> Website + Booking-Layer. <strong>Hürde:</strong> Ketten (Fielmann, Visilab, McOptik) ausschliessen, Fokus auf unabhängige Fachgeschäfte.</p>
+
+  <h3>4 · Naturheilpraktiker/Komplementärmedizin — Wave 2</h3>
+  <p><strong>Datenlage:</strong> ~2'500 Naturheilpraktiker:innen (OdA AM); insgesamt ~25'000 alternativ-/komplementärmedizinische Therapeut:innen, davon ~12'000 Komplementärtherapeut:innen (vitagate/SDBB); NVS ~2'500 Mitglieder. <span class="pill k-hoch">hoch</span></p>
+  <p><strong>Web-/Betriebs-Fit:</strong> Vertrauens-/reputations- und leadgetrieben; sehr schwache Bestands-Sites → grosser Before/After-Effekt. <span class="call">Call</span> Website-first, optional Booking. <strong>Hürde:</strong> Mittlere Kaufkraft (Cash-pay/Zusatzversicherung), Preissensibilität → schlanke Einstiegspakete. Grösstes Mengenpotenzial; Snowball über EMR-/ASCA-/NVS-Verzeichnisse.</p>
+
+  <h3>5 · Premium-Schreiner/Innenausbau — Wave 2</h3>
+  <p><strong>Datenlage:</strong> VSSM ~1'889 Aktivmitglieder (31.12.2023), Ø 12,3 Mitarbeitende, Gesamtlohnsumme ~1,6 Mrd. CHF; Fertigungsschwerpunkte u.a. Innenausbau (22 %), Küchenbau (18 %). <span class="pill k-hoch">hoch</span></p>
+  <p><strong>Web-/Betriebs-Fit:</strong> Portfolio von Massarbeiten; Referral via Architekt:innen/Innenarchitekt:innen (Cross-Sell zu Vertical 1). <span class="call">Call</span> Website-first (Projektgalerie) + Retainer. <strong>Hürde:</strong> Betriebe oft &gt;10 MA, B2B-lastig, teils wenig digital-affine Inhaber.</p>
+
+  <h3>6 · Weingüter Deutschschweiz — Wave 2</h3>
+  <p><strong>Datenlage:</strong> Deutschschweiz ~400 Produzenten; ~3'000 Winzer bewirtschaften 2'660 ha (~18 % der CH-Rebfläche), davon ~90 % im Nebenerwerb (Swiss Wine DCH / Schweiz Tourismus). Schweizweit ~2'500 selbstkelternde Winzer. <span class="pill k-hoch">hoch</span></p>
+  <p><strong>Web-/Betriebs-Fit:</strong> Story-/Terroir-getrieben, Direktverkauf ab Hof, Events, optional Shop. <span class="call">Call</span> Website + Shop-/Bestell-Layer. <strong>Hürde:</strong> Nebenerwerbsstruktur → Budget; Premium-Güter (z.B. Gantenbein, von Tscharner) jedoch klar zahlungsfähig → Top-Segment targetieren.</p>
+
+  <h3>7 · Kleintier-Tierarztpraxen (unabhängig) — Wave 2</h3>
+  <p><strong>Datenlage:</strong> GST vertritt ~4'000 Tierärzt:innen; 60 % der klinisch Tätigen arbeiten in der Kleintiermedizin (Stand 1.1.2025). Praxiszahl nicht behördlich isoliert; kommerzielle Adressdatenbank nennt ~1'635 Praxisadressen (indikativ). CH-Durchschnittseinkommen der Tierärzteschaft mit ~85'000 EUR europaweit an der Spitze (FVE 2024). <span class="pill k-hoch">hoch</span> (Köpfe/Einkommen) · <span class="pill k-niedrig">tief–mittel</span> (Betriebszahl)</p>
+  <p><strong>Web-/Betriebs-Fit:</strong> Termin-/anfragegetrieben, lokal. <span class="call">Call</span> Website + Booking. <strong>Hürde:</strong> Kettenkonsolidierung (VetTrust ~40 Standorte; IVC Evidensia 17 Partner an 21 Standorten, Nestlé-beteiligt) mit eigenen Systemen → strikt unabhängige Praxen ansprechen.</p>
+
+  <h3>8 · Boutique-Hotels &amp; Premium-B&amp;B — Wave 2</h3>
+  <p><strong>Datenlage:</strong> ~4'236 Hotelbetriebe in der Schweiz (BFS), 2'054 nach HotellerieSuisse klassiert; Ø Betriebsgrösse 32,8 Zimmer (2024), Kettenanteil wachsend (fast jedes 3. Zimmer). Ziel: inhabergeführte Boutique-Häuser/Premium-B&amp;B. <span class="pill k-hoch">hoch</span></p>
+  <p><strong>Web-/Betriebs-Fit:</strong> Hochvisuell; <strong>Direktbuchung statt OTA-Provision</strong> ergibt einen harten ROI-Case. <span class="call">Call</span> Website + Direktbuchung. <strong>Hürde:</strong> Entrenched OTA-/Channel-Manager-Systeme — Booking Holding hält gemäss HES-SO Valais/HotellerieSuisse einen CH-OTA-Marktanteil von 75,6 %, über 80 % der Hotels fühlen sich von Booking.com abhängig; Stadt-/Resort-Häuser teils mit angestellten Managern.</p>
+
+  <h3>9 · Bestattungsinstitute — Wave 2</h3>
+  <p><strong>Datenlage:</strong> Der SVB zählt ~176 Mitglieder; daneben existieren weitere, nicht im Verband organisierte Institute (sowie Schreinereien mit Bestattungsdienst). In einigen Kantonen (ZH, BS) ist das Bestattungswesen kommunal, in anderen (AG, BE) privatisiert. <span class="pill k-mittel">mittel</span></p>
+  <p><strong>Web-/Betriebs-Fit:</strong> Reputations-/vertrauensgetrieben; emotionale Erstkontakte erfolgen im Akutfall online; Vorsorge-Angebote als Lead-Gen. <span class="call">Call</span> Website-first (Reputation/Pietät). <strong>Hürde:</strong> Tonalität/Pietät, begrenzte Familienbudgets.</p>
+
+  <h3>10 · Professionelle Fotografen/Studios — Cautious/Later</h3>
+  <p><strong>Datenlage:</strong> Die Berufsverbände SIYU (ehem. SBF), USPP und vfg vereinen ~700 Berufsfotograf:innen; je nach Verband ~160–200 online sichtbar. <span class="pill k-mittel">mittel</span></p>
+  <p><strong>Web-/Betriebs-Fit:</strong> Portfolio par excellence — fachlich perfekter Fit (K6 = 5). <span class="call">Call</span> Website-first. <strong>Hürde:</strong> schwache Kaufkraft/dünne Margen und hohe Eigen-Digitalaffinität (bauen Sites oft selbst). Primär als Referenz-/Cross-Sell-Kanal (Fotografen liefern ohnehin Bildmaterial für die anderen Verticals).</p>
+</section>
+
+<section class="neu-sec">
+  <div class="sec-head"><span class="sec-num">II·4</span><h2>Kaufauslöser, Einwände &amp; Entkräftungen <span class="neu">Neu</span></h2></div>
+  <div class="tbl-scroll">
+  <table>
+    <thead><tr><th style="width:22%;">Cluster</th><th style="width:34%;">Trigger / Einwand</th><th>Entkräftung</th></tr></thead>
+    <tbody>
+      <tr>
+        <td><strong>Portfolio</strong><br>Innenarch. / Schreiner / Fotografen</td>
+        <td><em>Trigger:</em> neues Referenzprojekt, Award, Generationenwechsel.<br><em>Einwand:</em> „Ich bin selbst Gestalter, ich mach das selber."</td>
+        <td>Centaur-Prinzip — Sie gestalten Räume/Möbel, wir gestalten und <strong>betreiben</strong> Ihre digitale Bühne; Sie verlieren keine fakturierbaren Stunden an Hosting, Updates und Pannen.</td>
+      </tr>
+      <tr>
+        <td><strong>Premium-Retail</strong><br>Juweliere / Augenoptiker</td>
+        <td><em>Trigger:</em> Saisonkollektion, neue Markenpartnerschaft, Online-Wettbewerbsdruck.<br><em>Einwand:</em> „Meine Marke gibt die Website vor."</td>
+        <td>Wir bauen die unabhängige Geschäfts-/Lokalpräsenz (lokale Auffindbarkeit, Termin, Service-Story), die die Marken-Microsites bewusst nicht abdecken.</td>
+      </tr>
+      <tr>
+        <td><strong>Termin</strong><br>Naturheilpr. / Tierärzte / Optiker</td>
+        <td><em>Trigger:</em> Praxiseröffnung, Wartelisten, Zusatzversicherungs-Anerkennung.<br><em>Einwand:</em> „Patienten kommen über Empfehlung."</td>
+        <td>Laut «KMU Digital Pulse 2025» wollen sich <strong>82 % der Bevölkerung online informieren</strong> — eine schwache Site bremst genau die Empfehlung aus, bevor der erste Kontakt zustande kommt.</td>
+      </tr>
+      <tr>
+        <td><strong>Direktverkauf</strong><br>Weingüter / Boutique-Hotels</td>
+        <td><em>Trigger:</em> neuer Jahrgang, Renovation, Wunsch nach weniger OTA-Provision.<br><em>Einwand:</em> „Booking.com bringt schon Gäste."</td>
+        <td>OTA-Provisionen liegen oft 15–25 % (inkl. Genius/Preferred bis 22–28 %); CH-Hotels zahlten 2019 ~184 Mio. CHF an OTA (Ø ~48'000 CHF/Haus). Booking hält 75,6 % CH-Marktanteil — jede Direktbuchung amortisiert die Investition direkt.</td>
+      </tr>
+      <tr>
+        <td><strong>Bestattung</strong></td>
+        <td><em>Trigger:</em> Generationenübergabe, wachsender Vorsorge-Trend.<br><em>Einwand:</em> „Pietät und Website passen nicht zusammen."</td>
+        <td>Gerade Angehörige recherchieren im Akutfall online; eine würdevolle, schnell erreichbare, mobil-optimierte Präsenz ist Service und Entlastung — kein Marketing-Lärm.</td>
+      </tr>
+    </tbody>
+  </table>
+  </div>
+</section>
+
+<section class="neu-sec">
+  <div class="sec-head"><span class="sec-num">II·5</span><h2>GTM-Kanäle (priorisiert für 1 Verkäufer) <span class="neu">Neu</span></h2></div>
+  <ol class="body-list">
+    <li><strong>Verbands-/Verzeichnis-Mining:</strong> öffentliche Mitgliederverzeichnisse von VSI.ASAI, VSGU, OPTIKSCHWEIZ, OdA AM/NVS/EMR, VSSM, Swiss Wine DCH, HotellerieSuisse, SVB und SIYU als kuratierte, vorqualifizierte Lead-Listen. <em>Wirkungsvollster Solo-Kanal.</em></li>
+    <li><strong>Referenz-Snowball in dichten Communities:</strong> Innenarchitekt:innen ↔ Premium-Schreiner ↔ Architekt:innen referieren intern; ein gewonnenes Vorzeigeprojekt erzeugt Folgeleads (Cross-Sell Vertical 1 ↔ 5).</li>
+    <li><strong>Lokale Sichtbarkeits-Audits als Door-Opener:</strong> Before/After-Mockup einer schwachen Bestands-Site — visualisiert die HSLU-Lücke (36 % Website / 3 % Online-Booking) konkret und emotional.</li>
+    <li><strong>Events/Messen:</strong> Swissbau Basel und Designer's Saturday Langenthal (Innenausbau/Design); regionale Weinmessen; Branchentreffs (VSGU, pr suisse).</li>
+    <li><strong>Geografisches Clustering:</strong> Zürich, Zug, Luzern, St. Gallen — kaufkraftstarke Ballungsräume für effiziente Solo-Sales-Routen.</li>
+  </ol>
+  <div class="box">
+    <span class="bx-lbl">Geprüft, aber nicht in Top 10 (Avoid/Later)</span>
+    <ul class="body-list" style="margin:0;">
+      <li><strong>PR-/Kommunikationsberater</strong> (pr suisse ~1'200–1'500) &amp; <strong>Boutique-Beratungen</strong>: selbst digital-affin, teils direkte Wettbewerber → geringe Zahlungsbereitschaft.</li>
+      <li><strong>Privatschulen</strong> (~1'355) &amp; <strong>unabhängige Vermögensverwalter</strong> (FINMA ~1'400): Komiteeentscheide bzw. regulatorisch-konservativ → längere Zyklen.</li>
+      <li><strong>Freipraktizierende Hebammen</strong> (~1'952) &amp; <strong>Personal Trainer / Yoga-Mikrostudios</strong> (Abo Ø ~1'320 CHF/Jahr): schwache Kaufkraft für einen Premium-Retainer.</li>
+      <li><strong>Osteopathen/Chiropraktiker</strong> (SVO-FSO ~700–1'000): solider Fit, aber nahe an bereits abgedeckten Gesundheits-Verticals → Wave-3-Adjazenz.</li>
+    </ul>
+  </div>
+</section>
+
+<section class="neu-sec">
+  <div class="sec-head"><span class="sec-num">II·§</span><h2>Quellen &amp; Caveats (Report II) <span class="neu">Neu</span></h2></div>
+  <div class="box caveat">
+    <span class="bx-lbl">Epistemische Hinweise</span>
+    <ul class="body-list" style="margin:0;">
+      <li>Reine <em>Betriebs-/Arbeitsstättenzahlen</em> je NOGA-Code (BFS STATENT) liessen sich nicht als statische Werte verifizieren — sie liegen hinter dem interaktiven PX-Web-Portal. Die genannten Zahlen sind teils Verbands-Mitglieder- oder Köpfezahlen (gekennzeichnet).</li>
+      <li>Für Tierarztpraxen und Innenarchitektur-Büros existiert <em>keine</em> behördlich isolierte Betriebszahl; verwendet wurden Verbands- und kommerzielle Adressproxys mit tieferer Konfidenz.</li>
+      <li>Die Optiker-Zahl (~1'050) stammt aus 2020 und ist die jüngste frei zugängliche.</li>
+      <li>Internationale/branchenfremde Benchmarks (z.B. „~10'500 Tierarztpraxen" = Deutschland) wurden bewusst ausgeschlossen.</li>
+      <li>Die Punktevergabe (K1–K7) ist eine begründete Experteneinschätzung, keine erhobene Messgrösse.</li>
+    </ul>
+  </div>
+  <p class="src-note" style="margin-top:18px;"><strong>Quellen-Bibliografie (Auswahl, Zugriff 31.05.2026):</strong></p>
+  <ol class="src-list">
+    <li>localsearch / HSLU · «KMU Digital Pulse 2025» (36 % Website, 82 % Info-Bedürfnis, 77 % Booking-Wunsch vs. 3 % Angebot; intervista 23.6.–2.7.2025) · localsearch.ch</li>
+    <li>VSI.ASAI / Archiv Innenarchitektur Schweiz / Swissbau · ~500 Mitglieder, 276 aktiv · ai-s.ch, swissbau.ch</li>
+    <li>Espazium · Interview Thomas Wachter (~200 Aktive = 1/5–1/4 aller Innenarchitekten) · espazium.ch</li>
+    <li>ESTV / Statista · Detailhandel Uhren &amp; Schmuck (~990 Unternehmen, 2022) · de.statista.com · VSGU · vsgu-ashb.ch</li>
+    <li>Statista / Handelsdaten · Augenoptiker CH (~1'050, 2020); OPTIKSCHWEIZ «Sehen Schweiz 2025» (NIQ GfK, n=1049) · optikschweiz.ch</li>
+    <li>OdA AM (~2'500 Naturheilpraktiker) · oda-am.ch · vitagate/SDBB (~25'000 KAM, ~12'000 Komplementär) · NVS · nvs.swiss</li>
+    <li>VSSM · «Zahlen &amp; Fakten» (~1'889 Aktivmitgl. 2023, Ø 12,3 MA, 1,6 Mrd. CHF) · vssm.ch</li>
+    <li>Weinland Schweiz / Schweiz Tourismus · Weinbau DCH (~400 Produzenten, 2'660 ha, ~90 % Nebenerwerb) · weinlandschweiz.ch, myswitzerland.com</li>
+    <li>GST · «Fakten und Kennzahlen» (~4'000 Tierärzte, 60 % Kleintier, 1.1.2025) · gstsvs.ch · FVE/SAT · Einkommen ~85'000 EUR · Beobachter · VetTrust/IVC Evidensia</li>
+    <li>BFS / Watson · ~4'236 Hotelbetriebe CH · HotellerieSuisse (2'054 klassiert, Ø 32,8 Zimmer) · HES-SO Valais (Booking 75,6 % CH-OTA) · hotelleriesuisse.ch</li>
+    <li>SVB · ~176 Mitglieder + Nicht-Mitglieder · bestatter.ch</li>
+    <li>SIYU / SBF / IC Infraconsult · ~700 Berufsfotograf:innen (SIYU/USPP/vfg) · sbf.ch, infraconsult.ch</li>
+  </ol>
+</section>
+
+<footer>
+  Oskar · GTM-Intelligence · Teil 4 von 4 · Deutschschweiz · 30. Mai 2026 · Redesign · <span style="color:var(--ember);">erweitert um Report II (31. Mai 2026)</span>
+</footer>
+
+</div>
+</body>
+</html>

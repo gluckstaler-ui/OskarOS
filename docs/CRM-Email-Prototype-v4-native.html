@@ -1,0 +1,425 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CRM · Overview + Email — Native Design System (Prototype v4)</title>
+
+<!-- real design-system fonts -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+
+<!-- THE REAL CRM DESIGN SYSTEM — inherits every token + shell class -->
+<link rel="stylesheet" href="../app/crm/crm.css">
+
+<style>
+/* ── prototype-only glue, all built on the REAL crm.css tokens ── */
+html,body{margin:0;height:100%}
+body{background:var(--bg-app);font-family:'Inter',sans-serif;height:100vh;overflow:hidden}
+.crm-app{height:100vh;display:flex;flex-direction:column;gap:var(--gap-app,20px);padding:16px}
+
+/* top bar (mirrors the bento-card TopBar) */
+.pp-top{display:flex;align-items:center;gap:22px;padding:0 18px;height:56px}
+.pp-logo{font-family:'Inter';font-weight:800;font-size:14px;color:var(--text-main);letter-spacing:-.01em}
+.pp-logo b{color:var(--brand-amber)}
+.pp-tabs{display:flex;gap:4px;font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.06em;text-transform:uppercase}
+.pp-tab{border:none;background:none;color:var(--text-dim);padding:7px 13px;border-radius:8px;cursor:pointer;font-family:inherit;font-size:11px;letter-spacing:.06em}
+.pp-tab:hover{color:var(--text-muted)}
+.pp-tab.on{color:var(--bg-app);background:var(--brand-amber);font-weight:700}
+.pp-who{margin-left:auto;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--text-dim);letter-spacing:.04em}
+
+/* generic bento sub-panel inside the rails */
+.pp-bento{background:var(--bg-card);border:1px solid var(--border-card);border-radius:var(--radius-card,12px);padding:14px}
+.pp-rail{display:flex;flex-direction:column;gap:var(--gap-app,20px);overflow:auto;min-height:0}
+.pp-ch{font-family:'JetBrains Mono',monospace;font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--text-dim);margin:0 0 10px}
+
+/* triage / filter rows */
+.pp-filter{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:8px 10px;border-radius:8px;border:1px solid transparent;color:var(--text-muted);font-size:13px;cursor:pointer}
+.pp-filter:hover{background:var(--bg-card-hover)}
+.pp-filter.on{background:var(--bg-app);border-color:var(--border-active);color:var(--text-main)}
+.pp-filter .n{font-family:'JetBrains Mono',monospace;font-weight:700;font-variant-numeric:tabular-nums;color:var(--text-main)}
+.pp-filter.on .n{color:var(--brand-amber)}
+
+/* bucket lanes — Gmail-style, on TOP of the middle column */
+.pp-lanes{display:flex;gap:2px;border-bottom:1px solid var(--border-card);padding:0 2px;flex:none}
+.pp-lane{flex:none;border:none;background:none;font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.05em;text-transform:uppercase;color:var(--text-dim);padding:11px 14px;cursor:pointer;border-bottom:2px solid transparent;display:flex;align-items:center;gap:8px;white-space:nowrap}
+.pp-lane:hover{color:var(--text-muted)}
+.pp-lane.on{color:var(--text-main);font-weight:700;border-bottom-color:var(--brand-amber)}
+.pp-lane .ct{font-size:10px;font-weight:700;font-variant-numeric:tabular-nums;background:var(--bg-card);color:var(--text-muted);padding:1px 7px;border-radius:9px;min-width:18px;text-align:center;border:1px solid var(--border-card)}
+.pp-lane.on .ct{background:var(--brand-amber);color:var(--bg-app);border-color:transparent}
+.pp-lane .cpdot{width:5px;height:5px;border-radius:50%;background:var(--brand-phosphor)}
+
+/* NEXT MOVE hero (Fathom dominating recommendation) */
+.pp-hero{background:var(--bg-card);border:1px solid var(--border-active);border-radius:var(--radius-card,12px);padding:16px 18px}
+.pp-hero .k{font-family:'JetBrains Mono',monospace;font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--brand-amber);margin-bottom:7px}
+.pp-hero .t{font-size:16px;font-weight:700;color:var(--text-main);margin-bottom:4px}
+.pp-hero .s{font-size:12.5px;color:var(--text-muted);line-height:1.45}
+
+/* message / lead rows */
+.pp-list{display:flex;flex-direction:column;gap:8px;overflow:auto;min-height:0;flex:1;padding-right:2px}
+.pp-row{display:flex;align-items:flex-start;gap:11px;padding:11px 12px;border:1px solid var(--border-card);border-radius:10px;background:var(--bg-card);cursor:pointer;transition:.12s}
+.pp-row:hover{background:var(--bg-card-hover);border-color:var(--border-active)}
+.pp-row.sel{border-color:var(--brand-amber);background:var(--brand-amber-glow)}
+.pp-row.unread .h{color:var(--text-main);font-weight:700}
+.pp-row.fresh{animation:fr 1s ease}
+@keyframes fr{0%{background:var(--brand-amber-glow)}100%{background:var(--bg-card)}}
+.pp-av{width:30px;height:30px;border-radius:50%;flex:none;display:flex;align-items:center;justify-content:center;font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:700;color:var(--bg-app);background:var(--text-muted)}
+.pp-av.cp{background:var(--brand-amber)}.pp-av.un{background:var(--brand-red)}.pp-av.q{background:var(--text-dim)}
+.pp-tx{flex:1;min-width:0}
+.pp-tx .h{font-size:12.5px;color:var(--text-main);font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pp-tx .sub{font-size:12px;color:var(--text-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pp-tx .s{font-size:11.5px;color:var(--text-dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pp-meta{display:flex;flex-direction:column;align-items:flex-end;gap:5px;flex:none}
+.pp-time{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--text-dim);font-variant-numeric:tabular-nums}
+.pp-tag{font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:.04em;text-transform:uppercase;padding:2px 7px;border-radius:4px;font-weight:700;white-space:nowrap}
+.pt-amber{background:var(--brand-amber-glow);color:var(--brand-amber)}
+.pt-phos{background:rgba(200,238,122,.10);color:var(--brand-phosphor)}
+.pt-red{background:rgba(255,106,77,.12);color:var(--brand-red)}
+.pt-dim{background:var(--bg-app);color:var(--text-dim);border:1px solid var(--border-card)}
+
+.pp-bulk{display:flex;gap:8px;align-items:center;padding:9px 11px;border:1px dashed var(--border-card);border-radius:10px;color:var(--text-dim);font-family:'JetBrains Mono',monospace;font-size:11px;flex:none}
+
+/* DETAIL HOST (matches .fp-detail-host) — email + co-pilot */
+.pp-detail{flex:1;min-height:0;background:var(--bg-card);border:1px solid var(--border-card);border-radius:var(--radius-card,12px);display:flex;flex-direction:column;overflow:hidden}
+.pp-dback{font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.05em;text-transform:uppercase;color:var(--text-dim);padding:11px 14px;border-bottom:1px solid var(--border-card);cursor:pointer;flex:none}
+.pp-dback:hover{color:var(--brand-amber)}
+.pp-dbody{flex:1;overflow:auto;min-height:0;display:grid;grid-template-rows:auto 1fr}
+.pp-mailhead{padding:14px 16px;border-bottom:1px solid var(--border-card)}
+.pp-mailhead .subj{font-size:15px;font-weight:700;color:var(--text-main);margin-bottom:5px}
+.pp-mailhead .from{font-size:12px;color:var(--text-muted)}
+.pp-mailbody{padding:14px 16px;font-size:13px;color:var(--text-muted);line-height:1.55;white-space:pre-wrap;border-bottom:1px solid var(--border-card)}
+
+/* CO-PILOT block */
+.pp-cp{padding:14px 16px;background:var(--bg-sunken)}
+.pp-cphdr{display:flex;align-items:center;gap:8px;margin-bottom:12px}
+.pp-cphdr .lab{font-family:'JetBrains Mono',monospace;font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--brand-amber);font-weight:700;display:flex;align-items:center;gap:7px}
+.pp-cphdr .pulse{width:7px;height:7px;border-radius:50%;background:var(--brand-amber);animation:pl 2s infinite}
+@keyframes pl{0%{box-shadow:0 0 0 0 var(--brand-amber-glow)}70%{box-shadow:0 0 0 7px rgba(255,184,74,0)}100%{box-shadow:0 0 0 0 rgba(255,184,74,0)}}
+.pp-cphdr .lk{margin-left:auto;font-family:'JetBrains Mono',monospace;font-size:9.5px;text-transform:uppercase;color:var(--text-muted);border:1px solid var(--border-card);border-radius:6px;padding:3px 8px;cursor:pointer;background:var(--bg-card)}
+.pp-cphdr .lk:hover{border-color:var(--border-active);color:var(--text-main)}
+.pp-stage{display:flex;align-items:center;gap:8px;font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--text-muted);margin-bottom:13px;padding:8px 10px;border:1px solid var(--border-card);border-radius:8px;background:var(--bg-card)}
+.pp-stage .cur{color:var(--text-main);font-weight:700}
+.pp-stage .adv{margin-left:auto;border:1px solid var(--brand-amber);color:var(--brand-amber);background:transparent;border-radius:6px;padding:4px 9px;cursor:pointer;font-family:inherit;font-size:9px;letter-spacing:.04em;text-transform:uppercase}
+.pp-stage .adv:hover{background:var(--brand-amber-glow)}
+.pp-blk{margin-bottom:14px}
+.pp-blab{font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--text-dim);margin-bottom:7px;display:flex;align-items:center;gap:7px}
+.pp-blab .pill{font-size:8px;color:var(--brand-phosphor);border:1px solid var(--brand-phosphor);border-radius:3px;padding:1px 5px;letter-spacing:.03em}
+.pp-summary{font-size:12.5px;color:var(--text-main);line-height:1.5;background:var(--bg-card);border:1px solid var(--border-card);border-radius:8px;padding:11px}
+.pp-sig{display:flex;flex-direction:column;gap:6px}
+.pp-sg{display:flex;align-items:center;gap:9px;font-size:12px;color:var(--text-muted)}
+.pp-dot{width:7px;height:7px;border-radius:50%;flex:none}
+.dg{background:var(--brand-phosphor)}.da{background:var(--brand-amber)}.dr{background:var(--brand-red)}.ds{background:var(--text-muted)}
+.pp-fields{display:flex;flex-direction:column;gap:5px}
+.pp-field{display:flex;align-items:center;gap:9px;font-size:12px;background:var(--bg-card);border:1px solid var(--border-card);border-radius:6px;padding:6px 10px}
+.pp-field .fk{font-family:'JetBrains Mono',monospace;font-size:9px;text-transform:uppercase;letter-spacing:.04em;color:var(--text-dim);width:78px;flex:none}
+.pp-field .fv{font-weight:600;color:var(--text-main)}
+.pp-field .syn{margin-left:auto;font-family:'JetBrains Mono',monospace;font-size:8.5px;color:var(--brand-phosphor);text-transform:uppercase;letter-spacing:.03em;white-space:nowrap}
+.pp-resolve{border:1px solid var(--brand-amber);background:var(--brand-amber-glow);border-radius:9px;padding:12px;margin-bottom:14px}
+.pp-resolve .rh{font-family:'JetBrains Mono',monospace;font-size:9px;text-transform:uppercase;letter-spacing:.06em;color:var(--brand-amber);font-weight:700;margin-bottom:6px}
+.pp-resolve .rt{font-size:12.5px;color:var(--text-main);line-height:1.45;margin-bottom:10px}
+.pp-resolve .rt b{color:var(--brand-amber)}
+.pp-draft{border:1px solid var(--border-active);border-radius:9px;background:var(--bg-card);overflow:hidden}
+.pp-draft .dh{padding:8px 11px;background:var(--bg-sunken);border-bottom:1px solid var(--border-card);font-family:'JetBrains Mono',monospace;font-size:9.5px;text-transform:uppercase;letter-spacing:.04em;color:var(--brand-amber);font-weight:700}
+.pp-draft .dtext{padding:11px;font-size:12.5px;color:var(--text-muted);line-height:1.5;white-space:pre-wrap}
+.pp-chrow{display:flex;gap:6px;padding:0 11px 9px;flex-wrap:wrap}
+.pp-chip{font-family:'JetBrains Mono',monospace;font-size:9.5px;text-transform:uppercase;letter-spacing:.03em;padding:4px 9px;border-radius:5px;border:1px solid var(--border-card);background:var(--bg-app);color:var(--text-dim);cursor:pointer}
+.pp-chip.on{border-color:var(--brand-amber);color:var(--brand-amber);background:var(--brand-amber-glow);font-weight:700}
+.pp-dacts{display:flex;gap:6px;padding:0 11px 11px;flex-wrap:wrap}
+.pp-nba{display:flex;flex-direction:column;gap:6px}
+.pp-nbtn{text-align:left;border:1px solid var(--border-card);border-radius:7px;background:var(--bg-card);padding:8px 10px;font-size:12px;color:var(--text-muted);cursor:pointer;display:flex;gap:9px;align-items:center}
+.pp-nbtn:hover{border-color:var(--brand-amber);color:var(--text-main)}
+.pp-nbtn .k{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--brand-amber)}
+
+/* off-bucket co-pilot */
+.pp-cpoff{height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:9px;padding:30px;color:var(--text-dim)}
+.pp-cpoff .big{font-size:13px;color:var(--text-muted);font-weight:600}
+.pp-cpoff .mono{font-family:'JetBrains Mono',monospace;font-size:9.5px;letter-spacing:.08em;text-transform:uppercase}
+
+/* flight deck (right, .fp-right) — STAYS */
+.pp-flight{background:var(--bg-app);border:1px solid var(--border-card);border-radius:var(--radius-card,12px);padding:16px;display:flex;flex-direction:column;gap:10px;overflow:auto;min-height:0;height:100%}
+.pp-dc{border:1px solid var(--border-card);border-radius:9px;background:var(--bg-card);padding:11px 12px}
+.pp-dc.new{border-color:var(--brand-amber)}
+.pp-dc .top{display:flex;justify-content:space-between;font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:.05em;text-transform:uppercase;color:var(--text-dim);margin-bottom:6px}
+.pp-dc .vb{color:var(--brand-amber);font-weight:700}
+.pp-dc .ti{font-weight:700;font-size:13px;color:var(--text-main);margin-bottom:3px}
+.pp-dc .rs{font-size:11.5px;color:var(--text-muted);line-height:1.4;margin-bottom:9px}
+.pp-dc .ex{display:flex;justify-content:flex-end;gap:6px}
+.pp-chat{margin-top:auto;border-top:1px solid var(--border-card);padding-top:11px;display:flex;gap:7px}
+.pp-chat input{flex:1;background:var(--bg-card);border:1px solid var(--border-card);border-radius:8px;padding:9px 11px;color:var(--text-main);font-family:'Inter';font-size:12.5px;outline:none}
+.pp-chat input:focus{border-color:var(--border-active)}
+
+.pp-btn{font-family:'JetBrains Mono',monospace;font-size:9.5px;letter-spacing:.03em;text-transform:uppercase;padding:6px 10px;border-radius:6px;border:1px solid var(--border-card);background:var(--bg-card);color:var(--text-muted);cursor:pointer;font-weight:700}
+.pp-btn:hover{border-color:var(--border-active);color:var(--text-main)}
+.pp-btn.amber{background:var(--brand-amber);color:var(--bg-app);border-color:var(--brand-amber)}
+.pp-btn.phos{background:var(--brand-phosphor);color:var(--bg-app);border-color:var(--brand-phosphor)}
+
+#view-overview,#view-email{flex:1;min-height:0;overflow:hidden}
+.hidden{display:none!important}
+#toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(40px);background:var(--bg-card);border:1px solid var(--border-active);color:var(--text-main);font-family:'JetBrains Mono',monospace;font-size:11.5px;letter-spacing:.02em;padding:10px 16px;border-radius:9px;opacity:0;transition:.25s;pointer-events:none;z-index:60;box-shadow:0 10px 30px rgba(0,0,0,.5)}
+#toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
+#toast b{color:var(--brand-amber)}
+.empty{text-align:center;color:var(--text-dim);font-size:12.5px;padding:40px 12px}
+.empty b{display:block;font-size:15px;color:var(--brand-phosphor);margin-bottom:5px}
+</style>
+</head>
+<body>
+<div class="crm-app">
+
+  <!-- TOP BAR (bento-card) -->
+  <div class="bento-card pp-top" style="flex-shrink:0">
+    <div class="pp-logo">Atelier<b>·</b>CRM</div>
+    <div class="pp-tabs" id="tabs">
+      <button class="pp-tab" data-scr="overview">Overview</button>
+      <button class="pp-tab on" data-scr="email">Email</button>
+      <button class="pp-tab" data-scr="x" style="opacity:.4;cursor:default">Kanban</button>
+      <button class="pp-tab" data-scr="x" style="opacity:.4;cursor:default">Scout</button>
+    </div>
+    <div class="pp-who">onyx · silke@atelier.ch</div>
+  </div>
+
+  <!-- MAIN -->
+  <div style="flex:1;min-height:0;display:flex;gap:var(--gap-app,20px)">
+
+    <!-- ░░ OVERVIEW (existing layout: fp-grid 400 | 1fr | 420) ░░ -->
+    <div class="fp-grid" id="view-overview" style="display:none">
+      <!-- LEFT — triage rail -->
+      <div class="pp-rail">
+        <div class="pp-bento">
+          <p class="pp-ch">Triage</p>
+          <div class="pp-filter on"><span>Needs you</span><span class="n">5</span></div>
+          <div class="pp-filter"><span>Overdue</span><span class="n">3</span></div>
+          <div class="pp-filter"><span>WhatsApp</span><span class="n">4</span></div>
+          <div class="pp-filter"><span>Starred</span><span class="n">2</span></div>
+        </div>
+        <div class="pp-bento" id="ov-pipe"></div>
+      </div>
+      <!-- MIDDLE -->
+      <div class="fp-middle">
+        <div class="pp-hero">
+          <div class="k">▸ Next move · Fathom</div>
+          <div class="t">Acme AG — reassure on price, loop the CFO</div>
+          <div class="s">Offer opened 3×, quiet 7 days. Draft a 15-min-call reply and address the silently-CC’d CFO. Highest-ROI move in the queue.</div>
+        </div>
+        <div class="pp-list" id="ov-list"></div>
+      </div>
+      <!-- RIGHT — flight deck / chat (STAYS) -->
+      <div class="fp-right"><div class="pp-flight" id="ov-deck"></div></div>
+    </div>
+
+    <!-- ░░ EMAIL (same fp-grid shell; buckets on top; co-pilot in detail; deck STAYS) ░░ -->
+    <div class="fp-grid" id="view-email">
+      <!-- LEFT — mailbox rail -->
+      <div class="pp-rail">
+        <div class="pp-bento">
+          <p class="pp-ch">Mailbox</p>
+          <div class="pp-filter on"><span>Inbox</span><span class="n">12</span></div>
+          <div class="pp-filter"><span>Sent</span><span class="n">·</span></div>
+          <div class="pp-filter"><span>Drafts</span><span class="n">2</span></div>
+          <div class="pp-filter"><span>Archive</span><span class="n">·</span></div>
+        </div>
+        <div class="pp-bento">
+          <p class="pp-ch">Co-Pilot</p>
+          <div style="font-size:12px;color:var(--text-muted);line-height:1.5">On for <b style="color:var(--brand-amber)">CRM</b> & <b style="color:var(--brand-amber)">Normal</b>. Off for Promo / Social / Updates — those are bulk lanes.</div>
+        </div>
+      </div>
+      <!-- MIDDLE — bucket lanes + list ↔ detail -->
+      <div class="fp-middle">
+        <div class="pp-lanes" id="lanes"></div>
+        <div id="mail-list-host" class="pp-list"></div>
+        <div id="mail-detail-host" class="pp-detail hidden"></div>
+      </div>
+      <!-- RIGHT — flight deck / chat (STAYS, identical to Overview) -->
+      <div class="fp-right"><div class="pp-flight" id="em-deck"></div></div>
+    </div>
+
+  </div>
+</div>
+<div id="toast"></div>
+
+<script>
+/* ───── DATA (carried from v3) ───── */
+const BUCKETS=[
+ {id:'normal',name:'Normal',copilot:true},
+ {id:'crm',name:'CRM senders',copilot:true},
+ {id:'promo',name:'Promo',copilot:false},
+ {id:'social',name:'Social',copilot:false},
+ {id:'updates',name:'Updates',copilot:false},
+];
+const MAIL={
+ normal:[
+  {id:'n4',unread:true,from:'office@acme.ch',init:'?',cp:true,unresolved:true,resolveTo:'Acme AG',subj:'Projektablauf — interne Abstimmung',prev:'Wir stimmen das Angebot intern ab…',time:'09:31',body:'Guten Tag\n\nWir stimmen das Angebot gerade intern ab. Eine kurze Rückfrage zum Projektablauf — können Sie die Phasen nochmals kurz umreissen?\n\nDanke',
+    resolveWhy:'Domain <b>acme.ch</b> matches lead <b>Acme AG</b> (Jan Muster). Same thread family as “Angebot Webseite.”',
+    summary:'Internal Acme address asking a clarifying question. Not yet linked — resolve once and every future mail from this address routes to the lead silently.',
+    signals:[['da','Unmatched · domain → Acme AG (98%)']]},
+  {id:'n1',unread:true,from:'Notariat Weber',init:'NW',cp:true,subj:'Beglaubigung Kaufvertrag',prev:'Unterlagen bereit — Donnerstag 14:00?',time:'08:40',body:'Guten Morgen\n\nDie Unterlagen liegen zur Unterschrift bereit. Passt Ihnen Donnerstag um 14:00? Tel. 056 222 14 80.\n\nFreundliche Grüsse\nNotariat Weber',
+    summary:'Weber confirms the deed is ready and proposes Thu 14:00. A time and a phone number to capture.',
+    signals:[['dg','Direct ask — awaiting slot confirmation']],
+    extract:[['Meeting','Thu 14:00 — signing','→ Calendar'],['Phone','+41 56 222 14 80','→ Contact'],['Next step','Confirm slot','→ Tasks']],
+    draft:'Guten Morgen Herr Weber,\n\nDonnerstag 14:00 passt mir. Ich bringe die Ausweise mit.\n\nHerzliche Grüsse\nSilke',
+    nba:[['↵','Confirm Thu 14:00'],['📅','Send booking link']]},
+  {id:'n2',from:'Maria · Treuhand',init:'MT',cp:true,subj:'MwSt-Abrechnung Q1 — Freigabe?',prev:'Freigabe bis Freitag…',time:'Gestern',body:'Hallo Silke\n\nBitte um Freigabe der Q1-Abrechnung bis Freitag, sonst verschiebt sich die Einreichung.\n\nGruss Maria',
+    summary:'Maria needs sign-off on Q1 VAT by Friday or submission slips.',
+    signals:[['da','Deadline Friday — blocks her filing']],
+    extract:[['Sentiment','Neutral · procedural','→ Contact'],['Next step','Approve by Fri','→ Tasks']],
+    draft:'Hallo Maria,\n\nFreigabe erteilt — die Zahlen stimmen. Danke fürs Dranbleiben.\n\nGruss Silke',
+    nba:[['↵','Approve filing']]},
+ ],
+ crm:[
+  {id:'c1',unread:true,from:'Jan Muster · Acme AG',init:'JM',cp:true,subj:'Re: Angebot Webseite',prev:'Danke, sieht gut aus — Team schaut…',time:'09:14',body:'Hallo Silke\n\nDanke, das Angebot sieht gut aus. Ich schaue es mir mit dem Team an und melde mich.\n\nGruss Jan',
+    lead:'Acme AG',stage:'Proposal · CHF 24k',stageCur:'Proposal',stageNext:'Closing',tlKey:'acme',tag:['pt-amber','opened 3×'],
+    summary:'Jan likes the proposal but is routing it through his team — opened 3× without replying. Price hesitation, not disinterest.',
+    signals:[['dr','Offer opened 3× · no reply · 7d · confidence ↓'],['ds','R. Vogt (CFO) silently on CC']],
+    extract:[['Sentiment','Hesitant · price','→ Deal'],['Intent','Evaluating budget','→ Deal'],['Stakeholder','R. Vogt (CFO) · CC','→ Contacts'],['Next step','Offer 15-min call','→ Tasks']],
+    draft:'Hallo Jan,\n\nfreut mich, dass das Angebot überzeugt. Falls beim Team eine Frage zum Budget aufkommt: Ich gehe die Positionen gerne in 15 Minuten mit Ihnen durch.\n\nPasst Mittwoch kurz?\n\nBeste Grüsse\nSilke',
+    nba:[['↵','Send reassurance'],['👤','Address CFO directly'],['📅','Insert booking link']]},
+  {id:'c2',unread:true,from:'Marco · Bistrot SA',init:'MB',cp:true,subj:'können wir diese Woche unterschreiben?',prev:'Budget passt, finalisieren…',time:'Mo',body:'Hoi Silke\n\nBudget passt — lass uns das diese Woche unterschreiben. Wie machen wir das?\n\nGruss Marco',
+    lead:'Bistrot SA',stage:'Closing · CHF 9k',stageCur:'Closing',stageNext:'Won',tag:['pt-phos','ready to sign'],
+    summary:'Marco is ready to sign this week. Budget agreed on WhatsApp Friday — confirming on email. Send the contract, don’t re-sell.',
+    signals:[['dg','Replied after 2 opens · confidence ↑'],['ds','Budget agreed · WhatsApp · Fri']],
+    extract:[['Sentiment','Positive · ready','→ Deal'],['Intent','Sign this week','→ Deal'],['Next step','Send contract + e-sign','→ Tasks']],
+    draft:'Hoi Marco,\n\nperfekt! Ich schicke dir heute den Vertrag zur Unterschrift — Konditionen wie auf WhatsApp besprochen.\n\nGruss Silke',
+    nba:[['↵','Send contract'],['✍','Insert e-sign link']]},
+  {id:'c3',from:'P. Bär · Bär GmbH',init:'PB',cp:true,subj:'Rechnung März',prev:'Anbei Rechnung. Phase 2…',time:'Fr',body:'Guten Tag\n\nAnbei die Rechnung für März. Bezüglich Phase 2 melde ich mich.\n\nFreundliche Grüsse\nP. Bär',
+    lead:'Bär GmbH',stage:'Cooling',stageCur:'Cooling',stageNext:'Discovery',tag:['pt-dim','silent 5d'],
+    summary:'Transactional invoice, but Phase-2 talk went silent 5 days after a warm thread. Champion cooling — low-key re-engage.',
+    signals:[['da','Warm thread, then silent 5d']],
+    extract:[['Sentiment','Cooling','→ Deal'],['Phone','+41 31 511 09 22','→ Contact'],['Next step','Hold May slot','→ Tasks']],
+    draft:'Hallo Herr Bär,\n\nbesten Dank für die Rechnung. Wie sieht es bei Ihnen mit Phase 2 aus? Ich halte Ihnen den Slot im Mai gerne frei.\n\nFreundliche Grüsse\nSilke',
+    nba:[['↵','Gentle re-engage'],['🗓','Hold May slot']]},
+ ],
+ promo:[
+  {id:'p1',from:'Figma',init:'FG',q:1,subj:'New in Figma: AI layouts',prev:'Generate full layouts…',time:'07:10'},
+  {id:'p2',from:'Webflow',init:'WF',q:1,subj:'Black Friday: 40% off',prev:'Biggest savings of the year…',time:'Gestern'},
+ ],
+ social:[
+  {id:'s1',from:'LinkedIn',init:'in',q:1,subj:'5 people viewed your profile',prev:'See who’s looking…',time:'10:02'},
+  {id:'s2',from:'Xing',init:'X',q:1,subj:'Marco Bistrot endorsed you',prev:'Web Design, Branding…',time:'Mo'},
+ ],
+ updates:[
+  {id:'u1',from:'Stripe',init:'St',q:1,subj:'Payout CHF 8’400 on the way',prev:'Expected Mar 14…',time:'06:30'},
+  {id:'u2',from:'Google Cal',init:'GC',q:1,subj:'Reminder: Notariat Thu 14:00',prev:'Beglaubigung…',time:'Di'},
+ ],
+};
+const TIMELINE={acme:[
+ {dot:'pt-amber',h:'Re: Angebot Webseite',s:'in · "sieht gut aus…" — opened 3×',tag:'Email'},
+ {dot:'pt-amber',h:'Offer PDF sent',s:'out · CHF 24k · CFO CC’d',tag:'Email'},
+ {dot:'pt-phos',h:'"Budget Frage?"',s:'in · WhatsApp · answered',tag:'WA'},
+ {dot:'pt-dim',h:'Discovery call · 22 min',s:'champion warm',tag:'Call'},
+]};
+const DECK=[
+ {new:1,vb:'EMAIL',ti:'Acme AG — reassure on price',rs:'Opened 3×, quiet 7d. Draft a call offer; loop the CFO.',acts:[['pp-btn amber','▶ Draft'],['pp-btn','Open']]},
+ {vb:'EMAIL',ti:'Bistrot — send contract',rs:'Ready to sign. Budget agreed Fri.',acts:[['pp-btn phos','▶ Send']]},
+ {vb:'NUDGE',ti:'Bär GmbH — re-engage',rs:'Warm then silent 5d. Hold a May slot.',acts:[['pp-btn','▶ Nudge']]},
+];
+const PIPE=[['Closing','7','CHF 41k'],['Proposal','4','CHF 68k'],['Discovery','9','CHF 52k'],['Cooling','3','at risk']];
+
+/* ───── STATE ───── */
+const state={screen:'email',bucket:'crm',sel:null,replyCh:'email',freshId:null};
+const $=s=>document.querySelector(s);
+function toast(t){const e=$('#toast');e.innerHTML=t;e.classList.add('on');clearTimeout(e._t);e._t=setTimeout(()=>e.classList.remove('on'),2300);}
+function curBucket(){return BUCKETS.find(b=>b.id===state.bucket);}
+function curMail(){return (MAIL[state.bucket]||[]).find(m=>m.id===state.sel);}
+
+/* ───── deck (shared) ───── */
+function deckHtml(){
+ return DECK.map(d=>`<div class="pp-dc ${d.new?'new':''}"><div class="top"><span class="vb">${d.vb}</span><span>${d.new?'NEW':''}</span></div><div class="ti">${d.ti}</div><div class="rs">${d.rs}</div><div class="ex">${d.acts.map(a=>`<button class="${a[0]}" data-act="deck">${a[1]}</button>`).join('')}</div></div>`).join('')
+  +`<div class="pp-chat"><input placeholder="Ask the Consular…"><button class="pp-btn amber">↵</button></div>`;
+}
+
+/* ───── OVERVIEW ───── */
+function renderOverview(){
+ $('#ov-pipe').innerHTML=`<p class="pp-ch">Pipeline</p>`+PIPE.map((p,i)=>`<div class="pp-filter ${i===1?'on':''}"><span>${p[0]} · <span style="color:var(--text-dim)">${p[2]}</span></span><span class="n">${p[1]}</span></div>`).join('');
+ $('#ov-list').innerHTML=`<p class="pp-ch" style="margin-top:2px">Acme AG — channel-blended timeline</p>`+TIMELINE.acme.map(r=>`<div class="pp-row" style="cursor:default"><span class="pp-dot ${r.dot.replace('pt-','').replace('amber','da').replace('phos','dg').replace('dim','ds')}" style="margin-top:6px"></span><div class="pp-tx"><div class="h">${r.h}</div><div class="s">${r.s}</div></div><span class="pp-tag ${r.dot}">${r.tag}</span></div>`).join('');
+ $('#ov-deck').innerHTML=`<p class="pp-ch">Flight Deck — ROI-ranked</p>`+deckHtml();
+}
+
+/* ───── EMAIL ───── */
+function renderLanes(){
+ $('#lanes').innerHTML=BUCKETS.map(b=>{
+  const items=MAIL[b.id]||[];const unread=items.filter(m=>m.unread).length;
+  return `<button class="pp-lane ${b.id===state.bucket?'on':''}" data-bucket="${b.id}">${b.copilot?'<span class="cpdot"></span>':''}${b.name}<span class="ct">${unread||items.length}</span></button>`;
+ }).join('');
+}
+function mailRow(m){
+ const av=m.unresolved?'un':(m.cp?'cp':(m.q?'q':''));
+ const tag=m.unresolved?`<span class="pp-tag pt-red">resolve</span>`:(m.tag?`<span class="pp-tag ${m.tag[0]}">${m.tag[1]}</span>`:'');
+ return `<div class="pp-row ${m.id===state.sel?'sel':''} ${m.unread?'unread':''} ${m.id===state.freshId?'fresh':''}" data-act="mail" data-id="${m.id}"><div class="pp-av ${av}">${m.init}</div><div class="pp-tx"><div class="h">${m.from}</div><div class="sub">${m.subj}</div><div class="s">${m.prev}</div></div><div class="pp-meta"><span class="pp-time">${m.time}</span>${tag}</div></div>`;
+}
+function renderList(){
+ const b=curBucket();const items=MAIL[state.bucket]||[];
+ let head=b.copilot?'':`<div class="pp-bulk">Bulk lane · <span class="pp-btn">Select all</span><span class="pp-btn">Archive read</span><span class="pp-btn">Unsubscribe</span></div>`;
+ $('#mail-list-host').innerHTML=head+(items.length?items.map(mailRow).join(''):`<div class="empty"><b>Inbox zero</b>Nothing in ${b.name}.</div>`);
+ state.freshId=null;
+}
+function fieldBlock(m){if(!m.extract)return'';return `<div class="pp-blk"><div class="pp-blab">AI captured → written to record <span class="pill">#3</span></div><div class="pp-fields">${m.extract.map(f=>`<div class="pp-field"><span class="fk">${f[0]}</span><span class="fv">${f[1]}</span><span class="syn">${f[2]} ✓</span></div>`).join('')}</div></div>`;}
+function copilotInner(m){
+ if(m.unresolved){
+  return `<div class="pp-cp"><div class="pp-cphdr"><span class="lab"><span class="pulse"></span> Co-Pilot · Sender Ledger</span></div>
+   <div class="pp-resolve"><div class="rh">● Resolve once — #1</div><div class="rt">${m.resolveWhy}</div><div style="display:flex;gap:7px"><button class="pp-btn amber" data-act="resolve">Resolve → ${m.resolveTo}</button><button class="pp-btn" data-act="newlead">New lead</button><button class="pp-btn" data-act="mute">Mute</button></div></div>
+   <div class="pp-blk"><div class="pp-blab">What this is</div><div class="pp-summary">${m.summary}</div></div>
+   <div class="pp-blk"><div class="pp-blab">Signals</div><div class="pp-sig">${m.signals.map(s=>`<div class="pp-sg"><span class="pp-dot ${s[0]}"></span>${s[1]}</div>`).join('')}</div></div>
+   <div class="pp-blk"><div style="font-size:11.5px;color:var(--text-dim)">Drafting unlocks once the sender is resolved to a lead.</div></div></div>`;
+ }
+ const entity=m.lead?m.lead:m.from.split(' · ')[0];
+ const stage=m.stageNext?`<div class="pp-stage"><span>Stage</span><span class="cur">${m.stageCur}</span><span>→ ${m.stageNext}?</span><button class="adv" data-act="advance">Advance ▸ ${m.stageNext}</button></div>`:'';
+ const chans=m.lead?`<div class="pp-chrow"><button class="pp-chip ${state.replyCh==='email'?'on':''}" data-act="ch" data-c="email">Email</button><button class="pp-chip ${state.replyCh==='wa'?'on':''}" data-act="ch" data-c="wa">WhatsApp</button></div>`:'';
+ return `<div class="pp-cp">
+  <div class="pp-cphdr"><span class="lab"><span class="pulse"></span> Co-Pilot · ${m.lead?'CRM':'Normal'}</span>${m.lead?`<span class="lk" data-act="goov">Open in Overview →</span>`:''}</div>
+  ${stage}
+  <div class="pp-blk"><div class="pp-blab">What this is</div><div class="pp-summary">${m.summary}</div></div>
+  <div class="pp-blk"><div class="pp-blab">Signals <span class="pill">#5</span></div><div class="pp-sig">${m.signals.map(s=>`<div class="pp-sg"><span class="pp-dot ${s[0]}"></span>${s[1]}</div>`).join('')}</div></div>
+  ${fieldBlock(m)}
+  <div class="pp-blk"><div class="pp-blab">Suggested reply ${m.lead?`· <span style="color:var(--brand-amber)">${state.replyCh==='wa'?'WhatsApp':'Email'}</span>`:''} <span class="pill">#7</span></div>
+   <div class="pp-draft"><div class="dh">✦ Drafted from context</div><div class="dtext" id="drafttext">${m.draft}</div>${chans}<div class="pp-dacts"><button class="pp-btn amber" data-act="send">Approve & Send</button><button class="pp-btn" data-act="book">📅 Booking link</button><button class="pp-btn" data-act="discard">Discard</button></div></div></div>
+  <div class="pp-blk"><div class="pp-blab">Next best action <span class="pill">#8</span></div><div class="pp-nba">${m.nba.map(n=>`<button class="pp-nbtn" data-act="nba" data-t="${n[1]}"><span class="k">${n[0]}</span>${n[1]}</button>`).join('')}</div></div>
+ </div>`;
+}
+function renderDetail(){
+ const host=$('#mail-detail-host');const m=curMail();const b=curBucket();
+ if(!m){host.classList.add('hidden');$('#mail-list-host').classList.remove('hidden');return;}
+ host.classList.remove('hidden');$('#mail-list-host').classList.add('hidden');
+ const cp=b.copilot?copilotInner(m):`<div class="pp-cpoff"><div class="mono">Co-pilot off</div><div class="big">${b.name} is a bulk lane.</div><div style="font-size:12px;max-width:32ch">No drafting here — scan, archive, unsubscribe.</div></div>`;
+ host.innerHTML=`<div class="pp-dback" data-act="back">‹ Back to ${b.name}</div>
+  <div class="pp-dbody"><div class="pp-mailhead"><div class="subj">${m.subj}</div><div class="from">${m.from} · ${m.time}</div></div>
+  <div style="overflow:auto;min-height:0"><div class="pp-mailbody">${(m.body||m.prev)}</div>${cp}</div></div>`;
+}
+function renderEmail(){renderLanes();renderList();renderDetail();$('#em-deck').innerHTML=`<p class="pp-ch">Flight Deck — ROI-ranked</p>`+deckHtml();}
+
+/* ───── PAINT ───── */
+function paint(){
+ document.querySelectorAll('#tabs .pp-tab[data-scr]').forEach(b=>b.classList.toggle('on',b.dataset.scr===state.screen));
+ $('#view-overview').style.display=state.screen==='overview'?'grid':'none';
+ $('#view-email').style.display=state.screen==='email'?'grid':'none';
+ if(state.screen==='overview')renderOverview(); else renderEmail();
+}
+
+/* ───── EVENTS ───── */
+document.addEventListener('click',e=>{
+ const tab=e.target.closest('#tabs .pp-tab[data-scr]');
+ if(tab&&tab.dataset.scr!=='x'){state.screen=tab.dataset.scr;state.sel=null;paint();return;}
+ const lane=e.target.closest('[data-bucket]');
+ if(lane){state.bucket=lane.dataset.bucket;state.sel=null;paint();return;}
+ const act=e.target.closest('[data-act]');if(!act)return;
+ const a=act.dataset.act,m=curMail();
+ if(a==='mail'){state.sel=act.dataset.id;renderEmail();}
+ else if(a==='back'){state.sel=null;renderEmail();}
+ else if(a==='ch'){state.replyCh=act.dataset.c;renderDetail();}
+ else if(a==='advance'){if(m){toast(`Stage advanced · <b>${m.stageCur} → ${m.stageNext}</b> on ${m.lead} (#10)`);m.stageCur=m.stageNext;m.stage=m.stageNext;m.stageNext=null;renderDetail();}}
+ else if(a==='book'){const d=document.getElementById('drafttext');if(d){d.textContent=d.textContent.replace(/\n\n(Herzliche|Beste|Gruss|Freundliche)/,x=>'\n\n📅 Termin buchen: cal.atelier.ch/silke/15min'+x);}toast('Booking link inserted (#10)');}
+ else if(a==='send'){if(m&&m.tlKey&&TIMELINE[m.tlKey]){TIMELINE[m.tlKey].unshift({dot:state.replyCh==='wa'?'pt-phos':'pt-amber',h:'Re: '+m.subj.replace(/^Re:\s*/,'')+' (sent)',s:'out · co-pilot · '+(state.replyCh==='wa'?'WhatsApp':'Email'),tag:state.replyCh==='wa'?'WA':'Email'});}toast(`Sent via ${state.replyCh==='wa'?'WhatsApp':'Email'} · <b>logged to ${m&&m.lead?m.lead:(m&&m.from)} ✓</b> (#2)`);if(m)m.unread=false;}
+ else if(a==='discard'){toast('Draft discarded');}
+ else if(a==='nba'){if(act.dataset.t&&act.dataset.t.toLowerCase().includes('booking')){const bb=document.querySelector('[data-act="book"]');if(bb)bb.click();}else toast(act.dataset.t);}
+ else if(a==='goov'){state.screen='overview';state.sel=null;paint();toast('Jumped to Acme AG in Overview');}
+ else if(a==='mute'){toast('Sender muted');}
+ else if(a==='newlead'){toast('New lead created from sender');}
+ else if(a==='deck'){toast('Flight-deck action fired');}
+ else if(a==='resolve'){
+  const i=MAIL.normal.findIndex(x=>x.id===m.id);
+  if(i>-1){const mv=MAIL.normal.splice(i,1)[0];mv.unresolved=false;mv.lead=mv.resolveTo;mv.stage='Proposal · CHF 24k';mv.stageCur='Proposal';mv.stageNext='Closing';mv.tlKey='acme';mv.from='Acme AG · '+mv.from;mv.init='AC';mv.tag=['pt-dim','● linked'];mv.extract=[['Sentiment','Engaged','→ Deal'],['Intent','Internal alignment','→ Deal'],['Contact','office@acme.ch','→ Contacts']];mv.draft='Guten Tag,\n\ngerne — was braucht das Team für die Abstimmung? Ich liefere die Angaben heute noch.\n\nBeste Grüsse\nSilke';mv.nba=[['↵','Answer question'],['📅','Booking link']];MAIL.crm.unshift(mv);state.bucket='crm';state.sel=mv.id;state.freshId=mv.id;renderEmail();toast(`Resolved · <b>office@acme.ch → Acme AG</b>. Routed to CRM (#1)`);}
+ }
+});
+paint();
+</script>
+</body>
+</html>

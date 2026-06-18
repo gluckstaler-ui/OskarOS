@@ -30,7 +30,7 @@ import type { OskarChatEventKind } from '@/lib/types/chat-sse';
  * (WP-3.2) and for picking which mocks to install per spec.
  */
 export type CaseCategory =
-  | 'chat'             // chat surface — markdown render, question-form, todo-write, tool-cards
+  | 'chat'             // chat surface — markdown render, question-form, tool-cards
   | 'build'            // vibe builds (single + batch + final)
   | 'image-pipeline'   // generate / edit / hot-swap / image-mode evaluation
   | 'mcp-bus'          // notify_agent / claim_orphan / thread_history / fan-out
@@ -47,7 +47,6 @@ export type CaseFlow =
   // chat surface
   | 'discovery-question-form'
   | 'discovery-direction-pick'
-  | 'todo-write-unfinished'
   | 'tool-card-render-cd-tools'
   // build pipeline
   | 'vibe-build-3'

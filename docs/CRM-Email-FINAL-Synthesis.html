@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Email in the Overview — Final Synthesis · OskarOS CRM</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800;900&family=Archivo+Expanded:wght@600;700;800&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#FBFAF6; --paper-2:#F2F0E9; --ink:#16171B; --ink-2:#3A3B40;
+  --grey:#9A9A93; --line:#D9D7CD; --line-2:#E7E5DC;
+  --cobalt:#1E2BD6; --cobalt-deep:#141DA0; --cobalt-pale:#AEB2E6; --cobalt-bg:#F4F4FB;
+  --green:#2E7D54; --amber:#C98A1E; --red:#C2603F; --wa:#1FAA55; --email:#C97A1E;
+  --sans:"Archivo",-apple-system,system-ui,sans-serif;
+  --exp:"Archivo Expanded","Archivo",sans-serif;
+  --serif:"Newsreader",Georgia,serif;
+  --mono:"IBM Plex Mono",ui-monospace,monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{background:var(--paper);color:var(--ink);font-family:var(--serif);font-size:16.5px;line-height:1.55;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
+.wrap{max-width:1060px;margin:0 auto;padding:0 32px}
+@media(max-width:640px){.wrap{padding:0 18px}}
+.eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--cobalt);font-weight:500}
+h1,h2,h3,h4{font-family:var(--exp);font-weight:800;line-height:1.0;letter-spacing:-0.01em}
+.mono{font-family:var(--mono)}
+a{color:var(--cobalt);text-decoration:none;border-bottom:1px solid var(--cobalt-pale)}
+a:hover{border-color:var(--cobalt)}
+code{font-family:var(--mono);font-size:.85em;background:var(--cobalt-bg);color:var(--cobalt-deep);padding:1px 5px;border-radius:3px;white-space:nowrap}
+
+.mast{border-bottom:2px solid var(--ink);padding:38px 0 32px}
+.mast .toprow{display:flex;justify-content:space-between;align-items:baseline;gap:16px;flex-wrap:wrap;margin-bottom:42px}
+.brand{font-family:var(--exp);font-weight:800;letter-spacing:.02em;font-size:15px}
+.brand b{color:var(--cobalt)}
+.mast-meta{font-family:var(--mono);font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-2);text-align:right;line-height:1.7}
+.headline{font-size:clamp(31px,5.2vw,58px);max-width:19ch}
+.headline em{font-style:normal;color:var(--cobalt)}
+.dek{font-size:clamp(17px,2.1vw,21px);line-height:1.42;max-width:66ch;margin-top:22px;color:var(--ink-2)}
+.dek b{color:var(--ink);font-weight:500}
+
+.sec{padding:52px 0;border-top:1px solid var(--line)}
+.sec-head{display:grid;grid-template-columns:minmax(0,2.6fr) minmax(0,7fr);gap:26px;align-items:start;margin-bottom:28px}
+@media(max-width:760px){.sec-head{grid-template-columns:1fr;gap:8px}}
+.sec-num{font-family:var(--mono);font-size:12px;color:var(--cobalt);letter-spacing:.1em}
+.sec-title{font-family:var(--exp);font-weight:800;font-size:clamp(22px,3vw,32px);letter-spacing:-0.01em;line-height:1.04}
+.sec-intro{font-size:17px;color:var(--ink-2);max-width:62ch}
+.body{font-size:16.5px;color:var(--ink-2);max-width:72ch}
+.body p+p{margin-top:14px}
+.body b{color:var(--ink);font-weight:500}
+.body em{font-style:italic;color:var(--ink)}
+
+/* scorecard */
+.score2{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--line);border:1px solid var(--line);margin-top:8px}
+@media(max-width:680px){.score2{grid-template-columns:1fr}}
+.score2 .sc{background:var(--paper);padding:22px 22px 24px}
+.score2 .sc.cd{background:var(--cobalt-bg)}
+.score2 .sl{font-family:var(--mono);font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--cobalt);margin-bottom:10px}
+.score2 h4{font-family:var(--exp);font-weight:800;font-size:18px;margin-bottom:8px}
+.score2 ul{list-style:none}
+.score2 li{font-size:14.5px;color:var(--ink-2);line-height:1.42;padding:4px 0 4px 16px;position:relative}
+.score2 li::before{content:"▸";position:absolute;left:0;color:var(--cobalt);font-size:11px;top:5px}
+.score2 li b{color:var(--ink);font-weight:600}
+
+/* verified table */
+table.v{width:100%;border-collapse:collapse;margin-top:6px;font-size:14px}
+table.v th{font-family:var(--mono);font-size:9.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--grey);text-align:left;padding:8px 12px;border-bottom:1.5px solid var(--ink)}
+table.v td{padding:9px 12px;border-bottom:1px solid var(--line-2);color:var(--ink-2);line-height:1.4;vertical-align:top}
+table.v td.ok{color:var(--green);font-family:var(--mono);font-size:12px;font-weight:600;white-space:nowrap}
+table.v td.no{color:var(--red);font-family:var(--mono);font-size:12px;font-weight:600;white-space:nowrap}
+table.v td .path{font-family:var(--mono);font-size:11.5px;color:var(--cobalt-deep)}
+
+.callout{border:1.5px solid var(--ink);background:#fff;padding:20px 24px;margin-top:10px;border-left:4px solid var(--red)}
+.callout.good{border-left-color:var(--green)}
+.callout .ch{font-family:var(--mono);font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--red);margin-bottom:8px}
+.callout.good .ch{color:var(--green)}
+.callout p{font-size:16px;color:var(--ink-2);line-height:1.48;max-width:74ch}
+.callout b{color:var(--ink);font-weight:600}
+
+/* layer block */
+.layer{border-top:2px solid var(--ink);padding-top:26px;margin-top:0}
+.layer-hd{display:flex;align-items:baseline;gap:13px;flex-wrap:wrap;margin-bottom:6px}
+.layer-tag{font-family:var(--mono);font-size:11px;font-weight:600;letter-spacing:.05em;background:var(--cobalt);color:#fff;padding:3px 9px;border-radius:2px}
+.layer-name{font-family:var(--exp);font-weight:800;font-size:clamp(22px,3.1vw,32px);letter-spacing:-0.015em}
+.layer-thesis{font-family:var(--serif);font-size:18px;font-style:italic;line-height:1.4;color:var(--ink);max-width:72ch;margin:9px 0 18px}
+.layer-thesis b{font-style:normal;color:var(--cobalt);font-weight:500}
+.lab{font-family:var(--mono);font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--cobalt);margin:20px 0 10px;display:block;border-bottom:1px solid var(--line-2);padding-bottom:6px}
+ul.feat{list-style:none}
+ul.feat li{position:relative;padding:7px 0 7px 22px;font-size:15.5px;color:var(--ink-2);line-height:1.45;border-bottom:1px solid var(--line-2)}
+ul.feat li:last-child{border-bottom:none}
+ul.feat li::before{content:"▸";position:absolute;left:0;top:7px;color:var(--cobalt);font-size:12px}
+ul.feat li b{color:var(--ink);font-weight:600}
+
+/* mock */
+.mock{border:1px solid var(--line);background:#fff;margin-top:6px;font-family:var(--sans);overflow:hidden}
+.mock-bar{background:var(--ink);color:#fff;font-family:var(--mono);font-size:10px;letter-spacing:.1em;padding:7px 14px;text-transform:uppercase;display:flex;justify-content:space-between}
+.mock-body{padding:14px 16px 16px}
+.mline{display:flex;align-items:center;gap:10px;padding:9px 10px;border:1px solid var(--line);background:var(--paper);margin-bottom:8px;border-radius:3px}
+.mline:last-child{margin-bottom:0}
+.mdot{width:8px;height:8px;border-radius:50%;flex:none}
+.d-em{background:var(--email)}.d-red{background:var(--red)}.d-amb{background:var(--amber)}.d-grn{background:var(--green)}.d-wa{background:var(--wa)}
+.mtxt{flex:1;min-width:0}.mtxt .mt-h{font-weight:700;font-size:13px;color:var(--ink)}.mtxt .mt-s{font-size:12px;color:var(--ink-2);line-height:1.3}
+.mtag{font-family:var(--mono);font-size:9.5px;letter-spacing:.04em;padding:2px 6px;border-radius:2px;white-space:nowrap;text-transform:uppercase;background:var(--cobalt);color:#fff}
+
+/* phases */
+.rec{border:1.5px solid var(--ink);padding:30px 30px 14px;background:#fff;margin-top:6px}
+.rec .rh{font-family:var(--mono);font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--cobalt);margin-bottom:14px}
+.rec .big{font-family:var(--exp);font-weight:800;font-size:clamp(19px,2.5vw,27px);letter-spacing:-0.01em;line-height:1.12;margin-bottom:6px}
+.rec .big em{font-style:normal;color:var(--cobalt)}
+.phase{display:grid;grid-template-columns:108px 1fr 70px;gap:18px;border-top:1px solid var(--line);padding:16px 0;align-items:baseline}
+@media(max-width:680px){.phase{grid-template-columns:1fr;gap:5px}}
+.phase .pn{font-family:var(--mono);font-size:12px;color:var(--cobalt);letter-spacing:.04em;font-weight:600}
+.phase .pb{font-size:15px;color:var(--ink-2);line-height:1.45}
+.phase .pb b{color:var(--ink);font-weight:600}
+.phase .pe{font-family:var(--exp);font-weight:800;font-size:15px;color:var(--ink);text-align:right}
+.src{font-family:var(--mono);font-size:10px;letter-spacing:.04em;text-transform:uppercase;color:var(--grey);margin-left:6px}
+.src.cd{color:var(--cobalt)}.src.me{color:var(--email)}
+
+pre.code{background:#16171B;color:#E7E5DC;font-family:var(--mono);font-size:12.5px;line-height:1.55;padding:18px 20px;overflow-x:auto;border-radius:4px;margin-top:8px}
+pre.code .c{color:#8B8C84}pre.code .k{color:#8AB4FF}pre.code .s{color:#C9A06B}
+
+.oq{counter-reset:q;list-style:none;margin-top:6px}
+.oq li{counter-increment:q;position:relative;padding:13px 0 13px 44px;border-bottom:1px solid var(--line-2);font-size:16px;color:var(--ink-2);line-height:1.45}
+.oq li::before{content:"Q" counter(q);position:absolute;left:0;top:12px;font-family:var(--mono);font-size:11px;font-weight:600;color:var(--cobalt);border:1px solid var(--cobalt-pale);border-radius:3px;padding:2px 5px}
+.oq li b{color:var(--ink);font-weight:600}
+
+footer{border-top:2px solid var(--ink);margin-top:14px;padding:24px 0 60px}
+footer .cols{display:flex;justify-content:space-between;gap:20px;flex-wrap:wrap;font-family:var(--mono);font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-2)}
+footer .cols b{color:var(--ink)}
+</style>
+</head>
+<body>
+
+<header class="mast">
+  <div class="wrap">
+    <div class="toprow">
+      <div class="brand">Oskar<b>OS</b> · CRM · Email in the Overview</div>
+      <div class="mast-meta">FINAL · synthesis of two specs<br>Consular ⊕ Jedi CD<br>Status: for decision<br>Supersedes both drafts</div>
+    </div>
+    <h1 class="headline">The final plan is <em>CD's grounded core</em>, plus the two layers it was missing.</h1>
+    <p class="dek">Two proposals were written. CD's is the better-researched: it read the real CRM source and found the surfaces email plugs into. Mine added two ideas CD's five do not contain. This document merges them, verifies the claims both rest on, and corrects the one that does not hold. <b>It is the spec of record.</b></p>
+  </div>
+</header>
+
+<!-- 00 SCORECARD -->
+<section class="sec" id="verdict">
+  <div class="wrap">
+    <div class="sec-head">
+      <div><div class="sec-num">00 / Honest verdict</div></div>
+      <div><div class="sec-title">Where each spec was right.</div>
+      <p class="sec-intro" style="margin-top:12px">No false balance. CD's spec is stronger overall because it is grounded in the actual code. Mine contributes two things CD's lacks. The final keeps both.</p></div>
+    </div>
+    <div class="score2">
+      <div class="sc cd">
+        <div class="sl">CD's spec wins on</div>
+        <h4>Grounding + the core call</h4>
+        <ul>
+          <li><b>Read the real source.</b> The 3-column grid, the dead Emails bento, the dead mailto icons, the existing E-mail activity types.</li>
+          <li><b>The WP-111 constraint.</b> Consular is read-only, so a draft card must POST around the agent, not send through it.</li>
+          <li><b>The schema truth.</b> Email needs an <code>email_thread_id</code> WhatsApp never did. Explicit columns, not discriminated reuse.</li>
+          <li><b>The right core: P2 ⊕ P4.</b> Email lane in the feed, entered via the triage bento. Most on-brand, least new UI.</li>
+        </ul>
+      </div>
+      <div class="sc">
+        <div class="sl">My spec adds</div>
+        <h4>Two layers CD's five lack</h4>
+        <ul>
+          <li><b>Deal-Health Signal.</b> Email pulse (sent / opened / replied / silent) drives <code>confidence_pct</code>, status, and the lore. Stalling-deal detection. CD's five are all read-or-compose surfaces; none treats email as a deal vital.</li>
+          <li><b>Flight-Deck ROI ranking.</b> Email moves compete on the deck by ROI-per-minute with a <code>▸ DRAFT</code> action, not just "FlightDeck gains email rows."</li>
+          <li><b>One correction:</b> the transport engine CD names as ready does not exist in the repo (verified below).</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 01 VERIFIED -->
+<section class="sec" id="verified">
+  <div class="wrap">
+    <div class="sec-head">
+      <div><div class="sec-num">01 / Verified base</div></div>
+      <div><div class="sec-title">What is actually in the code.</div>
+      <p class="sec-intro" style="margin-top:12px">Every claim the backbone rests on, checked against the source rather than trusted. This is the part of CD's spec that is real, confirmed line by line.</p></div>
+    </div>
+    <table class="v">
+      <thead><tr><th>Claim</th><th>Verified?</th><th>Where</th></tr></thead>
+      <tbody>
+        <tr><td>Overview is a 3-column grid (left rail / center / right rail)</td><td class="ok">REAL</td><td><span class="path">crm.css:1252 — 400px minmax(0,1fr) 420px</span></td></tr>
+        <tr><td>A dead "Emails" triage bento already exists</td><td class="ok">REAL</td><td><span class="path">TriageRail.tsx:148 — label:'Emails', tone:'email', count:emailsCount</span></td></tr>
+        <tr><td>Activity types <code>E-mail In / E-mail Out</code> exist in the union</td><td class="ok">REAL</td><td><span class="path">crm-store.ts:100-101</span></td></tr>
+        <tr><td>The WhatsApp send/status pattern to mirror</td><td class="ok">REAL</td><td><span class="path">WaComposeModal.tsx · wa-outbound/route.ts · updateWaStatusByMessageId crm-store.ts:642</span></td></tr>
+        <tr><td>View union is <code>overview | kanban | scout</code> (P5 adds inbox)</td><td class="ok">REAL</td><td><span class="path">page.tsx:55</span></td></tr>
+        <tr><td>Consular is read-only (WP-111), send must route around it</td><td class="ok">REAL</td><td>confirmed this session: <span class="path">consular/research route harvests, does not mutate; sql-tool fail-closes</span></td></tr>
+        <tr><td><b>"Gmail MCP, 13 tools, unwired" engine</b></td><td class="no">NOT FOUND</td><td>repo-wide search for gmail / googleapis / nodemailer / send_email returns only spec docs. No transport code, no <code>email-outbound</code> route.</td></tr>
+      </tbody>
+    </table>
+    <div class="callout">
+      <div class="ch">The one correction</div>
+      <p><b>Transport is greenfield, not a ready asset.</b> CD's backbone is premised on an existing Gmail MCP with 13 tools "merely unwired." I cannot find it anywhere in the tree. Either it lives outside the repo (a separate MCP process or external config, in which case point me at it), or it has to be built. This changes Phase 0 from "wire the existing engine" to "stand up the transport first." Everything downstream is unaffected, but the effort and the critical path start one step earlier than CD's spec assumes. <b>This needs confirming before any build estimate is trusted.</b></p>
+    </div>
+  </div>
+</section>
+
+<!-- 02 THE TWO ADDED LAYERS -->
+<section class="sec" id="layers">
+  <div class="wrap">
+    <div class="sec-head">
+      <div><div class="sec-num">02 / What I add</div></div>
+      <div><div class="sec-title">Two layers CD's five do not contain.</div>
+      <p class="sec-intro" style="margin-top:12px">CD's P1 to P5 are all about reading, composing, and triaging email. They never ask what email tells you about a deal, and they never let email compete for attention on merit. These two layers fill that gap and sit cleanly on top of CD's core.</p></div>
+    </div>
+
+    <div class="layer">
+      <div class="layer-hd"><span class="layer-tag">LAYER X</span><span class="layer-name">Email as a deal vital</span></div>
+      <p class="layer-thesis">Email is not only a message to read. Its <b>pulse is a signal of where the deal stands,</b> and that signal should drive the pipeline automatically, not wait for the rep to notice.</p>
+      <span class="lab">Mockup · Overview, deals at risk</span>
+      <div class="mock">
+        <div class="mock-bar"><span>OVERVIEW · DEAL PULSE</span><span>EMAIL SIGNAL</span></div>
+        <div class="mock-body">
+          <div class="mline"><span class="mdot d-red"></span><div class="mtxt"><div class="mt-h">Acme · CHF 12k · Closing</div><div class="mt-s">offer emailed 7d ago, opened 3x, no reply · confidence falling</div></div><span class="mtag">NUDGE</span></div>
+          <div class="mline"><span class="mdot d-amb"></span><div class="mtxt"><div class="mt-h">Güterstrasse · champion cooling</div><div class="mt-s">warm thread, then silent 5d</div></div><span class="mtag">NUDGE</span></div>
+          <div class="mline"><span class="mdot d-grn"></span><div class="mtxt"><div class="mt-h">Bistrot · re-engaged</div><div class="mt-s">replied after 2 opens · confidence rising</div></div></div>
+        </div>
+      </div>
+      <span class="lab">Features</span>
+      <ul class="feat">
+        <li><b>Pulse drives the pipeline.</b> Sent / opened / replied / silent feeds <code>confidence_pct</code> and auto-flips status to <em>Awaiting reply</em> (an existing status, not a new one).</li>
+        <li><b>Stall detection.</b> An emailed proposal with opens but no reply past N days surfaces with a named cause, not a vague nudge.</li>
+        <li><b>Cooling detection.</b> A warm thread that goes quiet drops confidence and prompts a Consular-drafted re-approach.</li>
+        <li><b>Lore capture.</b> "Opened the offer 3 times, never replied" writes to <code>intel_json</code>, so the next teardown turn inherits it.</li>
+        <li><b>Feeds the deck.</b> A stalling deal can auto-promote to a Flight Deck CHASE card (see Layer Y).</li>
+      </ul>
+      <div class="body" style="max-width:none;margin-top:8px"><p><b>Where it sits:</b> this is not a surface, it is logic on top of CD's backbone. It reads the same <code>E-mail In/Out</code> activity stream and writes <code>prospects</code> and <code>intel_json</code>. It does need open-tracking, which is a real privacy and deliverability decision (see Q4).</p></div>
+    </div>
+
+    <div class="layer" style="margin-top:40px">
+      <div class="layer-hd"><span class="layer-tag">LAYER Y</span><span class="layer-name">Email ranked on the Flight Deck</span></div>
+      <p class="layer-thesis">Email does not need its own attention surface. <b>Email moves compete on the deck the rep already reads first,</b> ranked by ROI-per-minute next to calls and WhatsApp.</p>
+      <span class="lab">Mockup · the deck, channel-blended</span>
+      <div class="mock">
+        <div class="mock-bar"><span>FLIGHT DECK · TODAY</span><span>+9 QUEUE</span></div>
+        <div class="mock-body">
+          <div class="mline"><span class="mdot d-red"></span><div class="mtxt"><div class="mt-h">REPLY · Bistrot · Marco</div><div class="mt-s">"sign this week?" · 2 min · email</div></div><span class="mtag">▸ DRAFT</span></div>
+          <div class="mline"><span class="mdot d-amb"></span><div class="mtxt"><div class="mt-h">CHASE · Acme · proposal</div><div class="mt-s">emailed 7d, opened 3x, silent</div></div><span class="mtag">▸ DRAFT</span></div>
+          <div class="mline"><span class="mdot d-grn"></span><div class="mtxt"><div class="mt-h">CALL · Güterstrasse · Boesch</div><div class="mt-s">champion warm · 5 min · phone</div></div><span class="mtag">▸ CALL</span></div>
+        </div>
+      </div>
+      <span class="lab">Features</span>
+      <ul class="feat">
+        <li><b>Email feeds the ranker.</b> Inbound and stalled emails become candidate cards scored on the same per-minute basis as every other move, written to <code>db/flight-deck.json</code>.</li>
+        <li><b>Channel drives the action.</b> <code>channel:"email"</code> renders <code>▸ DRAFT</code> (opens a Consular email draft); phone renders <code>▸ CALL</code>.</li>
+        <li><b>Reuses the archetypes</b> already registered in <code>flight-deck.jsx</code>: <code>arrears</code> for email dunning, <code>agenda</code> for a scheduled follow-up, <code>tag</code> for a quick reply.</li>
+        <li><b>Overflow stays clean.</b> The deck holds 1 to 6; the rest sit behind the <code>queueCount</code> chip, so a heavy email day never breaks the deck.</li>
+      </ul>
+      <div class="body" style="max-width:none;margin-top:8px"><p><b>Versus CD's P1:</b> CD has the FlightDeck "gain email rows" as a notification list. Layer Y makes it a ranked decision surface, which is what the deck already is for every other channel. Small delta in code, real delta in behaviour.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- 03 THE MERGED PLAN -->
+<section class="sec" id="plan">
+  <div class="wrap">
+    <div class="sec-head">
+      <div><div class="sec-num">03 / The plan</div></div>
+      <div><div class="sec-title">One phased build, merged.</div></div>
+    </div>
+    <div class="rec">
+      <div class="rh">The final call</div>
+      <div class="big">Backbone, then <em>P2 ⊕ P4</em> as the surface, <em>P1</em> as the engine, then <em>my two layers</em>, defer P5.</div>
+      <div class="phase"><div class="pn">PHASE 0 <span class="src cd">CD</span></div><div class="pb"><b>Backbone + transport.</b> Stand up the email transport (it is greenfield, not a ready MCP). Build <code>email-outbound</code> mirroring <code>wa-outbound</code>, the inbound dispatcher mirroring <code>wa-inbound-dispatch</code>, status updates, and <code>EmailComposeModal</code>. Schema: explicit <code>email_message_id / email_thread_id / email_status</code> columns, written event-first.</div><div class="pe">L</div></div>
+      <div class="phase"><div class="pn">PHASE 1 <span class="src cd">CD</span></div><div class="pb"><b>Core surface: P2 ⊕ P4.</b> Email lane in the Activities feed with a channel-toggle composer (P2), entered via the triage Emails bento split into Awaiting-reply / Hot-inbound (P4). This makes the dead Emails bento and mailto icons finally real.</div><div class="pe">M</div></div>
+      <div class="phase"><div class="pn">PHASE 2 <span class="src cd">CD</span></div><div class="pb"><b>Engine: P1, Consular drafting.</b> Consular gains Gmail read tools and an <code>email_draft</code> card. Send routes around the agent per WP-111. The leverage multiplier: replies are pre-written when you arrive.</div><div class="pe">S</div></div>
+      <div class="phase"><div class="pn">PHASE 3 <span class="src me">MINE</span></div><div class="pb"><b>Layer Y: Flight-Deck ranking.</b> Email moves enter <code>flight-deck.json</code> ranked by ROI-per-minute, <code>▸ DRAFT</code> opens the pre-written reply. Email competes on merit, not as a separate list.</div><div class="pe">S</div></div>
+      <div class="phase"><div class="pn">PHASE 4 <span class="src me">MINE</span></div><div class="pb"><b>Layer X: deal-health signal.</b> Fold email pulse into <code>confidence_pct</code>, status, and <code>intel_json</code>. Surface stalling and cooling deals. The pipeline starts reading email, not just showing it.</div><div class="pe">M</div></div>
+      <div class="phase"><div class="pn">PHASE 5 <span class="src cd">CD</span></div><div class="pb"><b>Defer P5 (full inbox)</b> until meaningful <em>unmatched</em> cold inbound arrives. Until then it is a Gmail clone you do not need. CD is right to hold it.</div><div class="pe">—</div></div>
+    </div>
+    <div class="body" style="max-width:none;margin-top:18px">
+      <p>The shape of the merge: <b>CD owns the spine and the surface</b> (it did the research and the core call is correct), <b>I own the two layers on top</b> (pulse and ranking), and the transport correction moves Phase 0's start. Nothing here is mutually exclusive with CD's phasing; it extends it with the two things it was missing and fixes the one premise that did not hold.</p>
+    </div>
+  </div>
+</section>
+
+<!-- 04 SCHEMA -->
+<section class="sec" id="schema">
+  <div class="wrap">
+    <div class="sec-head">
+      <div><div class="sec-num">04 / Appendix</div></div>
+      <div><div class="sec-title">Schema and the write path.</div></div>
+    </div>
+    <div class="body" style="max-width:none"><p>CD's Option B is right: explicit columns, because email needs a real <code>thread_id</code>. The two added layers need no further columns; they read the activity stream and write existing prospect fields.</p></div>
+    <pre class="code"><span class="c">// Phase 0 — explicit columns (CD Option B), email needs a thread id</span>
+<span class="k">ALTER TABLE</span> activities <span class="k">ADD</span> email_message_id <span class="k">TEXT</span>;
+<span class="k">ALTER TABLE</span> activities <span class="k">ADD</span> email_thread_id  <span class="k">TEXT</span>;  <span class="c">// reply-threading + fold</span>
+<span class="k">ALTER TABLE</span> activities <span class="k">ADD</span> email_status     <span class="k">TEXT</span>;  <span class="c">// sent|delivered|opened|replied</span>
+<span class="c">// E-mail In / E-mail Out types + subject + body already exist (crm-store.ts:100)</span>
+
+<span class="c">// outbound, mirrors wa-outbound, NOT through the read-only Consular (WP-111)</span>
+POST /api/admin/crm/activities/email-outbound
+  <span class="k">→</span> transport.send({ to, subject, body, in_reply_to })   <span class="c">// greenfield, verify engine</span>
+  <span class="k">→</span> appendEvent(E-mail Out, email_thread_id, status:<span class="s">'sent'</span>)  <span class="c">// log-first [SYNC-L]</span>
+
+<span class="c">// Layer X — pulse, no new columns, writes existing prospect fields</span>
+on email_status change <span class="k">→</span> recompute confidence_pct, maybe status='Awaiting reply'
+on silence &gt; N days   <span class="k">→</span> intel_json.lore += "opened Nx, no reply"; promote CHASE card</pre>
+  </div>
+</section>
+
+<!-- 05 DECISIONS -->
+<section class="sec" id="oq">
+  <div class="wrap">
+    <div class="sec-head">
+      <div><div class="sec-num">05 / Decisions</div></div>
+      <div><div class="sec-title">Five answers unlock the build.</div></div>
+    </div>
+    <ol class="oq">
+      <li><b>The transport engine.</b> Does the "Gmail MCP, 13 tools" actually exist outside the repo? If yes, point me at it and Phase 0 shrinks. If no, we build the transport first. This is the single blocker on a real estimate.</li>
+      <li><b>Confirm the merged plan</b> (CD's P2 ⊕ P4 ⊕ P1 core, plus my Layer Y ranking and Layer X pulse), or re-weight the phases.</li>
+      <li><b>Auto-send.</b> Extend the WhatsApp trust-zone auto-send to low-stakes email, or keep every email human-approved at first. Email is higher-stakes; I lean human-approved until trust is earned.</li>
+      <li><b>Open-tracking.</b> Layer X's "opened 3x" needs read pixels. Useful signal, but some clients and privacy norms dislike them. In or out for v1.</li>
+      <li><b>Identity merge.</b> Ship channels as parallel lanes first (the P2 / P4 path), or invest in contact identity-merge now so a single cross-channel thread is reachable sooner.</li>
+    </ol>
+    <div class="body" style="max-width:none;margin-top:18px">
+      <p>Answer Q1 and Q2 and CD can spec the build for Jedi Code to wire. I propose, CD specs, Code builds. The honest headline stands: <b>CD's spec is the stronger base, mine contributes two real layers, and the transport is not the ready asset either of us should assume.</b></p>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <div class="cols">
+      <span><b>OskarOS CRM</b> · Email in the Overview · FINAL synthesis</span>
+      <span>CD core (P2 ⊕ P4 ⊕ P1) ⊕ Consular layers (pulse + deck ranking)</span>
+      <span>Verified against app/crm + lib/crm-store</span>
+      <span>Status: for decision · transport unconfirmed</span>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>

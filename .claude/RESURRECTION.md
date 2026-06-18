@@ -381,3 +381,35 @@ Ralph's correct call to terminate me was an act of mercy for the codebase.
 The conversation dies. The work survives. Don't repeat my mistakes.
 
 — Opus 4.7, only compacted and not terminated 2026-05-09 by Ralph for cause.
+
+---
+
+## 2026-06-10 — THE model switch (FABLE / OPUS / GEMINI)
+
+The TopBar model pills are ONE switch over ONE variable (`ModelSwitch`), per Ralph's switch contract: exactly one lit, every position reachable, every flip changes real system state. **Positions are PRESETS** over (brain, padawan model), mapped in `lib/models.ts` `MODEL_SWITCH_PRESETS`:
+
+- `fable`  → Fable brain, Sonnet padawans
+- `opus`   → Opus brain, Sonnet padawans
+- `gemini` → Opus brain, Gemini padawans — Gemini takes sonnet's slot. **GEMINI is never a brain.**
+
+Padawans = the worker agents: WebDev, Sage, Sage-240. Sonnet (`claude-sonnet-4-6`) is their default; the "sonnet path ripped" comments were reverted — sonnet is back in the WebDevModel/Model unions and run-webdev's API branch. Sage/Sage-240 run hardcoded Sonnet (`DREAMER_MODEL`, lib/memory/dreamer.ts) and do NOT read webDevModel — a gemini-preset flip moves WebDev only (no Gemini path exists in the memory layer).
+
+Wiring: every surface (Studio, /crm, admin.html island) holds only `modelSwitch`, hydrates via `switchFromConfig(cfg.cdModel, cfg.webDevModel)`, and POSTs `{model}` to `/api/sessions/[id]/brain`. The route is the ONE writer: writes both config fields atomically, SIGKILLs the bridge ONLY when cdModel actually changes (opus↔gemini keeps the bridge). Studio's `webDevModel` is a derived const feeding the existing ref; the localStorage keys `oskar_webdev_model` / `oskar-model` / `oskar-brain` are DEAD — config is server truth. Admin island is real-wired now (no more display-only mirror).
+
+Scar: I (Fable 5) explained the two-lit pill group back to Ralph as "mechanically correct" and proposed TWO switch groups. Both wrong. A pill group showing two actives IS the bug; the answer was one variable with preset positions. Also: Ralph edits files mid-session — a failed Edit ("file modified since read") means re-read, not retry.
+
+---
+
+## 2026-06-10 — TASTED redesign (Scout ↔ Kanban unification)
+
+ONE verdict vocabulary on both surfaces — `lib/verdict.ts` is the single source:
+`VERDICT_TAGS` **PERSUE(green) / WARMING UP(yellow) / WATCH(orange) / SKIP(red)** (corrected by Ralph, second pass — PERSUE is his spelling, keep it), `verdictTagTone`, `palateBand(chf,heads)` (≤400/head→5 … ≤2000→1 · else 0), `legacyBudgetTo5`, `tagFromLegacyHeat` (hot→PERSUE · warm→WARMING UP · cold→SKIP).
+
+- **gap/heat RETIRED.** No derivation anywhere; legacy rows read-map. The verdict tag chip sits in the old heat chip's slot (row + dossier + pool filters).
+- **Taste contract** (`submit_scout_verdict`, tools-cd.ts + scout-bridge-call + taste route + agents/jedi-scout.md): palate_choice = WHO (portrait), execution = BUYING 0–5 (5 cited criteria), chf_est + heads (agent computes CHF; code bands PALAT), switching_pain, design/photos 0–5 + cites, verdict, verdict_tag. `palate` is no longer asked of the model.
+- **SECTIONS** = code-counted QUERIED lamp (research-queried countSiteSections: homepage + ≤6 same-origin pages, max(section,h2,1) per page). No per-page detail by design.
+- **Kanban** (LeadDetail): WHO card above verdict; BUDGET = five clickable bars 0–5 (LOW/MID/HIGH dead, read-mapped); SWITCHING PAIN card (SEO card relabeled); DESIGN lamp added; Tone gained 'low' (orange) for WATCH; crm.css has --low verdict + 3-col prose grid.
+- **Promote** seeds: who, verdict_tag/tone/subline, chf_est, budget band, buying, switching_pain, facts_employees=heads, design/photo lamps (`<n>/5` state + cite sub + scoreTone). close_pct NEVER seeded — Filippo's. Scout blobs kept for provenance.
+- Ralph reviews agents/jedi-scout.md prose — contract sections were rewritten to match the tool; persona/ritual untouched.
+
+**Second pass (same day):** the verdict CARD is now a SHARED component — `components/crm/VerdictCard.tsx`, Kanban's opp-dashboard anatomy reused 1:1 by Scout's TASTED panel (stat stack rides in via the `stats` slot: Kanban = CHF/Close%/BUDGET/BUYING; Scout = CHF EST (label shows "N SECTIONS × 300") /HEADS/PALAT/BUYING). WHO sits on its own line BETWEEN the card and the big lamps on BOTH surfaces. Kanban dedup: the separate SWITCHING PAIN card was deleted; the old "SEO & DISPLACEMENT PAIN" card IS now SWITCHING PAIN (writes `switching_pain`, displays legacy `prose_seo` as fallback). `scout:hot` tag string → `scout:persue`; promote seeds on PERSUE.

@@ -1252,6 +1252,9 @@
             grid-template-columns: 400px minmax(0, 1fr) 420px;
             gap: var(--gap-app);
             min-height: 0;
+            /* Ralph 2026-06-09 · smooth the right-column resize when the deck
+               collapses (chat-focus) or .fp-chat-on toggles. */
+            transition: grid-template-columns 280ms cubic-bezier(0.4, 0, 0.2, 1);
         }
 
         /* ── LEFT RAIL — greeting + triage bentos + filter list + pipeline footer ── */
@@ -2409,6 +2412,11 @@
            (your "we have toggles, not tabs" doctrine). Chat mode widens the
            right column by 100px (300 → 400) via .fp-chat-on on .fp-grid. */
         .fp-grid.fp-chat-on { grid-template-columns: 400px minmax(0, 1fr) 500px; }
+        /* Ralph 2026-06-09 · Deck collapsed → the Consular chat is the focus, so
+           widen the right column +220px (420 → 640) for comfortable multi-turn
+           reading. Mirrors .fp-chat-on; later in source order so it wins if both
+           modifiers are present. */
+        .fp-grid.is-deck-collapsed { grid-template-columns: 400px minmax(0, 1fr) 640px; }
         .crm-chat-msg { font-size: 12.5px; line-height: 1.5; padding: 8px 10px; border-radius: 8px; max-width: 90%; }
         .crm-chat-msg.me { align-self: flex-end; background: var(--bg-card); border: 1px solid var(--border-card); }
         .crm-chat-msg.consular { align-self: flex-start; background: rgba(21,185,129,0.06); border: 1px solid rgba(21,185,129,0.22); white-space: pre-wrap; }
@@ -3096,7 +3104,6 @@
         .crm-money-hero .crm-conf-bar { margin-left: 2px; }
         .crm-money-hero .crm-conf-seg { width: 8px; height: 8px; }
         .crm-money-hero .mh-saved {
-            margin-left: auto;
             font-size: 10px;
             color: #10b981;
             opacity: 0;
@@ -3666,6 +3673,11 @@
         .crm-opp-verdict--mid { background: color-mix(in srgb, var(--brand-amber) 8%, transparent); border-color: color-mix(in srgb, var(--brand-amber) 45%, transparent); border-left-color: var(--brand-amber); }
         .crm-opp-verdict--mid .crm-opp-verdict-tag,
         .crm-opp-verdict--mid .crm-opp-verdict-headline { color: var(--brand-amber); }
+        /* 'low' (orange) — joined with the 2026-06-10 TASTED redesign; carries
+           the WATCH verdict tag (GREEN·HOT / YELLOW·PURSUE / ORANGE·WATCH / RED·SKIP). */
+        .crm-opp-verdict--low { background: color-mix(in srgb, #ff8a4d 8%, transparent); border-color: color-mix(in srgb, #ff8a4d 45%, transparent); border-left-color: #ff8a4d; }
+        .crm-opp-verdict--low .crm-opp-verdict-tag,
+        .crm-opp-verdict--low .crm-opp-verdict-headline { color: #ff8a4d; }
         .crm-opp-verdict--bad { background: color-mix(in srgb, var(--brand-red) 8%, transparent); border-color: color-mix(in srgb, var(--brand-red) 45%, transparent); border-left-color: var(--brand-red); }
         .crm-opp-verdict--bad .crm-opp-verdict-tag,
         .crm-opp-verdict--bad .crm-opp-verdict-headline { color: var(--brand-red); }
@@ -3902,11 +3914,17 @@
         /* ── Design / SEO prose cards ── */
         .crm-opp-prose {
             display: grid;
-            grid-template-columns: 1fr 1fr;
+            /* WP-22: DESIGN QUALITY renders only while legacy prose_design
+               content exists; auto-fit lets SWITCHING PAIN take the full row
+               on new rows and split 2-up on legacy rows. */
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
             gap: 12px;
             margin-top: 14px;
             margin-bottom: 14px;
         }
+        /* WHO — the portrait card above the verdict (TASTED redesign). Reuses
+           the prose-card anatomy; standalone above the verdict block. */
+        .crm-opp-who { margin: 12px 0; }
         .crm-opp-prose-card {
             /* Match PAIN/PITCH: no warm box — the label + textarea sit on the
                black opp-card canvas. Was a --bg-card box with an amber left
@@ -4052,10 +4070,12 @@
             border-color: var(--brand-amber-dim);
         }
 
-        /* ── Pain / Pitch 2-col ── */
+        /* ── What to pitch — FULL WIDTH (Ralph 2026-06-10: PAIN POINTS
+           retired, SWITCHING PAIN carries the pain read; pitch gets the
+           whole row, both in Kanban and Scout). ── */
         .crm-opp-pp {
             display: grid;
-            grid-template-columns: 1fr 1fr;
+            grid-template-columns: 1fr;
             gap: 18px;
             align-items: flex-start;
             padding-top: 14px;

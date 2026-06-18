@@ -98,33 +98,23 @@ export function StudioImagePicker({
     return images.filter((i) => i.filename.toLowerCase().includes(q))
   }, [images, query])
 
-  async function handlePick(filename: string) {
+  function handlePick(filename: string) {
     if (filename === currentBasename) return // same image — no-op
-    setAssigning(filename)
     setError(null)
-    try {
-      const res = await fetch(`/api/sessions/${sessionId}/assign-slot`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          vibe: target.pageFilename,
-          slot: target.slot,
-          filename,
-        }),
-      })
-      const data = await res.json()
-      if (!res.ok || !data.success) throw new Error(data.error || `HTTP ${res.status}`)
-      onPicked({
-        filename,
-        slot: target.slot,
-        pageFilename: target.pageFilename,
-        oldImage: data.result?.oldImage,
-      })
-    } catch (err) {
-      setError(`Assign failed: ${err}`)
-    } finally {
-      setAssigning(null)
-    }
+    // The swap is applied to the live element by the parent (onPicked →
+    // handlePicked) and persisted by save-edits, which targets that element by
+    // structural selector and relativizes the URL. We DON'T POST the slot to
+    // assign-slot: that did a slot-string find-replace in the file, which
+    // mis-fired on background images — the bgimg slot carries an absolute
+    // url("http://localhost:3000/…") that the file's relative url() never
+    // matched ("Slot not found"), and the throw blocked the swap entirely.
+    // Ralph 2026-06-16.
+    onPicked({
+      filename,
+      slot: target.slot,
+      pageFilename: target.pageFilename,
+      oldImage: currentBasename,
+    })
   }
 
   return (

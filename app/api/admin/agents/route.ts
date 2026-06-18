@@ -78,7 +78,7 @@ const EVENT_FILTERS: Partial<Record<AgentRole, Set<string>>> = {
     'discovery_questions', 'confirm_understanding',
     'design_directions', 'descent_selection',
     'image_strategy', 'design_system',
-    'todos_updated', 'critique_submitted',
+    'critique_submitted',
   ]),
   webdev: new Set([
     'build_started', 'build_progress',

@@ -50,11 +50,18 @@ export interface Prospect {
   /** WP-122 — opportunity dashboard data as a JSON blob. Keys: verdict_tag,
    *  verdict_subline, verdict_prose, verdict_chf_est, verdict_close_pct,
    *  verdict_budget, verdict_buying, lamp_<X>_state/sub/tone (X ∈
-   *  age|hosting|stack|photo|performance|seo), strip_<X>_state/tone
+   *  age|hosting|stack|photo|design|performance|seo), strip_<X>_state/tone
    *  (X ∈ traffic|analytics|marketing|saas|booking), strip_lang,
    *  prose_design, prose_seo, keywords, facts_reviews_state/sub/tone,
-   *  facts_employees, intel_scan_at. Stored as JSON string to keep schema
-   *  flat — UI parses on read, serializes on write. */
+   *  facts_employees, intel_scan_at. TASTED redesign (Ralph 2026-06-10)
+   *  added: who (the portrait), switching_pain; verdict_budget is now 0–5
+   *  (legacy LOW/MID/HIGH read-maps via lib/verdict legacyBudgetTo5);
+   *  verdict_tag/tone/buying/chf_est/budget + the design/photo lamps are
+   *  seeded from Scout at promote; pitch travels from Scout too. pain is
+   *  RETIRED (switching_pain carries the pain read; legacy values stay on
+   *  disk, unrendered). prose_design is no longer written (legacy stays
+   *  readable). Stored as JSON string to keep schema flat — UI parses on
+   *  read, serializes on write. */
   intel_json: string
   stage: ProspectStage
   status: ProspectStatus
