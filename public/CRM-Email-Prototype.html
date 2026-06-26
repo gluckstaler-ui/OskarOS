@@ -1,0 +1,874 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CRM · Email in Overview — Clickable Prototype</title>
+<style>
+/* ── Real CRM onyx tokens (app/crm/crm.css) ─────────────────────────────── */
+:root{
+  --bg-app:#0a0907; --bg-card:#171410; --bg-sunken:#13110d; --bg-hover:#1f1a14;
+  --text-main:#ece1c5; --text-muted:#7a6f5a; --text-dim:#42392a;
+  --line:#2a2519; --line-dim:#1a160f;
+  --gold:#c8b88c; --amber:#ffb84a;
+  --email:#f97316;        /* Ralph locked 2026-05-26 · email = orange */
+  --wa:#25D366;           /* WhatsApp green */
+  --overdue:#ef4444; --today:#f97316; --phosphor:#c8ee7a; --cyan:#5cd6e0;
+  --MONO:"JetBrains Mono",ui-monospace,monospace;
+  --SANS:"Inter",system-ui,-apple-system,sans-serif;
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg-app);color:var(--text-main);font-family:var(--SANS)}
+body{padding:0 0 90px}
+a{color:inherit}
+button{font-family:inherit}
+
+/* ── Doc chrome ──────────────────────────────────────────────────────────── */
+.doc-head{padding:30px 40px 20px;border-bottom:1px solid var(--line);background:
+  radial-gradient(120% 140% at 0% 0%, #14110b 0%, var(--bg-app) 60%)}
+.doc-kicker{font-family:var(--MONO);font-size:10px;letter-spacing:2.4px;color:var(--email);text-transform:uppercase}
+.doc-title{font-size:28px;font-weight:600;letter-spacing:-.6px;margin:9px 0 6px}
+.doc-sub{color:var(--text-muted);font-size:13.5px;max-width:790px;line-height:1.55}
+.doc-sub b{color:var(--text-main);font-weight:600}
+.doc-sub .hi{color:var(--email);font-weight:600}
+.doc-meta{margin-top:14px;display:flex;gap:18px;flex-wrap:wrap;font-family:var(--MONO);font-size:10.5px;letter-spacing:.4px;color:var(--text-dim)}
+.doc-meta span b{color:var(--gold);font-weight:600}
+
+/* ── Tab nav ─────────────────────────────────────────────────────────────── */
+.tabs{position:sticky;top:0;z-index:40;display:flex;gap:6px;padding:13px 40px;
+  background:rgba(10,9,7,.94);backdrop-filter:blur(8px);border-bottom:1px solid var(--line);flex-wrap:wrap}
+.tab{appearance:none;border:1px solid var(--line);background:var(--bg-card);color:var(--text-muted);
+  font-family:var(--MONO);font-size:11px;letter-spacing:.6px;padding:9px 13px;cursor:pointer;
+  display:flex;align-items:center;gap:9px;transition:.14s;border-radius:7px}
+.tab:hover{background:var(--bg-hover);color:var(--text-main)}
+.tab.active{border-color:var(--email);color:var(--text-main);background:#1c1308}
+.tab .k{font-weight:700;color:var(--email)}
+.tab .rec{font-size:8.5px;letter-spacing:1px;color:var(--phosphor);border:1px solid #2f3a1c;
+  background:#141a0c;padding:2px 5px;border-radius:4px}
+
+/* ── Panel ───────────────────────────────────────────────────────────────── */
+.panel{display:none;padding:26px 40px 0}
+.panel.active{display:block;animation:rise .4s cubic-bezier(.2,.7,.3,1) both}
+@keyframes rise{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+.p-head{display:flex;align-items:baseline;gap:14px;margin-bottom:4px;flex-wrap:wrap}
+.p-num{font-family:var(--MONO);font-size:13px;color:var(--email);font-weight:700;letter-spacing:1px}
+.p-name{font-size:21px;font-weight:600;letter-spacing:-.3px}
+.p-tag{font-family:var(--MONO);font-size:9px;letter-spacing:1.5px;text-transform:uppercase;
+  padding:4px 8px;border-radius:5px;border:1px solid var(--line)}
+.p-tag.rec{color:var(--phosphor);border-color:#2f3a1c;background:#141a0c}
+.p-tag.hold{color:var(--cyan);border-color:#1d3438;background:#0c1618}
+.p-tag.later{color:var(--text-muted)}
+.p-thesis{color:var(--text-muted);font-size:13px;line-height:1.55;max-width:890px;margin:9px 0 16px}
+.p-thesis b{color:var(--text-main);font-weight:600}
+.p-thesis .hi{color:var(--email);font-weight:600}
+
+/* ── Path map (the clickable flow guide) ─────────────────────────────────── */
+.pathmap{display:flex;align-items:center;gap:0;flex-wrap:wrap;margin:0 0 18px;
+  font-family:var(--MONO);font-size:10px;letter-spacing:.4px}
+.pathmap .step{display:flex;align-items:center;gap:7px;padding:6px 12px;border:1px solid var(--line);
+  border-radius:20px;color:var(--text-dim);background:var(--bg-card);transition:.18s}
+.pathmap .step .n{display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;
+  border-radius:50%;border:1px solid var(--text-dim);font-size:8.5px}
+.pathmap .step.on{color:var(--email);border-color:var(--email);background:#1d1206}
+.pathmap .step.on .n{border-color:var(--email);background:var(--email);color:#150d05;font-weight:700}
+.pathmap .step.done{color:var(--phosphor);border-color:#2f3a1c}
+.pathmap .step.done .n{border-color:var(--phosphor);background:#141a0c;color:var(--phosphor)}
+.pathmap .arr{color:var(--text-dim);padding:0 7px;font-size:11px}
+.pathmap .replay{margin-left:auto;display:inline-flex;align-items:center;gap:6px;cursor:pointer;
+  border:1px solid var(--line);background:var(--bg-card);color:var(--text-muted);
+  border-radius:7px;padding:6px 11px;font-family:var(--MONO);font-size:9.5px;letter-spacing:.8px}
+.pathmap .replay:hover{color:var(--text-main);background:var(--bg-hover)}
+
+/* ── The Overview shell (real 3-col grid) ────────────────────────────────── */
+.ov{display:grid;grid-template-columns:400px 1fr 420px;gap:14px;
+  border:1px solid var(--line);border-radius:12px;overflow:hidden;background:var(--bg-app);
+  min-height:580px;box-shadow:0 24px 60px rgba(0,0,0,.45)}
+.ov-col{padding:18px 16px;overflow:hidden;min-width:0}
+.ov-col.mid{background:var(--bg-sunken);border-left:1px solid var(--line-dim);border-right:1px solid var(--line-dim)}
+.col-cap{font-family:var(--MONO);font-size:9px;letter-spacing:1.6px;text-transform:uppercase;
+  color:var(--text-dim);margin-bottom:14px;display:flex;align-items:center;gap:7px}
+.col-cap .dot{width:5px;height:5px;border-radius:50%;background:var(--text-dim)}
+
+/* rail */
+.greet{font-family:var(--MONO);font-size:9.5px;letter-spacing:1px;color:var(--text-dim);
+  display:flex;justify-content:space-between;text-transform:uppercase;margin-bottom:12px}
+.greet b{color:var(--gold);font-weight:600}
+.headline{font-size:15px;line-height:1.45;font-weight:500;margin-bottom:18px;color:var(--text-main)}
+.headline em{font-style:normal;color:var(--overdue);font-weight:600}
+.headline .e{color:var(--email)}
+.bento{display:flex;align-items:center;gap:12px;width:100%;text-align:left;
+  border:1px solid var(--line);border-left:3px solid var(--tone,var(--text-dim));
+  background:var(--bg-card);padding:11px 13px;border-radius:8px;margin-bottom:7px;cursor:pointer;transition:.14s}
+.bento:hover{background:var(--bg-hover)}
+.bento.active{border-color:var(--tone);background:#16120b;box-shadow:inset 0 0 0 1px var(--tone)}
+.bento.muted{opacity:.4}
+.bento .num{font-family:var(--MONO);font-size:19px;font-weight:600;color:var(--tone,var(--text-main));min-width:30px}
+.bento .b-body{flex:1;min-width:0}
+.bento .lbl{display:block;font-size:13px;font-weight:600;color:var(--text-main)}
+.bento .sub{display:block;font-size:10.5px;color:var(--text-muted);margin-top:2px}
+.bento .arr{color:var(--text-dim)}
+.bento.new .lbl::after{content:" NEW";font-family:var(--MONO);font-size:8px;letter-spacing:1px;color:var(--email);vertical-align:middle;margin-left:6px}
+.rail-sep{height:1px;background:var(--line-dim);margin:13px 2px}
+.rail-grp{font-family:var(--MONO);font-size:8.5px;letter-spacing:1.5px;text-transform:uppercase;color:var(--text-dim);margin:0 0 9px 2px}
+.pipe{margin-top:16px;padding-top:13px;border-top:1px solid var(--line-dim);font-family:var(--MONO);font-size:10.5px;color:var(--text-muted);display:flex;gap:8px;flex-wrap:wrap}
+.pipe b{color:var(--gold);font-weight:600}
+
+/* lead rows */
+.lead{display:grid;grid-template-columns:4px 1fr auto;gap:11px;align-items:center;
+  background:var(--bg-card);border:1px solid var(--line);border-radius:8px;padding:11px 13px;margin-bottom:8px;cursor:pointer;transition:.14s}
+.lead:hover{background:var(--bg-hover);transform:translateX(2px)}
+.lead.sel{border-color:var(--tone,var(--email));background:#16120b;box-shadow:inset 0 0 0 1px var(--tone,var(--email))}
+.lead .rail{width:4px;height:34px;border-radius:3px;background:var(--tone,var(--text-dim))}
+.lead .l-name{font-size:13.5px;font-weight:600;display:flex;align-items:center;gap:8px}
+.lead .l-meta{font-family:var(--MONO);font-size:10px;color:var(--text-muted);margin-top:3px;display:flex;align-items:center;gap:7px;flex-wrap:wrap}
+.lead .l-money{text-align:right;font-family:var(--MONO);font-size:12px;color:var(--gold);white-space:nowrap}
+.lead .l-money small{display:block;font-size:9px;color:var(--text-dim)}
+.chan{display:inline-flex;align-items:center;gap:4px;font-family:var(--MONO);font-size:9px;letter-spacing:.5px;padding:2px 6px;border-radius:4px;text-transform:uppercase}
+.chan.email{color:var(--email);background:#1d1206;border:1px solid #3a2510}
+.chan.wa{color:var(--wa);background:#08160c;border:1px solid #12381f}
+.chan.dot::before{content:"●";font-size:7px}
+
+/* right cards */
+.rcard{background:var(--bg-card);border:1px solid var(--line);border-radius:10px;padding:14px;margin-bottom:12px}
+.rcard.tone{border-left:3px solid var(--tone,var(--email))}
+.r-cap{font-family:var(--MONO);font-size:9px;letter-spacing:1.4px;text-transform:uppercase;color:var(--tone,var(--email));display:flex;justify-content:space-between;align-items:center}
+.r-cap .when{color:var(--text-dim)}
+.r-name{font-size:15px;font-weight:600;margin:9px 0 3px}
+.r-why{font-size:12px;color:var(--text-muted);line-height:1.5}
+.empty{color:var(--text-dim);font-family:var(--MONO);font-size:10.5px;letter-spacing:.4px;text-align:center;
+  padding:40px 16px;border:1px dashed var(--line);border-radius:10px;line-height:1.7}
+
+/* thread (A) */
+.thread{display:flex;flex-direction:column;gap:9px;margin-top:4px}
+.bub{max-width:88%;padding:9px 12px;border-radius:12px;font-size:12px;line-height:1.45;animation:rise .3s both}
+.bub .b-h{font-family:var(--MONO);font-size:8.5px;letter-spacing:.6px;margin-bottom:4px;display:flex;gap:7px;align-items:center;text-transform:uppercase}
+.bub.in{align-self:flex-start;background:var(--bg-hover);border:1px solid var(--line)}
+.bub.out{align-self:flex-end;background:#16120b;border:1px solid #3a2510}
+.bub.email .b-h{color:var(--email)}
+.bub.wa .b-h{color:var(--wa)}
+.bub .ch{font-size:8px;padding:1px 5px;border-radius:3px}
+.bub.email .ch{background:#1d1206;color:var(--email)}
+.bub.wa .ch{background:#08160c;color:var(--wa)}
+
+/* draft / copilot (C) */
+.draft{background:var(--bg-card);border:1px solid var(--line);border-left:3px solid var(--email);border-radius:9px;padding:13px;margin-bottom:11px;transition:.18s}
+.draft.gone{opacity:0;transform:translateX(40px);height:0;padding:0;margin:0;border:0;overflow:hidden}
+.draft .d-h{display:flex;justify-content:space-between;align-items:center;font-family:var(--MONO);font-size:9px;letter-spacing:1px;color:var(--email);text-transform:uppercase}
+.draft .d-h .stat{color:var(--phosphor)}
+.draft .d-h .stat.sent{color:var(--phosphor)}
+.draft .d-from{font-size:12.5px;font-weight:600;margin:8px 0 2px}
+.draft .d-sub{font-size:11px;color:var(--text-muted);margin-bottom:9px}
+.draft .d-body{font-size:11.5px;line-height:1.55;color:var(--text-main);background:var(--bg-sunken);border:1px dashed var(--line);border-radius:7px;padding:12px 10px 10px;position:relative;outline:none}
+.draft .d-body[contenteditable="true"]{border-style:solid;border-color:var(--email);background:#120d07}
+.draft .d-body::before{content:"CONSULAR DRAFT";position:absolute;top:-8px;left:9px;font-family:var(--MONO);font-size:7.5px;letter-spacing:1px;color:var(--email);background:var(--bg-sunken);padding:0 5px}
+.draft .d-body[contenteditable="true"]::before{content:"EDITING — your words";color:var(--phosphor);background:#120d07}
+.draft .acts{display:flex;gap:7px;margin-top:10px;flex-wrap:wrap}
+
+/* buttons */
+.btn{font-family:var(--MONO);font-size:9.5px;letter-spacing:.8px;padding:7px 11px;border-radius:6px;cursor:pointer;text-transform:uppercase;border:1px solid var(--line);background:transparent;color:var(--text-muted);transition:.14s}
+.btn:hover{background:var(--bg-hover);color:var(--text-main)}
+.btn.go{background:var(--email);color:#1a1006;border-color:var(--email);font-weight:700}
+.btn.go:hover{background:#ffa040;color:#1a1006}
+.btn.alt{color:var(--text-main);background:var(--bg-hover)}
+.btn:disabled{opacity:.4;cursor:default}
+
+/* flight deck cards (D) */
+.fd{border:1px solid var(--tone,var(--email));border-left:3px solid var(--tone,var(--email));background:#120e09;border-radius:9px;padding:12px 13px;margin-bottom:9px;position:relative;overflow:hidden;transition:.22s}
+.fd.gone{opacity:0;transform:translateX(40px) scale(.96);height:0;padding:0;margin:0;border:0}
+.fd .fd-h{display:flex;justify-content:space-between;align-items:center;font-family:var(--MONO);font-size:9px;letter-spacing:1.2px;color:var(--tone,var(--email));text-transform:uppercase}
+.fd .fd-h .dl{border:1px solid currentColor;padding:2px 6px;border-radius:4px;opacity:.85}
+.fd .fd-co{font-size:16px;font-weight:600;margin:9px 0 3px}
+.fd .fd-why{font-size:11.5px;color:var(--text-muted);line-height:1.45}
+.fd .fd-exec{margin-top:11px;display:flex;align-items:center;gap:9px}
+.fd .fd-btn{font-family:var(--MONO);font-size:9.5px;letter-spacing:1px;font-weight:700;text-transform:uppercase;background:var(--tone,var(--email));color:#150d05;padding:7px 11px;border-radius:5px;border:none;cursor:pointer}
+.fd .fd-btn:hover{filter:brightness(1.15)}
+.fd .fd-dur{font-family:var(--MONO);font-size:9.5px;color:var(--text-dim)}
+.fd .rank{position:absolute;top:9px;right:11px;font-family:var(--MONO);font-size:8px;color:var(--text-dim);letter-spacing:1px}
+
+/* deal-health (E) */
+.pulse{display:flex;align-items:flex-end;gap:2px;height:22px}
+.pulse i{width:3px;border-radius:1px;background:var(--tone,var(--email));opacity:.85;transition:.3s}
+.health{display:flex;align-items:center;gap:8px;font-family:var(--MONO);font-size:9.5px;color:var(--text-muted)}
+.health .meter{flex:1;height:6px;border-radius:3px;background:var(--bg-hover);overflow:hidden;position:relative}
+.health .meter i{position:absolute;inset:0 auto 0 0;border-radius:3px;transition:width .5s}
+.vital{display:flex;justify-content:space-between;font-family:var(--MONO);font-size:9px;color:var(--text-dim);text-transform:uppercase;letter-spacing:.8px;margin-top:9px;padding-top:8px;border-top:1px solid var(--line-dim)}
+.vital b{color:var(--text-main)}
+
+/* legend */
+.legend{margin:16px 0 30px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
+.legend .lg{border:1px solid var(--line);border-radius:9px;padding:13px;background:var(--bg-card)}
+.legend .lg h4{margin:0 0 6px;font-family:var(--MONO);font-size:9px;letter-spacing:1.2px;text-transform:uppercase;color:var(--gold)}
+.legend .lg.win h4{color:var(--phosphor)}
+.legend .lg.cost h4{color:var(--overdue)}
+.legend .lg p{margin:0;font-size:12px;color:var(--text-muted);line-height:1.55}
+.legend .lg p b{color:var(--text-main)}
+
+/* ── Composer overlay (shared engine for A/C/D) ──────────────────────────── */
+.cov{position:fixed;inset:0;z-index:90;background:rgba(6,5,4,.74);backdrop-filter:blur(3px);
+  display:none;align-items:center;justify-content:center;padding:24px;animation:fade .18s both}
+.cov.open{display:flex}
+@keyframes fade{from{opacity:0}to{opacity:1}}
+.composer{width:560px;max-width:100%;background:var(--bg-card);border:1px solid var(--line);
+  border-radius:14px;box-shadow:0 30px 80px rgba(0,0,0,.6);overflow:hidden;animation:rise .26s both}
+.composer .c-top{display:flex;align-items:center;gap:10px;padding:14px 16px;border-bottom:1px solid var(--line);background:var(--bg-sunken)}
+.composer .c-chan{font-family:var(--MONO);font-size:9px;letter-spacing:1px;padding:4px 8px;border-radius:5px;text-transform:uppercase}
+.composer .c-chan.email{color:var(--email);background:#1d1206;border:1px solid #3a2510}
+.composer .c-chan.wa{color:var(--wa);background:#08160c;border:1px solid #12381f}
+.composer .c-title{font-size:13px;font-weight:600;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.composer .c-x{cursor:pointer;color:var(--text-dim);font-size:16px;line-height:1;border:none;background:none;padding:4px}
+.composer .c-x:hover{color:var(--text-main)}
+.composer .c-meta{padding:11px 16px 0;font-family:var(--MONO);font-size:10px;color:var(--text-muted);display:flex;flex-direction:column;gap:5px}
+.composer .c-meta b{color:var(--text-main);font-weight:600}
+.composer .c-lore{margin:10px 16px 0;padding:9px 11px;border-radius:8px;background:var(--bg-sunken);border:1px solid var(--line-dim);font-size:11px;color:var(--text-muted);line-height:1.5}
+.composer .c-lore b{color:var(--gold)}
+.composer textarea{width:calc(100% - 32px);margin:11px 16px;background:var(--bg-sunken);color:var(--text-main);
+  border:1px solid var(--email);border-radius:9px;padding:13px;font-family:var(--SANS);font-size:13px;line-height:1.6;
+  min-height:150px;resize:vertical;outline:none}
+.composer .c-foot{display:flex;align-items:center;gap:10px;padding:13px 16px;border-top:1px solid var(--line);background:var(--bg-sunken)}
+.composer .c-note{font-family:var(--MONO);font-size:9px;color:var(--text-dim);letter-spacing:.4px;flex:1;line-height:1.4}
+.composer .c-note b{color:var(--cyan)}
+
+/* toast */
+.toast-wrap{position:fixed;bottom:22px;left:50%;transform:translateX(-50%);z-index:120;display:flex;flex-direction:column;gap:8px;align-items:center}
+.toast{font-family:var(--MONO);font-size:11px;letter-spacing:.4px;padding:11px 16px;border-radius:9px;
+  background:#0e1207;border:1px solid #2f3a1c;color:var(--phosphor);box-shadow:0 14px 40px rgba(0,0,0,.5);
+  animation:tin .3s both;display:flex;align-items:center;gap:9px}
+.toast.email{background:#150d05;border-color:#3a2510;color:var(--email)}
+.toast.warn{background:#1a1206;border-color:#3a2a10;color:var(--amber)}
+.toast b{color:var(--text-main);font-weight:600}
+@keyframes tin{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+.toast.out{animation:tout .3s both}
+@keyframes tout{to{opacity:0;transform:translateY(12px)}}
+
+/* footer */
+.footer{margin:10px 40px 0;padding:20px 22px;border:1px solid #2f3a1c;border-radius:12px;background:#0e1207}
+.footer .fk{font-family:var(--MONO);font-size:10px;letter-spacing:1.6px;color:var(--phosphor);text-transform:uppercase;margin-bottom:8px}
+.footer .fb{font-size:13.5px;line-height:1.6;color:var(--text-main);max-width:900px}
+.footer .fb b{color:var(--phosphor)} .footer .fb .c{color:var(--cyan)}
+@media(max-width:1180px){.ov{grid-template-columns:1fr}.legend{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+
+<div class="doc-head">
+  <div class="doc-kicker">◆ CRM · Email in Overview · Hi-fi clickable prototype</div>
+  <div class="doc-title">Five email surfaces — every path is live</div>
+  <div class="doc-sub">Not mockups. <b>Click through each flow:</b> pick a lead, the <span class="hi">thread loads</span>, hit reply, the
+    <span class="hi">composer opens pre-drafted</span>, send, and the state changes in front of you. The path map under each panel lights up
+    as you go. Built on the <b>real 3-column Overview shell</b> with live onyx tokens. <b style="color:var(--phosphor)">D surface + C engine</b> is the call.</div>
+  <div class="doc-meta">
+    <span>SHELL <b>app/crm · TriageRail + LeadList + Flight Deck</b></span>
+    <span>EMAIL TONE <b>#f97316</b></span>
+    <span>TRANSPORT <b>Gmail API · greenfield</b></span>
+    <span>STATE <b>live · in-memory</b></span>
+  </div>
+</div>
+
+<div class="tabs">
+  <button class="tab active" data-p="A"><span class="k">A</span> One Thread</button>
+  <button class="tab" data-p="B"><span class="k">B</span> Triage Lane <span class="rec">HOLD</span></button>
+  <button class="tab" data-p="C"><span class="k">C</span> Co-Pilot <span class="rec">ENGINE</span></button>
+  <button class="tab" data-p="D"><span class="k">D</span> Flight Deck Native <span class="rec">SURFACE</span></button>
+  <button class="tab" data-p="E"><span class="k">E</span> Deal-Health Signal</button>
+</div>
+
+<!-- ══════════════════════════════ A · ONE THREAD ══════════════════════════ -->
+<section class="panel active" data-p="A">
+  <div class="p-head"><span class="p-num">A</span><span class="p-name">One Thread</span><span class="p-tag later">eventual destination</span></div>
+  <div class="p-thesis">Email is another bubble in the <span class="hi">one conversation</span> you already have. Click a lead, the WA+email timeline
+    loads interleaved; reply once, channel auto-picked from the last inbound, and your message threads into the same conversation.</div>
+  <div class="pathmap" data-map="A">
+    <span class="step on" data-s="1"><span class="n">1</span> Pick a lead</span><span class="arr">→</span>
+    <span class="step" data-s="2"><span class="n">2</span> Thread loads</span><span class="arr">→</span>
+    <span class="step" data-s="3"><span class="n">3</span> Reply (auto-channel)</span><span class="arr">→</span>
+    <span class="step" data-s="4"><span class="n">4</span> Sends into thread</span>
+    <button class="replay" data-replay="A">↻ Replay</button>
+  </div>
+
+  <div class="ov">
+    <div class="ov-col">
+      <div class="greet"><span>GOOD MORNING · <b>MON 15 JUN</b></span><span>09:12:04</span></div>
+      <div class="headline">14 items need you. Start with the <em>11 overdue</em>.</div>
+      <div class="rail-grp">Urgency</div>
+      <button class="bento" style="--tone:var(--overdue)"><span class="num">11</span><div class="b-body"><span class="lbl">Overdue</span><span class="sub">Past due · prioritise first</span></div><span class="arr">→</span></button>
+      <div class="rail-sep"></div>
+      <div class="rail-grp">Channel — merged</div>
+      <button class="bento new" style="--tone:var(--gold)"><span class="num">19</span><div class="b-body"><span class="lbl">Conversations</span><span class="sub">Email + WhatsApp, one thread each</span></div><span class="arr">→</span></button>
+      <div class="pipe"><span>Pipeline <b>CHF 48'400</b></span><span>·</span><span>Weighted <b>CHF 19'100</b></span></div>
+    </div>
+    <div class="ov-col mid">
+      <div class="col-cap"><span class="dot"></span>Leads · last touch any channel · <span style="color:var(--email)">click one</span></div>
+      <div id="A-leads"></div>
+    </div>
+    <div class="ov-col">
+      <div class="col-cap"><span class="dot" style="background:var(--email)"></span><span id="A-rcap">No lead selected</span></div>
+      <div id="A-right"><div class="empty">← Pick a lead to load<br>its one conversation</div></div>
+    </div>
+  </div>
+  <div class="legend">
+    <div class="lg win"><h4>What it wins</h4><p>The <b>truest</b> picture of a relationship — one human, one history, channel-agnostic.</p></div>
+    <div class="lg cost"><h4>What it costs</h4><p>Needs <b>identity-merge</b> (phone ↔ email = same person) to be safe. Ships last.</p></div>
+    <div class="lg"><h4>Integrates with</h4><p>LeadDetail thread view, the <b>channel</b> column on activities, the unified outbox.</p></div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════ B · TRIAGE LANE ═════════════════════════ -->
+<section class="panel" data-p="B">
+  <div class="p-head"><span class="p-num">B</span><span class="p-name">The Triage Lane</span><span class="p-tag hold">hold · overflow lane</span></div>
+  <div class="p-thesis">Email gets its <b>own buckets</b>, mirroring WhatsApp. Open <span class="hi">Unmatched emails</span>, click one, the Consular
+    suggests a lead match — link it (or dismiss noise) and watch the count fall.</div>
+  <div class="pathmap" data-map="B">
+    <span class="step on" data-s="1"><span class="n">1</span> Open Unmatched</span><span class="arr">→</span>
+    <span class="step" data-s="2"><span class="n">2</span> Pick an email</span><span class="arr">→</span>
+    <span class="step" data-s="3"><span class="n">3</span> Link / dismiss</span><span class="arr">→</span>
+    <span class="step" data-s="4"><span class="n">4</span> Count falls</span>
+    <button class="replay" data-replay="B">↻ Replay</button>
+  </div>
+
+  <div class="ov">
+    <div class="ov-col">
+      <div class="greet"><span>GOOD MORNING · <b>MON 15 JUN</b></span><span>09:12:04</span></div>
+      <div class="headline">14 items need you. <em><span id="B-uc">4</span> emails</em> are unmatched.</div>
+      <div class="rail-grp">Channel — Email</div>
+      <button class="bento new active" id="B-bento" style="--tone:var(--email)"><span class="num" id="B-num">04</span><div class="b-body"><span class="lbl">Unmatched emails</span><span class="sub">No lead matched the sender yet</span></div><span class="arr">→</span></button>
+      <button class="bento new" style="--tone:var(--email)"><span class="num">07</span><div class="b-body"><span class="lbl">Awaiting reply</span><span class="sub">You owe them an email back</span></div><span class="arr">→</span></button>
+      <div class="rail-sep"></div>
+      <div class="rail-grp">Channel — WhatsApp</div>
+      <button class="bento" style="--tone:var(--wa)"><span class="num">02</span><div class="b-body"><span class="lbl">Unmatched WA</span><span class="sub">No lead matched the number</span></div><span class="arr">→</span></button>
+      <div class="pipe"><span>Pipeline <b>CHF 48'400</b></span></div>
+    </div>
+    <div class="ov-col mid">
+      <div class="col-cap"><span class="dot" style="background:var(--email)"></span>Unmatched emails · <span id="B-cap">4</span> · <span style="color:var(--email)">match to a lead</span></div>
+      <div id="B-list"></div>
+    </div>
+    <div class="ov-col">
+      <div class="col-cap"><span class="dot"></span><span id="B-rcap">Match panel</span></div>
+      <div id="B-right"><div class="empty">← Click an unmatched email<br>to see the suggested match</div></div>
+    </div>
+  </div>
+  <div class="legend">
+    <div class="lg win"><h4>What it wins</h4><p>Zero new mental model — the <b>WhatsApp pattern, copied</b>. Cheapest to build.</p></div>
+    <div class="lg cost"><h4>What it costs</h4><p>Adds <b>buckets, not behaviour</b>. A place to go; it doesn't push the next move to you.</p></div>
+    <div class="lg"><h4>Integrates with</h4><p>Reuses <b>WaUnmatchedBanner</b> logic, the bento renderer, activity matching.</p></div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════ C · CO-PILOT ════════════════════════════ -->
+<section class="panel" data-p="C">
+  <div class="p-head"><span class="p-num">C</span><span class="p-name">Consular Co-Pilot</span><span class="p-tag rec">★ the engine</span></div>
+  <div class="p-thesis">Every inbound arrives with a <span class="hi">reply already drafted</span> in your voice. Read, then Approve / Edit / Send.
+    Got a draft missing a fact? Answer the one question and it writes itself into the queue.</div>
+  <div class="pathmap" data-map="C">
+    <span class="step on" data-s="1"><span class="n">1</span> Read a draft</span><span class="arr">→</span>
+    <span class="step" data-s="2"><span class="n">2</span> Edit or approve</span><span class="arr">→</span>
+    <span class="step" data-s="3"><span class="n">3</span> Send</span><span class="arr">→</span>
+    <span class="step" data-s="4"><span class="n">4</span> Answer the missing-fact card</span>
+    <button class="replay" data-replay="C">↻ Replay</button>
+  </div>
+
+  <div class="ov">
+    <div class="ov-col">
+      <div class="greet"><span>GOOD MORNING · <b>MON 15 JUN</b></span><span>09:12:04</span></div>
+      <div class="headline"><em><span id="C-rq">3</span> replies drafted</em> and waiting for your yes.</div>
+      <div class="rail-grp">Reply queue</div>
+      <button class="bento active new" style="--tone:var(--email)"><span class="num" id="C-rqn">03</span><div class="b-body"><span class="lbl">Drafted · ready</span><span class="sub">Consular wrote it · you approve</span></div><span class="arr">→</span></button>
+      <button class="bento" style="--tone:var(--amber)"><span class="num" id="C-nin">01</span><div class="b-body"><span class="lbl">Needs your input</span><span class="sub">Missing a fact to draft</span></div><span class="arr">→</span></button>
+      <div class="pipe"><span>Pipeline <b>CHF 48'400</b></span></div>
+    </div>
+    <div class="ov-col mid">
+      <div class="col-cap"><span class="dot" style="background:var(--email)"></span>Reply queue · <span style="color:var(--email)">approve, edit or send</span></div>
+      <div id="C-queue"></div>
+    </div>
+    <div class="ov-col">
+      <div class="col-cap"><span class="dot" style="background:var(--amber)"></span>Needs you before I can draft</div>
+      <div id="C-needs"></div>
+    </div>
+  </div>
+  <div class="legend">
+    <div class="lg win"><h4>What it wins</h4><p>Turns email from <b>work into decisions</b>. Your voice, my typing. The one feature Gmail can't copy.</p></div>
+    <div class="lg cost"><h4>What it costs</h4><p>The <b>WP-111 read-only firewall</b>: the agent can't send. A draft card POSTs <code>email-outbound</code> around it.</p></div>
+    <div class="lg win"><h4>Why it's the engine</h4><p>Not a place, a <b>capability</b> that rides whatever surface wins — including D's cards.</p></div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════ D · FLIGHT DECK ═════════════════════════ -->
+<section class="panel" data-p="D">
+  <div class="p-head"><span class="p-num">D</span><span class="p-name">Flight Deck Native</span><span class="p-tag rec">★ the surface</span></div>
+  <div class="p-thesis">No new surface. Email folds into the <b>Flight Deck you already drive</b> — ranked with WhatsApp by <span class="hi">ROI-per-minute</span>.
+    Hit <b>▶ Draft</b>, the C engine opens pre-written, send, and the deck re-ranks under you.</div>
+  <div class="pathmap" data-map="D">
+    <span class="step on" data-s="1"><span class="n">1</span> Deck merged both inboxes</span><span class="arr">→</span>
+    <span class="step" data-s="2"><span class="n">2</span> ▶ Draft top card</span><span class="arr">→</span>
+    <span class="step" data-s="3"><span class="n">3</span> Send</span><span class="arr">→</span>
+    <span class="step" data-s="4"><span class="n">4</span> Deck re-ranks</span>
+    <button class="replay" data-replay="D">↻ Replay</button>
+  </div>
+
+  <div class="ov">
+    <div class="ov-col">
+      <div class="greet"><span>GOOD MORNING · <b>MON 15 JUN</b></span><span>09:12:04</span></div>
+      <div class="headline">Deck merged both inboxes. <em id="D-lead">Bistrot first.</em></div>
+      <div class="rail-grp">Channel (unchanged)</div>
+      <button class="bento" style="--tone:var(--email)"><span class="num">09</span><div class="b-body"><span class="lbl">Emails</span><span class="sub">Last activity was email</span></div><span class="arr">→</span></button>
+      <button class="bento" style="--tone:var(--wa)"><span class="num">06</span><div class="b-body"><span class="lbl">WhatsApp</span><span class="sub">Last activity was WhatsApp</span></div><span class="arr">→</span></button>
+      <div class="pipe"><span>Pipeline <b>CHF 48'400</b></span></div>
+    </div>
+    <div class="ov-col mid">
+      <div class="col-cap"><span class="dot" style="background:var(--phosphor)"></span>Lead list · unchanged</div>
+      <div class="lead" style="--tone:var(--overdue)"><span class="rail"></span><div><div class="l-name">Bistrot Le Petit</div><div class="l-meta"><span class="chan email dot">EMAIL</span> 2h · point 3 q</div></div><div class="l-money">5'200<small>CHF</small></div></div>
+      <div class="lead" style="--tone:var(--today)"><span class="rail"></span><div><div class="l-name">Studio Bernasconi</div><div class="l-meta"><span class="chan email dot">EMAIL</span> 4h · CRM too?</div></div><div class="l-money">8'900<small>CHF</small></div></div>
+      <div class="lead" style="--tone:var(--text-dim)"><span class="rail"></span><div><div class="l-name">Caffè Sant'Ambrogio</div><div class="l-meta"><span class="chan wa dot">WA</span> 5h · slot?</div></div><div class="l-money">3'400<small>CHF</small></div></div>
+    </div>
+    <div class="ov-col">
+      <div class="col-cap"><span class="dot" style="background:var(--email)"></span>Flight Deck · <span style="color:var(--email)">email + WA, one rank</span></div>
+      <div id="D-deck"></div>
+    </div>
+  </div>
+  <div class="legend">
+    <div class="lg win"><h4>What it wins</h4><p><b>One stack, both inboxes</b>, ranked by what moves money fastest. The deck you already trust.</p></div>
+    <div class="lg cost"><h4>What it costs</h4><p>Ranking is only as good as the <b>ROI signal</b> — deal value + days-quiet + confidence per card.</p></div>
+    <div class="lg win"><h4>Why it's the surface</h4><p>Email becomes <b>one more card in the morning drive</b>. Built for channel-agnostic ROI triage.</p></div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════ E · DEAL-HEALTH ════════════════════════ -->
+<section class="panel" data-p="E">
+  <div class="p-head"><span class="p-num">E</span><span class="p-name">Deal-Health Signal</span><span class="p-tag later">fold into lore over time</span></div>
+  <div class="p-thesis">Email is a <span class="hi">vital sign</span>. Reply cadence drives a per-deal <b>pulse</b>. Filter by health, open a cooling deal,
+    and <b>nudge</b> it — the pulse ticks back up and the lore gets the note.</div>
+  <div class="pathmap" data-map="E">
+    <span class="step on" data-s="1"><span class="n">1</span> Filter by health</span><span class="arr">→</span>
+    <span class="step" data-s="2"><span class="n">2</span> Open a deal</span><span class="arr">→</span>
+    <span class="step" data-s="3"><span class="n">3</span> Read the vitals</span><span class="arr">→</span>
+    <span class="step" data-s="4"><span class="n">4</span> Nudge · pulse recovers</span>
+    <button class="replay" data-replay="E">↻ Replay</button>
+  </div>
+
+  <div class="ov">
+    <div class="ov-col">
+      <div class="greet"><span>GOOD MORNING · <b>MON 15 JUN</b></span><span>09:12:04</span></div>
+      <div class="headline"><em><span id="E-cool">2</span> deals cooling.</em> Both were emailing daily.</div>
+      <div class="rail-grp">Deal health · <span style="color:var(--email)">filter the list</span></div>
+      <button class="bento active new" data-f="cooling" style="--tone:var(--overdue)"><span class="num">02</span><div class="b-body"><span class="lbl">Cooling</span><span class="sub">Email cadence dropped sharply</span></div><span class="arr">→</span></button>
+      <button class="bento new" data-f="warm" style="--tone:var(--phosphor)"><span class="num">07</span><div class="b-body"><span class="lbl">Warm</span><span class="sub">Replying fast, thread alive</span></div><span class="arr">→</span></button>
+      <button class="bento new" data-f="flat" style="--tone:var(--text-muted)"><span class="num">05</span><div class="b-body"><span class="lbl">Flatlined</span><span class="sub">No reply in 14+ days</span></div><span class="arr">→</span></button>
+      <button class="bento new" data-f="all" style="--tone:var(--gold)"><span class="num">14</span><div class="b-body"><span class="lbl">All deals</span><span class="sub">Every active pulse</span></div><span class="arr">→</span></button>
+      <div class="pipe"><span>Pipeline <b>CHF 48'400</b></span></div>
+    </div>
+    <div class="ov-col mid">
+      <div class="col-cap"><span class="dot" style="background:var(--overdue)"></span><span id="E-cap">Cooling</span> · leads with deal pulse</div>
+      <div id="E-list"></div>
+    </div>
+    <div class="ov-col">
+      <div class="col-cap"><span class="dot" style="background:var(--overdue)"></span><span id="E-rcap">Deal vitals</span></div>
+      <div id="E-right"><div class="empty">← Open a deal<br>to read its vitals</div></div>
+    </div>
+  </div>
+  <div class="legend">
+    <div class="lg win"><h4>What it wins</h4><p>Catches a dying deal <b>before a human would</b>. The one signal that matters: is this deal alive?</p></div>
+    <div class="lg cost"><h4>What it costs</h4><p>Most <b>inferential</b> — cadence ≠ intent (holidays). Needs tuning before it drives confidence.</p></div>
+    <div class="lg"><h4>Integrates with</h4><p>Writes to <b>confidence_pct</b>, <b>status</b>, <b>intel_json</b> lore. Invisible layer.</p></div>
+  </div>
+</section>
+
+<div class="footer">
+  <div class="fk">★ My call</div>
+  <div class="fb">Ship <b>D as the surface</b> (email rides the Flight Deck, ranked by ROI-per-minute) with <b>C as the engine</b>
+    (every card opens a reply pre-drafted in your voice). Hold <span class="c">B</span> as an overflow lane. Treat <b style="color:var(--text-main)">A</b>
+    as the destination once identity-merge is safe; fold <b style="color:var(--text-main)">E</b>'s pulse into the lore gradually. Transport: Gmail API two-way.
+    One open question gates it: does that Gmail MCP exist outside the repo, or is transport greenfield?</div>
+</div>
+
+<!-- shared composer + toasts -->
+<div class="cov" id="cov">
+  <div class="composer">
+    <div class="c-top"><span class="c-chan email" id="cm-chan">EMAIL</span><span class="c-title" id="cm-title">Reply</span><button class="c-x" id="cm-x">✕</button></div>
+    <div class="c-meta"><span>TO <b id="cm-to">—</b></span><span>SUBJECT <b id="cm-subj">—</b></span></div>
+    <div class="c-lore" id="cm-lore"></div>
+    <textarea id="cm-body"></textarea>
+    <div class="c-foot">
+      <span class="c-note">Sends via <b id="cm-route">Gmail API</b> · lands in your real inbox thread · POSTs around the read-only agent (WP-111)</span>
+      <button class="btn" id="cm-cancel">Cancel</button>
+      <button class="btn go" id="cm-send">▶ Send</button>
+    </div>
+  </div>
+</div>
+<div class="toast-wrap" id="toasts"></div>
+
+<script>
+const $=(s,r=document)=>r.querySelector(s), $$=(s,r=document)=>[...r.querySelectorAll(s)];
+const esc=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+
+/* ── tabs ─────────────────────────────────────────────────────────────── */
+$$('.tab').forEach(t=>t.addEventListener('click',()=>{
+  const p=t.dataset.p;
+  $$('.tab').forEach(x=>x.classList.toggle('active',x===t));
+  $$('.panel').forEach(x=>x.classList.toggle('active',x.dataset.p===p));
+  window.scrollTo({top:0,behavior:'smooth'});
+}));
+
+/* ── path map ─────────────────────────────────────────────────────────── */
+function setStep(map,n){
+  $$(`.pathmap[data-map="${map}"] .step`).forEach(s=>{
+    const i=+s.dataset.s;
+    s.classList.toggle('done',i<n);
+    s.classList.toggle('on',i===n);
+  });
+}
+
+/* ── toast ────────────────────────────────────────────────────────────── */
+function toast(html,cls=''){
+  const t=document.createElement('div'); t.className='toast '+cls; t.innerHTML=html;
+  $('#toasts').appendChild(t);
+  setTimeout(()=>{t.classList.add('out');setTimeout(()=>t.remove(),300);},2600);
+}
+
+/* ── shared composer ──────────────────────────────────────────────────── */
+let composerSend=null;
+function openComposer({chan='email',title,to,subj,lore,body,route='Gmail API',onSend}){
+  $('#cm-chan').className='c-chan '+chan; $('#cm-chan').textContent=chan==='wa'?'WHATSAPP':'EMAIL';
+  $('#cm-title').textContent=title||'Reply';
+  $('#cm-to').textContent=to||'—'; $('#cm-subj').textContent=subj||'—';
+  $('#cm-lore').innerHTML=lore?('<b>lore ·</b> '+lore):''; $('#cm-lore').style.display=lore?'block':'none';
+  $('#cm-route').textContent=route;
+  $('#cm-body').value=body||'';
+  composerSend=onSend;
+  $('#cov').classList.add('open');
+  setTimeout(()=>$('#cm-body').focus(),60);
+}
+function closeComposer(){$('#cov').classList.remove('open');composerSend=null;}
+$('#cm-x').onclick=closeComposer; $('#cm-cancel').onclick=closeComposer;
+$('#cov').addEventListener('click',e=>{if(e.target===$('#cov'))closeComposer();});
+$('#cm-send').onclick=()=>{const v=$('#cm-body').value.trim();const fn=composerSend;closeComposer();if(fn)fn(v);};
+
+/* ════════════════════ A · ONE THREAD ════════════════════ */
+const A_DATA={
+  P017:{name:"Bistrot Le Petit",tone:"var(--overdue)",money:"5'200",
+    meta:'<span class="chan email dot">EMAIL IN</span> 2h · re: preventivo',
+    replyChan:'email', to:'m.rossi@bistrot-lepetit.ch', subj:'Re: preventivo sito',
+    lore:'said he’d sign by EOW',
+    draft:"ciao Marco, sul punto 3: partiamo appena confermi, prima bozza pronta in 10 giorni. se firmiamo questa settimana sei online entro fine mese. ti mando i dati per il bonifico? f",
+    thread:[
+      {dir:'in',chan:'wa',who:'Marco · 8 Jun',text:'guarda mando una mail con i dettagli'},
+      {dir:'out',chan:'email',who:'you · 9 Jun',text:'ciao Marco, ecco il preventivo in allegato. f'},
+      {dir:'in',chan:'email',who:'Marco · today 07:05',text:'perfetto, una domanda sul punto 3…'}]},
+  P022:{name:"Studio Bernasconi",tone:"var(--today)",money:"8'900",
+    meta:'<span class="chan wa dot">WHATSAPP</span> 5h · "ci sentiamo"',
+    replyChan:'wa', to:'+41 79 ··· (WhatsApp)', subj:'WhatsApp',
+    lore:'asked if you do CRM as well as the site',
+    draft:"ciao, sì — facciamo sito e CRM insieme, è esattamente il nostro lavoro. ti va una call giovedì alle 15? f",
+    thread:[
+      {dir:'out',chan:'email',who:'you · 6 Jun',text:'le mando una proposta per il sito'},
+      {dir:'in',chan:'wa',who:'today 04:10',text:'ci sentiamo, fate anche il CRM?'}]},
+  P008:{name:"Caffè Sant'Ambrogio",tone:"var(--text-dim)",money:"3'400",
+    meta:'<span class="chan email dot">EMAIL</span><span class="chan wa dot">WA</span> mixed thread',
+    replyChan:'email', to:'info@santambrogio.ch', subj:'Re: disponibilità',
+    lore:'wants a slot this week',
+    draft:"ciao, giovedì o venerdì mattina sono libero. quale preferisci? f",
+    thread:[
+      {dir:'in',chan:'wa',who:'4 Jun',text:'ci vediamo per il sito?'},
+      {dir:'out',chan:'email',who:'you · 5 Jun',text:'volentieri, le propongo qualche data'},
+      {dir:'in',chan:'email',who:'today 06:40',text:'questa settimana avrebbe uno slot?'}]}};
+let A_threads={};
+function A_reset(){A_threads={};Object.keys(A_DATA).forEach(k=>A_threads[k]=A_DATA[k].thread.map(x=>({...x})));}
+function A_renderLeads(){
+  $('#A-leads').innerHTML=Object.entries(A_DATA).map(([id,d])=>
+    `<div class="lead" data-id="${id}" style="--tone:${d.tone}"><span class="rail"></span>
+      <div><div class="l-name">${d.name}</div><div class="l-meta">${d.meta}</div></div>
+      <div class="l-money">${d.money}<small>CHF</small></div></div>`).join('');
+  $$('#A-leads .lead').forEach(l=>l.onclick=()=>A_open(l.dataset.id));
+}
+function A_open(id){
+  const d=A_DATA[id];
+  $$('#A-leads .lead').forEach(l=>l.classList.toggle('sel',l.dataset.id===id));
+  $('#A-rcap').innerHTML=`${d.name} · one conversation`;
+  const last=A_threads[id][A_threads[id].length-1];
+  const bub=t=>`<div class="bub ${t.dir} ${t.chan}"><div class="b-h"><span class="ch">${t.chan==='wa'?'WA':'EMAIL'+(t.dir==='out'?' ↗':'')}</span> ${t.who}</div>${esc(t.text)}</div>`;
+  $('#A-right').innerHTML=
+    `<div class="thread" id="A-thread">${A_threads[id].map(bub).join('')}</div>
+     <div class="rcard tone" style="--tone:${d.replyChan==='wa'?'var(--wa)':'var(--email)'};margin-top:14px">
+       <div class="r-cap" style="--email:${d.replyChan==='wa'?'var(--wa)':'var(--email)'}"><span>↳ REPLY · ${d.replyChan==='wa'?'WHATSAPP':'EMAIL'}</span><span class="when">auto-channel</span></div>
+       <div class="r-why" style="margin:8px 0 10px">Channel picked from the last inbound (${last.chan==='wa'?'WhatsApp':'email'}). One composer, threads into this conversation.</div>
+       <button class="btn go" id="A-reply">↳ Reply</button>
+     </div>`;
+  $('#A-reply').onclick=()=>{
+    setStep('A',3);
+    openComposer({chan:d.replyChan,title:'Reply · '+d.name,to:d.to,subj:d.subj,lore:d.lore,
+      route:d.replyChan==='wa'?'WhatsApp (Baileys)':'Gmail API',body:d.draft,
+      onSend:v=>{
+        A_threads[id].push({dir:'out',chan:d.replyChan,who:'you · now',text:v||d.draft});
+        A_open(id); setStep('A',4);
+        toast(`Sent into <b>${d.name}</b>’s thread`,d.replyChan==='wa'?'':'email');
+        const th=$('#A-thread'); if(th)th.scrollTop=th.scrollHeight;
+      }});
+  };
+  setStep('A',2);
+}
+
+/* ════════════════════ B · TRIAGE LANE ════════════════════ */
+const B_INIT=[
+  {id:'b1',from:'m.rossi@bistrot-lepetit.ch',meta:'<span class="chan email dot">EMAIL IN</span> 2h · "Re: preventivo sito"',
+    match:'Bistrot Le Petit',lead:'P017',pct:'94%',why:'Domain <b>bistrot-lepetit.ch</b> matches lead P017’s company URL. Same subject as the proposal you sent 9 Jun.',noise:false},
+  {id:'b2',from:'info@studio-bernasconi.ch',meta:'<span class="chan email dot">EMAIL IN</span> 4h · new sender',
+    match:'Studio Bernasconi',lead:'P022',pct:'88%',why:'Domain matches P022. New thread — likely the CRM question from WhatsApp, now by email.',noise:false},
+  {id:'b3',from:'g.conti@aequitas-law.ch',meta:'<span class="chan email dot">EMAIL IN</span> 5h · "12k all-in?"',
+    match:'Aequitas',lead:'P031',pct:'76%',why:'Name matches contact on P031. Asking a pricing question — hand to the Co-Pilot to draft.',noise:false},
+  {id:'b4',from:'noreply@calendly.com',meta:'<span class="chan email dot">EMAIL IN</span> 6h · likely noise',
+    match:null,lead:null,pct:null,why:'No-reply automation address. No lead to match — dismiss as noise.',noise:true}];
+let B_list=[];
+function B_render(){
+  $('#B-list').innerHTML=B_list.map(e=>
+    `<div class="lead" data-id="${e.id}" style="--tone:${e.noise?'var(--text-dim)':'var(--email)'}"><span class="rail"></span>
+      <div><div class="l-name" style="font-family:var(--MONO);font-size:12px">${e.from}</div><div class="l-meta">${e.meta}</div></div>
+      <div class="l-money" style="color:${e.noise?'var(--text-dim)':'var(--email)'}">${e.noise?'DISMISS':'MATCH'}<small>${e.noise?'↓':'→ lead?'}</small></div></div>`).join('')
+    || `<div class="empty">✓ Inbox zero on unmatched.<br>Every email found its lead.</div>`;
+  $$('#B-list .lead').forEach(l=>l.onclick=()=>B_open(l.dataset.id));
+  $('#B-cap').textContent=B_list.length; $('#B-uc').textContent=B_list.length;
+  $('#B-num').textContent=String(B_list.length).padStart(2,'0');
+}
+function B_open(id){
+  const e=B_list.find(x=>x.id===id); if(!e)return;
+  $$('#B-list .lead').forEach(l=>l.classList.toggle('sel',l.dataset.id===id));
+  setStep('B',2);
+  if(e.noise){
+    $('#B-rcap').textContent='Dismiss noise';
+    $('#B-right').innerHTML=
+      `<div class="rcard tone" style="--tone:var(--text-dim)">
+        <div class="r-cap" style="--email:var(--text-muted)"><span>⊘ LIKELY NOISE</span><span class="when">no match</span></div>
+        <div class="r-name" style="font-size:13px;font-family:var(--MONO)">${e.from}</div>
+        <div class="r-why">${e.why}</div>
+        <div class="acts" style="display:flex;gap:7px;margin-top:11px"><button class="btn" id="B-dismiss">Dismiss</button><button class="btn alt" id="B-force">Match anyway</button></div>
+      </div>`;
+    $('#B-dismiss').onclick=()=>B_resolve(id,`Dismissed <b>${e.from}</b>`,'warn');
+    $('#B-force').onclick=()=>{$('#B-right').innerHTML='<div class="empty">Pick a lead to link…</div>';};
+  }else{
+    $('#B-rcap').textContent='Match panel';
+    $('#B-right').innerHTML=
+      `<div class="rcard tone" style="--tone:var(--email)">
+        <div class="r-cap"><span>◎ SUGGESTED MATCH</span><span class="when">${e.pct}</span></div>
+        <div class="r-name">${e.match}</div>
+        <div class="r-why">${e.why}</div>
+        <div class="acts" style="display:flex;gap:7px;margin-top:11px"><button class="btn go" id="B-link">Link to ${e.lead}</button><button class="btn alt">Pick another</button><button class="btn">New lead</button></div>
+      </div>`;
+    $('#B-link').onclick=()=>B_resolve(id,`Linked <b>${e.from}</b> → <b>${e.match}</b>`,'email');
+  }
+}
+function B_resolve(id,msg,cls){
+  const row=$(`#B-list .lead[data-id="${id}"]`);
+  if(row){row.style.transition='.25s';row.style.opacity='0';row.style.transform='translateX(40px)';}
+  setStep('B',4); toast(msg,cls);
+  setTimeout(()=>{B_list=B_list.filter(x=>x.id!==id);B_render();
+    $('#B-right').innerHTML=B_list.length?'<div class="empty">← Next unmatched email</div>':'<div class="empty">✓ All matched.<br>Unmatched count: 0</div>';
+    $('#B-rcap').textContent=B_list.length?'Match panel':'Done';},260);
+}
+
+/* ════════════════════ C · CO-PILOT ════════════════════ */
+const C_INIT=[
+  {id:'c1',subj:'RE: PREVENTIVO SITO · BISTROT LE PETIT',from:'Marco Rossi asked about point 3 (timeline)',
+    sub:'inbound 2h ago · lore: said he’d sign by EOW', chan:'email', to:'m.rossi@bistrot-lepetit.ch',
+    body:"ciao Marco, sul punto 3: partiamo appena confermi, la prima bozza è pronta in 10 giorni. se firmiamo questa settimana sei online entro fine mese. ti mando i dati per il bonifico? f"},
+  {id:'c2',subj:'RE: DISPONIBILITÀ · STUDIO BERNASCONI',from:'Asked if you do CRM as well as the site',
+    sub:'inbound 4h ago · bigger deal if yes', chan:'email', to:'info@studio-bernasconi.ch',
+    body:"ciao, sì — sito e CRM insieme, è esattamente quello che facciamo. ti va una call giovedì alle 15? f"},
+  {id:'c3',subj:'RE: ORARI · CAFFÈ SANT’AMBROGIO',from:'Wants a slot this week',
+    sub:'inbound 5h ago', chan:'email', to:'info@santambrogio.ch',
+    body:"ciao, giovedì o venerdì mattina sono libero. quale preferisci? f"}];
+let C_queue=[];
+const C_NEEDS=[{id:'n1',co:'Aequitas',q:'What budget did you quote them?',
+  why:'They asked "is the 12k all-in?" — not in the lore, so I won’t guess. Tell me and the draft writes itself.',
+  chips:['12k all-in','+ hosting','Type it'],
+  draftFrom:'Asked if 12k is all-in',to:'g.conti@aequitas-law.ch',subj:'RE: PREVENTIVO · AEQUITAS',
+  body:"buongiorno, confermo: 12k IVA esclusa, tutto incluso — design, sviluppo, messa online. l’hosting è a parte (≈ 30/mese). procediamo? f"}];
+let C_needs=[];
+function C_render(){
+  $('#C-queue').innerHTML=C_queue.map(d=>
+    `<div class="draft" data-id="${d.id}">
+      <div class="d-h"><span>↳ ${d.subj}</span><span class="stat">● READY</span></div>
+      <div class="d-from">${d.from}</div><div class="d-sub">${d.sub}</div>
+      <div class="d-body" id="body-${d.id}">${esc(d.body)}</div>
+      <div class="acts">
+        <button class="btn go" data-act="send">Approve &amp; send</button>
+        <button class="btn alt" data-act="edit">Edit</button>
+        <button class="btn" data-act="open">Open composer</button>
+        <button class="btn" data-act="snooze">Snooze</button>
+      </div>
+    </div>`).join('') || `<div class="empty">✓ Reply queue empty.<br>Every inbound answered.</div>`;
+  $$('#C-queue .draft').forEach(card=>{
+    const id=card.dataset.id;
+    card.querySelectorAll('[data-act]').forEach(b=>b.onclick=()=>C_act(id,b.dataset.act,b));
+  });
+  $('#C-rq').textContent=C_queue.length; $('#C-rqn').textContent=String(C_queue.length).padStart(2,'0');
+  C_renderNeeds();
+}
+function C_renderNeeds(){
+  $('#C-needs').innerHTML=C_needs.map(n=>
+    `<div class="rcard tone" style="--tone:var(--amber)" data-id="${n.id}">
+      <div class="r-cap" style="--email:var(--amber)"><span>? ONE FACT MISSING</span><span class="when">${n.co}</span></div>
+      <div class="r-name">${n.q}</div><div class="r-why">${n.why}</div>
+      <div class="acts" style="display:flex;gap:7px;margin-top:10px">${n.chips.map((c,i)=>`<button class="btn ${i<2?'alt':''}" data-chip="${i}">${c}</button>`).join('')}</div>
+    </div>`).join('') || `<div class="empty">No blocked drafts.<br>I have what I need.</div>`;
+  $$('#C-needs .rcard').forEach(card=>{
+    const n=C_needs.find(x=>x.id===card.dataset.id);
+    card.querySelectorAll('[data-chip]').forEach(b=>b.onclick=()=>C_resolveNeed(n,b.textContent));
+  });
+  $('#C-nin').textContent=String(C_needs.length).padStart(2,'0');
+}
+function C_act(id,act,btn){
+  const d=C_queue.find(x=>x.id===id); if(!d)return;
+  if(act==='send'){C_send(id);}
+  else if(act==='snooze'){C_remove(id);toast('Snoozed — back in the queue tomorrow','warn');}
+  else if(act==='edit'){
+    const body=$('#body-'+id); const editing=body.getAttribute('contenteditable')==='true';
+    if(!editing){body.setAttribute('contenteditable','true');body.focus();btn.textContent='Save';setStep('C',2);}
+    else{body.setAttribute('contenteditable','false');d.body=body.textContent;btn.textContent='Edit';toast('Draft edited','email');}
+  }
+  else if(act==='open'){
+    setStep('C',2);
+    openComposer({chan:d.chan,title:'Reply · '+d.subj,to:d.to,subj:d.subj,body:d.body,
+      lore:d.sub.replace('inbound','received'),
+      onSend:v=>{d.body=v;C_send(id);}});
+  }
+}
+function C_send(id){
+  const d=C_queue.find(x=>x.id===id); if(!d)return;
+  const card=$(`#C-queue .draft[data-id="${id}"]`);
+  if(card){const st=card.querySelector('.stat');st.textContent='✓ SENT';st.classList.add('sent');card.classList.add('gone');}
+  setStep('C',3); toast(`Sent to <b>${(d.to||'lead')}</b>`,'email');
+  setTimeout(()=>{C_remove(id);},280);
+}
+function C_remove(id){C_queue=C_queue.filter(x=>x.id!==id);C_render();}
+function C_resolveNeed(n,answer){
+  if(answer==='Type it'){toast('Composer would open for a free-text answer','warn');return;}
+  C_needs=C_needs.filter(x=>x.id!==n.id);
+  const nd={id:'gen-'+n.id,subj:n.subj,from:n.draftFrom,sub:`drafted from your answer: "${answer}"`,chan:'email',to:n.to,body:n.body};
+  C_queue.push(nd); C_render(); setStep('C',4);
+  toast(`Answered — draft written for <b>${n.co}</b>`,'email');
+}
+
+/* ════════════════════ D · FLIGHT DECK ════════════════════ */
+const D_INIT=[
+  {id:'d1',tone:'var(--email)',verb:'↑ NOW · REPLY · EMAIL',dl:'SIGN BLOCKS',co:'Bistrot Le Petit',
+    why:'Point-3 answer is the last thing before signature. Draft ready.',dur:'2 MIN · CHF 5’200',
+    chan:'email',to:'m.rossi@bistrot-lepetit.ch',subj:'Re: preventivo sito',lore:'said he’d sign by EOW',
+    body:"ciao Marco, sul punto 3: partiamo appena confermi, online entro fine mese. ti mando i dati per il bonifico? f"},
+  {id:'d2',tone:'var(--wa)',verb:'CHASE · WHATSAPP',dl:'6D QUIET',co:'Caffè Sant’Ambrogio',
+    why:'Said yes, went quiet. Confirm the slot.',dur:'2 MIN · CHF 3’400',
+    chan:'wa',to:'+41 79 ··· (WhatsApp)',subj:'WhatsApp',lore:'wants a slot this week',
+    body:"ciao! giovedì o venerdì mattina per il sito? f"},
+  {id:'d3',tone:'var(--email)',verb:'REPLY · EMAIL',dl:'4H',co:'Studio Bernasconi',
+    why:'Asked if you do CRM too. Easy yes, bigger deal.',dur:'3 MIN · CHF 8’900',
+    chan:'email',to:'info@studio-bernasconi.ch',subj:'Re: disponibilità',lore:'CRM + site = your core offer',
+    body:"ciao, sì — sito e CRM insieme. call giovedì alle 15? f"}];
+let D_deck=[];
+function D_render(){
+  $('#D-deck').innerHTML=D_deck.map((c,i)=>
+    `<div class="fd" data-id="${c.id}" style="--tone:${c.tone}"><span class="rank">#${i+1}${i===0?' · ROI/min':''}</span>
+      <div class="fd-h"><span>${c.verb}</span><span class="dl">${c.dl}</span></div>
+      <div class="fd-co">${c.co}</div><div class="fd-why">${c.why}</div>
+      <div class="fd-exec"><button class="fd-btn" style="${c.chan==='wa'?'color:#06150b':''}">▶ Draft</button><span class="fd-dur">${c.dur}</span></div>
+    </div>`).join('') || `<div class="empty">✓ Deck cleared.<br>Both inboxes at zero actionable.</div>`;
+  $$('#D-deck .fd').forEach(card=>card.querySelector('.fd-btn').onclick=()=>D_draft(card.dataset.id));
+  const top=D_deck[0];
+  $('#D-lead').textContent=top?(top.co.split(' ')[0]+' first.'):'All clear.';
+}
+function D_draft(id){
+  const c=D_deck.find(x=>x.id===id); if(!c)return;
+  setStep('D',2);
+  openComposer({chan:c.chan,title:c.co,to:c.to,subj:c.subj,lore:c.lore,body:c.body,
+    route:c.chan==='wa'?'WhatsApp (Baileys)':'Gmail API',
+    onSend:v=>{
+      const card=$(`#D-deck .fd[data-id="${id}"]`); if(card)card.classList.add('gone');
+      setStep('D',3); toast(`Sent <b>${c.co}</b> — deck re-ranking…`,c.chan==='wa'?'':'email');
+      setTimeout(()=>{D_deck=D_deck.filter(x=>x.id!==id);D_render();setStep('D',4);},300);
+    }});
+}
+
+/* ════════════════════ E · DEAL-HEALTH ════════════════════ */
+const E_DATA=[
+  {id:'e1',co:'Bistrot Le Petit',state:'cooling',tone:'var(--overdue)',tag:'▼ COOLING',money:"5'200",
+    bars:[60,85,100,70,40,25,12], health:34, lastReply:'them', latency:'6d ↑', conf:'−15%', cadence:'−38%',
+    headline:'Was daily. Now 6 days quiet.', why:'Reply latency went 2h → 6 days after you sent the proposal. The pulse flagged it before the next-action date did.'},
+  {id:'e2',co:'Aequitas',state:'cooling',tone:'var(--overdue)',tag:'▼ COOLING',money:"12'000",
+    bars:[70,90,80,55,30,20,10], health:41, lastReply:'them', latency:'4d ↑', conf:'−10%', cadence:'−29%',
+    headline:'Pricing question, then silence.', why:'They asked about the 12k, you answered, 4 days quiet. Classic stall at the number.'},
+  {id:'e3',co:'Studio Bernasconi',state:'warm',tone:'var(--phosphor)',tag:'▲ WARM',money:"8'900",
+    bars:[30,55,60,80,90,100,95], health:88, lastReply:'you', latency:'2h', conf:'+12%', cadence:'+22%',
+    headline:'Replying within the hour.', why:'Cadence rising, thread alive. This one is ready to close — push it.'},
+  {id:'e4',co:'Caffè Sant’Ambrogio',state:'warm',tone:'var(--phosphor)',tag:'▲ WARM',money:"3'400",
+    bars:[20,40,60,70,75,85,90], health:79, lastReply:'them', latency:'5h', conf:'+8%', cadence:'+15%',
+    headline:'Steady back-and-forth.', why:'Healthy thread, just needs a slot to convert.'},
+  {id:'e5',co:'Oppliger AG',state:'flat',tone:'var(--text-muted)',tag:'— FLATLINED',money:"6'500",
+    bars:[80,60,30,10,4,4,4], health:9, lastReply:'you', latency:'19d', conf:'−30%', cadence:'−90%',
+    headline:'No reply in 19 days.', why:'Two nudges, nothing back. Either re-approach with a new angle or park with a trigger.'}];
+let E_filter='cooling', E_nudged={};
+function E_render(){
+  const list=E_DATA.filter(d=>E_filter==='all'||d.state===E_filter);
+  $('#E-list').innerHTML=list.map(d=>{
+    const bars=(E_nudged[d.id]?d.bars.slice(0,-1).concat([Math.max(d.bars[d.bars.length-1],70)]):d.bars);
+    return `<div class="lead" data-id="${d.id}" style="--tone:${d.tone}"><span class="rail"></span>
+      <div style="flex:1;min-width:0"><div class="l-name">${d.co} <span style="color:${E_nudged[d.id]?'var(--phosphor)':d.tone};font-size:10px;font-family:var(--MONO)">${E_nudged[d.id]?'▲ NUDGED':d.tag}</span></div>
+        <div class="pulse" style="--tone:${E_nudged[d.id]?'var(--phosphor)':d.tone};margin-top:6px">${bars.map((h,i)=>`<i style="height:${Math.max(h,4)}%;opacity:${i===bars.length-1?(h<20?.4:.9):.85}"></i>`).join('')}</div></div>
+      <div class="l-money">${d.money}<small>CHF</small></div></div>`;}).join('')
+    || `<div class="empty">No deals in this band.</div>`;
+  $$('#E-list .lead').forEach(l=>l.onclick=()=>E_open(l.dataset.id));
+}
+function E_open(id){
+  const d=E_DATA.find(x=>x.id===id); if(!d)return;
+  const nudged=!!E_nudged[id];
+  $$('#E-list .lead').forEach(l=>l.classList.toggle('sel',l.dataset.id===id));
+  $('#E-rcap').textContent=d.co+' · deal vitals'; setStep('E',3);
+  const tone=nudged?'var(--phosphor)':d.tone;
+  $('#E-right').innerHTML=
+    `<div class="rcard tone" style="--tone:${tone}">
+      <div class="r-cap" style="--email:${tone}"><span>${nudged?'▲ NUDGED · WATCHING':d.tag+' · ACT NOW'}</span><span class="when">${nudged?'cadence recovering':d.cadence+' cadence'}</span></div>
+      <div class="r-name">${nudged?'Nudge sent. Pulse ticking back up.':d.headline}</div>
+      <div class="r-why">${nudged?'Re-engagement drafted in your voice and sent. Latency clock reset; if they reply, confidence recovers automatically.':d.why}</div>
+      <div class="health" style="margin-top:11px"><span>HEALTH</span><div class="meter"><i style="width:${nudged?Math.min(d.health+34,90):d.health}%;background:${tone}"></i></div><span style="color:${tone}">${nudged?Math.min(d.health+34,90):d.health}%</span></div>
+      <div class="vital"><span>LAST REPLY <b>${nudged?'you':d.lastReply}</b></span><span>LATENCY <b>${nudged?'0h ↓':d.latency}</b></span><span>CONF <b>${nudged?'recovering':d.conf}</b></span></div>
+      ${nudged?'':`<div class="acts" style="margin-top:12px;display:flex;gap:7px"><button class="btn go" id="E-nudge">⚡ Nudge now</button><button class="btn alt">Open thread</button><button class="btn">Park + trigger</button></div>`}
+    </div>
+    <div class="rcard" style="border-left:3px solid var(--cyan)">
+      <div class="r-cap" style="--email:var(--cyan)"><span>⟳ FEEDS</span></div>
+      <div class="r-why">Pulse writes to <b>confidence_pct</b>, flips status toward <i>${nudged?'Re-engaged':'Stalling'}</i>, appends ${nudged?'a "nudge sent" note':'a cooling note'} to the lore — automatically.</div>
+    </div>`;
+  const nb=$('#E-nudge');
+  if(nb)nb.onclick=()=>{
+    setStep('E',4);
+    openComposer({chan:'email',title:'Nudge · '+d.co,to:d.co.toLowerCase().replace(/[^a-z]/g,'')+'@…',subj:'Re: '+d.co,
+      lore:d.headline,route:'Gmail API',
+      body:`ciao, volevo solo riprendere il filo — resto a disposizione se ci sono domande sul preventivo. quando le è comodo, ci sentiamo. f`,
+      onSend:()=>{E_nudged[id]=true;E_render();E_open(id);toast(`Nudged <b>${d.co}</b> — pulse recovering`,'email');}});
+  };
+}
+function E_setFilter(f,cap){
+  E_filter=f;
+  $$('.panel[data-p="E"] .bento').forEach(b=>b.classList.toggle('active',b.dataset.f===f));
+  $('#E-cap').textContent=cap; setStep('E',2);
+  E_render(); $('#E-right').innerHTML='<div class="empty">← Open a deal<br>to read its vitals</div>'; $('#E-rcap').textContent='Deal vitals';
+}
+
+/* ── B/E rail bindings ────────────────────────────────────────────────── */
+$('#B-bento').onclick=()=>{setStep('B',1);};
+$$('.panel[data-p="E"] .bento').forEach(b=>b.onclick=()=>{
+  E_setFilter(b.dataset.f,{cooling:'Cooling',warm:'Warm',flat:'Flatlined',all:'All deals'}[b.dataset.f]);
+});
+
+/* ── replay ───────────────────────────────────────────────────────────── */
+function resetAll(map){
+  if(map==='A'){A_reset();A_renderLeads();$('#A-rcap').textContent='No lead selected';$('#A-right').innerHTML='<div class="empty">← Pick a lead to load<br>its one conversation</div>';setStep('A',1);}
+  if(map==='B'){B_list=B_INIT.map(x=>({...x}));B_render();$('#B-right').innerHTML='<div class="empty">← Click an unmatched email<br>to see the suggested match</div>';$('#B-rcap').textContent='Match panel';setStep('B',1);}
+  if(map==='C'){C_queue=C_INIT.map(x=>({...x}));C_needs=C_NEEDS.map(x=>({...x}));C_render();setStep('C',1);}
+  if(map==='D'){D_deck=D_INIT.map(x=>({...x}));D_render();setStep('D',1);}
+  if(map==='E'){E_nudged={};E_setFilter('cooling','Cooling');setStep('E',1);}
+}
+$$('.replay').forEach(b=>b.onclick=()=>{resetAll(b.dataset.replay);toast('Path reset','warn');});
+
+/* ── boot ─────────────────────────────────────────────────────────────── */
+A_reset(); A_renderLeads();
+B_list=B_INIT.map(x=>({...x})); B_render();
+C_queue=C_INIT.map(x=>({...x})); C_needs=C_NEEDS.map(x=>({...x})); C_render();
+D_deck=D_INIT.map(x=>({...x})); D_render();
+E_render();
+</script>
+</body>
+</html>

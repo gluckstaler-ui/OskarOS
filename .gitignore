@@ -18,8 +18,24 @@ Thumbs.db
 .env*.local
 .api-key
 
-# Generated outputs
-public/
+# public/ holds session folders, generated bundles and binaries (all ignored),
+# but the hand-written top-level source files ARE tracked. A whole-dir `public/`
+# ignore can't be un-ignored file-by-file, so ignore the CONTENTS (`public/*`)
+# and re-include the source explicitly. Session subdirs stay ignored (git won't
+# descend once `public/<dir>` matches). Generated (admin-topbar.js[.map],
+# pdf.worker) + junk stay out by omission; Order66.mp3 (audio asset) is tracked.
+public/*
+!public/admin.html
+!public/crm.html
+!public/_shell.css
+!public/_shell.js
+!public/compaction-overlay.html
+!public/rejuvenation-overlay.html
+!public/CRM-Email-Prototype.html
+!public/CRM-Email-Wireframes.html
+!public/debug.html
+!public/lumberjack-watch.html
+!public/Order66.mp3
 
 # Build artifacts
 *.tsbuildinfo
@@ -61,3 +77,13 @@ logs/
 test-results/
 __pycache__/
 .barbazza-mail.env
+.silke-mail.env
+
+# Barbazza Facebook widget token
+.barbazza-fb.env
+
+# Scratch / build dirs the deploy excludes (scripts/deploy-server.sh) + the
+# per-session MCP config cache (regenerated on every session switch) — not source.
+118bbuilder/
+CRMxterritoryxfathom/
+.cache/

@@ -142,7 +142,7 @@ Same pattern, Gemini API shape. Uses `functionDeclarations` + `functionResponse`
 Single entry point. Takes a `Provider` and a `ParsedVibe`, routes to the right backend:
 
 - `cli` → `buildVibeHTML()` (existing, unchanged)
-- `claude-sonnet-4-6` / `claude-opus-4-6` → `runClaudeAgentLoop()`
+- `claude-sonnet-4-6` / `claude-opus-4-7` → `runClaudeAgentLoop()`
 - `gemini-3.1-pro-preview` → `runGeminiAgentLoop()`
 
 Returns `VibeBuildResult` regardless of path. After the loop completes, verifies the HTML file exists on disk.

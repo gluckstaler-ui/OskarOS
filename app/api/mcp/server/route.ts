@@ -105,7 +105,7 @@ function legacyInstanceId(sessionId: string, agentRole: AgentRole): string {
   return `legacy-${sessionId}-${agentRole}`
 }
 
-const VALID_ROLES = new Set<AgentRole>(['cd', 'webdev', 'sentinel', 'jedi-code', 'consular'])
+const VALID_ROLES = new Set<AgentRole>(['cd', 'webdev', 'sentinel', 'jedi-code', 'consular', 'scout'])
 
 function isValidRole(value: string): value is AgentRole {
   return VALID_ROLES.has(value as AgentRole)

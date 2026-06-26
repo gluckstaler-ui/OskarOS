@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { readFile, writeFile } from 'fs/promises'
 import path from 'path'
-import { JSDOM } from 'jsdom'
+import { applyDirectorEdits, type DirectorEdit } from '@/lib/director-surgery'
 import { publish } from '@/lib/event-bus'
 
 /**
@@ -81,98 +81,26 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    const dom = new JSDOM(html)
-    const doc = dom.window.document
-    const results: Array<{ selector: string; ok: boolean; reason?: string }> = []
-    let applied = 0
+    // Byte-surgical apply (2026-06-19). We DELIBERATELY do NOT round-trip
+    // through jsdom `serialize()` anymore — that rewrote every byte of the
+    // document (normalizing void tags, re-encoding entities, and mangling
+    // inlined `<script type="text/babel">` / SVG). `applyDirectorEdits`
+    // splices ONLY the changed attribute / text spans; every other byte of
+    // the original file is preserved verbatim. The client `src` field maps to
+    // the engine's tag-aware `imageSrc` (it picks src vs href/xlink:href).
+    const surgeryEdits: DirectorEdit[] = body.edits.map((e) => ({
+      selector: e.selector,
+      ...(typeof e.style === 'string' ? { style: e.style } : {}),
+      ...(typeof e.src === 'string' ? { imageSrc: e.src } : {}),
+      ...('preserveAspectRatio' in e ? { preserveAspectRatio: e.preserveAspectRatio } : {}),
+    }))
 
-    for (const edit of body.edits) {
-      if (!edit.selector) {
-        results.push({ selector: '<missing>', ok: false, reason: 'no-selector' })
-        continue
-      }
-
-      let el: Element | null = null
-      try {
-        el = doc.querySelector(edit.selector)
-      } catch (err) {
-        results.push({
-          selector: edit.selector,
-          ok: false,
-          reason: `bad-selector: ${err instanceof Error ? err.message : String(err)}`,
-        })
-        continue
-      }
-
-      if (!el) {
-        results.push({ selector: edit.selector, ok: false, reason: 'not-found' })
-        continue
-      }
-
-      // Apply src. HTML <img> uses the `src` attribute; SVG <image> uses
-      // `href` (modern) and `xlink:href` (legacy fallback). The client
-      // sends `src` regardless of element type — the server picks the
-      // right attribute based on tagName.
-      if (typeof edit.src === 'string') {
-        const tag = el.tagName
-        // jsdom returns SVG element tagNames in their original case
-        // (lowercase for SVG, uppercase for HTML). HTML <img> is 'IMG';
-        // SVG <image> is 'image'.
-        const isSvgImage = tag === 'image' || tag.toLowerCase() === 'image' && tag !== 'IMG'
-        if (edit.src.length === 0) {
-          if (isSvgImage) {
-            el.removeAttribute('href')
-            el.removeAttribute('xlink:href')
-          } else {
-            el.removeAttribute('src')
-          }
-        } else {
-          if (isSvgImage) {
-            el.setAttribute('href', edit.src)
-            // Also update xlink:href if the element had one (legacy renderers)
-            if (el.hasAttribute('xlink:href')) {
-              el.setAttribute('xlink:href', edit.src)
-            }
-          } else {
-            el.setAttribute('src', edit.src)
-          }
-        }
-      }
-
-      // Apply inline style. Empty string clears the attribute entirely so the
-      // saved HTML doesn't carry a leftover `style=""`.
-      if (typeof edit.style === 'string') {
-        if (edit.style.trim().length === 0) {
-          el.removeAttribute('style')
-        } else {
-          el.setAttribute('style', edit.style)
-        }
-      }
-
-      // Apply preserveAspectRatio (SVG <image> only). null means the
-      // user reverted to "no attribute" — remove it. Otherwise set
-      // verbatim. Harmless on non-SVG elements (any element can carry
-      // arbitrary attributes), but the client only sends this field
-      // for SVG <image>.
-      if ('preserveAspectRatio' in edit) {
-        if (edit.preserveAspectRatio === null) {
-          el.removeAttribute('preserveAspectRatio')
-        } else if (typeof edit.preserveAspectRatio === 'string') {
-          el.setAttribute('preserveAspectRatio', edit.preserveAspectRatio)
-        }
-      }
-
-      applied += 1
-      results.push({ selector: edit.selector, ok: true })
-    }
+    const { html: newHtml, results, applied } = applyDirectorEdits(html, surgeryEdits)
 
     if (applied === 0) {
       return NextResponse.json({ success: false, applied: 0, results }, { status: 200 })
     }
 
-    // Serialize back. jsdom's serialize() preserves the original doctype when
-    // the input had one, so we don't need to re-prepend <!DOCTYPE html>.
-    const newHtml = dom.serialize()
     await writeFile(htmlPath, newHtml, 'utf-8')
 
     console.log(

@@ -161,7 +161,7 @@ export async function POST(req: NextRequest) {
     sessionId?: string
     slugs?: string[]
     mode?: 'smpl' | 'cli' | 'api'
-    model?: 'claude-sonnet-4-6' | 'claude-opus-4-8' | 'gemini-3.1-pro-preview'
+    model?: 'claude-sonnet-4-6' | 'claude-opus-4-7' | 'gemini-3.1-pro-preview'
   }
   if (!sessionId) return NextResponse.json({ error: 'sessionId required' }, { status: 400 })
   if (!Array.isArray(slugs) || slugs.length === 0) {

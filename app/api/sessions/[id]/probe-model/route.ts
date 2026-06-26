@@ -181,8 +181,8 @@ export async function GET(
       // We control the wire for API mode — resolve, translate the 'auto'
       // sentinel, return. No probe necessary because there's no separate
       // process to query.
-      const raw = resolveConfig('cdModel', null, sessionId, 'claude-opus-4-8')
-      const model = raw === 'auto' ? 'claude-opus-4-8' : raw
+      const raw = resolveConfig('cdModel', null, sessionId, 'claude-opus-4-7')
+      const model = raw === 'auto' ? 'claude-opus-4-7' : raw
       return NextResponse.json({ model, source: 'api-config' }, { headers: NO_CACHE })
     }
 

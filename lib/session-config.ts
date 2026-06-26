@@ -37,18 +37,51 @@ import { brainSpec, DEFAULT_BRAIN, type BrainId } from './models'
 
 // Bug M (Ralph 2026-05-04): `'auto'` means "use whatever Claude Code's
 // OWN settings have configured." For users running stock Claude Code,
-// that's claude-opus-4-8. For users who've base-URL-piped Claude Code
+// that's claude-opus-4-7. For users who've base-URL-piped Claude Code
 // to Z.ai, that's their configured GLM model. Forcing `--model` from
 // the bridge would override the user's intent and make Z.ai-configured
-// CLI sessions report claude-opus-4-8 in the system/init event (which
+// CLI sessions report claude-opus-4-7 in the system/init event (which
 // is what we passed, not what they wanted).
 // Bare wire ids only (no `[1m]`); the 1M window is verified at runtime by the
 // bridge re-roll. BrainId derives from the registry (lib/models) — single source.
 export type CdModel = 'auto' | BrainId
+
+// ──────────────────────────────────────────────────────────────────────
+// Webserver Sync (spec §3). The entire sync config + credentials live in
+// THIS file — `public/<id>/logs/_session-config.json`, the one canonical
+// session config. No separate vault, no `.publishignore`, no env vars.
+// Plaintext password by Ralph's explicit call (spec §10.2). Per-session,
+// never aggregated, never read across sessions.
+//
+// `method` picks the transport: 'ftp' (FtpTransport — FTPS or plain) or
+// 'file' (LocalTransport — OskarOS running ON the server). `secure`
+// records the *negotiated* security after connect ('ftps' green / 'plain'
+// yellow); the UI default is 'ftps'. Host/user/port/password/docroot are
+// the FTP fields; `destination` is the File-mode root. `ignore` is the
+// per-session exclude list — but `logs/`, `screenshots/`, and
+// `_session-config.json` are ALWAYS hard-excluded by the walker
+// regardless of this list (spec §10.11).
+// ──────────────────────────────────────────────────────────────────────
+export interface SiteConfig {
+  domain: string
+  method: 'ftp' | 'file'
+  secure?: 'ftps' | 'plain'
+  // FTP/FTPS fields
+  host?: string
+  port?: number
+  user?: string
+  password?: string
+  docroot?: string
+  // File-mode field
+  destination?: string
+  // Direction + excludes (both modes)
+  defaultDirection: 'up' | 'down'
+  ignore: string[]
+}
 // Sonnet restored 2026-06-10 — it is the padawan default (WebDev, Sage, Sage-240);
 // Gemini takes its slot under the gemini switch preset (lib/models MODEL_SWITCH_PRESETS).
 // Opus stays in the union for legacy on-disk configs written before the preset map.
-export type WebDevModel = 'claude-sonnet-4-6' | 'claude-opus-4-8' | 'gemini-3.1-pro-preview'
+export type WebDevModel = 'claude-sonnet-4-6' | 'claude-opus-4-7' | 'gemini-3.1-pro-preview'
 export type ExecutionMode = 'smpl' | 'cli' | 'api'
 
 export interface SessionConfig {
@@ -60,7 +93,7 @@ export interface SessionConfig {
    * `~/.claude/settings.json` (or env) selects. Specific values force a
    * model regardless of Claude Code's defaults — useful only when you
    * KNOW the model is supported by the endpoint Claude Code is talking
-   * to. For Anthropic the default Claude Code config is claude-opus-4-8
+   * to. For Anthropic the default Claude Code config is claude-opus-4-7
    * which equals 'auto' in practice.
    */
   cdModel: CdModel
@@ -78,6 +111,15 @@ export interface SessionConfig {
   createdAt?: string
   outcome?: 'won' | 'lost' | 'abandoned' | null
   phase?: number
+
+  // ────────────────────────────────────────────────────────────────────
+  // Webserver Sync (spec §3). Optional — present only once the user fills
+  // the Sync tab's connection form (or pre-fills from an existing file).
+  // Read/written ONLY via readSessionConfig/writeSessionConfig below; the
+  // /api/site/config route is a thin wrapper over those. No new config
+  // file — this is the one canonical store.
+  // ────────────────────────────────────────────────────────────────────
+  site?: SiteConfig
 }
 
 export const DEFAULT_SESSION_CONFIG: SessionConfig = {
@@ -102,6 +144,7 @@ function getConfigPath(sessionId: string): string {
   return join(process.cwd(), 'public', sessionId, 'logs', '_session-config.json')
 }
 
+
 // ──────────────────────────────────────────────────────────────────────
 // Read
 // ──────────────────────────────────────────────────────────────────────
@@ -116,8 +159,6 @@ export function readSessionConfig(sessionId: string): SessionConfig {
   try {
     const raw = readFileSync(path, 'utf-8')
     const parsed = JSON.parse(raw) as Partial<SessionConfig>
-    // Merge over defaults so a partial file (or one missing fields after a
-    // schema add) still resolves to a valid SessionConfig.
     return { ...DEFAULT_SESSION_CONFIG, ...parsed }
   } catch (err) {
     console.warn(`[session-config] Failed to read ${path}:`, err instanceof Error ? err.message : err)

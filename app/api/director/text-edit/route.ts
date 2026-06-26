@@ -1,32 +1,46 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { readFile, writeFile } from 'fs/promises'
+import { appendFileSync } from 'fs'
 import path from 'path'
+import { applyDirectorEdits } from '@/lib/director-surgery'
+
+// TEMP live-debug (2026-06-22): capture what the REAL canvas sends to disk so we
+// can diagnose the butchering without a browser. Remove once root cause is found.
+function dbg(line: string) {
+  try { appendFileSync(path.join(process.cwd(), 'db', 'director-debug.log'), line + '\n') } catch {}
+}
 
 /**
- * WP-10B: Persist a text edit from Director Mode.
+ * Persist a Director-Mode text edit.
  *
- * The bridge tags text elements with `data-oskar-id="txt-N"`. On commit,
- * the parent receives { oskarId, newText, tagName }. This route injects
- * the `data-oskar-id` attribute into the HTML (if not already present)
- * and replaces the text content of the matching element.
+ * ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ * 2026-06-19 — full rewrite. The previous implementation expected `oskarId`
+ * to be `txt-N` and walked the HTML with a fragile tag-counting regex. But the
+ * client (LivePreviewWithDirector.onFocusOut) sends `oskarId = buildStablePath(el)`
+ * — a structural selector path like `auto-body > section:nth-of-type(1) >
+ * p:nth-of-type(2)`. The `^txt-(\d+)$` check therefore ALWAYS returned 400 and
+ * the client swallowed it, so text edits NEVER persisted (silent whack-a-mole).
  *
- * Strategy: since `data-oskar-id` is assigned at runtime by the bridge and
- * may not exist in the saved HTML, we use a positional approach:
- *   1. Re-scan the HTML for text-bearing leaf elements matching the tagName.
- *   2. Assign sequential IDs (txt-1, txt-2…) mirroring the bridge's walk.
- *   3. Replace the text content of the element with the matching ID.
+ * Now we resolve that exact selector path with `applyDirectorEdits` — the same
+ * byte-surgical engine `/api/director/save-edits` uses — and splice only the
+ * element's inner-text span. Scripts / SVG / siblings stay byte-identical.
+ * ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
  */
 export async function POST(req: NextRequest) {
   try {
-    const { sessionId, pageFilename, oskarId, newText, tagName } = await req.json()
+    const { sessionId, pageFilename, oskarId, newText, baseText } = await req.json()
 
-    if (!sessionId || !pageFilename || !oskarId || !newText) {
+    // newText may legitimately be '' (user cleared the text), so check for
+    // presence, not truthiness.
+    if (!sessionId || !pageFilename || !oskarId || newText === undefined || newText === null) {
       return NextResponse.json(
         { error: 'sessionId, pageFilename, oskarId, and newText are required' },
         { status: 400 }
       )
     }
 
+    // pageFilename is a real session-relative path (may include a subfolder,
+    // e.g. "Old_Vibes/vibe-11.html") — `parseHtmlPath` already decoded it.
     const htmlPath = path.join(process.cwd(), 'public', sessionId, pageFilename)
     let html: string
     try {
@@ -38,80 +52,50 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    // Parse the numeric index from oskarId (e.g. "txt-7" → 7)
-    const idMatch = oskarId.match(/^txt-(\d+)$/)
-    if (!idMatch) {
+    const { html: newHtml, results, applied } = applyDirectorEdits(html, [
+      {
+        selector: String(oskarId),
+        innerHtml: String(newText),
+        // Optimistic-concurrency guard: only write if the source's current text
+        // still matches what the user was editing. Prevents an edit made while
+        // the canvas renders a TRANSLATION from clobbering the source language.
+        ...(baseText !== undefined && baseText !== null ? { expectText: String(baseText) } : {}),
+      },
+    ])
+
+    // Live diagnostic (the dbg() helper above was added 2026-06-22 but never
+    // called, so the log stayed empty). Capture EVERY attempt — selector +
+    // outcome — so a "doesn't save" can be traced to its exact reason offline.
+    dbg(`text-edit ${pageFilename} | sel=${oskarId} | applied=${applied} reason=${results[0]?.reason ?? 'ok'} | base="${String(baseText ?? '').replace(/\s+/g, ' ').slice(0, 70)}" new="${String(newText).replace(/\s+/g, ' ').slice(0, 70)}"`)
+
+    if (applied === 0) {
+      const reason = results[0]?.reason || 'unknown'
+      // The element on disk no longer matches what the user edited — almost
+      // always because the canvas is showing a translated/transformed view.
+      // Refuse loudly (409) so the client can tell the user instead of silently
+      // dropping the edit.
+      if (reason === 'stale-or-transformed') {
+        return NextResponse.json(
+          {
+            error:
+              'This element is showing transformed or translated content, not the source. ' +
+              'Switch the preview to the source language to edit it directly, or edit the ' +
+              'translation in the META panel.',
+            reason,
+          },
+          { status: 409 }
+        )
+      }
       return NextResponse.json(
-        { error: `Invalid oskarId format: ${oskarId}` },
-        { status: 400 }
-      )
-    }
-    const targetIndex = parseInt(idMatch[1], 10)
-
-    // Replicate the bridge's DOM walk in string-land:
-    // Find all text-bearing tags in document order and count to the target index.
-    const editableTags = 'h1|h2|h3|h4|h5|h6|p|button|span|a|li|td|th|label|figcaption'
-    const tagPattern = new RegExp(
-      `<(${editableTags})\\b([^>]*)>([\\s\\S]*?)<\\/\\1>`,
-      'gi'
-    )
-
-    let index = 0
-    let replaced = false
-    let oldText: string | null = null
-
-    const newHtml = html.replace(tagPattern, (full, tag, attrs, content) => {
-      // Skip elements inside data-slot or data-usage containers
-      // (crude heuristic: if attrs contain data-slot or data-usage, skip)
-      if (/data-slot|data-usage|data-oskar-bgimg/i.test(attrs)) return full
-
-      // Check if content is "text-only" — no block-level children
-      if (/<(div|section|article|header|footer|nav|main|aside|table|ul|ol|img)\b/i.test(content)) {
-        return full
-      }
-
-      // Must have non-empty text
-      const textContent = content.replace(/<[^>]+>/g, '').trim()
-      if (!textContent) return full
-
-      // If tagName filter was provided, only count matching tags
-      if (tagName && tag.toLowerCase() !== tagName.toLowerCase()) {
-        // Still count it — the bridge counts ALL matching tags regardless of tagName
-        index += 1
-        if (index === targetIndex) {
-          // This is the target but wrong tag — still replace (bridge assigned this ID)
-          oldText = textContent
-          replaced = true
-          return `<${tag}${attrs}>${newText}</${tag}>`
-        }
-        return full
-      }
-
-      index += 1
-      if (index === targetIndex) {
-        oldText = textContent
-        replaced = true
-        return `<${tag}${attrs}>${newText}</${tag}>`
-      }
-      return full
-    })
-
-    if (!replaced) {
-      return NextResponse.json(
-        { error: `Could not find text element ${oskarId} in ${pageFilename}` },
+        { error: `Could not apply text edit (${reason}) for ${oskarId} in ${pageFilename}`, reason },
         { status: 404 }
       )
     }
 
     await writeFile(htmlPath, newHtml, 'utf-8')
-    console.log(`[text-edit] Replaced ${oskarId} in ${pageFilename}: "${oldText?.slice(0, 40)}…" → "${newText.slice(0, 40)}…"`)
+    console.log(`[text-edit] ${pageFilename}: ${oskarId} → "${String(newText).slice(0, 40)}…"`)
 
-    return NextResponse.json({
-      success: true,
-      oskarId,
-      oldText,
-      newText,
-    })
+    return NextResponse.json({ success: true, oskarId, newText })
   } catch (error) {
     console.error('[text-edit] Error:', error)
     return NextResponse.json(

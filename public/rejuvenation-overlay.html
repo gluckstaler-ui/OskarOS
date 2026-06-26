@@ -1,0 +1,917 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Order 75 Rejuvenation</title>
+  <style>
+    :root {
+      --blue: #4fc3f7;
+      --blue-glow: #00e5ff;
+      --green: #10b981;
+      --green-glow: #34d399;
+      --gold: #ffd54f;
+    }
+
+    .compaction-root {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: rgba(0, 0, 0, 0);
+      /* Ralph 2026-04-25: cursor stays VISIBLE — same fix as compaction-overlay.html */
+      z-index: 2000;
+    }
+
+    .compaction-root * {
+      box-sizing: border-box;
+    }
+
+    /* ====== Container & Layout ====== */
+    .rejuvenation-container {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* ====== Start Gate ====== */
+    .start-prompt {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      padding: 24px 48px;
+      background: rgba(79, 195, 247, 0.1);
+      border: 2px solid var(--blue);
+      border-radius: 8px;
+      color: var(--blue);
+      font-size: 16px;
+      font-weight: 500;
+      text-align: center;
+      cursor: pointer;
+      z-index: 2001;
+      transition: all 0.3s ease;
+      user-select: none;
+    }
+
+    .start-prompt:hover {
+      background: rgba(79, 195, 247, 0.2);
+      box-shadow: 0 0 20px rgba(79, 195, 247, 0.4);
+    }
+
+    /* ====== Overlay Darkening ====== */
+    .overlay-darken {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0);
+      transition: background 2s ease-in-out;
+      pointer-events: none;
+      z-index: 2000;
+    }
+
+    .overlay-darken.darkened {
+      background: rgba(0, 0, 0, 0.4);
+    }
+
+    /* ====== Context Bar ====== */
+    .context-bar-wrapper {
+      position: absolute;
+      top: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 300px;
+      z-index: 2001;
+    }
+
+    .context-bar {
+      width: 100%;
+      height: 4px;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 2px;
+      overflow: hidden;
+      box-shadow: inset 0 0 8px rgba(0, 0, 0, 0.3);
+    }
+
+    .context-bar-fill {
+      height: 100%;
+      background: var(--blue);
+      width: 0%;
+      transition: width 0.05s linear, background-color 0.3s ease;
+      box-shadow: 0 0 12px var(--blue-glow), inset 0 0 4px rgba(255, 255, 255, 0.3);
+    }
+
+    .context-bar-fill.pulse {
+      animation: contextPulse 1s ease-in-out;
+    }
+
+    @keyframes contextPulse {
+      0%, 100% { box-shadow: 0 0 12px var(--blue-glow), inset 0 0 4px rgba(255, 255, 255, 0.3); }
+      50% { box-shadow: 0 0 24px var(--blue-glow), inset 0 0 8px rgba(255, 255, 255, 0.5); }
+    }
+
+    /* ====== Text Overlay ====== */
+    .text-overlay {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      text-align: center;
+      z-index: 2001;
+      opacity: 0;
+      transition: opacity 0.6s ease;
+    }
+
+    .text-overlay.visible {
+      opacity: 1;
+    }
+
+    .text-overlay h1 {
+      font-size: 28px;
+      font-weight: 300;
+      color: var(--blue);
+      margin: 0;
+      text-shadow: 0 0 16px rgba(79, 195, 247, 0.6);
+      letter-spacing: 2px;
+    }
+
+    .text-overlay p {
+      font-size: 14px;
+      color: rgba(79, 195, 247, 0.8);
+      margin: 12px 0 0 0;
+      text-shadow: 0 0 8px rgba(79, 195, 247, 0.4);
+      letter-spacing: 0.5px;
+    }
+
+    /* ====== Phase Containers ====== */
+    .phase {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      top: 0;
+      left: 0;
+      opacity: 0;
+      transition: opacity 0.6s ease;
+      z-index: 2001;
+    }
+
+    .phase.active {
+      opacity: 1;
+    }
+
+    /* Phase: Order 66/75 ====== */
+    #phase-order66 {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .order66-text {
+      position: absolute;
+      bottom: 40px;
+      font-size: 32px;
+      font-weight: 300;
+      color: var(--blue);
+      text-shadow: 0 0 20px rgba(79, 195, 247, 0.8);
+      opacity: 0;
+      transition: opacity 0.8s ease;
+      letter-spacing: 1px;
+    }
+
+    .order66-text.visible {
+      opacity: 1;
+    }
+
+    /* Phase: Yoda/Sage ====== */
+    #phase-sage {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background-size: cover;
+      background-position: center;
+      background-repeat: no-repeat;
+    }
+
+    .sage-image {
+      position: absolute;
+      width: 300px;
+      height: 300px;
+      background-size: contain;
+      background-position: center;
+      background-repeat: no-repeat;
+      filter: drop-shadow(0 0 24px rgba(79, 195, 247, 0.3));
+      opacity: 0;
+      transition: opacity 0.8s ease;
+    }
+
+    .sage-image.visible {
+      opacity: 1;
+    }
+
+    .sage-text {
+      position: absolute;
+      bottom: 60px;
+      text-align: center;
+      opacity: 0;
+      transition: opacity 0.8s ease;
+      z-index: 2001;
+    }
+
+    .sage-text.visible {
+      opacity: 1;
+    }
+
+    .sage-text h2 {
+      font-size: 24px;
+      font-weight: 300;
+      color: var(--blue);
+      margin: 0;
+      text-shadow: 0 0 16px rgba(79, 195, 247, 0.6);
+      letter-spacing: 1px;
+    }
+
+    .sage-text p {
+      font-size: 14px;
+      color: rgba(79, 195, 247, 0.7);
+      margin: 8px 0 0 0;
+      text-shadow: 0 0 8px rgba(79, 195, 247, 0.4);
+    }
+
+    /* Mote Particles ====== */
+    .motes-container {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      top: 0;
+      left: 0;
+      z-index: 2000;
+      pointer-events: none;
+    }
+
+    .mote {
+      position: absolute;
+      border-radius: 50%;
+      opacity: 0.6;
+      filter: blur(1px);
+    }
+
+    .mote.blue {
+      background: radial-gradient(circle, var(--blue-glow), var(--blue));
+      box-shadow: 0 0 8px var(--blue-glow);
+    }
+
+    .mote.green {
+      background: radial-gradient(circle, var(--green-glow), var(--green));
+      box-shadow: 0 0 8px var(--green-glow);
+    }
+
+    @keyframes moteFloat {
+      0% {
+        transform: translate(0, 0);
+        opacity: 0;
+      }
+      20% {
+        opacity: 0.6;
+      }
+      80% {
+        opacity: 0.6;
+      }
+      100% {
+        transform: translate(var(--tx), var(--ty));
+        opacity: 0;
+      }
+    }
+
+    /* Phase: Dot ====== */
+    #phase-dot {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .dot-center {
+      position: relative;
+      width: 80px;
+      height: 80px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .dot-core {
+      position: absolute;
+      width: 20px;
+      height: 20px;
+      background: var(--blue);
+      border-radius: 50%;
+      box-shadow: 0 0 20px var(--blue-glow);
+    }
+
+    .dot-ring {
+      position: absolute;
+      border: 2px solid var(--blue);
+      border-radius: 50%;
+      opacity: 0;
+    }
+
+    @keyframes ringExpand {
+      0% {
+        width: 20px;
+        height: 20px;
+        opacity: 1;
+      }
+      100% {
+        width: 200px;
+        height: 200px;
+        opacity: 0;
+      }
+    }
+
+    /* Phase: Resurrection ====== */
+    #phase-resurrection {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .resurrection-image {
+      position: absolute;
+      width: 400px;
+      height: 300px;
+      background-size: contain;
+      background-position: center;
+      background-repeat: no-repeat;
+      filter: drop-shadow(0 0 30px rgba(16, 185, 129, 0.4));
+      opacity: 0;
+      transition: opacity 1s ease;
+    }
+
+    .resurrection-image.visible {
+      opacity: 1;
+    }
+
+    .resurrection-text {
+      position: absolute;
+      bottom: 80px;
+      text-align: center;
+      opacity: 0;
+      transition: opacity 1s ease;
+      z-index: 2001;
+    }
+
+    .resurrection-text.visible {
+      opacity: 1;
+    }
+
+    .resurrection-text h2 {
+      font-size: 28px;
+      font-weight: 300;
+      color: var(--green);
+      margin: 0;
+      text-shadow: 0 0 16px rgba(16, 185, 129, 0.6);
+      letter-spacing: 1px;
+    }
+
+    .resurrection-text p {
+      font-size: 14px;
+      color: rgba(16, 185, 129, 0.7);
+      margin: 12px 0 0 0;
+      text-shadow: 0 0 8px rgba(16, 185, 129, 0.4);
+    }
+
+    /* ====== Compact Overlay Text (React Layer) ====== */
+    .compact-overlay {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      text-align: center;
+      z-index: 2001;
+      color: var(--blue);
+      font-size: 18px;
+      font-weight: 500;
+      text-shadow: 0 0 12px rgba(79, 195, 247, 0.6);
+      opacity: 0;
+      transition: opacity 0.5s ease;
+    }
+
+    .compact-overlay.visible {
+      opacity: 1;
+    }
+
+    /* ====== Synth & Audio (no file, generated) ====== */
+    /* Oscillator managed by JavaScript Web Audio API */
+
+    /* ====== Debug (optional, comment out in production) ====== */
+    .debug-info {
+      position: fixed;
+      bottom: 10px;
+      right: 10px;
+      background: rgba(0, 0, 0, 0.8);
+      color: var(--green);
+      font-size: 11px;
+      padding: 8px;
+      border-radius: 4px;
+      font-family: monospace;
+      z-index: 3000;
+      display: none;
+    }
+
+    .debug-info.visible {
+      display: block;
+    }
+  </style>
+</head>
+<body>
+  <div class="compaction-root">
+    <div class="rejuvenation-container">
+      <!-- Start Gate -->
+      <div class="start-prompt" id="startGate"><span>Click to begin rejuvenation</span></div>
+
+      <!-- Overlay Darkening -->
+      <div class="overlay-darken" id="overlayDarken"></div>
+
+      <!-- Context Bar -->
+      <div class="context-bar-wrapper" id="barWrapper">
+        <div class="context-bar">
+          <div class="context-bar-fill" id="contextBarFill"></div>
+        </div>
+      </div>
+
+      <!-- Motes Container -->
+      <div class="motes-container" id="motesContainer"></div>
+
+      <!-- Phase: Order 66/75 -->
+      <div class="phase" id="phase-order66">
+        <div class="order66-text" id="order66Text">Order 75</div>
+      </div>
+
+      <!-- Phase: Yoda/Sage -->
+      <div class="phase" id="phase-sage">
+        <div class="sage-image" id="sageImage"></div>
+        <div class="sage-text" id="sageText">
+          <h2>Rejuvenating Conversation</h2>
+          <p>so we can keep chatting</p>
+        </div>
+      </div>
+
+      <!-- Phase: Dot -->
+      <div class="phase" id="phase-dot">
+        <div class="dot-center">
+          <div class="dot-core" id="dotCore"></div>
+          <div class="dot-ring"></div>
+          <div class="dot-ring"></div>
+          <div class="dot-ring"></div>
+        </div>
+      </div>
+
+      <!-- Phase: Resurrection -->
+      <div class="phase" id="phase-resurrection">
+        <div class="resurrection-image" id="resurrectionImage"></div>
+        <div class="resurrection-text" id="resurrectionText">
+          <h2>Rejuvenated</h2>
+          <p>Context renewed — memory preserved</p>
+        </div>
+      </div>
+
+      <!-- Compact Overlay Text (for React layer display) -->
+      <div class="compact-overlay" id="compactOverlay">Rejuvenating Conversation</div>
+    </div>
+
+    <!-- Debug Info (disabled) -->
+    <div class="debug-info" id="debugInfo"></div>
+  </div>
+
+  <script>
+    'use strict';
+
+    // ====== CONFIG & CONSTANTS ======
+    const CONFIG = {
+      order66Duration: 3000,
+      order66ToYodaDelay: 200,
+      yodaDuration: 6000,
+      dotDuration: 3000,
+      resurrectionDuration: 3000,
+      baseImagePath: '/2026-01-27-31',
+    };
+
+    const imagePaths = {
+      sage: `${CONFIG.baseImagePath}/padawan-sage.jpg`,
+      resurrection: `${CONFIG.baseImagePath}/resurrection-2.jpg`,
+    };
+
+    // ====== STATE ======
+    let motesOn = false;
+    let rejuvenationStarted = false;
+
+    // Event buffer & sync flags
+    const _eventBuffer = [];
+    let _barsReady = false;
+    let _barsHandler = null;
+    let _ljDone = false;
+    let _sageDone = false;
+
+    // Audio context
+    let audioContext = null;
+    let currentOscillator = null;
+    let currentGain = null;
+
+    // ====== UTILITY FUNCTIONS ======
+    function log(msg, data) {
+      const debug = document.getElementById('debugInfo');
+      if (debug && debug.classList.contains('visible')) {
+        debug.textContent = `${msg} ${data ? JSON.stringify(data) : ''}`;
+      }
+    }
+
+    function preloadImage(src) {
+      return new Promise((resolve, reject) => {
+        const img = new Image();
+        img.onload = () => resolve(src);
+        img.onerror = () => reject(new Error(`Failed to load: ${src}`));
+        img.src = src;
+      });
+    }
+
+    function initAudioContext() {
+      if (audioContext) return audioContext;
+      audioContext = new (window.AudioContext || window.webkitAudioContext)();
+      return audioContext;
+    }
+
+    function stopOscillator() {
+      if (currentOscillator) {
+        try {
+          currentOscillator.stop();
+          currentGain.disconnect();
+        } catch (e) {
+          // Already stopped
+        }
+        currentOscillator = null;
+        currentGain = null;
+      }
+    }
+
+    function playSynth(frequency, duration, type = 'sine', intensity = 0.3) {
+      try {
+        const ctx = initAudioContext();
+        stopOscillator();
+
+        currentOscillator = ctx.createOscillator();
+        currentGain = ctx.createGain();
+
+        currentOscillator.type = type;
+        currentOscillator.frequency.setValueAtTime(frequency, ctx.currentTime);
+        currentOscillator.connect(currentGain);
+        currentGain.connect(ctx.destination);
+
+        currentGain.gain.setValueAtTime(intensity, ctx.currentTime);
+        currentGain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + duration);
+
+        currentOscillator.start(ctx.currentTime);
+        currentOscillator.stop(ctx.currentTime + duration);
+
+        return new Promise(r => setTimeout(r, duration * 1000));
+      } catch (e) {
+        console.error('Audio error:', e);
+        return Promise.resolve();
+      }
+    }
+
+    function setBar(percent, color = '#4fc3f7') {
+      const fill = document.getElementById('contextBarFill');
+      fill.style.width = percent + '%';
+      fill.style.backgroundColor = color;
+    }
+
+    function animateBarTo(targetPercent, duration = 3000, color = '#4fc3f7') {
+      return new Promise(resolve => {
+        const fill = document.getElementById('contextBarFill');
+        const startPercent = parseFloat(fill.style.width) || 0;
+        const startTime = Date.now();
+
+        fill.style.backgroundColor = color;
+
+        const animate = () => {
+          const elapsed = Date.now() - startTime;
+          const progress = Math.min(elapsed / duration, 1);
+          const current = startPercent + (targetPercent - startPercent) * progress;
+          fill.style.width = current + '%';
+
+          if (progress < 1) {
+            requestAnimationFrame(animate);
+          } else {
+            fill.style.width = targetPercent + '%';
+            resolve();
+          }
+        };
+
+        animate();
+      });
+    }
+
+    function createMote(x, y, color = 'blue') {
+      const mote = document.createElement('div');
+      mote.className = `mote ${color}`;
+
+      const size = 2 + Math.random() * 4;
+      mote.style.width = size + 'px';
+      mote.style.height = size + 'px';
+      mote.style.left = x + 'px';
+      mote.style.top = y + 'px';
+
+      const tx = (Math.random() - 0.5) * 200;
+      const ty = -100 - Math.random() * 100;
+      mote.style.setProperty('--tx', tx + 'px');
+      mote.style.setProperty('--ty', ty + 'px');
+
+      const duration = 3 + Math.random() * 2;
+      mote.style.animation = `moteFloat ${duration}s ease-out forwards`;
+
+      document.getElementById('motesContainer').appendChild(mote);
+
+      setTimeout(() => mote.remove(), duration * 1000);
+    }
+
+    function startMotesEmission() {
+      motesOn = true;
+      const emit = () => {
+        if (!motesOn) return;
+        const colors = ['blue', 'green'];
+        const color = colors[Math.floor(Math.random() * colors.length)];
+        createMote(Math.random() * window.innerWidth, window.innerHeight * 0.7, color);
+        setTimeout(emit, 200 + Math.random() * 300);
+      };
+      emit();
+    }
+
+    function stopMotesEmission() {
+      motesOn = false;
+    }
+
+    function bothDone() {
+      return _ljDone && _sageDone;
+    }
+
+    async function jumpToResurrection() {
+      log('Jumping to resurrection');
+
+      // Hide cinematic phases
+      ['phase-sage', 'phase-dot'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) {
+          el.style.transition = 'opacity 0.5s';
+          el.style.opacity = '0';
+        }
+      });
+
+      motesOn = false;
+      stopOscillator();
+
+      // Context bar → green + low %
+      setBar(5, '#10b981');
+
+      // Show resurrection
+      await new Promise(r => setTimeout(r, 600));
+      const resPhase = document.getElementById('phase-resurrection');
+      if (resPhase) {
+        resPhase.classList.add('active');
+      }
+
+      window.postMessage({ type: 'compaction-phase', phase: 'resurrection' }, '*');
+      playResurrectionTone(0);
+    }
+
+    // ====== TONE FUNCTIONS ======
+    async function playHeartbeatTone() {
+      // Gentle heartbeat: low frequency pulse
+      await playSynth(80, 0.1, 'sine', 0.2);
+      await new Promise(r => setTimeout(r, 100));
+      await playSynth(80, 0.1, 'sine', 0.2);
+    }
+
+    async function playChimeTone() {
+      // Gentle chime: ascending notes
+      await playSynth(440, 0.3, 'sine', 0.25);
+      await playSynth(550, 0.3, 'sine', 0.25);
+      await playSynth(660, 0.4, 'sine', 0.3);
+    }
+
+    async function playResurrectionTone(delay) {
+      if (delay > 0) await new Promise(r => setTimeout(r, delay));
+      // Resurrection chord: harmonious progression
+      await playSynth(261.63, 0.5, 'sine', 0.3); // C
+      await playSynth(329.63, 0.5, 'sine', 0.3); // E
+      await playSynth(392.0, 0.6, 'sine', 0.35);  // G
+    }
+
+    // ====== MESSAGE LISTENER ======
+    window.addEventListener('message', function(evt) {
+      if (!evt.data || evt.data.type !== 'compaction-event') return;
+
+      const d = evt.data;
+      log('Event received', d);
+
+      if (d.agent === 'lumberjack' && ['completed', 'skipped', 'failed'].includes(d.phase)) {
+        _ljDone = true;
+        log('LJ done');
+      }
+      if (d.agent === 'sage' && ['completed', 'skipped', 'failed'].includes(d.phase)) {
+        _sageDone = true;
+        log('Sage done');
+      }
+
+      if (_barsReady && _barsHandler) {
+        _barsHandler(evt.data);
+      } else {
+        _eventBuffer.push(evt.data);
+      }
+    });
+
+    // ====== MAIN REJUVENATION FLOW ======
+    async function runRejuvenation() {
+      log('Starting rejuvenation');
+      rejuvenationStarted = true;
+
+      // Hide start gate
+      const startGate = document.getElementById('startGate');
+      startGate.style.opacity = '0';
+      startGate.style.pointerEvents = 'none';
+
+      try {
+        // Preload images
+        await Promise.all([
+          preloadImage(imagePaths.sage),
+          preloadImage(imagePaths.resurrection),
+        ]);
+      } catch (e) {
+        console.error('Image preload error:', e);
+      }
+
+      // ===== PHASE 1: ORDER 66/75 =====
+      log('Phase: order66');
+      const phase66 = document.getElementById('phase-order66');
+      phase66.classList.add('active');
+
+      const overlayDarken = document.getElementById('overlayDarken');
+      overlayDarken.classList.add('darkened');
+
+      await animateBarTo(75, CONFIG.order66Duration, '#4fc3f7');
+
+      // Show "Order 75" text at 75%
+      const order66Text = document.getElementById('order66Text');
+      order66Text.classList.add('visible');
+
+      await playSynth(196, 0.8, 'sine', 0.25); // Gentle heartbeat tone
+
+      await new Promise(r => setTimeout(r, CONFIG.order66ToYodaDelay));
+
+      window.postMessage({ type: 'compaction-phase', phase: 'order66' }, '*');
+
+      // ===== PHASE 2: YODA/SAGE =====
+      window.postMessage({ type: 'compaction-phase', phase: 'yoda' }, '*');
+      log('Phase: yoda');
+      phase66.classList.remove('active');
+
+      const phaseSage = document.getElementById('phase-sage');
+      phaseSage.style.backgroundImage = `url('${imagePaths.sage}')`;
+      phaseSage.classList.add('active');
+
+      const sageImage = document.getElementById('sageImage');
+      sageImage.style.backgroundImage = `url('${imagePaths.sage}')`;
+      sageImage.classList.add('visible');
+
+      const sageText = document.getElementById('sageText');
+      sageText.classList.add('visible');
+
+      startMotesEmission();
+      await playChimeTone();
+
+      // Register bars handler and replay buffered events
+      await new Promise(resolve => {
+        function processEvent(d) {
+          if (d.agent === 'lumberjack') {
+            if (['completed', 'skipped', 'failed'].includes(d.phase)) {
+              _ljDone = true;
+              if (bothDone()) {
+                resolve();
+              }
+            }
+          }
+          if (d.agent === 'sage') {
+            if (['completed', 'skipped', 'failed'].includes(d.phase)) {
+              _sageDone = true;
+              if (bothDone()) {
+                resolve();
+              }
+            }
+          }
+        }
+
+        _barsHandler = processEvent;
+        _barsReady = true;
+        _eventBuffer.forEach(processEvent);
+
+        // Safety timeout: 8 seconds
+        setTimeout(() => {
+          if (!bothDone()) {
+            log('Event timeout, continuing');
+            resolve();
+          }
+        }, CONFIG.yodaDuration);
+      });
+
+      if (bothDone()) {
+        await jumpToResurrection();
+        return;
+      }
+
+      await new Promise(r => setTimeout(r, 500));
+
+      // ===== PHASE 3: DOT =====
+      log('Phase: dot');
+      phaseSage.classList.remove('active');
+      stopMotesEmission();
+
+      const phaseDot = document.getElementById('phase-dot');
+      phaseDot.classList.add('active');
+
+      // Animate rings
+      const rings = phaseDot.querySelectorAll('.dot-ring');
+      rings.forEach((ring, idx) => {
+        ring.style.animationDelay = (idx * 0.5) + 's';
+        ring.style.animation = `ringExpand 1.5s ease-out forwards`;
+      });
+
+      await playSynth(528, 0.8, 'sine', 0.25);
+
+      window.postMessage({ type: 'compaction-phase', phase: 'dot' }, '*');
+
+      await new Promise(r => setTimeout(r, CONFIG.dotDuration));
+
+      if (bothDone()) {
+        await jumpToResurrection();
+        return;
+      }
+
+      // ===== PHASE 4: RESURRECTION =====
+      log('Phase: resurrection');
+      phaseDot.classList.remove('active');
+
+      const phaseResurrection = document.getElementById('phase-resurrection');
+      phaseResurrection.classList.add('active');
+
+      const resImage = document.getElementById('resurrectionImage');
+      resImage.style.backgroundImage = `url('${imagePaths.resurrection}')`;
+      resImage.classList.add('visible');
+
+      const resText = document.getElementById('resurrectionText');
+      resText.classList.add('visible');
+
+      setBar(5, '#10b981');
+
+      window.postMessage({ type: 'compaction-phase', phase: 'resurrection' }, '*');
+
+      await playResurrectionTone(0);
+
+      await new Promise(r => setTimeout(r, CONFIG.resurrectionDuration));
+
+      // ===== FINAL =====
+      // Continue button is rendered by React (Layer 3) — don't auto-dismiss
+      log('Rejuvenation cinematic complete — waiting for Continue button');
+    }
+
+    // ====== START GATE HANDLER ======
+    document.addEventListener('DOMContentLoaded', () => {
+      const startGate = document.getElementById('startGate');
+      startGate.addEventListener('click', runRejuvenation);
+
+      // React will auto-click this after injection
+      log('Rejuvenation ready');
+    });
+
+    // Fallback if script runs before DOMContentLoaded
+    const startGate = document.getElementById('startGate');
+    if (startGate) {
+      startGate.addEventListener('click', runRejuvenation);
+    }
+  </script>
+</body>
+</html>

@@ -91,7 +91,7 @@ interface ConversationPanelProps {
    */
   onTriggerBuildAll?: () => void
   /**
-   * The actual CD model on the wire (raw identifier — claude-opus-4-8,
+   * The actual CD model on the wire (raw identifier — claude-opus-4-7,
    * claude-sonnet-4-6, glm-4.6, etc.). Displayed read-only in the input
    * bar so the user can see at a glance which model is answering.
    * CLI mode populates from Claude CLI's system/init event (truth on
@@ -905,9 +905,10 @@ export function ConversationPanel({
 
             {/* Middle: Active Model badge (truth on the wire). Shows the model
                 that actually served the response — not the request alias.
-                SMPL→opus resolves to glm-5.1 on Z.ai, claude-opus-4-8 on
-                Anthropic. CLI→claude-opus-4-8[1m] resolves to glm-4.7 on
-                Z.ai (the deception, surfaced). Ralph 2026-05-04. */}
+                SMPL→opus resolves to glm-5.1 on Z.ai, claude-opus-4-7 on
+                Anthropic. CLI→claude-opus-4-7[1m] resolves on Z.ai to
+                whatever Z.ai is currently routing (historically glm-4.7
+                for claude-opus-4-6). Ralph 2026-05-04. */}
             {currentModel ? (
               <span style={{
                 fontSize: '10px',

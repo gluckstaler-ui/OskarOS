@@ -65,8 +65,8 @@ function getApiKey(): string {
 }
 
 // 2026-05-04 (Ralph): there used to be a `toApiModel()` helper here that
-// tried to translate CLI-form model identifiers (e.g. `claude-opus-4-8[1m]`)
-// into API-form (`claude-opus-4-8`). It was removed. CLI and API use
+// tried to translate CLI-form model identifiers (e.g. `claude-opus-4-7[1m]`)
+// into API-form (`claude-opus-4-7`). It was removed. CLI and API use
 // genuinely different model identifiers and the mapping isn't reliably
 // expressible as "strip a suffix" — better to hardwire the API-mode
 // model in the call sites and let session-config carry the CLI form
@@ -378,7 +378,7 @@ async function callAnthropicAPI(
   // Default to Opus-1M for parity with the bridge (CLI mode runs Opus-1M
   // for CD too). The session-config resolver upstream picks the actual
   // value; this default only matters if the caller didn't pass one.
-  const effectiveModel = requestModel || 'claude-opus-4-8'
+  const effectiveModel = requestModel || 'claude-opus-4-7'
 
   for (let attempt = 1; attempt <= retries; attempt++) {
     try {
@@ -956,7 +956,7 @@ export async function POST(req: NextRequest) {
     // value flows into every callAnthropicAPI invocation below.
     // 2026-06-10 (Ralph): resolve from the SINGLE source — session-config
     // `cdModel`, written only by the brain selector (/api/sessions/[id]/brain).
-    // The old hardwire to `claude-opus-4-8` existed because cdModel used to
+    // The old hardwire to `claude-opus-4-6` existed because cdModel used to
     // carry the CLI `[1m]` form the API rejects; now cdModel is a BARE id
     // (valid for both the CLI bridge and the raw API), so the same value
     // works here. `bareModelId` defensively strips any stale `[1m]` left in

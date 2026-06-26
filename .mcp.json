@@ -2,10 +2,9 @@
   "mcpServers": {
     "orch": {
       "command": "node",
-      "args": ["/Users/ralphlengler/OskarOS/oskar-prototype/scripts/mcp-stdio-proxy.mjs"],
+      "args": ["scripts/mcp-stdio-proxy.mjs"],
       "env": {
         "OSKAR_ORCHESTRATOR_URL": "http://localhost:3000/api/mcp/server",
-        "OSKAR_SESSION": "2026-01-27-debug",
         "OSKAR_AGENT": "jedi-code"
       }
     }

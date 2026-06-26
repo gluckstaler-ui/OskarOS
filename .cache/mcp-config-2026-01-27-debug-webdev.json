@@ -1,8 +1,0 @@
-{
-  "mcpServers": {
-    "orch": {
-      "type": "http",
-      "url": "http://localhost:3000/api/mcp/server?session=2026-01-27-debug&agent=webdev&instance=968eda94-5502-4c8b-aa50-21485abb2778"
-    }
-  }
-}

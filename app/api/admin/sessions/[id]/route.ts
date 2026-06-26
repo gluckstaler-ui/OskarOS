@@ -188,6 +188,46 @@ export async function GET(
     }
 
     // ==========================================
+    // /images subfolder (Ralph 2026-06-19)
+    // ==========================================
+    // The flat readdir above only sees the session root. Some sessions keep
+    // source images under public/{id}/images/ instead of (or in addition to)
+    // the root. Surface those in the AssetsPanel too — same image
+    // classification + generated-image skip as the root loop. Dedup by
+    // basename so a root copy always wins (one tile per logical asset, and
+    // the IMAGES.md status join keys by basename). `filename` stays the bare
+    // basename (clean label + metadata join); `path` carries the subfolder so
+    // the <img> resolves to /{id}/images/{name}.
+    const rootImageNames = new Set(images.map((i) => i.filename.toLowerCase()))
+    const imagesSubdir = join(sessionPath, 'images')
+    if (existsSync(imagesSubdir)) {
+      let subNames: string[] = []
+      try {
+        subNames = await readdir(imagesSubdir)
+      } catch {
+        subNames = []
+      }
+      for (const fileName of subNames) {
+        if (fileName.startsWith('.')) continue
+        const ext = fileName.split('.').pop()?.toLowerCase() || ''
+        const isImage = ['jpg', 'jpeg', 'png', 'webp', 'gif', 'svg'].includes(ext)
+        const isPdf = ext === 'pdf'
+        if (!isImage && !isPdf) continue
+        // Skip generated images (same pattern as the root loop) + anything
+        // already present at the root (root wins).
+        if (/^[a-z-]+-[a-z-]+-v\d+-\d+\.(jpg|jpeg|png)$/i.test(fileName)) continue
+        if (rootImageNames.has(fileName.toLowerCase())) continue
+        const subStat = await stat(join(imagesSubdir, fileName)).catch(() => null)
+        if (!subStat || !subStat.isFile()) continue
+        images.push({
+          filename: fileName,
+          path: `/${sessionId}/images/${fileName}`,
+          size: formatFileSize(subStat.size),
+        })
+      }
+    }
+
+    // ==========================================
     // Recursive HTML collection (subdirs included)
     // ==========================================
     // The flat readdir above only sees the session root. Director Mode wants

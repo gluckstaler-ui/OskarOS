@@ -16,7 +16,7 @@
 
 import { existsSync, readFileSync, readdirSync } from 'fs'
 import { join } from 'path'
-import type Database from 'better-sqlite3'
+import type Database from './sqlite'
 import type { Event } from './event-log'
 import { getEventsDir, setLamportFromReplay } from './event-log'
 
@@ -33,7 +33,7 @@ export interface ReplayResult {
  * Used by manual recovery and by the test suite. The boot path uses
  * `incrementalReplay` instead — same result, faster on large logs.
  */
-export function coldReplay(db: Database.Database): ReplayResult {
+export function coldReplay(db: Database): ReplayResult {
   // FKs OFF during a full rebuild (Ralph 2026-06-03): the event log is the
   // source of truth, but replaying the *entire* history in lamport order can
   // transiently reference a not-yet-inserted / since-deleted / id-reused parent
@@ -56,7 +56,7 @@ export function coldReplay(db: Database.Database): ReplayResult {
  * if no new events have arrived since the last replay, this is a no-op
  * that completes in microseconds.
  */
-export function incrementalReplay(db: Database.Database): ReplayResult {
+export function incrementalReplay(db: Database): ReplayResult {
   const cursors = readCursors(db)
   const { events, malformedLineCount } = readEventsAfterCursors(cursors)
   const result = applyEventsToDb(db, events)
@@ -72,7 +72,7 @@ export function incrementalReplay(db: Database.Database): ReplayResult {
  * fixtures without needing the JSONL files on disk.
  */
 export function applyEventsToDb(
-  db: Database.Database,
+  db: Database,
   events: Event[],
 ): ReplayResult {
   const sorted = [...events].sort((a, b) => {
@@ -118,7 +118,7 @@ export function applyEventsToDb(
 
 // ─── Reducer (the only code that knows how to apply an event) ───────────────
 
-function applyOne(db: Database.Database, e: Event): void {
+function applyOne(db: Database, e: Event): void {
   if (e.entity === 'prospect') {
     applyProspectEvent(db, e)
   } else if (e.entity === 'activity') {
@@ -133,7 +133,7 @@ function applyOne(db: Database.Database, e: Event): void {
   // Unknown entities silently skipped — forward-compat with future event types.
 }
 
-function applyProspectEvent(db: Database.Database, e: Event): void {
+function applyProspectEvent(db: Database, e: Event): void {
   if (e.op === 'insert') {
     const p = (e.payload ?? {}) as Record<string, unknown>
     db.prepare(`
@@ -201,7 +201,7 @@ function applyProspectEvent(db: Database.Database, e: Event): void {
   }
 }
 
-function applyActivityEvent(db: Database.Database, e: Event): void {
+function applyActivityEvent(db: Database, e: Event): void {
   if (e.op === 'insert') {
     const a = (e.payload ?? {}) as Record<string, unknown>
     db.prepare(`
@@ -251,7 +251,7 @@ function applyActivityEvent(db: Database.Database, e: Event): void {
   }
 }
 
-function applyContactEvent(db: Database.Database, e: Event): void {
+function applyContactEvent(db: Database, e: Event): void {
   if (e.op === 'insert') {
     const c = (e.payload ?? {}) as Record<string, unknown>
     db.prepare(`
@@ -291,7 +291,7 @@ function applyContactEvent(db: Database.Database, e: Event): void {
   }
 }
 
-function applyRawProspectEvent(db: Database.Database, e: Event): void {
+function applyRawProspectEvent(db: Database, e: Event): void {
   // Scout v1 (Ralph 2026-06-03): the pre-Kanban pool. Mirrors applyProspectEvent.
   if (e.op === 'insert') {
     const p = (e.payload ?? {}) as Record<string, unknown>
@@ -337,7 +337,7 @@ function applyRawProspectEvent(db: Database.Database, e: Event): void {
   }
 }
 
-function applyMergeConflictEvent(_db: Database.Database, _e: Event): void {
+function applyMergeConflictEvent(_db: Database, _e: Event): void {
   // Populated by Feature-X WP-106 sync. Schema present, replay stub.
 }
 
@@ -394,7 +394,7 @@ function readAllEvents(): { events: Event[]; malformedLineCount: number } {
 
 interface NodeCursor { node: string; highest_lamport: number }
 
-function readCursors(db: Database.Database): NodeCursor[] {
+function readCursors(db: Database): NodeCursor[] {
   return db.prepare('SELECT node, highest_lamport FROM events_seen').all() as NodeCursor[]
 }
 
@@ -409,7 +409,7 @@ function readEventsAfterCursors(cursors: NodeCursor[]): { events: Event[]; malfo
 
 // ─── Projection truncation (for cold replay + tests) ────────────────────────
 
-export function truncateProjection(db: Database.Database): void {
+export function truncateProjection(db: Database): void {
   db.exec(`
     DELETE FROM merge_conflicts;
     DELETE FROM activities;

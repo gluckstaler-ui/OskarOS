@@ -60,6 +60,12 @@ const MEDIA_DIR    = join(PROJECT_ROOT, 'media')                              //
 const MESSAGES_DIR = join(PROJECT_ROOT, 'db', 'whatsapp', 'messages')
 const MESSAGES_TTL_DAYS = 30
 
+// Semi-automatic reconnect cadence (Ralph 2026-06-19). A dropped link is NOT
+// retried immediately — a single timer attempts a silent reconnect this often
+// if we're paired-but-down. Replaces the old per-drop 2s reconnect that flooded
+// the log and never let an unstable link (e.g. the el8 server's) settle.
+const RECONNECT_EVERY_MS = 5 * 60_000
+
 mkdirSync(AUTH_DIR, { recursive: true })
 
 // ─── MIME → file extension ──────────────────────────────────────────────────
@@ -123,6 +129,7 @@ class WaRuntime {
   private lidPhoneMap: Map<string, string> = new Map()
   private starting: Promise<void> | null = null   // ensures concurrent start() calls coalesce
   private booted = false
+  private reconnectTimer: ReturnType<typeof setInterval> | null = null  // single semi-auto reconnect timer
 
   private logger = pino({ level: process.env.OSKAR_WA_DEBUG ? 'debug' : 'warn' })
 
@@ -342,6 +349,24 @@ class WaRuntime {
   }
 
   /**
+   * The ONE automatic reconnect path (Ralph 2026-06-19). A single 5-min timer
+   * that, if we're paired but not currently connected/pairing/starting, fires a
+   * silent reconnect. Idempotent. This replaces the old per-drop 2s reconnect —
+   * a healthy link never triggers it (the connected check returns early), and an
+   * unstable link (the el8 server's) retries on a calm cadence instead of a
+   * storm. `/api/admin/whatsapp/connect` triggers the same path on demand.
+   */
+  private ensureReconnectLoop(): void {
+    if (this.reconnectTimer) return
+    this.reconnectTimer = setInterval(() => {
+      if (this.connState === 'connected' || this.connState === 'pairing' || this.starting) return
+      if (!existsSync(join(AUTH_DIR, 'creds.json'))) return  // not paired → nothing to reconnect
+      this.pushLog('info', 'semi-auto reconnect (5-min cycle) → attempting')
+      this.start().catch(err => this.pushLog('error', `reconnect failed: ${String((err as Error)?.message ?? err)}`))
+    }, RECONNECT_EVERY_MS)
+  }
+
+  /**
    * Boot-time call from instrumentation.ts. Prunes expired envelopes and
    * silently reconnects if saved creds exist. Never throws.
    */
@@ -349,6 +374,7 @@ class WaRuntime {
     if (this.booted) return
     this.booted = true
     this.pushLog('info', 'wa-runtime boot')
+    this.ensureReconnectLoop()
     this.pruneOldMessages()
     if (existsSync(join(AUTH_DIR, 'creds.json'))) {
       this.pushLog('info', 'found saved creds → attempting silent reconnect')
@@ -567,17 +593,23 @@ class WaRuntime {
           return
         }
 
-        if (statusCode === DisconnectReason.restartRequired) {
-          this.pushLog('info', 'pair handshake complete (restartRequired) — reconnecting')
-        } else {
-          this.pushLog('warn', `socket closed: ${reason}`)
-        }
-
         this.connState = 'idle'
         this.sock = null
-        setTimeout(() => {
-          this.start().catch(err => this.pushLog('error', `reconnect failed: ${String((err as Error)?.message ?? err)}`))
-        }, 2000)
+
+        if (statusCode === DisconnectReason.restartRequired) {
+          // Normal post-pair handshake step — reconnect right away so pairing
+          // finishes without waiting for the 5-min cycle.
+          this.pushLog('info', 'pair handshake complete (restartRequired) — reconnecting now')
+          setTimeout(() => {
+            this.start().catch(err => this.pushLog('error', `reconnect failed: ${String((err as Error)?.message ?? err)}`))
+          }, 2000)
+        } else {
+          // Any other drop (408 timeout / 428 connection-closed / network blip):
+          // do NOT hammer. Go idle; the single 5-min semi-auto loop (or a manual
+          // /connect) brings it back. Ralph 2026-06-19 — kills the constant
+          // reconnect storm that flooded the log and never let the link settle.
+          this.pushLog('warn', `socket closed: ${reason} — retry on 5-min cycle or /connect`)
+        }
       }
     })
 

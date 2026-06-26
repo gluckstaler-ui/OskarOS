@@ -1,0 +1,253 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Lumberjack Live Watch</title>
+<style>
+  :root {
+    --bg: #0e1117;
+    --fg: #e6edf3;
+    --muted: #8b949e;
+    --accent: #58a6ff;
+    --ok: #3fb950;
+    --warn: #d29922;
+    --err: #f85149;
+    --edit: #ffa657;
+    --read: #a5d6ff;
+    --panel: #161b22;
+    --divider: #30363d;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; background: var(--bg); color: var(--fg); font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 13px; line-height: 1.5; }
+  header { padding: 14px 20px; border-bottom: 1px solid var(--divider); display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+  header h1 { font-size: 14px; margin: 0; font-weight: 600; letter-spacing: 0.02em; }
+  header .spacer { flex: 1; }
+  header input, header button, header select { background: var(--panel); color: var(--fg); border: 1px solid var(--divider); border-radius: 4px; padding: 6px 10px; font-family: inherit; font-size: inherit; }
+  header input { width: 180px; }
+  header button { cursor: pointer; }
+  header button.primary { background: var(--accent); color: #0d1117; border-color: var(--accent); font-weight: 600; }
+  header button:disabled { opacity: 0.4; cursor: not-allowed; }
+  #status { color: var(--muted); font-size: 12px; }
+  #status.live { color: var(--ok); }
+  #status.err { color: var(--err); }
+  #log { padding: 14px 20px; max-height: calc(100vh - 58px); overflow-y: auto; }
+  .evt { padding: 4px 0; border-bottom: 1px solid transparent; display: flex; gap: 10px; align-items: flex-start; }
+  .evt:hover { background: var(--panel); }
+  .ts { color: var(--muted); font-size: 11px; min-width: 56px; padding-top: 2px; }
+  .tag { min-width: 110px; font-weight: 600; font-size: 11px; padding: 2px 8px; border-radius: 3px; text-align: center; letter-spacing: 0.03em; height: 20px; display: inline-flex; align-items: center; justify-content: center; }
+  .tag.init { background: #1f2d3d; color: var(--accent); }
+  .tag.started { background: #1a2d1f; color: var(--ok); }
+  .tag.text { background: #2d2617; color: #d2a8ff; }
+  .tag.thinking { background: #1e1e1e; color: var(--muted); font-style: italic; }
+  .tag.tool_use { background: #3d2410; color: var(--edit); }
+  .tag.tool_use.read { background: #0d2a3d; color: var(--read); }
+  .tag.tool_result { background: #102415; color: var(--ok); }
+  .tag.tool_result.err { background: #2d0e0e; color: var(--err); }
+  .tag.result { background: #1a2d3d; color: var(--accent); }
+  .tag.result.err { background: #2d0e0e; color: var(--err); }
+  .tag.api_retry { background: #2d2416; color: var(--warn); }
+  .tag.rate_limit { background: #2d1616; color: var(--warn); }
+  .tag.stderr { background: #2d1616; color: var(--err); }
+  .tag.error { background: #2d0e0e; color: var(--err); }
+  .tag.exit { background: #1a2d3d; color: var(--accent); }
+  .tag.raw, .tag.other { background: #1e1e1e; color: var(--muted); }
+  .tag.aborted { background: #2d1616; color: var(--warn); }
+  .body { flex: 1; white-space: pre-wrap; word-break: break-word; }
+  .body.muted { color: var(--muted); }
+  .body .k { color: var(--muted); }
+  .body strong { font-weight: 600; color: var(--fg); }
+  .evt.result .body { background: #0b1a2a; border: 1px solid #1e3a5f; border-radius: 4px; padding: 10px 14px; margin-top: 4px; white-space: pre-wrap; }
+  .evt.result pre { margin: 8px 0 0 0; font-family: inherit; }
+  #summary { padding: 12px 20px; background: var(--panel); border-bottom: 1px solid var(--divider); display: none; gap: 24px; font-size: 12px; color: var(--muted); }
+  #summary.show { display: flex; }
+  #summary strong { color: var(--fg); }
+</style>
+</head>
+<body>
+<header>
+  <h1>🪓 LUMBERJACK · LIVE WATCH</h1>
+  <input id="session" placeholder="session id" value="">
+  <button id="start" class="primary">Start</button>
+  <button id="stop" disabled>Stop</button>
+  <button id="clear">Clear</button>
+  <div class="spacer"></div>
+  <span id="status">idle</span>
+</header>
+<div id="summary">
+  <div>input: <strong id="s-input">—</strong></div>
+  <div>output: <strong id="s-output">—</strong></div>
+  <div>compression: <strong id="s-ratio">—</strong></div>
+  <div>turns: <strong id="s-turns">—</strong></div>
+  <div>cost: <strong id="s-cost">—</strong></div>
+  <div>duration: <strong id="s-duration">—</strong></div>
+</div>
+<div id="log"></div>
+
+<script>
+(() => {
+  const $ = (id) => document.getElementById(id)
+  const logEl = $('log')
+  const summaryEl = $('summary')
+  const statusEl = $('status')
+  let es = null
+  let startedAt = 0
+  let startedSize = 0
+  let editCount = 0
+  let readCount = 0
+
+  // Prefill session from localStorage or the last path segment of referrer
+  const saved = localStorage.getItem('lj-watch:session')
+  if (saved) $('session').value = saved
+
+  function fmtTs() {
+    const d = new Date()
+    return d.toTimeString().slice(0, 8)
+  }
+  function addEvt(kind, body, extraClass = '') {
+    const row = document.createElement('div')
+    row.className = 'evt ' + kind + (extraClass ? ' ' + extraClass : '')
+    const ts = document.createElement('span'); ts.className = 'ts'; ts.textContent = fmtTs()
+    const tag = document.createElement('span'); tag.className = 'tag ' + kind + (extraClass ? ' ' + extraClass : '')
+    tag.textContent = kind.toUpperCase()
+    const b = document.createElement('div'); b.className = 'body'
+    if (typeof body === 'string') b.textContent = body
+    else b.appendChild(body)
+    row.append(ts, tag, b)
+    logEl.appendChild(row)
+    row.scrollIntoView({ behavior: 'auto', block: 'end' })
+    return row
+  }
+  function formatBytes(n) {
+    if (n == null || n === 0) return '—'
+    if (n < 1024) return n + ' B'
+    if (n < 1024 * 1024) return (n / 1024).toFixed(1) + ' KB'
+    return (n / (1024 * 1024)).toFixed(2) + ' MB'
+  }
+
+  function reset() {
+    logEl.innerHTML = ''
+    summaryEl.classList.remove('show')
+    editCount = 0
+    readCount = 0
+    startedAt = 0
+    startedSize = 0
+  }
+
+  function setStatus(txt, cls = '') {
+    statusEl.textContent = txt
+    statusEl.className = cls
+  }
+
+  function start() {
+    const session = $('session').value.trim()
+    if (!session) { alert('enter session id'); return }
+    localStorage.setItem('lj-watch:session', session)
+    reset()
+    setStatus('connecting…', 'live')
+    $('start').disabled = true
+    $('stop').disabled = false
+
+    es = new EventSource('/api/lumberjack-watch?session=' + encodeURIComponent(session))
+    es.onopen = () => setStatus('live', 'live')
+    es.onerror = () => {
+      // A normal close triggers an error too in EventSource; treat it as done.
+      if (!es) return
+      if (es.readyState === 2) { setStatus('disconnected'); }
+      cleanup()
+    }
+    es.onmessage = (e) => {
+      let d; try { d = JSON.parse(e.data) } catch { return }
+      handle(d)
+    }
+  }
+
+  function stop() {
+    if (es) { es.close(); es = null }
+    setStatus('stopped')
+    cleanup()
+  }
+  function cleanup() {
+    $('start').disabled = false
+    $('stop').disabled = true
+  }
+
+  function handle(d) {
+    const k = d.kind
+    if (k === 'started') {
+      startedAt = Date.now()
+      startedSize = d.inputSize
+      const body = document.createElement('div')
+      body.innerHTML = `session: <strong>${d.sessionId}</strong> · model: <strong>${d.model}</strong> · SESSION.md: <strong>${d.inputKb} KB</strong> · prompt: <strong>${formatBytes(d.promptBytes)}</strong>`
+      addEvt('started', body)
+      return
+    }
+    if (k === 'init') {
+      addEvt('init', 'CLI ready · tools: ' + (d.tools || []).filter(x => x === 'Read' || x === 'Edit').join(', ') + ' · cli session: ' + (d.sessionIdCli || '').slice(0, 8))
+      return
+    }
+    // rate_limit / api_retry events dropped at the server. Nothing to render.
+    if (k === 'thinking') {
+      addEvt('thinking', d.preview || '(thinking)')
+      return
+    }
+    if (k === 'text') {
+      addEvt('text', d.text)
+      return
+    }
+    if (k === 'tool_use') {
+      const isRead = d.name === 'Read'
+      if (isRead) readCount++; else if (d.name === 'Edit') editCount++
+      const body = document.createElement('div')
+      body.innerHTML = `<strong>${d.name}</strong>  ${d.summary || ''}`
+      addEvt('tool_use', body, isRead ? 'read' : '')
+      return
+    }
+    if (k === 'tool_result') {
+      const body = document.createElement('div')
+      body.textContent = d.preview || ''
+      addEvt('tool_result', body, d.isError ? 'err' : '')
+      return
+    }
+    if (k === 'result') {
+      summaryEl.classList.add('show')
+      $('s-input').textContent = formatBytes(startedSize)
+      $('s-turns').textContent = d.numTurns ?? '—'
+      $('s-cost').textContent = d.costUsd != null ? ('$' + d.costUsd.toFixed(4)) : '—'
+      $('s-duration').textContent = d.durationMs != null ? (d.durationMs / 1000).toFixed(1) + 's' : '—'
+      const body = document.createElement('pre')
+      body.textContent = d.result || '(empty)'
+      addEvt('result', body, d.isError ? 'err' : '')
+      return
+    }
+    if (k === 'exit') {
+      $('s-output').textContent = formatBytes(d.outputSize)
+      $('s-ratio').textContent = (d.compressionRatio ?? '0') + '%'
+      addEvt('exit', `CLI exit code ${d.code} · reads=${readCount} edits=${editCount}`)
+      setStatus('done', '')
+      cleanup()
+      return
+    }
+    if (k === 'error') {
+      addEvt('error', d.message)
+      setStatus('error', 'err')
+      return
+    }
+    if (k === 'stderr') {
+      addEvt('stderr', d.text)
+      return
+    }
+    if (k === 'aborted') {
+      addEvt('aborted', d.reason)
+      return
+    }
+    addEvt(k, JSON.stringify(d).slice(0, 300))
+  }
+
+  $('start').addEventListener('click', start)
+  $('stop').addEventListener('click', stop)
+  $('clear').addEventListener('click', reset)
+  $('session').addEventListener('keydown', (e) => { if (e.key === 'Enter' && !$('start').disabled) start() })
+})()
+</script>
+</body>
+</html>

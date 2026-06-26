@@ -17,7 +17,7 @@ import { readdirSync, readFileSync, writeFileSync, renameSync, existsSync } from
 import { join } from 'path'
 import crypto from 'crypto'
 
-const CANON = 'claude-opus-4-8'
+const CANON = 'claude-opus-4-7'
 const KEEP = new Set([CANON, 'auto']) // valid current values — never rewritten
 const APPLY = process.argv.includes('--apply')
 const publicDir = join(process.cwd(), 'public')

@@ -16,7 +16,7 @@ import path from 'path'
 // Sonnet 4.6; Big CD uses Opus 4.7. No Haiku surface in OUR code.
 // (Note: the Claude Code CLI itself spawns Haiku internally for sub-tasks
 // like summarization — that's not our code, can't disable from here.)
-export type MemoryModel = 'claude-sonnet-4-6' | 'claude-opus-4-8'
+export type MemoryModel = 'claude-sonnet-4-6' | 'claude-opus-4-7'
 
 /**
  * Call claude --print. Returns null on failure (memory agents are best-effort).

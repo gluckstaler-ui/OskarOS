@@ -59,7 +59,11 @@ import { dirname, join } from 'path'
 import { enqueueBuild } from '@/lib/build-escrow'
 import { readRawProspect, patchRawProspect } from '@/lib/crm-store'
 import { researchQueried, type QueriedSignals } from '@/lib/consular/research-queried'
-import { captureUrl, type CaptureResult } from '@/lib/screenshot'
+// captureUrl runs in a CHILD process (lib/capture-spawn → scripts/capture-worker.cjs):
+// the long-running Next server can't load puppeteer (turbopack/webpack both throw
+// `open EEXIST`); a fresh process can. NOT imported from '@/lib/screenshot' — that
+// would pull puppeteer back into the server bundle and reintroduce the EEXIST.
+import { captureUrl, type CaptureResult } from '@/lib/capture-spawn'
 import { callScoutBridge } from '@/lib/scout-bridge-call'
 import { verdictTagTone } from '@/lib/verdict'
 import { bridgeManager } from '@/lib/bridge-process-manager'

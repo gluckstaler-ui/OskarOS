@@ -169,12 +169,18 @@ const STAGGER_MS = 30 // 16 × 30 = 480ms total spread, then it cycles
 let launchCounter = 0
 
 async function spawnBrowser(): Promise<Browser> {
-  const executablePath = findBinary('chromium')
+  // Prefer a system / CHROMIUM_BIN chromium; otherwise fall back to puppeteer's
+  // OWN installed Chrome (~/.cache/puppeteer/...). findBinary's candidate list
+  // doesn't include the puppeteer cache, which is the only Chrome on the server.
+  let executablePath = findBinary('chromium')
+  if (!existsSync(executablePath)) {
+    try { executablePath = await puppeteer.executablePath() } catch { /* keep findBinary's path for the error below */ }
+  }
   if (!existsSync(executablePath)) {
     throw new Error(
       `Chromium not found (resolved "${executablePath}"). Install it — ` +
-      `macOS: drop Chromium.app in /Applications; Linux/WSL: \`apt install chromium-browser\` — ` +
-      `or set CHROMIUM_BIN. See windows/README.md.`,
+      `macOS: drop Chromium.app in /Applications; Linux/WSL: \`apt install chromium-browser\` ` +
+      `or \`npx puppeteer browsers install chrome\` — or set CHROMIUM_BIN.`,
     )
   }
   // Stagger this launch against any in-flight neighbours. Each call grabs
@@ -188,6 +194,10 @@ async function spawnBrowser(): Promise<Browser> {
   const browser = await puppeteer.launch({
     headless: true,
     executablePath,
+    // Chrome's vendored .so files live in ~/lib on the server, but the Next
+    // process env doesn't carry LD_LIBRARY_PATH — so set it for the Chrome
+    // child here. Harmless on macOS (the dir just doesn't exist → ignored).
+    env: { ...process.env, LD_LIBRARY_PATH: [join(process.env.HOME || '', 'lib'), process.env.LD_LIBRARY_PATH].filter(Boolean).join(':') },
     // WebSocket transport (the Puppeteer default). I tried `pipe: true`
     // here to give Chromium a kernel-level link to Node's life — but
     // pipe mode introduced flakiness with our --no-sandbox / --disable-*

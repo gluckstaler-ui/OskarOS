@@ -75,7 +75,7 @@ function PROBES(sessionId: string): ProbeRow[] {
     // ── Session config (Commit A) ─────────────────────────────────────
     {
       name: 'session-config (GET via probe POST)', endpoint: `/api/sessions/${sessionId}/config`,
-      body: () => ({ webDevModel: 'claude-opus-4-8' }),
+      body: () => ({ webDevModel: 'claude-opus-4-7' }),
     },
 
     // Note: build_vibe / build_wireframes / generate_image

@@ -43,7 +43,7 @@ export interface ModelSpec {
 
 export const BRAIN_MODELS = {
   fable: { id: 'claude-fable-5',  label: 'Fable', ensure1M: true },
-  opus:  { id: 'claude-opus-4-8', label: 'Opus',  ensure1M: true },
+  opus:  { id: 'claude-opus-4-7', label: 'Opus',  ensure1M: true },
 } as const satisfies Record<BrainModel, ModelSpec>
 
 /** Union of the bare wire ids — DERIVED from the registry, so the CdModel type

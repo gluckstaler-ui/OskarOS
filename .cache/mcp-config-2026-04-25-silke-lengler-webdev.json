@@ -1,8 +1,0 @@
-{
-  "mcpServers": {
-    "orch": {
-      "type": "http",
-      "url": "http://localhost:3000/api/mcp/server?session=2026-04-25-silke-lengler&agent=webdev&instance=3de49470-d6d2-4e1f-88a8-693a31f46add"
-    }
-  }
-}

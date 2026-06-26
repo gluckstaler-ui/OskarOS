@@ -16,6 +16,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { ScoutRow } from './ScoutRow'
+import { PressureGauge } from './PressureGauge'
 import { DecisionDeck } from './DecisionDeck'
 import { DiscoverModal, type DiscoverCriteria } from './DiscoverModal'
 import { ScoutJobsOverlay, type ScoutJobView } from './ScoutJobsOverlay'
@@ -1231,6 +1232,10 @@ export function ScoutPool({ onPromoted, onViewKanban }: Props) {
             ? <>⏹ <span className="lbl">STOP backfill ({backfillDone}/{backfillTotal})</span></>
             : <>◐ <span className="lbl">Backfill Queried ({totalNeedsBackfill})</span></>}
         </button>
+        {/* Pressure gauge + Run Scout share a right-aligned column stack: the
+            gauge is the button's instrument panel (live LVE/system load). */}
+        <div className="scout-run-stack">
+        <PressureGauge />
         {/* Ralph 2026-06-03 · single-button morph: "Run Scout (N)" when idle,
             "STOP (M in flight)" while a batch is running. STOP is the emergency
             exit when the batch hangs — it cancels the bg-job (next-row check
@@ -1263,6 +1268,7 @@ export function ScoutPool({ onPromoted, onViewKanban }: Props) {
               ? <>◐ <span className="lbl">Run Scout ({nextBatch.length} of {totalRawAvailable} raw)</span></>
               : <>◐ <span className="lbl">Run Scout (next {nextBatch.length})</span></>}
         </button>
+        </div>
       </div>
 
       <div className="scout-wrap">

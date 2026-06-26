@@ -412,7 +412,8 @@ export async function POST(req: NextRequest) {
               // 2026-05-05 (Ralph): truth-on-wire. Init reports what Claude
               // Code THINKS it's using (post-tier-resolution); message.model
               // reports what the upstream actually served. Different when
-              // Z.ai reroutes claude-opus-4-8 → glm-4.7. source:'wire'
+              // Z.ai historically rerouted claude-opus-4-6 → glm-4.7
+              // (mapping for claude-opus-4-7 unverified). source:'wire'
               // outranks source:'init' in the frontend trust ladder.
               if (typeof (event as any).message?.model === 'string' && (event as any).message.model.length > 0) {
                 sendEvent({ type: 'model_info', model: (event as any).message.model, source: 'wire' })

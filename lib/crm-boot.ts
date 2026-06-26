@@ -24,7 +24,7 @@
 
 import { existsSync, mkdirSync, readFileSync } from 'fs'
 import { join } from 'path'
-import Database from 'better-sqlite3'
+import Database from './sqlite'
 import { read as readXlsx, utils as xlsxUtils } from 'xlsx'
 import { appendEvent, makeEvent } from './event-log'
 import { applyEventsToDb, incrementalReplay } from './crm-replay'
@@ -36,12 +36,12 @@ const XLSX_LEGACY_PATH = join(PROJECT_ROOT, 'docs', 'crm-feature', 'prospects.xl
 
 declare global {
   // eslint-disable-next-line no-var
-  var __crmDb: Database.Database | undefined
+  var __crmDb: Database | undefined
   // eslint-disable-next-line no-var
   var __crmBootDone: boolean | undefined
 }
 
-export function getDb(): Database.Database {
+export function getDb(): Database {
   if (globalThis.__crmDb) return globalThis.__crmDb
   mkdirSync(DB_DIR, { recursive: true })
   const fresh = new Database(DB_PATH)
@@ -94,7 +94,7 @@ export async function bootCrm(): Promise<void> {
 
 // ─── Schema (idempotent CREATE IF NOT EXISTS) ───────────────────────────────
 
-function ensureSchema(db: Database.Database): void {
+function ensureSchema(db: Database): void {
   db.exec(`
     CREATE TABLE IF NOT EXISTS prospects (
       id              TEXT PRIMARY KEY,
@@ -267,7 +267,7 @@ function ensureSchema(db: Database.Database): void {
 
 // ─── First-boot bootstrap from legacy xlsx ──────────────────────────────────
 
-async function maybeBootstrapFromXlsx(db: Database.Database): Promise<number> {
+async function maybeBootstrapFromXlsx(db: Database): Promise<number> {
   // Skip if SQLite already has any data OR if any event has ever been logged.
   const prospectCount = (db.prepare('SELECT COUNT(*) AS n FROM prospects').get() as { n: number }).n
   const activityCount = (db.prepare('SELECT COUNT(*) AS n FROM activities').get() as { n: number }).n
@@ -348,7 +348,7 @@ async function maybeBootstrapFromXlsx(db: Database.Database): Promise<number> {
 // Emits one contact.insert event per prospect that has a non-empty
 // contact_name AND zero rows in contacts. Idempotent. Runs after the
 // initial replay so we can see the projection.
-async function maybeSeedContactsFromProspects(db: Database.Database): Promise<number> {
+async function maybeSeedContactsFromProspects(db: Database): Promise<number> {
   const rows = db.prepare(`
     SELECT p.id, p.contact_name, p.phone, p.email, p.created_at
     FROM prospects p

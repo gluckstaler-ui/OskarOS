@@ -25,6 +25,7 @@ _Live backlog. `Feature-X.md` keeps the shipped record + history; this file is w
 | §9 Productization verticals | WP-29..33 | 5 PENDING (customer-gated) |
 | §10 Deferred (trigger-gated) | WP-34..38 + items | 5 WPs + 3 non-WP items |
 | §11 Open decisions | D1..D6 | 6 gates |
+| §12 Live-server deploy + Studio publish | WP-DEPLOY · WP-OPS-RESTART · 6 BUG-WPs | part-2 (2026-06-19): 3 ✅ (MCP collision, reconnect-storm, flight-deck host); **BUILD-SKEW = #1 blocker** (new-file deploys broken); Scout-capture + WhatsApp-`:39` 🔴; fonts/Babel 🟡 |
 
 ---
 
@@ -1101,37 +1102,29 @@ CREATE TABLE merge_conflicts (
 
 **LOC.** ~340 LOC across 3 files. **Difficulty.** Low — read-mostly UI; the "Apply loser" mutation re-uses the existing event-log append path. **Deps.** WP-26.
 
-### WP-28 — Sync health endpoint + Settings status display
+### WP-28 — SYNC admin panel: CRM · Session · Codebase, each with a diff indicator  ✅ IMPLEMENTED 2026-06-19 (part 2)  _(merges old WP-28 + WP-BUG-BUILD-SKEW — Ralph 2026-06-19)_
 
-**Problem.** Without telemetry, sync failures are invisible until someone notices the CRM is out of date. This WP surfaces sync state in admin UI: last successful sync, pending events count, pending media count, last error if any.
+**Final design (Ralph, 2026-06-19): THREE buttons, each with an in-sync/diff indicator.** ONE "SYNC" card in the gated `admin.html` (Settings → COL 2, above the xlsx fallback card). Each row = a coloured dot + a 1-sentence diff + an action button. Dot: **green** = both ends identical · **amber** = drift (+ the diff sentence) · **grey** = hub unreachable / this machine is the hub. Polled every 15s while Settings is active (mirrors the WhatsApp poll).
 
-**Architectural decision.** Single endpoint `/api/admin/sync/status` reads cursor table + counts pending items. Returns JSON blob the admin Settings panel polls every 5s. No new daemon, no separate metrics surface — just a cheap read endpoint.
+**Button A — Sync CRM** = **DB contents + Scout screenshots, nothing else.** **NEVER WhatsApp/email** (hard rule). Non-destructive by construction: the event log is append-only + single-owner per node (`events-<node>.jsonl`), so PUSH overwrites the hub's stale copies of files we own (ours ⊇ theirs) and PULL only fetches hub-authored files we lack — a stale remote copy can never clobber a file we author. Then restart hub workers → `crm-boot` `incrementalReplay` re-derives the SQLite projection. Scout captures (`public/__scout__/`) ship additively; `public/_whatsapp/` is never in the tar. Script: `scripts/sync-crm.sh`. Indicator diffs per-node lamport high-water + screenshot counts.
 
-**Endpoint shape.**
-```
-GET /api/admin/sync/status
-→ {
-    last_successful_sync_ts: string | null,
-    last_sync_error: string | null,
-    last_sync_error_ts: string | null,
-    pending_events_to_push: number,
-    pending_media_to_push: number,
-    pending_public_to_push: number,
-    server_reachable: boolean,         // 5s timeout HEAD /api/health
-    unreviewed_conflicts: number       // from WP-27's merge_conflicts
-  }
-```
+**Button B — Sync session folder** = a **dropdown (one session at a time)** + push. Session folders (`public/<id>/`) are studio build outputs authored on the spoke; the action is a one-way ADDITIVE push (GNU-tar → server-side extract, **no `--delete`**). Script: `scripts/sync-session.sh <id>`. Indicator diffs the file manifest (only-local / only-server / differ, with newer-on-server count). _(Ralph: do NOT sync Barbazza or Silke-Lengler folders yet — the dropdown lists them but they're held back.)_
 
-**UI.**
-- "Sync status" card in admin Settings, between "WhatsApp" and "Sync conflicts" cards.
-- Polled every 5s while Settings tab is active (mirrors existing WhatsApp status polling).
-- Shows: green/yellow/red dot for `server_reachable`; "Last synced N minutes ago" or "Never synced"; "X events pending, Y media pending, Z public files pending"; "K unreviewed conflicts" with link to conflicts tab.
-- "Sync now" button (WP-26 trigger) lives in this same card.
+**Button C — Sync Codebase** = the heavy one (full build + ship). Absorbs **WP-BUG-BUILD-SKEW**. **The bug:** rsync/scp/default-tar transfer MODIFICATIONS but SILENTLY DROP brand-new files — esp. the new `[root-of-the-server]__<hash>._.js` turbopack chunks — because macOS bsdtar's default *pax* format mangles the `[...]` filename so the server's GNU tar can't recreate it (network-upload transport intercepted by Imunify360/cPanel scan also contributes; server-side writes persist). **Fix (shipped):** build off-box in an isolated copy → `COPYFILE_DISABLE=1 tar --format=gnutar` the WHOLE `.next` → **server-side `tar -x`** → restart — never rsync the delta. Plus a **route-parity gate** (every `app/**/route.ts` must be in the artifact; fail loudly) and a `.next/DEPLOY_VERSION` stamp so the indicator can report the deployed version. Script: `scripts/deploy-server.sh`. Indicator shows **a version number + a sentence** (`local <hash>+dirty vs server <hash>, deployed <ts>`), per Ralph's "codebase a version number plus sentence".
 
-**Files affected.**
-- `app/api/admin/sync/status/route.ts` (NEW, ~60 LOC)
-- `lib/sync/status.ts` (NEW, ~50 LOC) — reads cursor + counts pending items.
-- `public/admin.html` (~150 LOC delta) — Sync status card + 5s poll.
+**Read-only indicator layer (the "both ends the same?" requirement).**
+- `lib/sync/state.ts` — `crmState()` / `sessionState(id)` / `listSessions()` / `codebaseState()` + `diffCrm/diffSession/diffCodebase → { inSync, sentence, localVersion?, remoteVersion? }`. Zero mutation.
+- `GET /api/admin/sync/state?target=crm|session|codebase[&id=]` — each machine reports ITS OWN state (the remote reads this).
+- `GET /api/admin/sync/status?target=crm|session|codebase|sessions[&id=]` — the spoke computes local + fetches the hub's (`OSKAR_SYNC_HUB`) + diffs → the indicator. `target=sessions` returns the dropdown list. Never throws — hub-unreachable surfaces as a grey "hub unreachable" indicator.
+
+**Mutating layer.** `POST /api/admin/sync/run?target=…[&id=]` runs the per-target script. **Guard:** only the spoke (the machine with `OSKAR_SYNC_HUB` set) runs syncs; the hub refuses (no deploy key, would sync to itself).
+
+**Hub vs spoke.** Spoke = local Mac, `OSKAR_SYNC_HUB=https://awesome-ux.ch` in `.env.local`. Hub = server, env unset (→ "this machine is the hub"). `.env.local` is git-ignored so the deploy never ships it — the role stays per-machine.
+
+**Files (shipped).**
+- `lib/sync/state.ts` (NEW) · `app/api/admin/sync/{state,status,run}/route.ts` (NEW)
+- `scripts/sync-crm.sh` · `scripts/sync-session.sh` (NEW) · `scripts/deploy-server.sh` (+DEPLOY_VERSION stamp)
+- `public/admin.html` (SYNC card + indicator poll + `syncRun`) · `.env.local` (`OSKAR_SYNC_HUB`)
 
 **Acceptance.**
 1. Settings tab open → status card shows current state, updates every 5s.
@@ -1291,3 +1284,162 @@ Lift Order 66 / Order 65 / Sage 240 cut / bridge respawn under one `serializeCon
 4. **Death Protocol generalization (WP-38).** *Trigger: 6th agent surfaces, or a serialize bug bites.* Framework wins as N agents grow past 5; ad-hoc wins if N stays small.
 5. **Brand-lint v2 perceptual diff (WP-13).** *Trigger: pixel-fidelity regression bites in production.* Adds ~10 MB ONNX model dep — first non-trivial native ML dep on the deploy bus. Confirm before take-on.
 6. **Sync cron vs button-only (WP-26).** *Trigger: WP-26 implementation kickoff.* Daily cron in addition to manual button? If yes, what hour, opt-in per machine?
+
+---
+
+## §12 — Live-server deploy + Studio publish pipeline
+
+_Track A-Ops. Added 2026-06-19 after the first real cPanel/Namecheap ("Oskar-Webserver", §8 WP-24) push: **barbazza.wine** shipped live with a dedicated `barbazza-api` Node app; **silke-api** staged; the **webbuilder** Next standalone serves awesome-ux.ch. The deploy worked ~99% but the system is brittle — this chapter is the hardening + the real publish pipeline. **CD-agent view:** it's all one directory per session; the entire stage/live duality lives in this layer, invisible to the agent._
+
+**Status — this session**
+
+```
+✅ DONE      🔴 ASAP-prod      🟡 next      ⏸ upstream/wait
+```
+
+| Item | State | Note |
+|---|---|---|
+| barbazza.wine contact form → live | ✅ | Option A: isolated cPanel Node app `barbazza-api` at `barbazza.wine/api` (no PHP, no shared process). Verified delivering to Marin@barbazza.wine, sent as postmaster@. |
+| `silke-api` (silke-lengler.ch contact) | ✅ staged | turnkey in `deploy/silke-api/` + `DEPLOY.md`; fill one SMTP password on domain launch. |
+| `admin.html` access gate | ✅ | HTTP Basic Auth — `~/webbuilder/public/.htaccess` + `.htpasswd`, user `Ralph`. Survives app restarts; independent of the app. |
+| webbuilder crash guard | ✅ partial | process-level `unhandledRejection`/`uncaughtException` guard on deployed `server.js`, verified catching the Baileys timeout storm while the app keeps serving 200s. **Gaps → WP-BUG-WHATSAPP-RECONNECT.** |
+| nano-banana 2K image-compose → beige | ⏸ upstream | root-caused: Google `gemini-3.1-flash-image-preview` returns `IMAGE_RECITATION`/degraded beige for **2K image-edit**; **1K works**. Decision: wait for Google, **no workaround**. Cross-ref WP-18; memory `nano-banana-2k-compose-upstream-bug`. |
+| Studio pages render error overlay | 🔴 | **WP-BUG-PAGE-OVERLAY** — blocks any redeploy of the current tree. |
+| stage↔live publish + rollback | 🔴 | **WP-DEPLOY** — the end-user safety net; CRM already calls the placeholder. |
+| restart-Node-app control | 🔴 | **WP-OPS-RESTART**. |
+| deploy build/source parity | 🔴 | **WP-BUG-BUILD-SKEW**. |
+| scout workers don't run on server | 🔴 | **WP-BUG-SCOUT-WORKERS-SERVER** — corrected part-2: real first failure is `puppeteer EEXIST` at CAPTURE, not worker-OOM. |
+| MCP bridge "flapping" (`fetch failed`) | ✅ | part-2: `orch` name collision (project `.mcp.json` stdio vs generated HTTP) — fixed via `--strict-mcp-config` + portable `.mcp.json`. Memory `oskar-bridge-mcp`. |
+| WhatsApp reconnect STORM (2s hammer) | ✅ | part-2: → single 5-min semi-auto reconnect in `wa-runtime.ts` (uncommitted). Storm stopped. |
+| WhatsApp server `:39` won't SUSTAIN | 🔴 | reaches `open` but `uploadPreKeysToServer` 408→428→0 activity. Likely el8 host. Mac `:38` handles WhatsApp today. → WP-BUG-WHATSAPP-RECONNECT part-2. |
+| Scout capture (puppeteer EEXIST) | 🔴 | every taste 500s on `import('puppeteer-<hash>')` in next-server. → WP-BUG-SCOUT-WORKERS-SERVER part-2. |
+| deploy of NEW files (routes/chunks) | 🔴 | rsync/scp/tar drop brand-new files; only modifications land. **#1 deploy blocker.** → WP-BUG-BUILD-SKEW part-2. |
+| flight-deck.jsx render host on server | ✅ | part-2: was missing on the box; re-deployed via server-side `cat`. |
+| fonts pull from Google (build + runtime) | 🟡 | → WP-BUG-FONTS-GOOGLE (self-host). |
+| FlightDeck loads 3 MB Babel from unpkg | 🟡 | → WP-BUG-FLIGHTDECK-BABEL (vendor / pre-compile). |
+
+### WP-DEPLOY — Studio↔Live publish pipeline (deploy-to-live + restore-from-live + rollback)
+
+**Problem.** The CD agent and the end-user edit a customer site in ONE directory — the session dir `public/<session-id>/` inside Studio (the oskar app on awesome-ux.ch = **stage**). The customer's **live** site is a *separate* cPanel docroot (`~/barbazza.wine/`, `~/silke-lengler.ch/`, …). There is no controlled path between them: no publish, no versioned backup, no rollback, and no way to pull live back into stage. The existing `POST /api/admin/deploy` (`app/api/admin/deploy/route.ts`) is a placeholder that writes a CRM `delivery_started` Activity row and returns `queued` with **zero disk side-effects** — and the CRM already fires it on Status→Won. If an end-user breaks their site, there is no "get it back."
+
+**Scope.**
+- **Deploy → Live.** Publish the current stage session's built output to its mapped live docroot, snapshotting the previous live first so every publish is reversible, applied atomically (never a half-written live). **Transport is NOT settled here** — WP-BUG-BUILD-SKEW (Part-2) found the naive rsync/scp delta drops brand-new files on this box; the transport choice is owned by that WP. (Requirements only — the specific paths/commands below are illustrative, not prescriptive.)
+- **Rollback.** Restore live to any prior snapshot — the end-user "undo." One call, atomic swap.
+- **Restore ← Live (live→stage).** Pull current live back into the stage session dir, so (a) editing always starts from the known-good live and (b) a broken stage can be reset.
+- **Session→domain map.** Config (`db/deploy-map.json`): `2026-05-31-weingut-barbazza → barbazza.wine`, `2026-04-25-silke-lengler → silke-lengler.ch`, … The CD agent stays oblivious — it sees one dir; this layer owns the stage/live split + versions.
+- **Wire into the real endpoint.** Replace the guts of `app/api/admin/deploy/route.ts` (keep its request/response contract so the CRM toast is unchanged). Add `action: 'publish' | 'rollback' | 'pull-from-live'` + `snapshotId`.
+
+**Files affected.**
+- `app/api/admin/deploy/route.ts` — replace placeholder body; keep contract.
+- `lib/deploy/{publish,snapshot,restore,map}.ts` (NEW) — rsync + snapshot + atomic swap + the session↔domain map.
+- `db/deploy-map.json` (NEW) — session → live docroot mapping.
+- `public/admin.html` — Deploy / Rollback / Pull-from-Live controls + per-session snapshot list.
+
+**Acceptance.**
+1. Publish a session → its live domain updates; a timestamped snapshot of the *previous* live exists.
+2. Rollback → live is byte-for-byte the prior snapshot.
+3. Pull-from-Live → the stage session dir matches live; a subsequently-broken stage can be reset from live.
+4. CD agent edits + builds exactly as today (one dir), unaware of the stage/live split.
+5. A publish that fails mid-transfer leaves live intact (atomic swap, no half-state).
+
+**LOC.** ~400. **Difficulty.** Medium-High — atomicity, snapshot retention, the box's path/permission reality. **Deps.** §8 WP-24 (server runbook); the per-domain cPanel Node-app pattern (shipped for barbazza). **Priority.** 🔴 ASAP — the "they can always get it back" promise rests entirely on this.
+
+### WP-OPS-RESTART — Server control surface (restart Node apps + health, from the gated admin panel)
+
+**Problem.** When a cPanel Node app wedges (the webbuilder Baileys-crash episode; a stale deploy; a stuck Passenger worker) the only recovery is SSH + `cloudlinux-selector restart` or `touch <app-root>/tmp/restart.txt`. Ralph needs a button — and a health readout — without a terminal. (Folds the user's "restart the node server" ask into the deploy story.)
+
+**Scope.** In the gated `admin.html`, a control row per known app (`webbuilder`, `barbazza-api`, `silke-api`): **Restart** + a **health** readout (up/down, last-restart, recent `stderr` tail). Candidate restart mechanisms: touch `~/<app-root>/tmp/restart.txt` (Passenger graceful) or `cloudlinux-selector restart --app-root <x>`. **Open question (verify, don't assume):** whether the Studio Next process can reach those in-process or needs a box-local helper/endpoint — establish from the box before building.
+
+**Files affected.** `public/admin.html` (controls + health); `app/api/admin/ops/{restart,health}/route.ts` (NEW); app registry `db/oskar-apps.json` (NEW).
+
+**Acceptance.** "Restart webbuilder" → app restarts, health flips up; same for barbazza-api/silke-api; recent stderr visible; unauthorized callers blocked (behind the admin gate).
+
+**LOC.** ~200. **Difficulty.** Medium — the privilege path is the only real risk. **Deps.** none hard; pairs with WP-DEPLOY (deploy → restart). **Priority.** 🔴 ASAP.
+
+### WP-BUG-PAGE-OVERLAY — Studio pages throw a runtime error overlay (`/`, `/crm`)
+
+**Observed.** `GET /` and `GET /crm` returned HTTP 200 with Next's error-overlay marker (`next-error-h1`) in the served HTML; API routes tested separately responded normally. (Part-2: this later appeared resolved locally — re-verify it still reproduces before acting.)
+
+**Context (NOT a diagnosis).** Both pages were in a recent shared-edit window; files under the CRM/scout/mcp path were among those changed. A navigation starting point only — not a named cause.
+
+**Open until investigated.** Capture the actual error/stack the overlay renders, then identify the failing module from that evidence — do not presume which file.
+
+**Done when.** `/` and `/crm` render without the overlay and the root cause is identified with evidence. **Priority.** 🔴 if still reproducing (confirm first).
+
+### WP-BUG-WHATSAPP-RECONNECT — CRM WhatsApp (Baileys) dead session → skeleton CRM + unhandled-rejection storm
+
+**Observed.** On the deployed server, `stderr.log` showed repeated `@whiskeysockets/baileys` `Timed Out` (408) entries surfacing as `unhandledRejection`, and the CRM view rendered its loading skeleton (no data observed populating). Why the handshake times out is open — do not assume "logged-out / expired"; see the Part-2 note for findings so far.
+
+**Done this session (✅ partial).** A process-level crash guard (`unhandledRejection` + `uncaughtException`, log-and-continue) was inserted at the top of the deployed `~/webbuilder/server.js` and **verified catching the timeouts while the app keeps serving 200s**. Two gaps: (a) `server.js` is the **generated** standalone bootstrap — a `next build` **wipes the guard**; (b) the guard stops the crash but does **not** reconnect WhatsApp.
+
+**Open items.** Give the crash guard a permanent home in source so a rebuild doesn't drop it (`instrumentation.ts` is one candidate). Whether reconnect/backoff and/or a re-pair flow is the right answer depends on the root cause — decide from the Part-2 evidence, not assumption.
+
+**Done when.** The crash guard lives in source (survives a rebuild); the CRM data path works or WhatsApp state is correctly surfaced; no rejection storm. **Priority.** 🟡 (crash contained this session; data path open).
+
+**Part-2 update (2026-06-19) — reconnect STORM fixed ✅.** The 2s-on-every-drop reconnect was replaced in source (`lib/wa-runtime.ts`) with a single 5-min semi-automatic reconnect (`restartRequired` stays fast for pairing; other drops wait the cycle) + a manual trigger. Deployed → the storm STOPPED (stderr stopped growing). **Two things remain:** (a) the `wa-runtime.ts` change is currently UNCOMMITTED; (b) the server `:39` device still can't SUSTAIN a connection — it reaches `connection:open` (status says 'connected') but baileys' `uploadPreKeysToServer` times out (408) → 428 close → 0 activity. NOT dual-session (WhatsApp allows 4 linked devices; Mac `:38` is healthy and handles real inbound, the server is a separate `:39`). Likely the el8 host can't sustain the WhatsApp app-layer handshake. The Mac does WhatsApp today; the server link is decorative. The crash-guard-to-source (`instrumentation.ts` already boots the runtime) + re-pair-QR-UX parts are still open. Memory `oskar-whatsapp`.
+
+### WP-BUG-BUILD-SKEW → MERGED INTO WP-28 (Sync Codebase button)
+
+_Canonical home for the deploy-transport fix + parity gate is now **WP-28 Button B**. Technical detail retained here for the implementer._
+
+**Observed.** `app/api/claude-code/route.ts` exists in source; `GET /api/claude-code` returns 404 on the deployed server, and the deployed `.next/server/app/api` does not contain every route present in source. (The original "the box can't `next build`, so the artifact drifts" line this WP first shipped with was a guess — the **Part-2 update below** establishes the actual transport mechanism and supersedes it.)
+
+**Open until investigated.** How the deployed artifact is built and shipped, and what is or isn't landing on the box. Cause is open — see Part-2.
+
+**Done when.** The deployed route/asset set matches source (a parity check passes), the divergence mechanism is identified, and `/api/claude-code` (plus other source routes) resolve live. **Priority.** 🔴.
+
+**Part-2 update (2026-06-19) — it's worse than route-skew: NEW FILES don't deploy at all.** Confirmed empirically: rsync/scp/tar transfer MODIFICATIONS to existing files but SILENTLY DROP brand-new files — a new `route.js` AND the new `[root-of-the-server]__<hash>._.js` chunks it pulls in (verified: a new `/wake` route + its chunk never landed via rsync, scp, OR `tar`; the manifest entry didn't update either). Server-side `cat`/`echo` shell-writes DO persist (so it's the network-upload transport being intercepted, NOT a disk/perms/inode issue — box is 66919/300000 inodes). Per-chunk `cat` is whack-a-mole (a route drags a chunk-chain). **The parity gate must diff source-routes vs deployed-routes AND verify each route's chunks are present; the transport must be server-side `tar -x`/`cp` of the WHOLE artifact (a local write the scanner doesn't intercept), never rsync of the delta.** Likely Imunify360/cPanel real-time scan quarantining newly-uploaded `.js`. Memory `oskar-server-deploy`.
+
+### WP-BUG-SCOUT-WORKERS-SERVER — Scout workers don't deploy on the server (CLI-worker model × box limits)
+
+**Observed.** On the deployed server, a scout taste/discover batch does not produce results (works in local dev). The **actual** first failure, once reproduced on the box, is in the **Part-2 correction below** — read that; the original cause this WP first shipped with (worker resource exhaustion) was a guess and was wrong.
+
+**Entry points (code, for navigation — NOT a diagnosis).** Scout spawn path: `lib/scout-bridge-call.ts` (`useWorker: true`) → `lib/bridge-process-manager.ts` (`spawnFreshWorker`, `MAX_WORKERS_PER_SESSION`); capture + pipeline under `app/api/admin/crm/scout/{taste,discover,pool}/`.
+
+**Open until investigated.** Establish the failure mode from server logs/evidence before naming a cause or a fix. Resources, subprocess-spawn permission, the capture step, build/transport, and env are all candidate angles — none assumed.
+
+**Done when.** A scout batch completes on the deployed server, OR the precise blocker is identified with evidence and a decision recorded.
+
+**Part-2 correction (2026-06-19) — the real first failure is NOT worker-OOM.** Triggered a single-row taste on the deployed box: it 500s at the **CAPTURE** step on `Failed to load external module puppeteer-<hash>: Error: open EEXIST` (next-server turbopack `externalImport`, `.next/server/chunks/[turbopack]_runtime.js`), BEFORE any tasting worker spawns. DETERMINISTIC on ONE row; box idles at ~22/200 nproc — so the 32×232 MB-OOM theory is NOT what kills it (it never reaches the workers). The identical `import('puppeteer-<hash>')` SUCCEEDS in a fresh node process with the same cwd/env — it's `next-server`'s long-running-process external-load that throws, not puppeteer or chromium. Chromium itself launches + screenshots fine on the box (bundled `~/.cache/puppeteer/chrome` + `LD_LIBRARY_PATH=~/lib`, GLIBC ok). **Fix the capture first:** run `captureUrl` in a CHILD process (plain-node `require('puppeteer-core')` worker, bundled chrome + `LD_LIBRARY_PATH`) — bypasses the broken `externalImport` (proven end-to-end this session). Also: `findBinary('chromium')` doesn't check `~/.cache/puppeteer` and `CHROMIUM_BIN`/`LD_LIBRARY_PATH` aren't in the app env — wire those. The API-mode worker concern (WP-91) is a SEPARATE downstream issue; capture must work first.
+
+---
+
+**§12 do-first order (production), updated 2026-06-19 (part 2):** **WP-BUG-BUILD-SKEW is now the #1 blocker** — adding a NEW route/page to the box is flat broken (learning #1 below), and it gates WP-DEPLOY, the WhatsApp `/wake` route, and WP-BUG-SCOUT-WORKERS-SERVER. Order: WP-BUG-BUILD-SKEW + WP-DEPLOY (a transport the scanner doesn't eat + a parity gate) → WP-BUG-SCOUT-WORKERS-SERVER (real cause now known — its part-2 note) → WP-OPS-RESTART (restart-without-SSH) → WP-BUG-WHATSAPP-RECONNECT crash-guard-to-source. WP-BUG-PAGE-OVERLAY appears resolved locally (the pages render — gauge + deck — verify before relying). WP-BUG-FONTS-GOOGLE + WP-BUG-FLIGHTDECK-BABEL + the WhatsApp re-pair UX + a per-app health dashboard are 🟡 fast-follows.
+
+---
+
+### Session 2026-06-19 (part 2) — deploy-brittleness deep-dive: crossed off · still broken · learnings
+
+_A second long hardening pass on the same live box. The "99% but brittle" became concrete. Logging it so the next agent doesn't re-bleed._
+
+**✅ Crossed off (root-caused + verified live):**
+- **MCP "flapping" — fixed.** Bridge agents flapped with `fetch failed`/`mcp_unavailable` even while curl-testing the backend passed. Cause: a NAME COLLISION on MCP server `orch` — the bridge's generated HTTP config AND the committed project `.mcp.json` (old stdio proxy) both define `orch`, and the bridge spawned `claude` WITHOUT `--strict-mcp-config`, loading both. The committed `.mcp.json` had a Mac absolute path + `localhost:3000` (unreachable on the Unix-socket box) + dead `OSKAR_SESSION=2026-01-27-debug`, shipped verbatim → the stdio `orch` couldn't spawn/fetch → flapped. **Fixes:** `--strict-mcp-config` on BOTH spawn sites (`lib/bridge-process-manager.ts`); both committed `.mcp.json` made portable (relative path, no hardcoded session — `.runtime/active-session` is authoritative); deployed the missing `scripts/mcp-stdio-proxy.mjs` + fixed the server URL. Verified Consular replies 12/1663, no more `fetch failed`. Memory `oskar-bridge-mcp`.
+- **WhatsApp reconnect STORM — fixed** (part of WP-BUG-WHATSAPP-RECONNECT). See that WP's part-2 note.
+- **FlightDeck render host on server — fixed.** `public/__crm__/flight-deck.jsx` (the 35 KB `window.FlightDeck.render` host) was missing on the box; re-deployed via server-side `cat`.
+
+**🔴 Still broken on the server:**
+- **Scout capture is dead** — every taste 500s on `puppeteer EEXIST`. The fix path is in WP-BUG-SCOUT-WORKERS-SERVER (corrected below).
+- **WhatsApp `:39` can't sustain a connection** (separate from the storm fix) — see WP-BUG-WHATSAPP-RECONNECT part-2.
+- **Manual `/wake` reconnect route built but un-deployable** (blocked by WP-BUG-BUILD-SKEW). Correct move: fold manual-reconnect into the EXISTING `/status` or `/pair` route, don't add a new route.
+
+**🧠 Hard-won learnings:**
+1. **Adding a NEW route/page to the server is BROKEN.** rsync/scp/tar land MODIFICATIONS to existing files (the reconnect fix deployed fine) but SILENTLY DROP brand-new files — a new `route.js` AND the chain of new `[root-of-the-server]__<hash>._.js` turbopack chunks it pulls in. Per-file `cat local | ssh 'cat > remote'` lands individual files, but a route drags a chunk-chain → whack-a-mole. Suspect Imunify360/cPanel real-time malware scan quarantining newly-UPLOADED `.js`. **This is the heart of WP-BUG-BUILD-SKEW** — transport must be one the scanner doesn't eat (server-side `tar -x`/`cp` of the WHOLE artifact, never rsync of just new files).
+2. **NEVER `npm run build` in the live dev directory.** It clobbers the running `next dev`'s `.next` AND re-hammers Google Fonts (each build re-downloads → rate-limit). This session's "font crash" + "FlightDeck Babel failed to load" both traced to repeated local builds, NOT to any code change (git diff was clean on both). Build in a copy/worktree, or stop `next dev` first.
+3. **`/connect` is a forbidden route segment on LiteSpeed** — the WAF 403s any path ending in `/connect` at the edge (proxy-CONNECT rule), while `disconnect` is fine. Don't name routes `connect`.
+4. **Two runtime external-CDN deps should be self-hosted** → WP-BUG-FONTS-GOOGLE + WP-BUG-FLIGHTDECK-BABEL.
+
+### WP-134 — Self-host Inter/JetBrains (kill the Google Fonts dependency)  _(was WP-BUG-FONTS-GOOGLE)_
+
+**Problem.** UI fonts come from Google two ways: `next/font/google` in `app/layout.tsx` (Inter, JetBrains Mono — downloads at BUILD time, then self-hosts) AND a redundant raw `@import url('https://fonts.googleapis.com/...')` at `app/globals.css:4` (hits Google at RUNTIME, every page). Build-time fails on rate-limit; runtime @import fails on any CDN issue. (`public/fonts/` is the BRAND library — Caslon/Garamond/etc. — it has NO Inter.) Neither is a git change — they've always been there; repeated local builds just made the build-time download fail visibly.
+
+**Scope.** Download Inter + Inter-Tight + JetBrains-Mono `.woff2` once → `app/fonts/`; switch `next/font/google` → `next/font/local`; delete `globals.css:4`. Zero Google dependency, build or runtime. Verify against a WORKING dev server (a font swap touches every page).
+
+**Acceptance.** App renders Inter/JetBrains with no calls to fonts.googleapis.com / fonts.gstatic.com. **LOC.** ~60. **Difficulty.** Low. **Deps.** none. **Priority.** 🟡 (recurring + high-visibility; do it when calm).
+
+### WP-135 — Vendor/pre-compile FlightDeck Babel (drop the 3 MB unpkg runtime dep)  _(was WP-BUG-FLIGHTDECK-BABEL)_
+
+**Problem.** `components/crm/FlightDeckHost.tsx:27` loads `https://unpkg.com/@babel/standalone@7.29.0/babel.min.js` (3.1 MB) at runtime to compile `public/__crm__/flight-deck.jsx` IN THE BROWSER on every CRM load. Any CDN blip / cold-cache reload / restricted network → `Babel standalone failed to load` → no deck.
+
+**Scope.** Either (a) vendor `babel.min.js` to `public/vendor/` and point `BABEL_SRC` at it, or — better — (b) PRE-COMPILE `flight-deck.jsx` at build time so no runtime Babel is needed (also drops the 3 MB client download).
+
+**Acceptance.** FlightDeck renders with zero external-CDN requests. **LOC.** ~80 (vendor) / ~150 (pre-compile). **Difficulty.** Low / Medium. **Deps.** none. **Priority.** 🟡.

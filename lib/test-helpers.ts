@@ -8,13 +8,13 @@
 // hidden in a test-only directory.
 // ============================================================================
 
-import Database from 'better-sqlite3'
+import Database from './sqlite'
 import { ulid } from 'ulid'
 import type { Event } from './event-log'
 
 // ─── Fresh in-memory DB with the production schema ──────────────────────────
 
-export function makeMemoryDb(): Database.Database {
+export function makeMemoryDb(): Database {
   const db = new Database(':memory:')
   db.pragma('foreign_keys = ON')
   // Same DDL as lib/crm-boot.ts ensureSchema (kept in sync by hand;
@@ -110,7 +110,7 @@ export interface DbSnapshot {
  * Excludes `applied_at` from events_seen because that's a wall-clock
  * timestamp set during replay — it's expected to differ across runs.
  */
-export function snapshotDb(db: Database.Database): DbSnapshot {
+export function snapshotDb(db: Database): DbSnapshot {
   return {
     prospects: db.prepare('SELECT * FROM prospects ORDER BY id').all() as Record<string, unknown>[],
     activities: db.prepare('SELECT * FROM activities ORDER BY id').all() as Record<string, unknown>[],

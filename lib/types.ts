@@ -198,6 +198,13 @@ export interface VibePreview {
   status: 'building' | 'ready' | 'error'
   htmlPath: string
   error?: string
+  /**
+   * Session-relative parent directory of the HTML, or null when the vibe
+   * lives at the session root. Null = root vibe (shown as a STUDIO tab);
+   * non-null (e.g. "Old_Vibes", "Silke Lengler/uploads") = subfolder vibe
+   * (shown in the STUDIO archive dropdown). Mirrors GalleryCard.parentDir.
+   */
+  parentDir?: string | null
 }
 
 // Conversation message

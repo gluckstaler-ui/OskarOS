@@ -325,6 +325,10 @@ class BridgeProcessManagerImpl {
       '--permission-mode', 'bypassPermissions',
       '--system-prompt-file', systemFile,
       '--mcp-config', mcpConfigFile,
+      // Use ONLY the generated config above. Without this, claude also loads
+      // the project `.mcp.json`, whose old stdio "orch" collides with this
+      // HTTP "orch" and flaps (fetch failed). Ralph 2026-06-19.
+      '--strict-mcp-config',
       '--allowed-tools', options.allowedTools ?? CD_ALLOWED_TOOLS,
       '--session-id', cliSessionId,
     ]
@@ -451,7 +455,7 @@ class BridgeProcessManagerImpl {
     // Bug M (Ralph 2026-05-04): when options.model is 'auto', OMIT --model
     // so Claude Code uses its own settings (~/.claude/settings.json or
     // env). Critical for Z.ai-piped Claude Code: the user has configured
-    // GLM as the default model; forcing --model claude-opus-4-8 would
+    // GLM as the default model; forcing --model claude-opus-4-7 would
     // override that and make their Z.ai-routed requests fail (or worse,
     // silently route the wrong model). The system/init event then
     // reports the truth Claude Code actually used; the input-bar badge
@@ -589,7 +593,7 @@ class BridgeProcessManagerImpl {
     // to MAX_SPAWNS, then give up gracefully at whatever we got.
     //
     // We trust the WIRE model (assistant.message.model), not init: init only
-    // echoes our request (`claude-opus-4-8[1m]`) and does NOT reveal a
+    // echoes our request (`claude-opus-4-7[1m]`) and does NOT reveal a
     // demotion — verified empirically via scripts/probe-cli-1m.mjs. init is
     // used only as an EARLY abort when it explicitly names a sub-1M model.
     //
@@ -769,8 +773,9 @@ class BridgeProcessManagerImpl {
             }
           }
           // Wire truth from assistant events — overrides init's claim.
-          // Z.ai serves glm-4.7 for claude-opus-4-8 requests; the init
-          // event doesn't know this but message.model does.
+          // Z.ai historically served glm-4.7 for claude-opus-4-6 requests;
+          // mapping for claude-opus-4-7 is unverified. The init event
+          // doesn't know either way but message.model does.
           if (event.type === 'assistant' && typeof (event as any).message?.model === 'string' && (event as any).message.model.length > 0) {
             bp.actualModel = (event as any).message.model
           }

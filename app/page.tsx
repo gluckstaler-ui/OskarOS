@@ -79,7 +79,7 @@ export default function Home() {
   // WP-CRM-C1: subtab choice is restored per-session from localStorage
   // (key `crm-subtab-active::<sessionId>`) in an effect once sessionId is
   // known; defaults to 'assets' for fresh sessions.
-  const [assetsView, setAssetsViewState] = useState<'assets' | 'feedback' | 'crm'>('assets')
+  const [assetsView, setAssetsViewState] = useState<'assets' | 'feedback' | 'crm' | 'meta' | 'sync'>('assets')
   // [Sentinel Ti — out of studio 2026-05-29] const [pendingCritiqueTarget, setPendingCritiqueTarget] = useState<string | null>(null)
   // WP-CRM-C1: prospect_id derived from this session's _session-config.json
   // via the existing /api/admin/crm/sessions endpoint (filesystem scan).
@@ -146,7 +146,7 @@ export default function Home() {
   // per-session. Returning to the same session restores Filippo's last
   // subtab (ASSETS / FEEDBACK / CRM); switching sessions resets to that
   // session's last choice, or 'assets' for a fresh session.
-  const setAssetsView = useCallback((view: 'assets' | 'feedback' | 'crm') => {
+  const setAssetsView = useCallback((view: 'assets' | 'feedback' | 'crm' | 'meta' | 'sync') => {
     setAssetsViewState(view)
     if (sessionId) {
       try { localStorage.setItem(`crm-subtab-active::${sessionId}`, view) } catch { /* ignore quota */ }
@@ -162,7 +162,7 @@ export default function Home() {
       const saved = localStorage.getItem(`crm-subtab-active::${sessionId}`)
       // [Sentinel Ti out of studio] 'feedback' intentionally excluded — a stale
       // saved 'feedback' tab now falls through to 'assets'.
-      if (saved === 'assets' || saved === 'crm') {
+      if (saved === 'assets' || saved === 'crm' || saved === 'meta' || saved === 'sync') {
         setAssetsViewState(saved)
       } else {
         setAssetsViewState('assets')
@@ -184,6 +184,7 @@ export default function Home() {
   type GalleryCard = {
     filename: string
     htmlPath: string
+    parentDir?: string | null
     vibeIndex: number
     version: number
     slug: string
@@ -829,7 +830,7 @@ export default function Home() {
     // since gallery / image-editor modes don't even show AssetsPanel.
     const urlTab = params.get('tab')
     // [Sentinel Ti out of studio] 'feedback' intentionally excluded here too.
-    if (resumeId && (urlTab === 'assets' || urlTab === 'crm')) {
+    if (resumeId && (urlTab === 'assets' || urlTab === 'crm' || urlTab === 'meta' || urlTab === 'sync')) {
       try { localStorage.setItem(`crm-subtab-active::${resumeId}`, urlTab) } catch { /* ignore */ }
       if (urlTab === 'crm') {
         // Imperative override — the layout-restore effect at the top of
@@ -846,18 +847,28 @@ export default function Home() {
   }, [loadSession, setLayoutMode])
 
   // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  // WP-79 (2026-05-10): Gallery lazy-load. Fires only when the user is
-  // actually looking at the Gallery layout. 30s in-flight cache + dirty
-  // flag from `vibe_built` SSE means rapid layout toggles don't hammer
-  // the API and a fresh build always shows.
+  // WP-79 (2026-05-10): Gallery fetch. 30s in-flight cache + dirty flag
+  // from `vibe_built` SSE means rapid layout toggles don't hammer the API
+  // and a fresh build always shows.
   //
   // Replaces the eager `/api/admin/sessions/[id]` fetch in loadSession,
   // which used to fire `parseVibesFromFiles` (100+ noise log lines per
-  // reload) on every session boot regardless of which tab the user
-  // opened. Brief / 2-panel / 3-panel users no longer pay that cost.
+  // reload) on every session boot. This gallery endpoint is clean (no
+  // noise spam), so we hydrate on every session load regardless of layout.
+  //
+  // 2026-06-19 (CD bugfix): the gate used to be `layoutMode !== 'gallery'`,
+  // which starved the STUDIO. CanvasPanel (3-panel) renders its vibe list
+  // from `availableVibes`, which is populated ONLY here (line below). With
+  // the gallery-only gate, reopening an existing session and sitting in the
+  // studio without first opening the Gallery tab left both `availableVibes`
+  // and the WP-79-emptied in-memory `vibes` blank → "No vibes yet". Gate is
+  // now `!sessionId` so the studio and gallery both hydrate on load. The
+  // cache/dirty short-circuit still prevents redundant fetches; layoutMode
+  // stays in the dep array so a layout toggle re-checks the dirty flag and
+  // refetches after a build.
   // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   useEffect(() => {
-    if (layoutMode !== 'gallery' || !sessionId) return
+    if (!sessionId) return
     const cached = galleryFetchRef.current
     const fresh =
       cached &&
@@ -887,6 +898,7 @@ export default function Home() {
               filename: c.filename,
               status: 'ready',
               htmlPath: c.htmlPath,
+              parentDir: c.parentDir ?? null,
             }),
           ),
         )
@@ -938,7 +950,7 @@ export default function Home() {
         // session config. CLI mode will override this when Claude CLI's
         // Badge is NOT seeded from config. The badge displays truth-on-wire
         // only — cfg.cdModel is the request, not the receipt. On Z.ai,
-        // seeding 'claude-opus-4-8[1m]' would show a lie until the first
+        // seeding 'claude-opus-4-7[1m]' would show a lie until the first
         // init event flips it to 'glm-4.7'. Leave null until wire truth
         // arrives. Ralph 2026-05-04.
       })

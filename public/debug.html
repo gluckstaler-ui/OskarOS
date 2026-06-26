@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>API Debug Tool - OskarOS</title>
+  <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+  <style>
+    body {
+      background: #0a0a0a;
+      color: #fff;
+      font-family: system-ui, -apple-system, sans-serif;
+    }
+    .log-entry {
+      border-left: 3px solid #333;
+      padding-left: 12px;
+      margin: 8px 0;
+    }
+    .log-entry.success { border-color: #22c55e; }
+    .log-entry.error { border-color: #ef4444; }
+    .log-entry.info { border-color: #3b82f6; }
+    .log-entry.warning { border-color: #f59e0b; }
+    pre {
+      background: #1a1a1a;
+      padding: 12px;
+      border-radius: 8px;
+      overflow-x: auto;
+      font-size: 12px;
+    }
+    .pulse {
+      animation: pulse 1.5s infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+  </style>
+</head>
+<body class="min-h-screen p-8">
+  <div class="max-w-4xl mx-auto">
+    <header class="mb-8">
+      <h1 class="text-3xl font-bold flex items-center gap-3">
+        <span class="text-orange-500">✦</span>
+        OskarOS API Debugger
+      </h1>
+      <p class="text-gray-400 mt-2">Test your /api/chat endpoint to diagnose the 500 errors</p>
+    </header>
+
+    <!-- Configuration -->
+    <div class="bg-gray-900 rounded-xl p-6 mb-6">
+      <h2 class="text-lg font-semibold mb-4">Configuration</h2>
+      <div class="grid grid-cols-2 gap-4">
+        <div>
+          <label class="block text-sm text-gray-400 mb-2">API Endpoint</label>
+          <input
+            type="text"
+            id="endpoint"
+            value="http://localhost:3000/api/chat"
+            class="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-white"
+          >
+        </div>
+        <div>
+          <label class="block text-sm text-gray-400 mb-2">Request Timeout (ms)</label>
+          <input
+            type="number"
+            id="timeout"
+            value="30000"
+            class="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-white"
+          >
+        </div>
+      </div>
+    </div>
+
+    <!-- Test Actions -->
+    <div class="bg-gray-900 rounded-xl p-6 mb-6">
+      <h2 class="text-lg font-semibold mb-4">Test Actions</h2>
+      <div class="flex flex-wrap gap-3">
+        <button
+          onclick="runSingleTest()"
+          class="bg-orange-500 hover:bg-orange-600 text-black font-semibold px-6 py-3 rounded-lg transition"
+        >
+          🧪 Single Request
+        </button>
+        <button
+          onclick="runSequentialTests(3)"
+          class="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-6 py-3 rounded-lg transition"
+        >
+          📋 3 Sequential Requests
+        </button>
+        <button
+          onclick="runConcurrentTests(2)"
+          class="bg-purple-600 hover:bg-purple-700 text-white font-semibold px-6 py-3 rounded-lg transition"
+        >
+          ⚡ 2 Concurrent (Simulates React StrictMode)
+        </button>
+        <button
+          onclick="runConcurrentTests(5)"
+          class="bg-red-600 hover:bg-red-700 text-white font-semibold px-6 py-3 rounded-lg transition"
+        >
+          🔥 5 Concurrent (Stress Test)
+        </button>
+        <button
+          onclick="clearLogs()"
+          class="bg-gray-700 hover:bg-gray-600 text-white font-semibold px-6 py-3 rounded-lg transition"
+        >
+          🗑️ Clear Logs
+        </button>
+      </div>
+    </div>
+
+    <!-- Statistics -->
+    <div class="grid grid-cols-4 gap-4 mb-6">
+      <div class="bg-gray-900 rounded-xl p-4 text-center">
+        <div class="text-3xl font-bold" id="totalRequests">0</div>
+        <div class="text-gray-400 text-sm">Total Requests</div>
+      </div>
+      <div class="bg-gray-900 rounded-xl p-4 text-center">
+        <div class="text-3xl font-bold text-green-500" id="successCount">0</div>
+        <div class="text-gray-400 text-sm">Successes</div>
+      </div>
+      <div class="bg-gray-900 rounded-xl p-4 text-center">
+        <div class="text-3xl font-bold text-red-500" id="failCount">0</div>
+        <div class="text-gray-400 text-sm">Failures</div>
+      </div>
+      <div class="bg-gray-900 rounded-xl p-4 text-center">
+        <div class="text-3xl font-bold text-blue-500" id="avgTime">-</div>
+        <div class="text-gray-400 text-sm">Avg Response (ms)</div>
+      </div>
+    </div>
+
+    <!-- Logs -->
+    <div class="bg-gray-900 rounded-xl p-6">
+      <h2 class="text-lg font-semibold mb-4 flex items-center gap-2">
+        Request Log
+        <span id="loadingIndicator" class="hidden text-orange-500 pulse">● Running...</span>
+      </h2>
+      <div id="logs" class="space-y-2 max-h-[500px] overflow-y-auto">
+        <p class="text-gray-500">No requests yet. Click a test button above to start.</p>
+      </div>
+    </div>
+
+    <!-- Diagnosis Section -->
+    <div class="bg-gray-900 rounded-xl p-6 mt-6">
+      <h2 class="text-lg font-semibold mb-4">🔍 Common Issues & Solutions</h2>
+      <div class="space-y-4 text-sm">
+        <div class="border-l-4 border-yellow-500 pl-4">
+          <h3 class="font-semibold text-yellow-500">If all requests fail with network error:</h3>
+          <p class="text-gray-400">Your Next.js server might not be running. Start it with <code class="bg-gray-800 px-2 py-1 rounded">npm run dev</code></p>
+        </div>
+        <div class="border-l-4 border-yellow-500 pl-4">
+          <h3 class="font-semibold text-yellow-500">If single requests work but concurrent fail:</h3>
+          <p class="text-gray-400">The proxy at 127.0.0.1:3128 can't handle multiple connections. You need connection pooling or request queuing.</p>
+        </div>
+        <div class="border-l-4 border-yellow-500 pl-4">
+          <h3 class="font-semibold text-yellow-500">If you see "invalid_api_key" in error:</h3>
+          <p class="text-gray-400">Your Anthropic API key is invalid or revoked. Generate a new one at console.anthropic.com</p>
+        </div>
+        <div class="border-l-4 border-yellow-500 pl-4">
+          <h3 class="font-semibold text-yellow-500">If requests timeout after 30s:</h3>
+          <p class="text-gray-400">The proxy connection is hanging. Try restarting the proxy service.</p>
+        </div>
+        <div class="border-l-4 border-yellow-500 pl-4">
+          <h3 class="font-semibold text-yellow-500">If you see CORS errors:</h3>
+          <p class="text-gray-400">Open this file from the same origin as your Next.js app, or run it through the Next.js public folder.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Stats tracking
+    let stats = {
+      total: 0,
+      success: 0,
+      fail: 0,
+      times: []
+    };
+
+    function updateStats() {
+      document.getElementById('totalRequests').textContent = stats.total;
+      document.getElementById('successCount').textContent = stats.success;
+      document.getElementById('failCount').textContent = stats.fail;
+      if (stats.times.length > 0) {
+        const avg = Math.round(stats.times.reduce((a, b) => a + b, 0) / stats.times.length);
+        document.getElementById('avgTime').textContent = avg;
+      }
+    }
+
+    function log(message, type = 'info', details = null) {
+      const logsDiv = document.getElementById('logs');
+
+      // Remove placeholder text if present
+      if (logsDiv.querySelector('p.text-gray-500')) {
+        logsDiv.innerHTML = '';
+      }
+
+      const entry = document.createElement('div');
+      entry.className = `log-entry ${type}`;
+
+      const timestamp = new Date().toLocaleTimeString();
+      let html = `<span class="text-gray-500">[${timestamp}]</span> ${message}`;
+
+      if (details) {
+        html += `<pre class="mt-2">${typeof details === 'string' ? details : JSON.stringify(details, null, 2)}</pre>`;
+      }
+
+      entry.innerHTML = html;
+      logsDiv.insertBefore(entry, logsDiv.firstChild);
+    }
+
+    function clearLogs() {
+      document.getElementById('logs').innerHTML = '<p class="text-gray-500">Logs cleared.</p>';
+      stats = { total: 0, success: 0, fail: 0, times: [] };
+      updateStats();
+    }
+
+    function showLoading(show) {
+      document.getElementById('loadingIndicator').classList.toggle('hidden', !show);
+    }
+
+    async function makeRequest(requestId = 1) {
+      const endpoint = document.getElementById('endpoint').value;
+      const timeout = parseInt(document.getElementById('timeout').value);
+
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), timeout);
+
+      const startTime = Date.now();
+      stats.total++;
+      updateStats();
+
+      log(`[Request #${requestId}] Starting request to ${endpoint}`, 'info');
+
+      try {
+        const response = await fetch(endpoint, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            messages: [],
+            uploadedFiles: []
+          }),
+          signal: controller.signal
+        });
+
+        clearTimeout(timeoutId);
+        const elapsed = Date.now() - startTime;
+        stats.times.push(elapsed);
+
+        const data = await response.json();
+
+        if (response.ok) {
+          stats.success++;
+          updateStats();
+          log(
+            `[Request #${requestId}] ✅ Success (${response.status}) in ${elapsed}ms`,
+            'success',
+            {
+              status: response.status,
+              elapsed: `${elapsed}ms`,
+              hasMessage: !!data.message,
+              messagePreview: data.message ? data.message.substring(0, 200) + '...' : null,
+              hasVibes: !!data.vibes,
+              vibeCount: data.vibes?.length || 0
+            }
+          );
+          return { success: true, data, elapsed };
+        } else {
+          stats.fail++;
+          updateStats();
+          log(
+            `[Request #${requestId}] ❌ HTTP Error (${response.status}) in ${elapsed}ms`,
+            'error',
+            data
+          );
+          return { success: false, error: data, elapsed };
+        }
+      } catch (error) {
+        clearTimeout(timeoutId);
+        const elapsed = Date.now() - startTime;
+        stats.fail++;
+        updateStats();
+
+        let errorMessage = error.message;
+        if (error.name === 'AbortError') {
+          errorMessage = `Request timed out after ${timeout}ms`;
+        }
+
+        log(
+          `[Request #${requestId}] ❌ Network Error in ${elapsed}ms: ${errorMessage}`,
+          'error',
+          {
+            errorName: error.name,
+            errorMessage: error.message,
+            elapsed: `${elapsed}ms`,
+            hint: error.name === 'TypeError' && error.message.includes('fetch')
+              ? 'Server might not be running or CORS issue'
+              : null
+          }
+        );
+        return { success: false, error: errorMessage, elapsed };
+      }
+    }
+
+    async function runSingleTest() {
+      showLoading(true);
+      log('--- Starting Single Request Test ---', 'info');
+      await makeRequest(1);
+      showLoading(false);
+    }
+
+    async function runSequentialTests(count) {
+      showLoading(true);
+      log(`--- Starting ${count} Sequential Requests Test ---`, 'info');
+
+      for (let i = 1; i <= count; i++) {
+        await makeRequest(i);
+        if (i < count) {
+          log(`Waiting 500ms before next request...`, 'info');
+          await new Promise(r => setTimeout(r, 500));
+        }
+      }
+
+      log(`--- Sequential Test Complete: ${stats.success} success, ${stats.fail} fail ---`,
+          stats.fail === 0 ? 'success' : 'warning');
+      showLoading(false);
+    }
+
+    async function runConcurrentTests(count) {
+      showLoading(true);
+      log(`--- Starting ${count} Concurrent Requests Test ---`, 'warning');
+      log(`This simulates what happens when React StrictMode double-mounts components`, 'info');
+
+      const promises = [];
+      for (let i = 1; i <= count; i++) {
+        promises.push(makeRequest(i));
+      }
+
+      const results = await Promise.all(promises);
+      const successes = results.filter(r => r.success).length;
+      const failures = results.filter(r => !r.success).length;
+
+      log(
+        `--- Concurrent Test Complete: ${successes} success, ${failures} fail ---`,
+        failures === 0 ? 'success' : 'error',
+        {
+          hint: failures > 0 && successes > 0
+            ? 'Partial failures suggest the proxy cannot handle concurrent connections. Consider adding request queuing.'
+            : failures === count
+            ? 'All requests failed - likely a server or proxy issue, not concurrency related.'
+            : 'All requests succeeded - concurrency is not your issue.'
+        }
+      );
+      showLoading(false);
+    }
+
+    // Auto-check if server is reachable on page load
+    window.addEventListener('load', async () => {
+      log('Page loaded. Checking if API endpoint is reachable...', 'info');
+
+      try {
+        const endpoint = document.getElementById('endpoint').value;
+        // Just do a quick OPTIONS or HEAD check, but since we can't guarantee CORS,
+        // we'll just note that the user should run a test
+        log('Ready to test. Click a button above to start testing.', 'info');
+      } catch (e) {
+        log('Could not auto-check endpoint. Run a test manually.', 'warning');
+      }
+    });
+  </script>
+</body>
+</html>

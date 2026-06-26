@@ -10,6 +10,8 @@ import { getImageEntriesAction } from '@/lib/session-actions'
 // import { SentinelTiPanel } from './SentinelTiPanel'
 import { CrmLeadPanel } from './admin/CrmLeadPanel'
 import { CrmLeadLinker } from './admin/CrmLeadLinker'
+import { MetaPanel } from './MetaPanel'
+import { WebserverSync } from './studio/WebserverSync'
 import { PdfTilePreview } from './PdfTilePreview'
 
 // ============================================================================
@@ -87,8 +89,8 @@ interface AssetsPanelProps {
   /** ASSETS / FEEDBACK / CRM toggle in panel header. Default 'assets'.
    *  WP-CRM-C1 (Ralph 2026-05-22) — 'crm' subtab appears only when
    *  `prospectId` is set (session has a linked CRM lead). */
-  assetsView?: 'assets' | 'feedback' | 'crm'
-  onAssetsViewChange?: (view: 'assets' | 'feedback' | 'crm') => void
+  assetsView?: 'assets' | 'feedback' | 'crm' | 'meta' | 'sync'
+  onAssetsViewChange?: (view: 'assets' | 'feedback' | 'crm' | 'meta' | 'sync') => void
   /** WP-CRM-C1 — when set, the CRM subtab renders <CrmLeadPanel/>. When
    *  null and a session is active, the subtab renders <CrmLeadLinker/>
    *  so Filippo can link the session to a prospect on the fly.
@@ -1458,6 +1460,63 @@ export function AssetsPanel({
               CRM
             </button>
           )}
+          {sessionId && (
+            <button
+              onClick={() => onAssetsViewChange?.('meta')}
+              title="SEO + translations (i18n) for this page"
+              style={{
+                fontFamily: 'var(--font-mono, "JetBrains Mono", monospace)',
+                padding: '6px 14px',
+                fontSize: '12px',
+                fontWeight: 700,
+                letterSpacing: '0.16em',
+                borderRadius: '5px',
+                border: 'none',
+                cursor: 'pointer',
+                transition: 'box-shadow 0.15s',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                backgroundColor: assetsView === 'meta' ? '#14b8a6' : 'transparent',
+                color: assetsView === 'meta' ? '#ffffff' : 'var(--text-main)',
+                boxShadow: assetsView === 'meta' ? '0 1px 3px rgba(20, 184, 166, 0.4)' : 'none',
+              }}
+            >
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="10"/><path d="M2 12h20"/>
+                <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
+              </svg>
+              META
+            </button>
+          )}
+          {sessionId && (
+            <button
+              onClick={() => onAssetsViewChange?.('sync')}
+              title="Sync session files with a webserver"
+              style={{
+                fontFamily: 'var(--font-mono, "JetBrains Mono", monospace)',
+                padding: '6px 14px',
+                fontSize: '12px',
+                fontWeight: 700,
+                letterSpacing: '0.16em',
+                borderRadius: '5px',
+                border: 'none',
+                cursor: 'pointer',
+                transition: 'box-shadow 0.15s',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                backgroundColor: assetsView === 'sync' ? '#16ba81' : 'transparent',
+                color: assetsView === 'sync' ? '#ffffff' : 'var(--text-main)',
+                boxShadow: assetsView === 'sync' ? '0 1px 3px rgba(22, 186, 129, 0.4)' : 'none',
+              }}
+            >
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M21 12a9 9 0 0 0-9-9 9 9 0 0 0-6.7 3M3 12a9 9 0 0 0 9 9 9 9 0 0 0 6.7-3M3 4v5h5M21 20v-5h-5"/>
+              </svg>
+              SYNC
+            </button>
+          )}
         </div>
         <div style={{ flex: 1 }} />
         <span style={{
@@ -1476,6 +1535,10 @@ export function AssetsPanel({
               ? '🛡 Sentinel Ti' */
             : assetsView === 'crm'
               ? (prospectId ? '👤 CRM lead' : '🔗 Link to CRM')
+            : assetsView === 'meta'
+              ? '🌐 SEO + i18n'
+            : assetsView === 'sync'
+              ? '⇅ Webserver sync'
               : ''}
         </span>
       </div>
@@ -1508,6 +1571,24 @@ export function AssetsPanel({
               onLinked={(pid) => onLinkedProspect?.(pid)}
             />
           )}
+        </div>
+      )}
+
+      {/* ================================================================== */}
+      {/* META VIEW — SEO + translations (i18n) for this page               */}
+      {/* ================================================================== */}
+      {assetsView === 'meta' && sessionId && (
+        <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
+          <MetaPanel sessionId={sessionId} files={vibeFilenames} />
+        </div>
+      )}
+
+      {/* ================================================================== */}
+      {/* SYNC VIEW — push/pull this session's files to a webserver         */}
+      {/* ================================================================== */}
+      {assetsView === 'sync' && sessionId && (
+        <div style={{ flex: 1, minHeight: 0, overflowY: 'auto' }}>
+          <WebserverSync sessionId={sessionId} />
         </div>
       )}
 

@@ -81,6 +81,16 @@ export function ensureMcpConfig({ sessionId, cwd, agentRole = 'cd' }: McpConfigO
       [MCP_SERVER_NAME]: {
         type: 'http',
         url,
+        // Pass session/agent/instance via BOTH the URL query AND headers.
+        // Older Claude CLI propagated the query but dropped `headers`; Claude
+        // ≥2.1.x is the reverse (sends `headers`, drops the query). The route
+        // reads `X-Oskar-*` headers first, then the `?session=` query — so
+        // carrying both makes the bridge work across CLI versions.
+        headers: {
+          'X-Oskar-Session': sessionId,
+          'X-Oskar-Agent': agentRole,
+          'X-Oskar-Instance': instanceId,
+        },
       },
     },
   }

@@ -54,6 +54,18 @@ export function CanvasPanel({
   }, [])
 
 
+  // STUDIO vibe split (2026-06-19): root-folder vibes render as the canvas
+  // tab row; subfolder vibes (Old_Vibes/, "Silke Lengler/…") go into the
+  // archive dropdown on the second row. parentDir is threaded from the
+  // gallery API → availableVibes; null/undefined = root.
+  const rootVibes = availableVibes.filter(v => !v.parentDir)
+  const subfolderVibes = availableVibes.filter(v => !!v.parentDir)
+  const subfolderGroups = subfolderVibes.reduce<Record<string, VibePreview[]>>((acc, v) => {
+    const dir = v.parentDir || 'Other'
+    ;(acc[dir] ||= []).push(v)
+    return acc
+  }, {})
+
   // Determine active vibe to display
   const activeVibe = availableVibes.find(v => v.filename === selectedVibeFile && v.status === 'ready')
   const vibeToShow = activeVibe
@@ -107,9 +119,10 @@ export function CanvasPanel({
           border: '1px solid var(--border-card)',
           overflow: 'auto'
         }}>
-          {/* Use availableVibes if populated (from streaming) */}
-          {availableVibes.length > 0 ? (
-            availableVibes.map((vibe, idx) => {
+          {/* Root-folder vibes render as tabs. Subfolder vibes live in the
+              archive dropdown on the second row below this toolbar. */}
+          {rootVibes.length > 0 ? (
+            rootVibes.map((vibe, idx) => {
               const isActive = selectedVibeFile === vibe.filename
               const isDisabled = vibe.status !== 'ready'
               return (
@@ -194,6 +207,19 @@ export function CanvasPanel({
                 </div>
               )
             })
+          ) : availableVibes.length > 0 ? (
+            /* No root vibes, but subfolder vibes exist → they're in the
+               archive dropdown on the second row. */
+            <span style={{
+              padding: '6px 16px',
+              fontSize: '10px',
+              fontFamily: 'var(--font-mono)',
+              color: 'var(--text-muted)',
+              textTransform: 'uppercase',
+              letterSpacing: '0.05em'
+            }}>
+              Alle Vibes im Archiv ↓
+            </span>
           ) : vibes.length > 0 ? (
             /* Fallback to vibes array (from session load) */
             vibes.map((vibe, idx) => {
@@ -291,6 +317,70 @@ export function CanvasPanel({
           )}
         </div>
       </div>
+
+      {/* ================================================================== */}
+      {/* ARCHIVE ROW (second line) — subfolder vibes in a dropdown         */}
+      {/* Root vibes are the tabs above; everything in Old_Vibes/ and other  */}
+      {/* subfolders is reachable here without cluttering the tab strip.     */}
+      {/* ================================================================== */}
+      {subfolderVibes.length > 0 && (
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '10px',
+          padding: '8px 20px',
+          borderBottom: '1px solid var(--border-card)',
+          backgroundColor: 'var(--bg-card)',
+          flexShrink: 0,
+          zIndex: 19,
+        }}>
+          <span style={{
+            fontSize: '10px',
+            fontFamily: 'var(--font-mono)',
+            fontWeight: 700,
+            textTransform: 'uppercase',
+            letterSpacing: '0.08em',
+            color: 'var(--text-muted)',
+            whiteSpace: 'nowrap',
+          }}>
+            Archiv
+          </span>
+          <select
+            value={activeVibe?.parentDir ? activeVibe.htmlPath : ''}
+            onChange={(e) => {
+              const path = e.target.value
+              if (!path || !onVibeFileSelect) return
+              const v = subfolderVibes.find(s => s.htmlPath === path)
+              if (v) {
+                onVibeFileSelect(v.filename)
+                onClearAsset()
+              }
+            }}
+            style={{
+              flex: 1,
+              maxWidth: '460px',
+              padding: '6px 10px',
+              fontSize: '12px',
+              backgroundColor: 'var(--bg-app)',
+              border: '1px solid var(--border-card)',
+              borderRadius: '6px',
+              color: 'var(--text-main)',
+              cursor: 'pointer',
+            }}
+          >
+            <option value="">
+              {subfolderVibes.length} archivierte Vibe{subfolderVibes.length === 1 ? '' : 's'} — auswählen…
+            </option>
+            {Object.entries(subfolderGroups).map(([dir, list]) => (
+              <optgroup key={dir} label={dir}>
+                {list.map(v => (
+                  <option key={v.htmlPath} value={v.htmlPath}>{v.name}</option>
+                ))}
+              </optgroup>
+            ))}
+          </select>
+        </div>
+      )}
 
       {/* ================================================================== */}
       {/* CONTENT AREA - flex: 1, relative, bg-background/30              */}

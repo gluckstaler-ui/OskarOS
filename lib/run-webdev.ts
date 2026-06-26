@@ -30,7 +30,7 @@ import { buildModeBanner } from './webdev-mode-banner'
 
 export type ExecutionMode = 'smpl' | 'cli' | 'api'
 
-export type Model = 'claude-sonnet-4-6' | 'claude-opus-4-8' | 'gemini-3.1-pro-preview'  // sonnet restored 2026-06-10 (padawan default)
+export type Model = 'claude-sonnet-4-6' | 'claude-opus-4-7' | 'gemini-3.1-pro-preview'  // sonnet restored 2026-06-10 (padawan default)
 
 // Valid combinations:
 // CLI:  sonnet, opus, gemini
@@ -307,7 +307,7 @@ export async function runWebDev(request: WebDevBuildRequest): Promise<VibeBuildR
     request.onToolCall?.(toolName, input)
   }
 
-  if (model === 'claude-sonnet-4-6' || model === 'claude-opus-4-8') {
+  if (model === 'claude-sonnet-4-6' || model === 'claude-opus-4-7') {
     const result = await runClaudeAgentLoop({
       model,
       systemPrompt: agentPrompt,

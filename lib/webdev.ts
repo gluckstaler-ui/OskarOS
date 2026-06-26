@@ -292,7 +292,7 @@ export async function buildVibeHTML(
   sessionId: string,
   target: string,
   sessionPath: string,
-  model: string = 'claude-opus-4-8',  // sonnet path ripped 2026-06-10; sole caller (run-webdev) always passes model
+  model: string = 'claude-opus-4-7',  // sonnet path ripped 2026-06-10; sole caller (run-webdev) always passes model
   abortSignal?: AbortSignal,
   /**
    * Ralph 2026-05-18 (Job-Card Ladder Fix — phase-flag plumb-through):

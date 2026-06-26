@@ -87,6 +87,26 @@ candidates per HUASHU-INTEGRATION-PROPOSAL.md §C8.
 
 ## Failure Log
 
+### 2026-06-19 — Director Mode "broke the pages" + edits silently vanished (jsdom-serialize persistence)
+
+- **Session:** `2026-04-25-silke-lengler` (CD, Huashu set).
+- **Symptom:** Three compounding complaints across the session: (1) "As soon as I click an element in Director Mode it loses all attributes" — clicking, before typing, stripped the element's inline `width/padding/margin/radius/background`. (2) Text edits never stuck. (3) "I fear I break the pages" — saving could corrupt the whole vibe.
+- **Turn count:** multi-round across the session (whack-a-mole — each "fix" surfaced the next layer) before the actual three root causes were isolated.
+- **Root cause — THREE distinct mechanisms wearing one symptom:**
+  1. **Select-time render race (the on-click wipe).** `LivePreviewWithDirector` selection effect updated the box/type **baseline refs synchronously** but the panel **state lagged one render**. On the seed commit the apply effects ran with stale default state vs the fresh baseline → wrote empty strings over the element's real inline style. Selection alone mutated the DOM.
+  2. **Client/server contract drift (text edits 400).** Client `onFocusOut` sent `oskarId = buildStablePath(el)` = `auto-body > section:nth-of-type(1) > …` (a selector path). Server `/api/director/text-edit` expected `^txt-(\d+)$` → returned 400 → client `.catch` swallowed it. Edits never persisted. (Same shape as every other two-state-machines-no-shared-schema entry in the Don't-Do List.)
+  3. **jsdom-serialize as a persistence engine (the page-breaker).** BOTH `/api/director/save-edits` and `/api/director/text-edit` did `new JSDOM(html)` → mutate → `dom.serialize()` → overwrite. A one-attribute edit re-emitted the ENTIRE document — normalizing void tags, re-encoding entities, and round-tripping inlined `<script type="text/babel">` + SVG. On dense vibes that silently altered bytes far from the edit. `lib/html-patch-engine.ts` had the same flaw (also jsdom-serialize), so "route through the existing patcher" would NOT have fixed it.
+- **Fix applied:**
+  - ① Seed-render guard (`seedGuardRef`) in `components/studio/LivePreviewWithDirector.tsx` — raised by the selection effect, lowered by a reset effect placed AFTER all four apply effects, so the seed commit applies nothing; real edits still write.
+  - ②③ New byte-surgical engine `lib/director-surgery.ts` — parse5 `sourceCodeLocationInfo` gives exact offsets; it splices ONLY the changed attribute/text spans and preserves every other byte verbatim. Both `app/api/director/save-edits/route.ts` and `app/api/director/text-edit/route.ts` rewritten to use it; jsdom dropped from the write path. text-edit now resolves the selector path the client actually sends.
+  - ④ (subfolder paths) needed NO change — `parseHtmlPath` already returns the full session-relative subpath; proven with a test.
+  - Tests: `lib/__tests__/director-surgery.test.ts` (16) + `lib/__tests__/director-routes.test.ts` (9, real route handlers against temp files). 25 green, incl. an explicit "babel script byte-preserved" assertion.
+- **Lesson:** **Never use a full-DOM parse→serialize round-trip (`jsdom.serialize()`, cheerio `.html()`, etc.) to persist a SURGICAL edit to a hand-authored file.** Serialize rewrites every byte and mangles whatever the parser "corrects" — fatal for inlined `<script type="text/babel">` (the animation engine), SVG, and intentional non-canonical markup. For targeted edits, use source-offset surgery (parse5 `sourceCodeLocationInfo` → splice) so untouched bytes stay untouched. Corollary: a "client loses attributes on click" symptom in a React inspector is almost always a **state-lags-baseline-by-one-render** race in the apply effects — guard the seed commit, don't chase the serializer. Corollary 2: when an edit "doesn't persist" and the client swallows errors, check the client/server field contract FIRST (here: selector path vs `txt-N`).
+- **Follow-up, same day (2 more failures the first fix exposed):**
+  - **Page-nuke regression.** Fixing ② (making text edits actually persist) *exposed* a latent catastrophe the old broken route had masked: a text edit whose selector resolved to `<body>` (or any container) replaced the whole subtree with its flattened `textContent` — `vibe-3-tiefer.html` lost every body tag, the inlined script ended up as escaped text in the body. Root cause: `onFocusOut` persisted a text edit for ANY focused contentEditable element, including containers; `isTextLeafElement` existed and was even imported but never called. Fix: client guard (`onFocusOut` skips `<body>`/`<html>`/non-leaf) + server guard (`director-surgery` refuses `text` on any node with block children, `reason:'refused-non-leaf'`) + tests. **Lesson: when you repair a broken write-path, enumerate what the brokenness was SUPPRESSING — a 400-for-everything route is also a safety net you're removing.** vibe-3-tiefer had to be hand-rebuilt (head/CSS survived; body reconstructed from preserved text — no root-vibe backup; public/ zips only cover the `Silke Lengler/` subfolder).
+  - **Zoom grew the box.** `buildTransformString` baked `scale(zoom)` into `transform`, applied to EVERY element → the element box scaled and overflowed ("the picture gets bigger") instead of the image zooming inside a fixed frame. Fix: split it — background-image elements zoom via `background-size` (box fixed, auto-clipped; zoom now takes precedence over the cover/contain keyword that used to swallow it); `<img>` scales + clips at the parent (parent overflow snapshotted so it reverts/persists); `<svg image>` scales (clipped by the svg viewport). **Lesson: `transform: scale` is the wrong tool for "zoom in place" — it scales the box, not the content. Use `background-size` for bg-images and parent-clipped scale for `<img>`.**
+- **Tags:** `#director` `#persistence` `#jsdom` `#react-effects` `#race` `#api` `#parse5` `#regression` `#zoom`
+
 ### 2026-06-16 — Concurrent `build_vibe` array of 18 slugs collapsed all output onto ONE filename
 
 - **Session:** `2026-04-25-silke-lengler` (CD, Huashu set).
@@ -381,3 +401,37 @@ _(none logged yet — entries promoted from the Failure Log when 2+ entries
 share a generalizable lesson per HUASHU-INTEGRATION-PROPOSAL.md §C8)_
 
 ---
+
+## Failure Log — 2026-06-22 · Session index.html body wiped to empty; no clean backup
+
+**Symptom.** Mid-redesign of `public/2026-05-31-weingut-barbazza/index.html`, the file
+was found at 10 KB with intact `<head>` but `<body></body>` — the entire page (header,
+hero, 9 articles, scripts, all i18n dicts) gone. ~160 KB → 10 KB. Stamped 15:29, ~2.5h
+after the agent's last confirmed edit (~13:00). Not the agent's write (last Edit returned
+success with content intact; only reads/Bash after). Most likely an external Director-mode
+/ editor / deploy save that serialized only the head.
+
+**Recovery attempts (in order).** (1) git — `public/` is gitignored (`.gitignore:22`), file
+never tracked, no history. (2) editor local-history — no VS Code/Cursor `History/` dir.
+(3) session logs — SESSION.md holds only agent prose, no HTML blob. (4) `OldVibes/index.html`
++ `118bbuilder/.../index.html` — stale June-18 variants. (5) **live site** `curl https://barbazza.wine/`
+→ full 117 KB page, but the deploy was **June 18** (`Last-Modified` header), 4 days stale:
+no Czech language, no phylloxera content, none of the image swaps, none of the redesign.
+
+**Resolution.** Restored from the June-18 live pull, then: rewrote all `assets/{img,brand,fonts,video}/`
+paths → flat-root (current folder layout differs from the deploy), re-added the SEO head block,
+rebuilt Article II to the new spec, re-applied the documented edits (Italian corrections, German
+ranking, phylloxera venice2) in EN/DE/HR/IT. **Czech lost** (whole language — needs full redo).
+Made a manual `index.BACKUP-<ts>.html`.
+
+**Lessons.**
+- **`public/` has NO git safety net and the live deploy can be days stale.** When recovery is
+  needed the realistic order is: APFS local snapshots (~24h, `tmutil`) FIRST → live site (check
+  `Last-Modified`, assume stale) → agent context. The existing Don't-Do bullet (2026-06-11)
+  already flags public/-not-in-git for `rm`; this extends it to *any* destructive save.
+- **A deploy is a different folder convention than the working tree.** The live build used
+  `assets/img|brand|fonts/`; the working session is flat-root. Restoring from a deploy ALWAYS
+  needs a path-rewrite pass + a static link-check (every `src/href/poster` resolves on disk)
+  before it will render locally.
+- **Hand-built session HTML over ~100 KB should get a manual `.BACKUP` checkpoint** after each
+  large milestone, since neither git nor editor-history covers `public/`.

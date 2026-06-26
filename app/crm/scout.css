@@ -78,6 +78,27 @@
 .scout-run.scout-stop{background:linear-gradient(135deg,#ef4444,#b91c1c);color:#fff;animation:scoutStopPulse 1.4s ease-in-out infinite;opacity:1;}
 .scout-run.scout-stop:hover{transform:translateY(-1px);box-shadow:0 1px 0 rgba(255,255,255,.14) inset,0 4px 16px rgba(239,68,68,.45);}
 
+/* ── Pressure gauge (Ralph 2026-06-19) — live LVE/system load above Run Scout.
+   The Run Scout button + gauge share a right-aligned column stack so the gauge
+   reads as that button's instrument panel. 4 cells: CPU% (green ≤50 / amber
+   ≤100 / red >100), a BURST clock counting while CPU>50%, process + entry-proc
+   counts. Data: /api/admin/system-load (uapi on the webserver, os.cpus locally).
+   Tokens match the toolbar (mono font, --bg-card/--border-card, brand colors). */
+.scout-run-stack{margin-left:auto;display:flex;flex-direction:column;align-items:stretch;gap:6px;}
+.scout-run-stack .scout-run{margin-left:0;justify-content:center;}
+.scout-gauge{display:flex;gap:6px;font-family:var(--font-mono,monospace);}
+.sg-cell{flex:1;display:flex;flex-direction:column;gap:3px;min-width:52px;background:var(--bg-card);border:1px solid var(--border-card);border-radius:7px;padding:5px 9px;transition:border-color .3s;}
+.sg-k{font-size:8.5px;font-weight:700;letter-spacing:.07em;color:var(--text-dim);}
+.sg-v{font-size:12.5px;font-weight:700;line-height:1;color:var(--text-main);font-variant-numeric:tabular-nums;}
+.sg-v em{font-style:normal;font-size:9px;font-weight:600;color:var(--text-dim);}
+.sg-bar{display:block;height:3px;border-radius:2px;background:var(--bg-sunken);overflow:hidden;margin-top:1px;}
+.sg-bar i{display:block;height:100%;border-radius:2px;background:var(--brand-phosphor);transition:width .35s ease,background .3s;}
+.sg-green .sg-v{color:var(--brand-phosphor);}.sg-green .sg-bar i{background:var(--brand-phosphor);}
+.sg-amber .sg-v{color:var(--brand-amber);}.sg-amber .sg-bar i{background:var(--brand-amber);}
+.sg-red   .sg-v{color:var(--brand-red);}   .sg-red   .sg-bar i{background:var(--brand-red);}
+.sg-red{border-color:var(--brand-red);}
+.sg-timer.sg-amber .sg-v{color:var(--brand-amber);}
+
 /* card list */
 .scout-wrap{flex:1;min-height:0;overflow:auto;padding:4px 2px 40px;}
 .scout-cards{display:flex;flex-direction:column;gap:8px;}

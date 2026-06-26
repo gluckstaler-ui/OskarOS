@@ -25,6 +25,13 @@ const nextConfig = {
     // must be external for the embedded CRM store to load at runtime.
     'better-sqlite3',
     'proper-lockfile',
+    // Scout capture (2026-06-19): puppeteer is the same kind of native package
+    // as the rest of this list, and was the ONLY one missing. Without it,
+    // turbopack compiles `import puppeteer` to externalImport('puppeteer-<hash>')
+    // which throws `open EEXIST` in the long-running server (the Scout capture
+    // bug). Chrome + the library work fine in a fresh process — it's purely this
+    // externalization gap. Listing it makes Next require() it natively, no wrapper.
+    'puppeteer',
   ],
 }
 

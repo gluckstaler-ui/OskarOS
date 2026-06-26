@@ -65,7 +65,6 @@ import {
   spacingIsZero,
   radiusIsZero,
   buildFilterString,
-  buildTransformString,
   // Humanization
   weightLabel,
   // Selector helpers
@@ -281,6 +280,19 @@ export const LivePreviewWithDirector = forwardRef<
   // the flag and return early → next render flips the flag back to false.
   const skipApplyRef = useRef(false)
 
+  // Seed-render guard (2026-06-19 — fixes "click strips the element's inline
+  // style"). When a new element is selected, the selection effect updates the
+  // baseline refs SYNCHRONOUSLY but the panel's box/type/filter/transform
+  // STATE lags one render. On that seed commit the apply effects would run
+  // with stale state vs the fresh baseline and write garbage — most visibly
+  // the box effect writing empty strings (default state) over the element's
+  // real inline width/padding/margin/radius/background, wiping them the
+  // instant you click. This flag is raised by the selection effect and
+  // lowered by the reset effect that runs AFTER all apply effects in the same
+  // commit, so the seed commit applies nothing; real edits (later commits,
+  // flag already false) still write normally.
+  const seedGuardRef = useRef(false)
+
   // Anchors we CREATED by wrapping a non-anchor element when the user
   // set a Link. These need to be unwrapped on Undo (distinguished from
   // pre-existing anchors in the page, which we only remove href from).
@@ -301,6 +313,19 @@ export const LivePreviewWithDirector = forwardRef<
 
   // Parse sessionId + pageFilename up-front — used by multiple handlers below.
   const { sessionId, pageFilename } = parseHtmlPath(htmlPath || undefined)
+
+  // Backup-on-enter (Ralph, 2026-06-22): the moment Director Mode opens, take a
+  // pristine server-side snapshot of the page so any edit is recoverable. Fires
+  // once per (page, enter) — the undo safety net behind the compare-and-swap
+  // guard. MUST sit after sessionId/pageFilename are declared (above).
+  useEffect(() => {
+    if (!directorMode || !sessionId || !pageFilename) return
+    fetch('/api/director/backup', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ sessionId, pageFilename }),
+    }).catch((err) => console.warn('[director-backup] snapshot failed', err))
+  }, [directorMode, sessionId, pageFilename])
 
   // Ask CD overlay (Gallery uses this; Image Mode suppresses via hideAskCDOverlay)
   const [askInput, setAskInput] = useState('')
@@ -849,6 +874,9 @@ export const LivePreviewWithDirector = forwardRef<
     if (!iframeEl || !htmlPath) return
     // Save text edits on blur
     const textSnapshots = new WeakMap<HTMLElement, string>()
+    // Last persisted text per element — avoids re-POSTing the same value on
+    // every blur. Distinct from the undo snapshot (which holds the ORIGINAL).
+    const savedText = new WeakMap<HTMLElement, string>()
 
     function installStyles(doc: Document) {
       if (doc.getElementById('oskar-director-styles')) return
@@ -1062,30 +1090,99 @@ export const LivePreviewWithDirector = forwardRef<
       }
     }
 
-    function onFocusOut(e: FocusEvent) {
-      const t = e.target as HTMLElement | null
-      if (!t) return
-      const before = textSnapshots.get(t)
-      if (before === undefined) return
-      if (t.innerHTML === before) return
-      snapshotElement(t)
+    function onFocusOut() {
+      // CRITICAL: with `body.contentEditable=true`, focus lives on <body>, so
+      // `e.target` here is ALWAYS <body> — never the element the user edited.
+      // The old code persisted <body> (→ the page-nuke); naively guarding
+      // "skip if body" killed every save. Correct behavior: when the editing
+      // host blurs (user clicks away / hits Save), FLUSH text edits by scanning
+      // the elements we snapshotted on click for TEXT-LEAF nodes whose text
+      // changed, and persist each by its own selector. (2026-06-19)
+      if (!directorModeRef.current) return
       if (!sessionId || !pageFilename) return
-      let oskarId = t.getAttribute(OSKAR_ID_ATTR)
-      if (!oskarId) {
-        oskarId = buildStablePath(t)
-        t.setAttribute(OSKAR_ID_ATTR, oskarId)
+      for (const el of Array.from(modifiedElsRef.current)) {
+        if (!isTextLeafElement(el)) continue
+        const snap = snapshotsRef.current.get(el)
+        if (!snap || snap.innerHtml === undefined) continue
+        if (el.innerHTML === snap.innerHtml) continue // unchanged from original
+        // Send the element's inner HTML (markup preserved), not textContent
+        // (which would flatten <em>/<br>/<span>). Strip only contentEditable
+        // cruft (inline styles) + our runtime id attrs.
+        const clone = el.cloneNode(true) as HTMLElement
+        clone.querySelectorAll('*').forEach((n) => { n.removeAttribute('style'); n.removeAttribute('data-oskar-id'); n.removeAttribute('data-oskar-editable') })
+        const cur = clone.innerHTML.trim()
+        // The value we last persisted for this element (undefined = never). This
+        // is what the SERVER currently holds, so it's the right compare-and-swap
+        // base for a 2nd+ edit of the same element — using the original snapshot
+        // would mismatch the already-updated source and get falsely refused.
+        const prevSaved = savedText.get(el)
+        if (prevSaved === cur) continue // already persisted this value
+        let oskarId = el.getAttribute(OSKAR_ID_ATTR)
+        if (!oskarId) {
+          oskarId = buildStablePath(el)
+          el.setAttribute(OSKAR_ID_ATTR, oskarId)
+        }
+        savedText.set(el, cur)
+        // `baseText` = the element's PRE-EDIT inner HTML. The server compares it
+        // (normalized to text) against the source before writing — so an edit
+        // made while the canvas renders a TRANSLATION (German "Keller") is
+        // refused instead of clobbering the English source. The server strips
+        // tags/attrs when comparing, so the cruft in snap.innerHtml is harmless.
+        const baseText = prevSaved !== undefined ? prevSaved : snap.innerHtml
+        fetch('/api/director/text-edit', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            sessionId,
+            pageFilename,
+            oskarId,
+            newText: cur,
+            baseText,
+            tagName: el.tagName.toLowerCase(),
+          }),
+        })
+          .then(async (res) => {
+            if (res.ok) return
+            // Any non-OK = the edit did NOT reach disk. Previously ONLY 409 was
+            // handled here — and even that dispatched a `director:edit-refused`
+            // event that NOTHING listens to — so every other failure (404
+            // not-found, refused-non-leaf, 500) vanished silently. That is the
+            // recurring "Director Mode doesn't save": savedText was marked
+            // optimistically (above, pre-fetch), so a failed save looked
+            // identical to a success. Un-mark it so a retry can fire, and
+            // surface the reason through emitError (the channel saveAll uses,
+            // which actually reaches the UI).
+            const body = await res.json().catch(() => ({} as { error?: string; reason?: string }))
+            if (body?.reason === 'no-op') return // source already matches — effectively saved
+            savedText.delete(el)
+            const msg = res.status === 409
+              ? 'Edit not saved — the canvas is showing a translated/transformed view, not the source. Switch the preview to the source language, or edit the translation in the META panel.'
+              : `Edit not saved${body?.reason ? ` (${body.reason})` : ''}: ${body?.error || `HTTP ${res.status}`}`
+            console.warn('[text-edit] not persisted:', res.status, body)
+            if (sessionId) emitError(sessionId, msg)
+          })
+          .catch((err) => {
+            savedText.delete(el)
+            console.warn('[text-edit] persist failed', err)
+            if (sessionId) emitError(sessionId, 'Edit not saved — network error. Your change is still on screen; try again.')
+          })
       }
-      fetch('/api/director/text-edit', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          sessionId,
-          pageFilename,
-          oskarId,
-          newText: (t.textContent || '').trim(),
-          tagName: t.tagName.toLowerCase(),
-        }),
-      }).catch((err) => console.warn('[text-edit] persist failed', err))
+    }
+
+    // Director Mode runs the iframe <body> as contentEditable. Plain Enter there
+    // fires `insertParagraph`, which SPLITS the current block (<h2>/<p>) into two
+    // sibling blocks — mutating the DOM so the selector buildStablePath captured no
+    // longer resolves on save → "Edit not saved (not-found)" (a split <h2> becomes
+    // h2:nth-of-type(2), which doesn't exist in the source). Redirect plain Enter to
+    // an inline <br> (INLINE_SAFE): it stays INSIDE the element — structure-stable,
+    // edit still persists. Shift+Enter already inserts a <br> by default.
+    function onKeyDown(e: KeyboardEvent) {
+      if (!directorModeRef.current) return
+      if (e.key === 'Enter' && !e.shiftKey && !e.metaKey && !e.ctrlKey && !e.altKey) {
+        e.preventDefault()
+        const od = (e.target as HTMLElement)?.ownerDocument
+        try { od?.execCommand('insertLineBreak') } catch { /* no-op */ }
+      }
     }
 
     const doc = iframeEl.contentDocument
@@ -1120,6 +1217,11 @@ export const LivePreviewWithDirector = forwardRef<
       }
       d.documentElement.dataset.oskarSetupDone = '1'
 
+      // Build marker — lets us confirm the running bundle is fresh. If you do
+      // NOT see this line in the console when Director turns on, your browser
+      // is serving a stale JS bundle and the save fix isn't loaded yet.
+      console.log('%c[oskar-director] save-fix build 2026-06-19 ACTIVE', 'color:#10B981;font-weight:700')
+
       installStyles(d)
       tagBgImages(d)
       // Re-apply director mode state on setup so iframe reloads / hot
@@ -1137,6 +1239,7 @@ export const LivePreviewWithDirector = forwardRef<
       d.addEventListener('click', onClick, true)
       d.addEventListener('focusin', onFocusIn, true)
       d.addEventListener('focusout', onFocusOut, true)
+      d.addEventListener('keydown', onKeyDown, true)
       // mouseleave on the doc fires when the cursor exits the iframe —
       // clears stuck hover outlines / gear overlays.
       d.addEventListener('mouseleave', onMouseLeave, true)
@@ -1154,6 +1257,7 @@ export const LivePreviewWithDirector = forwardRef<
       d.removeEventListener('click', onClick, true)
       d.removeEventListener('focusin', onFocusIn, true)
       d.removeEventListener('focusout', onFocusOut, true)
+      d.removeEventListener('keydown', onKeyDown, true)
       d.removeEventListener('mouseleave', onMouseLeave, true)
     }
 
@@ -1313,6 +1417,9 @@ export const LivePreviewWithDirector = forwardRef<
   // element's current state so the inspector shows current values.
   useEffect(() => {
     if (!styleTarget) return
+    // Raise the seed guard: the apply effects below must NOT fire on this
+    // commit (state lags baseline by one render — see seedGuardRef comment).
+    seedGuardRef.current = true
     // Snapshot before any styling change
     snapshotElement(styleTarget)
     const box = readBoxFromElement(styleTarget)
@@ -1333,6 +1440,7 @@ export const LivePreviewWithDirector = forwardRef<
   useEffect(() => {
     if (!styleTarget) return
     if (skipApplyRef.current) return
+    if (seedGuardRef.current) return
     if (!changedFromBaseline(filterState, filterBaselineRef.current)) return
     const f = buildFilterString(filterState)
     styleTarget.style.filter = f
@@ -1342,16 +1450,27 @@ export const LivePreviewWithDirector = forwardRef<
   useEffect(() => {
     if (!styleTarget) return
     if (skipApplyRef.current) return
+    if (seedGuardRef.current) return
     if (!changedFromBaseline(transformState, transformBaselineRef.current)) return
     const t = transformState
-    const tf = buildTransformString(t)
     const isImg = styleTarget.tagName === 'IMG'
     const isSvgImg = styleTarget.tagName === SVG_IMAGE_TAG
     // Both X and Y as CSS percentages. `object-position` / `background-position`
     // accept percentage values where 0% 0% = top-left and 100% 100% = bottom-right.
     // Default (50, 50) = center. Sliders give pixel-level control.
     const posString = `${t.positionX}% ${t.positionY}%`
-    styleTarget.style.transform = tf
+    // tfBase = flip + rotate ONLY. Zoom is applied per element type below:
+    //   • <img> / <svg image> → append scale() (content scales, clipped to the
+    //     frame) so the picture zooms in place.
+    //   • background-image → zoom via background-size; the box never grows.
+    // (2026-06-19 — zoom used to bake scale() onto EVERY element via the shared
+    // transform, which grew the element box → "the picture gets bigger" instead
+    // of zooming in. Issue #1.)
+    const tfBase = [
+      t.flipH && t.flipV ? 'scale(-1, -1)' : t.flipH ? 'scaleX(-1)' : t.flipV ? 'scaleY(-1)' : '',
+      t.rotate !== 0 ? `rotate(${t.rotate}deg)` : '',
+    ].filter(Boolean).join(' ')
+    const tfWithZoom = (t.zoom !== 1 ? `${tfBase} scale(${t.zoom})` : tfBase).trim()
     // Percentage-based so the corners scale with element size. 50% = pill/circle.
     // We also set overflow:hidden so bg-images / inner content actually clip
     // against the rounded border (without it the bg extends past the radius).
@@ -1364,9 +1483,20 @@ export const LivePreviewWithDirector = forwardRef<
       if (styleTarget.style.overflow === 'hidden') styleTarget.style.overflow = ''
     }
     if (isImg) {
-      styleTarget.style.objectFit = t.fit || ''
+      // Zoom an <img> by scaling its content inside a FIXED frame: keep the
+      // element box, apply transform scale, and let the immediate parent clip
+      // the overflow so the box doesn't visually grow. The parent's overflow
+      // change is snapshotted → it reverts AND persists with the edit.
+      styleTarget.style.objectFit = t.fit || 'cover'
       styleTarget.style.objectPosition = posString
-      // Zoom for <img> uses transform: scale — already baked into tf.
+      styleTarget.style.transform = tfWithZoom
+      if (t.zoom !== 1) {
+        const parent = styleTarget.parentElement
+        if (parent && parent !== styleTarget.ownerDocument?.body) {
+          snapshotElement(parent)
+          parent.style.overflow = 'hidden'
+        }
+      }
     } else if (isSvgImg) {
       // SVG <image> doesn't support object-fit / object-position. The SVG
       // equivalent is the `preserveAspectRatio` attribute: an alignment
@@ -1387,6 +1517,7 @@ export const LivePreviewWithDirector = forwardRef<
       // Zoom + rotate + flip continue to work via the CSS `transform`
       // applied above (modern browsers respect CSS transform on SVG
       // sub-elements).
+      styleTarget.style.transform = tfWithZoom // svg <image> clips to the svg viewport, so scale is safe
       const xAlign = t.positionX < 34 ? 'xMin' : t.positionX > 66 ? 'xMax' : 'xMid'
       const yAlign = t.positionY < 34 ? 'YMin' : t.positionY > 66 ? 'YMax' : 'YMid'
       const align = `${xAlign}${yAlign}`
@@ -1397,22 +1528,54 @@ export const LivePreviewWithDirector = forwardRef<
       styleTarget.setAttribute('preserveAspectRatio', par)
       // SVG <image> doesn't have a "repeat" concept — leave unset.
     } else {
-      if (t.fit === 'fill') styleTarget.style.backgroundSize = '100% 100%'
-      else if (t.fit === 'auto') styleTarget.style.backgroundSize = 'auto'
-      else if (t.fit === 'cover' || t.fit === 'contain')
-        styleTarget.style.backgroundSize = t.fit
-      else if (t.zoom !== 1)
-        styleTarget.style.backgroundSize = `${100 * t.zoom}%`
-      else styleTarget.style.backgroundSize = ''
+      // Background-image element.
+      styleTarget.style.transform = tfBase
       styleTarget.style.backgroundPosition = posString
-      styleTarget.style.backgroundRepeat = t.repeat || ''
+      if (t.zoom !== 1) {
+        // ZOOM IN PLACE — the hard case. A single-value `background-size: NNN%`
+        // sets width=NNN%, height=auto; on an aspect-mismatched box (e.g. a
+        // landscape photo in a tall portrait frame) the image height falls
+        // short of the box and the background TILES vertically — the "image
+        // repeats 3×" bug. The correct magnify is cover-scale × zoom in BOTH
+        // dimensions (explicit px): it covers the box, preserves aspect, and
+        // never tiles. `no-repeat` is forced so it can never tile regardless.
+        // (2026-06-19 — issue: zoom tiled the portrait.)
+        const el = styleTarget
+        el.style.backgroundRepeat = 'no-repeat'
+        const win = el.ownerDocument?.defaultView
+        const bgImg = win?.getComputedStyle(el).backgroundImage || ''
+        const urlMatch = bgImg.match(/url\(["']?([^"')]+)["']?\)/)
+        const zoom = t.zoom
+        const applyCover = (natW: number, natH: number) => {
+          const bw = el.clientWidth, bh = el.clientHeight
+          if (!natW || !natH || !bw || !bh) { el.style.backgroundSize = `${100 * zoom}%`; return }
+          const cover = Math.max(bw / natW, bh / natH)
+          el.style.backgroundSize = `${Math.round(natW * cover * zoom)}px ${Math.round(natH * cover * zoom)}px`
+        }
+        if (urlMatch && win) {
+          const probe = win.document.createElement('img')
+          probe.onload = () => applyCover(probe.naturalWidth, probe.naturalHeight)
+          probe.src = urlMatch[1]
+          // Cached images report dimensions synchronously — apply immediately.
+          if (probe.complete && probe.naturalWidth) applyCover(probe.naturalWidth, probe.naturalHeight)
+        } else {
+          el.style.backgroundSize = `${100 * zoom}%`
+        }
+      } else {
+        styleTarget.style.backgroundRepeat = t.repeat || ''
+        if (t.fit === 'fill') styleTarget.style.backgroundSize = '100% 100%'
+        else if (t.fit === 'auto') styleTarget.style.backgroundSize = 'auto'
+        else if (t.fit === 'cover' || t.fit === 'contain') styleTarget.style.backgroundSize = t.fit
+        else styleTarget.style.backgroundSize = ''
+      }
     }
-  }, [transformState, styleTarget, changedFromBaseline])
+  }, [transformState, styleTarget, changedFromBaseline, snapshotElement])
 
   // Apply box (opacity, size, padding, margin, radius, fill) whenever boxState changes
   useEffect(() => {
     if (!styleTarget) return
     if (skipApplyRef.current) return
+    if (seedGuardRef.current) return
     const s = styleTarget.style
     const bb = boxBaselineRef.current
     // Each block writes ONLY when the user changed it from the select-time
@@ -1531,6 +1694,7 @@ export const LivePreviewWithDirector = forwardRef<
   useEffect(() => {
     if (!styleTarget) return
     if (skipApplyRef.current) return
+    if (seedGuardRef.current) return
     const s = styleTarget.style
     const t = typeState
     const tb = typeBaselineRef.current
@@ -1546,6 +1710,15 @@ export const LivePreviewWithDirector = forwardRef<
     if (changedFromBaseline(t.lineHeight, tb.lineHeight)) s.lineHeight = t.lineHeight !== null ? String(t.lineHeight) : ''
     if (changedFromBaseline(t.letterSpacing, tb.letterSpacing)) s.letterSpacing = t.letterSpacing ? `${t.letterSpacing.value}${t.letterSpacing.unit}` : ''
   }, [typeState, styleTarget, changedFromBaseline])
+
+  // Lower the seed guard. Defined AFTER all four apply effects so, within the
+  // seed commit, it runs last: selection effect raises the guard → apply
+  // effects skip → this clears it. On the NEXT render (seeded state has
+  // landed, state === baseline) the apply effects run as no-ops, and any
+  // genuine user edit afterwards (guard already false) writes normally.
+  useEffect(() => {
+    seedGuardRef.current = false
+  }, [styleTarget, filterState, transformState, boxState, typeState])
 
   // ───────────────────────────────────────────────────────────────────────
   // Picker result (fallback modal)

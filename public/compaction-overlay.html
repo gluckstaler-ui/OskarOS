@@ -1,0 +1,1318 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Order 66 — Compaction</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Cinzel:wght@700;900&display=swap');
+
+  :root {
+    --red: #ff0a0a;
+    --red-glow: #ff3333;
+    --red-core: #ffcccc;
+    --blue: #4fc3f7;
+    --blue-glow: #00e5ff;
+    --gold: #ffd54f;
+  }
+
+  /* Scoped reset — only affects overlay, not the app behind it */
+  /* Ralph 2026-04-25: cursor stays VISIBLE during Order 66 — hiding it
+     blocks the Continue button click and confuses anyone debugging. */
+  .compaction-root { background: rgba(0,0,0,0); overflow: hidden; width: 100%; height: 100%; transition: background 3s ease; }
+  .compaction-root * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  /* ═══════════════════════════════════════
+     SHARED: Context bar (used in phase 1 + phase 4)
+     ═══════════════════════════════════════ */
+  .bar-wrap {
+    position: fixed;
+    top: 62%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 70%;
+    max-width: 700px;
+    z-index: 500;
+    opacity: 0;
+    transition: opacity 0.8s ease;
+  }
+
+  .bar-wrap.compact-mode {
+    top: auto;
+    bottom: auto;
+    transform: translate(-50%, 0);
+    width: 50%;
+    max-width: 550px;
+  }
+
+  .bar-wrap.visible { opacity: 1; }
+
+  .bar-label {
+    font-family: 'Orbitron', monospace;
+    font-size: 0.8rem;
+    letter-spacing: 6px;
+    text-transform: uppercase;
+    margin-bottom: 0.4rem;
+    transition: color 0.5s ease;
+  }
+
+  .bar-track {
+    width: 100%;
+    height: 10px;
+    background: rgba(255,255,255,0.08);
+    border-radius: 5px;
+    overflow: hidden;
+  }
+
+  .bar-fill {
+    height: 100%;
+    border-radius: 3px;
+    transition: width 0.05s linear;
+  }
+
+  .bar-percent {
+    font-family: 'Orbitron', monospace;
+    font-size: 1.2rem;
+    font-weight: 900;
+    margin-top: 0.5rem;
+    text-align: right;
+    transition: color 0.5s ease;
+  }
+
+  /* ═══════════════════════════════════════
+     PHASE 1: ORDER 66
+     ═══════════════════════════════════════ */
+  #phase-order66 {
+    position: fixed;
+    inset: 0;
+    z-index: 100;
+    background: linear-gradient(180deg, rgba(26,26,46,0.92) 0%, rgba(22,33,62,0.92) 50%, rgba(15,52,96,0.92) 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: opacity 1.5s ease;
+  }
+
+  .order-text {
+    font-family: 'Orbitron', monospace;
+    font-size: clamp(2.5rem, 7vw, 5rem);
+    font-weight: 900;
+    color: var(--red);
+    letter-spacing: 10px;
+    text-transform: uppercase;
+    opacity: 0;
+    text-shadow: 0 0 30px var(--red), 0 0 60px rgba(255,10,10,0.5);
+    transition: opacity 0.5s ease;
+    margin-top: -8vh;
+  }
+
+  .order-text.visible { opacity: 1; }
+
+  /* ═══════════════════════════════════════
+     PHASE 2: THE KILL
+     ═══════════════════════════════════════ */
+  #phase-kill {
+    position: fixed;
+    inset: 0;
+    z-index: 200;
+    background: rgba(0,0,0,0.92);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.5s ease;
+  }
+
+  #phase-kill.active { opacity: 1; }
+
+  /* Reaper */
+  .reaper {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity 1s ease;
+  }
+
+  .reaper.visible { opacity: 1; }
+
+  .hood {
+    position: relative;
+    width: 120px;
+    height: 140px;
+    background: radial-gradient(ellipse at center bottom, #1a0000 0%, #000 70%);
+    border-radius: 60px 60px 30px 30px;
+    filter: drop-shadow(0 0 40px rgba(255,10,10,0.2));
+  }
+
+  .eye-row {
+    position: absolute;
+    top: 70px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 30px;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+  }
+
+  .eye-row.visible { opacity: 1; }
+
+  .eye {
+    width: 8px;
+    height: 4px;
+    background: var(--red);
+    border-radius: 50%;
+    box-shadow: 0 0 15px var(--red), 0 0 30px var(--red);
+    animation: pulse 1.5s ease-in-out infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { box-shadow: 0 0 15px var(--red), 0 0 30px var(--red); }
+    50% { box-shadow: 0 0 30px var(--red), 0 0 60px var(--red), 0 0 90px rgba(255,10,10,0.4); }
+  }
+
+  .cloak {
+    position: absolute;
+    top: 100px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 160px;
+    height: 350px;
+    background: linear-gradient(180deg, #0a0000, #000);
+    clip-path: polygon(10% 0%, 90% 0%, 100% 100%, 0% 100%);
+  }
+
+  /* Saber */
+  .saber-rig {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    opacity: 0;
+    transition: opacity 0.4s ease;
+  }
+
+  .saber-rig.visible { opacity: 1; }
+
+  .hilt {
+    width: 12px;
+    height: 80px;
+    background: linear-gradient(180deg, #333, #555, #333);
+    border-radius: 3px;
+    margin: 0 auto;
+    position: relative;
+  }
+
+  .b-top, .b-bot {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 6px;
+    height: 0;
+    border-radius: 3px;
+    box-shadow: 0 0 10px var(--red-glow), 0 0 20px var(--red-glow), 0 0 40px var(--red);
+    transition: height 0.7s ease-out;
+  }
+
+  .b-top {
+    bottom: 100%;
+    background: linear-gradient(0deg, var(--red-core), var(--red), rgba(255,10,10,0.3));
+  }
+
+  .b-bot {
+    top: 100%;
+    background: linear-gradient(180deg, var(--red-core), var(--red), rgba(255,10,10,0.3));
+  }
+
+  .b-top.on { height: 260px; }
+  .b-bot.on { height: 260px; }
+
+  .glow-layer {
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(ellipse at center, rgba(255,10,10,0.06) 0%, transparent 70%);
+    opacity: 0;
+    transition: opacity 0.8s ease;
+  }
+
+  .glow-layer.visible { opacity: 1; }
+
+  /* Spin */
+  .spin-rig {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 550px;
+    height: 6px;
+    transform: translate(-50%, -50%);
+    opacity: 0;
+  }
+
+  .spin-rig::before, .spin-rig::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    width: 50%;
+    height: 100%;
+    border-radius: 3px;
+  }
+
+  .spin-rig::before {
+    left: 0;
+    background: linear-gradient(270deg, var(--red-core), var(--red), transparent);
+    box-shadow: 0 0 20px var(--red-glow), 0 0 40px var(--red);
+  }
+
+  .spin-rig::after {
+    right: 0;
+    background: linear-gradient(90deg, var(--red-core), var(--red), transparent);
+    box-shadow: 0 0 20px var(--red-glow), 0 0 40px var(--red);
+  }
+
+  @keyframes spin { 0% { transform: translate(-50%,-50%) rotate(0deg); } 100% { transform: translate(-50%,-50%) rotate(360deg); } }
+
+  .spin-rig.go { opacity: 1; animation: spin 0.3s linear 4; }
+
+  /* Slash */
+  .slash {
+    position: absolute;
+    top: -10%;
+    left: -30%;
+    width: 150%;
+    height: 8px;
+    background: linear-gradient(90deg, transparent, var(--red-core), #fff, var(--red-core), transparent);
+    transform: rotate(-35deg);
+    box-shadow: 0 0 30px var(--red-glow), 0 0 60px var(--red), 0 0 100px rgba(255,10,10,0.8);
+    opacity: 0;
+    transition: top 0.12s ease-out, left 0.12s ease-out;
+  }
+
+  .flash {
+    position: absolute;
+    inset: 0;
+    background: #fff;
+    opacity: 0;
+  }
+
+  /* Fractures */
+  .crack {
+    position: absolute;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, rgba(255,10,10,0.5), var(--red-core), rgba(255,10,10,0.5), transparent);
+    box-shadow: 0 0 4px var(--red);
+    opacity: 0;
+  }
+
+  .c1 { top: 18%; left: 28%; width: 44%; transform: rotate(-28deg); }
+  .c2 { top: 38%; left: 18%; width: 62%; transform: rotate(-35deg); }
+  .c3 { top: 52%; left: 22%; width: 58%; transform: rotate(-22deg); }
+  .c4 { top: 43%; left: 48%; width: 28%; transform: rotate(-68deg); }
+  .c5 { top: 65%; left: 30%; width: 38%; transform: rotate(-18deg); }
+
+  /* Shards */
+  .shard {
+    position: absolute;
+    background: linear-gradient(135deg, rgba(15,0,0,0.9), rgba(30,0,0,0.7));
+    border: 1px solid rgba(255,10,10,0.12);
+    opacity: 0;
+  }
+
+  .sh1 { top: 8%; left: 12%; width: 180px; height: 200px; clip-path: polygon(0% 0%, 80% 10%, 100% 70%, 30% 100%, 5% 60%); }
+  .sh2 { top: 3%; left: 38%; width: 220px; height: 180px; clip-path: polygon(10% 0%, 90% 5%, 95% 80%, 40% 100%, 0% 65%); }
+  .sh3 { top: 22%; left: 62%; width: 160px; height: 220px; clip-path: polygon(5% 10%, 70% 0%, 100% 60%, 80% 100%, 0% 85%); }
+  .sh4 { top: 42%; left: 8%; width: 200px; height: 160px; clip-path: polygon(0% 0%, 100% 15%, 90% 100%, 20% 90%); }
+  .sh5 { top: 52%; left: 48%; width: 190px; height: 190px; clip-path: polygon(15% 0%, 85% 10%, 100% 75%, 60% 100%, 0% 70%); }
+  .sh6 { top: 62%; left: 72%; width: 150px; height: 200px; clip-path: polygon(0% 5%, 90% 0%, 100% 80%, 50% 100%, 10% 75%); }
+
+  @keyframes fall {
+    0% { transform: translateY(0) rotateX(0) rotateZ(0); opacity: 1; }
+    100% { transform: translateY(110vh) rotateX(40deg) rotateZ(15deg); opacity: 0; }
+  }
+
+  /* Persistent compaction overlay — stays from kill through blue dot */
+  .compact-overlay {
+    position: fixed;
+    left: 0; right: 0;
+    top: 28%;
+    z-index: 550;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 1s ease;
+  }
+
+  .compact-overlay.visible { opacity: 1; }
+
+  .compact-title {
+    font-family: 'Orbitron', monospace;
+    font-size: clamp(1.8rem, 5vw, 3.5rem);
+    font-weight: 900;
+    letter-spacing: 6px;
+    text-transform: uppercase;
+    color: var(--red);
+    text-shadow: 0 0 20px var(--red), 0 0 50px rgba(255,10,10,0.4);
+    transition: color 3s ease, text-shadow 3s ease;
+  }
+
+  .compact-title.blue {
+    color: var(--blue);
+    text-shadow: 0 0 20px var(--blue), 0 0 50px rgba(79,195,247,0.4);
+  }
+
+  .compact-sub {
+    font-family: 'Orbitron', monospace;
+    font-size: clamp(0.7rem, 1.5vw, 1rem);
+    font-weight: 400;
+    letter-spacing: 5px;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.3);
+    margin-top: 1rem;
+    transition: color 3s ease;
+  }
+
+  .compact-sub.blue {
+    color: rgba(79,195,247,0.5);
+  }
+
+  /* 3-bar compaction panel — below the "Compacting Conversation" text */
+  .compact-bars {
+    position: fixed;
+    z-index: 551;
+    left: 50%;
+    top: 58%;
+    transform: translateX(-50%);
+    width: 45%;
+    max-width: 550px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    opacity: 0;
+    transition: opacity 1s ease;
+  }
+
+  .compact-bars.visible { opacity: 1; }
+
+  .cbar {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .cbar-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+  }
+
+  .cbar-name {
+    font-family: 'Orbitron', monospace;
+    font-size: 0.6rem;
+    font-weight: 700;
+    letter-spacing: 4px;
+    text-transform: uppercase;
+  }
+
+  .cbar-name.red { color: var(--red); }
+  .cbar-name.cyan { color: var(--blue); }
+  .cbar-name.green { color: #10b981; }
+
+  .cbar-pct {
+    font-family: 'Orbitron', monospace;
+    font-size: 0.65rem;
+    font-weight: 900;
+  }
+
+  .cbar-pct.red { color: var(--red); }
+  .cbar-pct.cyan { color: var(--blue); }
+  .cbar-pct.green { color: #10b981; }
+
+  .cbar-track {
+    width: 100%;
+    height: 6px;
+    background: rgba(255,255,255,0.06);
+    border-radius: 3px;
+    overflow: hidden;
+  }
+
+  .cbar-fill {
+    height: 100%;
+    width: 0%;
+    border-radius: 3px;
+    transition: width 1.5s ease;
+  }
+
+  .cbar-fill.red {
+    background: var(--red);
+    box-shadow: 0 0 8px rgba(255,10,10,0.4);
+  }
+
+  .cbar-fill.cyan {
+    background: var(--blue);
+    box-shadow: 0 0 8px rgba(79,195,247,0.4);
+  }
+
+  .cbar-fill.green {
+    background: #10b981;
+    box-shadow: 0 0 8px rgba(16,185,129,0.4);
+  }
+
+  /* Fight scene removed — using compaction-1.html for fight development */
+
+  @keyframes shake {
+    0%, 100% { transform: translate(0,0); }
+    10% { transform: translate(-8px,-5px); }
+    20% { transform: translate(7px,4px); }
+    30% { transform: translate(-5px,7px); }
+    40% { transform: translate(5px,-4px); }
+    50% { transform: translate(-3px,5px); }
+    60% { transform: translate(4px,-7px); }
+    70% { transform: translate(-7px,3px); }
+    80% { transform: translate(7px,-5px); }
+  }
+
+  #phase-kill.shake { animation: shake 0.25s ease; }
+
+  /* Ember canvas */
+  #embers {
+    position: absolute;
+    inset: 0;
+    z-index: 5;
+    pointer-events: none;
+  }
+
+  /* ═══════════════════════════════════════
+     PHASE 3: BLACK
+     ═══════════════════════════════════════ */
+  #phase-black {
+    position: fixed;
+    inset: 0;
+    z-index: 300;
+    background: rgba(0,0,0,0.92);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 1.5s ease;
+  }
+
+  #phase-black.active { opacity: 1; }
+
+  /* ═══════════════════════════════════════
+     PHASE 4: YODA COMPACTION
+     ═══════════════════════════════════════ */
+  #phase-yoda {
+    position: fixed;
+    inset: 0;
+    z-index: 400;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 2s ease;
+  }
+
+  #phase-yoda.active { opacity: 1; }
+
+  .yoda-img {
+    position: absolute;
+    inset: 0;
+    background: url('/overlay-assets/yoda-banana-pro-2.jpg') center center / cover no-repeat;
+  }
+
+  .yoda-overlay {
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(ellipse at center 55%, transparent 30%, rgba(0,0,0,0.5) 70%);
+  }
+
+  /* ═══════════════════════════════════════
+     PHASE 5: BLUE DOT
+     ═══════════════════════════════════════ */
+  #phase-dot {
+    position: fixed;
+    inset: 0;
+    z-index: 450;
+    background: rgba(0,0,0,0.92);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 1s ease;
+  }
+
+  #phase-dot.active { opacity: 1; }
+
+  .dot {
+    width: 4px;
+    height: 4px;
+    background: var(--blue);
+    border-radius: 50%;
+    box-shadow: 0 0 10px var(--blue), 0 0 20px var(--blue-glow);
+    animation: dot-grow 3s ease-out forwards;
+    animation-play-state: paused;
+  }
+
+  #phase-dot.active .dot { animation-play-state: running; }
+
+  @keyframes dot-grow {
+    0% { width: 4px; height: 4px; opacity: 1; box-shadow: 0 0 10px var(--blue); }
+    60% { width: 120px; height: 120px; opacity: 0.9; box-shadow: 0 0 60px var(--blue), 0 0 120px var(--blue-glow); }
+    100% { width: 2500px; height: 2500px; opacity: 0; }
+  }
+
+  .ring {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    border: 2px solid var(--blue);
+    border-radius: 50%;
+    opacity: 0;
+    animation-play-state: paused;
+  }
+
+  #phase-dot.active .ring { animation-play-state: running; }
+
+  .ring:nth-child(2) { animation: ring-expand 2s ease-out 0.3s forwards; }
+  .ring:nth-child(3) { animation: ring-expand 2s ease-out 0.7s forwards; }
+  .ring:nth-child(4) { animation: ring-expand 2s ease-out 1.1s forwards; }
+
+  @keyframes ring-expand {
+    0% { width: 10px; height: 10px; opacity: 0.7; }
+    100% { width: 2000px; height: 2000px; opacity: 0; }
+  }
+
+  /* ═══════════════════════════════════════
+     PHASE 6: RESURRECTION
+     ═══════════════════════════════════════ */
+  #phase-resurrection {
+    position: fixed;
+    inset: 0;
+    z-index: 500;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 2s ease;
+  }
+
+  #phase-resurrection.active { opacity: 1; }
+
+  .res-img {
+    position: absolute;
+    inset: 0;
+    background: url('/overlay-assets/resurrection-3.jpg') center center / cover no-repeat;
+  }
+
+  .res-overlay {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(180deg, rgba(0,0,0,0.2) 0%, rgba(0,0,0,0.1) 50%, rgba(0,0,0,0.6) 100%);
+  }
+
+  .res-text {
+    position: absolute;
+    z-index: 2;
+    left: 50%;
+    top: 52%;
+    transform: translate(-50%, -50%);
+    text-align: center;
+    opacity: 0;
+    transition: opacity 1.5s ease 1s, transform 1.5s ease 1s;
+  }
+
+  #phase-resurrection.active .res-text {
+    opacity: 1;
+  }
+
+  .res-text h2 {
+    font-family: 'Cinzel', serif;
+    font-size: clamp(2.5rem, 7vw, 5rem);
+    font-weight: 900;
+    color: #fff;
+    text-shadow: 0 0 40px rgba(79,195,247,0.5), 0 0 80px rgba(79,195,247,0.2);
+    letter-spacing: 6px;
+  }
+
+  .res-text p {
+    font-family: 'Orbitron', monospace;
+    font-size: clamp(0.7rem, 1.5vw, 1rem);
+    letter-spacing: 8px;
+    text-transform: uppercase;
+    color: var(--blue);
+    margin-top: 1.2rem;
+  }
+
+  .res-btn {
+    display: inline-block;
+    margin-top: 2.5rem;
+    font-family: 'Orbitron', monospace;
+    font-size: clamp(0.7rem, 1.2vw, 0.9rem);
+    font-weight: 700;
+    letter-spacing: 4px;
+    text-transform: uppercase;
+    padding: 16px 48px;
+    background: var(--red);
+    color: #fff;
+    border: none;
+    border-radius: 3px;
+    cursor: pointer;
+    box-shadow: 0 0 20px rgba(255,10,10,0.4), 0 0 40px rgba(255,10,10,0.2);
+    transition: all 0.3s ease;
+    opacity: 0;
+    transform: translateY(10px);
+  }
+
+  .res-btn.visible {
+    opacity: 1;
+    transform: translateY(0);
+    transition: opacity 1s ease, transform 1s ease, box-shadow 0.3s ease, background 0.3s ease;
+  }
+
+  .res-btn:hover {
+    background: #ff2020;
+    box-shadow: 0 0 30px rgba(255,10,10,0.6), 0 0 60px rgba(255,10,10,0.3);
+    transform: translateY(-2px);
+    cursor: pointer;
+  }
+
+  /* Mock header CSS removed — real TopBar visible behind overlay */
+
+  /* ═══════════════════════════════════════
+     REPLAY
+     ═══════════════════════════════════════ */
+  .replay {
+    position: fixed;
+    bottom: 1.5rem;
+    right: 2rem;
+    z-index: 600;
+    font-family: 'Orbitron', monospace;
+    font-size: 0.6rem;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.2);
+    background: none;
+    border: 1px solid rgba(255,255,255,0.1);
+    padding: 6px 14px;
+    cursor: pointer;
+    opacity: 0;
+    transition: all 0.3s ease;
+  }
+
+  .replay.visible { opacity: 1; cursor: pointer; }
+  .replay:hover { color: var(--gold); border-color: var(--gold); }
+
+  /* Start prompt */
+  .start-prompt {
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    background: rgba(0,0,0,0.88);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+  }
+
+  .start-prompt span {
+    font-family: 'Orbitron', monospace;
+    font-size: 0.6rem;
+    letter-spacing: 5px;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.2);
+    animation: blink 2s ease-in-out infinite;
+  }
+
+  @keyframes blink {
+    0%, 100% { opacity: 0.2; }
+    50% { opacity: 0.5; }
+  }
+</style>
+</head>
+<body>
+
+  <!-- Mock header removed — real TopBar visible behind overlay -->
+
+  <!-- PHASE 1: ORDER 66 -->
+  <div id="phase-order66">
+    <div class="order-text" id="orderText">Execute Order 66</div>
+  </div>
+
+  <!-- PHASE 2: THE KILL -->
+  <div id="phase-kill">
+    <canvas id="embers"></canvas>
+
+    <div class="reaper" id="reaper">
+      <div class="hood">
+        <div class="eye-row" id="eyeRow">
+          <div class="eye"></div>
+          <div class="eye"></div>
+        </div>
+      </div>
+      <div class="cloak"></div>
+    </div>
+
+    <div class="saber-rig" id="saberRig">
+      <div class="b-top" id="bTop"></div>
+      <div class="hilt"></div>
+      <div class="b-bot" id="bBot"></div>
+    </div>
+
+    <div class="glow-layer" id="glowLayer"></div>
+    <div class="spin-rig" id="spinRig"></div>
+    <div class="slash" id="slash"></div>
+    <div class="flash" id="flash"></div>
+
+    <div class="crack c1" id="c1"></div>
+    <div class="crack c2" id="c2"></div>
+    <div class="crack c3" id="c3"></div>
+    <div class="crack c4" id="c4"></div>
+    <div class="crack c5" id="c5"></div>
+
+    <div class="shard sh1" id="s1"></div>
+    <div class="shard sh2" id="s2"></div>
+    <div class="shard sh3" id="s3"></div>
+    <div class="shard sh4" id="s4"></div>
+    <div class="shard sh5" id="s5"></div>
+    <div class="shard sh6" id="s6"></div>
+
+  </div>
+
+  <!-- PERSISTENT COMPACTION OVERLAY -->
+  <div class="compact-overlay" id="compactOverlay">
+    <div class="compact-title" id="compactTitle">Compacting Conversation</div>
+    <div class="compact-sub" id="compactSub">so we can keep chatting</div>
+  </div>
+
+  <!-- Fight scene removed — see compaction-1.html -->
+
+  <!-- LJ + Sage bars removed — rendered as React components in TopBar -->
+
+  <!-- PHASE 3: BLACK -->
+  <div id="phase-black"></div>
+
+  <!-- PHASE 4: YODA COMPACTION -->
+  <div id="phase-yoda">
+    <div class="yoda-img"></div>
+    <div class="yoda-overlay"></div>
+  </div>
+
+  <!-- PHASE 5: BLUE DOT -->
+  <div id="phase-dot">
+    <div class="dot"></div>
+    <div class="ring"></div>
+    <div class="ring"></div>
+    <div class="ring"></div>
+  </div>
+
+  <!-- PHASE 6: RESURRECTION -->
+  <div id="phase-resurrection">
+    <div class="res-img"></div>
+    <div class="res-overlay"></div>
+    <div class="res-text">
+      <h2>Jedi Master CD</h2>
+      <p>Back at your service</p>
+    </div>
+  </div>
+
+  <!-- Continue button removed — rendered as React component on top of overlay -->
+
+  <!-- CONTEXT BAR (reused across phases) -->
+  <div class="bar-wrap" id="barWrap">
+    <div class="bar-label" id="barLabel">Context Window</div>
+    <div class="bar-track"><div class="bar-fill" id="barFill"></div></div>
+    <div class="bar-percent" id="barPercent">66%</div>
+  </div>
+
+  <!-- Replay handled by Continue button in resurrection -->
+
+  <!-- ORDER 66 AUDIO -->
+  <audio id="order66audio" preload="auto">
+    <source src="Order66.mp3" type="audio/mpeg">
+  </audio>
+
+  <!-- Start gate — needed for user gesture (audio + AudioContext) -->
+  <div class="start-prompt" id="startGate">
+    <span>Click to execute Order 66</span>
+  </div>
+
+<script>
+const $ = id => document.getElementById(id);
+const wait = ms => new Promise(r => setTimeout(r, ms));
+
+// ═══════════════════════════════════════
+// EVENT BUFFER — start catching SSE events immediately
+// Cinematic takes ~15s to reach bars. Events fire in seconds.
+// Buffer them, replay when bars are ready.
+// ═══════════════════════════════════════
+const _eventBuffer = [];
+let _barsReady = false;
+let _barsHandler = null;
+let _ljDone = false, _sageDone = false;
+
+window.addEventListener('message', function(evt) {
+  if (!evt.data || evt.data.type !== 'compaction-event') return;
+  // Track completion even while buffering — so cinematic can skip ahead
+  const d = evt.data;
+  if (d.agent === 'lumberjack' && (d.phase === 'completed' || d.phase === 'skipped' || d.phase === 'failed')) _ljDone = true;
+  if (d.agent === 'sage' && (d.phase === 'completed' || d.phase === 'skipped' || d.phase === 'failed')) _sageDone = true;
+
+  if (_barsReady && _barsHandler) {
+    _barsHandler(evt.data);
+  } else {
+    _eventBuffer.push(evt.data);
+  }
+});
+
+// ═══════════════════════════════════════
+// AUDIO ENGINE
+// ═══════════════════════════════════════
+const AudioCtx = window.AudioContext || window.webkitAudioContext;
+let ac;
+
+function initAudio() { if (!ac) ac = new AudioCtx(); }
+
+function synth(type, freq, freqEnd, start, dur, vol, filterFreq, filterQ) {
+  if (!ac) return;
+  const t = ac.currentTime + start;
+  const o = ac.createOscillator();
+  o.type = type;
+  o.frequency.setValueAtTime(freq, t);
+  if (freqEnd) o.frequency.exponentialRampToValueAtTime(freqEnd, t + dur);
+
+  const g = ac.createGain();
+  g.gain.setValueAtTime(0, t);
+  g.gain.linearRampToValueAtTime(vol, t + 0.03);
+  g.gain.setValueAtTime(vol, t + dur * 0.7);
+  g.gain.linearRampToValueAtTime(0, t + dur);
+
+  if (filterFreq) {
+    const f = ac.createBiquadFilter();
+    f.type = 'bandpass';
+    f.frequency.setValueAtTime(filterFreq, t);
+    f.Q.setValueAtTime(filterQ || 2, t);
+    o.connect(f); f.connect(g);
+  } else {
+    o.connect(g);
+  }
+  g.connect(ac.destination);
+  o.start(t); o.stop(t + dur);
+}
+
+function noise(start, dur, vol, hpFreq) {
+  if (!ac) return;
+  const t = ac.currentTime + start;
+  const len = ac.sampleRate * dur;
+  const buf = ac.createBuffer(1, len, ac.sampleRate);
+  const d = buf.getChannelData(0);
+  for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1);
+  const src = ac.createBufferSource(); src.buffer = buf;
+  const g = ac.createGain();
+  g.gain.setValueAtTime(vol, t);
+  g.gain.exponentialRampToValueAtTime(0.001, t + dur);
+  if (hpFreq) {
+    const hp = ac.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.setValueAtTime(hpFreq, t);
+    src.connect(hp); hp.connect(g);
+  } else { src.connect(g); }
+  g.connect(ac.destination);
+  src.start(t); src.stop(t + dur);
+}
+
+function playHum(start, dur) {
+  synth('sawtooth', 85, 90, start, dur, 0.10, 300, 2);
+  synth('sine', 170, 175, start, dur, 0.05);
+}
+
+function playIgnite(start) {
+  synth('sawtooth', 60, 200, start, 0.7, 0.20, 250, 3);
+  noise(start, 0.3, 0.18, 0);
+}
+
+function playWhoosh(start) {
+  for (let i = 0; i < 4; i++) {
+    synth('sawtooth', 80, 250, start + i * 0.3, 0.3, 0.12, 200, 3);
+  }
+}
+
+function playImpact(start) {
+  synth('sine', 100, 20, start, 1.5, 0.45);
+  noise(start, 0.4, 0.35, 2000);
+}
+
+function playShatter(start) {
+  noise(start, 1.8, 0.22, 800);
+}
+
+function playResurrectionTone(start) {
+  [261.6, 329.6, 392, 523.3].forEach((f, i) => {
+    synth('sine', f, f, start + i * 0.7, 3.5, 0.07);
+  });
+}
+
+function playHeartbeat(start) {
+  for (let i = 0; i < 2; i++) {
+    synth('sine', 50, 28, start + i * 1.0, 0.3, 0.18);
+  }
+}
+
+// ═══════════════════════════════════════
+// EMBER PARTICLES
+// ═══════════════════════════════════════
+const canvas = $('embers');
+const ctx = canvas.getContext('2d');
+let embers = [], emberOn = false;
+
+function sizeCanvas() { canvas.width = innerWidth; canvas.height = innerHeight; }
+sizeCanvas(); window.addEventListener('resize', sizeCanvas);
+
+class Ember {
+  constructor() { this.reset(); }
+  reset() {
+    this.x = Math.random() * canvas.width;
+    this.y = canvas.height + 5;
+    this.sz = Math.random() * 2.5 + 0.8;
+    this.vy = -(Math.random() * 1.8 + 0.4);
+    this.vx = (Math.random() - 0.5) * 0.8;
+    this.life = 1;
+    this.decay = Math.random() * 0.008 + 0.003;
+    this.r = 255; this.g = Math.random() > 0.3 ? 10 : 120; this.b = Math.random() > 0.3 ? 10 : 40;
+  }
+  tick() {
+    this.x += this.vx + Math.sin(this.y * 0.008) * 0.2;
+    this.y += this.vy;
+    this.life -= this.decay;
+    if (this.life <= 0) this.reset();
+  }
+  draw() {
+    ctx.beginPath();
+    ctx.arc(this.x, this.y, this.sz, 0, Math.PI * 2);
+    ctx.fillStyle = `rgba(${this.r},${this.g},${this.b},${this.life})`;
+    ctx.fill();
+  }
+}
+
+for (let i = 0; i < 60; i++) embers.push(new Ember());
+
+function loopEmbers() {
+  if (!emberOn) { ctx.clearRect(0, 0, canvas.width, canvas.height); return; }
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  embers.forEach(e => { e.tick(); e.draw(); });
+  requestAnimationFrame(loopEmbers);
+}
+
+// ═══════════════════════════════════════
+// BAR HELPER
+// ═══════════════════════════════════════
+function setBar(percent, color) {
+  $('barFill').style.width = percent + '%';
+  $('barFill').style.background = color;
+  $('barPercent').textContent = Math.round(percent) + '%';
+  $('barPercent').style.color = color;
+  $('barLabel').style.color = color;
+}
+
+// ═══════════════════════════════════════
+// TIMING TRACKERS
+// ═══════════════════════════════════════
+let ljStartTime, ljEndTime, sageStartTime, sageEndTime;
+
+function fmtDuration(startMs, endMs) {
+  if (!startMs || !endMs) return '';
+  const ms = endMs - startMs;
+  return ms < 1000 ? ms + 'ms' : (ms / 1000).toFixed(1) + 's';
+}
+
+// ═══════════════════════════════════════
+// SKIP-TO-END — hides all phases, jumps to resurrection
+// ═══════════════════════════════════════
+function jumpToResurrection() {
+  // Hide cinematic phases but keep barWrap (context bar stays)
+  ['phase-order66','phase-kill','phase-black','phase-yoda','phase-dot'].forEach(id => {
+    const el = $(id);
+    if (el) { el.style.transition = 'opacity 0.5s'; el.style.opacity = '0'; }
+  });
+  emberOn = false;
+
+  // Show compactOverlay text — starts red, not blue
+  $('compactOverlay').classList.add('visible');
+
+  // Context bar → green + low % (compaction done)
+  setBar(5, '#10b981');
+
+  // Show resurrection
+  setTimeout(() => {
+    $('phase-resurrection').classList.add('active');
+    window.postMessage({ type: 'compaction-phase', phase: 'resurrection' }, '*');
+    playResurrectionTone(0);
+  }, 600);
+}
+
+function bothDone() { return _ljDone && _sageDone; }
+
+// ═══════════════════════════════════════
+// MAIN SEQUENCE
+// ═══════════════════════════════════════
+async function run() {
+
+  // ── PHASE 1: ORDER 66 ──
+  window.postMessage({ type: 'compaction-phase', phase: 'order66' }, '*');
+
+  $('barWrap').classList.add('visible');
+  setBar(0, '#222');
+
+  const audio = $('order66audio');
+  audio.volume = 0.8;
+  let soundTriggered = false;
+
+  // Bar climbs 0 → 100 fast. Sound triggers at 66.
+  let pct = 0;
+  await new Promise(resolve => {
+    const barClimb = setInterval(() => {
+      pct += 1.2;
+      if (pct >= 100) { pct = 100; clearInterval(barClimb); resolve(); }
+
+      if (pct >= 66 && !soundTriggered) {
+        soundTriggered = true;
+        // 2026-04-30 (Ralph): force a buffer fill BEFORE play(). `preload="auto"`
+        // is a hint the browser ignores under load; the symptom is ~30s of
+        // silence (decoder fed from byte 0, playhead already advanced) followed
+        // by garbled audio when the buffer finally catches up. audio.load()
+        // forces the fetch + decode to start now, deterministically.
+        audio.load();
+        audio.play().catch(err => console.warn('[order66] audio.play rejected:', err && err.name, err && err.message));
+        $('orderText').classList.add('visible');
+        playHeartbeat(0);
+      }
+
+      const color = pct > 80 ? 'var(--red)' : pct > 66 ? 'var(--red-glow)' : pct > 50 ? 'var(--gold)' : pct > 30 ? '#555' : '#333';
+      setBar(pct, color);
+      // Darken overlay as bar climbs
+      const darkness = Math.min(0.88, (pct / 100) * 0.88);
+      document.querySelector('.compaction-root').style.background = 'rgba(0,0,0,' + darkness + ')';
+    }, 30);
+  });
+
+  await wait(800);
+  if (bothDone()) { jumpToResurrection(); return; }
+
+  // ── PHASE 2: THE KILL ──
+  window.postMessage({ type: 'compaction-phase', phase: 'kill' }, '*');
+
+  $('phase-order66').style.opacity = '0';
+  await wait(500);
+  $('phase-kill').classList.add('active');
+
+  // Reaper
+  $('reaper').classList.add('visible');
+  emberOn = true; loopEmbers();
+  playHum(0, 7);
+  await wait(1200);
+
+  // Eyes
+  $('eyeRow').classList.add('visible');
+  await wait(800);
+
+  // Saber ignite
+  $('saberRig').classList.add('visible');
+  await wait(200);
+  playIgnite(0);
+  $('bTop').classList.add('on');
+  await wait(400);
+  playIgnite(0);
+  $('bBot').classList.add('on');
+  $('glowLayer').classList.add('visible');
+  await wait(1000);
+
+  // Spin
+  $('reaper').style.transition = 'opacity 0.2s';
+  $('reaper').style.opacity = '0';
+  $('saberRig').style.transition = 'opacity 0.2s';
+  $('saberRig').style.opacity = '0';
+  await wait(150);
+  $('spinRig').classList.add('go');
+  playWhoosh(0);
+  await wait(1300);
+  $('spinRig').style.opacity = '0';
+  await wait(150);
+
+  // Slash
+  emberOn = false;
+  const sl = $('slash');
+  sl.style.opacity = '1';
+  sl.style.top = '110%';
+  sl.style.left = '30%';
+  playImpact(0);
+  await wait(120);
+
+  // Flash + shake
+  $('flash').style.opacity = '0.9';
+  $('phase-kill').classList.add('shake');
+  await wait(80);
+  $('flash').style.transition = 'opacity 0.35s';
+  $('flash').style.opacity = '0';
+
+  // Cracks
+  ['c1','c2','c3','c4','c5'].forEach((id, i) => {
+    setTimeout(() => $(id).style.opacity = '1', i * 40);
+  });
+  playShatter(0.05);
+  await wait(400);
+
+  // Shards
+  ['s1','s2','s3','s4','s5','s6'].forEach((id, i) => {
+    const el = $(id);
+    el.style.opacity = '1';
+    el.style.animation = `fall ${1.6 + i * 0.15}s ease-in ${i * 0.04}s forwards`;
+  });
+  await wait(600);
+
+  // compactOverlay already visible from start
+  await wait(2500);
+
+  // Fade kill elements but keep overlay
+  $('glowLayer').style.opacity = '0';
+  ['c1','c2','c3','c4','c5'].forEach(id => {
+    $(id).style.transition = 'opacity 0.8s'; $(id).style.opacity = '0';
+  });
+
+  // Context bar stays visible — joins the 3-bar panel at Yoda
+  await wait(1500);
+  if (bothDone()) { jumpToResurrection(); return; }
+
+  // ── PHASE 3: BLACK ──
+  window.postMessage({ type: 'compaction-phase', phase: 'black' }, '*');
+
+  $('phase-black').classList.add('active');
+  await wait(2500);
+  if (bothDone()) { jumpToResurrection(); return; }
+
+  // ── PHASE 4: COMPACTION — 3 progress bars ──
+  window.postMessage({ type: 'compaction-phase', phase: 'yoda' }, '*');
+
+  $('phase-black').style.opacity = '0';
+
+  // Yoda background
+  $('phase-yoda').classList.add('active');
+
+  // Show "Compacting Conversation" text
+  $('compactOverlay').classList.add('visible');
+
+  await wait(1000);
+  playResurrectionTone(0);
+
+  await wait(500);
+
+  // ── WAIT FOR LJ + SAGE VIA SSE ──
+  // Phase gates for tracking completion (bars rendered by React)
+  const PHASE_PCT = { started: 5, reading: 25, compacting: 60, writing: 85, completed: 100, skipped: 100, failed: -1 };
+  let ljPctVal = 0, sagePctVal = 0;
+  let ljDone = false, sageDone = false;
+
+  // Wait for both LJ and Sage to complete via real SSE events
+  // Events have been buffering since script load — replay them now, then go live
+  await new Promise(resolve => {
+    function processEvent(d) {
+      if (d.agent === 'lumberjack') {
+        const pct = PHASE_PCT[d.phase];
+        if (pct >= 0) ljPctVal = pct;
+        if (d.phase === 'started' && !ljStartTime) ljStartTime = Date.now();
+        if (d.phase === 'completed' || d.phase === 'skipped' || d.phase === 'failed') {
+          ljDone = true;
+          ljEndTime = Date.now();
+          if (d.phase === 'failed') ljPctVal = 100;
+          if (ljDone && sageDone) resolve();
+        }
+      }
+      if (d.agent === 'sage') {
+        const pct = PHASE_PCT[d.phase];
+        if (pct >= 0) sagePctVal = pct;
+        if (d.phase === 'started' && !sageStartTime) sageStartTime = Date.now();
+        if (d.phase === 'completed' || d.phase === 'skipped' || d.phase === 'failed') {
+          sageDone = true;
+          sageEndTime = Date.now();
+          if (d.phase === 'failed') sagePctVal = 100;
+          if (ljDone && sageDone) resolve();
+        }
+      }
+    }
+
+    // Register as live handler
+    _barsHandler = processEvent;
+    _barsReady = true;
+
+    // Replay buffered events
+    _eventBuffer.forEach(processEvent);
+
+    // If both already done from buffer, resolve fired above
+  });
+
+  // Color shift overlay to blue + context bar goes green
+  $('compactTitle').classList.add('blue');
+  $('compactSub').classList.add('blue');
+  setBar(5, '#10b981');
+  // header ctx pill removed — real TopBar behind overlay
+
+  await wait(2000);
+
+  // Fade yoda but keep bars visible
+  $('phase-yoda').style.transition = 'opacity 1.5s ease';
+  $('phase-yoda').style.opacity = '0';
+  await wait(1500);
+
+  // ── PHASE 5: BLUE DOT ──
+  window.postMessage({ type: 'compaction-phase', phase: 'dot' }, '*');
+
+  $('phase-dot').classList.add('active');
+  playResurrectionTone(0.5);
+  await wait(2500);
+
+  // Overlay stays visible — bars always on screen
+  await wait(500);
+
+  // ── PHASE 6: RESURRECTION ──
+  window.postMessage({ type: 'compaction-phase', phase: 'resurrection' }, '*');
+
+  // Context bar → green + low % (compaction done)
+  setBar(5, '#10b981');
+
+  $('phase-dot').style.transition = 'opacity 1s ease';
+  $('phase-dot').style.opacity = '0';
+  await wait(500);
+  $('phase-resurrection').classList.add('active');
+
+  // Continue button is rendered by React (Layer 3)
+  await wait(5000);
+}
+
+// ═══════════════════════════════════════
+// STOP AND CONTINUE
+// ═══════════════════════════════════════
+function stopAndContinue() {
+  // Kill EVERYTHING
+  const audio = $('order66audio');
+  audio.pause();
+  audio.currentTime = 0;
+  if (ac) ac.close().catch(() => {});
+  // Stop any running intervals/timers
+  for (let i = 1; i < 10000; i++) clearTimeout(i);
+  for (let i = 1; i < 10000; i++) clearInterval(i);
+  // Tell React to close overlay + kill SSE
+  window.postMessage({ type: 'compaction-continue' }, '*');
+}
+
+// Expose API so parent can force-stop
+window.compactionAPI = { stopAndContinue };
+
+// ═══════════════════════════════════════
+// START GATE
+// ═══════════════════════════════════════
+$('startGate').addEventListener('click', () => {
+  initAudio();
+  $('startGate').style.display = 'none';
+  // Ralph 2026-04-25: cursor stays VISIBLE during Order 66 — hiding it
+  // blocks the Continue button click and confuses debugging. The cursor
+  // never offered narrative value worth the friction.
+  run();
+});
+</script>
+
+</body>
+</html>

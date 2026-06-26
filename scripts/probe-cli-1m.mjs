@@ -11,7 +11,7 @@
 //
 // HOW: this faithfully replicates the bridge's spawn from
 // lib/bridge-process-manager.ts — same binary, same `--model
-// claude-opus-4-8[1m]` CLI alias, same OAuth env (ANTHROPIC_API_KEY='' +
+// claude-opus-4-7[1m]` CLI alias, same OAuth env (ANTHROPIC_API_KEY='' +
 // CLAUDE_CODE_OAUTH_TOKEN, which is where the 1M-vs-200K capacity behavior
 // lives). It does N fresh spawns, sends a single "." each time, and reads:
 //   • init.model        — what Claude Code RESOLVED to (its belief)
@@ -56,7 +56,7 @@ function findClaude() {
 }
 
 const CLAUDE = findClaude()
-const MODEL = 'claude-opus-4-8[1m]'   // exactly what the bridge requests
+const MODEL = 'claude-opus-4-7[1m]'   // exactly what the bridge requests
 const COUNT = Math.max(1, parseInt(process.argv[2] || '10', 10))
 const PER_SPAWN_TIMEOUT_MS = 30_000
 
