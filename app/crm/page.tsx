@@ -27,7 +27,7 @@ import { LeadDetail } from '@/components/crm/LeadDetail'
 import { NextMoveHero } from '@/components/crm/NextMoveHero'
 import { FlightDeckHost } from '@/components/crm/FlightDeckHost'
 import { deriveBaselineDeck } from './flight-deck-derive'
-import { CompactionOverlay } from '@/components/CompactionOverlay'
+import { CompactionOverlay, primeOrder66Audio } from '@/components/CompactionOverlay'
 import { KanbanBoard } from '@/components/crm/KanbanBoard'
 // WP-SCOUT-7 (Ralph 2026-06-03): import from the new component split. The
 // old monolithic components/crm/ScoutPool.tsx is retired; the container in
@@ -328,20 +328,60 @@ export default function CrmPage() {
     setUndo(null)
     try { await u.action() } catch (e) { console.error('[CRM] undo failed:', e) }
   }, [undo])
+  // ── Global keyboard shortcuts ──────────────────────────────────────────────
+  // Port of crm.html's document keydown handler. ⌘K (switcher) and ? (cheat
+  // sheet) are global; the data-view keys (/ n arrows) fire only in the
+  // Overview/Kanban views, never while typing, and arrows are disabled while a
+  // lead detail is open (LeadDetail owns arrows + its own `f` focus-mode key).
+  // Rows (.fp-lead) and cards (.crm-card) carry data-prospect-id + tabIndex and
+  // open themselves on Enter, so arrows only steer native focus.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && (e.key === 'k' || e.key === 'K')) { e.preventDefault(); setCmdkOpen(true); return }
-      // ? opens the shortcuts cheat sheet — but not while typing in a field.
+      const t = e.target as HTMLElement | null
+      const inField = t?.tagName === 'INPUT' || t?.tagName === 'TEXTAREA' || !!t?.isContentEditable
+      // ? — shortcuts cheat sheet (not while typing in a field).
       if (e.key === '?' && !e.metaKey && !e.ctrlKey && !e.altKey) {
-        const t = e.target as HTMLElement | null
-        const tag = t?.tagName
-        if (tag === 'INPUT' || tag === 'TEXTAREA' || t?.isContentEditable) return
-        e.preventDefault(); setShortcutsOpen(true)
+        if (inField) return
+        e.preventDefault(); setShortcutsOpen(true); return
+      }
+      // Everything below is data-view only, and never while typing in a field.
+      if (inField) return
+      if (view !== 'overview' && view !== 'kanban') return
+      // '/' — focus the lead search box.
+      if (e.key === '/') {
+        const el = document.getElementById('fp-search') as HTMLInputElement | null
+        if (el) { e.preventDefault(); el.focus(); el.select() }
+        return
+      }
+      // 'n' — focus the Incoming column's quick-add (Kanban); the Overview list
+      // has none, so focus the New-Lead button instead (Enter then creates).
+      if (e.key === 'n' || e.key === 'N') {
+        const target =
+          (document.querySelector('.crm-quickadd[data-stage="Incoming"]') as HTMLElement | null) ||
+          (document.querySelector('.fp-list-action-primary') as HTMLElement | null)
+        if (target) { e.preventDefault(); target.focus() }
+        return
+      }
+      // Arrows — steer native focus among the visible rows (Overview) or cards
+      // (Kanban). Off while a lead detail is open (it owns arrow scrolling).
+      if (!selectedId && (e.key === 'ArrowDown' || e.key === 'ArrowUp' || e.key === 'ArrowLeft' || e.key === 'ArrowRight')) {
+        const sel = view === 'kanban'
+          ? '#crm-board .crm-card[data-prospect-id]'
+          : '.fp-list-scroll .fp-lead[data-prospect-id]'
+        const els = Array.from(document.querySelectorAll<HTMLElement>(sel))
+        if (!els.length) return
+        e.preventDefault()
+        const cur = els.indexOf(document.activeElement as HTMLElement)
+        const fwd = e.key === 'ArrowDown' || e.key === 'ArrowRight'
+        const next = cur < 0 ? 0 : Math.min(els.length - 1, Math.max(0, cur + (fwd ? 1 : -1)))
+        els[next]?.focus()
+        els[next]?.scrollIntoView({ block: 'nearest' })
       }
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [])
+  }, [view, selectedId])
 
   // Star toggle — PATCH then reload (matches crm.html crmToggleStarId).
   const handleToggleStar = useCallback(async (id: string) => {
@@ -461,7 +501,13 @@ export default function CrmPage() {
           contextPct={undefined}
           cachedInputTokens={undefined}
           realInputTokens={undefined}
-          onOrder66={() => { if (order66Status === 'idle') setOrder66Status('running') }}
+          onOrder66={() => {
+            if (order66Status !== 'idle') return
+            // Unlock the soundtrack inside the REAL click — the overlay's
+            // auto-clicked gate carries no user activation (primeOrder66Audio).
+            primeOrder66Audio()
+            setOrder66Status('running')
+          }}
           order66Status={order66Status}
           bloatPct={bloat.pct}
           left={<CrmLogo />}

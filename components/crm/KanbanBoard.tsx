@@ -500,6 +500,8 @@ function KanbanCard({
       draggable
       data-prospect-id={p.id}
       data-status={p.status}
+      tabIndex={0}
+      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onSelect(p.id) } }}
       onDragStart={(e) => { e.dataTransfer.effectAllowed = 'move'; e.dataTransfer.setData('text/plain', p.id); onDragStart() }}
       onDragEnd={onDragEnd}
     >

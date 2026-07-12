@@ -680,6 +680,22 @@ export function LeadDetail({ prospect, activities, onClose, onReload, registerUn
     document.body.classList.toggle('crm-focus-mode', focusMode)
     return () => { document.body.classList.remove('crm-focus-mode') }
   }, [focusMode])
+  // `f` — toggle focus mode. LeadDetail only mounts while a lead is open, so
+  // this listener is naturally gated to "a card is open" (crm.html's
+  // `if (!crmCurrentId) return`). Skipped while typing or with a modifier
+  // held (don't hijack ⌘F browser find).
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== 'f' && e.key !== 'F') return
+      if (e.metaKey || e.ctrlKey || e.altKey) return
+      const ae = document.activeElement as HTMLElement | null
+      if (ae?.tagName === 'INPUT' || ae?.tagName === 'TEXTAREA' || ae?.isContentEditable) return
+      e.preventDefault()
+      toggleFocus()
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [toggleFocus])
   const setStatus = useCallback((status: string) => {
     const oldStatus = prospect.status
     void patchProspect({ status })

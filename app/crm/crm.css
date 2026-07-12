@@ -2175,6 +2175,20 @@
             background: var(--bg-card-hover);
             box-shadow: inset 2px 0 0 0 #ffb84a;
         }
+        /* Ralph 2026-07-12 · keyboard-shortcut rewire. Arrow keys move NATIVE
+           focus among rows/cards (which then open on Enter), so the designed
+           amber focus ring rides on :focus-visible — visible for keyboard nav,
+           silent on mouse click. Rows reuse the .is-focused inset accent;
+           kanban cards get a matching outer ring. */
+        .fp-lead:focus-visible {
+            outline: none;
+            background: var(--bg-card-hover);
+            box-shadow: inset 2px 0 0 0 #ffb84a;
+        }
+        .crm-card:focus-visible {
+            outline: none;
+            box-shadow: 0 0 0 2px #ffb84a;
+        }
         /* Inline snooze menu — pops next to the focused row when `s` is pressed.
            Three buttons (+1d / +3d / +1w), click fires crmSnoozeFollowup. */
         .fp-snooze-menu {
