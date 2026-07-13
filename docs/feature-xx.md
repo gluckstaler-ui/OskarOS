@@ -2,6 +2,8 @@
 
 _Live backlog. `Feature-X.md` keeps the shipped record + history; this file is what's actually open._
 
+_**Audited against the working tree 2026-07-12.** Stamps reading `(2026-07-12 audit: …)` mark every WP where reality moved since the last write; unstamped WPs were verified to be in their documented state._
+
 ---
 
 ## §1 — How to read this backlog
@@ -15,17 +17,17 @@ _Live backlog. `Feature-X.md` keeps the shipped record + history; this file is w
 
 | Chapter | WPs | Status |
 |---|---|---|
-| §2 Multi-tenant + Deployment | WP-01..04 | 4 PENDING (paying-customer gated except WP-01) |
+| §2 Multi-tenant + Deployment | WP-01..04, WP-39 | 5 PENDING (paying-customer gated except WP-01 and WP-39) |
 | §3 Sage + Doctrine | WP-05..09 | 5 PENDING |
-| §4 Build-time quality | WP-10..14 | 5 PENDING |
+| §4 Build-time quality | WP-10..14 | 4 PENDING (WP-14 deleted 2026-07-12 — tombstone in §4) |
 | §5 Chat-UI + video | WP-15..16 | 2 PENDING |
 | §6 Provider plumbing | WP-17..19 | 1 PARTIAL, 2 PENDING |
-| §7 CRM-Consular spine | WP-20..23 | 1 PARTIAL, 3 PENDING (one teardown, four parts) |
-| §8 CRM multi-machine sync | WP-24..28 | 5 PENDING |
+| §7 CRM-Consular spine | WP-20..23 | WP-21/22 ✅, WP-20/23 ◐ — one live teardown away from closing (then jedi-scout retirement + tag-enum deletion) |
+| §8 CRM multi-machine sync | WP-24..28 | WP-28 ✅ SHIPPED; WP-24..27 superseded candidates (WP-28's simpler shape covers the need) |
 | §9 Productization verticals | WP-29..33 | 5 PENDING (customer-gated) |
 | §10 Deferred (trigger-gated) | WP-34..38 + items | 5 WPs + 3 non-WP items |
 | §11 Open decisions | D1..D6 | 6 gates |
-| §12 Live-server deploy + Studio publish | WP-DEPLOY · WP-OPS-RESTART · 6 BUG-WPs | part-2 (2026-06-19): 3 ✅ (MCP collision, reconnect-storm, flight-deck host); **BUILD-SKEW = #1 blocker** (new-file deploys broken); Scout-capture + WhatsApp-`:39` 🔴; fonts/Babel 🟡 |
+| §12 Live-server deploy + Studio publish | WP-DEPLOY · WP-OPS-RESTART · 6 BUG-WPs | 2026-07-12 audit: BUILD-SKEW ✅ (WP-28 Button C), Scout-capture ✅ in code (server batch unverified), WP-DEPLOY superseded by Webserver Sync; open: WP-OPS-RESTART, WhatsApp crash-guard-to-source + `:39`, fonts/Babel 🟡 |
 
 ---
 
@@ -119,6 +121,71 @@ Filesystem holds binary assets (logos, generated HTML, screenshots); DB holds me
 5. Existing single-tenant sessions migrate to `public/{userId}/{sessionId}/` with no lost assets.
 
 **LOC.** ~1,400 LOC: 600 for identity + auth + route gates, 800 for DB schema + migration runner + read/write layer across the 50 touched routes. **Difficulty.** HARD — auth is load-bearing for everything downstream; one miss = data leak. **Deps.** None at code level; gate-deps WP-04 (onboarding needs auth), WP-08 (Portrait UI needs per-tenant Order). **Gate.** First paying customer commits.
+
+### WP-39 — Access control v0: superuser + per-session client access (pre-multi-tenant)
+
+**Problem.** Today anyone with the URL sees any session. `admin.html` + `crm.html` are behind LSWS Basic Auth (`~/.htpasswds/webbuilder/public/passwd`), but that mechanism can't cover `/api/*` (LSWS routes those straight to Passenger, so `.htaccess` never fires) and can't do per-URL scoping on `?session=X` query-param routing. The studio, the API surface, and the CRM are all open to anyone who guesses a URL. Ralph + Fil are superusers (see everything); Silke + Marin are clients (see only their own session). No external providers, no client-side device registration, no per-device setup — clients must log in from any browser with just email + password.
+
+This is the phase-0 shape of WP-02's B1 (Multi-tenant identity). WP-02 later extends it to per-user URL scoping (`/u/{userId}/s/{sessionId}/…`), Postgres, OAuth, and full paying-customer tenancy. WP-39 ships the auth gate for the 4-user fixed roster we run today, over the existing URL structure. `users.json` migrates cleanly to the `users` table when WP-02 lands.
+
+**Scope.** Node-served + Node-authenticated auth over the existing `?session=X` URL. Two-tier user model expressed in one field. Everything server-side.
+
+- **User registry as a canonical file** at `lib/auth/users.json` (files ARE the agent API — no DB):
+  ```json
+  {
+    "ralph@paradiso.dev":    { "hash": "$argon2id$…", "role": "superuser" },
+    "fil@…":                 { "hash": "$argon2id$…", "role": "superuser" },
+    "silke@silke-lengler.ch": { "hash": "$argon2id$…", "role": "client", "sessions": ["2026-04-25-silke-lengler"] },
+    "marin@barbazza.wine":    { "hash": "$argon2id$…", "role": "client", "sessions": ["2026-05-31-weingut-barbazza"] }
+  }
+  ```
+  `role: "superuser"` → all sessions. `role: "client"` → only what's in `sessions[]`. Add/rotate = edit the file (`chmod 600`), no restart.
+
+- **One login page** at `/login`. Form: email + password. Password verified with `argon2` (npm pkg). On success, set HTTP-only signed cookie via `jose` (JWS, secret in `.env.local` as `OSKAR_AUTH_SECRET`, 30-day TTL). Stateless — no server-side session store.
+
+- **`middleware.ts`** at repo root — gates page routes + easy-API routes:
+  - `/crm`, `/crm/*` → require `role === 'superuser'`
+  - `/`, `/?session=X`, `/api/sessions/X/*` (path/query-sourced sessionId) → require `canAccessSession(user, X)`
+  - Public: `/login`, `/api/auth/*`, static assets under `/_next/*`
+  - Unauthed hitting a protected route → 302 to `/login?next=<original>`; after login → land back on `<original>`
+  - Wrong access → 403 JSON
+  - Forwards `x-auth-user` + `x-auth-role` headers to downstream handlers so they don't re-verify
+
+- **Route-level check for body-sourced sessionId** (POST `/api/site/*`, `/api/director/*`, most CRM writes where sessionId isn't in the URL). One helper `lib/auth/check.ts` → `canAccessSession(user, sessionId): boolean`. Called at the top of every handler that reads a body-sourced sessionId. Small, uniform, greppable.
+
+- **`admin.html` decision** — either keep its existing LSWS Basic Auth (works today) or fold into this system (superuser role check in middleware). Recommend folding: one login prompt across the whole app instead of two.
+
+**Storage shape.**
+- `lib/auth/users.json` — user registry (argon2 hashes, role, per-user `sessions[]` allowlist)
+- `.env.local` — `OSKAR_AUTH_SECRET` (32-byte hex for cookie signing; different per environment)
+- No DB. No session-state file. Cookies are stateless (signed JWS carrying `{email, role, iat, exp}`).
+
+**Files affected.**
+- `lib/auth/users.json` (NEW) — user registry (git-committed with hashes, not plaintext)
+- `lib/auth/session.ts` (NEW, ~30 LOC) — sign/verify cookie via `jose`, read from `req.cookies`
+- `lib/auth/check.ts` (NEW, ~20 LOC) — `canAccessSession(user, sessionId): boolean` (superusers pass; clients check allowlist)
+- `app/login/page.tsx` (NEW, ~40 LOC) — one form, POST to `/api/auth/login`, redirect to `next` on success
+- `app/api/auth/login/route.ts` (NEW, ~30 LOC) — argon2 verify against `users.json`, set signed cookie
+- `app/api/auth/logout/route.ts` (NEW, ~10 LOC) — clear cookie, redirect to `/login`
+- `middleware.ts` (NEW at repo root, ~60 LOC) — the gate; delegates body-based check to route handlers
+- `app/api/site/*/route.ts`, `app/api/director/*/route.ts`, `app/api/admin/crm/*/route.ts` — add `canAccessSession()` call at top of each handler (~2 LOC per route × ~25 body-sourced routes = ~50 LOC delta)
+- `app/api/admin/sessions/list/route.ts` — filter returned session list by the current user's allowlist
+- `scripts/set-password.mjs` (NEW, ~25 LOC) — one-liner CLI to rotate an argon2 hash in `users.json`: `node scripts/set-password.mjs silke@... <newpw>`
+- `public/admin.html` — decision point: keep .htaccess Basic Auth OR delete the .htaccess block and rely on middleware for the superuser role check
+
+**Acceptance.**
+1. Log in as Silke → studio's `/api/admin/sessions/list` returns only `2026-04-25-silke-lengler`. Session picker shows only her row.
+2. Same session — Silke pastes `/?session=2026-05-31-weingut-barbazza` in URL bar → 403, redirected to a "not authorized" state (or /login if the cookie expired).
+3. Log in as Marin → symmetric behavior for Barbazza.
+4. Log in as Ralph or Fil → all sessions in picker, `/crm` reachable, admin.html reachable.
+5. Not logged in → any protected route redirects to `/login?next=<original>`. After successful login → land on `<original>`, not the app root.
+6. `/api/site/sync` POST with `sessionId: "2026-04-25-silke-lengler"` while authed as Marin → 403.
+7. Cookie survives page reload, tab close, browser restart. Cookie expires after 30 days; expired cookie triggers re-login.
+8. Adding a new user to `users.json` — no restart required; middleware re-reads the file on every request (small enough to not need caching; if perf ever matters, cache with mtime invalidation).
+9. Password rotation via CLI: `node scripts/set-password.mjs silke@... <newpw>` writes an argon2 hash; verified by logging in with new password immediately after.
+10. `users.json` never contains plaintext passwords; grep for `plaintext|cleartext` returns nothing.
+
+**LOC.** ~250 LOC across ~30 files. Bulk is the ~50 LOC of one-line access checks in existing handlers (mechanical, greppable). **Difficulty.** Medium — the middleware itself is small; the tedious part is the per-route audit for body-sourced sessionId and adding `canAccessSession()` uniformly. Missing one route = data leak, so needs a review pass with `grep 'sessionId' app/api` before shipping. **Deps.** None. Precursor for WP-02 B1.
 
 ### WP-03 — Installer Package (Linux / macOS / Windows)
 
@@ -391,6 +458,8 @@ _Sentinel Ti gates + brand-lint + doctrine. All wire into `mcp-server/tools-orch
 
 ### WP-10 — Sentinel Ti verification floor (post-build smoke test)
 
+_(2026-07-12 audit: NOT implemented. ⚠ Naming: `lib/sentinel-ti.ts` now EXISTS but is the Sentinel Ti agent RUNNER (subprocess spawn + critique writer) — the smoke battery specced below needs a different filename, e.g. `lib/sentinel-smoke.ts`. Do not touch the existing file.)_
+
 **Problem.** Today when WebDev fires `report_build_complete`, the orchestrator trusts the build and the round-trip ends. Broken builds (missing `<title>`, empty `src` attributes, JS syntax errors, orphan `data-slot` references) only surface when a human opens the page. CD bears the cost of catching mechanical failures that a smoke test could catch in 500ms.
 
 **Scope.** Post-`report_build_complete`, the orchestrator runs an automated smoke test via Sentinel Ti:
@@ -525,29 +594,7 @@ CD reads the violations, decides whether to action ("fix saturation") or accept 
 
 **LOC.** ~400 LOC including the perceptual-diff dependency surface. **Difficulty.** Medium-high — ONNX runtime integration + delta threshold tuning (false positives kill trust). **Deps.** WP-10 (Sentinel verification floor — same orchestrator hook). **Gate.** §11 D5 decision on adding the 10 MB native dep.
 
-### WP-14 — INSTITUTIONAL-MEMORY doctrine entry (parser-cascade + structured-island lessons)
-
-**Problem.** Without a written doctrine, the next migration (post-2026-04-29 MCP cutover taught us this lesson; the 2026-05-09 regex-backfill cascade re-taught it) will accrete the same debt. The audit pattern needs to live somewhere a future Jedi Claude reads cold-boot.
-
-**Scope.**
-
-Append two entries to `docs/INSTITUTIONAL-MEMORY.md` Don't-Do List:
-
-> *"**Don't add a route-level markdown re-parser to extract data the MCP tool args already structured.** The agent contract IS the schema. Re-parsing from disk is for human-edited inputs (CREATIVE-BRIEF.md user tweaks, IMAGES.md admin edits), not agent-written outputs (anything CD passes via typed MCP tool calls). When you find yourself adding a `String(arg ?? '')` coercion or a `parseFromFile` call to extract metadata an MCP tool already has, stop and check: is this data already structured at tool-call time? If yes, pass it through. Don't degrade it to text and re-extract."*
-
-> *"**For small structured surfaces (gallery cards, schema previews, manifest entries), don't extract from creative prose via field-name regex.** Agent prose drifts — `Headings:` becomes `Display:` becomes `Font Family:` becomes a sentence about typography. CD must hand-curate the structured block (locked schema, fixed field names) and the parser parses ONLY that block. The pattern is: **strict structured island inside loose creative content.** Two audiences, two contracts, one file."*
-
-Append to Bugs section per the 3-turn rule, two cascades:
-
-1. **The original parser cascade** — `# VIBE-N · NAME` silent-drop bug → Gallery noise → 100+ stub cards → audit reveals parser is dead architecture from MCP migration → 6 dependent WPs. Document the FalCaMel Potemkin fallbacks as the second-order failure mode (Tier-3 fake-data lies that mask Tier-1 silent-drops).
-2. **The 2026-05-09 regex-backfill cascade** — attempted regex extraction of `## Gallery Card` blocks across 50 archived sidecars produced: 9 prose-bled fonts (`system-ui / Below you, 45,000 people just watched...`), JS code in Audience field (`Canvas2D particle field, 2000 nodes, Voronoi triangulation`), wrong heroes (canonical mismatch with HTML rendering), names with leaked quotes. Ralph called full revert; agent-curated retry across 5 parallel sub-agents produced clean cards in ~10 min. **Lesson:** regex backfill on creative agent output is the wrong shape; agents must curate per-file with file-context. **The strict structured island convention (Don't-Do entry above) prevents this class of failure going forward** — once CD writes a `## Gallery Card` block at write-time per `agents/creative-director-agent.md` Phase 4 doctrine, no backfill regex is ever needed.
-
-**Files affected.**
-- `docs/INSTITUTIONAL-MEMORY.md` — append ~50 LOC of doctrine prose (two Don't-Do entries + two cascade entries).
-
-**Acceptance.** Future Jedi Claude reading `docs/INSTITUTIONAL-MEMORY.md` cold-boots hits this rule before reflexively writing a re-parser. Drift prevention. (Verifiable by running an audit with the Auditor agent (WP-09) against a hypothetical "add regex parser" scenario — it should cite this rule.)
-
-**LOC.** ~50 LOC of doctrine prose. **Difficulty.** Low — it's writing, not coding. **Deps.** None. **Note: highest-leverage WP in this chapter — ship even if everything else slips.** Two of the worst recent debugging cascades (parser silent-drop, regex-backfill) trace to the absence of this rule.
+> _Deleted 2026-07-12 (Ralph): **WP-14 "INSTITUTIONAL-MEMORY doctrine entries (parser-cascade + structured-island lessons)"** — killed as a trojan horse. Refusal-framed "Don't-Do" doctrine installs halt-triggers in every agent that cold-boots on the file (the same wedge shape as the rejected symmetric-completion clause). If the parser-cascade / structured-island lessons ever ship, they ship action-framed in the owning agent's file ("pass structured data through at tool-call time"; "parse only the structured island") — never as Don't-Do entries. The full spec + both cascade histories live in git (this file, pre-2026-07-12). Do not resurrect._
 
 ---
 
@@ -624,7 +671,7 @@ _All hits `lib/run-webdev.ts` + `lib/mcp-config.ts`._
 2. Token cost reporting still matches: thinking tokens count against output budget.
 3. No regression on simple single-turn calls.
 
-**LOC.** ~50 LOC delta. **Difficulty.** Medium — the SSE event handling has edge cases (thinking_delta vs text_delta vs tool_use_delta), and the persistence across `tool_use` boundaries is fiddly. **Deps.** WP-91 (Agent-SDK code-path) — bumps to it on the customer-deploy side, leaving Sub-4 only here.
+**LOC.** ~50 LOC delta. **Difficulty.** Medium — the SSE event handling has edge cases (thinking_delta vs text_delta vs tool_use_delta), and the persistence across `tool_use` boundaries is fiddly. **Deps.** WP-91 (Agent-SDK code-path) — bumps to it on the customer-deploy side, leaving Sub-4 only here. _(2026-07-12 audit: Sub-4 confirmed still open — no thinking-block handling in `lib/claude-api-loop.ts`.)_
 
 ### WP-18 — Vertex AI Nano-Banana migration (image-gen path)
 
@@ -850,6 +897,8 @@ _Reframed 2026-06-09. NOT "extend the Scout-taste agent" — that agent is **ret
 
    **◐ BUILT, awaiting live verification** (2026-06-10, CD). Shipped: the route (`consular/research/route.ts` — escrow job `consular_research`, per-row dedup, start/done/RED-STICKY-fail beats), Kanban Scan wired (stamp kept), Scout gains **▸ Research** beside Re-Taste (un-scout keeps its own job), the `/crm` SSE→snackbar bridge (`subscribeApiEvents('__crm__')` → SnackbarProvider), and the § YOUR JOB tag entry in the agent file. **Not done, on purpose:** the jedi-scout retirement — it fires only after the first successful live teardown proves the Consular path (this WP's own sequencing rule). Cancel marks the escrow job but cannot abort an in-flight bridge turn — V1 limitation, the turn drains first.
 
+_(2026-07-12 audit: unchanged — the research route is live on disk, but `agents/jedi-scout.md`, `submit_scout_verdict`, and the taste-route invocation are all still present. The retirement — and the WP-21 tag-enum deletion gated on it — remains open. Next concrete step: one successful live teardown, then delete the three.)_
+
 #### What the button does
 
 Pressing **Scan / Research** (Kanban `LeadDetail` or Scout `ScoutDossier`) POSTs the row id. A thin route injects one line into the Consular stream — `[OSKAR-SYSTEM RESEARCH-COMPANY] id=<…> name=<…> surface=<kanban|scout>` — exactly the way `[ASK-CONSULAR]` arrives today. The Consular runs its own tool loop (fetch every page, count sections, judge), writes back via the existing SQL tool, and reports through **snackbars** (the Scout/Kanban screens have no visible chat). In OVERVIEW the same directive needs no snackbar — the chat is visible.
@@ -884,7 +933,9 @@ _Two scars preserved for the record (history, not agent-file text):_
 
 ## §8 — CRM multi-machine sync
 
-_Hub-and-spoke daily sync. Oskar-Webserver = master + hub; Ralph/Filippo laptops = spokes. The local events.jsonl/replay layer exists (`lib/crm-boot.ts` / `crm-replay.ts`); these 5 server-dependent WPs are not started._
+_Hub-and-spoke daily sync. Oskar-Webserver = master + hub; Ralph/Filippo laptops = spokes. The local events.jsonl/replay layer exists (`lib/crm-boot.ts` / `crm-replay.ts`)._
+
+_(2026-07-12 audit: **WP-28 shipped** (2026-06-19) with a deliberately simpler shape — append-only per-node logs + whole-artifact tar, no LWW, no conflict table. That covers the daily need. **WP-24..27 are superseded candidates**: the LWW/merge-conflict machinery only earns its ~1,000 LOC if two machines actually edit the same prospect field concurrently — a pain that hasn't appeared. Un-gate on that trigger, not before; until then this is Darth Scaffolder territory.)_
 
 ### WP-24 — Sync architecture spec + Oskar-Webserver setup runbook
 
@@ -1304,21 +1355,23 @@ _Track A-Ops. Added 2026-06-19 after the first real cPanel/Namecheap ("Oskar-Web
 | `admin.html` access gate | ✅ | HTTP Basic Auth — `~/webbuilder/public/.htaccess` + `.htpasswd`, user `Ralph`. Survives app restarts; independent of the app. |
 | webbuilder crash guard | ✅ partial | process-level `unhandledRejection`/`uncaughtException` guard on deployed `server.js`, verified catching the Baileys timeout storm while the app keeps serving 200s. **Gaps → WP-BUG-WHATSAPP-RECONNECT.** |
 | nano-banana 2K image-compose → beige | ⏸ upstream | root-caused: Google `gemini-3.1-flash-image-preview` returns `IMAGE_RECITATION`/degraded beige for **2K image-edit**; **1K works**. Decision: wait for Google, **no workaround**. Cross-ref WP-18; memory `nano-banana-2k-compose-upstream-bug`. |
-| Studio pages render error overlay | 🔴 | **WP-BUG-PAGE-OVERLAY** — blocks any redeploy of the current tree. |
-| stage↔live publish + rollback | 🔴 | **WP-DEPLOY** — the end-user safety net; CRM already calls the placeholder. |
-| restart-Node-app control | 🔴 | **WP-OPS-RESTART**. |
-| deploy build/source parity | 🔴 | **WP-BUG-BUILD-SKEW**. |
-| scout workers don't run on server | 🔴 | **WP-BUG-SCOUT-WORKERS-SERVER** — corrected part-2: real first failure is `puppeteer EEXIST` at CAPTURE, not worker-OOM. |
+| Studio pages render error overlay | ✅? | **WP-BUG-PAGE-OVERLAY** — no repro since part-2; confirm once, then close. |
+| stage↔live publish + rollback | ✅ | **WP-DEPLOY superseded** — shipped as Webserver Sync (`app/api/site/*` + `lib/site/*`, one-sidecar backup). |
+| restart-Node-app control | 🔴 | **WP-OPS-RESTART** — top remaining §12 build item. |
+| deploy build/source parity | ✅ | **WP-BUG-BUILD-SKEW** → WP-28 Button C, shipped (`deploy-server.sh`). |
+| scout workers don't run on server | ✅ code | **WP-BUG-SCOUT-WORKERS-SERVER** — child-process capture shipped (`lib/capture-spawn.ts`); verify one batch on the box. |
 | MCP bridge "flapping" (`fetch failed`) | ✅ | part-2: `orch` name collision (project `.mcp.json` stdio vs generated HTTP) — fixed via `--strict-mcp-config` + portable `.mcp.json`. Memory `oskar-bridge-mcp`. |
 | WhatsApp reconnect STORM (2s hammer) | ✅ | part-2: → single 5-min semi-auto reconnect in `wa-runtime.ts` (uncommitted). Storm stopped. |
 | WhatsApp server `:39` won't SUSTAIN | 🔴 | reaches `open` but `uploadPreKeysToServer` 408→428→0 activity. Likely el8 host. Mac `:38` handles WhatsApp today. → WP-BUG-WHATSAPP-RECONNECT part-2. |
-| Scout capture (puppeteer EEXIST) | 🔴 | every taste 500s on `import('puppeteer-<hash>')` in next-server. → WP-BUG-SCOUT-WORKERS-SERVER part-2. |
-| deploy of NEW files (routes/chunks) | 🔴 | rsync/scp/tar drop brand-new files; only modifications land. **#1 deploy blocker.** → WP-BUG-BUILD-SKEW part-2. |
+| Scout capture (puppeteer EEXIST) | ✅ code | fixed via `lib/capture-spawn.ts` child process; server verification pending. |
+| deploy of NEW files (routes/chunks) | ✅ | fixed — whole-artifact server-side `tar -x` in `deploy-server.sh` (WP-28 Button C). |
 | flight-deck.jsx render host on server | ✅ | part-2: was missing on the box; re-deployed via server-side `cat`. |
 | fonts pull from Google (build + runtime) | 🟡 | → WP-BUG-FONTS-GOOGLE (self-host). |
 | FlightDeck loads 3 MB Babel from unpkg | 🟡 | → WP-BUG-FLIGHTDECK-BABEL (vendor / pre-compile). |
 
 ### WP-DEPLOY — Studio↔Live publish pipeline (deploy-to-live + restore-from-live + rollback)
+
+**✅ SUPERSEDED (2026-07-12 audit) — the need shipped as Webserver Sync.** `app/api/site/{connect,list,compare,sync,config}` + `lib/site/*` + `components/studio/WebserverSync.tsx` publish a session dir to its live docroot over FTPS/FTP/local-file, with one-sidecar backup-on-overwrite as the restore story (`docs/webserver-sync-spec.md` §10, locked — dumb backup > clever caution). The CRM's `POST /api/admin/deploy` placeholder stays AS IS by design (activity-row contract for Status→Won). **Do not build the snapshot/rollback machinery below alongside the shipped sync layer** — if multi-version rollback ever becomes a real customer need, that's a new WP extending `lib/site/`, not this one.
 
 **Problem.** The CD agent and the end-user edit a customer site in ONE directory — the session dir `public/<session-id>/` inside Studio (the oskar app on awesome-ux.ch = **stage**). The customer's **live** site is a *separate* cPanel docroot (`~/barbazza.wine/`, `~/silke-lengler.ch/`, …). There is no controlled path between them: no publish, no versioned backup, no rollback, and no way to pull live back into stage. The existing `POST /api/admin/deploy` (`app/api/admin/deploy/route.ts`) is a placeholder that writes a CRM `delivery_started` Activity row and returns `queued` with **zero disk side-effects** — and the CRM already fires it on Status→Won. If an end-user breaks their site, there is no "get it back."
 
@@ -1354,7 +1407,7 @@ _Track A-Ops. Added 2026-06-19 after the first real cPanel/Namecheap ("Oskar-Web
 
 **Acceptance.** "Restart webbuilder" → app restarts, health flips up; same for barbazza-api/silke-api; recent stderr visible; unauthorized callers blocked (behind the admin gate).
 
-**LOC.** ~200. **Difficulty.** Medium — the privilege path is the only real risk. **Deps.** none hard; pairs with WP-DEPLOY (deploy → restart). **Priority.** 🔴 ASAP.
+**LOC.** ~200. **Difficulty.** Medium — the privilege path is the only real risk. **Deps.** none hard. **Priority.** 🔴 ASAP. _(2026-07-12 audit: not started — no `app/api/admin/ops/`, no `db/oskar-apps.json`. With WP-DEPLOY superseded, this is §12's top remaining build item.)_
 
 ### WP-BUG-PAGE-OVERLAY — Studio pages throw a runtime error overlay (`/`, `/crm`)
 
@@ -1364,7 +1417,7 @@ _Track A-Ops. Added 2026-06-19 after the first real cPanel/Namecheap ("Oskar-Web
 
 **Open until investigated.** Capture the actual error/stack the overlay renders, then identify the failing module from that evidence — do not presume which file.
 
-**Done when.** `/` and `/crm` render without the overlay and the root cause is identified with evidence. **Priority.** 🔴 if still reproducing (confirm first).
+**Done when.** `/` and `/crm` render without the overlay and the root cause is identified with evidence. **Priority.** 🔴 if still reproducing (confirm first). _(2026-07-12 audit: no repro evidence since part-2 — treat as resolved-unverified; confirm both pages once on the next server check, then close.)_
 
 ### WP-BUG-WHATSAPP-RECONNECT — CRM WhatsApp (Baileys) dead session → skeleton CRM + unhandled-rejection storm
 
@@ -1378,9 +1431,13 @@ _Track A-Ops. Added 2026-06-19 after the first real cPanel/Namecheap ("Oskar-Web
 
 **Part-2 update (2026-06-19) — reconnect STORM fixed ✅.** The 2s-on-every-drop reconnect was replaced in source (`lib/wa-runtime.ts`) with a single 5-min semi-automatic reconnect (`restartRequired` stays fast for pairing; other drops wait the cycle) + a manual trigger. Deployed → the storm STOPPED (stderr stopped growing). **Two things remain:** (a) the `wa-runtime.ts` change is currently UNCOMMITTED; (b) the server `:39` device still can't SUSTAIN a connection — it reaches `connection:open` (status says 'connected') but baileys' `uploadPreKeysToServer` times out (408) → 428 close → 0 activity. NOT dual-session (WhatsApp allows 4 linked devices; Mac `:38` is healthy and handles real inbound, the server is a separate `:39`). Likely the el8 host can't sustain the WhatsApp app-layer handshake. The Mac does WhatsApp today; the server link is decorative. The crash-guard-to-source (`instrumentation.ts` already boots the runtime) + re-pair-QR-UX parts are still open. Memory `oskar-whatsapp`.
 
-### WP-BUG-BUILD-SKEW → MERGED INTO WP-28 (Sync Codebase button)
+_(2026-07-12 audit: (a) closed — `lib/wa-runtime.ts` committed in v1.0.1. (b) `:39` sustain still open; Mac `:38` carries WhatsApp. The crash guard is still NOT in source — `instrumentation.ts` boots the runtime but has no `unhandledRejection`/`uncaughtException` handler, so a rebuild still wipes the server-side `server.js` patch. **Guard-to-source is the remaining ASAP item in this WP.**)_
 
-_Canonical home for the deploy-transport fix + parity gate is now **WP-28 Button B**. Technical detail retained here for the implementer._
+### WP-BUG-BUILD-SKEW → MERGED INTO WP-28 (Sync Codebase button)  ✅ SHIPPED
+
+_Canonical home for the deploy-transport fix + parity gate is now **WP-28 Button C**. Technical detail retained here for the implementer._
+
+_(2026-07-12 audit: ✅ shipped — `scripts/deploy-server.sh` builds off-box and lands the whole artifact via server-side `tar -x`, with DEPLOY_VERSION stamp; memory `oskar-server-deploy`. The "#1 blocker" is closed.)_
 
 **Observed.** `app/api/claude-code/route.ts` exists in source; `GET /api/claude-code` returns 404 on the deployed server, and the deployed `.next/server/app/api` does not contain every route present in source. (The original "the box can't `next build`, so the artifact drifts" line this WP first shipped with was a guess — the **Part-2 update below** establishes the actual transport mechanism and supersedes it.)
 
@@ -1400,11 +1457,15 @@ _Canonical home for the deploy-transport fix + parity gate is now **WP-28 Button
 
 **Done when.** A scout batch completes on the deployed server, OR the precise blocker is identified with evidence and a decision recorded.
 
+_(2026-07-12 audit: ✅ the code fix from the Part-2 correction is shipped — `lib/capture-spawn.ts` + `scripts/capture-worker.cjs` run capture in a child process (same `captureUrl` signature), wired into the taste route. What remains is VERIFICATION only: run one taste batch on the box, then close.)_
+
 **Part-2 correction (2026-06-19) — the real first failure is NOT worker-OOM.** Triggered a single-row taste on the deployed box: it 500s at the **CAPTURE** step on `Failed to load external module puppeteer-<hash>: Error: open EEXIST` (next-server turbopack `externalImport`, `.next/server/chunks/[turbopack]_runtime.js`), BEFORE any tasting worker spawns. DETERMINISTIC on ONE row; box idles at ~22/200 nproc — so the 32×232 MB-OOM theory is NOT what kills it (it never reaches the workers). The identical `import('puppeteer-<hash>')` SUCCEEDS in a fresh node process with the same cwd/env — it's `next-server`'s long-running-process external-load that throws, not puppeteer or chromium. Chromium itself launches + screenshots fine on the box (bundled `~/.cache/puppeteer/chrome` + `LD_LIBRARY_PATH=~/lib`, GLIBC ok). **Fix the capture first:** run `captureUrl` in a CHILD process (plain-node `require('puppeteer-core')` worker, bundled chrome + `LD_LIBRARY_PATH`) — bypasses the broken `externalImport` (proven end-to-end this session). Also: `findBinary('chromium')` doesn't check `~/.cache/puppeteer` and `CHROMIUM_BIN`/`LD_LIBRARY_PATH` aren't in the app env — wire those. The API-mode worker concern (WP-91) is a SEPARATE downstream issue; capture must work first.
 
 ---
 
 **§12 do-first order (production), updated 2026-06-19 (part 2):** **WP-BUG-BUILD-SKEW is now the #1 blocker** — adding a NEW route/page to the box is flat broken (learning #1 below), and it gates WP-DEPLOY, the WhatsApp `/wake` route, and WP-BUG-SCOUT-WORKERS-SERVER. Order: WP-BUG-BUILD-SKEW + WP-DEPLOY (a transport the scanner doesn't eat + a parity gate) → WP-BUG-SCOUT-WORKERS-SERVER (real cause now known — its part-2 note) → WP-OPS-RESTART (restart-without-SSH) → WP-BUG-WHATSAPP-RECONNECT crash-guard-to-source. WP-BUG-PAGE-OVERLAY appears resolved locally (the pages render — gauge + deck — verify before relying). WP-BUG-FONTS-GOOGLE + WP-BUG-FLIGHTDECK-BABEL + the WhatsApp re-pair UX + a per-app health dashboard are 🟡 fast-follows.
+
+**§12 do-first order, re-cut 2026-07-12 (audit):** BUILD-SKEW ✅ shipped, scout-capture ✅ in code, WP-DEPLOY superseded by Webserver Sync. Remaining, in order: **WP-OPS-RESTART** → **WhatsApp crash-guard-to-source** (small; a rebuild currently re-exposes the crash) → **WP-134 + WP-135** (self-host fonts/Babel) → one server pass verifying the scout batch + page overlay, then close both BUG-WPs.
 
 ---
 
@@ -1434,7 +1495,7 @@ _A second long hardening pass on the same live box. The "99% but brittle" became
 
 **Scope.** Download Inter + Inter-Tight + JetBrains-Mono `.woff2` once → `app/fonts/`; switch `next/font/google` → `next/font/local`; delete `globals.css:4`. Zero Google dependency, build or runtime. Verify against a WORKING dev server (a font swap touches every page).
 
-**Acceptance.** App renders Inter/JetBrains with no calls to fonts.googleapis.com / fonts.gstatic.com. **LOC.** ~60. **Difficulty.** Low. **Deps.** none. **Priority.** 🟡 (recurring + high-visibility; do it when calm).
+**Acceptance.** App renders Inter/JetBrains with no calls to fonts.googleapis.com / fonts.gstatic.com. **LOC.** ~60. **Difficulty.** Low. **Deps.** none. **Priority.** 🟡 (recurring + high-visibility; do it when calm). _(2026-07-12 audit: still open — `app/layout.tsx:3` on `next/font/google`, `app/globals.css:4` runtime @import still live.)_
 
 ### WP-135 — Vendor/pre-compile FlightDeck Babel (drop the 3 MB unpkg runtime dep)  _(was WP-BUG-FLIGHTDECK-BABEL)_
 
@@ -1442,4 +1503,4 @@ _A second long hardening pass on the same live box. The "99% but brittle" became
 
 **Scope.** Either (a) vendor `babel.min.js` to `public/vendor/` and point `BABEL_SRC` at it, or — better — (b) PRE-COMPILE `flight-deck.jsx` at build time so no runtime Babel is needed (also drops the 3 MB client download).
 
-**Acceptance.** FlightDeck renders with zero external-CDN requests. **LOC.** ~80 (vendor) / ~150 (pre-compile). **Difficulty.** Low / Medium. **Deps.** none. **Priority.** 🟡.
+**Acceptance.** FlightDeck renders with zero external-CDN requests. **LOC.** ~80 (vendor) / ~150 (pre-compile). **Difficulty.** Low / Medium. **Deps.** none. **Priority.** 🟡. _(2026-07-12 audit: still open — unpkg URL at `FlightDeckHost.tsx:27`, no `public/vendor/`.)_

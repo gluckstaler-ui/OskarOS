@@ -91,7 +91,15 @@ export async function POST(req: NextRequest) {
     const filename = `${safeVibe}-${safePurpose}-v${version}.jpg`
     const filePath = path.join(sessionDir, filename)
 
-    const base64Data = genResult.imageUrl.replace(/^data:image\/\w+;base64,/, '')
+    const DATA_PREFIX = 'data:image/'
+    const BASE64_SEP = ';base64,'
+    let base64Data = genResult.imageUrl
+    if (base64Data.startsWith(DATA_PREFIX)) {
+      const sepIdx = base64Data.indexOf(BASE64_SEP, DATA_PREFIX.length)
+      if (sepIdx !== -1) {
+        base64Data = base64Data.slice(sepIdx + BASE64_SEP.length)
+      }
+    }
     const buffer = Buffer.from(base64Data, 'base64')
     await writeFile(filePath, buffer)
 

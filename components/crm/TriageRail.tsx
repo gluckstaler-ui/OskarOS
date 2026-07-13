@@ -21,7 +21,7 @@ interface TriageRailProps {
   loading: boolean
 }
 
-type Tone = 'all' | 'overdue' | 'today' | 'upcoming' | 'email' | 'wa' | 'stage'
+type Tone = 'all' | 'overdue' | 'today' | 'upcoming' | 'email' | 'wa' | 'attachment' | 'stage'
 
 interface NextAction {
   kind: 'overdue' | 'today' | 'upcoming' | 'static'
@@ -132,6 +132,12 @@ export function TriageRail({ prospects, activities, filter, onFilterChange, load
       (p) => activityFilterBucket(lastType(p.id)) === 'activity:WhatsApp',
     ).length
 
+    const prospectsWithAttachments = new Set<string>()
+    for (const a of activities) {
+      if (a.media_path && a.prospect_id) prospectsWithAttachments.add(a.prospect_id)
+    }
+    const attachmentsCount = prospectsWithAttachments.size
+
     const dayName = now.toLocaleDateString('en-US', { weekday: 'short' })
     const monthShort = now.toLocaleDateString('en-US', { month: 'short' })
     const dateBitsShort = `${dayName} ${now.getDate()} ${monthShort}`
@@ -147,6 +153,7 @@ export function TriageRail({ prospects, activities, filter, onFilterChange, load
       [
         { key: 'activity:Email', label: 'Emails', tone: 'email', count: emailsCount, sub: 'Last activity was email' },
         { key: 'activity:WhatsApp', label: 'WhatsApp', tone: 'wa', count: whatsappCount, sub: 'Last activity was WhatsApp' },
+        { key: 'activity:Attachments', label: 'Attachments', tone: 'attachment', count: attachmentsCount, sub: 'Clients with files · email + WhatsApp' },
       ],
       [
         { key: 'stage:Incoming', label: 'Incoming', tone: 'stage', count: incomingCount, sub: 'Stage 1 · first contact' },

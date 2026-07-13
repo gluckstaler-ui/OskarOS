@@ -143,11 +143,17 @@ function ensureSchema(db: Database): void {
       wa_status       TEXT,
       media_path      TEXT,
       media_mime      TEXT,
+      email_message_id TEXT,
+      email_thread_id  TEXT,
       soft_deleted    INTEGER NOT NULL DEFAULT 0
     );
     CREATE INDEX IF NOT EXISTS idx_activities_prospect_id_timestamp ON activities(prospect_id, timestamp DESC);
     CREATE INDEX IF NOT EXISTS idx_activities_wa_message_id ON activities(wa_message_id) WHERE wa_message_id IS NOT NULL;
     CREATE INDEX IF NOT EXISTS idx_activities_type ON activities(type);
+    -- NOTE: idx_activities_email_message_id is created in the PM-9 migration
+    -- below, AFTER the ALTER guarantees the column exists. It must NOT live
+    -- here: on a pre-POSTMASTER crm.db this CREATE TABLE is a no-op, so the
+    -- column isn't present yet, and indexing it here throws "no such column".
 
     CREATE TABLE IF NOT EXISTS raw_prospects (
       id              TEXT PRIMARY KEY,
@@ -216,6 +222,59 @@ function ensureSchema(db: Database): void {
       created_at   TEXT NOT NULL
     );
     CREATE INDEX IF NOT EXISTS idx_contacts_prospect ON contacts(prospect_id);
+
+    -- POSTMASTER PM-9 (spec §11): Consular reply drafts. One pending draft per
+    -- prospect per channel, enforced by the primary key. Typed columns, no JSON
+    -- blob; written ONLY via suggestion.upsert / suggestion.delete events so
+    -- replay rebuilds drafts and Button-A sync carries them.
+    CREATE TABLE IF NOT EXISTS suggestions (
+      prospect_id TEXT NOT NULL REFERENCES prospects(id) ON DELETE CASCADE,
+      channel     TEXT NOT NULL,
+      body        TEXT NOT NULL,
+      subject     TEXT,
+      in_reply_to TEXT,
+      created_at  TEXT NOT NULL,
+      PRIMARY KEY (prospect_id, channel)
+    );
+
+    -- Email header cache (Filippo 2026-07-13). Emails are stored ONLY for
+    -- clients (as activities + eml files). For everything else we still need
+    -- to render Inbox/Updates/Others fast — so the HEADERS are cached here
+    -- (envelope + classification signals only; NO bodies). One row per
+    -- (folder, uid_validity, uid). Sweep downloads new headers, INSERT OR
+    -- IGNORE handles dedup, and the classifier's bucket is stored so nothing
+    -- re-runs at query time.
+    CREATE TABLE IF NOT EXISTS email_headers (
+      id                TEXT PRIMARY KEY,      -- "<folder>:<uid_validity>:<uid>"
+      folder            TEXT NOT NULL,          -- INBOX / Sent
+      uid_validity      INTEGER NOT NULL,
+      uid               INTEGER NOT NULL,
+      message_id        TEXT,
+      from_addr         TEXT,                   -- lowercase for lookup
+      from_name         TEXT,
+      to_addrs          TEXT,                   -- comma-separated
+      subject           TEXT,
+      date              TEXT NOT NULL,          -- ISO 8601 from envelope
+      bucket            TEXT NOT NULL,          -- 'client' | 'inbox' | 'updates' | 'others'
+      prospect_id       TEXT,                   -- non-null when bucket = 'client'
+      -- classification signals (kept so re-classifying = one query, no re-fetch)
+      list_unsubscribe  TEXT,
+      list_id           TEXT,
+      feedback_id       TEXT,
+      precedence        TEXT,
+      auto_submitted    TEXT,
+      x_mailer          TEXT,
+      x_campaign        TEXT,
+      return_path       TEXT,
+      hidden            INTEGER NOT NULL DEFAULT 0,   -- (x) button persists here
+      created_at        TEXT NOT NULL,
+      UNIQUE(folder, uid_validity, uid)
+    );
+  `)
+  db.exec(`
+    CREATE INDEX IF NOT EXISTS idx_email_headers_bucket ON email_headers(bucket) WHERE hidden = 0;
+    CREATE INDEX IF NOT EXISTS idx_email_headers_from   ON email_headers(from_addr);
+    CREATE INDEX IF NOT EXISTS idx_email_headers_date   ON email_headers(date DESC);
   `)
 
   // Migration: company billing fields (Ralph 2026-05-28). They were dropped
@@ -230,6 +289,23 @@ function ensureSchema(db: Database): void {
       db.exec(`ALTER TABLE prospects ADD COLUMN ${col} TEXT DEFAULT ''`)
     }
   }
+
+  // Migration: POSTMASTER PM-9 email columns on activities (spec §11). crm.db
+  // files created before POSTMASTER predate them; ALTER each missing one in.
+  // email_message_id = RFC 5322 Message-ID, the global dedup key for sweeps.
+  // email_thread_id  = root Message-ID (walked from References). Idempotent.
+  const activityCols = new Set(
+    (db.prepare("PRAGMA table_info(activities)").all() as Array<{ name: string }>).map(c => c.name),
+  )
+  for (const col of ['email_message_id', 'email_thread_id']) {
+    if (!activityCols.has(col)) {
+      db.exec(`ALTER TABLE activities ADD COLUMN ${col} TEXT`)
+    }
+  }
+  // Unconditional (IF NOT EXISTS): the column is guaranteed present now — either
+  // the CREATE TABLE made it (fresh db) or the ALTER above did (existing db).
+  // Both paths get the index; neither throws.
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_activities_email_message_id ON activities(email_message_id) WHERE email_message_id IS NOT NULL`)
 
   // Migration: scout_json on raw_prospects (Scout v1, Ralph 2026-06-03). The
   // pool's prescreen result (taste + ◐ queried lamps) lives here as a blob.

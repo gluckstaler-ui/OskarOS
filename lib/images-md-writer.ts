@@ -59,6 +59,10 @@ export interface ImageMetadataPatch {
    * this (the entry is already located).
    */
   parentPromptId?: string
+  /** Nano Banana's self-description of the generated image. Maps to `**Nano Banana:**`. */
+  description?: string
+  /** The prompt/instruction sent to Gemini. Maps to `**Prompt:**`. */
+  prompt?: string
 }
 
 const VALID_STATUSES = new Set<string>([
@@ -185,7 +189,9 @@ export async function upsertImageMetadata(
     if (patch.status) body = setOrInsertField(body, 'Status', patch.status)
     if (patch.vibe) body = setOrInsertField(body, 'Vibe', patch.vibe)
     if (patch.slot) body = setOrInsertField(body, 'Slot', patch.slot)
+    if (patch.prompt) body = setOrInsertField(body, 'Prompt', patch.prompt)
     if (patch.evaluation) body = setOrInsertField(body, 'CD Evaluation', patch.evaluation)
+    if (patch.description) body = setOrInsertField(body, 'Nano Banana', patch.description)
     if (patch.note) body = setOrInsertField(body, 'Note', patch.note)
     md = md.slice(0, existing.start) + body + md.slice(existing.end)
   } else {
@@ -200,7 +206,9 @@ export async function upsertImageMetadata(
     if (patch.vibe) lines.push(`**Vibe:** ${patch.vibe}`)
     if (patch.slot) lines.push(`**Slot:** ${patch.slot}`)
     lines.push(`**Status:** ${patch.status || 'READY'}`)
+    if (patch.prompt) lines.push(`**Prompt:** ${patch.prompt}`)
     if (patch.evaluation) lines.push(`**CD Evaluation:** ${patch.evaluation}`)
+    if (patch.description) lines.push(`**Nano Banana:** ${patch.description}`)
     if (patch.note) lines.push(`**Note:** ${patch.note}`)
     body = lines.join('\n') + '\n'
 

@@ -73,6 +73,7 @@ export async function runProofread(input: ProofreadInput): Promise<ProofreadOutc
   try {
     const result = await callCDBridge(input.sessionId, tagged, {
       expectedTools: ['submit_proofread'],
+      useWorker: true,
     })
     const args = (result.toolCalls.submit_proofread as ProofreadToolArgs | undefined) || null
     if (!args) {

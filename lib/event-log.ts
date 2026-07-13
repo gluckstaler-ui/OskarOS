@@ -37,8 +37,8 @@ mkdirSync(EVENTS_DIR, { recursive: true })
 
 // ─── Event envelope (locked in WP-CRM-F21) ──────────────────────────────────
 
-export type EventEntity = 'prospect' | 'activity' | 'contact' | 'raw_prospect' | 'merge_conflict'
-export type EventOp = 'insert' | 'update' | 'delete' | 'soft_delete'
+export type EventEntity = 'prospect' | 'activity' | 'contact' | 'raw_prospect' | 'merge_conflict' | 'suggestion'
+export type EventOp = 'insert' | 'update' | 'delete' | 'soft_delete' | 'upsert'
 export type EventSource = 'live' | 'backfill' | 'sync' | 'manual_import' | 'wp-121-seed'
 
 export interface Event {

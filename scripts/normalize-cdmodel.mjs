@@ -18,7 +18,9 @@ import { join } from 'path'
 import crypto from 'crypto'
 
 const CANON = 'claude-opus-4-7'
-const KEEP = new Set([CANON, 'auto']) // valid current values — never rewritten
+// 2026-07-03: Fable 5 returned as a valid brain — KEEP it so re-running this
+// (obsolete, one-time) migration can never demote a real Fable session to Opus.
+const KEEP = new Set([CANON, 'claude-fable-5', 'auto']) // valid current values — never rewritten
 const APPLY = process.argv.includes('--apply')
 const publicDir = join(process.cwd(), 'public')
 

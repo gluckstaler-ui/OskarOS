@@ -148,11 +148,6 @@ export const CD_ALLOWED_TOOLS = [
   `mcp__${MCP_SERVER_NAME}__submit_image_prompt`,
   // IMAGES.md typed gateway (Bug 18)
   `mcp__${MCP_SERVER_NAME}__update_image_metadata`,
-  // Bug I (Ralph 2026-05-04): typed prompt block writer for IMAGES.md.
-  // Registered in mcp-server/tools-cd.ts:258 but missed in the original
-  // allowlist; CD's calls were rejected by the spawn-time `--allowed-tools`
-  // gate even though the server happily dispatched. Added 2026-05-06.
-  `mcp__${MCP_SERVER_NAME}__propose_image_prompt`,
   // Ralph 2026-05-06: on-demand card preview. CD calls this when user
   // asks to "show me [a card]" so they see a visual instance instead of
   // pasted React source. Both allowlists (this one + mcp-server/tools.ts
@@ -208,10 +203,15 @@ export const CD_ALLOWED_TOOLS = [
   // mcp-server/tools-cd.ts:156 + dispatched at :1032, but originally missed
   // in BOTH allowlists (this spawn-time list + mcp-server/tools.ts CD_ALLOWED).
   // Result: the spawn flag rejected the call → Sonnet workers always returned
-  // "no verdict from agent" (the bridge collector saw zero tool calls). Same
-  // bug class as `propose_image_prompt` (Bug I, 2026-05-06) — the inverse of
-  // the comment two paragraphs below this array.
+  // "no verdict from agent" (the bridge collector saw zero tool calls).
   `mcp__${MCP_SERVER_NAME}__submit_scout_verdict`,
+  // POSTMASTER PM-3: the Consular's answer channel for a drafted email/WhatsApp
+  // reply. Tool-as-channel (mirrors submit_image_prompt) — the EVAL-INBOUND
+  // briefing route reads result.toolCalls['suggest_reply'] and persists via
+  // upsertSuggestion. MUST also be in mcp-server/tools.ts CD_ALLOWED (line 204
+  // note: a submit tool missing from EITHER allowlist is spawn-rejected → the
+  // bridge sees zero tool calls → "no draft from agent").
+  `mcp__${MCP_SERVER_NAME}__suggest_reply`,
   // ── Claude Code built-in tools (Ralph 2026-05-06) ─────────────────────
   // Not MCP tools — Claude Code's own tool surface. Without these in the
   // allowlist, CD can't `Read`/`Write`/`Edit` files directly, can't run

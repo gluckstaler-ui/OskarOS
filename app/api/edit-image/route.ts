@@ -1,12 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { readFile, writeFile, mkdir, access } from 'fs/promises'
 import path from 'path'
-import { editImageWithText, generateImage, describeGeneratedImage, ImageSize, AspectRatio } from '@/lib/gemini'
+import { callGemini, type ImageSize, type AspectRatio } from '@/lib/gemini'
+
+export const runtime = 'nodejs'
+export const maxDuration = 300
+export const dynamic = 'force-dynamic'
 import { appendLineage, newGenerationId } from '@/lib/lineage-store'
 import type { GenerationRecord } from '@/lib/types'
-import { runProofread, type ProofreadOutcome } from '@/lib/cd-proofread'
-import { runVerdict, type VerdictOutcome } from '@/lib/cd-verdict'
-import { logToChat } from '@/lib/chat-logger'
 import { publish } from '@/lib/event-bus'
 import { upsertImageMetadata } from '@/lib/images-md-writer'
 
@@ -181,343 +182,148 @@ function slugTwoWordsFromDescription(description: string | null | undefined): st
   return pair || 'image'
 }
 
+function mimeFromPath(p: string): string {
+  const ext = p.split('.').pop()?.toLowerCase()
+  if (ext === 'png') return 'image/png'
+  if (ext === 'webp') return 'image/webp'
+  if (ext === 'svg') return 'image/svg+xml'
+  if (ext === 'gif') return 'image/gif'
+  return 'image/jpeg'
+}
+
 export async function POST(req: NextRequest) {
+  let sessionId: string | undefined
+
   try {
+    const body = await req.json()
+    sessionId = body.sessionId
     const {
-      sourceImagePaths,   // Array of paths like ["/uploads/steve.jpg"]
+      sourceImagePaths,
       instruction,
       filename,
       imageSize,
       aspectRatio,
-      operation,          // 'generate' for pure generation, anything else uses edit
-      sessionId,          // Optional: if provided, save to session folder
-      preset,             // WP-1C/2C: preset label used for this generation (for lineage)
-      mode,               // WP-1C/2C: tab mode (generate|edit|compose|layout)
-      promptId,           // Ralph 2026-05-04: parent ### img-N block to nest the new #### entry under
-    } = await req.json()
+      operation,
+      preset,
+      mode,
+      promptId,
+    } = body
 
     if (!instruction) {
-      return NextResponse.json(
-        { error: 'instruction is required' },
-        { status: 400 }
-      )
+      return NextResponse.json({ error: 'instruction is required' }, { status: 400 })
     }
 
-    // Load source images from disk (only needed for edit operations)
-    const sourceImages: string[] = []
-    if (sourceImagePaths && sourceImagePaths.length > 0 && operation !== 'generate') {
+    // ── 1. Load source images (throw on failure) ─────────────────────────
+    const sourceImages: { data: string; mimeType: string }[] = []
+    const sourceFilenames: string[] = []
+    if (sourceImagePaths?.length && operation !== 'generate') {
       for (const sourcePath of sourceImagePaths) {
-        try {
-          const fullPath = path.join(process.cwd(), 'public', sourcePath)
-          const imageBuffer = await readFile(fullPath)
-          const base64 = imageBuffer.toString('base64')
-          const mimeType = sourcePath.endsWith('.png') ? 'image/png' : 'image/jpeg'
-          sourceImages.push(`data:${mimeType};base64,${base64}`)
-        } catch (readError) {
-          console.error(`Failed to read source image ${sourcePath}:`, readError)
-        }
-      }
-    }
-
-    // ── WP-15 (added 2026-04-17): Proofread before Nano ──
-    // CD reviews the prompt. If CD finds an objective defect, it rewrites in
-    // place; we send the rewrite to Nano and surface a snackbar via the
-    // response payload. If CD doesn't reply within 2s, we fire as-is.
-    // sessionId must be present — without it we can't reach Big CD.
-    let proofread: ProofreadOutcome | null = null
-    let actualPrompt = instruction
-    if (sessionId) {
-      const sourceFilenamesForCtx = (sourceImagePaths || []).map(
-        (p: string) => p.split('/').pop() || `image`
-      )
-      proofread = await runProofread({
-        sessionId,
-        mode: (mode || operation || 'generate') as 'generate' | 'edit' | 'compose' | 'layout',
-        prompt: instruction,
-        image:
-          sourceFilenamesForCtx.length > 0
-            ? { filename: sourceFilenamesForCtx[0] }
-            : undefined,
-        stagedImages:
-          sourceFilenamesForCtx.length > 1
-            ? { scene: sourceFilenamesForCtx[0], subjects: sourceFilenamesForCtx.slice(1) }
-            : undefined,
-      })
-      actualPrompt = proofread.finalPrompt
-
-      // Augenmass paper-trail: only `rewritten` lands in chat. `advisory`
-      // and `timeout` stay snackbar-only per WP-15 §"Paper-trail filter".
-      if (proofread.severity === 'rewritten') {
-        await logToChat(sessionId, {
-          kind: 'cd-rewrite',
-          content: `**Note:** ${proofread.note}\n\n**Original:**\n\`\`\`\n${instruction}\n\`\`\`\n\n**CD's rewrite:**\n\`\`\`\n${actualPrompt}\n\`\`\``,
-          source: `image-mode:${mode || operation}`,
+        const fullPath = path.join(process.cwd(), 'public', sourcePath)
+        const imageBuffer = await readFile(fullPath)
+        sourceImages.push({
+          data: imageBuffer.toString('base64'),
+          mimeType: mimeFromPath(sourcePath),
         })
+        sourceFilenames.push(sourcePath.split('/').pop() || 'image')
       }
-
-      console.log(
-        `[edit-image] Proofread: severity=${proofread.severity} ${proofread.durationMs}ms — sending to Nano now`
-      )
+      console.log(`[edit-image] Loaded ${sourceImages.length} source images: ${sourceFilenames.join(', ')}`)
     }
 
-    let imageUrl: string
-    let geminiText: string | null = null
-    // Lifted to outer scope so the response payload can include it.
-    let verdict: VerdictOutcome | null = null
+    // ── 2. Call Gemini (one function, one config) ────────────────────────
+    const label = sourceImages.length > 0 ? 'edit/compose' : 'generate'
+    console.log(`[edit-image] ${label}: "${instruction.substring(0, 80)}..."`)
 
-    // Pure generation: no source images, just create from prompt
-    if (operation === 'generate') {
-      console.log(`Generating new image from prompt: "${actualPrompt.substring(0, 80)}..."`)
-      const genResult = await generateImage({
-        prompt: actualPrompt,
-        style: 'photorealistic',
-        imageSize: (imageSize as ImageSize) || '1K',
-        aspectRatio: (aspectRatio as AspectRatio) || '16:9'
-      })
-      imageUrl = genResult.imageUrl
-      geminiText = genResult.geminiText || null
-    } else {
-      // Edit/compose: transform existing images
-      // Extract filenames from paths for image labeling
-      const sourceFilenames = (sourceImagePaths || []).map((p: string) => p.split('/').pop() || `image`)
-      console.log(`Editing image with ${sourceImages.length} sources (${sourceFilenames.join(', ')}): "${actualPrompt.substring(0, 50)}..."`)
-      const result = await editImageWithText({
-        sourceImages,
-        sourceFilenames,
-        instruction: actualPrompt,
-        imageSize: (imageSize as ImageSize) || '1K',
-        aspectRatio: (aspectRatio as AspectRatio) || '16:9'
-      })
-      imageUrl = result.imageUrl
-      geminiText = result.geminiText || null
-    }
+    const { imageUrl, geminiText } = await callGemini({
+      prompt: instruction,
+      sourceImages: sourceImages.length > 0 ? sourceImages : undefined,
+      sourceFilenames: sourceFilenames.length > 0 ? sourceFilenames : undefined,
+      imageSize: (imageSize as ImageSize) || '1K',
+      aspectRatio: (aspectRatio as AspectRatio) || '16:9',
+      style: sourceImages.length === 0 ? 'photorealistic' : undefined,
+    })
 
-    // Save to disk
-    let savedPath: string | null = null
-    // Lifted so the response payload below can report the real saved name
-    // (not the client-sent hint). Stays null if Nano didn't return a
-    // base64 image — in that case nothing was written.
-    let savedFilename: string | null = null
-
-    // 2026-04-20: Parse the data URL with startsWith + indexOf instead of
-    // a regex. Previous `/^data:image\/(\w+);base64,(.+)$/` threw
-    // `RangeError: Maximum call stack size exceeded` at `String.match` on
-    // certain imageUrl values returned by the Gemini generate path. The
-    // regex engine flattens V8 cons-strings (rope trees) via recursion;
-    // when Gemini's JSON decoder produces a deeply-nested rope for a multi-
-    // MB base64 blob, the flatten blows the stack even though the pattern
-    // itself is bounded. startsWith/indexOf/slice are all iterative in V8
-    // and handle ropes without touching the stack. Ralph's repro hit 1K
-    // images, not 2K — the trigger is rope depth, not byte count, so
-    // resolution alone doesn't predict it.
+    // ── 3. Parse base64 + save to disk ───────────────────────────────────
     const DATA_PREFIX = 'data:image/'
     const BASE64_SEP = ';base64,'
-    let parsed: { extension: string; base64Data: string } | null = null
+    let savedPath: string | null = null
+    let savedFilename: string | null = null
+
     if (imageUrl.startsWith(DATA_PREFIX)) {
       const sepIdx = imageUrl.indexOf(BASE64_SEP, DATA_PREFIX.length)
       if (sepIdx !== -1) {
         const rawExt = imageUrl.slice(DATA_PREFIX.length, sepIdx)
         const extension = rawExt === 'jpeg' ? 'jpg' : rawExt
         const base64Data = imageUrl.slice(sepIdx + BASE64_SEP.length)
-        parsed = { extension, base64Data }
+
+        const outputDir = sessionId
+          ? path.join(process.cwd(), 'public', sessionId)
+          : path.join(process.cwd(), 'public', 'generated-images')
+        const publicPathPrefix = sessionId ? `/${sessionId}` : '/generated-images'
+
+        await mkdir(outputDir, { recursive: true })
+
+        const isGenericClientName =
+          !filename ||
+          /^(?:image|edited-image|generated-image|untitled)(?:-\d+)?(?:\.[a-z]+)?$/i.test(filename)
+        const baseFilename = !isGenericClientName
+          ? sanitizeFilenameBase(filename)
+          : slugTwoWordsFromDescription(geminiText)
+        const finalFilename = await getUniqueFilename(outputDir, baseFilename, extension)
+
+        await writeFile(path.join(outputDir, finalFilename), Buffer.from(base64Data, 'base64'))
+        savedPath = `${publicPathPrefix}/${finalFilename}`
+        savedFilename = finalFilename
+        console.log(`[edit-image] Saved: ${savedPath}`)
       }
     }
 
-    if (parsed) {
-      const { extension, base64Data } = parsed
-
-      // Determine output directory based on sessionId
-      let outputDir: string
-      let publicPathPrefix: string
-
-      if (sessionId) {
-        outputDir = path.join(process.cwd(), 'public', sessionId)
-        publicPathPrefix = `/${sessionId}`
-        console.log(`📁 Saving generated image to session folder: ${sessionId}`)
-      } else {
-        outputDir = path.join(process.cwd(), 'public', 'generated-images')
-        publicPathPrefix = '/generated-images'
-        console.log(`📁 No session - saving to generated-images`)
+    // ── 4. Lineage ───────────────────────────────────────────────────────
+    if (sessionId && savedFilename) {
+      try {
+        const record: GenerationRecord = {
+          id: newGenerationId(),
+          parentImage: sourceFilenames[0] || undefined,
+          sourceImages: sourceFilenames,
+          preset: preset || '',
+          userPrompt: instruction,
+          actualPromptSent: instruction,
+          resultImage: savedFilename,
+          aspectRatio: (aspectRatio as AspectRatio) || '16:9',
+          resolution: (imageSize as ImageSize) || '1K',
+          timestamp: new Date().toISOString(),
+          mode: (mode || operation || 'generate') as GenerationRecord['mode'],
+          description: geminiText || undefined,
+        }
+        await appendLineage(sessionId, record)
+      } catch (lineageErr) {
+        console.error('[LINEAGE] Failed to append:', lineageErr)
       }
+    }
 
-      await mkdir(outputDir, { recursive: true })
-
-      // ── WP-6B: Turn 2 fallback — describe the generated image if Turn 1 didn't ──
-      // MOVED earlier (2026-04-20): used to run AFTER the write. Now runs
-      // BEFORE, because the filename is derived from Nano's description
-      // (first two content words → slug). Without Turn 2's text we'd have
-      // to invent a name.
-      if (!geminiText && imageUrl) {
-        console.log(`[Turn 2] No description from Turn 1 — running self-describe...`)
-        const sourceFilenames = (sourceImagePaths || []).map((p: string) => p.split('/').pop() || 'image')
-        const turn2Description = await describeGeneratedImage(imageUrl, {
+    // ── 5. IMAGES.md entry ─────────────────────────────────────────────
+    if (sessionId && savedFilename) {
+      try {
+        const sessionDir = path.join(process.cwd(), 'public', sessionId)
+        const description = geminiText
+          ? geminiText.replace(/\s+/g, ' ').trim()
+          : undefined
+        await upsertImageMetadata(sessionDir, savedFilename, {
+          status: 'READY',
           prompt: instruction,
-          mode: operation || 'generate',
-          sourceFilenames: sourceFilenames.length > 0 ? sourceFilenames : undefined,
+          description,
+          ...(promptId ? { parentPromptId: promptId } : {}),
         })
-        if (turn2Description) {
-          geminiText = turn2Description
-          console.log(`[Turn 2] Got description: ${turn2Description.length} chars`)
-        } else {
-          console.warn(`[Turn 2] describeGeneratedImage returned null — no description available`)
-        }
-      }
-
-      // Filename selection (Ralph 2026-04-25 — restored client-hint primacy):
-      //
-      //   1. Client-sent `filename` wins when present and not generic. The
-      //      client (AdvancedMode.handleGenerate) builds it from the source
-      //      image's root filename + the preset/action that's being applied,
-      //      e.g. `vibrant-sultan`, `night-cliff-majlis`. That preserves the
-      //      semantic context the user actually cares about — what was
-      //      edited and how — instead of whatever camera-vocabulary noise
-      //      Nano happens to lead its description with.
-      //
-      //   2. Fallback: `slugTwoWordsFromDescription(geminiText)` — the
-      //      description-derived slug. Used only when the client doesn't
-      //      send a hint OR sends a known generic placeholder. The expanded
-      //      stopwords list still kicks in here.
-      //
-      // The pre-2026-04-20 recursion bug (`gen-gen-gen-image.jpg`) came
-      // from the client unconditionally prefixing `gen-` on every re-edit.
-      // The new client formula uses preset + source-ROOT (walks the parent
-      // chain to the original upload), so prefixes don't accumulate.
-      const isGenericClientName =
-        !filename ||
-        /^(?:image|edited-image|generated-image|untitled)(?:-\d+)?(?:\.[a-z]+)?$/i.test(filename)
-      const baseFilename = !isGenericClientName
-        ? sanitizeFilenameBase(filename)
-        : slugTwoWordsFromDescription(geminiText)
-      const finalFilename = await getUniqueFilename(outputDir, baseFilename, extension)
-      const filePath = path.join(outputDir, finalFilename)
-
-      const imageBuffer = Buffer.from(base64Data, 'base64')
-      await writeFile(filePath, imageBuffer)
-
-      savedPath = `${publicPathPrefix}/${finalFilename}`
-      savedFilename = finalFilename
-      console.log(`Edited image saved to: ${savedPath}`)
-
-      // ── WP-15: Post-generation verdict — OFF THE CRITICAL PATH (Ralph 2026-06-12) ──
-      // This used to `await runVerdict(...)` HERE, blocking the entire image
-      // response on a full CD agent turn (buildCDContext + the Big CD bridge —
-      // and despite the comment above there was NO timeout). The image was
-      // already saved to disk by this point, but the user never saw it until
-      // CD finished — and if CD was busy or down, "nothing happened." That is
-      // the hiccup-on-return-from-Nano bug. The verdict is a QA nicety; it must
-      // never gate the image. We now fire it in the BACKGROUND: the UI gets the
-      // image immediately (image_ready + the HTTP response below run without
-      // waiting), and the ✓/≈/✗ lands asynchronously in chat (on ✗) + IMAGES.md.
-      // `verdict` stays null on the synchronous path — every downstream
-      // `verdict ? … : …` fallback already handles that (it was written for the
-      // "bridge timed out → null" case).
-      if (sessionId) {
-        const sid = sessionId
-        const fname = finalFilename
-        const verdictMode = (mode || operation || 'generate') as 'generate' | 'edit' | 'compose' | 'layout'
-        const nanoDesc = geminiText || undefined
-        const srcLabel = `image-mode:${mode || operation}`
-        void (async () => {
-          try {
-            const v = await runVerdict({ sessionId: sid, filename: fname, nanoDescription: nanoDesc, originalPrompt: actualPrompt, mode: verdictMode })
-            console.log(`[edit-image] Verdict (bg): ${v.verdict} ${v.durationMs}ms — note="${v.note?.slice(0, 80)}"`)
-            if (v.verdict === '✗') {
-              await logToChat(sid, { kind: 'cd-verdict-fail', content: `**Verdict:** ✗\n**Note:** ${v.note}`, ref: fname, source: srcLabel })
-            }
-            // Land CD's verdict in IMAGES.md so the record reflects the QA pass.
-            try {
-              await upsertImageMetadata(path.join(process.cwd(), 'public', sid), fname, { status: 'READY', evaluation: `${v.verdict} — ${v.note}`.slice(0, 400) })
-            } catch (e) { console.warn('[edit-image] bg verdict IMAGES.md update failed:', e) }
-          } catch (e) {
-            console.warn('[edit-image] background verdict failed (image already delivered):', e)
-          }
-        })()
-      }
-
-      // ── WP-6B: Write description to IMAGES.md ──
-      // Ralph 2026-05-04: route through upsertImageMetadata. The previous
-      // direct-write produced `### filename` (top-level prompt entry) —
-      // wrong shape; the parser then treated each generation as its own
-      // prompt block, which made Goofy show up as an "Uploaded Image"
-      // instead of nesting under `### img-goofy-v1`. The upsert path
-      // writes `#### filename` (the right shape) and, when promptId is
-      // provided, inserts AT the parent block's tail so the parser
-      // attaches it correctly.
-      if (sessionId) {
-        try {
-          const sessionDir = path.join(process.cwd(), 'public', sessionId)
-          const evaluation = verdict
-            ? `${verdict.verdict} — ${verdict.note}`.slice(0, 400)
-            : geminiText
-              ? geminiText.replace(/\s+/g, ' ').trim().slice(0, 400)
-              : undefined
-          await upsertImageMetadata(sessionDir, finalFilename, {
-            status: 'READY',
-            evaluation,
-            ...(promptId ? { parentPromptId: promptId } : {}),
-          })
-          console.log(
-            `[IMAGES.md] upserted ${finalFilename}` +
-            (promptId ? ` under ${promptId}` : ' (no parent prompt — appended)'),
-          )
-        } catch (imgErr) {
-          console.error(`[IMAGES.md] Failed to upsert ${finalFilename}:`, imgErr)
-        }
-      }
-
-      // ── WP-1C/2C (added 2026-04-17): Persist GenerationRecord to LINEAGE.json ──
-      // Lineage data was previously in-memory only; refresh wiped the version
-      // sidebar's history. Sidecar JSON survives reload without conflicting
-      // with CD edits to IMAGES.md.
-      if (sessionId) {
-        try {
-          const sourceFilenames = (sourceImagePaths || []).map(
-            (p: string) => p.split('/').pop() || p
-          )
-          // WP-15 audit trail: capture what the user typed AND what Nano
-          // actually received, plus both CD evaluations. Without these the
-          // "did CD rewrite silently?" check cannot run from disk later.
-          const record: GenerationRecord = {
-            id: newGenerationId(),
-            parentImage: sourceFilenames[0] || undefined,
-            sourceImages: sourceFilenames,
-            preset: preset || '',
-            userPrompt: instruction,
-            actualPromptSent: actualPrompt,
-            resultImage: finalFilename,
-            aspectRatio: (aspectRatio as AspectRatio) || '16:9',
-            resolution: (imageSize as ImageSize) || '1K',
-            timestamp: new Date().toISOString(),
-            mode: (mode || operation || 'generate') as GenerationRecord['mode'],
-            description: geminiText || undefined,
-            proofreadResult: proofread
-              ? { severity: proofread.severity, note: proofread.note }
-              : undefined,
-            verdict: verdict
-              ? {
-                  rating: verdict.verdict,
-                  note: verdict.note,
-                  adjustedDescription: verdict.adjustedDescription,
-                }
-              : undefined,
-          }
-          await appendLineage(sessionId, record)
-          console.log(`[LINEAGE] Appended record ${record.id} for ${finalFilename}`)
-        } catch (lineageErr) {
-          console.error('[LINEAGE] Failed to append:', lineageErr)
-        }
+      } catch (err) {
+        console.warn('[edit-image] IMAGES.md write failed:', err)
       }
     }
 
-    // Phase 2: server-side publish on success so /api/events delivers
-    // image_ready to BOTH the frontend (UI) and the MCP server (CD). The
-    // legacy duplicate emitImageReady call in app/page.tsx (line ~1920)
-    // can be deleted now — this is the single source of truth.
-    if (sessionId && (savedFilename || filename)) {
+    // ── 6. Publish event ─────────────────────────────────────────────────
+    if (sessionId && savedFilename) {
       publish(sessionId, {
         type: 'image_ready',
-        filename: savedFilename || filename || 'edited-image.jpg',
-        imageName: savedFilename || filename || 'edited-image.jpg',
+        filename: savedFilename,
+        imageName: savedFilename,
         slot: 'composed',
         geminiText: geminiText || null,
         nanoText: geminiText || null,
@@ -525,25 +331,18 @@ export async function POST(req: NextRequest) {
       })
     }
 
+    // ── 7. Return ────────────────────────────────────────────────────────
     return NextResponse.json({
       imageUrl,
       savedPath,
-      // The real saved name (derived from Nano's description). Falls back
-      // to the client-sent hint if nothing was written to disk.
       filename: savedFilename || filename || 'edited-image.jpg',
-      geminiText,
-      // WP-15 (added 2026-04-17): structured CD outcomes for client-side
-      // snackbar emission. Both null when sessionId was missing or the
-      // bridge call timed out.
-      proofread,
-      verdict,
+      geminiText: geminiText || null,
     })
 
   } catch (error) {
-    console.error('Image edit error:', error)
-    const sessionIdForFailure = (await req.clone().json().catch(() => ({}))).sessionId
-    if (sessionIdForFailure) {
-      publish(sessionIdForFailure, {
+    console.error('[edit-image] Error:', error)
+    if (sessionId) {
+      publish(sessionId, {
         type: 'image_failed',
         error: String(error),
         level: 'error',

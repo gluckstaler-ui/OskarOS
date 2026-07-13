@@ -23,6 +23,8 @@ import { useCrmData } from './crm-data'
 import { TriageRail } from '@/components/crm/TriageRail'
 import { LeadList } from '@/components/crm/LeadList'
 import { WhatsAppMessageList } from '@/components/crm/WhatsAppMessageList'
+import { EmailMessageList } from '@/components/crm/EmailMessageList'
+import { AttachmentsView } from '@/components/crm/AttachmentsView'
 import { LeadDetail } from '@/components/crm/LeadDetail'
 import { NextMoveHero } from '@/components/crm/NextMoveHero'
 import { FlightDeckHost } from '@/components/crm/FlightDeckHost'
@@ -68,7 +70,9 @@ export default function CrmPage() {
   // Flight Deck collapse (Ralph 2026-06-03): the deck-header toggle (replaces
   // the old LIVE badge) flips this; collapsed → deck renders header-only → the
   // Consular chat below it grows. Stable callback so it doesn't churn the host.
-  const [deckCollapsed, setDeckCollapsed] = useState(false)
+  // Filippo 2026-07-12: LOAD STATE = deck collapsed, chat maximized. The toggle
+  // opens the deck on demand — not the other way around.
+  const [deckCollapsed, setDeckCollapsed] = useState(true)
   const toggleDeck = useCallback(() => setDeckCollapsed((c) => !c), [])
   // Initial load — the chat route only returns the deck AFTER a turn, so on a
   // fresh /crm (or reload) fetch the persisted db/flight-deck.json once, so the
@@ -311,7 +315,8 @@ export default function CrmPage() {
   // Keyboard-shortcuts cheat sheet (opened by the ? button or the ? key).
   const [shortcutsOpen, setShortcutsOpen] = useState(false)
   // Show/hide the unmatched-senders strip — only relevant in the WhatsApp view.
-  const [showUnmatched, setShowUnmatched] = useState(true)
+  // Filippo 2026-07-12: LOAD STATE = hidden. The toggle reveals them on demand.
+  const [showUnmatched, setShowUnmatched] = useState(false)
   // WhatsApp compose — page-level so EVERY WhatsApp affordance (the channel
   // icon on rows + kanban cards, the detail's Send button) opens the Baileys
   // compose modal (Oskar bridge), never a wa.me external link. Ralph 2026-05-29.
@@ -554,6 +559,26 @@ export default function CrmPage() {
                       loading={loading}
                     />
                   </>
+                ) : filter === 'activity:Email' ? (
+                  // POSTMASTER PM-4: the Email island — same shape as WhatsApp,
+                  // grouped by client, compose-on-top with the Consular's
+                  // prefilled draft; the unknown-senders banner is inside it.
+                  <EmailMessageList
+                    activities={activities}
+                    prospects={prospects}
+                    onSelectProspect={setSelectedId}
+                    onSent={() => reload(true)}
+                    loading={loading}
+                  />
+                ) : filter === 'activity:Attachments' ? (
+                  // POSTMASTER PM-6: attachments bento — all media grouped by
+                  // client, sorted by latest attachment date. Both channels.
+                  <AttachmentsView
+                    activities={activities}
+                    prospects={prospects}
+                    onSelectProspect={setSelectedId}
+                    loading={loading}
+                  />
                 ) : (
                   <LeadList
                     prospects={prospects}

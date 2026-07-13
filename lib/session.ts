@@ -1638,7 +1638,7 @@ export async function parseImagesMd(sessionId: string): Promise<Map<string, Pars
     // invisible to the parser (parser only knew Uploaded + Generated
     // sections). The shape mirrors `## Image Prompts + Generated` (####
     // entries with **Generated**, **Status**, **Source**, **Provenance**).
-    const manipSection = content.match(/## Manipulations\s*\n([\s\S]*?)(?=\n## [^#]|$)/)
+    const manipSection = content.match(/\n## Manipulations\s*\n([\s\S]*?)(?=\n## [^#]|$)/)
     if (manipSection) {
       const sec = manipSection[1]
       const manipEntries = sec.split(/(?=^#### )/m).filter(e => e.trim().startsWith('#### '))

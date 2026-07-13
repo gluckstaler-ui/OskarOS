@@ -71,6 +71,7 @@ export async function runVerdict(input: VerdictInput): Promise<VerdictOutcome> {
   try {
     const result = await callCDBridge(input.sessionId, tagged, {
       expectedTools: ['submit_image_verdict'],
+      useWorker: true,
     })
     const args = (result.toolCalls.submit_image_verdict as VerdictToolArgs | undefined) || null
     if (!args) {

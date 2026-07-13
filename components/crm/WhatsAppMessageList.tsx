@@ -152,8 +152,10 @@ export function WhatsAppMessageList({ activities, prospects, onSelectProspect, l
 
   return (
     <div className="fp-list-card" aria-busy={loading}>
-      <div className="fp-list-head" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
-        <div className="title">
+      {/* Filippo 2026-07-13: buttons RIGHT of the title, one line — polar's
+          `.title { flex: 1 0 100% }` would wrap them below; inline overrides. */}
+      <div className="fp-list-head" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'nowrap' }}>
+        <div className="title" style={{ flex: '0 1 auto' }}>
           <MessageCircle width={14} height={14} style={{ verticalAlign: '-2px', marginRight: 6, color: '#25D366' }} />
           WhatsApp · {groups.length} {groups.length === 1 ? 'sender' : 'senders'} · {totalMessages} {totalMessages === 1 ? 'message' : 'messages'}
         </div>

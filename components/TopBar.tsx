@@ -177,7 +177,7 @@ export function TopBar({
             is 1M. GEMINI selects the WebDev build model (its path left untouched).
             SONNET ripped out. Single-select — never two lit. Ralph 2026-06-10. */}
         <div style={pillGroupStyle}>
-          <button disabled title="Temporarily unavailable" style={{ ...getPillStyle(false), opacity: 0.4, cursor: 'not-allowed' }}>FABLE</button>
+          <button onClick={() => onModelSwitch('fable')} style={getPillStyle(modelSwitch === 'fable')}>FABLE</button>
           <button onClick={() => onModelSwitch('opus')} style={getPillStyle(modelSwitch === 'opus')}>OPUS</button>
           <button onClick={() => onModelSwitch('gemini')} style={getPillStyle(modelSwitch === 'gemini')}>GEMINI</button>
         </div>

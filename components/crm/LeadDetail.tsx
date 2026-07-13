@@ -1670,7 +1670,16 @@ function linkify(text: string): React.ReactNode[] {
 
 function FeedRow({ activity: a, onRedownload }: { activity: CrmActivity; onRedownload?: () => void }) {
   const isAudit = AUDIT_TYPES.has(a.type)
-  const time = (a.timestamp || '').slice(11, 16) // HH:MM
+  // Filippo 2026-07-13: history shows FULL date + time — DD.MM.YYYY HH:MM,
+  // local time. One rule everywhere in the CRM (email tabs and here).
+  // (The old slice(11,16) silently showed UTC — off by 1-2h.)
+  const tsRaw = a.timestamp || ''
+  const tsD = new Date(tsRaw)
+  const tsOk = Boolean(tsRaw) && Number.isFinite(tsD.getTime())
+  const p2 = (n: number) => String(n).padStart(2, '0')
+  const dateStr = tsOk ? `${p2(tsD.getDate())}.${p2(tsD.getMonth() + 1)}.${tsD.getFullYear()}` : ''
+  const timeStr = tsOk ? `${p2(tsD.getHours())}:${p2(tsD.getMinutes())}` : tsRaw.slice(11, 16)
+  const time = dateStr ? `${dateStr} ${timeStr}` : timeStr
   const iconName = activityIcon(a.type)
 
   if (isAudit) {

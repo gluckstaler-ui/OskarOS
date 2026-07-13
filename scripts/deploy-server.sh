@@ -49,21 +49,14 @@ WT="$(mktemp -d "${TMPDIR:-/tmp}/oskar-deploy.XXXXXX")"
 cleanup() { rm -rf "$WT"; }
 trap cleanup EXIT
 
-# --- version: every deploy is "a number up" (Ralph) -------------------------
-# A deploy IS a codebase commit to the server, so it bumps package.json's patch.
-# Done BEFORE staging so the copy + the DEPLOY_VERSION stamp both carry the new
-# number. package.json is the source of truth; the bump lands on disk (uncommitted)
-# so the spoke's panel reflects it immediately and the next deploy continues from it.
-say "bump version (every deploy → patch +1)"
-node -e '
-  const fs = require("fs"), p = process.argv[1] + "/package.json";
-  const j = JSON.parse(fs.readFileSync(p, "utf8"));
-  const v = String(j.version || "0.0.0").split(".").map((n) => parseInt(n, 10) || 0);
-  v[2] = (v[2] || 0) + 1;
-  j.version = v.join(".");
-  fs.writeFileSync(p, JSON.stringify(j, null, 2) + "\n");
-  console.log("  package.json → v" + j.version);
-' "$MAIN"
+# --- version: a number WE set; the deploy only READS it ---------------------
+# The version lives in db/version.json (gitignored runtime state) — NOT package.json.
+# It is DELIBERATE: we set the number, the deploy reads it and ships it, and it
+# NEVER auto-bumps. To release a new version, set the number in db/version.json
+# first; otherwise every deploy ships the same one (e.g. stays at 1.0.2).
+say "read version (db/version.json — set by hand, never auto-bumped)"
+release="$(node -p "require('$MAIN/db/version.json').version" 2>/dev/null || echo 0.0.0)"
+echo "  version → v$release"
 
 say "stage working tree → $WT"
 # Respect .gitignore (skips node_modules/.next/Winery/Fonts/media/… without a
@@ -92,9 +85,8 @@ say "npm run build (in the copy — your dev server's .next + font cache are unt
 # live git, hub uses the stamp; the indicator diffs the two.
 ver="$(git -C "$MAIN" rev-parse --short HEAD 2>/dev/null || echo unknown)"
 dirty=false; [ -n "$(git -C "$MAIN" status --porcelain 2>/dev/null)" ] && dirty=true
-# human release (semver) — package.json is the source of truth; it isn't shipped
-# to the hub, so stamp it here so the hub can report v1.0.0 not just the commit.
-release="$(node -p "require('$MAIN/package.json').version" 2>/dev/null || echo 0.0.0)"
+# $release was read from db/version.json above. db/ isn't shipped to the hub, so
+# stamp it here → the hub reports the version, not just the commit.
 printf '{"release":"%s","version":"%s","dirty":%s,"builtAt":"%s"}\n' "$release" "$ver" "$dirty" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" > "$WT/.next/DEPLOY_VERSION"
 echo "  stamped DEPLOY_VERSION: v$release ($ver, dirty=$dirty)"
 
@@ -167,14 +159,18 @@ fi
 # .next.prev is kept as an instant rollback:
 #   ssh … 'cd ~/REMOTE_ROOT && mv .next .next.broken && mv .next.prev .next && touch tmp/restart.txt'
 say "atomic swap .next + restart workers"
+# NEVER `cd` into $REMOTE_ROOT here: the restart loop kills every process whose
+# cwd IS $REMOTE_ROOT, so cd-ing makes THIS ssh shell a kill target → the deploy
+# kills itself mid-swap. Stay in $HOME, use absolute paths, and skip our own PID.
 "${SSH[@]}" "$HOST" '
-  cd ~/'"$REMOTE_ROOT"' || exit 1
-  rm -rf .next.prev
-  [ -d .next ] && mv .next .next.prev
-  mv .next.incoming .next
-  touch tmp/restart.txt
+  R="$HOME/'"$REMOTE_ROOT"'"
+  rm -rf "$R/.next.prev"
+  [ -d "$R/.next" ] && mv "$R/.next" "$R/.next.prev"
+  mv "$R/.next.incoming" "$R/.next" || { echo "ATOMIC SWAP FAILED: $R/.next.incoming missing"; exit 1; }
+  mkdir -p "$R/tmp"; touch "$R/tmp/restart.txt"
   k=0; for pid in $(ls /proc 2>/dev/null | grep -E "^[0-9]+$"); do
-    [ "$(readlink /proc/$pid/cwd 2>/dev/null)" = "$HOME/'"$REMOTE_ROOT"'" ] && kill -9 "$pid" 2>/dev/null && k=$((k+1))
+    [ "$pid" = "$$" ] && continue
+    [ "$(readlink /proc/$pid/cwd 2>/dev/null)" = "$R" ] && kill -9 "$pid" 2>/dev/null && k=$((k+1))
   done; echo "killed $k workers"'
 
 # --- 5. warm up + smoke check ----------------------------------------------

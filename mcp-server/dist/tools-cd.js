@@ -291,6 +291,29 @@ export const CD_TOOL_DEFINITIONS = [
             required: ['prompt'],
         },
     },
+    // ── POSTMASTER PM-3 (spec §06): the Consular's reply-draft channel ────
+    {
+        name: 'suggest_reply',
+        description: 'Hand back a drafted reply for a client, in Filippo\'s voice. Tool-as-' +
+            'channel, exactly like submit_image_prompt: calling this commits the ' +
+            'draft — the EVAL-INBOUND / ASK-CONSULAR route captures it and prefills ' +
+            'the CRM compose field (email or WhatsApp). It is NOT sent; Filippo edits ' +
+            'and sends, or discards. Call ONCE per prospect you are drafting for; a ' +
+            'prospect you decide needs no reply gets NO call (say why in your chat ' +
+            'report instead). One pending draft per prospect per channel — a second ' +
+            'call for the same pair replaces the first.',
+        inputSchema: {
+            type: 'object',
+            properties: {
+                prospect_id: { type: 'string', description: 'The prospect this draft is for.' },
+                channel: { type: 'string', enum: ['email', 'whatsapp'], description: 'Which channel the reply is for.' },
+                body: { type: 'string', description: 'The drafted message body, plain text, in Filippo\'s voice.' },
+                subject: { type: 'string', description: 'Email only — the subject line (usually "Re: …").' },
+                in_reply_to: { type: 'string', description: 'Email only — the Message-ID this replies to, for threading.' },
+            },
+            required: ['prospect_id', 'channel', 'body'],
+        },
+    },
     // ── Phase 2.5 (Ralph 2026-04-30): build/image escrow polling ──────────
     {
         name: 'job_status',
@@ -331,55 +354,6 @@ export const CD_TOOL_DEFINITIONS = [
                 jobId: { type: 'string', description: 'The jobId to cancel.' },
             },
             required: ['jobId'],
-        },
-    },
-    // ── Bug I (Ralph 2026-05-04): propose_image_prompt ─────────────────────
-    // Closes the doctrine gap CD flagged: update_image_metadata writes the
-    // wrong shape (#### filename — that's the generated-image record under
-    // a parent prompt block), and generate_image skips the prompt block
-    // entirely (fires Nano right away). Neither path lets CD propose a
-    // prompt for user approval before firing. This tool writes a clean
-    // `### img-N` PENDING block that the Assets panel renders as a card
-    // with a Generate button.
-    {
-        name: 'propose_image_prompt',
-        description: 'Propose a new image prompt by writing a `### img-N` PENDING block to ' +
-            'IMAGES.md. Renders in the Assets panel as a prompt card with a ' +
-            'Generate button. Use when you want to draft an image idea WITHOUT ' +
-            'firing Nano immediately — get user approval first, or draft multiple ' +
-            'variants and let the user pick. After write, panel auto-refreshes ' +
-            'via the existing assets_updated event-bus path.',
-        inputSchema: {
-            type: 'object',
-            properties: {
-                vibe: {
-                    type: 'string',
-                    description: 'Vibe slug (e.g. "vibe-3"), display name, or "shared"/"all" for ' +
-                        'cross-vibe assets. Same field the Assets panel groups by.',
-                },
-                purpose: {
-                    type: 'string',
-                    description: 'Slot/usage label: hero, portrait, menu-bg, gallery, etc.',
-                },
-                aspectRatio: {
-                    type: 'string',
-                    enum: ['1:1', '4:3', '3:4', '16:9', '9:16', '21:9', '3:2', '2:3', '4:5', '5:4'],
-                    description: 'Aspect ratio for Nano when the user clicks Generate.',
-                },
-                prompt: {
-                    type: 'string',
-                    description: 'The Nano-ready prompt — proofread, ready to fire as-is when ' +
-                        'the user clicks Generate. Use the same level of polish you would ' +
-                        'in submit_image_prompt.',
-                },
-                id: {
-                    type: 'string',
-                    description: 'Optional explicit id (e.g. "img-goofy-v1"). Must match `img-<slug>` ' +
-                        '(lowercase, alphanumerics + hyphens). Omit to auto-number as ' +
-                        'img-NNN where NNN is one past the highest existing numeric img-N.',
-                },
-            },
-            required: ['vibe', 'purpose', 'aspectRatio', 'prompt'],
         },
     },
     // ── Phase 2 discovery flow (Ralph 2026-05-04) ─────────────────────────
@@ -984,6 +958,7 @@ export async function callCDTool(name, args, ctx) {
         case 'submit_upload_eval':
         case 'submit_image_prompt':
         case 'submit_scout_verdict': // WP-SCOUT-3 — same tool-as-channel shape
+        case 'suggest_reply': // POSTMASTER PM-3 — same tool-as-channel shape
             return { text: 'submitted', isError: false };
         // ── Phase 2.5: escrow polling + cancel ───────────────────────────────
         case 'job_status': {
@@ -1002,38 +977,6 @@ export async function callCDTool(name, args, ctx) {
             if (!r.ok)
                 return { text: r.error || 'cancel_job failed', isError: true };
             return { text: JSON.stringify(r.body), isError: false };
-        }
-        // ── Bug I (Ralph 2026-05-04): propose_image_prompt ──────────────────
-        case 'propose_image_prompt': {
-            const vibe = String(args.vibe || '').trim();
-            const purpose = String(args.purpose || '').trim();
-            const aspectRatio = String(args.aspectRatio || '').trim();
-            const prompt = String(args.prompt || '').trim();
-            const id = args.id ? String(args.id).trim() : undefined;
-            if (!vibe || !purpose || !aspectRatio || !prompt) {
-                return {
-                    text: 'Error: vibe, purpose, aspectRatio, and prompt are all required',
-                    isError: true,
-                };
-            }
-            const r = await postJson('/api/mcp/propose-image-prompt', {
-                sessionId,
-                vibe,
-                purpose,
-                aspectRatio,
-                prompt,
-                ...(id ? { id } : {}),
-            });
-            if (!r.ok)
-                return { text: `propose_image_prompt failed: ${r.error}`, isError: true };
-            if (r.body?.error)
-                return { text: `propose_image_prompt error: ${r.body.error}`, isError: true };
-            return {
-                text: `Wrote prompt block ${r.body?.id} to IMAGES.md (${r.body?.section}). ` +
-                    `Panel will refresh via assets_updated. The user sees a Generate ` +
-                    `button on the new card; do other work until they click it.`,
-                isError: false,
-            };
         }
         // ── Phase 2 discovery flow (Ralph 2026-05-04) ────────────────────────
         // Ralph 2026-05-12 — schema widened to accept typed-question objects

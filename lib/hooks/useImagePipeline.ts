@@ -33,7 +33,7 @@
 
 import { useCallback, useState } from 'react'
 import type { ImageAsset, ImageManifest, ImageQueueItem, SourceImage } from '@/lib/types'
-import { logImageGenerationAction, hotSwapAction } from '@/lib/session-actions'
+import { hotSwapAction } from '@/lib/session-actions'
 // 2026-04-30 Phase 2: emitHotSwap + emitImageReady removed from this hook.
 // Server-side publish in /api/edit-image, /api/generate-image, and
 // /api/sessions/[id]/assign-slot is the single source of truth now.
@@ -147,7 +147,26 @@ export function useImagePipeline({
             promptId: asset.promptId,
           }),
         })
-        const data = await response.json()
+        // Defensive parse — if /api/edit-image drops the connection
+        // mid-response (Next.js timeout, proxy truncation, crash), the
+        // body is empty and naive `.json()` throws an opaque
+        // `SyntaxError: Unexpected end of JSON input`. Surface a useful
+        // message instead. (Ralph 2026-06-28)
+        const rawText = await response.text()
+        let data: { error?: string; savedPath?: string; imageUrl?: string; geminiText?: string | null } = {}
+        if (rawText) {
+          try {
+            data = JSON.parse(rawText)
+          } catch {
+            throw new Error(
+              `Server returned ${response.status} with non-JSON body (${rawText.slice(0, 120)})`
+            )
+          }
+        } else {
+          throw new Error(
+            `Server returned ${response.status} with empty body — likely a Nano timeout or connection drop. Check /api/edit-image maxDuration.`
+          )
+        }
         if (data.error) {
           throw new Error(data.error)
         }
@@ -197,14 +216,8 @@ export function useImagePipeline({
           }
           onAssetRegenerated?.(newImage)
 
-          await logImageGenerationAction(
-            sessionId,
-            filename,
-            asset.instruction,
-            asset.vibeName,
-            asset.usage,
-            data.geminiText || undefined
-          )
+          // IMAGES.md entry is written server-side by /api/edit-image
+          // via upsertImageMetadata (single writer, uses promptId for nesting).
 
           // 2026-04-30 Phase 2: removed `emitImageReady(...)` here.
           // /api/edit-image and /api/generate-image already publish

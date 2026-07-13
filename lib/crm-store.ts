@@ -126,6 +126,8 @@ export interface Activity {
   wa_status: string
   media_path: string
   media_mime: string
+  email_message_id: string
+  email_thread_id: string
 }
 
 // ─── Row → Prospect / Activity coercion ─────────────────────────────────────
@@ -177,6 +179,8 @@ function rowToActivity(r: Record<string, unknown>): Activity {
     wa_status: String(r.wa_status ?? ''),
     media_path: String(r.media_path ?? ''),
     media_mime: String(r.media_mime ?? ''),
+    email_message_id: String(r.email_message_id ?? ''),
+    email_thread_id: String(r.email_thread_id ?? ''),
   }
 }
 
@@ -560,6 +564,8 @@ export async function appendActivity(input: {
   wa_status?: string
   media_path?: string
   media_mime?: string
+  email_message_id?: string
+  email_thread_id?: string
 }): Promise<Activity> {
   const db = getDb()
 
@@ -571,6 +577,18 @@ export async function appendActivity(input: {
       WHERE wa_message_id = ? AND prospect_id = ? AND soft_deleted = 0
       LIMIT 1
     `).get(input.wa_message_id, input.prospect_id) as Record<string, unknown> | undefined
+    if (existing) return rowToActivity(existing)
+  }
+
+  // POSTMASTER PM-9 dedup (spec §11): the RFC 5322 Message-ID is the GLOBAL
+  // dedup key — a mail already filed is never re-filed, which is what makes
+  // sweeps idempotent (crash-resume, UIDVALIDITY resets, self-CC in two folders).
+  if (input.email_message_id) {
+    const existing = db.prepare(`
+      SELECT * FROM activities
+      WHERE email_message_id = ? AND soft_deleted = 0
+      LIMIT 1
+    `).get(input.email_message_id) as Record<string, unknown> | undefined
     if (existing) return rowToActivity(existing)
   }
 
@@ -590,6 +608,8 @@ export async function appendActivity(input: {
     wa_status: input.wa_status || '',
     media_path: input.media_path || '',
     media_mime: input.media_mime || '',
+    email_message_id: input.email_message_id || '',
+    email_thread_id: input.email_thread_id || '',
   }
 
   // STEP 1 (log first): truth before cache.
@@ -609,19 +629,119 @@ export async function appendActivity(input: {
         id, prospect_id, timestamp, type, icon, color,
         duration_min, notes, session_id, user_id, subject,
         wa_message_id, wa_status, media_path, media_mime,
+        email_message_id, email_thread_id,
         soft_deleted
       ) VALUES (
         @id, @prospect_id, @timestamp, @type, @icon, @color,
         @duration_min, @notes, @session_id, @user_id, @subject,
         @wa_message_id, @wa_status, @media_path, @media_mime,
+        @email_message_id, @email_thread_id,
         0
       )
-    `).run(row)
+    `).run({ ...row, email_message_id: row.email_message_id || null, email_thread_id: row.email_thread_id || null })
   } catch (err) {
     console.warn('[crm-store] SQLite activity insert failed; will recover on next boot replay:', err)
   }
 
   return row
+}
+
+// ─── Suggestions (POSTMASTER PM-9, spec §11) ────────────────────────────────
+// Consular reply drafts. One pending draft per prospect per channel (PK).
+// Log-first like everything else: suggestion.upsert / suggestion.delete events
+// through the append-only log, then a best-effort cache write mirroring
+// applySuggestionEvent — replay rebuilds drafts, Button-A sync carries them.
+
+export interface Suggestion {
+  prospect_id: string
+  channel: 'email' | 'whatsapp'
+  body: string
+  subject: string | null
+  in_reply_to: string | null
+  created_at: string
+}
+
+export async function upsertSuggestion(input: {
+  prospect_id: string
+  channel: 'email' | 'whatsapp'
+  body: string
+  subject?: string | null
+  in_reply_to?: string | null
+  actor?: string
+}): Promise<Suggestion> {
+  const db = getDb()
+  const row: Suggestion = {
+    prospect_id: input.prospect_id,
+    channel: input.channel,
+    body: input.body,
+    subject: input.subject ?? null,
+    in_reply_to: input.in_reply_to ?? null,
+    created_at: new Date().toISOString(),
+  }
+  await appendEvent(makeEvent({
+    actor: input.actor || 'consular',
+    entity: 'suggestion',
+    entity_id: row.prospect_id,
+    op: 'upsert',
+    payload: row as unknown as Record<string, unknown>,
+  }))
+  try {
+    db.prepare(`
+      INSERT INTO suggestions (prospect_id, channel, body, subject, in_reply_to, created_at)
+      VALUES (@prospect_id, @channel, @body, @subject, @in_reply_to, @created_at)
+      ON CONFLICT(prospect_id, channel) DO UPDATE SET
+        body = excluded.body, subject = excluded.subject,
+        in_reply_to = excluded.in_reply_to, created_at = excluded.created_at
+    `).run(row as unknown as Record<string, unknown>)
+  } catch (err) {
+    console.warn('[crm-store] SQLite suggestion upsert failed; will recover on next boot replay:', err)
+  }
+  return row
+}
+
+export async function deleteSuggestion(
+  prospect_id: string,
+  channel: 'email' | 'whatsapp',
+  actor?: string,
+): Promise<void> {
+  const db = getDb()
+  await appendEvent(makeEvent({
+    actor: actor || 'Filippo',
+    entity: 'suggestion',
+    entity_id: prospect_id,
+    op: 'delete',
+    payload: { channel },
+  }))
+  try {
+    db.prepare(`DELETE FROM suggestions WHERE prospect_id = ? AND channel = ?`).run(prospect_id, channel)
+  } catch (err) {
+    console.warn('[crm-store] SQLite suggestion delete failed; will recover on next boot replay:', err)
+  }
+}
+
+export function readSuggestion(prospect_id: string, channel: 'email' | 'whatsapp'): Suggestion | null {
+  const r = getDb().prepare(
+    `SELECT * FROM suggestions WHERE prospect_id = ? AND channel = ?`,
+  ).get(prospect_id, channel) as Record<string, unknown> | undefined
+  return r ? rowToSuggestion(r) : null
+}
+
+export function readSuggestions(channel?: 'email' | 'whatsapp'): Suggestion[] {
+  const rows = (channel
+    ? getDb().prepare(`SELECT * FROM suggestions WHERE channel = ? ORDER BY created_at DESC`).all(channel)
+    : getDb().prepare(`SELECT * FROM suggestions ORDER BY created_at DESC`).all()) as Array<Record<string, unknown>>
+  return rows.map(rowToSuggestion)
+}
+
+function rowToSuggestion(r: Record<string, unknown>): Suggestion {
+  return {
+    prospect_id: String(r.prospect_id ?? ''),
+    channel: (String(r.channel ?? 'email') === 'whatsapp' ? 'whatsapp' : 'email'),
+    body: String(r.body ?? ''),
+    subject: r.subject == null ? null : String(r.subject),
+    in_reply_to: r.in_reply_to == null ? null : String(r.in_reply_to),
+    created_at: String(r.created_at ?? ''),
+  }
 }
 
 /**

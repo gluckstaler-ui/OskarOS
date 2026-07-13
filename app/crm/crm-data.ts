@@ -30,6 +30,8 @@ export interface CrmActivity {
   wa_status?: string
   media_path?: string
   media_mime?: string
+  email_message_id?: string
+  email_thread_id?: string
 }
 
 export interface CrmData {

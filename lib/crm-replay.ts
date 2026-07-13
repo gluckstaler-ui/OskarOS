@@ -129,6 +129,8 @@ function applyOne(db: Database, e: Event): void {
     applyRawProspectEvent(db, e)
   } else if (e.entity === 'merge_conflict') {
     applyMergeConflictEvent(db, e)
+  } else if (e.entity === 'suggestion') {
+    applySuggestionEvent(db, e)
   }
   // Unknown entities silently skipped — forward-compat with future event types.
 }
@@ -209,11 +211,13 @@ function applyActivityEvent(db: Database, e: Event): void {
         id, prospect_id, timestamp, type, icon, color,
         duration_min, notes, session_id, user_id, subject,
         wa_message_id, wa_status, media_path, media_mime,
+        email_message_id, email_thread_id,
         soft_deleted
       ) VALUES (
         @id, @prospect_id, @timestamp, @type, @icon, @color,
         @duration_min, @notes, @session_id, @user_id, @subject,
         @wa_message_id, @wa_status, @media_path, @media_mime,
+        @email_message_id, @email_thread_id,
         0
       )
     `).run({
@@ -232,6 +236,11 @@ function applyActivityEvent(db: Database, e: Event): void {
       wa_status: str(a.wa_status),
       media_path: str(a.media_path),
       media_mime: str(a.media_mime),
+      // NULL (not '') when absent — the partial index + Message-ID dedup
+      // SELECTs depend on non-email activities staying out of the index.
+      // '' also maps to NULL: live-path payloads carry '' for absent fields.
+      email_message_id: str(a.email_message_id) || null,
+      email_thread_id: str(a.email_thread_id) || null,
     })
   } else if (e.op === 'update') {
     if (!e.field) return
@@ -341,6 +350,37 @@ function applyMergeConflictEvent(_db: Database, _e: Event): void {
   // Populated by Feature-X WP-106 sync. Schema present, replay stub.
 }
 
+function applySuggestionEvent(db: Database, e: Event): void {
+  // POSTMASTER PM-9 (spec §11): Consular reply drafts. entity_id = prospect_id.
+  // The (prospect_id, channel) primary key makes upsert the natural op — one
+  // pending draft per prospect per channel; send/discard emit the delete.
+  const s = (e.payload ?? {}) as Record<string, unknown>
+  const channel = str(s.channel)
+  if (e.op === 'upsert') {
+    if (!channel) return
+    db.prepare(`
+      INSERT INTO suggestions (prospect_id, channel, body, subject, in_reply_to, created_at)
+      VALUES (@prospect_id, @channel, @body, @subject, @in_reply_to, @created_at)
+      ON CONFLICT(prospect_id, channel) DO UPDATE SET
+        body = excluded.body, subject = excluded.subject,
+        in_reply_to = excluded.in_reply_to, created_at = excluded.created_at
+    `).run({
+      prospect_id: e.entity_id,
+      channel,
+      body: str(s.body),
+      subject: nul(s.subject),
+      in_reply_to: nul(s.in_reply_to),
+      created_at: str(s.created_at) || e.ts,
+    })
+  } else if (e.op === 'delete') {
+    if (channel) {
+      db.prepare(`DELETE FROM suggestions WHERE prospect_id = ? AND channel = ?`).run(e.entity_id, channel)
+    } else {
+      db.prepare(`DELETE FROM suggestions WHERE prospect_id = ?`).run(e.entity_id)
+    }
+  }
+}
+
 // ─── Allowed update field whitelists (defense against malformed events) ─────
 
 const ALLOWED_PROSPECT_UPDATE_FIELDS = new Set<string>([
@@ -356,7 +396,7 @@ const ALLOWED_PROSPECT_UPDATE_FIELDS = new Set<string>([
 const ALLOWED_ACTIVITY_UPDATE_FIELDS = new Set<string>([
   'timestamp', 'type', 'icon', 'color', 'duration_min', 'notes',
   'session_id', 'user_id', 'subject', 'wa_message_id', 'wa_status',
-  'media_path', 'media_mime',
+  'media_path', 'media_mime', 'email_message_id', 'email_thread_id',
 ])
 
 const ALLOWED_CONTACT_UPDATE_FIELDS = new Set<string>([

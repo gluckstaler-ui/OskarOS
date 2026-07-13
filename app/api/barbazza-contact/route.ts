@@ -23,11 +23,15 @@ export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
 // category key -> recipient (server-side routing)
+// Ralph 2026-07-13: all four now go to Marin. Mladen's gmail
+// (mladentomasicbarbaca@gmail.com) went dark → tasting/shop requests were
+// bouncing. Marin's barbazza.wine mailbox is confirmed delivering; he triages
+// tastings from there. The subject/body still carry the category label.
 const ROUTES: Record<string, string> = {
-  'wine-tasting': 'mladentomasicbarbaca@gmail.com', // Mladen
-  'wine-shop': 'mladentomasicbarbaca@gmail.com',    // Mladen
-  'feedback': 'Marin@barbazza.wine',                // Marin
-  'general': 'Marin@barbazza.wine',                 // Marin
+  'wine-tasting': 'marin@barbazza.wine', // → Marin (was Mladen's dead gmail)
+  'wine-shop': 'marin@barbazza.wine',    // → Marin (was Mladen's dead gmail)
+  'feedback': 'marin@barbazza.wine',     // Marin
+  'general': 'marin@barbazza.wine',      // Marin
 }
 const LABELS: Record<string, string> = {
   'wine-tasting': 'Wine-Tasting',

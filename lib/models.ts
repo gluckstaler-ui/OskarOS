@@ -51,9 +51,9 @@ export const BRAIN_MODELS = {
 export type BrainId = (typeof BRAIN_MODELS)[BrainModel]['id']
 
 /** The ONE default brain. Flip this single value to move CD + Consular.
- *  Set to 'opus' on 2026-06-13 while Fable 5 access is suspended; flip back to
- *  'fable' when it returns. */
-export const DEFAULT_BRAIN: BrainModel = 'opus'
+ *  Back to 'fable' on 2026-07-03 — Fable 5 returned as a big-brain model.
+ *  (Was 'opus' from 2026-06-13 while Fable 5 access was suspended.) */
+export const DEFAULT_BRAIN: BrainModel = 'fable'
 
 // Generic so `.id` keeps its literal type (a BrainId), not widened to `string`.
 export function brainSpec<B extends BrainModel>(b: B): (typeof BRAIN_MODELS)[B] {

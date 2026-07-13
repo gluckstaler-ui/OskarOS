@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="onyx">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>OskarOS CRM · Overview — Email as an island, like WhatsApp (POSTMASTER v6)</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../app/crm/crm.css">
+<style>
+:root{--font-mono:'JetBrains Mono',ui-monospace,monospace;--font-sans:'Inter',-apple-system,system-ui,sans-serif;--radius-card:10px;--gap-app:10px}
+*{box-sizing:border-box}html,body{margin:0;padding:0;height:100%}
+body{font-family:var(--font-sans);-webkit-font-smoothing:antialiased}
+.crm-app{min-height:100vh;background:var(--bg-app);color:var(--text-main);display:flex;flex-direction:column}
+button{font:inherit;color:inherit;background:none;border:none;cursor:pointer;text-align:left}
+.topbar{display:flex;align-items:center;gap:14px;padding:8px 16px;border-bottom:1px solid var(--border-card);background:var(--bg-sunken)}
+.topbar .wm{font-family:var(--font-mono);font-size:11px;letter-spacing:.12em;color:var(--text-muted)}
+.topbar .wm b{color:var(--brand-amber)}
+.topbar .sp{flex:1}
+.topbar .tb{font-family:var(--font-mono);font-size:10px;padding:5px 11px;border:1px solid var(--border-active);border-radius:8px;color:var(--text-muted)}
+.topbar .tb:hover{color:var(--text-main)}
+.fp-grid{padding:10px 12px}
+/* island idiom (mirrors WhatsAppMessageList inline-style anatomy) */
+.isl-head-btn{background:transparent;border:1px solid var(--border-card);color:var(--text-muted);padding:3px 10px;border-radius:6px;font-size:10px;font-family:var(--font-mono);text-transform:uppercase;letter-spacing:.06em;margin-left:8px}
+.isl-group{border-bottom:1px solid var(--border-card)}
+.isl-hdr{display:grid;grid-template-columns:20px 1fr auto;gap:12px;align-items:center;width:100%;padding:12px 18px;transition:background .12s}
+.isl-hdr:hover{background:var(--bg-card-hover)}
+.isl-hdr.on{background:color-mix(in srgb,var(--brand-amber) 6%,transparent)}
+.isl-co{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:600;margin-bottom:2px;min-width:0}
+.isl-co .nm{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.badge{font-family:var(--font-mono);font-size:9px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;padding:1px 6px;border-radius:4px;white-space:nowrap}
+.badge.em{color:#f97316;background:rgba(249,115,22,.10)}
+.badge.wa{color:#25D366;background:rgba(37,211,102,.10)}
+.badge.id{color:var(--text-dim);background:transparent;border:1px solid var(--border-card);font-weight:500;text-transform:none}
+.isl-snip{font-size:12px;color:var(--text-muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.isl-snip .dir{margin-right:6px}
+.isl-time{font-family:var(--font-mono);font-size:11px;color:var(--text-dim);font-variant-numeric:tabular-nums}
+.isl-msg{display:grid;grid-template-columns:20px 1fr auto;gap:12px;padding:9px 18px 9px 30px;border-top:1px solid var(--border-card);font-size:12.5px;transition:background .12s}
+.isl-msg:hover{background:var(--bg-card-hover)}
+.isl-msg .dir{font-weight:700}
+.isl-msg .b{color:var(--text-muted);line-height:1.5;min-width:0}
+.isl-msg .b b{color:var(--text-main);font-weight:600}
+.isl-msg .b .addr{font-family:var(--font-mono);font-size:9.5px;color:var(--text-dim);display:block;margin-bottom:1px}
+.isl-msg .t{font-family:var(--font-mono);font-size:10px;color:var(--text-dim);white-space:nowrap}
+.att-chip{display:inline-flex;gap:5px;align-items:center;font-family:var(--font-mono);font-size:10px;color:var(--brand-amber);border:1px solid var(--brand-amber-dim);border-radius:5px;padding:1px 8px;margin:4px 6px 0 0}
+.att-chip:hover{background:var(--brand-amber-glow)}
+/* inline reply (the island's compose — NO modal) */
+.reply{padding:10px 18px 16px 30px;border-top:1px dashed var(--border-card)}
+.reply .rk{font-family:var(--font-mono);font-size:9px;letter-spacing:.12em;color:var(--brand-amber);margin-bottom:6px}
+.reply textarea{width:100%;min-height:170px;background:var(--bg-sunken);border:1px solid var(--border-card);border-radius:8px;color:var(--text-main);font-family:var(--font-sans);font-size:12.5px;line-height:1.55;padding:10px 12px;resize:vertical}
+.reply textarea:focus{outline:none;border-color:var(--brand-amber-dim)}
+.reply .rb{display:flex;gap:10px;margin-top:8px;align-items:center}
+.rbtn{font-family:var(--font-mono);font-size:10px;letter-spacing:.06em;padding:6px 14px;border-radius:7px;border:1px solid var(--border-active);color:var(--text-muted)}
+.rbtn:hover{color:var(--text-main)}
+.rbtn.send{border-color:var(--brand-amber-dim);color:var(--brand-amber)}
+.rbtn.send:hover{background:var(--brand-amber-glow)}
+.rnote{font-family:var(--font-mono);font-size:9px;color:var(--text-dim);margin-left:auto}
+/* attachments island */
+.file-row{display:grid;grid-template-columns:26px 1fr auto auto;gap:12px;align-items:baseline;width:100%;padding:9px 18px;border-top:1px solid var(--border-card);font-size:12.5px}
+.file-row:hover{background:var(--bg-card-hover)}
+.file-row .fn{color:var(--text-main);font-weight:500}
+.file-row .fn small{display:block;font-family:var(--font-mono);font-size:9px;color:var(--text-dim);font-weight:400}
+.file-row .fs{font-family:var(--font-mono);font-size:10px;color:var(--text-muted)}
+.file-row .t{font-family:var(--font-mono);font-size:10px;color:var(--text-dim)}
+.pathline{font-family:var(--font-mono);font-size:9.5px;color:var(--text-dim);padding:8px 18px;border-bottom:1px solid var(--border-card)}
+.pathline b{color:var(--brand-amber)}
+/* client card extras (per the real card) */
+.pill{font-family:var(--font-mono);font-size:10px;letter-spacing:.08em;padding:5px 12px;border:1px solid var(--border-card);border-radius:8px;color:var(--text-muted)}
+.pill.on{color:var(--brand-amber);border-color:var(--brand-amber-dim);background:var(--brand-amber-glow)}
+.kick{font-family:var(--font-mono);font-size:10px;letter-spacing:.1em;color:var(--text-dim);display:flex;justify-content:space-between;padding:6px 2px 12px}
+.nextmove{display:flex;gap:12px;align-items:baseline;border:1px solid var(--border-card);border-radius:8px;padding:10px 14px;margin-bottom:8px}
+.nextmove .k{font-family:var(--font-mono);font-size:9.5px;letter-spacing:.12em;color:var(--text-dim)}
+.nextmove .v{font-size:12.5px;color:var(--text-muted)}
+.kvs{display:flex;gap:22px;border:1px solid var(--border-card);border-radius:8px;padding:10px 14px;margin-bottom:12px;font-family:var(--font-mono);font-size:10px;color:var(--text-dim)}
+.kvs b{color:var(--text-main);font-size:13px;margin-left:8px}
+.idents{font-family:var(--font-mono);font-size:9.5px;color:var(--text-dim);margin:2px 0 12px}
+.idents span{margin-right:12px}
+.hist-h{display:flex;justify-content:space-between;align-items:center;margin:14px 0 6px}
+.hist-h .hl{font-family:var(--font-mono);font-size:9.5px;letter-spacing:.14em;color:var(--text-dim)}
+.hist-h .snd{display:flex;gap:8px}
+.sndbtn{font-family:var(--font-mono);font-size:9.5px;padding:5px 12px;border-radius:7px;border:1px solid var(--border-active)}
+.sndbtn.wa{color:#25D366;border-color:rgba(37,211,102,.4)}
+.sndbtn.em{color:#f97316;border-color:rgba(249,115,22,.4)}
+.hrow{display:grid;grid-template-columns:44px 20px 1fr;gap:10px;padding:7px 0;border-bottom:1px solid var(--border-card);font-size:12.5px;align-items:baseline}
+.hrow .t{font-family:var(--font-mono);font-size:10px;color:var(--text-dim)}
+.hrow .b{color:var(--text-muted)}.hrow .b b{color:var(--text-main);font-weight:500}
+/* consular chat (right) */
+.pmx-deck{background:var(--bg-card);border:1px solid var(--border-card);border-radius:var(--radius-card);padding:13px;margin-bottom:10px}
+.pmx-deck .dh{font-family:var(--font-mono);font-size:9.5px;letter-spacing:.14em;color:var(--text-dim);display:flex;justify-content:space-between;margin-bottom:9px}
+.pmx-card{width:100%;border:1px solid var(--border-card);border-radius:8px;padding:10px 12px;margin-bottom:7px;background:var(--bg-sunken)}
+.pmx-card:hover{border-color:var(--border-active)}
+.pmx-card .k{font-family:var(--font-mono);font-size:9px;letter-spacing:.14em;margin-bottom:3px}
+.pmx-card .k.reply{color:var(--brand-phosphor)}.pmx-card .k.chase{color:var(--brand-amber)}.pmx-card .k.call{color:var(--text-muted)}
+.pmx-card .tt{font-size:12.5px;font-weight:600}.pmx-card .ll{font-size:11px;color:var(--text-muted);margin:2px 0}
+.chat{background:var(--bg-card);border:1px solid var(--border-card);border-radius:var(--radius-card);padding:13px;display:flex;flex-direction:column;min-height:260px}
+.chat .ck{font-family:var(--font-mono);font-size:9px;letter-spacing:.14em;color:var(--text-dim);margin-bottom:8px}
+.chat-scroll{flex:1;overflow-y:auto}
+.cmsg{font-size:12px;line-height:1.5;padding:7px 0;border-bottom:1px solid var(--border-card)}
+.cmsg .cw{font-family:var(--font-mono);font-size:9px;letter-spacing:.1em;display:block;margin-bottom:2px;color:var(--text-dim)}
+.cmsg.consular .cw{color:var(--brand-amber)}
+.cmsg.sys .cw{color:#f97316}
+.cmsg .cb{color:var(--text-muted)}.cmsg .cb b{color:var(--text-main);font-weight:500}
+.chat-in{margin-top:10px;display:flex;gap:8px}
+.chat-in input{flex:1;background:var(--bg-sunken);border:1px solid var(--border-card);border-radius:8px;color:var(--text-main);font:inherit;font-size:12px;padding:8px 10px}
+</style>
+</head>
+<body>
+<div class="crm-app">
+  <div class="topbar"><span class="wm">OSKAR OS · CRM · OVERVIEW · <b>POSTMASTER v6</b> — email is an island, like WhatsApp</span><span class="sp"></span>
+    <button class="tb" id="themebtn" onclick="toggleTheme()">POLAR</button></div>
+  <div class="fp-grid" id="grid">
+    <div class="fp-rail" id="rail"></div>
+    <div class="fp-middle">
+      <div class="fp-next-move" data-tone="today" id="hero"></div>
+      <div class="fp-main-list-mode">
+        <div class="fp-list-card">
+          <div class="fp-list-head" style="display:flex;align-items:center;justify-content:space-between;gap:12px">
+            <div class="title" id="list-title">Leads</div><div id="list-tools"></div></div>
+          <div class="fp-list-scroll" id="list"></div>
+        </div>
+      </div>
+      <div class="fp-main-detail-mode"><div class="fp-detail-host" id="detail-host"></div></div>
+    </div>
+    <div class="fp-right" id="right"></div>
+  </div>
+</div>
+<input type="file" id="att-in" multiple style="display:none" onchange="attPicked(event)">
+
+<script>
+/* ═══ accounts — ONE account, MANY identities (the whole challenge) ═══ */
+const A={
+ bistrot:{co:'Bistrot Olmo',contact:'Chiara Bernasconi',city:'Lugano',stage:'Demo done',status:'TODO',amt:"3'600",pct:60,due:'today',sched:'SAT<br>12 JUL',
+  emails:['chiara@bistrot-olmo.ch','m.rossi@gmail.com'],phones:['+41 79 331 22 10','+41 76 208 91 44'],
+  next:'Bring the papers Thursday · answer the photo question',session:'awesome-ux.ch/2026-05-30-bistrot-olmo',
+  people:[{n:'Chiara Bernasconi',r:'Owner · decides',e:'chiara@bistrot-olmo.ch',p:'+41 79 331 22 10'},{n:'Marco Rossi',r:'Chef · widget objection',e:'m.rossi@gmail.com',p:'+41 76 208 91 44'}]},
+ kanzlei:{co:'Kanzlei Brunner & Cie',contact:'R. Meier',city:'Zürich',stage:'Closing',status:'AWAITING',amt:"12'000",pct:45,due:'overdue',sched:'MON<br>14 JUL',
+  emails:['meier@brunner-cie.ch','huber@brunner-cie.ch'],phones:['+41 44 210 66 30'],
+  next:'Hold the July slot until Friday',session:'awesome-ux.ch/2026-06-20-kanzlei-brunner',
+  people:[{n:'R. Meier',r:'Partner · champion',e:'meier@brunner-cie.ch',p:'+41 44 210 66 30'},{n:'S. Huber',r:'CFO · blocker',e:'huber@brunner-cie.ch',p:''}]},
+ meridiana:{co:'Hotel Meridiana',contact:'Fam. Regazzoni',city:'Ascona',stage:'Contacted',status:'AWAITING',amt:"8'400",pct:30,due:'week',sched:'TUE<br>15 JUL',
+  emails:['info@hotel-meridiana.ch'],phones:['+41 91 785 11 11'],next:'Call before the season menu drops',session:'—'},
+ gerber:{co:'Gerber Sanitär AG',contact:'S. Gerber',city:'Baden',stage:'Incoming',status:'TODO',amt:"2'800",pct:15,due:null,sched:'—',
+  emails:[],phones:['+41 79 512 44 18'],next:'Answer with the range',session:'—'},
+ nava:{co:'Studio Nava Architetti',contact:'P. Nava',city:'Bellinzona',stage:'Incoming',status:'TODO',amt:"6'200",pct:20,due:null,sched:'—',
+  emails:['p.nava@studionava.ch'],phones:[],next:'Send the two references',session:'—'},
+ keller:{co:'Keller Optik',contact:'B. Keller',city:'Zug',stage:'Demo done',status:'TODO',amt:"5'400",pct:40,due:'today',sched:'SAT<br>12 JUL',
+  emails:['keller@keller-optik.ch'],phones:['+41 41 720 55 60'],next:'Offerte out today',session:'awesome-ux.ch/2026-07-02-keller-optik'}};
+/* messages: acct·chan·dir·identity·text·time·ts·att[] */
+let MSG=[
+ {a:'bistrot',ch:'em',dir:'in',id:'chiara@bistrot-olmo.ch',t:'09:41',ts:941,b:'<b>Re: Your new website — proposal</b> · Possiamo firmare questa settimana? Una cosa: le foto della terrazza le fai tu o le mandiamo noi?'},
+ {a:'bistrot',ch:'em',dir:'out',id:'filippo → chiara@bistrot-olmo.ch · iPhone',t:'07:52',ts:752,b:'<b>Your new website — proposal</b> · sito nuovo, CHF 3\'600, tre settimane. <span class="badge id" title="captured from the mailbox Sent folder — sent outside the CRM">⇅ synced</span>'},
+ {a:'bistrot',ch:'em',dir:'in',id:'m.rossi@gmail.com',t:'tue',ts:400,b:'<b>foto terrazza</b> · Sono Marco, il cuoco — le foto le abbiamo, ve le mando.',att:['terrazza-01.jpg · 2.1 MB','terrazza-02.jpg · 1.8 MB']},
+ {a:'keller',ch:'em',dir:'in',id:'keller@keller-optik.ch',t:'wed',ts:300,b:'<b>Re: Demo</b> · Die Demo hat überzeugt — Offerte bitte.',att:['logo-keller-2024.svg · 48 KB']},
+ {a:'kanzlei',ch:'em',dir:'in',id:'meier@brunner-cie.ch',t:'5 jul',ts:200,b:'<b>AW: Proposal</b> · Besten Dank. Wir melden uns nach interner Rücksprache.'},
+ {a:'kanzlei',ch:'em',dir:'out',id:'filippo → meier@brunner-cie.ch',t:'5 jul',ts:190,b:'<b>Proposal</b> · CHF 12\'000, Kanzlei-Vertikale, vier Wochen.',att:['proposal-kanzlei-v2.pdf · 380 KB']},
+ {a:'kanzlei',ch:'em',dir:'in',id:'huber@brunner-cie.ch',t:'3 jul',ts:150,b:'<b>Unterlagen für die Rücksprache</b> · Senden Sie mir bitte die Referenzen direkt.',att:['anforderungen-cfo.pdf · 220 KB']},
+ {a:'meridiana',ch:'em',dir:'in',id:'info@hotel-meridiana.ch',t:'30 jun',ts:100,b:'<b>Re: Saisonkarte</b> · Wir schauen es uns mit der Familie an.'},
+ {a:'nava',ch:'em',dir:'out',id:'filippo → p.nava@studionava.ch',t:'24 jun',ts:50,b:'<b>Piacere — awesome-ux</b> · ti mando due referenze questa settimana.'},
+ {a:'gerber',ch:'wa',dir:'in',id:'+41 79 512 44 18',t:'fri',ts:500,b:'was chostet e website öppe?'},
+ {a:'bistrot',ch:'wa',dir:'out',id:'filippo → +41 79 331 22 10',t:'07:55',ts:755,b:'ciao Chiara — la mail è partita, dimmi cosa ne pensa il cuoco'},
+ {a:'bistrot',ch:'wa',dir:'in',id:'+41 76 208 91 44 (Marco)',t:'thu',ts:350,b:'grazie per oggi! il cuoco è quasi convinto 😄',att:['menu-attuale.pdf · 1.2 MB']}];
+const UNKNOWN={em:[{id:'praxis@dr-steiner.ch',name:'Praxis Dr. Steiner',t:'thu',b:'<b>Website Anfrage</b> · Wir suchen einen neuen Auftritt für die Praxis…'}],
+ wa:[{id:'+41 78 902 33 51',name:'Unknown +41 78 902 33 51',t:'wed',b:'salü, machen sie auch onlineshops?'}]};
+/* Consular prefilled replies — live in the input field, never in IMAP drafts */
+let SUGGEST={
+ 'bistrot:em':'Ciao Chiara — this week works. Two things before the signature: the menu photos we talked about, and whether the booking button goes to Teburio.\n\nThursday afternoon I\'m in Basel anyway — I\'ll bring the papers.\n\nFilippo',
+ 'kanzlei:em':'Guten Tag Herr Meier — kein Druck, nur eine Frist: den Juli-Slot kann ich bis Freitag halten, danach geht er an ein anderes Projekt.\n\nF. Falconieri',
+ 'keller:em':'Grüezi Frau Keller — Offerte anbei: CHF 5\'400, drei Wochen, Shooting inklusive. Wenn der Rahmen passt, reserviere ich den August-Slot.\n\nF. Falconieri',
+ 'gerber:wa':'Grüezi Herr Gerber — die Range: CHF 2\'400–2\'800, je nach Bildmaterial. Fixofferte nach einem kurzen Call?'};
+let HIST={
+ bistrot:[['09:41','✉','<b>E-mail in</b> (chiara@) — "possiamo firmare questa settimana?"'],['07:55','◍','WhatsApp out — "la mail è partita…"'],['07:52','✉','<b>E-mail out</b> (iPhone, Sent-ingest) — proposal CHF 3\'600'],['tue','📎','Marco sent <a href="#" onclick="openFiles(\'bistrot\');return false" style="color:var(--brand-amber)">terrazza-01.jpg, terrazza-02.jpg</a> → media/bistrot-olmo/'],['thu','🤝','Demo at the bistrot · chef skeptical on booking widget']],
+ kanzlei:[['5 jul','✉','<b>E-mail in</b> (meier@) — "interner Rücksprache"'],['3 jul','📎','Frau Huber sent <a href="#" onclick="openFiles(\'kanzlei\');return false" style="color:var(--brand-amber)">anforderungen-cfo.pdf</a> → media/kanzlei-brunner/'],['1 jul','☎','Qualification call · scope agreed']],
+ meridiana:[['30 jun','✉','<b>E-mail in</b> — "Wir schauen es uns mit der Familie an."'],['28 jun','✉','E-mail out — Saisonkarte & Website Ideen']],
+ gerber:[['fri','◍','<b>WhatsApp in</b> — "was chostet e website öppe?"']],
+ nava:[['24 jun','✉','E-mail out — Piacere, references promised']],
+ keller:[['wed','✉','<b>E-mail in</b> — "Offerte bitte" + logo attachment → media/keller-optik/']]};
+let CHAT=[
+ {w:'consular',b:'Chiara replied in under two hours — <b>reply is prefilled on her card and in the island.</b> Kanzlei: name the deadline, not a discount.'},
+ {w:'fil',b:'and meridiana?'},
+ {w:'consular',b:'Call, don\'t write — 12 days of silence after warmth is season-prep. I put it on the deck.'}];
+let deck=[
+ {kind:'REPLY',cls:'reply',a:'bistrot',line:'"possiamo firmare?" · reply prefilled',m:'2 min · email',go:()=>{setFilter('activity:Email');expand('bistrot');focusIsland('bistrot:em')}},
+ {kind:'CHASE',cls:'chase',a:'kanzlei',line:'proposal 7d silent · nudge prefilled',m:'3 min · email',go:()=>{setFilter('activity:Email');expand('kanzlei');focusIsland('kanzlei:em')}},
+ {kind:'CALL',cls:'call',a:'meridiana',line:'cooling 12d · call first',m:'6 min · phone',go:()=>openCard('meridiana')}];
+const S={filter:'all',open:null,exp:new Set(),showUnknown:false,corpus:214};
+
+/* ═══ utils ═══ */
+const $=id=>document.getElementById(id);
+const pad=n=>String(n).padStart(2,'0');
+const CH={em:{c:'#f97316',g:'✉',n:'Email'},wa:{c:'#25D366',g:'◍',n:'WhatsApp'}};
+const msgs=(ch)=>MSG.filter(m=>m.ch===ch);
+const groupsOf=(ch)=>{const by={};msgs(ch).forEach(m=>{(by[m.a]=by[m.a]||[]).push(m)});
+ return Object.entries(by).map(([a,ms])=>({a,ms:ms.sort((x,y)=>y.ts-x.ts)})).sort((x,y)=>y.ms[0].ts-x.ms[0].ts)};
+const attGroups=()=>{const by={};MSG.filter(m=>m.att).forEach(m=>{(by[m.a]=by[m.a]||[]).push(m)});
+ return Object.entries(by).map(([a,ms])=>({a,ms:ms.sort((x,y)=>y.ts-x.ts),files:ms.flatMap(m=>m.att.map(f=>({f,ch:m.ch,dir:m.dir,t:m.t})))})).sort((x,y)=>y.ms[0].ts-x.ms[0].ts)};
+const slug=a=>({bistrot:'bistrot-olmo',kanzlei:'kanzlei-brunner',keller:'keller-optik'})[a]||a;
+
+/* ═══ rail + hero ═══ */
+function counts(){const L=Object.values(A);return{all:L.length,
+ overdue:L.filter(l=>l.due==='overdue').length,today:L.filter(l=>l.due==='today').length,week:L.filter(l=>l.due==='week'||l.due==='today').length,
+ em:groupsOf('em').length,
+ wa:Object.keys(A).filter(id=>{const ms=MSG.filter(m=>m.a===id);return ms.length&&ms.reduce((p,c)=>c.ts>p.ts?c:p).ch==='wa'}).length,
+ att:attGroups().length,
+ st:s=>L.filter(l=>l.stage===s).length}}
+function renderRail(){const c=counts();
+ const b=(key,tone,num,lbl,sub)=>`<button class="fp-triage${S.filter===key?' is-active':''}" data-tone="${tone}" onclick="setFilter('${key}')">
+  <span class="num">${pad(num)}</span><div class="body"><span class="lbl">${lbl}</span><span class="sub">${sub}</span></div><span class="arr">→</span></button>`;
+ $('rail').innerHTML=`
+  <div class="fp-greet"><span class="fp-greet-hello">Sabato, Filippo.</span><div><span class="fp-greet-date">Sat 12 Jul</span> · <span class="fp-greet-clock">09:44</span></div></div>
+  <div class="fp-headline">Two threads want a signature — <em class="em-overdue">one is overdue</em>.</div>
+  ${b('all','all',c.all,'Open','All non-terminal leads')}${b('overdue','overdue',c.overdue,'Overdue','Past due · prioritize first')}${b('today','today',c.today,'Today','On the docket for Sat 12 Jul')}${b('thisweek','upcoming',c.week,'This week','Due in the next 7 days')}
+  <div class="fp-rail-sep"></div>
+  ${b('activity:Email','email',c.em,'Emails','Clients with live email threads')}${b('activity:WhatsApp','wa',c.wa,'WhatsApp','By sender · Baileys')}${b('attachments','upcoming',c.att,'Attachments','Client files → media/ · both channels')}
+  <div class="fp-rail-sep"></div>
+  ${b('stage:Incoming','stage',c.st('Incoming'),'Incoming','Stage 1 · first contact')}${b('stage:Contacted','stage',c.st('Contacted'),'Contacted','Stage 2 · in dialogue')}${b('stage:Demo done','stage',c.st('Demo done'),'Demo Done','Stage 3 · demo delivered')}${b('stage:Closing','stage',c.st('Closing'),'Closing','Stage 4 · contract pending')}
+  <div class="fp-pipeline"><span class="line"><span class="k">Pipeline</span> <span class="v">CHF ${chfFmt(Object.values(A).reduce((s,l)=>s+chfNum(l.amt),0))}</span><span class="sep"> · </span><span class="k">Weighted</span> <span class="v">CHF ${chfFmt(Math.round(Object.values(A).reduce((s,l)=>s+chfNum(l.amt)*l.pct/100,0)))}</span></span></div>`}
+const chfNum=s=>parseInt(String(s).replace(/[^0-9]/g,''),10)||0;
+const chfFmt=n=>String(n).replace(/\B(?=(\d{3})+(?!\d))/g,"'");
+/* hero re-picks from live state: inbound-with-prefill → overdue-with-prefill → cooling call */
+function heroPick(){
+ if(SUGGEST['bistrot:em'])return{tone:'today',tag:'INBOUND EMAIL · P017',co:'Bistrot Olmo',line:'Chiara asked to sign — the reply is prefilled. Edit, send, bring the papers Thursday.',go:"setFilter('activity:Email');expand('bistrot');focusIsland('bistrot:em')"};
+ if(SUGGEST['kanzlei:em'])return{tone:'overdue',tag:'OVERDUE · CLOSING · P018',co:'Kanzlei Brunner & Cie',line:'Proposal 7d silent — the nudge is prefilled. Name the deadline, not a discount.',go:"setFilter('activity:Email');expand('kanzlei');focusIsland('kanzlei:em')"};
+ return{tone:'upcoming',tag:'COOLING · CALL · P019',co:'Hotel Meridiana',line:'12 days of silence after warmth — call before the season menu drops.',go:"openCard('meridiana')"}}
+function renderHero(){const h=heroPick();$('hero').dataset.tone=h.tone;
+ $('hero').innerHTML=`<div class="body"><div class="tag"><span class="marker">▸</span>NEXT MOVE · ${h.tag}</div>
+ <button class="headline" style="font:inherit;font-weight:inherit;padding:0" onclick="${h.go}">${h.co}</button>
+ <div class="meta">${h.line}</div></div>`}
+function focusIsland(key){const t=$('rb-'+key);if(t){t.scrollIntoView({block:'center'});t.focus()}}
+
+/* ═══ center ═══ */
+function renderList(){const f=S.filter;$('list-tools').innerHTML='';
+ if(f==='activity:Email'||f==='activity:WhatsApp'){const ch=f==='activity:Email'?'em':'wa';const gs=groupsOf(ch);const total=msgs(ch).length;
+  $('list-title').innerHTML=`<span style="color:${CH[ch].c};margin-right:6px">${CH[ch].g}</span>${CH[ch].n} · ${gs.length} ${gs.length===1?'client':'clients'} · ${total} messages${ch==='em'?' · swept 09:44':''}`;
+  const allOn=gs.length&&gs.every(g=>S.exp.has(g.a));
+  $('list-tools').innerHTML=`<button class="isl-head-btn" onclick="S.showUnknown=!S.showUnknown;renderList()">${S.showUnknown?'▾ Hide':'▸ Show'} unknown senders</button>`
+   +(gs.length>1?`<button class="isl-head-btn" onclick="expAll('${ch}')">${allOn?'Collapse all':'Expand all'}</button>`:'');
+  let html='';
+  if(S.showUnknown)html+=UNKNOWN[ch].map((u,i)=>`<div class="isl-group" style="background:var(--brand-amber-glow)">
+    <div class="isl-hdr"><span></span><div style="min-width:0"><div class="isl-co"><span class="nm">${u.id}</span><span class="badge id">unknown sender</span></div>
+    <div class="isl-snip"><span class="dir" style="color:${CH[ch].c}">←</span>${u.b}</div></div>
+    <button class="rbtn" onclick="createLead('${ch}',${i})">+ CREATE LEAD</button></div></div>`).join('');
+  html+=gs.map(g=>{const acc=A[g.a],on=S.exp.has(g.a),latest=g.ms[0];
+   return `<div class="isl-group"><button class="isl-hdr${on?' on':''}" onclick="toggleG('${g.a}')">
+    <span style="color:var(--text-muted)">${on?'▾':'▸'}</span>
+    <div style="min-width:0"><div class="isl-co"><span class="nm">${acc.co}</span><span class="badge ${ch}">${g.ms.length}×</span>
+     ${(ch==='em'?acc.emails:acc.phones).length>1?`<span class="badge id">${(ch==='em'?acc.emails:acc.phones).length} ${ch==='em'?'addresses':'numbers'} · one account</span>`:''}</div>
+     ${on?'':`<div class="isl-snip"><span class="dir" style="color:${latest.dir==='in'?CH[ch].c:'var(--text-dim)'}">${latest.dir==='in'?'←':'→'}</span>${latest.b.replace(/<[^>]+>/g,'')}</div>`}</div>
+    <span class="isl-time">${latest.t}</span></button>
+    ${on?replyBox(g.a,ch)
+     +g.ms.map(m=>`<button class="isl-msg${m.fresh?' enter':''}" style="width:100%" onclick="openCard('${g.a}')" title="Open ${A[g.a].co} — client card"><span class="dir" style="color:${m.dir==='in'?CH[ch].c:'var(--text-dim)'}">${m.dir==='in'?'←':'→'}</span>
+      <div class="b"><span class="addr">${m.id}</span>${m.b}${(m.att||[]).map(a2=>` <span class="att-chip" role="button" onclick="event.stopPropagation();openFiles('${g.a}')">📎 ${a2}</span>`).join('')}</div>
+      <span class="t">${m.t}</span></button>`).join(''):''}</div>`}).join('');
+  $('list').innerHTML=html;MSG.forEach(m=>m.fresh=false)}
+ else if(f==='attachments'){const gs=attGroups();
+  $('list-title').innerHTML=`📎 Attachments · ${gs.length} clients · client files, both channels, downloaded to media/`;
+  $('list').innerHTML=gs.map(g=>`<button class="isl-hdr" onclick="openFiles('${g.a}')">
+   <span>📎</span><div style="min-width:0"><div class="isl-co"><span class="nm">${A[g.a].co}</span><span class="badge id">${g.files.length} files</span></div>
+   <div class="isl-snip">media/${slug(g.a)}/ · latest: ${g.files[0].f}</div></div><span class="isl-time">${g.ms[0].t}</span></button>`).join('')}
+ else{$('list-title').textContent='Leads';let L=Object.entries(A).map(([id,l])=>({id,...l}));
+  if(f==='overdue')L=L.filter(l=>l.due==='overdue');else if(f==='today')L=L.filter(l=>l.due==='today');
+  else if(f==='thisweek')L=L.filter(l=>l.due==='week'||l.due==='today');else if(f.startsWith('stage:'))L=L.filter(l=>l.stage===f.slice(6));
+  $('list').innerHTML=L.map(l=>`<button class="fp-lead" onclick="openCard('${l.id}')">
+   <span class="sched">${l.sched}</span><div class="subject"><span class="name">${l.co}</span><span class="meta">${l.contact}<span class="sep"> · </span>${l.stage}</span></div>
+   <div class="fp-lead-channels"><span class="crm-phone-icon${l.phones.length?'':' is-empty'}">☎</span><span class="crm-whatsapp-icon${MSG.some(m=>m.a===l.id&&m.ch==='wa')?'':' is-empty'}" title="lit = recent WhatsApp activity">◍</span><span class="crm-mail-icon${MSG.some(m=>m.a===l.id&&m.ch==='em')?'':' is-empty'}" title="lit = recent email activity">✉</span></div>
+   <span class="amt">CHF ${l.amt}</span><span class="pct">${l.pct}%</span></button>`).join('')}}
+function replyBox(a,ch){const key=a+':'+ch,sug=SUGGEST[key];
+ return `<div class="reply"><div class="rk">${sug?'CONSULAR PREFILLED THIS REPLY — discard, or edit &amp; send':'REPLY'} · ${CH[ch].n.toLowerCase()} · ${A[a].co}</div>
+  <textarea id="rb-${key}" onkeydown="taKey(event,'${a}','${ch}',false)">${sug||''}</textarea>
+  <div id="att-list-${key}" style="margin-top:6px"></div>
+  <div class="rb"><button class="rbtn send" onclick="send('${a}','${ch}')">▶ SEND ${CH[ch].n.toUpperCase()}</button>
+  <button class="rbtn" onclick="pickAtt('${key}')">📎 ATTACH</button>
+  ${sug?`<button class="rbtn" onclick="discard('${key}')">DISCARD — no reply needed</button>`:''}
+  <button class="rbtn" onclick="openCard('${a}')">OPEN CARD →</button>
+  <span class="rnote">send posts to the Consular chat</span></div></div>`}
+function toggleG(a){S.exp.has(a)?S.exp.delete(a):S.exp.add(a);renderList()}
+function expand(a){S.exp.add(a);closeCard();renderList();}
+
+/* ═══ files view (client media directory) ═══ */
+function openFiles(a){S.filter='attachments';renderRail();const g=attGroups().find(x=>x.a===a);const acc=A[a];
+ if(S.prevA!==a){S.prevIdx=null;S.prevA=a}
+ $('grid').classList.add('is-card-open');
+ $('detail-host').innerHTML=`<div class="crm-card is-expanded"><div class="crm-expanded-header"><div class="crm-hdr-identity">
+  <button class="crm-hdr-back" onclick="closeCard()">←</button><span class="crm-hdr-name">${acc.co} — attachments</span></div>
+  <span style="font-family:var(--font-mono);font-size:10px;color:var(--text-dim)">both directions · only client files are downloaded</span></div>
+  <div class="pathline">db/<b>media/${slug(a)}/</b> — linked from HISTORY on the client card</div>
+  ${g?g.files.map((x,i)=>{const name=x.f.split(' ·')[0];const isImg=/\.(jpg|jpeg|png|webp)$/i.test(name);const path=`media/${slug(a)}/${name}`;
+   return `<button class="file-row${S.prevIdx===i?'':''}" onclick="togglePrev(${i})" title="${S.prevIdx===i?'close preview':'preview'}"><span>${name.includes('.pdf')?'📄':name.includes('.svg')?'🎨':'🖼'}</span>
+   <span class="fn">${name}<small>via ${CH[x.ch].n} · ${x.dir==='in'?'← from client · downloaded':'→ sent by us · not downloaded (ours)'}</small></span>
+   <span class="fs">${x.f.split('· ')[1]||''}</span><span class="t">${x.t}</span></button>
+   ${S.prevIdx===i?`<div style="padding:12px 18px 16px 56px;border-top:1px dashed var(--border-card);display:flex;gap:16px;align-items:center">
+    <div style="width:170px;height:104px;border:1px solid var(--border-active);border-radius:8px;display:flex;align-items:center;justify-content:center;background:var(--bg-sunken);font-size:34px;flex:none">${isImg?'🖼':name.includes('.pdf')?'📄':'🎨'}</div>
+    <div style="min-width:0"><div style="font-family:var(--font-mono);font-size:10px;color:var(--text-muted);margin-bottom:8px">${path}</div>
+     <a href="#" onclick="return false" class="att-chip">open ↗</a>
+     <span class="att-chip" role="button" onclick="navigator.clipboard&&navigator.clipboard.writeText('${path}');this.textContent='✓ copied'">copy path</span></div></div>`:''}`}).join(''):'<div style="padding:24px 18px;color:var(--text-dim)">no files yet</div>'}</div>`}
+function togglePrev(i){S.prevIdx=S.prevIdx===i?null:i;openFiles(S.prevA)}
+
+/* ═══ client card (per the real card: pills · next move · kvs · COMPOSE BEFORE HISTORY) ═══ */
+function openCard(a){S.open=a;const l=A[a];$('grid').classList.add('is-card-open');
+ const sug=SUGGEST[a+':em']||SUGGEST[a+':wa']||'';CARD_PREFILL[a]=sug;
+ $('detail-host').innerHTML=`<div class="crm-card is-expanded">
+  <div class="crm-expanded-header"><div class="crm-hdr-identity">
+   <button class="crm-hdr-back" onclick="closeCard()">← BACK</button><button class="crm-star${l.star?' is-on':''}" onclick="toggleStar('${a}')" title="Star this lead">${l.star?'★':'☆'}</button><span class="crm-hdr-name">${l.co}</span></div>
+   <div style="display:flex;gap:6px">${['TODO','STANDBY','AWAITING','WON','LOST'].map(p=>`<button class="pill${l.status===p?' on':''}" onclick="setStatus('${a}','${p}')">${p}</button>`).join('')}</div></div>
+  <div class="kick"><span>P0${(Object.keys(A).indexOf(a)+17)} · ${l.stage.toUpperCase()} · ${l.status}</span><span>${l.session}</span></div>
+  <div class="nextmove"><span class="k">NEXT MOVE</span><span class="v">${l.next}</span></div>
+  <div class="kvs"><span>CHF<b>${l.amt}</b></span><span>CONFIDENCE<b>${l.pct}%</b></span><span>SUB-STAGE<b style="color:var(--text-dim);font-size:11px">—</b></span></div>
+  <div class="idents" style="line-height:1.7">PEOPLE ON THIS ACCOUNT
+   ${(l.people||[{n:l.contact,r:'',e:l.emails[0]||'',p:l.phones[0]||''}]).map(x=>`<div><b style="color:var(--text-main);font-weight:600">${x.n}</b>${x.r?' · '+x.r:''}${x.e?` · ✉ ${x.e}`:''}${x.p?` · ◍ ${x.p}`:''}</div>`).join('')}</div>
+  <div style="display:flex;gap:8px;margin:0 0 12px">
+   ${MSG.some(m=>m.a===a&&m.ch==='em')?`<button class="sndbtn em" onclick="gotoIsland('${a}','em')">✉ EMAIL THREADS (${MSG.filter(m=>m.a===a&&m.ch==='em').length}) →</button>`:''}
+   ${MSG.some(m=>m.a===a&&m.ch==='wa')?`<button class="sndbtn wa" onclick="gotoIsland('${a}','wa')">◍ WHATSAPP (${MSG.filter(m=>m.a===a&&m.ch==='wa').length}) →</button>`:''}
+   ${MSG.some(m=>m.a===a&&m.att)?`<button class="sndbtn" style="color:var(--brand-amber);border-color:var(--brand-amber-dim)" onclick="openFiles('${a}')">📎 FILES →</button>`:''}</div>
+  ${(l.emails.length||l.phones.length)?`<div class="reply" style="border:1px solid var(--border-card);border-radius:8px;padding:12px 14px">
+   <div class="rk">${sug?'CONSULAR PREFILLED THIS REPLY — discard, or edit & send':'COMPOSE'} · one message, channel chosen at send time</div>
+   <textarea id="rb-card-${a}" onkeydown="taKey(event,'${a}',null,true)">${sug}</textarea>
+   <div id="att-list-card-${a}" style="margin-top:6px"></div>
+   <div class="rb">${l.emails.length?`<button class="rbtn send" onclick="send('${a}','em',true)">▶ SEND EMAIL</button>`:''}
+   ${l.phones.length?`<button class="rbtn send" onclick="send('${a}','wa',true)">▶ SEND WHATSAPP</button>`:''}
+   <button class="rbtn" onclick="pickAtt('card-${a}')">📎 ATTACH</button>
+   ${sug?`<button class="rbtn" onclick="discardCard('${a}')">DISCARD</button>`:''}
+   <span class="rnote">posts to history + Consular chat</span></div></div>`:''}
+  <div class="hist-h"><span class="hl">HISTORY</span><div class="snd">
+   ${l.phones.length?`<button class="sndbtn wa" onclick="focusCompose('${a}')">◍ SEND WHATSAPP</button>`:''}${l.emails.length?`<button class="sndbtn em" onclick="focusCompose('${a}')">✉ SEND EMAIL</button>`:''}</div></div>
+  <div id="hist">${HIST[a].map(h=>`<div class="hrow${h[3]?' enter':''}"><span class="t">${h[0]}</span><span>${h[1]}</span><span class="b">${h[2]}</span></div>`).join('')}</div></div>`;
+ HIST[a].forEach(h=>h[3]=0)}
+function closeCard(){S.open=null;$('grid').classList.remove('is-card-open');$('detail-host').innerHTML=''}
+
+/* ═══ send / discard — the loop, no modal ═══ */
+const esc=s=>s.replace(/&/g,'&amp;').replace(/</g,'&lt;');
+function send(a,ch,fromCard){const ta=$(fromCard?'rb-card-'+a:'rb-'+a+':'+ch);const text=ta?ta.value.trim():'';if(!text)return;
+ const sug=fromCard?(CARD_PREFILL[a]||''):(SUGGEST[a+':'+ch]||'');const edited=sug&&text!==sug.trim();
+ const line=esc(text.split('\n')[0]);
+ const attKey=fromCard?'card-'+a:a+':'+ch;const atts=PENDING_ATT[attKey]||[];delete PENDING_ATT[attKey];
+ MSG.unshift({a,ch,dir:'out',id:'filippo → '+(ch==='em'?A[a].emails[0]:A[a].phones[0]),t:'10:02',ts:1002,b:line.slice(0,90)+(line.length>90?'…':''),att:atts.length?atts:undefined,fresh:true});
+ HIST[a].unshift(['10:02',CH[ch].g,`<b>${CH[ch].n} out</b> — ${line.slice(0,70)}…${edited?' · <i>draft edited</i>':''}${atts.length?` · 📎 ${atts.map(x=>x.split(' ·')[0]).join(', ')}`:''}`,1]);
+ CHAT.push({w:'sys',b:`→ SENT · ${CH[ch].n.toLowerCase()} · <b>${A[a].co}</b> — ${line.slice(0,60)}…${atts.length?` · 📎 ${atts.length} file${atts.length>1?'s':''}`:''}`});
+ if(edited)CHAT.push({w:'consular',b:'Read the diff — you cut the phone option and made the close human. Noted; never re-offered.'});
+ if(fromCard){delete SUGGEST[a+':em'];delete SUGGEST[a+':wa'];CARD_PREFILL[a]=''}else delete SUGGEST[a+':'+ch];
+ deck=deck.filter(c=>c.a!==a||!c.line.includes('prefilled'));S.corpus++;
+ renderRail();renderHero();renderRight();renderList();if(fromCard)openCard(a)}
+function taKey(e,a,ch,fromCard){if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();send(a,ch||(A[a].emails.length?'em':'wa'),fromCard)}}
+function discard(key){delete SUGGEST[key];CHAT.push({w:'sys',b:'✕ discarded — no reply needed. The Consular logs the judgment.'});
+ renderRight();renderList()}
+function discardCard(a){delete SUGGEST[a+':em'];delete SUGGEST[a+':wa'];CARD_PREFILL[a]='';
+ CHAT.push({w:'sys',b:'✕ discarded — no reply needed. The Consular logs the judgment.'});renderHero();renderRight();openCard(a)}
+function focusCompose(a){const t=$('rb-card-'+a);if(t){t.scrollIntoView({block:'center',behavior:'smooth'});t.focus()}}
+/* attachments on compose — real file picker, chips, ride the send */
+const PENDING_ATT={};let CUR_ATT_KEY=null;
+function pickAtt(key){CUR_ATT_KEY=key;$('att-in').click()}
+function attPicked(e){if(!CUR_ATT_KEY)return;
+ const names=[...e.target.files].map(f=>f.name+' · '+Math.max(1,Math.round(f.size/1024))+' KB');
+ (PENDING_ATT[CUR_ATT_KEY]=PENDING_ATT[CUR_ATT_KEY]||[]).push(...names);
+ e.target.value='';renderAtt(CUR_ATT_KEY)}
+function renderAtt(key){const el=$('att-list-'+key);if(!el)return;
+ el.innerHTML=(PENDING_ATT[key]||[]).map((x,i)=>`<span class="att-chip" role="button" title="remove" onclick="rmAtt('${key}',${i})">📎 ${x} ✕</span>`).join('')}
+function rmAtt(key,i){PENDING_ATT[key].splice(i,1);renderAtt(key)}
+/* card ⇄ island switch */
+function gotoIsland(a,ch){setFilter(ch==='em'?'activity:Email':'activity:WhatsApp');S.exp.add(a);renderList();
+ const g=[...document.querySelectorAll('.isl-group')].find(x=>x.textContent.includes(A[a].co));
+ if(g)g.scrollIntoView({block:'start'})}
+function expAll(ch){const gs=groupsOf(ch);const allOn=gs.every(g=>S.exp.has(g.a));
+ gs.forEach(g=>allOn?S.exp.delete(g.a):S.exp.add(g.a));renderList()}
+function toggleStar(a){A[a].star=!A[a].star;openCard(a)}
+function setStatus(a,p){const old=A[a].status;if(old===p)return;A[a].status=p;
+ HIST[a].unshift(['10:03','⇄',`Status: ${old} → ${p}`]);openCard(a)}
+function createLead(ch,i){const u=UNKNOWN[ch][i];if(!u)return;
+ const id='lead-'+u.id.replace(/[^a-z0-9]/gi,'').slice(-8);
+ A[id]={co:u.name,contact:'—',city:'—',stage:'Incoming',status:'TODO',amt:"0",pct:5,due:null,sched:'—',
+  emails:ch==='em'?[u.id]:[],phones:ch==='wa'?[u.id]:[],next:'Qualify — first contact came in unprompted',session:'—'};
+ MSG.unshift({a:id,ch,dir:'in',id:u.id,t:u.t,ts:998,b:u.b});
+ HIST[id]=[[u.t,CH[ch].g,`<b>${CH[ch].n} in</b> — first contact · unknown sender → lead created`]];
+ UNKNOWN[ch].splice(i,1);
+ CHAT.push({w:'sys',b:`+ LEAD CREATED · <b>${u.name}</b> from unknown ${ch==='em'?'address':'number'} ${u.id}`});
+ renderRail();renderRight();openCard(id)}
+
+/* ═══ right: deck + Consular CHAT (the island posts here) ═══ */
+function renderRight(){$('right').innerHTML=`<div class="pmx-deck"><div class="dh"><span>FLIGHT DECK · TODAY</span><span>+${deck.length+2} QUEUE</span></div>
+ ${deck.map((c,i)=>`<button class="pmx-card" onclick="deck[${i}].go()"><div class="k ${c.cls}">${c.kind}</div><div class="tt">${A[c.a].co}</div><div class="ll">${c.line}</div>
+  <div style="display:flex;justify-content:space-between;margin-top:6px"><span style="font-family:var(--font-mono);font-size:9px;color:var(--text-dim)">${c.m}</span>
+  <span class="rbtn send" style="padding:3px 9px;font-size:9px">${c.cls==='call'?'▶ CALL':'▶ DRAFT'}</span></div></button>`).join('')}</div>
+ <div class="chat"><div class="ck">CONSULAR · READ-ONLY (WP-111) · sends post here — the diff is the lesson</div>
+  <div class="chat-scroll" id="chat">${CHAT.map(m=>`<div class="cmsg ${m.w==='consular'?'consular':m.w==='sys'?'sys':''}">
+   <span class="cw">${m.w==='consular'?'CONSULAR':m.w==='sys'?'OSKAR-SYSTEM':'FIL'}</span><span class="cb">${m.b}</span></div>`).join('')}</div>
+  <div class="chat-in"><input id="chat-q" placeholder="Ask the Consular…" onkeydown="if(event.key==='Enter')askConsular()"><button class="rbtn" onclick="askConsular()">→</button></div></div>`;
+ const c=$('chat');if(c)c.scrollTop=c.scrollHeight}
+
+/* ═══ consular chat (simulated agent, real interaction) ═══ */
+const CARD_PREFILL={};
+function askConsular(){const q=($('chat-q')?.value||'').trim();if(!q)return;
+ const e=q.replace(/&/g,'&amp;').replace(/</g,'&lt;');
+ CHAT.push({w:'fil',b:e});
+ const lo=q.toLowerCase();let r;
+ if(lo.includes('kanzlei'))r='Meier wants it; the CFO doesn\'t yet. The nudge names Friday as the deadline — <b>it\'s prefilled on the card.</b> Don\'t discount.';
+ else if(lo.includes('meridiana'))r='12 days of silence after warmth is season-prep, not a no. <b>Call, don\'t write</b> — it\'s on the deck.';
+ else if(lo.includes('bistrot')||lo.includes('chiara'))r='She asked to sign. Close this week — bring the papers Thursday, answer the photo question. Marco\'s terrace shots are in <b>media/bistrot-olmo/</b>.';
+ else if(lo.includes('attachment')||lo.includes('media'))r='Every client file from email or WhatsApp lands in <b>media/&lt;account&gt;/</b> — the Attachments bento lists clients by latest incoming.';
+ else r='I hold the whole book — ask me about a lead, a thread, or what to send next. The prefills are on the cards.';
+ CHAT.push({w:'consular',b:r});renderRight()}
+
+/* ═══ shell ═══ */
+function setFilter(k){S.filter=k;closeCard();renderRail();renderList()}
+function toggleTheme(){const h=document.documentElement,p=h.dataset.theme==='polar';h.dataset.theme=p?'onyx':'polar';$('themebtn').textContent=p?'POLAR':'ONYX';try{localStorage.setItem('pm-theme',h.dataset.theme)}catch(_){}}
+try{const t=localStorage.getItem('pm-theme');if(t){document.documentElement.dataset.theme=t;$('themebtn').textContent=t==='polar'?'ONYX':'POLAR'}}catch(_){}
+renderRail();renderHero();renderList();renderRight();
+</script>
+</body>
+</html>

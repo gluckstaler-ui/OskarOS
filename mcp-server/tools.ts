@@ -125,6 +125,9 @@ const CD_ALLOWED = new Set<string>([
   'build_vibe', 'build_wireframes', 'hotswap', 'images_needed', 'refresh_assets',
   // Phase 2 Family 1 (submit/report)
   'submit_proofread', 'submit_image_verdict', 'submit_upload_eval', 'submit_image_prompt',
+  // POSTMASTER PM-3: Consular reply-draft channel (also in lib/mcp-config.ts
+  // CD_ALLOWED_TOOLS — a submit tool missing from EITHER list is spawn-rejected).
+  'suggest_reply',
   // Bug 18 typed gateway
   'update_image_metadata',
   // Phase 2.5 escrow
@@ -155,7 +158,6 @@ const CD_ALLOWED = new Set<string>([
   // even though spawn allowed the call. Same drift class as the 2026-05-06
   // entry. Sync with lib/mcp-config.ts whenever you add/remove a tool here.
   'tc_descent_selection',
-  'propose_image_prompt',
   'preview_card',
   'build_done', 'build_fail', 'build_progress',
   'submit_critique',

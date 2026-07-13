@@ -417,6 +417,32 @@ function ensureSagesSections(sessionMd: string): string {
 }
 
 /**
+ * Topology diagnosis (Ralph 2026-07-04) — the system's detect-only half of
+ * Job 2 in agents/sage-240-40.md. Scans SESSION.md for duplicated section
+ * structure: more than one `## LEDGER`, `## COMPACTS`, `## BLOCKS`, or
+ * `## USER SESSION DATA` heading — the signature of a session restore that
+ * stacked a fresh skeleton on top of an old full file. Returns 1-based line
+ * numbers per heading, or null when the topology is clean. The system never
+ * merges — Sage does, with tools, at the end of the 240/40 run.
+ */
+export function diagnoseSageTopology(sessionMd: string): {
+  ledger: number[]
+  compacts: number[]
+  blocks: number[]
+  usd: number[]
+} | null {
+  const lines = sessionMd.split('\n')
+  const hits = (re: RegExp) => lines.flatMap((l, i) => (re.test(l) ? [i + 1] : []))
+  const d = {
+    ledger: hits(/^##\s+LEDGER\b/i),
+    compacts: hits(/^##\s+COMPACTS\b/i),
+    blocks: hits(/^##\s+BLOCKS\b/i),
+    usd: hits(/^##\s+USER\s+SESSION\s+DATA/i),
+  }
+  return Object.values(d).some((a) => a.length > 1) ? d : null
+}
+
+/**
  * Content-aware walker — scans the WHOLE file in document order looking
  * for `**Compact …**` and `**Block …**` opening lines, regardless of
  * which section they sit in. Returns the line indices used by the gate
@@ -1337,6 +1363,62 @@ async function _runSage240_40Inner(
     triageLog = '[240/40-SKIP] under trigger — no passes scheduled'
   }
 
+  // ── Phase FINAL · Topology (Ralph 2026-07-04): system diagnoses, Sage repairs.
+  // A session restore can stack a fresh header (title + empty LEDGER/COMPACTS/
+  // BLOCKS skeleton + USD marker) on top of the old full file; the file then
+  // carries duplicate section sets and every new entry lands in the wrong one
+  // (buried ~line 870 on Barbazza). The system's ONLY authority is detect +
+  // surface + wake: scan the post-pass file for duplicated headings, stream
+  // the diagnosis into the live feed, then wake the full Sage-240/40 agent
+  // (Read+Edit per his agent file, 20-min SIGTERM) with a TOPOLOGY DIAGNOSIS
+  // block — Job 2 in agents/sage-240-40.md. All merge judgment is Sage's.
+  // On Sage failure the run completes fail-open and the pre-prune snapshots
+  // are kept (the sweep below is gated on this flag).
+  let topologyRepairFailed = false
+  if (!signal?.aborted) {
+    const postPassMd = await readFile(sessionMdPath, 'utf-8').catch(() => '')
+    const topo = diagnoseSageTopology(postPassMd)
+    if (topo) {
+      const summary =
+        `duplicate section sets — LEDGER @${topo.ledger.join(',')} · ` +
+        `COMPACTS @${topo.compacts.join(',')} · BLOCKS @${topo.blocks.join(',')} · ` +
+        `USD @${topo.usd.join(',')}`
+      streamFwd({ type: 'topology', detail: `topology: ${summary}` })
+      streamFwd({ type: 'topology', detail: 'topology: waking Sage — Job 2, tools, 20-min SIGTERM' })
+      trace('topology-diagnosed', { ...topo })
+      await appendLog(`\n## Phase FINAL · Topology\n${summary}\ntasking Sage (Job 2) — Read+Edit, 20-min SIGTERM\n`)
+
+      const diagnosisBlock = [
+        '---',
+        '## TOPOLOGY DIAGNOSIS (injected by the system — execute Job 2 now)',
+        `File: public/${sessionId}/SESSION.md (cwd is the oskar-prototype root)`,
+        'Duplicate headings (1-based line numbers):',
+        `- ## LEDGER: lines ${topo.ledger.join(', ')}`,
+        `- ## COMPACTS: lines ${topo.compacts.join(', ')}`,
+        `- ## BLOCKS: lines ${topo.blocks.join(', ')}`,
+        `- ## USER SESSION DATA: lines ${topo.usd.join(', ')}`,
+        '---',
+      ].join('\n')
+
+      const sageResponse = await callAnthropicAgent(
+        DREAMER_MODEL,
+        loadSage240_40() + '\n\n' + diagnosisBlock,
+        process.cwd(),
+        20 * 60 * 1000, // SIGTERM for Sage: 20 minutes (Ralph 2026-07-04)
+      )
+      if (sageResponse === null) {
+        topologyRepairFailed = true
+        const logLine = '[TOPOLOGY-ERROR] Sage repair failed/timed out — duplicate sets remain, next run re-diagnoses'
+        triageLog += (triageLog ? '\n' : '') + logLine
+        streamFwd({ type: 'topology', detail: 'topology: Sage failed — sets remain, snapshots kept' })
+        await appendLog(`result: TOPOLOGY-FAIL\n${logLine}\n`)
+      } else {
+        streamFwd({ type: 'topology', detail: 'topology: Sage merged — single ledger set at top' })
+        await appendLog(`### Sage topology response\n${sageResponse}\n`)
+      }
+    }
+  }
+
   // Recompute final size after both cuts
   const afterContent = await readFile(sessionMdPath, 'utf-8').catch(() => workingSessionMd)
   const outputSize = Buffer.byteLength(afterContent, 'utf-8')
@@ -1373,7 +1455,12 @@ async function _runSage240_40Inner(
   // If those passed, the snapshot is dead weight. Operator can re-run
   // from git history if needed. Snapshots only persist on failure paths
   // (those throw or return early before reaching this code).
-  try {
+  // Exception (Ralph 2026-07-04): a failed Job-2 topology repair counts as
+  // a failure path — snapshots are kept so the rollback survives.
+  if (topologyRepairFailed) {
+    console.log('[sage-240-40] topology repair failed — pre-prune snapshots kept for rollback')
+    trace('snapshots-kept-topology-fail', {})
+  } else try {
     const { readdir, unlink } = await import('fs/promises')
     const dir = path.dirname(sessionMdPath)
     const baseName = path.basename(sessionMdPath)
@@ -1581,7 +1668,10 @@ async function performOneSageCut(
       inRestoredZone: boolean
     }> = []
     const restoredZones: Array<{ start: number; line: string }> = []
-    for (let i = usdIdx + 1; i < sectionEnd; i++) {
+    // Whole-file scan (Ralph 2026-07-04) — Blocks live ABOVE USD since
+    // 2026-05-18; a below-USD trace hid exactly the blocks the anchor
+    // logic was blind to.
+    for (let i = 0; i < sectionEnd; i++) {
       const line = lines[i]
       if (sessionRestoredHdrRe.test(line)) {
         inRestoredZone = true
@@ -1648,10 +1738,14 @@ async function performOneSageCut(
   //     protection now.
   //   - 30-line floor — small windows are fine. The file converges
   //     naturally when there's nothing more to cut.
-  // Walk forward from cutStart+200 until we hit a clean `---\n#### User|CD`
-  // seam. The seam IS cutEnd. No mid-turn fallback — if no seam exists in
-  // the cuttable region (cutStart+200 → sectionEnd), the file has converged
-  // or is corrupt; abort rather than cut mid-conversation.
+  // Walk forward from cutStart+200 to the next chat `#### User |` turn
+  // (findCutSeam) — the ONLY cut boundary, as it was before the image
+  // dialect existed (Ralph 2026-07-04). The walk SKIPS `#### CD |` turns
+  // and ALL image-mode `### <ISO> — …` entries. cutEnd = the `---` line
+  // directly above the User turn when present, else the User turn line.
+  // No mid-turn fallback — if no chat User turn exists in the cuttable
+  // region (cutStart+200 → sectionEnd), the file has converged or is
+  // corrupt; abort rather than cut mid-conversation.
   //
   // Ralph 2026-05-12: previous code capped the snap-search at +100 lines
   // and fell through to `cutEnd = cutStart + 200` when no seam was found,
@@ -1659,14 +1753,7 @@ async function performOneSageCut(
   // ~100 lines (common for long audit/critique replies). The mid-turn
   // chunks dribbled half-turns back into the file, polluting subsequent
   // passes.
-  const turnHeaderRe = /^####\s+(?:User|CD)\s*\|/i
-  let cutEnd: number | null = null
-  for (let i = cutStart + 200; i < sectionEnd; i++) {
-    if (lines[i].trim() === '---' && turnHeaderRe.test(lines[i + 1])) {
-      cutEnd = i
-      break
-    }
-  }
+  const cutEnd = findCutSeam(lines, cutStart + 200, sectionEnd)
   tr(`cut.${stageLabel || 'cut'}.snap-forward`, {
     cutStart,
     minCutEnd: cutStart + 200,
@@ -2594,7 +2681,7 @@ async function performOneSageLedger(
  * Output times are normalized to `HH:MM` (drop seconds) so block headers
  * stay short — `(15:28 → 15:47)` not `(15:28:07 → 15:47:23)`.
  */
-function extractTimestampsFromChunk(
+export function extractTimestampsFromChunk(
   chunkLines: string[],
   sessionMdPath: string,
 ): {
@@ -2604,13 +2691,28 @@ function extractTimestampsFromChunk(
   chunkStartTime: string
   chunkEndTime: string
 } {
-  // Match a turn line and capture optional date + time (with optional seconds).
-  // Examples it matches:
+  // Match a tissue entry line and capture optional date + time — BOTH dialects.
+  // Chat turns (optional date, with-or-without seconds):
   //   `#### User | 2026-04-20 23:52:52`  → date=2026-04-20 time=23:52
   //   `#### User | 19:21:13`             → date=undefined time=19:21
   //   `#### CD | 23:50`                  → date=undefined time=23:50
+  // Image-mode entries (ISO timestamp always carries the date):
+  //   `### 2026-05-31T16:27:25.157Z — user — Dokument-grb.jpg` → 2026-05-31 16:27
+  //   `### 2026-06-01T12:34:10.469Z — cd-rewrite`              → 2026-06-01 12:34
+  // Ralph 2026-07-04: without the image dialect, an image-mode chunk fell
+  // through to the sessionId date + `00:00` — the exact `(00:00 → 00:00)`
+  // Block-title bug the 2026-04-25 fix cured for time-only chat turns.
   const turnRe =
     /^####\s+(?:User|CD)\s*\|\s*(?:(\d{4}-\d{2}-\d{2})\s+)?(\d{2}:\d{2})(?::\d{2})?\b/i
+  const imageRe =
+    /^###\s+(\d{4}-\d{2}-\d{2})T(\d{2}:\d{2})(?::\d{2}(?:\.\d+)?)?Z?\s+[—-]\s+(?:user|cd-[a-z-]+)\b/i
+  const matchEntry = (ln: string): { date: string | null; time: string } | null => {
+    const t = ln.match(turnRe)
+    if (t) return { date: t[1] || null, time: t[2] }
+    const im = ln.match(imageRe)
+    if (im) return { date: im[1], time: im[2] }
+    return null
+  }
 
   let startTime: string | null = null
   let endTime: string | null = null
@@ -2619,19 +2721,19 @@ function extractTimestampsFromChunk(
 
   // Walk forward for start
   for (const ln of chunkLines) {
-    const m = ln.match(turnRe)
+    const m = matchEntry(ln)
     if (m) {
-      startTime = m[2]
-      if (m[1]) firstDate = m[1]
+      startTime = m.time
+      if (m.date) firstDate = m.date
       break
     }
   }
   // Walk backward for end
   for (let i = chunkLines.length - 1; i >= 0; i--) {
-    const m = chunkLines[i].match(turnRe)
+    const m = matchEntry(chunkLines[i])
     if (m) {
-      endTime = m[2]
-      if (m[1]) lastDate = m[1]
+      endTime = m.time
+      if (m.date) lastDate = m.date
       break
     }
   }
@@ -2678,74 +2780,111 @@ function extractTimestampsFromChunk(
  * Returns -1 when the section contains no living tissue.
  */
 /**
- * Find the cut anchor — the line where the LAST Block in [usdIdx, sectionEnd)
- * has its narrative END.
+ * The two tissue-header dialects that exist in the wild (Ralph 2026-07-04):
+ *
+ *   `#### User | 2026-06-24 13:07:57`                        (chat turn)
+ *   `#### CD | 14:03`                                         (chat turn)
+ *   `### 2026-05-31T16:27:25.157Z — user — Dokument-grb.jpg`  (image-mode)
+ *   `### 2026-06-01T12:34:10.469Z — cd-rewrite`               (image-mode)
+ *
+ * The pipe (chat) and the ISO-timestamp + role word (image-mode) are the
+ * discriminators — prose that merely starts `#### User`, or a `### 2026-06-18`
+ * date sub-header in the BLOCKS section, must NOT count as a tissue header.
+ * Image-mode roles are open-ended (`user`, `cd-reply`, `cd-rewrite`,
+ * `cd-verdict-fail`, …) — hence `cd-[a-z-]+`, not a closed list.
+ */
+export const CHAT_TURN_RE = /^####\s+(?:User|CD)\s*\|/i
+export const IMAGE_ENTRY_RE =
+  /^###\s+\d{4}-\d{2}-\d{2}T\S+\s+[—-]\s+(?:user|cd-[a-z-]+)\b/i
+/** The chat USER turn — the ONLY line the seam walk stops on. */
+export const CHAT_USER_TURN_RE = /^####\s+User\s*\|/i
+
+/**
+ * Find the cut window's END seam at or after `from` — the next chat
+ * `#### User | …` turn, as it was before the image dialect existed
+ * (Ralph 2026-07-04, stated twice): the walk SKIPS `#### CD | …` turns
+ * and ALL image-mode `### <ISO> — …` entries. The only cut boundary is
+ * the next chat User entry.
+ *
+ * Placement: when the User turn is directly preceded by a `---` separator,
+ * cutEnd = the `---` line (the pre-existing chat rule — the separator
+ * stays in the file above the next turn). Otherwise cutEnd = the User
+ * turn line itself.
+ *
+ * Returns null when no chat User turn exists in [from, sectionEnd) — the
+ * file has converged or is corrupt; the caller aborts rather than cut
+ * mid-conversation.
+ */
+export function findCutSeam(
+  lines: string[],
+  from: number,
+  sectionEnd: number,
+): number | null {
+  for (let i = from; i < sectionEnd; i++) {
+    if (CHAT_USER_TURN_RE.test(lines[i])) {
+      return (lines[i - 1] ?? '').trim() === '---' && i - 1 >= from ? i - 1 : i
+    }
+  }
+  return null
+}
+
+/**
+ * Find the cut anchor — where living tissue starts for the next cut.
  *
  * Ralph 2026-05-02: "cut from the END of the LAST block. From the end."
  *
- * "Last Block" = highest line number that opens with `**Block X — title** (...)`.
- * Using FILE POSITION (not alphabetic letter) handles the case where stale
- * duplicate letters live in old `## SESSION RESTORED — …` zones below the
- * most-recent real Block — the agent should still cut the cruft AFTER the
- * top-of-file Block (the most recent real one), not chase the duplicate letter.
+ * Ralph 2026-07-04, two fixes after the barbazza anchored-at-1067 run:
  *
- * The "end" of a Block's narrative = the line of the next strong boundary
- * encountered while walking forward from the Block opening. Boundaries:
- *   - Another `**Block X —` or `**Compact X —` opening
- *   - Any `###` or `##` header
- *   - A raw `#### User|CD |` turn header
- *   - A `---` separator line  ← KEY DIFFERENCE from old findFirstLivingTissue,
- *                                 which silently consumed `---` as part of the
- *                                 Block paragraph and ate orphan prose with it
+ *   1. The Block scan is WHOLE-FILE, not below-USD. Since 2026-05-18
+ *      Blocks live in the dedicated `## BLOCKS` section ABOVE
+ *      `## USER SESSION DATA` — a below-USD scan misreads every canonical
+ *      file as `fresh-session-no-blocks`. File position (not letter) still
+ *      picks the last Block, so legacy files with Blocks inside the tissue
+ *      zone keep the walk-from-last-block behavior. The walk itself never
+ *      starts above the USD marker — tissue lives below it.
  *
- * Returns null when no Blocks exist below the marker (fresh-session case —
- * caller should fall back to findFirstLivingTissue).
+ *   2. The walk stops at the first REAL TISSUE HEADER of EITHER dialect
+ *      (CHAT_TURN_RE or IMAGE_ENTRY_RE). The single-dialect walk skipped
+ *      ~870 lines of image-mode tissue and anchored every cut at the first
+ *      chat turn — the same disease the 2026-04-30 fix cured and the
+ *      2026-05-03 simplification reintroduced. Image-mode entries are
+ *      tissue to fold, not cruft to step past. Everything else (SESSION
+ *      RESTORED markers, `---` separators, stub Block openings, blank
+ *      lines, prose, date sub-headers) is still content to step past.
+ *
+ * Returns null when no tissue header exists in the walk range — the file
+ * is fully compressed (or empty of real conversation).
  */
 export function findCutAnchorAfterLastBlock(
   lines: string[],
   usdIdx: number,
   sectionEnd: number,
 ): { cutStart: number; reason: string } | null {
-  // Ralph 2026-05-03 — simple, single-pass logic per spec:
-  //
-  //   1. Find the LAST `**Block X — ` line in scan range (any letter,
-  //      stub or real, dated or undated — file position wins).
-  //   2. Walk forward from that line until the FIRST real tissue turn
-  //      header — `#### User | …` or `#### CD | …`. EVERYTHING ELSE
-  //      (SESSION RESTORED markers, `---` separators, stub Block
-  //      openings, blank lines, prose continuations, date sub-headers)
-  //      is just content to step past. Real tissue starts at a turn
-  //      header and only at a turn header.
-  //   3. cutStart = that turn header's line.
-  //
-  // Fresh-session fallback: if there are no Blocks at all in scan range,
-  // cutStart = the first `#### User | …` line after USD.
-  //
-  // This drops every previous knob: no SESSION RESTORED zone-skip
-  // bookkeeping, no `---` hard-boundary handling, no `^##\s` walk-stop.
-  // The walk has ONE stop condition: a real turn header.
   const blockOpeningRe = /^\*\*Block\s+[A-Z]+\s+[—-]\s+/
-  const turnHeaderRe = /^####\s+(?:User|CD)\s*\|/i
 
   let lastBlockLine = -1
-  for (let i = usdIdx + 1; i < sectionEnd; i++) {
+  for (let i = 0; i < sectionEnd; i++) {
     if (blockOpeningRe.test(lines[i])) lastBlockLine = i
   }
 
-  const walkFrom = lastBlockLine === -1 ? usdIdx + 1 : lastBlockLine + 1
+  // Never anchor above the USD marker: on canonical files the last Block
+  // sits in `## BLOCKS` above it, but tissue starts below the marker.
+  const walkFrom = Math.max(lastBlockLine + 1, usdIdx + 1)
   for (let i = walkFrom; i < sectionEnd; i++) {
-    if (turnHeaderRe.test(lines[i])) {
+    if (CHAT_TURN_RE.test(lines[i]) || IMAGE_ENTRY_RE.test(lines[i])) {
       return {
         cutStart: i,
         reason:
           lastBlockLine === -1
             ? 'fresh-session-no-blocks'
-            : `after-block-at-line-${lastBlockLine + 1}`,
+            : lastBlockLine < usdIdx
+              ? `blocks-above-usd-last-at-line-${lastBlockLine + 1}`
+              : `after-block-at-line-${lastBlockLine + 1}`,
       }
     }
   }
 
-  // No turn header found between the last Block and sectionEnd — the
+  // No tissue header found between the walk start and sectionEnd — the
   // file is fully compressed (or empty of real conversation).
   return null
 }

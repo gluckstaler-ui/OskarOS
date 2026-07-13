@@ -16,6 +16,29 @@ import { useEffect, useRef, useCallback, useState } from 'react'
  *   HTML → React: postMessage({ type: 'compaction-continue' }) for stop/cleanup
  */
 
+/**
+ * Unlock the Order 66 soundtrack inside the REAL button click (Ralph
+ * 2026-06-11). The overlay's start gate is auto-clicked programmatically,
+ * which carries no user activation — Chrome rejects `audio.play()` with
+ * NotAllowedError, so the cinematic ran silent in-app (standalone with a
+ * real click always worked — verified). The canonical unlock: play+pause
+ * the SAME element inside the genuine click; a once-activated element keeps
+ * its playback permission, and the overlay HTML prefers `__order66Audio`
+ * over its own <audio> tag (which stays as the standalone fallback).
+ * Call this synchronously from the TopBar Order 66 onClick.
+ */
+export function primeOrder66Audio(): void {
+  try {
+    const w = window as unknown as { __order66Audio?: HTMLAudioElement }
+    const a = w.__order66Audio ?? new Audio('/Order66.mp3')
+    w.__order66Audio = a
+    void a.play().then(() => { a.pause(); a.currentTime = 0 }).catch(() => {
+      /* activation missing (shouldn't happen inside a click) — the overlay
+         falls back to its own element + logged rejection, as before */
+    })
+  } catch { /* SSR / no Audio — never called there */ }
+}
+
 interface Props {
   sessionId: string
   endpoint?: 'order65' | 'order66'  // which API route to hit

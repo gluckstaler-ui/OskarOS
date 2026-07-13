@@ -847,6 +847,7 @@ const _eventBuffer = [];
 let _barsReady = false;
 let _barsHandler = null;
 let _ljDone = false, _sageDone = false;
+let _yodaShown = false;  // 2026-06-11 · guards the guaranteed first-picture beat
 
 window.addEventListener('message', function(evt) {
   if (!evt.data || evt.data.type !== 'compaction-event') return;
@@ -1024,6 +1025,21 @@ function fmtDuration(startMs, endMs) {
 // SKIP-TO-END — hides all phases, jumps to resurrection
 // ═══════════════════════════════════════
 function jumpToResurrection() {
+  // Ralph 2026-06-11 · guarantee the FIRST PICTURE: on light compactions both
+  // agents finish inside the ~13s kill phase, and the fast-path used to jump
+  // straight to resurrection — Yoda never appeared. If the beat hasn't
+  // played, flash it for 1.8s, then jump for real.
+  if (!_yodaShown) {
+    _yodaShown = true;
+    ['phase-order66','phase-kill','phase-black','phase-dot'].forEach(id => {
+      const el = $(id);
+      if (el) { el.style.transition = 'opacity 0.4s'; el.style.opacity = '0'; }
+    });
+    $('phase-yoda').classList.add('active');
+    window.postMessage({ type: 'compaction-phase', phase: 'yoda' }, '*');
+    setTimeout(jumpToResurrection, 1800);
+    return;
+  }
   // Hide cinematic phases but keep barWrap (context bar stays)
   ['phase-order66','phase-kill','phase-black','phase-yoda','phase-dot'].forEach(id => {
     const el = $(id);
@@ -1058,7 +1074,14 @@ async function run() {
   $('barWrap').classList.add('visible');
   setBar(0, '#222');
 
-  const audio = $('order66audio');
+  // Ralph 2026-06-11 · prefer the element unlocked inside the REAL TopBar
+  // click (components/CompactionOverlay.tsx primeOrder66Audio). The auto-
+  // clicked start gate carries no user activation, so THIS tag's play() was
+  // rejected with NotAllowedError whenever the overlay ran inside the app —
+  // the cinematic played silent. Standalone (a real gate click) keeps
+  // working through the local tag fallback.
+  const primed = (window.__order66Audio instanceof HTMLAudioElement) ? window.__order66Audio : null;
+  const audio = primed || $('order66audio');
   audio.volume = 0.8;
   let soundTriggered = false;
 
@@ -1076,7 +1099,10 @@ async function run() {
         // silence (decoder fed from byte 0, playhead already advanced) followed
         // by garbled audio when the buffer finally catches up. audio.load()
         // forces the fetch + decode to start now, deterministically.
-        audio.load();
+        // (2026-06-11: only for the cold local tag — load() RESETS the
+        // primed element, aborting its warm buffer + unlocked playback.)
+        if (!primed) audio.load();
+        audio.currentTime = 0;
         audio.play().catch(err => console.warn('[order66] audio.play rejected:', err && err.name, err && err.message));
         $('orderText').classList.add('visible');
         playHeartbeat(0);
@@ -1190,6 +1216,7 @@ async function run() {
   $('phase-black').style.opacity = '0';
 
   // Yoda background
+  _yodaShown = true;
   $('phase-yoda').classList.add('active');
 
   // Show "Compacting Conversation" text
@@ -1287,9 +1314,10 @@ async function run() {
 // ═══════════════════════════════════════
 function stopAndContinue() {
   // Kill EVERYTHING
-  const audio = $('order66audio');
-  audio.pause();
-  audio.currentTime = 0;
+  // 2026-06-11 · silence BOTH the primed element (app path) and the local tag.
+  [window.__order66Audio, $('order66audio')].forEach((a) => {
+    if (a && typeof a.pause === 'function') { a.pause(); a.currentTime = 0; }
+  });
   if (ac) ac.close().catch(() => {});
   // Stop any running intervals/timers
   for (let i = 1; i < 10000; i++) clearTimeout(i);

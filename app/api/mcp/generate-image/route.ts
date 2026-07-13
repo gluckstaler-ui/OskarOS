@@ -19,6 +19,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { readFile } from 'fs/promises'
 import { existsSync } from 'fs'
 import path from 'path'
+import { createHash } from 'crypto'
 import { enqueueBuild } from '@/lib/build-escrow'
 
 export const runtime = 'nodejs'
@@ -84,10 +85,22 @@ export async function POST(req: NextRequest) {
   // job_status. The downstream /api/generate-image still runs synchronously
   // because the FRONTEND uses it directly (with its own progress UI) —
   // the escrow lives at the MCP wrapper layer only.
+  // Dedup target = slot + short prompt hash + ref-set hash. Slot alone
+  // collapsed every parallel "hero" generation onto the first one
+  // (Ralph 2026-06-28: Iron Man + Batman fired together, Batman silently
+  // deduped against Iron Man's job). The prompt hash separates genuinely
+  // different work; identical re-fires (same prompt, same slot, same refs)
+  // still dedup correctly.
+  const promptHash = createHash('sha1').update(body.prompt).digest('hex').slice(0, 10)
+  const refsHash = referenceImages.length
+    ? createHash('sha1').update(referenceImages.join('|')).digest('hex').slice(0, 6)
+    : 'noref'
+  const dedupTarget = `${(body.slot || 'b-roll').slice(0, 24)}:${promptHash}:${refsHash}`
+
   const enqueued = enqueueBuild({
     sessionId: body.sessionId,
     kind: 'generate_image',
-    target: (body.slot || 'b-roll').slice(0, 64), // dedup key includes slot
+    target: dedupTarget,
     runner: async ({ signal }) => {
       const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'
       let upstream: Response

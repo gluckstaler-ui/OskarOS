@@ -24,7 +24,16 @@ import {
   findCutAnchorAfterLastBlock,
   findMostRecentBlockEndTime,
   findLiveTissueLine,
+  findCutSeam,
+  extractTimestampsFromChunk,
+  diagnoseSageTopology,
 } from './dreamer'
+
+// SPEC CHANGE (Ralph 2026-07-04, barbazza anchored-at-1067 run): image-mode
+// entry headers (`### <ISO> — user|cd-*`) are TISSUE, not cruft. The anchor
+// walk stops on them; the Block scan is whole-file (Blocks live above USD
+// since 2026-05-18). Tests below that asserted "walk past cd-rewrite event
+// headers" were updated to the new spec.
 
 // Build a synthetic SESSION.md mimicking Ralph's pre-cut crufty file:
 //   - LEDGER + USD marker at top
@@ -98,22 +107,21 @@ function buildCruftySession(): string[] {
 }
 
 describe('Sage 240/40 cut-anchor (Ralph 2026-05-02 fix)', () => {
-  it('cutStart lands at the first `#### User | …` turn after the last Block (Ralph 2026-05-03 spec)', () => {
-    // Algorithm per Ralph 2026-05-03:
-    //   1. Find the last `**Block X — ` line by file position. ANY Block —
-    //      stub, real, dated, undated — is fair game. In the cruft fixture,
-    //      that's Block I at idx 26 (inside a SESSION RESTORED zone, but
-    //      that doesn't matter — file position wins).
-    //   2. Walk forward until the first `#### User | …` or `#### CD | …`
-    //      turn header. Cross every separator, every SESSION RESTORED
-    //      header, every stub Block, every blank line — they're all just
-    //      content the walk steps past.
-    //   3. cutStart = that turn header's line.
+  it('cutStart lands at the first tissue header of EITHER dialect after the last Block (Ralph 2026-07-04 spec)', () => {
+    // Algorithm:
+    //   1. Find the last `**Block X — ` line by file position, WHOLE FILE.
+    //      In the cruft fixture that's Block I at idx 26 (inside a SESSION
+    //      RESTORED zone below USD — file position wins).
+    //   2. Walk forward until the first tissue header — a `#### User|CD |`
+    //      chat turn OR a `### <ISO> — user|cd-*` image-mode entry. Cross
+    //      every separator, SESSION RESTORED header, stub Block, blank
+    //      line, orphan prose.
+    //   3. cutStart = that header's line.
     //
-    // In the cruft fixture, the first live `#### User | 2026-05-01 21:12:35`
-    // sits at idx 48. Block I is at idx 26. Everything in between is
-    // separators / stubs / SESSION RESTORED / orphan prose / cd-rewrite
-    // event headers — all crossable. cutStart = 48.
+    // In the cruft fixture the first tissue header after Block I is the
+    // cd-rewrite event header at idx 42 (2026-07-04: image-mode entries
+    // are tissue to fold, not cruft to skip — the pre-2026-05-03 walker
+    // skipped them and they piled up as a permanently uncut floor).
     const lines = buildCruftySession()
     const usdIdx = lines.indexOf('## USER SESSION DATA')
     expect(usdIdx).toBeGreaterThan(0)
@@ -121,32 +129,30 @@ describe('Sage 240/40 cut-anchor (Ralph 2026-05-02 fix)', () => {
 
     const anchor = findCutAnchorAfterLastBlock(lines, usdIdx, sectionEnd)
     expect(anchor).not.toBeNull()
-    expect(anchor!.cutStart).toBe(48)
+    expect(anchor!.cutStart).toBe(42)
     // Block I (last Block by file position) is at idx 26 → 1-indexed 27
     expect(anchor!.reason).toMatch(/after-block-at-line-27/)
   })
 
-  it('walks past `---` separators, SESSION RESTORED headers, and stub Blocks looking for tissue', () => {
-    // Targeted regression. The old algorithm STOPPED at structural
-    // boundaries — `---`, `^##\s`, `^####`. The new algorithm crosses
-    // them all and only stops at a real `#### User|CD |` turn header.
+  it('walks past `---` separators, SESSION RESTORED headers, stub Blocks and orphan prose', () => {
+    // The walk crosses structural cruft — `---`, orphan bullets, bold
+    // non-Block lines — and stops at the first REAL tissue header. Since
+    // 2026-07-04 that includes image-mode entry headers (idx 42), which
+    // the 2026-05-03 spec wrongly classified as cruft.
     const lines = buildCruftySession()
     const usdIdx = lines.indexOf('## USER SESSION DATA')
     const sectionEnd = lines.length - 200
     const anchor = findCutAnchorAfterLastBlock(lines, usdIdx, sectionEnd)!
 
     // The walk MUST step past:
-    //   - the `---` at idx 29 (NOT a stop boundary anymore)
+    //   - the `---` at idx 29/31 (not stop boundaries)
     //   - the orphan bullet list at idx 32-34
     //   - the bold "Three title-slide registers" at idx 36
-    //   - the cd-rewrite event headers at idx 42, 44
-    //   - the `---` at idx 46
-    // and land at idx 48, the first real User turn.
-    expect(anchor.cutStart).toBe(48)
-    // (For sanity: anchor must NOT have stopped on any of the structural
-    // markers earlier in the run.)
+    // and stop at idx 42, the first image-mode event header — NOT skip on
+    // to the chat turn at idx 48.
+    expect(anchor.cutStart).toBe(42)
     expect(anchor.cutStart).not.toBe(29)
-    expect(anchor.cutStart).not.toBe(46)
+    expect(anchor.cutStart).not.toBe(48)
   })
 
   it('time-protects: caps cutEnd at the first User turn newer than most recent Block', () => {
@@ -245,5 +251,214 @@ describe('Sage 240/40 cut-anchor (Ralph 2026-05-02 fix)', () => {
     const result = findMostRecentBlockEndTime(lines, 0, lines.length)
     // Only the dated Block contributes; undated Block is ignored
     expect(result).toBe('2026-05-01 15:30')
+  })
+})
+
+// ─── Ralph 2026-07-04 — barbazza anchored-at-1067 regression ────────────────
+// Canonical post-2026-05-18 layout: Blocks live in `## BLOCKS` ABOVE the USD
+// marker; tissue below USD opens with ~870 lines of image-mode entries. The
+// old anchor (below-USD block scan + chat-turn-only walk) reported
+// `fresh-session-no-blocks` and skipped ALL image tissue to the first chat
+// turn — image tissue was permanently unfoldable.
+describe('Sage 240/40 canonical layout + image-mode dialect (Ralph 2026-07-04)', () => {
+  function buildCanonicalSession(): string[] {
+    return [
+      '## Todos',                                                          // 0
+      '- [ ] (id:t-1) something',                                          // 1
+      '',                                                                  // 2
+      '# Session 2026-05-31-weingut-barbazza',                             // 3
+      '',                                                                  // 4
+      '## LEDGER',                                                         // 5
+      '',                                                                  // 6
+      '## COMPACTS',                                                       // 7
+      '',                                                                  // 8
+      '## BLOCKS',                                                         // 9
+      '',                                                                  // 10
+      '### 2026-05-31',                                                    // 11
+      '',                                                                  // 12
+      '**Block A — Barbazza fix, portrait relighting** (2026-05-31 18:27 → 18:27)', // 13
+      'Narrative of Block A.',                                             // 14
+      '',                                                                  // 15
+      '## USER SESSION DATA',                                              // 16 ← USD
+      '',                                                                  // 17
+      '### 2026-05-31T16:27:25.157Z — user — Dokument-grb.jpg',            // 18 ← first tissue
+      '',                                                                  // 19
+      '_source: image-mode:edit_',                                         // 20
+      '',                                                                  // 21
+      'Review the IMAGE PROMPT I currently have in Zone 4 below.',         // 22
+      '',                                                                  // 23
+      '### 2026-05-31T16:27:25.162Z — cd-reply — Dokument-grb.jpg',        // 24
+      '',                                                                  // 25
+      '**CD committed prompt** (routed to Zone 4):',                       // 26
+      '',                                                                  // 27
+      '### 2026-06-16T18:23:48.192Z — cd-verdict-fail',                    // 28
+      '',                                                                  // 29
+      'verdict body',                                                      // 30
+      '',                                                                  // 31
+      '### 2026-06-17T10:00:00.000Z — user — followup.jpg',                // 32 ← image entry — skipped by the seam walk
+      '',                                                                  // 33
+      'follow-up request body',                                            // 34
+      '',                                                                  // 35
+      '---',                                                               // 36
+      '#### User | 2026-06-24 13:07:57',                                   // 37 ← next CHAT User turn = the seam
+      '',                                                                  // 38
+      'chat body',                                                         // 39
+      ...Array(300).fill('… image prompt prose …'),
+    ]
+  }
+
+  it('anchors at the FIRST image-mode entry right after the USD marker, not at a distant chat turn', () => {
+    const lines = buildCanonicalSession()
+    const usdIdx = lines.indexOf('## USER SESSION DATA')
+    const sectionEnd = lines.length - 200
+    const anchor = findCutAnchorAfterLastBlock(lines, usdIdx, sectionEnd)
+    expect(anchor).not.toBeNull()
+    expect(anchor!.cutStart).toBe(18)
+    // Block A sits ABOVE USD (idx 13 → 1-indexed 14) — the whole-file scan
+    // sees it; the old below-USD scan reported `fresh-session-no-blocks`.
+    expect(anchor!.reason).toBe('blocks-above-usd-last-at-line-14')
+  })
+
+  it('does NOT anchor on BLOCKS-section date sub-headers or bold non-Block lines', () => {
+    const lines = buildCanonicalSession()
+    const usdIdx = lines.indexOf('## USER SESSION DATA')
+    const anchor = findCutAnchorAfterLastBlock(lines, usdIdx, lines.length - 200)!
+    // `### 2026-05-31` (idx 11, no T-time+role) and `**CD committed prompt**`
+    // (idx 26, bold but not a header) must never be anchors.
+    expect(anchor.cutStart).not.toBe(11)
+    expect(anchor.cutStart).not.toBe(26)
+  })
+
+  it('findCutSeam: the seam is the next CHAT `#### User |` turn — CD turns and ALL image entries are skipped (Ralph 2026-07-04)', () => {
+    const lines = buildCanonicalSession()
+    // The walk must skip the cd-reply (24), the cd-verdict-fail (28) AND
+    // the image-mode `— user —` entry (32) — image entries are never cut
+    // boundaries. The seam is the chat User turn at 37; it is directly
+    // preceded by `---` (36), so cutEnd = the `---` line (pre-existing
+    // placement — the separator stays in the file above the next turn).
+    expect(findCutSeam(lines, 19, lines.length)).toBe(36)
+    expect(findCutSeam(lines, 25, lines.length)).toBe(36)
+    // Past the last chat User turn → no seam (caller aborts).
+    expect(findCutSeam(lines, 38, lines.length)).toBeNull()
+  })
+
+  it('findCutSeam: skips `#### CD |` turns; lands on the User line itself when no `---` precedes', () => {
+    const chat = [
+      'prose',                            // 0
+      '---',                              // 1
+      '#### CD | 2026-06-24 13:07:57',    // 2 ← CD turn — NOT a seam
+      'cd body',                          // 3
+      '#### User | 2026-06-24 14:03:19',  // 4 ← seam (no `---` directly above)
+      'body',                             // 5
+    ]
+    expect(findCutSeam(chat, 0, chat.length)).toBe(4)
+    // With a `---` directly above the User turn, cutEnd = the `---` line.
+    const dashed = ['prose', '---', '#### User | 2026-06-24 13:07:57', 'body']
+    expect(findCutSeam(dashed, 0, dashed.length)).toBe(1)
+    // A bare `---` with no User turn after it is NOT a seam.
+    const bare = ['prose', '---', 'more prose', '']
+    expect(findCutSeam(bare, 0, bare.length)).toBeNull()
+  })
+
+  it('extractTimestampsFromChunk reads image-mode ISO headers (no 00:00/sessionId fallback)', () => {
+    const chunk = [
+      '### 2026-05-31T16:27:25.157Z — user — Dokument-grb.jpg',
+      '',
+      'Review the IMAGE PROMPT…',
+      '',
+      '### 2026-06-16T18:23:48.192Z — cd-rewrite',
+      '',
+      'rewrite body',
+    ]
+    const ts = extractTimestampsFromChunk(
+      chunk,
+      'public/2026-05-31-weingut-barbazza/SESSION.md',
+    )
+    expect(ts.chunkStartDate).toBe('2026-05-31')
+    expect(ts.chunkStartTime).toBe('16:27')
+    expect(ts.chunkEndDate).toBe('2026-06-16')
+    expect(ts.chunkEndTime).toBe('18:23')
+  })
+
+  it('extractTimestampsFromChunk handles a MIXED chunk (image entries then chat turns)', () => {
+    const chunk = [
+      '### 2026-06-16T18:23:48.192Z — cd-reply — file.jpg',
+      '',
+      'body',
+      '',
+      '---',
+      '#### User | 2026-06-24 13:07:57',
+      '',
+      'chat body',
+    ]
+    const ts = extractTimestampsFromChunk(
+      chunk,
+      'public/2026-05-31-weingut-barbazza/SESSION.md',
+    )
+    expect(ts.chunkStartDate).toBe('2026-06-16')
+    expect(ts.chunkStartTime).toBe('18:23')
+    expect(ts.chunkEndDate).toBe('2026-06-24')
+    expect(ts.chunkEndTime).toBe('13:07')
+  })
+})
+
+// ── Topology diagnosis (Ralph 2026-07-04 — Job 2, system's detect half) ────
+// A session restore stacking a fresh skeleton on an old file leaves TWO
+// section sets; new entries then land in the wrong one (~line 870 on
+// Barbazza). The system only DETECTS and reports line numbers — the merge
+// itself is Sage's (agents/sage-240-40.md Job 2, tools, 20-min SIGTERM).
+describe('diagnoseSageTopology — duplicate section sets', () => {
+  it('reports 1-based line numbers for every duplicated heading (Barbazza shape)', () => {
+    const file = [
+      '# Session 2026-05-31-weingut-barbazza', // 1
+      '',                                       // 2
+      '## LEDGER',                              // 3  ← top skeleton
+      '',                                       // 4
+      '## COMPACTS',                            // 5
+      '',                                       // 6
+      '## BLOCKS',                              // 7
+      '',                                       // 8
+      '## USER SESSION DATA',                   // 9  ← first marker
+      '### 2026-05-31T16:27:25.157Z — user — Dokument-grb.jpg',
+      'upload event body',                      // 11
+      '## LEDGER',                              // 12 ← legacy mid-file set
+      '',                                       // 13
+      '## COMPACTS',                            // 14
+      '',                                       // 15
+      '## BLOCKS',                              // 16
+      '**Block A — Old work** (2026-05-31 18:27 → 18:27)', // 17
+      '',                                       // 18
+      '## USER SESSION DATA',                   // 19 ← second marker
+      '#### User | 2026-07-04 13:00',           // 20
+    ].join('\n')
+    const d = diagnoseSageTopology(file)!
+    expect(d).not.toBeNull()
+    expect(d.ledger).toEqual([3, 12])
+    expect(d.compacts).toEqual([5, 14])
+    expect(d.blocks).toEqual([7, 16])
+    expect(d.usd).toEqual([9, 19])
+  })
+
+  it('returns null on a clean single-set file', () => {
+    const file = [
+      '# Session x', '', '## LEDGER', '', '## COMPACTS', '', '## BLOCKS', '',
+      '## USER SESSION DATA', '#### User | 2026-07-04 13:00', 'tissue',
+    ].join('\n')
+    expect(diagnoseSageTopology(file)).toBeNull()
+  })
+
+  it('returns null on a virgin file with no sections at all', () => {
+    const file = ['# Session x', '', '## USER SESSION DATA', '#### User | 2026-07-04 13:00'].join('\n')
+    expect(diagnoseSageTopology(file)).toBeNull()
+  })
+
+  it('fires when only the USD marker is duplicated', () => {
+    const file = [
+      '## LEDGER', '', '## COMPACTS', '', '## BLOCKS', '',
+      '## USER SESSION DATA', 'tissue', '## USER SESSION DATA', 'more tissue',
+    ].join('\n')
+    const d = diagnoseSageTopology(file)!
+    expect(d).not.toBeNull()
+    expect(d.usd).toEqual([7, 9])
   })
 })

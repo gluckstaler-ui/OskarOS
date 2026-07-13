@@ -248,8 +248,8 @@
                  misreading Ralph's spec. -->
             <div id="view-settings" class="hidden flex-1 min-h-0 flex-col gap-[var(--gap-app)] fade-in overflow-hidden">
 
-                <!-- 3-column inner grid: settings forms | agent list | preview + messages -->
-                <div class="flex-1 min-h-0 grid grid-cols-[340px_240px_1fr] gap-[var(--gap-app)] overflow-hidden">
+                <!-- 4-column inner grid: settings | WA/email/sync | agents | preview + messages -->
+                <div class="flex-1 min-h-0 grid grid-cols-[340px_240px_240px_1fr] gap-[var(--gap-app)] overflow-hidden">
 
                     <!-- COL 1 · ALL SETTINGS as forms, visible at once -->
                     <div class="bento-card flex flex-col overflow-hidden">
@@ -267,26 +267,11 @@
                         </div>
                     </div>
 
-                    <!-- COL 2 · Agents (top) + WhatsApp sidecar (bottom).
-                         WP-CRM-F19: COL 2 splits vertically. Agents keeps
-                         its scroll; the WhatsApp card has fixed-ish height
-                         (auto by content) and renders the Baileys-bridge
-                         pair UI. -->
+                    <!-- COL 2 · WhatsApp + Email + SYNC sidecars.
+                         WP-CRM-F19 put Agents here; the Email card (PM-7)
+                         squashed it, so Agents moved to the top of COL 3
+                         (Ralph 2026-07-12). The sidecars stack by content. -->
                     <div class="flex flex-col gap-[var(--gap-app)] overflow-hidden min-h-0">
-
-                        <!-- Agents (existing) -->
-                        <div class="bento-card flex-1 flex flex-col overflow-hidden min-h-0">
-                            <div class="p-4 border-b border-border shrink-0 flex items-center justify-between">
-                                <span class="text-xs font-bold uppercase tracking-wider text-primary font-mono flex items-center gap-2">
-                                    <i data-lucide="cpu" width="14" class="text-accent"></i>
-                                    Agents
-                                </span>
-                                <span id="settings-agents-count" class="text-[10px] font-mono text-secondary">—</span>
-                            </div>
-                            <div id="settings-agent-list" class="flex-1 overflow-y-auto p-2 flex flex-col gap-1">
-                                <div class="text-center py-8 text-secondary text-xs italic">Loading…</div>
-                            </div>
-                        </div>
 
                         <!-- WhatsApp sidecar (WP-CRM-F19) -->
                         <div class="bento-card shrink-0 flex flex-col overflow-hidden">
@@ -299,6 +284,49 @@
                             </div>
                             <div id="wa-card-body" class="p-3 flex flex-col gap-2 text-[11px]">
                                 <div class="text-center py-4 text-secondary italic">Checking bridge…</div>
+                            </div>
+                        </div>
+
+                        <!-- Email account (POSTMASTER PM-7, spec §10) — creds + servers,
+                             TEST CONNECTION (IMAP login + SMTP verify), line-aware
+                             .env.local SAVE. Dot: grey unconfigured · amber saved-untested
+                             or SMTP-only failure · green both OK · red IMAP down. -->
+                        <div class="bento-card shrink-0 flex flex-col overflow-hidden">
+                            <div class="p-4 border-b border-border shrink-0 flex items-center justify-between">
+                                <span class="text-xs font-bold uppercase tracking-wider text-primary font-mono flex items-center gap-2">
+                                    <i data-lucide="mail" width="14" style="color:#f97316"></i>
+                                    Email
+                                </span>
+                                <span class="flex items-center gap-1.5 text-[10px] font-mono text-secondary">
+                                    <span id="mail-dot" class="inline-block w-2 h-2 rounded-full bg-secondary"></span>
+                                    <span id="mail-dot-label">—</span>
+                                </span>
+                            </div>
+                            <div class="p-3 flex flex-col gap-2 text-[11px]">
+                                <div class="flex items-center gap-1">
+                                    <span class="font-mono text-[10px] uppercase text-secondary w-16 shrink-0">Email</span>
+                                    <input id="mail-user-name" placeholder="filippo" class="flex-1 min-w-0 border border-border rounded px-1.5 py-1 text-[11px] font-mono text-primary" style="background-color: var(--bg-app)">
+                                    <span class="text-secondary font-mono">@</span>
+                                    <input id="mail-user-domain" placeholder="paradiso.dev" class="flex-1 min-w-0 border border-border rounded px-1.5 py-1 text-[11px] font-mono text-primary" style="background-color: var(--bg-app)">
+                                </div>
+                                <div class="flex items-center gap-1">
+                                    <span class="font-mono text-[10px] uppercase text-secondary w-16 shrink-0">Password</span>
+                                    <input id="mail-pass" type="password" class="flex-1 min-w-0 border border-border rounded px-1.5 py-1 text-[11px] font-mono text-primary" style="background-color: var(--bg-app)">
+                                    <button onclick="mailTogglePass()" class="text-secondary hover:text-primary shrink-0" title="Show / hide"><i data-lucide="eye" width="12"></i></button>
+                                </div>
+                                <div class="grid grid-cols-[4rem_1fr_3.5rem] gap-1 items-center pt-1 border-t border-border">
+                                    <span class="font-mono text-[10px] uppercase text-secondary">IMAP</span>
+                                    <input id="mail-imap-host" class="min-w-0 border border-border rounded px-1.5 py-1 text-[11px] font-mono text-primary" style="background-color: var(--bg-app)">
+                                    <input id="mail-imap-port" class="min-w-0 border border-border rounded px-1.5 py-1 text-[11px] font-mono text-primary text-right" style="background-color: var(--bg-app)">
+                                    <span class="font-mono text-[10px] uppercase text-secondary">SMTP</span>
+                                    <input id="mail-smtp-host" class="min-w-0 border border-border rounded px-1.5 py-1 text-[11px] font-mono text-primary" style="background-color: var(--bg-app)">
+                                    <input id="mail-smtp-port" class="min-w-0 border border-border rounded px-1.5 py-1 text-[11px] font-mono text-primary text-right" style="background-color: var(--bg-app)">
+                                </div>
+                                <div class="flex items-center justify-between gap-2 pt-1">
+                                    <button id="mail-test-btn" onclick="mailTest()" class="px-2 py-1 rounded border border-border bg-bg-app hover:bg-bg-hover text-primary text-[10px] font-mono uppercase">Test connection</button>
+                                    <button id="mail-save-btn" onclick="mailSave()" class="px-2 py-1 rounded border border-border bg-bg-app hover:bg-bg-hover text-primary text-[10px] font-mono uppercase">Save</button>
+                                </div>
+                                <div id="mail-foot" class="text-[10px] font-mono text-secondary leading-snug min-h-[12px]">—</div>
                             </div>
                         </div>
 
@@ -333,7 +361,8 @@
                                     <div class="flex items-center justify-between gap-2">
                                         <span class="font-mono uppercase tracking-wide text-primary flex items-center gap-1.5 shrink-0"><span id="sync-session-dot" class="inline-block w-2 h-2 rounded-full bg-secondary"></span>Session</span>
                                         <select id="sync-session-sel" onchange="syncCheckSession()" class="flex-1 min-w-0 appearance-none border border-border rounded px-1 py-0.5 text-[10px] font-mono text-primary" style="background-color: var(--bg-app); color: var(--text-primary)"></select>
-                                        <button id="sync-session-btn" onclick="syncRun('session')" class="px-2 py-1 rounded border border-border bg-bg-app hover:bg-bg-hover text-primary text-[10px] font-mono uppercase shrink-0">Sync</button>
+                                        <button id="sync-session-dl-btn" onclick="syncRun('session','down')" title="Download this session from the hub (additive)" class="px-2 py-1 rounded border border-border bg-bg-app hover:bg-bg-hover text-secondary hover:text-primary text-[10px] font-mono uppercase shrink-0">↓</button>
+                                        <button id="sync-session-btn" onclick="syncRun('session','up')" title="Upload this session to the hub (additive)" class="px-2 py-1 rounded border border-border bg-bg-app hover:bg-bg-hover text-primary text-[10px] font-mono uppercase shrink-0">↑</button>
                                     </div>
                                     <div id="sync-session-diff" class="text-[10px] text-secondary leading-snug min-h-[12px]">pick a session…</div>
                                 </div>
@@ -341,7 +370,10 @@
                                 <div class="flex flex-col gap-1">
                                     <div class="flex items-center justify-between">
                                         <span class="font-mono uppercase tracking-wide text-primary flex items-center gap-1.5"><span id="sync-code-dot" class="inline-block w-2 h-2 rounded-full bg-secondary"></span>Codebase</span>
-                                        <button id="sync-code-btn" onclick="syncRun('codebase')" class="px-2 py-1 rounded border border-border bg-bg-app hover:bg-bg-hover text-primary text-[10px] font-mono uppercase">Deploy</button>
+                                        <span class="flex items-center gap-1.5">
+                                            <button id="sync-code-dl-btn" onclick="syncRun('codebase','down')" title="Download the hub's built .next to this machine (stages under a running dev server)" class="px-2 py-1 rounded border border-border bg-bg-app hover:bg-bg-hover text-secondary hover:text-primary text-[10px] font-mono uppercase">↓ Get</button>
+                                            <button id="sync-code-btn" onclick="syncRun('codebase','up')" title="Build here and deploy to the hub" class="px-2 py-1 rounded border border-border bg-bg-app hover:bg-bg-hover text-primary text-[10px] font-mono uppercase">Deploy ↑</button>
+                                        </span>
                                     </div>
                                     <div id="sync-code-diff" class="text-[10px] text-secondary leading-snug min-h-[12px]">checking…</div>
                                 </div>
@@ -397,7 +429,21 @@
 
                     </div>
 
-                    <!-- COL 3 · Agent file iframe + live MCP messages -->
+                    <!-- COL 3 · Agents list (same width as COL 2 sidecars) -->
+                    <div class="bento-card flex flex-col overflow-hidden min-h-0">
+                        <div class="p-4 border-b border-border shrink-0 flex items-center justify-between">
+                            <span class="text-xs font-bold uppercase tracking-wider text-primary font-mono flex items-center gap-2">
+                                <i data-lucide="cpu" width="14" class="text-accent"></i>
+                                Agents
+                            </span>
+                            <span id="settings-agents-count" class="text-[10px] font-mono text-secondary">—</span>
+                        </div>
+                        <div id="settings-agent-list" class="flex-1 overflow-y-auto p-2 flex flex-col gap-1">
+                            <div class="text-center py-8 text-secondary text-xs italic">Loading…</div>
+                        </div>
+                    </div>
+
+                    <!-- COL 4 · Agent file preview + MCP messages (fills remaining space) -->
                     <div class="flex flex-col gap-[var(--gap-app)] overflow-hidden min-h-0">
 
                         <!-- Iframe — the doctrine .md rendered as HTML -->
@@ -1162,7 +1208,7 @@
             }
 
             // Per-view post-switch hooks
-            if (view === 'settings') { renderAgentsOverview(); waStartPoll(); syncStartPoll(); }
+            if (view === 'settings') { renderAgentsOverview(); waStartPoll(); syncStartPoll(); mailCardLoad(); }
 
             // Remember view so reload restores it (per-page key so admin and
             // crm don't bounce each other on boot).
@@ -1237,6 +1283,29 @@
             dot.style.background = inSync === true ? '#15B981' : inSync === false ? '#fbbf24' : 'var(--text-secondary)';
         }
 
+        // The button you SHOULD click turns GREEN (the primary "Save" gradient),
+        // from the version/file diff — the other stays plain (never dimmed).
+        // 'up' → Deploy/↑ green, 'down' → Get/↓ green, 'both' → both, 'none' → neither.
+        const SYNC_DIR_BTNS = {
+            codebase: { down: 'sync-code-dl-btn', up: 'sync-code-btn' },
+            session:  { down: 'sync-session-dl-btn', up: 'sync-session-btn' },
+        };
+        function syncSetDirection(target, direction) {
+            const pair = SYNC_DIR_BTNS[target];
+            if (!pair) return;                       // crm = one bidirectional button
+            const dn = document.getElementById(pair.down), up = document.getElementById(pair.up);
+            const green = (el, on) => {
+                if (!el) return;
+                el.style.background  = on ? 'linear-gradient(135deg, #15B981, #0F766E)' : '';
+                el.style.borderColor = on ? 'transparent' : '';
+                el.style.color       = on ? '#fff' : '';
+                el.style.boxShadow   = '';
+                el.style.opacity     = '';
+            };
+            green(up, direction === 'up'   || direction === 'both');
+            green(dn, direction === 'down' || direction === 'both');
+        }
+
         async function syncOne(target, id) {
             const dotId = target === 'crm' ? 'sync-crm-dot' : target === 'codebase' ? 'sync-code-dot' : 'sync-session-dot';
             const diffId = target === 'crm' ? 'sync-crm-diff' : target === 'codebase' ? 'sync-code-diff' : 'sync-session-diff';
@@ -1247,9 +1316,11 @@
                 const d = await res.json();
                 syncSetDot(dotId, d.inSync ?? (d.hubConfigured === false ? null : null));
                 if (diffEl) diffEl.textContent = d.sentence || (d.inSync ? 'In sync' : 'drift');
+                syncSetDirection(target, d.direction);   // highlight the button to click
             } catch (err) {
                 syncSetDot(dotId, null);
                 if (diffEl) diffEl.textContent = 'check failed';
+                syncSetDirection(target, 'none');
             }
         }
 
@@ -1361,11 +1432,15 @@
             el._t = setTimeout(() => { el.style.opacity = '0'; el.style.transform = 'translateX(-50%) translateY(8px)'; }, ok ? 4000 : 7000);
         }
 
-        async function syncRun(target) {
+        async function syncRun(target, dir = 'up') {
             if (syncBusy) return;
             const id = target === 'session' ? (document.getElementById('sync-session-sel')?.value || '') : '';
             if (target === 'session' && !id) { adminSnack('Pick a session first', false); return; }
             // no confirm — start immediately; result lands in a snackbar
+            const arrow = dir === 'down' ? '↓' : '↑';
+            const titleText = dir === 'down'
+                ? (target === 'codebase' ? 'Downloading codebase' : target === 'session' ? 'Downloading session' : 'Syncing CRM')
+                : SYNC_TITLE[target];
 
             const drawer  = document.getElementById('sync-progress');
             const elBar   = document.getElementById('sync-prog-bar');
@@ -1374,13 +1449,13 @@
             const elTitleText = document.getElementById('sync-prog-titletext');
             const elElapsed = document.getElementById('sync-prog-elapsed');
             const elLog   = document.getElementById('sync-prog-log');
-            const allBtns = ['sync-crm-btn', 'sync-session-btn', 'sync-code-btn'].map(b => document.getElementById(b)).filter(Boolean);
+            const allBtns = ['sync-crm-btn', 'sync-session-btn', 'sync-session-dl-btn', 'sync-code-btn', 'sync-code-dl-btn'].map(b => document.getElementById(b)).filter(Boolean);
 
             // enter "running" state
             syncBusy = true;
             allBtns.forEach(b => b.disabled = true);
             drawer.classList.remove('hidden'); drawer.classList.add('flex');
-            elTitle.innerHTML = `<span class="animate-spin inline-flex"><i data-lucide="refresh-cw" width="11"></i></span><span id="sync-prog-titletext">${SYNC_TITLE[target]}</span>`;
+            elTitle.innerHTML = `<span class="animate-spin inline-flex"><i data-lucide="refresh-cw" width="11"></i></span><span id="sync-prog-titletext">${titleText}</span>`;
             elBar.style.width = '4%'; elBar.style.background = 'var(--accent)';
             elPhase.textContent = 'starting…'; elLog.textContent = '';
             if (typeof lucide !== 'undefined') lucide.createIcons();
@@ -1401,7 +1476,7 @@
                 if (lastRate) head.push(lastRate);
                 if (fileTotal) head.push(`${fileCount}/${fileTotal}`);
                 const h = head.join(' · ');
-                elPhase.textContent = lastFile ? `↑ ${h ? h + '  ' : ''}${lastFile}` : (h || 'transferring…');
+                elPhase.textContent = lastFile ? `${arrow} ${h ? h + '  ' : ''}${lastFile}` : (h || 'transferring…');
             };
             // --progress gives PER-FILE % → weight into an overall bar:
             // (files done + current file's fraction) / total. CRM (no total) is phase-driven.
@@ -1411,7 +1486,7 @@
                 elBar.style.width = Math.min(99, w) + '%';
             };
             try {
-                const res = await fetch(`/api/admin/sync/run?target=${target}${id ? '&id=' + encodeURIComponent(id) : ''}`, { method: 'POST' });
+                const res = await fetch(`/api/admin/sync/run?target=${target}${id ? '&id=' + encodeURIComponent(id) : ''}${dir === 'down' ? '&dir=down' : ''}`, { method: 'POST' });
                 // guard failures come back as JSON, not a stream
                 if ((res.headers.get('content-type') || '').includes('application/json')) {
                     const j = await res.json().catch(() => ({}));
@@ -1438,7 +1513,7 @@
                             if (!f || f.endsWith('/')) continue;            // skip directory entries
                             fileCount++; lastFile = f; lastPct = 0;        // a new file starts transferring
                             syncSetBar();
-                            logTail.push(`↑ ${f}`); if (logTail.length > 7) logTail.shift();
+                            logTail.push(`${arrow} ${f}`); if (logTail.length > 7) logTail.shift();
                             elLog.textContent = logTail.join('\n');
                             syncUpdatePhase();
                             continue;
@@ -1462,15 +1537,17 @@
             elBar.style.width = '100%';
             elBar.style.background = ok ? 'var(--accent)' : '#fb7185';
             elTitle.innerHTML = ok
-                ? `<span class="text-emerald-400">✓ ${SYNC_TITLE[target]} complete</span>`
-                : `<span style="color:#fb7185">✗ ${SYNC_TITLE[target]} failed</span>`;
+                ? `<span class="text-emerald-400">✓ ${titleText} complete</span>`
+                : `<span style="color:#fb7185">✗ ${titleText} failed</span>`;
             elPhase.textContent = ok ? 'indicator updated below' : (errMsg || 'sync failed');
             allBtns.forEach(b => b.disabled = false);
             syncBusy = false;
             syncRefreshIndicators();
-            // the result snackbar Ralph asked for
-            const okMsg = target === 'session' ? `Session “${id}” synced` : target === 'crm' ? 'CRM synced' : 'Codebase deployed';
-            adminSnack(ok ? okMsg : `${SYNC_TITLE[target]} failed — ${errMsg || 'see log'}`, ok);
+            // the result snackbar Ralph asked for — direction-aware wording
+            const okMsg = dir === 'down'
+                ? (target === 'session' ? `Session “${id}” downloaded` : target === 'crm' ? 'CRM synced' : 'Codebase downloaded')
+                : (target === 'session' ? `Session “${id}” synced` : target === 'crm' ? 'CRM synced' : 'Codebase deployed');
+            adminSnack(ok ? okMsg : `${titleText} failed — ${errMsg || 'see log'}`, ok);
             if (ok) setTimeout(() => { drawer.classList.add('hidden'); drawer.classList.remove('flex'); }, 7000);
         }
 
@@ -1942,6 +2019,116 @@
 
         function settingsRefreshKeys() {
             renderSettingsForms();
+        }
+
+        // ─── COL 2 — Email account card (POSTMASTER PM-7, spec §10) ───
+        // Dot: grey unconfigured · amber saved-untested or SMTP-only failure
+        // · green both protocols OK · red IMAP down.
+        let mailPassPlaceholder = '';
+        function mailDot(color, label) {
+            const dot = document.getElementById('mail-dot');
+            const lbl = document.getElementById('mail-dot-label');
+            if (!dot || !lbl) return;
+            const colors = { grey: '#52525b', amber: '#f59e0b', green: '#22c55e', red: '#f43f5e' };
+            dot.style.background = colors[color] || colors.grey;
+            lbl.textContent = label;
+        }
+        async function mailCardLoad() {
+            try {
+                const res = await fetch('/api/admin/settings/mail');
+                if (!res.ok) throw new Error(await res.text());
+                const d = await res.json();
+                const [name, domain] = String(d.config.OSKAR_MAIL_USER || '').split('@');
+                document.getElementById('mail-user-name').value = name || '';
+                document.getElementById('mail-user-domain').value = domain || 'paradiso.dev';
+                document.getElementById('mail-imap-host').value = d.config.OSKAR_MAIL_IMAP_HOST || '';
+                document.getElementById('mail-imap-port').value = d.config.OSKAR_MAIL_IMAP_PORT || '993';
+                document.getElementById('mail-smtp-host').value = d.config.OSKAR_MAIL_SMTP_HOST || '';
+                document.getElementById('mail-smtp-port').value = d.config.OSKAR_MAIL_SMTP_PORT || '465';
+                mailPassPlaceholder = d.passPresent ? (d.passMasked || '••••••••') : '';
+                const pass = document.getElementById('mail-pass');
+                pass.value = '';
+                pass.placeholder = mailPassPlaceholder || 'app password';
+                document.getElementById('mail-foot').textContent = `corpus: ${d.corpusCount} sends on the record`;
+                mailDot(d.configured ? 'amber' : 'grey', d.configured ? 'saved · not tested' : 'not configured');
+            } catch (err) {
+                console.error('[settings] mail card load failed:', err);
+                document.getElementById('mail-foot').textContent = 'load failed: ' + err.message;
+            }
+        }
+        function mailFields() {
+            const user = `${document.getElementById('mail-user-name').value.trim()}@${document.getElementById('mail-user-domain').value.trim()}`;
+            return {
+                user: user === '@' ? '' : user,
+                pass: document.getElementById('mail-pass').value,   // blank = keep / test saved
+                imapHost: document.getElementById('mail-imap-host').value.trim(),
+                imapPort: document.getElementById('mail-imap-port').value.trim(),
+                smtpHost: document.getElementById('mail-smtp-host').value.trim(),
+                smtpPort: document.getElementById('mail-smtp-port').value.trim(),
+            };
+        }
+        function mailTogglePass() {
+            const el = document.getElementById('mail-pass');
+            el.type = el.type === 'password' ? 'text' : 'password';
+        }
+        async function mailSave() {
+            const f = mailFields();
+            const foot = document.getElementById('mail-foot');
+            if (!f.user) { foot.textContent = 'email address required'; return; }
+            const updates = [
+                { envVar: 'OSKAR_MAIL_USER', value: f.user },
+                { envVar: 'OSKAR_MAIL_IMAP_HOST', value: f.imapHost },
+                { envVar: 'OSKAR_MAIL_IMAP_PORT', value: f.imapPort },
+                { envVar: 'OSKAR_MAIL_SMTP_HOST', value: f.smtpHost },
+                { envVar: 'OSKAR_MAIL_SMTP_PORT', value: f.smtpPort },
+            ];
+            if (f.pass) updates.push({ envVar: 'OSKAR_MAIL_PASS', value: f.pass });
+            try {
+                const res = await fetch('/api/admin/settings/mail', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ updates }),
+                });
+                const d = await res.json();
+                if (!res.ok) throw new Error(d.error || res.statusText);
+                foot.textContent = 'saved to .env.local — restart the dev server to apply, then Test';
+                mailDot('amber', 'saved · not tested');
+                if (f.pass) { mailPassPlaceholder = '••••••••'; const p = document.getElementById('mail-pass'); p.value = ''; p.placeholder = mailPassPlaceholder; }
+            } catch (err) {
+                foot.textContent = 'save failed: ' + err.message;
+            }
+        }
+        async function mailTest() {
+            const f = mailFields();
+            const foot = document.getElementById('mail-foot');
+            const btn = document.getElementById('mail-test-btn');
+            btn.disabled = true; btn.textContent = 'Testing…';
+            mailDot('amber', 'testing…');
+            try {
+                const res = await fetch('/api/admin/settings/mail/test', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(f),
+                });
+                const d = await res.json();
+                const imap = d.imap || { ok: false, error: 'no response' };
+                const smtp = d.smtp || { ok: false, error: 'no response' };
+                if (imap.ok && smtp.ok) {
+                    mailDot('green', 'connected');
+                    foot.textContent = 'IMAP: connected · SMTP: connected';
+                } else if (imap.ok) {
+                    mailDot('amber', 'SMTP down');
+                    foot.textContent = 'IMAP OK · SMTP: ' + (smtp.error || 'failed') + ' — inbound works, outbound will fail';
+                } else {
+                    mailDot('red', 'IMAP down');
+                    foot.textContent = 'IMAP: ' + (imap.error || 'failed') + (smtp.ok ? ' · SMTP OK' : ' · SMTP: ' + (smtp.error || 'failed'));
+                }
+            } catch (err) {
+                mailDot('red', 'test failed');
+                foot.textContent = 'test failed: ' + err.message;
+            } finally {
+                btn.disabled = false; btn.textContent = 'Test connection';
+            }
         }
 
         // ─── COL 2 — agent list ───

@@ -5,7 +5,6 @@ import {
   createSessionAction,
   appendToSessionLogAction,
   logImageUploadAction,
-  logImageGenerationAction,
   updateWorkflowStateAction,
   hotSwapAction,
   populateCreativeBriefAction,
@@ -35,7 +34,7 @@ import { TopBar, type Order66Status } from '@/components/TopBar'
 import { StudioLogo } from '@/components/studio/StudioLogo'
 import { StudioTabs } from '@/components/studio/StudioTabs'
 import { StudioRightActions } from '@/components/studio/StudioRightActions'
-import { CompactionOverlay } from '@/components/CompactionOverlay'
+import { CompactionOverlay, primeOrder66Audio } from '@/components/CompactionOverlay'
 import { FinalApprovalModal } from '@/components/PhaseGate'
 import {
   emitImageReady,
@@ -3187,15 +3186,8 @@ export default function Home() {
         }
         setSourceImages(prev => [...prev, newImage])
 
-        // Log to IMAGES.md if we have a session.
-        // 2026-04-29 Phase 2: removed `emitImageReady(...)` here. /api/edit-image
-        // now publishes `image_ready` to the event-bus server-side; the
-        // /api/events SSE delivers it to BOTH the frontend (sessionEvents)
-        // AND the MCP server (CD as logging notification). Single source.
-        if (sessionId) {
-          const logType = operation === 'edit' ? 'edited' : 'generated'
-          await logImageGenerationAction(sessionId, newImage.filename, instruction, logType, undefined, data.geminiText || undefined)
-        }
+        // IMAGES.md entry is written server-side by /api/edit-image
+        // via upsertImageMetadata (single writer, uses promptId for nesting).
       }
     } catch (error) {
       console.error(`Source image ${operation} error:`, error)
@@ -3276,11 +3268,8 @@ export default function Home() {
         setSourceImages(prev => [...prev, newImage])
 
         // Log to IMAGES.md if we have a session.
-        // emitImageReady removed for the same reason as the edit branch above —
-        // /api/edit-image publishes `image_ready` server-side now.
-        if (sessionId) {
-          await logImageGenerationAction(sessionId, newImage.filename, instruction, 'composed', undefined, data.geminiText || undefined)
-        }
+        // IMAGES.md entry is written server-side by /api/edit-image
+        // via upsertImageMetadata (single writer, uses promptId for nesting).
       }
     } catch (error) {
       console.error('Source image compose error:', error)
@@ -3780,6 +3769,9 @@ export default function Home() {
 
   const handleOrder66 = useCallback(() => {
     if (!sessionId || order66Status !== 'idle') return
+    // Unlock the soundtrack while we still hold the REAL user activation —
+    // the overlay's auto-clicked start gate has none. See primeOrder66Audio.
+    primeOrder66Audio()
     setOrder66Status('running')
     setCompactionEndpoint('order66')
     setShowCompactionOverlay(true)

@@ -286,6 +286,153 @@ export interface ImageEditRequest {
   aspectRatio?: AspectRatio
 }
 
+export interface CallGeminiRequest {
+  prompt: string
+  sourceImages?: { data: string; mimeType: string }[]
+  sourceFilenames?: string[]
+  aspectRatio?: string
+  imageSize?: ImageSize
+  style?: string
+}
+
+const SAFETY_OFF = [
+  { category: 'HARM_CATEGORY_HARASSMENT', threshold: 'OFF' },
+  { category: 'HARM_CATEGORY_HATE_SPEECH', threshold: 'OFF' },
+  { category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT', threshold: 'OFF' },
+  { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'OFF' },
+  { category: 'HARM_CATEGORY_CIVIC_INTEGRITY', threshold: 'OFF' },
+]
+
+export async function callGemini(request: CallGeminiRequest): Promise<{ imageUrl: string; geminiText?: string }> {
+  requireApiKey()
+
+  const hasSourceImages = request.sourceImages && request.sourceImages.length > 0
+  const parts: any[] = []
+
+  // Build prompt text
+  let fullPrompt = request.prompt
+  if (!hasSourceImages && request.style) {
+    const styleGuides: Record<string, string> = {
+      photorealistic: 'Create a photorealistic image with professional lighting and composition.',
+      illustration: 'Create in a clean illustration style with bold colors.',
+      vintage: 'Create in a vintage naturalist illustration style, like an old encyclopedia.',
+      editorial: 'Create in an editorial photography style, magazine-quality.'
+    }
+    if (styleGuides[request.style]) {
+      fullPrompt = `${styleGuides[request.style]} ${fullPrompt}`
+    }
+  }
+
+  // Label source images by filename when there are multiple
+  if (hasSourceImages && request.sourceFilenames && request.sourceFilenames.length > 1) {
+    fullPrompt = `Source images (in order): ${request.sourceFilenames.join(', ')}.\n\n${fullPrompt}`
+  }
+
+  const prefix = hasSourceImages ? '' : 'Generate an image: '
+  parts.push({ text: `${prefix}${fullPrompt}${TASK_2_SELF_DESCRIBE}` })
+
+  // Append source images AFTER text
+  if (hasSourceImages) {
+    for (const img of request.sourceImages!) {
+      parts.push({
+        inline_data: {
+          mime_type: img.mimeType,
+          data: img.data,
+        }
+      })
+    }
+  }
+
+  const generationConfig: any = {
+    responseModalities: ['TEXT', 'IMAGE'],
+    imageConfig: {},
+  }
+
+  const sanitizedAR = sanitizeAspectRatio(request.aspectRatio)
+  if (sanitizedAR) {
+    generationConfig.imageConfig.aspectRatio = sanitizedAR
+  }
+  if (request.imageSize) {
+    generationConfig.imageConfig.imageSize = request.imageSize
+  }
+
+  const MAX_RETRIES = 3
+  let lastTextResponse = ''
+  const label = hasSourceImages ? 'edit' : 'generate'
+
+  for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+    const response = await fetch(`${GEMINI_API_URL}?key=${GEMINI_API_KEY}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        contents: [{ parts }],
+        generationConfig,
+        safetySettings: SAFETY_OFF,
+      })
+    })
+
+    if (!response.ok) {
+      const error = await response.text()
+      if (response.status === 429 && attempt < MAX_RETRIES) {
+        console.warn(`[Gemini ${label}] Rate limited (attempt ${attempt}/${MAX_RETRIES}), waiting ${attempt * 2}s...`)
+        await new Promise(r => setTimeout(r, attempt * 2000))
+        continue
+      }
+      if (attempt < MAX_RETRIES) {
+        console.warn(`[Gemini ${label}] API error attempt ${attempt}/${MAX_RETRIES}: ${error.slice(0, 200)}`)
+        await new Promise(r => setTimeout(r, 1000 * attempt))
+        continue
+      }
+      throw new Error(`Gemini ${label} API error after ${MAX_RETRIES} attempts: ${error.slice(0, 300)}`)
+    }
+
+    const data = await response.json()
+    const candidate = data.candidates?.[0]
+
+    // Diagnostic: log exactly what Gemini returned when no image
+    if (!candidate?.content?.parts?.some((p: any) => p.inlineData?.data)) {
+      console.warn(`[Gemini ${label}] attempt ${attempt}/${MAX_RETRIES} — no image. finishReason=${candidate?.finishReason || 'none'}, parts=${candidate?.content?.parts?.length || 0}, promptFeedback=${JSON.stringify(data.promptFeedback || null)}, safetyRatings=${JSON.stringify(candidate?.safetyRatings?.map((r: any) => `${r.category}:${r.probability}`) || [])}`)
+    }
+
+    if (candidate?.finishReason === 'SAFETY') {
+      throw new Error(`Gemini blocked image ${label} (safety filter: ${JSON.stringify(candidate?.safetyRatings?.map((r: any) => `${r.category}:${r.probability}`) || [])}). Try rephrasing the prompt.`)
+    }
+
+    if (candidate?.finishReason === 'RECITATION') {
+      throw new Error(`Gemini blocked image ${label} (recitation/copyright filter). Try rephrasing the prompt.`)
+    }
+
+    let imageUrl: string | null = null
+    let geminiText: string | undefined
+
+    if (candidate?.content?.parts) {
+      for (const part of candidate.content.parts) {
+        if (part.inlineData?.data && !imageUrl) {
+          imageUrl = `data:${part.inlineData.mimeType || 'image/png'};base64,${part.inlineData.data}`
+        }
+        if (part.text && !geminiText) {
+          geminiText = part.text
+        }
+      }
+    }
+
+    if (imageUrl) {
+      if (attempt > 1) console.log(`[Gemini ${label}] Image produced on attempt ${attempt}/${MAX_RETRIES}`)
+      return { imageUrl, geminiText }
+    }
+
+    const textParts = candidate?.content?.parts?.filter((p: any) => p.text).map((p: any) => p.text) || []
+    if (textParts.length > 0) lastTextResponse = textParts.join(' ').slice(0, 200)
+    console.warn(`[Gemini ${label}] No image attempt ${attempt}/${MAX_RETRIES}.${lastTextResponse ? ` Model said: "${lastTextResponse.slice(0, 100)}"` : ''}`)
+
+    if (attempt < MAX_RETRIES) {
+      await new Promise(r => setTimeout(r, 1000 * attempt))
+    }
+  }
+
+  throw new Error(`No image in Gemini ${label} response after ${MAX_RETRIES} attempts.${lastTextResponse ? ` Model said: "${lastTextResponse.slice(0, 150)}"` : ''} Try rephrasing the prompt.`)
+}
+
 // Analyze an image to identify its elements
 export async function analyzeImage(imageBase64: string): Promise<ImageAnalysisResult> {
   requireApiKey()
@@ -359,155 +506,18 @@ Return ONLY valid JSON, no other text.`
   }
 }
 
-// Edit image with multiple sources and size/aspect support
-export async function editImage(request: ImageEditRequest): Promise<string> {
-  requireApiKey()
-
-  const parts: any[] = []
-
-  // Label source images by filename so Gemini knows which is which
-  let labeledInstruction = request.instruction
-  if (request.sourceFilenames && request.sourceFilenames.length > 1) {
-    labeledInstruction = `Source images (in order): ${request.sourceFilenames.join(', ')}.\n\n${request.instruction}`
-  }
-
-  // Task 1 (user's instruction) + Task 2 (self-describe), then images
-  parts.push({ text: labeledInstruction + TASK_2_SELF_DESCRIBE })
-
-  // Add all source images in order (image_0, image_1, ...)
-  for (const img of request.sourceImages) {
-    parts.push({
-      inline_data: {
-        mime_type: 'image/jpeg',
-        data: img.replace(/^data:image\/\w+;base64,/, '')
-      }
-    })
-  }
-
-  // Build generation config
-  const generationConfig: any = {
-    responseModalities: ['TEXT', 'IMAGE'],
-    imageConfig: {},
-  }
-
-  const sanitizedAR = sanitizeAspectRatio(request.aspectRatio)
-  if (sanitizedAR) {
-    generationConfig.imageConfig.aspectRatio = sanitizedAR
-  }
-  if (request.imageSize) {
-    generationConfig.imageConfig.imageSize = request.imageSize
-  }
-
-  const response = await fetch(`${GEMINI_API_URL}?key=${GEMINI_API_KEY}`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      contents: [{ parts }],
-      generationConfig
-    })
-  })
-
-  if (!response.ok) {
-    const error = await response.text()
-    throw new Error(`Gemini Edit API error: ${error}`)
-  }
-
-  const data = await response.json()
-
-  const candidate = data.candidates?.[0]
-  let imageResult: string | null = null
-  let textResult: string | null = null
-
-  if (candidate?.content?.parts) {
-    for (const part of candidate.content.parts) {
-      if (part.inlineData?.data && !imageResult) {
-        imageResult = `data:${part.inlineData.mimeType || 'image/png'};base64,${part.inlineData.data}`
-      }
-      if (part.text && !textResult) {
-        textResult = part.text
-      }
-    }
-  }
-
-  if (!imageResult) {
-    throw new Error('No image in Gemini edit response')
-  }
-
-  // Return as object if text was included, string for backward compat
-  return imageResult
-}
-
-// Same as editImage but also returns Gemini's text response
+// Thin wrapper — other routes import this name
 export async function editImageWithText(request: ImageEditRequest): Promise<{ imageUrl: string; geminiText?: string }> {
-  requireApiKey()
-
-  const parts: any[] = []
-
-  let labeledInstruction = request.instruction
-  if (request.sourceFilenames && request.sourceFilenames.length > 1) {
-    labeledInstruction = `Source images (in order): ${request.sourceFilenames.join(', ')}.\n\n${request.instruction}`
-  }
-
-  // Task 1 (user's instruction) + Task 2 (self-describe)
-  parts.push({ text: labeledInstruction + TASK_2_SELF_DESCRIBE })
-
-  for (const img of request.sourceImages) {
-    parts.push({
-      inline_data: {
-        mime_type: 'image/jpeg',
-        data: img.replace(/^data:image\/\w+;base64,/, '')
-      }
-    })
-  }
-
-  const generationConfig: any = {
-    responseModalities: ['TEXT', 'IMAGE'],
-    imageConfig: {},
-  }
-
-  const sanitizedAR = sanitizeAspectRatio(request.aspectRatio)
-  if (sanitizedAR) {
-    generationConfig.imageConfig.aspectRatio = sanitizedAR
-  }
-  if (request.imageSize) {
-    generationConfig.imageConfig.imageSize = request.imageSize
-  }
-
-  const response = await fetch(`${GEMINI_API_URL}?key=${GEMINI_API_KEY}`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      contents: [{ parts }],
-      generationConfig
-    })
+  return callGemini({
+    prompt: request.instruction,
+    sourceImages: request.sourceImages.map(img => ({
+      data: img.replace(/^data:image\/\w+;base64,/, ''),
+      mimeType: 'image/jpeg',
+    })),
+    sourceFilenames: request.sourceFilenames,
+    imageSize: request.imageSize,
+    aspectRatio: request.aspectRatio,
   })
-
-  if (!response.ok) {
-    const error = await response.text()
-    throw new Error(`Gemini Edit API error: ${error}`)
-  }
-
-  const data = await response.json()
-  const candidate = data.candidates?.[0]
-  let imageUrl: string | null = null
-  let geminiText: string | undefined
-
-  if (candidate?.content?.parts) {
-    for (const part of candidate.content.parts) {
-      if (part.inlineData?.data && !imageUrl) {
-        imageUrl = `data:${part.inlineData.mimeType || 'image/png'};base64,${part.inlineData.data}`
-      }
-      if (part.text && !geminiText) {
-        geminiText = part.text
-      }
-    }
-  }
-
-  if (!imageUrl) {
-    throw new Error('No image in Gemini edit response')
-  }
-
-  return { imageUrl, geminiText }
 }
 
 /**
@@ -579,13 +589,3 @@ Be vivid and specific. This description will be used for future edits and versio
   }
 }
 
-// Legacy single-image edit function for backwards compatibility
-export async function editImageLegacy(
-  originalImage: string,
-  instruction: string
-): Promise<string> {
-  return editImage({
-    sourceImages: [originalImage],
-    instruction
-  })
-}

@@ -10,15 +10,11 @@
 import { NextResponse } from 'next/server'
 import { getJob, listJobs, gc } from '@/lib/build-escrow'
 
-export async function POST(request: Request) {
-  const body = await request.json().catch(() => ({}))
-  const sessionId = String(body.sessionId || '').trim()
-  const jobId = body.jobId ? String(body.jobId).trim() : null
+function handleRequest(sessionId: string, jobId: string | null) {
   if (!sessionId) {
     return NextResponse.json({ error: 'sessionId required' }, { status: 400 })
   }
 
-  // Lazy GC — keeps the in-memory ledger bounded.
   gc()
 
   if (jobId) {
@@ -32,6 +28,21 @@ export async function POST(request: Request) {
     return NextResponse.json({ job })
   }
 
-  // No jobId → return all jobs for this session, newest first.
   return NextResponse.json({ jobs: listJobs(sessionId) })
+}
+
+export async function POST(request: Request) {
+  const body = await request.json().catch(() => ({}))
+  return handleRequest(
+    String(body.sessionId || '').trim(),
+    body.jobId ? String(body.jobId).trim() : null,
+  )
+}
+
+export async function GET(request: Request) {
+  const url = new URL(request.url)
+  return handleRequest(
+    url.searchParams.get('sessionId')?.trim() || '',
+    url.searchParams.get('jobId')?.trim() || null,
+  )
 }

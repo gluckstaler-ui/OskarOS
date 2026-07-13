@@ -122,8 +122,12 @@ export interface CodebaseState {
 // Spokes point at a hub via OSKAR_SYNC_HUB; the hub itself leaves it unset.
 function nodeRole(): 'hub' | 'spoke' { return process.env.OSKAR_SYNC_HUB ? 'spoke' : 'hub' }
 
-function pkgVersion(): string {
-  try { return (JSON.parse(readFileSync(join(PROJECT_ROOT, 'package.json'), 'utf8')) as { version?: string }).version ?? '0.0.0' }
+// The app version is a DEPLOY COUNTER in db/version.json (bumped by
+// scripts/bump-version.mjs on each deploy) — NOT package.json, which is
+// deliberate npm metadata and must never be auto-mutated. db/ is gitignored
+// runtime state, so the counter never churns a tracked file.
+function localVersion(): string {
+  try { return (JSON.parse(readFileSync(join(PROJECT_ROOT, 'db', 'version.json'), 'utf8')) as { version?: string }).version ?? '0.0.0' }
   catch { return '0.0.0' }
 }
 
@@ -136,11 +140,11 @@ export function codebaseLabel(s: Partial<CodebaseState>): string {
 
 export function codebaseState(): CodebaseState {
   const node = getNodeId(), role = nodeRole()
-  // Hub: a DEPLOY_VERSION file the deploy stamped. Spoke: live git + package.json.
+  // Hub: a DEPLOY_VERSION file the deploy stamped. Spoke: live git + db/version.json.
   if (existsSync(VERSION_FILE)) {
     try {
       const v = JSON.parse(readFileSync(VERSION_FILE, 'utf8')) as { release?: string; version?: string; builtAt?: string; dirty?: boolean }
-      return { kind: 'codebase', release: v.release ?? pkgVersion(), version: v.version ?? 'unknown', dirty: !!v.dirty, builtAt: v.builtAt ?? null, node, role }
+      return { kind: 'codebase', release: v.release ?? localVersion(), version: v.version ?? 'unknown', dirty: !!v.dirty, builtAt: v.builtAt ?? null, node, role }
     } catch { /* fall through to git */ }
   }
   let version = 'unknown'
@@ -149,11 +153,26 @@ export function codebaseState(): CodebaseState {
     version = execFileSync('git', ['rev-parse', '--short', 'HEAD'], { cwd: PROJECT_ROOT, timeout: 3000 }).toString().trim()
     dirty = execFileSync('git', ['status', '--porcelain'], { cwd: PROJECT_ROOT, timeout: 3000 }).toString().trim().length > 0
   } catch { /* no git */ }
-  return { kind: 'codebase', release: pkgVersion(), version, dirty, builtAt: null, node, role }
+  return { kind: 'codebase', release: localVersion(), version, dirty, builtAt: null, node, role }
 }
 
 // ─── diff: local vs remote → { inSync, sentence } for the indicator ──────────
-export interface SyncDiff { inSync: boolean; sentence: string; localVersion?: string; remoteVersion?: string }
+// `direction` tells the panel WHICH button to highlight so you can't click the
+// wrong way: 'up' = you're ahead → push (Deploy/↑); 'down' = server ahead →
+// pull (Get/↓); 'both' = each side has something; 'none' = in sync.
+export type SyncDirection = 'up' | 'down' | 'both' | 'none'
+export interface SyncDiff { inSync: boolean; sentence: string; localVersion?: string; remoteVersion?: string; direction?: SyncDirection }
+
+// compare "1.0.5" vs "1.0.3" → +1 / 0 / -1 (major.minor.patch)
+function cmpSemver(a: string, b: string): number {
+  const pa = String(a).split('.').map((n) => parseInt(n, 10) || 0)
+  const pb = String(b).split('.').map((n) => parseInt(n, 10) || 0)
+  for (let i = 0; i < 3; i++) { const d = (pa[i] || 0) - (pb[i] || 0); if (d) return d < 0 ? -1 : 1 }
+  return 0
+}
+function pickDir(wantUp: boolean, wantDown: boolean): SyncDirection {
+  return wantUp && wantDown ? 'both' : wantUp ? 'up' : wantDown ? 'down' : 'none'
+}
 
 export function diffCrm(local: CrmState, remote: CrmState): SyncDiff {
   const nodes = new Set([...Object.keys(local.perNode), ...Object.keys(remote.perNode)])
@@ -164,12 +183,12 @@ export function diffCrm(local: CrmState, remote: CrmState): SyncDiff {
     if (l > r) aheadLocal += l - r
   }
   const shots = remote.screenshots - local.screenshots
-  if (!aheadHub && !aheadLocal && shots === 0) return { inSync: true, sentence: 'In sync' }
+  if (!aheadHub && !aheadLocal && shots === 0) return { inSync: true, sentence: 'In sync', direction: 'none' }
   const parts: string[] = []
   if (aheadHub) parts.push(`server has ~${aheadHub} newer event(s)`)
   if (aheadLocal) parts.push(`you have ~${aheadLocal} the server lacks`)
   if (shots) parts.push(`${Math.abs(shots)} screenshot(s) ${shots > 0 ? 'on server' : 'local-only'}`)
-  return { inSync: false, sentence: parts.join('; ') }
+  return { inSync: false, sentence: parts.join('; '), direction: pickDir(aheadLocal > 0, aheadHub > 0 || shots > 0) }
 }
 
 export function diffSession(local: SessionState, remote: SessionState): SyncDiff {
@@ -185,12 +204,14 @@ export function diffSession(local: SessionState, remote: SessionState): SyncDiff
     // signal; a real content edit to a build artifact virtually always changes it.
     else if (l && r && l.size !== r.size) { differ++; if (r.mtime > l.mtime) newerRemote++ }
   }
-  if (!onlyLocal && !onlyRemote && !differ) return { inSync: true, sentence: 'In sync' }
+  if (!onlyLocal && !onlyRemote && !differ) return { inSync: true, sentence: 'In sync', direction: 'none' }
   const parts: string[] = []
   if (onlyRemote) parts.push(`${onlyRemote} only on server`)
   if (onlyLocal) parts.push(`${onlyLocal} only local`)
   if (differ) parts.push(`${differ} differ (${newerRemote} newer on server)`)
-  return { inSync: false, sentence: parts.join('; ') }
+  const wantUp = onlyLocal > 0 || (differ - newerRemote) > 0   // local has files/edits to push
+  const wantDown = onlyRemote > 0 || newerRemote > 0            // server has files/edits to pull
+  return { inSync: false, sentence: parts.join('; '), direction: pickDir(wantUp, wantDown) }
 }
 
 export function diffCodebase(local: CodebaseState, remote: CodebaseState): SyncDiff {
@@ -207,5 +228,9 @@ export function diffCodebase(local: CodebaseState, remote: CodebaseState): SyncD
       ? `You ${l} · hub built from ${r} at ${deployedAt}`
       : `You ${l} · uncommitted, not yet on server (${r})`
   } else sentence = `You ${l} · server ${r}${deployedAt ? `, deployed ${deployedAt}` : ''}`
-  return { inSync, sentence, localVersion: l, remoteVersion: r }
+  // direction: local version newer → deploy up; hub version newer → get down;
+  // same version but not in sync (local dirty) → deploy up.
+  let direction: SyncDirection = 'none'
+  if (!inSync) { const c = cmpSemver(local.release, remote.release); direction = c < 0 ? 'down' : 'up' }
+  return { inSync, sentence, localVersion: l, remoteVersion: r, direction }
 }

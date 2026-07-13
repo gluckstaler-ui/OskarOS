@@ -33,7 +33,7 @@ import {
 import { hotSwap, autoHotSwap, HotSwapResult } from './hot-swap'
 // analyze() removed — CD reads uploaded images itself via Read tool
 import { ImageManifest, ImageAsset } from './types'
-import { matchField, matchFieldMultiline } from './markdown-fields'
+import { matchField } from './markdown-fields'
 
 /**
  * List all sessions
@@ -535,6 +535,11 @@ export async function getImageManifestsAction(
       const vibe = extractField(entry, 'Vibe') || 'shared'
       const purpose = extractField(entry, 'Purpose') || 'hero'
       const aspectRatio = extractField(entry, 'Aspect Ratio') || '16:9'
+      const operationField = (extractField(entry, 'Operation') || 'generate') as ImageAsset['operation']
+      const sourceField = extractField(entry, 'Source Images') || extractField(entry, 'Source')
+      const sourceImagePaths = sourceField
+        ? sourceField.split(/,\s*/).map(s => `/${sessionId}/${s.trim()}`).filter(s => s !== `/${sessionId}/`)
+        : []
 
       // Extract prompt (multi-line) — supports both bold "**Prompt:**" and plain "Prompt:"
       const promptMatch = entry.match(/(?:\*\*)?Prompt(?:\s+to\s+Nano\s+Banana)?(?:\*\*)?:\s*([\s\S]*?)(?=\n---|\n####|\n\*\*[A-Z]|\n### |$)/)
@@ -551,7 +556,9 @@ export async function getImageManifestsAction(
           }))
 
       for (const { vibeName: normalizedVibe, displayName: vibeDisplayName } of vibeList) {
-      const vibeId = normalizedVibe === 'shared' ? 'vibe-shared' : `vibe-${normalizedVibe}`
+      const vibeId = normalizedVibe === 'shared'
+        ? 'vibe-shared'
+        : normalizedVibe.startsWith('vibe-') ? normalizedVibe : `vibe-${normalizedVibe}`
       if (!manifests.has(vibeId)) {
         manifests.set(vibeId, {
           vibeId,
@@ -585,37 +592,21 @@ export async function getImageManifestsAction(
             assetStatus = 'complete'
           }
 
-          // Determine operation from instruction or default
-          let assetOperation: 'generate' | 'extract' | 'compose' | 'enhance' | 'edit' = 'generate'
-          const instructionLower = instruction.toLowerCase()
-          if (instructionLower.includes('extract') || instructionLower.includes('remove background')) {
-            assetOperation = 'extract'
-          } else if (instructionLower.includes('composite') || instructionLower.includes('compose')) {
-            assetOperation = 'compose'
-          } else if (instructionLower.includes('enhance')) {
-            assetOperation = 'enhance'
-          } else if (instructionLower.includes('edit')) {
-            assetOperation = 'edit'
-          }
-
-          // Extract source for modifications
-          const source = extractField(version, 'Source') || extractField(entry, 'Source')
-          const sourceImages = source ? [source] : []
-
-          // Build result path for generated images
           const resultPath = assetStatus === 'complete' ? `/${sessionId}/${actualFilename}` : undefined
-          const generatedUrl = resultPath  // For display purposes
 
-          // Create asset for this version. promptId tracks the parent
-          // ### img-N block so the frontend can pass it back to
-          // /api/edit-image when regenerating — the new #### filename
-          // entry then nests under THIS prompt instead of orphan-appending
-          // to the section. Ralph 2026-05-04.
+          // Guard against double-prefixing in the asset id: if actualFilename already
+          // starts with `${vibeId}-` (e.g. `vibe-2-edit-foo.jpg`), don't prepend the
+          // vibeId again — the React key would render as `vibe-vibe-2-vibe-2-edit-foo`
+          // and trigger duplicate-key warnings when two near-identical entries land.
+          const assetId = actualFilename.startsWith(`${vibeId}-`)
+            ? actualFilename
+            : `${vibeId}-${actualFilename}`
+
           const asset = {
-            id: `${vibeId}-${actualFilename}`,
+            id: assetId,
             filename: actualFilename,
-            operation: assetOperation as ImageAsset['operation'],
-            sourceImages,
+            operation: operationField,
+            sourceImages: sourceImagePaths,
             instruction,
             usage: purpose as ImageAsset['usage'],
             aspectRatio: aspectRatio as ImageAsset['aspectRatio'],
@@ -627,21 +618,37 @@ export async function getImageManifestsAction(
             isActive: versionStatusLower.includes('active'),
             isReplaced: versionStatusLower.includes('replaced'),
             resultPath,
-            generatedUrl,
-            rawStatus: versionStatus  // Store raw status for filtering (HERO, READY, B-ROLL, etc.)
+            generatedUrl: resultPath,
           }
 
           manifests.get(vibeId)!.assets.push(asset as ImageAsset)
         }
       } else {
-        // No versions yet = pending prompt, no generated images
-        const constructedFilename = `${normalizedVibe}-${purpose}-v1.jpg`
+        // Prefer the explicit **Filename:** field in IMAGES.md when present —
+        // that's the author's intent, verbatim (e.g. `edit-vinograd-cinematic-grade.jpg`
+        // for an EDIT op where the convention is no vibe-N- prefix). Only fall
+        // back to constructing from slug + vibe prefix when no filename is given.
+        const explicitFilename = extractField(entry, 'Filename')
+        const promptSlug = (promptId || '').replace(/^img-/, '').replace(/^v\d+$/, '')
+        const slugIsNumeric = /^\d+$/.test(promptSlug)
+        const vibePrefix = normalizedVibe.startsWith('vibe-') ? normalizedVibe : `vibe-${normalizedVibe}`
+        // Guard against double-prefixing: if the author already baked `vibe-N-` into the slug
+        // (e.g. `vibe-2-grape-discovery-quad`), don't tack another `vibe-2-` on top.
+        const slugAlreadyPrefixed = promptSlug.startsWith(`${vibePrefix}-`)
+        const constructedFilename = explicitFilename
+          ? explicitFilename
+          : (promptSlug && !slugIsNumeric)
+            ? (slugAlreadyPrefixed ? `${promptSlug}.jpg` : `${vibePrefix}-${promptSlug}.jpg`)
+            : `${vibePrefix}-${purpose}-v1.jpg`
 
+        const pendingId = promptId.startsWith(`${vibeId}-`) || promptId.startsWith(`img-${vibeId}-`)
+          ? promptId
+          : `${vibeId}-${promptId}`
         const asset = {
-          id: `${vibeId}-${promptId}`,
+          id: pendingId,
           filename: constructedFilename,
-          operation: 'generate' as const,
-          sourceImages: [],
+          operation: operationField,
+          sourceImages: sourceImagePaths,
           instruction,
           usage: purpose as ImageAsset['usage'],
           aspectRatio: aspectRatio as ImageAsset['aspectRatio'],
@@ -649,10 +656,9 @@ export async function getImageManifestsAction(
           status: 'pending' as const,
           vibeId,
           vibeName: vibeDisplayName,
-          promptId,  // parent ### img-N — see comment in versions branch above
+          promptId,
           isActive: false,
           isReplaced: false,
-          rawStatus: 'PENDING'  // Pending prompt - not yet generated
         }
 
         manifests.get(vibeId)!.assets.push(asset as ImageAsset)
@@ -660,143 +666,8 @@ export async function getImageManifestsAction(
       } // end vibeList loop
     }
 
-    // Also parse Manipulations section
-    const manipSection = content.match(/## Manipulations\n([\s\S]*?)(?=\n## |$)/)
-    if (manipSection) {
-      const manipEntries = manipSection[1].split(/\n### /).slice(1)
-
-      for (const entry of manipEntries) {
-        const filename = entry.split('\n')[0].trim()
-        if (!filename || filename.includes('No manipulations')) continue
-
-        const source = extractField(entry, 'Source')
-        const operation = extractField(entry, 'Operation') || 'extract'
-        const status = extractField(entry, 'Status') || 'PENDING'
-        const usedIn = extractField(entry, 'Used in')
-
-        // Ralph 2026-04-25: A real manipulation requires `**Source:**` (the
-        // image being manipulated). Without it, the entry is a CD log note
-        // that landed under `## Manipulations` for lack of a better home —
-        // not an actual manipulation prompt. Skipping these stops them
-        // from rendering as empty/PENDING "Shared" assets in the panel.
-        if (!source) continue
-
-        // Extract instruction (multiline). Try both "Instruction" and
-        // the longer "Instruction to Nano Banana" alias — first hit wins.
-        const instruction =
-          matchFieldMultiline(entry, 'Instruction to Nano Banana')
-          || matchFieldMultiline(entry, 'Instruction')
-          || operation
-
-        // Try to infer vibe from "Used in" field
-        let vibeName = 'Shared'
-        let vibeId = 'vibe-shared'
-
-        if (usedIn) {
-          const vibeMatch = usedIn.match(/vibe-\d+-([a-z]+)/i)
-          if (vibeMatch) {
-            vibeName = vibeMatch[1].charAt(0).toUpperCase() + vibeMatch[1].slice(1)
-            vibeId = `vibe-${vibeMatch[1].toLowerCase()}`
-          }
-        }
-
-        // Create vibe manifest if doesn't exist
-        if (!manifests.has(vibeId)) {
-          manifests.set(vibeId, {
-            vibeId,
-            vibeName,
-            assets: []
-          })
-        }
-
-        // Map status
-        let assetStatus: 'pending' | 'generating' | 'complete' | 'error' = 'pending'
-        const statusLower = status.toLowerCase()
-        if (statusLower.includes('active') || statusLower.includes('complete')) {
-          assetStatus = 'complete'
-        } else if (statusLower.includes('generating')) {
-          assetStatus = 'generating'
-        } else if (statusLower.includes('error') || statusLower.includes('failed')) {
-          assetStatus = 'error'
-        }
-
-        // Map operation
-        let assetOperation: 'generate' | 'extract' | 'compose' | 'enhance' | 'edit' = 'extract'
-        const opLower = operation.toLowerCase()
-        if (opLower.includes('composite') || opLower.includes('compose')) {
-          assetOperation = 'compose'
-        } else if (opLower.includes('enhance')) {
-          assetOperation = 'enhance'
-        } else if (opLower.includes('edit')) {
-          assetOperation = 'edit'
-        }
-
-        // Build result path for generated manipulations
-        const resultPath = assetStatus === 'complete' ? `/${sessionId}/${filename}` : undefined
-        const generatedUrl = resultPath  // For display purposes
-
-        const asset = {
-          id: `${vibeId}-${filename}`,
-          filename,
-          operation: assetOperation as ImageAsset['operation'],
-          sourceImages: source ? [source] : [],
-          instruction,
-          usage: 'extracted' as ImageAsset['usage'],
-          aspectRatio: '1:1' as ImageAsset['aspectRatio'],
-          resolution: '2K' as ImageAsset['resolution'],
-          status: assetStatus,
-          vibeId,
-          vibeName,
-          isActive: statusLower.includes('active'),
-          isReplaced: false,
-          resultPath,
-          generatedUrl,
-          rawStatus: status  // Store raw status for filtering
-        }
-
-        manifests.get(vibeId)!.assets.push(asset as ImageAsset)
-      }
-    }
-
-    // Filter to show only ONE card per prompt (the best version)
-    // Priority: HERO > READY > APPROVED > B-ROLL > TRASH > PENDING
-    const statusPriority = (status: string): number => {
-      const s = status.toUpperCase()
-      if (s.includes('HERO')) return 100
-      if (s.includes('READY')) return 90
-      if (s.includes('APPROVED')) return 80
-      if (s.includes('B-ROLL')) return 50
-      if (s.includes('TRASH') || s.includes('REDO')) return 20
-      if (s.includes('PENDING')) return 10
-      return 60 // Unknown status - treat as decent
-    }
-
-    // Group assets by their instruction (prompt), keep only the best one per prompt
-    const filteredManifests = Array.from(manifests.values()).map(manifest => {
-      const assetsByPrompt = new Map<string, any>()
-
-      for (const asset of manifest.assets) {
-        const promptKey = asset.instruction.substring(0, 100) // Use first 100 chars as key
-        const existing = assetsByPrompt.get(promptKey)
-
-        // Get priority from rawStatus (HERO, READY, B-ROLL, etc.)
-        const assetPriority = statusPriority((asset as any).rawStatus || 'PENDING')
-        const existingPriority = existing ? statusPriority(existing.rawStatus || 'PENDING') : 0
-
-        if (!existing || assetPriority > existingPriority) {
-          assetsByPrompt.set(promptKey, asset)
-        }
-      }
-
-      return {
-        ...manifest,
-        assets: Array.from(assetsByPrompt.values())
-      }
-    })
-
-    console.log('📊 Manifests filtered - showing best version per prompt:', filteredManifests.map(m => `${m.vibeName}: ${m.assets.length} assets`))
-
-    return { success: true, manifests: filteredManifests }
+    const result = Array.from(manifests.values())
+    return { success: true, manifests: result }
   } catch (error) {
     return { success: false, error: `${error}` }
   }
