@@ -27,7 +27,8 @@ function mask(value: string): string | null {
   return value.slice(0, 2) + '••••••••' + value.slice(-2)
 }
 
-export async function GET() {
+export async function GET(req: NextRequest) {
+  const reveal = new URL(req.url).searchParams.get('reveal') === '1'
   const cfg = readMailConfig()
 
   // Corpus = every outbound mail on the record (Sent-ingest + CRM sends).
@@ -42,7 +43,7 @@ export async function GET() {
   return NextResponse.json({
     config: {
       OSKAR_MAIL_USER: cfg.user,
-      OSKAR_MAIL_PASS: '',                     // never ship the plaintext to the browser
+      OSKAR_MAIL_PASS: reveal ? cfg.pass : '',   // plaintext only on explicit reveal
       OSKAR_MAIL_IMAP_HOST: cfg.imapHost,
       OSKAR_MAIL_IMAP_PORT: String(cfg.imapPort),
       OSKAR_MAIL_SMTP_HOST: cfg.smtpHost,

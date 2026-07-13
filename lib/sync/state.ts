@@ -144,7 +144,8 @@ export function codebaseState(): CodebaseState {
   if (existsSync(VERSION_FILE)) {
     try {
       const v = JSON.parse(readFileSync(VERSION_FILE, 'utf8')) as { release?: string; version?: string; builtAt?: string; dirty?: boolean }
-      return { kind: 'codebase', release: v.release ?? localVersion(), version: v.version ?? 'unknown', dirty: !!v.dirty, builtAt: v.builtAt ?? null, node, role }
+      const release = role === 'spoke' ? localVersion() : (v.release ?? localVersion())
+      return { kind: 'codebase', release, version: v.version ?? 'unknown', dirty: !!v.dirty, builtAt: v.builtAt ?? null, node, role }
     } catch { /* fall through to git */ }
   }
   let version = 'unknown'
