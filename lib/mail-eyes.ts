@@ -48,7 +48,7 @@ const FOLDERS = ['INBOX', 'Sent'] as const
 const MAX_ATTACHMENT_BYTES = 25 * 1024 * 1024   // spec §14: >25 MB → headers+text only
 
 export type SweepPhase =
-  | 'idle' | 'connecting' | 'listing' | 'downloading' | 'filing' | 'done' | 'failed'
+  | 'idle' | 'connecting' | 'listing' | 'downloading' | 'filing' | 'briefing' | 'done' | 'failed'
 
 export interface SweepProgress {
   phase: SweepPhase
@@ -904,6 +904,25 @@ async function doSweep(_opts: { backfill?: boolean }): Promise<SweepProgress> {
       }
     }
     await client.logout().catch(() => client.close())
+
+    // POSTMASTER PM-3: brief the Consular on prospects with fresh inbound.
+    // ONE bridge call per sweep, prospect IDs only — the Consular reads the
+    // rest via SQL per its EVAL-INBOUND doctrine. Auto-drafted replies land
+    // in the suggestions table so the composer prefills on next render.
+    // Filippo 2026-07-13 — wired the missing PM-3 pipeline.
+    try {
+      const { briefConsular, prospectsNeedingBriefing } = await import('./mail-briefing')
+      const needsBrief = prospectsNeedingBriefing()
+      if (needsBrief.length > 0) {
+        setPhase('briefing', { folder: undefined })
+        const brief = await briefConsular(needsBrief)
+        console.log(`[mail-eyes] briefing: ${needsBrief.length} prospect(s), ${brief.drafted} draft(s) written, ${brief.ms}ms`)
+        if (brief.error) console.warn('[mail-eyes] briefing error:', brief.error)
+      }
+    } catch (err) {
+      console.warn('[mail-eyes] briefing dispatch failed (non-fatal):', err)
+    }
+
     setPhase('done', { finished_at: new Date().toISOString() })
   } catch (err) {
     try { client.close() } catch { /* closed */ }

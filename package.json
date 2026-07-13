@@ -1,6 +1,6 @@
 {
   "name": "oskar-prototype",
-  "version": "1.0.7",
+  "version": "1.0.8",
   "description": "OskarOS - Booking pages that don't look like booking pages",
   "scripts": {
     "build:mcp": "tsc -p mcp-server/tsconfig.json && node -e \"require('fs').writeFileSync('mcp-server/dist/package.json', '{\\\"type\\\":\\\"module\\\"}\\n')\"",

@@ -273,63 +273,6 @@
                          (Ralph 2026-07-12). The sidecars stack by content. -->
                     <div class="flex flex-col gap-[var(--gap-app)] overflow-hidden min-h-0">
 
-                        <!-- WhatsApp sidecar (WP-CRM-F19) -->
-                        <div class="bento-card shrink-0 flex flex-col overflow-hidden">
-                            <div class="p-4 border-b border-border shrink-0 flex items-center justify-between">
-                                <span class="text-xs font-bold uppercase tracking-wider text-primary font-mono flex items-center gap-2">
-                                    <i data-lucide="message-circle" width="14" style="color:#25D366"></i>
-                                    WhatsApp
-                                </span>
-                                <span id="wa-status-dot" class="text-[10px] font-mono text-secondary">—</span>
-                            </div>
-                            <div id="wa-card-body" class="p-3 flex flex-col gap-2 text-[11px]">
-                                <div class="text-center py-4 text-secondary italic">Checking bridge…</div>
-                            </div>
-                        </div>
-
-                        <!-- Email account (POSTMASTER PM-7, spec §10) — creds + servers,
-                             TEST CONNECTION (IMAP login + SMTP verify), line-aware
-                             .env.local SAVE. Dot: grey unconfigured · amber saved-untested
-                             or SMTP-only failure · green both OK · red IMAP down. -->
-                        <div class="bento-card shrink-0 flex flex-col overflow-hidden">
-                            <div class="p-4 border-b border-border shrink-0 flex items-center justify-between">
-                                <span class="text-xs font-bold uppercase tracking-wider text-primary font-mono flex items-center gap-2">
-                                    <i data-lucide="mail" width="14" style="color:#f97316"></i>
-                                    Email
-                                </span>
-                                <span class="flex items-center gap-1.5 text-[10px] font-mono text-secondary">
-                                    <span id="mail-dot" class="inline-block w-2 h-2 rounded-full bg-secondary"></span>
-                                    <span id="mail-dot-label">—</span>
-                                </span>
-                            </div>
-                            <div class="p-3 flex flex-col gap-2 text-[11px]">
-                                <div class="flex items-center gap-1">
-                                    <span class="font-mono text-[10px] uppercase text-secondary w-16 shrink-0">Email</span>
-                                    <input id="mail-user-name" placeholder="filippo" class="flex-1 min-w-0 border border-border rounded px-1.5 py-1 text-[11px] font-mono text-primary" style="background-color: var(--bg-app)">
-                                    <span class="text-secondary font-mono">@</span>
-                                    <input id="mail-user-domain" placeholder="paradiso.dev" class="flex-1 min-w-0 border border-border rounded px-1.5 py-1 text-[11px] font-mono text-primary" style="background-color: var(--bg-app)">
-                                </div>
-                                <div class="flex items-center gap-1">
-                                    <span class="font-mono text-[10px] uppercase text-secondary w-16 shrink-0">Password</span>
-                                    <input id="mail-pass" type="password" class="flex-1 min-w-0 border border-border rounded px-1.5 py-1 text-[11px] font-mono text-primary" style="background-color: var(--bg-app)">
-                                    <button onclick="mailTogglePass()" class="text-secondary hover:text-primary shrink-0" title="Show / hide"><i data-lucide="eye" width="12"></i></button>
-                                </div>
-                                <div class="grid grid-cols-[4rem_1fr_3.5rem] gap-1 items-center pt-1 border-t border-border">
-                                    <span class="font-mono text-[10px] uppercase text-secondary">IMAP</span>
-                                    <input id="mail-imap-host" class="min-w-0 border border-border rounded px-1.5 py-1 text-[11px] font-mono text-primary" style="background-color: var(--bg-app)">
-                                    <input id="mail-imap-port" class="min-w-0 border border-border rounded px-1.5 py-1 text-[11px] font-mono text-primary text-right" style="background-color: var(--bg-app)">
-                                    <span class="font-mono text-[10px] uppercase text-secondary">SMTP</span>
-                                    <input id="mail-smtp-host" class="min-w-0 border border-border rounded px-1.5 py-1 text-[11px] font-mono text-primary" style="background-color: var(--bg-app)">
-                                    <input id="mail-smtp-port" class="min-w-0 border border-border rounded px-1.5 py-1 text-[11px] font-mono text-primary text-right" style="background-color: var(--bg-app)">
-                                </div>
-                                <div class="flex items-center justify-between gap-2 pt-1">
-                                    <button id="mail-test-btn" onclick="mailTest()" class="px-2 py-1 rounded border border-border bg-bg-app hover:bg-bg-hover text-primary text-[10px] font-mono uppercase">Test connection</button>
-                                    <button id="mail-save-btn" onclick="mailSave()" class="px-2 py-1 rounded border border-border bg-bg-app hover:bg-bg-hover text-primary text-[10px] font-mono uppercase">Save</button>
-                                </div>
-                                <div id="mail-foot" class="text-[10px] font-mono text-secondary leading-snug min-h-[12px]">—</div>
-                            </div>
-                        </div>
-
                         <!-- SYNC panel (WP-28) — CRM · session · codebase, machine ↔ hub -->
                         <div class="bento-card shrink-0 flex flex-col overflow-hidden">
                             <div class="p-4 border-b border-border shrink-0 flex items-center justify-between">
@@ -387,6 +330,63 @@
                                     <div id="sync-prog-phase" class="text-[10px] font-mono text-secondary truncate">starting…</div>
                                     <pre id="sync-prog-log" class="text-[9px] font-mono leading-tight max-h-28 overflow-hidden whitespace-pre-wrap break-all m-0" style="color:var(--text-secondary);opacity:.7"></pre>
                                 </div>
+                            </div>
+                        </div>
+
+                        <!-- WhatsApp sidecar (WP-CRM-F19) -->
+                        <div class="bento-card shrink-0 flex flex-col overflow-hidden">
+                            <div class="p-4 border-b border-border shrink-0 flex items-center justify-between">
+                                <span class="text-xs font-bold uppercase tracking-wider text-primary font-mono flex items-center gap-2">
+                                    <i data-lucide="message-circle" width="14" style="color:#25D366"></i>
+                                    WhatsApp
+                                </span>
+                                <span id="wa-status-dot" class="text-[10px] font-mono text-secondary">—</span>
+                            </div>
+                            <div id="wa-card-body" class="p-3 flex flex-col gap-2 text-[11px]">
+                                <div class="text-center py-4 text-secondary italic">Checking bridge…</div>
+                            </div>
+                        </div>
+
+                        <!-- Email account (POSTMASTER PM-7, spec §10) — creds + servers,
+                             TEST CONNECTION (IMAP login + SMTP verify), line-aware
+                             .env.local SAVE. Dot: grey unconfigured · amber saved-untested
+                             or SMTP-only failure · green both OK · red IMAP down. -->
+                        <div class="bento-card shrink-0 flex flex-col overflow-hidden">
+                            <div class="p-4 border-b border-border shrink-0 flex items-center justify-between">
+                                <span class="text-xs font-bold uppercase tracking-wider text-primary font-mono flex items-center gap-2">
+                                    <i data-lucide="mail" width="14" style="color:#f97316"></i>
+                                    Email
+                                </span>
+                                <span class="flex items-center gap-1.5 text-[10px] font-mono text-secondary">
+                                    <span id="mail-dot" class="inline-block w-2 h-2 rounded-full bg-secondary"></span>
+                                    <span id="mail-dot-label">—</span>
+                                </span>
+                            </div>
+                            <div class="p-3 flex flex-col gap-2 text-[11px]">
+                                <div class="flex items-center gap-1">
+                                    <span class="font-mono text-[10px] uppercase text-secondary w-16 shrink-0">Email</span>
+                                    <input id="mail-user-name" placeholder="filippo" class="flex-1 min-w-0 border border-border rounded px-1.5 py-1 text-[11px] font-mono text-primary" style="background-color: var(--bg-app)">
+                                    <span class="text-secondary font-mono">@</span>
+                                    <input id="mail-user-domain" placeholder="paradiso.dev" class="flex-1 min-w-0 border border-border rounded px-1.5 py-1 text-[11px] font-mono text-primary" style="background-color: var(--bg-app)">
+                                </div>
+                                <div class="flex items-center gap-1">
+                                    <span class="font-mono text-[10px] uppercase text-secondary w-16 shrink-0">Password</span>
+                                    <input id="mail-pass" type="password" class="flex-1 min-w-0 border border-border rounded px-1.5 py-1 text-[11px] font-mono text-primary" style="background-color: var(--bg-app)">
+                                    <button onclick="mailTogglePass()" class="text-secondary hover:text-primary shrink-0" title="Show / hide"><i data-lucide="eye" width="12"></i></button>
+                                </div>
+                                <div class="grid grid-cols-[4rem_1fr_3.5rem] gap-1 items-center pt-1 border-t border-border">
+                                    <span class="font-mono text-[10px] uppercase text-secondary">IMAP</span>
+                                    <input id="mail-imap-host" class="min-w-0 border border-border rounded px-1.5 py-1 text-[11px] font-mono text-primary" style="background-color: var(--bg-app)">
+                                    <input id="mail-imap-port" class="min-w-0 border border-border rounded px-1.5 py-1 text-[11px] font-mono text-primary text-right" style="background-color: var(--bg-app)">
+                                    <span class="font-mono text-[10px] uppercase text-secondary">SMTP</span>
+                                    <input id="mail-smtp-host" class="min-w-0 border border-border rounded px-1.5 py-1 text-[11px] font-mono text-primary" style="background-color: var(--bg-app)">
+                                    <input id="mail-smtp-port" class="min-w-0 border border-border rounded px-1.5 py-1 text-[11px] font-mono text-primary text-right" style="background-color: var(--bg-app)">
+                                </div>
+                                <div class="flex items-center justify-between gap-2 pt-1">
+                                    <button id="mail-test-btn" onclick="mailTest()" class="px-2 py-1 rounded border border-border bg-bg-app hover:bg-bg-hover text-primary text-[10px] font-mono uppercase">Test connection</button>
+                                    <button id="mail-save-btn" onclick="mailSave()" class="px-2 py-1 rounded border border-border bg-bg-app hover:bg-bg-hover text-primary text-[10px] font-mono uppercase">Save</button>
+                                </div>
+                                <div id="mail-foot" class="text-[10px] font-mono text-secondary leading-snug min-h-[12px]">—</div>
                             </div>
                         </div>
 
