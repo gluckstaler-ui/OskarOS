@@ -70,8 +70,7 @@ export const isBrainModel = (s: string): s is BrainModel => s in BRAIN_MODELS
 export const SONNET_WEBDEV_ID = 'claude-sonnet-5-5'
 export const GEMINI_WEBDEV_ID = 'gemini-3.1-pro-preview'
 
-/** Haiku wire id, for small/fast jobs. Nothing imports it yet; the Haiku
- *  literals elsewhere in the codebase predate it. */
+/** Haiku wire id, for small/fast jobs. Nothing imports it yet. */
 export const HAIKU_ID = 'claude-haiku-5-5'
 
 /** What each switch position writes to session config — brain (cdModel via
