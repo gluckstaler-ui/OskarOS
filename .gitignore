@@ -65,7 +65,11 @@ db/
 # WP-CRM-F20 (2026-05-25): content-addressed media files
 # (media/<sha256>.<ext>). WhatsApp downloads + any future attached files.
 # Served via auth-gated /api/admin/media/[hash] route, NOT statically.
-media/
+# ROOT-ANCHORED (2026-08-12): a bare `media/` also ignored the route SOURCE
+# dir app/api/admin/media/ → the deploy's gitignore-filtered staging shipped
+# builds WITHOUT the media routes → every WhatsApp image 404'd on the server
+# while working locally. Only the runtime dir at repo root is ignored.
+/media/
 
 # Heavy asset / scratch dirs — kept on disk, NOT in git (Ralph 2026-06-03).
 # 4.3 GB of binaries; add via git-lfs if they ever need versioning.
@@ -78,6 +82,7 @@ test-results/
 __pycache__/
 .barbazza-mail.env
 .silke-mail.env
+.feyer-mail.env
 
 # Barbazza Facebook widget token
 .barbazza-fb.env
@@ -89,3 +94,7 @@ CRMxterritoryxfathom/
 .cache/
 .next.incoming
 .next.prev
+
+# Secrets on the mini: rclone Drive token, Vertex service-account key
+ops/rclone/rclone.conf
+ops/vertex/

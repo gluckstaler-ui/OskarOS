@@ -1,3 +1,7 @@
+import { existsSync, readFileSync } from 'fs'
+import { join } from 'path'
+import { GoogleAuth } from 'google-auth-library'
+
 const GEMINI_API_KEY = process.env.GOOGLE_API_KEY;
 
 // Gemini model endpoint - Nano Banana 2.1 for image generation (2026-10-22).
@@ -6,6 +10,38 @@ const GEMINI_API_KEY = process.env.GOOGLE_API_KEY;
 // OSKAR_IMAGE_MODEL overrides it (e.g. gemini-3-pro-image for Nano Banana Pro).
 const IMAGE_MODEL = process.env.OSKAR_IMAGE_MODEL || 'gemini-nano-banana-2.1';
 const GEMINI_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/${IMAGE_MODEL}:generateContent`;
+
+/**
+ * Vertex AI (Agent Platform) route, 2026-10-22. When the service-account key
+ * exists, every call in this file goes to Vertex on that key's Cloud project
+ * (billed to its billing account and credits) instead of the Gemini API key.
+ * Without the key file the GOOGLE_API_KEY route below is unchanged.
+ * Setup and the tested request rules: docs/ops/vertex-setup.md.
+ * OSKAR_VERTEX_KEY overrides the key path.
+ */
+const VERTEX_KEY_FILE = process.env.OSKAR_VERTEX_KEY || join(process.cwd(), 'ops', 'vertex', 'oskar-ai.json')
+const VERTEX_LOCATION = 'global'
+// A 429 on Vertex means Google's shared capacity for the model is busy, not a project quota
+// (all quotas at 0 % on 2026-10-22); it comes in bursts. Waits 2, 4, 8, 16 s.
+const VERTEX_429_ATTEMPTS = 5
+
+let vertexTarget: { auth: GoogleAuth; url: string } | null | undefined
+
+function vertex(): { auth: GoogleAuth; url: string } | null {
+  if (vertexTarget !== undefined) return vertexTarget
+  if (!existsSync(VERTEX_KEY_FILE)) {
+    vertexTarget = null
+    console.log(`[gemini] route: Gemini API key (no Vertex key at ${VERTEX_KEY_FILE})`)
+    return null
+  }
+  const projectId = JSON.parse(readFileSync(VERTEX_KEY_FILE, 'utf8')).project_id
+  vertexTarget = {
+    auth: new GoogleAuth({ keyFile: VERTEX_KEY_FILE, scopes: ['https://www.googleapis.com/auth/cloud-platform'] }),
+    url: `https://aiplatform.googleapis.com/v1/projects/${projectId}/locations/${VERTEX_LOCATION}/publishers/google/models/${IMAGE_MODEL}:generateContent`,
+  }
+  console.log(`[gemini] route: Vertex AI, project ${projectId}, ${VERTEX_LOCATION}, ${IMAGE_MODEL}`)
+  return vertexTarget
+}
 
 /**
  * Every adjustable safety filter set to OFF (the most permissive threshold;
@@ -48,21 +84,86 @@ function paymentRequiredError(status: number): Error | null {
   )
 }
 
+/** Vertex has four image-output categories the Gemini API doesn't know; all OFF as well. */
+const VERTEX_IMAGE_SAFETY_OFF = [
+  { category: 'HARM_CATEGORY_IMAGE_HATE', threshold: 'OFF' },
+  { category: 'HARM_CATEGORY_IMAGE_DANGEROUS_CONTENT', threshold: 'OFF' },
+  { category: 'HARM_CATEGORY_IMAGE_HARASSMENT', threshold: 'OFF' },
+  { category: 'HARM_CATEGORY_IMAGE_SEXUALLY_EXPLICIT', threshold: 'OFF' },
+]
+
+/**
+ * The same request, in the shape Vertex accepts (each rule tested against
+ * gemini-nano-banana-2.1 on 2026-10-22):
+ * - every content needs a role, otherwise 400 "Please use a valid role";
+ * - responseModalities ['TEXT'] alone is rejected (400 invalid argument); text is the default;
+ * - thoughts are returned by default, including a draft image before the final one → off;
+ * - people incl. children and prominent people allowed (only Vertex has these fields).
+ */
+function toVertexBody(body: any): any {
+  const generationConfig = { ...body.generationConfig, thinkingConfig: { includeThoughts: false } }
+  const modalities = generationConfig.responseModalities
+  if (modalities?.length === 1 && modalities[0] === 'TEXT') delete generationConfig.responseModalities
+  if (generationConfig.imageConfig) {
+    generationConfig.imageConfig = {
+      ...generationConfig.imageConfig,
+      personGeneration: 'ALLOW_ALL',
+      prominentPeople: 'ALLOW_PROMINENT_PEOPLE',
+    }
+  }
+  return {
+    ...body,
+    contents: body.contents.map((c: any) => ({ role: 'user', ...c })),
+    generationConfig,
+    safetySettings: [...(body.safetySettings || []), ...VERTEX_IMAGE_SAFETY_OFF],
+  }
+}
+
+/** POST a generateContent body to Vertex (key file present) or to the Gemini API key. */
+async function postGenerateContent(body: any): Promise<Response> {
+  const v = vertex()
+  if (!v) {
+    return fetch(`${GEMINI_API_URL}?key=${GEMINI_API_KEY}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    })
+  }
+  const payload = JSON.stringify(toVertexBody(body))
+  for (let attempt = 1; ; attempt++) {
+    const token = await v.auth.getAccessToken()
+    const response = await fetch(v.url, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      body: payload,
+    })
+    if (response.status !== 429 || attempt >= VERTEX_429_ATTEMPTS) return response
+    const wait = 2000 * 2 ** (attempt - 1)
+    console.warn(`[gemini] Vertex 429, shared capacity busy (attempt ${attempt}/${VERTEX_429_ATTEMPTS}), waiting ${wait / 1000}s...`)
+    await new Promise(r => setTimeout(r, wait))
+  }
+}
+
+/** The answer parts of the first candidate, without thought parts (draft images, thinking text). */
+function answerParts(data: any): any[] {
+  return (data?.candidates?.[0]?.content?.parts || []).filter((p: any) => !p.thought)
+}
+
 /**
  * Check if Gemini API is configured
  */
 export function isGeminiConfigured(): boolean {
-  return !!GEMINI_API_KEY
+  return !!vertex() || !!GEMINI_API_KEY
 }
 
 /**
  * Throw helpful error if API key missing
  */
 function requireApiKey() {
-  if (!GEMINI_API_KEY) {
+  if (!isGeminiConfigured()) {
     throw new Error(
-      'GOOGLE_API_KEY not configured. Add GOOGLE_API_KEY=your-key to .env.local\n' +
-      'Get a key at: https://aistudio.google.com/apikey'
+      `Neither a Vertex key (${VERTEX_KEY_FILE}) nor GOOGLE_API_KEY is configured.\n` +
+      'Vertex: docs/ops/vertex-setup.md. API key: add GOOGLE_API_KEY=your-key to .env.local (https://aistudio.google.com/apikey)'
     )
   }
 }
@@ -160,17 +261,13 @@ export async function chat(
     });
   }
 
-  const response = await fetch(`${GEMINI_API_URL}?key=${GEMINI_API_KEY}`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      contents,
-      generationConfig: {
-        temperature: 0.9,
-        maxOutputTokens: 8192,
-      },
-      safetySettings: SAFETY_OFF
-    })
+  const response = await postGenerateContent({
+    contents,
+    generationConfig: {
+      temperature: 0.9,
+      maxOutputTokens: 8192,
+    },
+    safetySettings: SAFETY_OFF
   });
 
   if (!response.ok) {
@@ -181,12 +278,9 @@ export async function chat(
   const data = await response.json();
 
   // Extract text from response
-  const candidate = data.candidates?.[0];
-  if (candidate?.content?.parts) {
-    for (const part of candidate.content.parts) {
-      if (part.text) {
-        return part.text;
-      }
+  for (const part of answerParts(data)) {
+    if (part.text) {
+      return part.text;
     }
   }
 
@@ -246,14 +340,10 @@ export async function generateImage(request: ImageGenerationRequest): Promise<{ 
   let lastTextResponse = '';
 
   for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
-    const response = await fetch(`${GEMINI_API_URL}?key=${GEMINI_API_KEY}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        contents: [{ parts }],
-        generationConfig,
-        safetySettings: SAFETY_OFF
-      })
+    const response = await postGenerateContent({
+      contents: [{ parts }],
+      generationConfig,
+      safetySettings: SAFETY_OFF
     });
 
     if (!response.ok) {
@@ -269,23 +359,21 @@ export async function generateImage(request: ImageGenerationRequest): Promise<{ 
     }
 
     const data = await response.json();
-    const candidate = data.candidates?.[0];
+    const answer = answerParts(data);
     let imageUrl: string | null = null;
     let geminiText: string | undefined;
 
-    if (candidate?.content?.parts) {
-      for (const part of candidate.content.parts) {
-        if (part.inlineData?.data && !imageUrl) {
-          imageUrl = `data:${part.inlineData.mimeType || 'image/png'};base64,${part.inlineData.data}`;
-        }
-        if (part.text && !geminiText) {
-          geminiText = part.text;
-        }
+    for (const part of answer) {
+      if (part.inlineData?.data && !imageUrl) {
+        imageUrl = `data:${part.inlineData.mimeType || 'image/png'};base64,${part.inlineData.data}`;
       }
-      if (!imageUrl) {
-        const textParts = candidate.content.parts.filter((p: any) => p.text).map((p: any) => p.text);
-        if (textParts.length > 0) lastTextResponse = textParts.join(' ').slice(0, 200);
+      if (part.text && !geminiText) {
+        geminiText = part.text;
       }
+    }
+    if (!imageUrl) {
+      const textParts = answer.filter((p: any) => p.text).map((p: any) => p.text);
+      if (textParts.length > 0) lastTextResponse = textParts.join(' ').slice(0, 200);
     }
 
     if (imageUrl) {
@@ -393,14 +481,10 @@ export async function callGemini(request: CallGeminiRequest): Promise<{ imageUrl
   const label = hasSourceImages ? 'edit' : 'generate'
 
   for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
-    const response = await fetch(`${GEMINI_API_URL}?key=${GEMINI_API_KEY}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        contents: [{ parts }],
-        generationConfig,
-        safetySettings: SAFETY_OFF,
-      })
+    const response = await postGenerateContent({
+      contents: [{ parts }],
+      generationConfig,
+      safetySettings: SAFETY_OFF,
     })
 
     if (!response.ok) {
@@ -422,9 +506,10 @@ export async function callGemini(request: CallGeminiRequest): Promise<{ imageUrl
 
     const data = await response.json()
     const candidate = data.candidates?.[0]
+    const answer = answerParts(data)
 
     // Diagnostic: log exactly what Gemini returned when no image
-    if (!candidate?.content?.parts?.some((p: any) => p.inlineData?.data)) {
+    if (!answer.some((p: any) => p.inlineData?.data)) {
       console.warn(`[Gemini ${label}] attempt ${attempt}/${MAX_RETRIES} — no image. finishReason=${candidate?.finishReason || 'none'}, parts=${candidate?.content?.parts?.length || 0}, promptFeedback=${JSON.stringify(data.promptFeedback || null)}, safetyRatings=${JSON.stringify(candidate?.safetyRatings?.map((r: any) => `${r.category}:${r.probability}`) || [])}`)
     }
 
@@ -436,14 +521,12 @@ export async function callGemini(request: CallGeminiRequest): Promise<{ imageUrl
     let imageUrl: string | null = null
     let geminiText: string | undefined
 
-    if (candidate?.content?.parts) {
-      for (const part of candidate.content.parts) {
-        if (part.inlineData?.data && !imageUrl) {
-          imageUrl = `data:${part.inlineData.mimeType || 'image/png'};base64,${part.inlineData.data}`
-        }
-        if (part.text && !geminiText) {
-          geminiText = part.text
-        }
+    for (const part of answer) {
+      if (part.inlineData?.data && !imageUrl) {
+        imageUrl = `data:${part.inlineData.mimeType || 'image/png'};base64,${part.inlineData.data}`
+      }
+      if (part.text && !geminiText) {
+        geminiText = part.text
       }
     }
 
@@ -452,7 +535,7 @@ export async function callGemini(request: CallGeminiRequest): Promise<{ imageUrl
       return { imageUrl, geminiText }
     }
 
-    const textParts = candidate?.content?.parts?.filter((p: any) => p.text).map((p: any) => p.text) || []
+    const textParts = answer.filter((p: any) => p.text).map((p: any) => p.text)
     if (textParts.length > 0) lastTextResponse = textParts.join(' ').slice(0, 200)
     console.warn(`[Gemini ${label}] No image attempt ${attempt}/${MAX_RETRIES}.${lastTextResponse ? ` Model said: "${lastTextResponse.slice(0, 100)}"` : ''}`)
 
@@ -499,17 +582,13 @@ Return ONLY valid JSON, no other text.`
     }
   ]
 
-  const response = await fetch(`${GEMINI_API_URL}?key=${GEMINI_API_KEY}`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      contents: [{ parts }],
-      generationConfig: {
-        temperature: 0.1,
-        maxOutputTokens: 1024,
-      },
-      safetySettings: SAFETY_OFF
-    })
+  const response = await postGenerateContent({
+    contents: [{ parts }],
+    generationConfig: {
+      temperature: 0.1,
+      maxOutputTokens: 1024,
+    },
+    safetySettings: SAFETY_OFF
   })
 
   if (!response.ok) {
@@ -518,7 +597,7 @@ Return ONLY valid JSON, no other text.`
   }
 
   const data = await response.json()
-  const text = data.candidates?.[0]?.content?.parts?.[0]?.text || ''
+  const text = answerParts(data).find((p: any) => p.text)?.text || ''
 
   // Parse JSON from response
   const jsonMatch = text.match(/\{[\s\S]*\}/)
@@ -565,7 +644,7 @@ export async function describeGeneratedImage(
   imageBase64: string,
   context?: { prompt?: string; mode?: string; sourceFilenames?: string[] }
 ): Promise<string | null> {
-  if (!GEMINI_API_KEY) return null
+  if (!isGeminiConfigured()) return null
 
   try {
     const parts: any[] = [
@@ -589,18 +668,14 @@ Be vivid and specific. This description will be used for future edits and versio
       }
     ]
 
-    const response = await fetch(`${GEMINI_API_URL}?key=${GEMINI_API_KEY}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        contents: [{ parts }],
-        generationConfig: {
-          responseModalities: ['TEXT'],
-          temperature: 0.2,
-          maxOutputTokens: 512,
-        },
-        safetySettings: SAFETY_OFF
-      })
+    const response = await postGenerateContent({
+      contents: [{ parts }],
+      generationConfig: {
+        responseModalities: ['TEXT'],
+        temperature: 0.2,
+        maxOutputTokens: 512,
+      },
+      safetySettings: SAFETY_OFF
     })
 
     if (!response.ok) {
@@ -609,7 +684,7 @@ Be vivid and specific. This description will be used for future edits and versio
     }
 
     const data = await response.json()
-    const text = data.candidates?.[0]?.content?.parts?.[0]?.text
+    const text = answerParts(data).find((p: any) => p.text)?.text
     if (text?.trim()) {
       console.log(`[Turn 2] Description: ${text.trim().length} chars`)
       return text.trim()
