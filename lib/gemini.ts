@@ -1,7 +1,52 @@
 const GEMINI_API_KEY = process.env.GOOGLE_API_KEY;
 
-// Gemini model endpoint - Nano Banana 2 (gemini-3.1-flash-image-preview) for image generation
-const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-image-preview:generateContent';
+// Gemini model endpoint - Nano Banana 2.1 for image generation (2026-10-22).
+// gemini-3.1-flash-image-preview was announced for shutdown on 2026-06-25;
+// 2.1 is Google's named replacement at half the price per image.
+// OSKAR_IMAGE_MODEL overrides it (e.g. gemini-3-pro-image for Nano Banana Pro).
+const IMAGE_MODEL = process.env.OSKAR_IMAGE_MODEL || 'gemini-nano-banana-2.1';
+const GEMINI_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/${IMAGE_MODEL}:generateContent`;
+
+/**
+ * Every adjustable safety filter set to OFF (the most permissive threshold;
+ * BLOCK_NONE still rates content, OFF skips the filter). Active categories per
+ * the generateContent reference, 2026-10-22. HARM_CATEGORY_CIVIC_INTEGRITY is
+ * deprecated and left out; unset categories default to OFF on Gemini 2.5+.
+ * Not adjustable by any setting: child-safety and recitation protections,
+ * which surface as PROHIBITED_CONTENT / IMAGE_PROHIBITED_CONTENT / IMAGE_RECITATION.
+ * (personGeneration exists only on Vertex AI; the Gemini API rejects the field.)
+ */
+const SAFETY_OFF = [
+  { category: 'HARM_CATEGORY_HARASSMENT', threshold: 'OFF' },
+  { category: 'HARM_CATEGORY_HATE_SPEECH', threshold: 'OFF' },
+  { category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT', threshold: 'OFF' },
+  { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'OFF' },
+  { category: 'HARM_CATEGORY_JAILBREAK', threshold: 'OFF' },
+]
+
+/**
+ * Block reasons no retry can fix (non-adjustable filters or a blocked prompt).
+ * IMAGE_SAFETY, IMAGE_OTHER and NO_IMAGE are left to the retry loops: the
+ * image-output check is probabilistic and often passes on the next attempt.
+ */
+function hardBlockReason(data: any): string | null {
+  const promptBlock = data?.promptFeedback?.blockReason
+  if (promptBlock) return `prompt blocked: ${promptBlock}`
+  const finish = data?.candidates?.[0]?.finishReason
+  if (finish === 'SAFETY' || finish === 'PROHIBITED_CONTENT' || finish === 'IMAGE_PROHIBITED_CONTENT' ||
+      finish === 'BLOCKLIST' || finish === 'SPII') return `blocked: ${finish}`
+  if (finish === 'RECITATION' || finish === 'IMAGE_RECITATION') return `recitation/copyright filter: ${finish}`
+  return null
+}
+
+/** Prepay balance exhausted → every key on the billing account answers 402. Not retryable. */
+function paymentRequiredError(status: number): Error | null {
+  if (status !== 402) return null
+  return new Error(
+    'Google image credit used up (HTTP 402 Payment Required). The Gemini API prepay balance of the ' +
+    'billing account behind GOOGLE_API_KEY is empty — top up or enable auto-reload at https://aistudio.google.com/billing'
+  )
+}
 
 /**
  * Check if Gemini API is configured
@@ -123,7 +168,8 @@ export async function chat(
       generationConfig: {
         temperature: 0.9,
         maxOutputTokens: 8192,
-      }
+      },
+      safetySettings: SAFETY_OFF
     })
   });
 
@@ -195,14 +241,6 @@ export async function generateImage(request: ImageGenerationRequest): Promise<{ 
     generationConfig.imageConfig.imageSize = request.imageSize;
   }
 
-  const safetySettings = [
-    { category: 'HARM_CATEGORY_HARASSMENT', threshold: 'OFF' },
-    { category: 'HARM_CATEGORY_HATE_SPEECH', threshold: 'OFF' },
-    { category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT', threshold: 'OFF' },
-    { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'OFF' },
-    { category: 'HARM_CATEGORY_CIVIC_INTEGRITY', threshold: 'OFF' },
-  ];
-
   // Retry up to 3 times — Gemini sometimes returns text-only instead of an image
   const MAX_RETRIES = 3;
   let lastTextResponse = '';
@@ -214,11 +252,13 @@ export async function generateImage(request: ImageGenerationRequest): Promise<{ 
       body: JSON.stringify({
         contents: [{ parts }],
         generationConfig,
-        safetySettings
+        safetySettings: SAFETY_OFF
       })
     });
 
     if (!response.ok) {
+      const paymentError = paymentRequiredError(response.status);
+      if (paymentError) throw paymentError;
       const error = await response.text();
       if (response.status === 429 && attempt < MAX_RETRIES) {
         console.warn(`[Gemini] Rate limited (attempt ${attempt}/${MAX_RETRIES}), waiting ${attempt * 2}s...`);
@@ -253,9 +293,9 @@ export async function generateImage(request: ImageGenerationRequest): Promise<{ 
       return { imageUrl, geminiText };
     }
 
-    const blockReason = candidate?.finishReason;
-    if (blockReason === 'SAFETY') {
-      throw new Error(`Gemini blocked image generation (safety filter). Try rephrasing the prompt.`);
+    const blockReason = hardBlockReason(data);
+    if (blockReason) {
+      throw new Error(`Gemini blocked image generation (${blockReason}). Try rephrasing the prompt.`);
     }
 
     if (attempt < MAX_RETRIES) {
@@ -294,14 +334,6 @@ export interface CallGeminiRequest {
   imageSize?: ImageSize
   style?: string
 }
-
-const SAFETY_OFF = [
-  { category: 'HARM_CATEGORY_HARASSMENT', threshold: 'OFF' },
-  { category: 'HARM_CATEGORY_HATE_SPEECH', threshold: 'OFF' },
-  { category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT', threshold: 'OFF' },
-  { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'OFF' },
-  { category: 'HARM_CATEGORY_CIVIC_INTEGRITY', threshold: 'OFF' },
-]
 
 export async function callGemini(request: CallGeminiRequest): Promise<{ imageUrl: string; geminiText?: string }> {
   requireApiKey()
@@ -372,6 +404,8 @@ export async function callGemini(request: CallGeminiRequest): Promise<{ imageUrl
     })
 
     if (!response.ok) {
+      const paymentError = paymentRequiredError(response.status)
+      if (paymentError) throw paymentError
       const error = await response.text()
       if (response.status === 429 && attempt < MAX_RETRIES) {
         console.warn(`[Gemini ${label}] Rate limited (attempt ${attempt}/${MAX_RETRIES}), waiting ${attempt * 2}s...`)
@@ -394,12 +428,9 @@ export async function callGemini(request: CallGeminiRequest): Promise<{ imageUrl
       console.warn(`[Gemini ${label}] attempt ${attempt}/${MAX_RETRIES} — no image. finishReason=${candidate?.finishReason || 'none'}, parts=${candidate?.content?.parts?.length || 0}, promptFeedback=${JSON.stringify(data.promptFeedback || null)}, safetyRatings=${JSON.stringify(candidate?.safetyRatings?.map((r: any) => `${r.category}:${r.probability}`) || [])}`)
     }
 
-    if (candidate?.finishReason === 'SAFETY') {
-      throw new Error(`Gemini blocked image ${label} (safety filter: ${JSON.stringify(candidate?.safetyRatings?.map((r: any) => `${r.category}:${r.probability}`) || [])}). Try rephrasing the prompt.`)
-    }
-
-    if (candidate?.finishReason === 'RECITATION') {
-      throw new Error(`Gemini blocked image ${label} (recitation/copyright filter). Try rephrasing the prompt.`)
+    const blockReason = hardBlockReason(data)
+    if (blockReason) {
+      throw new Error(`Gemini blocked image ${label} (${blockReason}; ratings: ${JSON.stringify(candidate?.safetyRatings?.map((r: any) => `${r.category}:${r.probability}`) || [])}). Try rephrasing the prompt.`)
     }
 
     let imageUrl: string | null = null
@@ -476,7 +507,8 @@ Return ONLY valid JSON, no other text.`
       generationConfig: {
         temperature: 0.1,
         maxOutputTokens: 1024,
-      }
+      },
+      safetySettings: SAFETY_OFF
     })
   })
 
@@ -566,7 +598,8 @@ Be vivid and specific. This description will be used for future edits and versio
           responseModalities: ['TEXT'],
           temperature: 0.2,
           maxOutputTokens: 512,
-        }
+        },
+        safetySettings: SAFETY_OFF
       })
     })
 
