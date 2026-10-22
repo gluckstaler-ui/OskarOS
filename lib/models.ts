@@ -41,9 +41,11 @@ export interface ModelSpec {
   ensure1M: boolean
 }
 
+// Current generation per the Claude API model table (2026-10-22): Fable 5.1,
+// Opus 5.5, Sonnet 5.5, Haiku 5.5. Bare ids, no date suffix.
 export const BRAIN_MODELS = {
-  fable: { id: 'claude-fable-5',  label: 'Fable', ensure1M: true },
-  opus:  { id: 'claude-opus-4-7', label: 'Opus',  ensure1M: true },
+  fable: { id: 'claude-fable-5-1', label: 'Fable', ensure1M: true },
+  opus:  { id: 'claude-opus-5-5',  label: 'Opus',  ensure1M: true },
 } as const satisfies Record<BrainModel, ModelSpec>
 
 /** Union of the bare wire ids — DERIVED from the registry, so the CdModel type
@@ -51,7 +53,8 @@ export const BRAIN_MODELS = {
 export type BrainId = (typeof BRAIN_MODELS)[BrainModel]['id']
 
 /** The ONE default brain. Flip this single value to move CD + Consular.
- *  Back to 'fable' on 2026-07-03 — Fable 5 returned as a big-brain model.
+ *  Back to 'fable' on 2026-07-03 — Fable 5 returned as a big-brain model
+ *  (Fable 5.1 since 2026-10-22).
  *  (Was 'opus' from 2026-06-13 while Fable 5 access was suspended.) */
 export const DEFAULT_BRAIN: BrainModel = 'fable'
 
@@ -64,8 +67,12 @@ export const isBrainModel = (s: string): s is BrainModel => s in BRAIN_MODELS
 /** Padawan wire ids (rule 2: no model literal anywhere else). Sonnet is the
  *  padawan default (WebDev, Sage, Sage-240); Gemini replaces it under the
  *  gemini preset. session-config's WebDevModel union carries the same ids. */
-export const SONNET_WEBDEV_ID = 'claude-sonnet-4-6'
+export const SONNET_WEBDEV_ID = 'claude-sonnet-5-5'
 export const GEMINI_WEBDEV_ID = 'gemini-3.1-pro-preview'
+
+/** Haiku wire id, for small/fast jobs. Nothing imports it yet; the Haiku
+ *  literals elsewhere in the codebase predate it. */
+export const HAIKU_ID = 'claude-haiku-5-5'
 
 /** What each switch position writes to session config — brain (cdModel via
  *  brainSpec) + padawan model (webDevModel, read per-build by the MCP build
@@ -74,7 +81,7 @@ export const MODEL_SWITCH_PRESETS = {
   fable:  { brain: 'fable', webDevModel: SONNET_WEBDEV_ID },
   opus:   { brain: 'opus',  webDevModel: SONNET_WEBDEV_ID },
   gemini: { brain: 'opus',  webDevModel: GEMINI_WEBDEV_ID },
-} as const satisfies Record<ModelSwitch, { brain: BrainModel; webDevModel: 'claude-sonnet-4-6' | 'gemini-3.1-pro-preview' }>
+} as const satisfies Record<ModelSwitch, { brain: BrainModel; webDevModel: typeof SONNET_WEBDEV_ID | typeof GEMINI_WEBDEV_ID }>
 
 export const isModelSwitch = (s: string): s is ModelSwitch => s === 'gemini' || isBrainModel(s)
 
@@ -102,7 +109,7 @@ export function brainFromId(id: string): BrainModel | null {
  *  gate, which silently disabled the probe the moment we moved to bare ids. */
 export function requires1M(id: string): boolean {
   const bare = bareModelId(id)
-  return /^claude-(fable-5|opus-4-\d|sonnet-4-\d)/.test(bare)
+  return /^claude-(fable-5|opus-[45]-\d|sonnet-[45]-\d)/.test(bare)
 }
 
 /** Strip the CLI-only `[1m]` alias suffix → the bare wire id. The Anthropic API
