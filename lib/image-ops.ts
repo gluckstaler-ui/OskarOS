@@ -1,8 +1,14 @@
 /**
  * image-ops.ts — Sharp pipeline for the `image_ops` MCP tool (Phase 2 Tier B, 2026-04-30).
  *
- * Six operations: crop / slice / resize / chroma-key / format-convert / composite.
- * No blend modes, no rotation in v1 — add only when an actual incident proves the need.
+ * Eight operations: crop / slice / resize / rotate / mirror / chroma-key /
+ * format-convert / composite.
+ *
+ * rotate + mirror (Ralph 2026-07-16): DEFAULT IS OVERWRITE. A rotation or
+ * mirror is a correction to the SAME asset (wrong EXIF orientation, flipped
+ * scan) — not a derivative. Omitting `overwrite` means `overwrite: true`;
+ * pass `overwrite: false` explicitly (or an `outputName`) to fork a copy.
+ * All other ops keep their derive-by-default behavior.
  *
  * Side effects: every op that produces a new file appends an entry to IMAGES.md
  * with status `B-ROLL` so CD can review.
@@ -31,6 +37,12 @@ export type ImageOp =
   | { operation: 'crop'; params: ({ x: number; y: number; w: number; h: number } | { aspect: '16:9' | '4:3' | '1:1' | '9:16' | '3:4' | '21:9' }) & { outputName?: string; overwrite?: boolean } }
   | { operation: 'slice'; params: { rows: number; cols: number; namingPattern?: string } }
   | { operation: 'resize'; params: { w?: number; h?: number; fit?: 'cover' | 'contain'; kernel?: 'nearest' | 'cubic' | 'bilinear' | 'lanczos3'; outputName?: string; overwrite?: boolean } }
+  /**
+   * rotate / mirror (Ralph 2026-07-16). Angle is clockwise degrees.
+   * `overwrite` DEFAULTS TO TRUE for both — see file header.
+   */
+  | { operation: 'rotate'; params: { angle: 90 | 180 | 270; outputName?: string; overwrite?: boolean } }
+  | { operation: 'mirror'; params: { axis: 'horizontal' | 'vertical'; outputName?: string; overwrite?: boolean } }
   | { operation: 'chroma-key'; params: { color?: string; tolerance?: number; feather?: number } }
   /**
    * WP-IMG-5 (2026-05-06): format-convert with quality, lossless, and two
@@ -124,6 +136,33 @@ function resolveOutputName(
   }
   if (opts.overwrite) return filename
   return withSuffix(filename, defaultSuffix, defaultExt)
+}
+
+/**
+ * 2026-07-16 (Ralph — rotate/mirror WP): write a Sharp pipeline to disk,
+ * SAFELY handling the overwrite-in-place case.
+ *
+ * Sharp CANNOT `.toFile()` onto its own input path — it throws "Cannot use
+ * same file for input and output". Every op that supports `overwrite: true`
+ * therefore MUST route through this helper: same-path writes go through a
+ * buffer round-trip (fully materialized before the file is replaced), and
+ * distinct-path writes use the direct `.toFile()` fast path.
+ *
+ * This also fixed a latent bug: crop/resize/format-convert with the
+ * overwrite checkbox had been calling `.toFile(srcPath)` directly and
+ * erroring 100% of the time.
+ */
+async function writeOutput(
+  pipeline: sharp.Sharp,
+  srcPath: string,
+  outPath: string,
+): Promise<void> {
+  if (outPath === srcPath) {
+    const buf = await pipeline.toBuffer()
+    await writeFile(outPath, buf)
+    return
+  }
+  await pipeline.toFile(outPath)
 }
 
 /**
@@ -245,8 +284,16 @@ export async function runImageOp(
         // source on disk); the UI surfaces a confirm checkbox so user
         // explicitly opts in. We honor it as-is here.
         const out = resolveOutputName(filename, 'crop', op.params)
-        await sharp(srcPath).extract({ left: x, top: y, width: w, height: h }).toFile(join(sessionDir, out))
-        await appendImagesMdEntry(sessionDir, out, `crop from ${filename}`, 'crop', tag)
+        await writeOutput(
+          sharp(srcPath).extract({ left: x, top: y, width: w, height: h }),
+          srcPath,
+          join(sessionDir, out),
+        )
+        // Overwrite-in-place = same asset, not a new one. No duplicate
+        // IMAGES.md block (the source's entry stays authoritative).
+        if (out !== filename) {
+          await appendImagesMdEntry(sessionDir, out, `crop from ${filename}`, 'crop', tag)
+        }
         return { ok: true, outputs: [out] }
       }
 
@@ -290,10 +337,55 @@ export async function runImageOp(
               : kernel === 'nearest' ? sharp.kernel.nearest
               : sharp.kernel.lanczos3)
           : undefined
-        await sharp(srcPath)
-          .resize({ width: w, height: h, fit: sharpFit, withoutEnlargement: !fit, kernel: sharpKernel })
-          .toFile(join(sessionDir, out))
-        await appendImagesMdEntry(sessionDir, out, `resize ${w || '?'}×${h || '?'}${kernel ? ` (${kernel})` : ''}`, 'resize', tag)
+        await writeOutput(
+          sharp(srcPath).resize({ width: w, height: h, fit: sharpFit, withoutEnlargement: !fit, kernel: sharpKernel }),
+          srcPath,
+          join(sessionDir, out),
+        )
+        if (out !== filename) {
+          await appendImagesMdEntry(sessionDir, out, `resize ${w || '?'}×${h || '?'}${kernel ? ` (${kernel})` : ''}`, 'resize', tag)
+        }
+        return { ok: true, outputs: [out] }
+      }
+
+      case 'rotate': {
+        // Ralph 2026-07-16: DEFAULT IS OVERWRITE — a rotation corrects the
+        // asset in place (wrong EXIF orientation from HEIC/phone uploads).
+        // `overwrite: false` or an explicit outputName forks a copy instead.
+        const { angle } = op.params
+        if (![90, 180, 270].includes(angle)) {
+          return { ok: false, error: 'rotate angle must be 90, 180 or 270', outputs: [] }
+        }
+        const overwrite = op.params.overwrite ?? true
+        const out = resolveOutputName(filename, `rot${angle}`, { outputName: op.params.outputName, overwrite })
+        // JPEG re-encode on rotate: hold quality high so repeated corrections
+        // don't visibly degrade the asset.
+        let pipeline = sharp(srcPath).rotate(angle)
+        if (/\.jpe?g$/i.test(out)) pipeline = pipeline.jpeg({ quality: 92 })
+        await writeOutput(pipeline, srcPath, join(sessionDir, out))
+        if (out !== filename) {
+          await appendImagesMdEntry(sessionDir, out, `rotate ${angle}° CW from ${filename}`, 'rotate', tag)
+        }
+        return { ok: true, outputs: [out] }
+      }
+
+      case 'mirror': {
+        // Ralph 2026-07-16: DEFAULT IS OVERWRITE — same reasoning as rotate.
+        const { axis } = op.params
+        if (axis !== 'horizontal' && axis !== 'vertical') {
+          return { ok: false, error: "mirror axis must be 'horizontal' or 'vertical'", outputs: [] }
+        }
+        const overwrite = op.params.overwrite ?? true
+        const out = resolveOutputName(filename, axis === 'horizontal' ? 'mirror-h' : 'mirror-v', { outputName: op.params.outputName, overwrite })
+        // Sharp semantics: flop() mirrors about the vertical axis (left↔right,
+        // "horizontal mirror"); flip() mirrors about the horizontal axis
+        // (top↕bottom, "vertical mirror").
+        let pipeline = axis === 'horizontal' ? sharp(srcPath).flop() : sharp(srcPath).flip()
+        if (/\.jpe?g$/i.test(out)) pipeline = pipeline.jpeg({ quality: 92 })
+        await writeOutput(pipeline, srcPath, join(sessionDir, out))
+        if (out !== filename) {
+          await appendImagesMdEntry(sessionDir, out, `mirror ${axis} from ${filename}`, 'mirror', tag)
+        }
         return { ok: true, outputs: [out] }
       }
 
@@ -417,12 +509,14 @@ export async function runImageOp(
           }
         }
 
-        await pipeline.toFile(join(sessionDir, out))
+        await writeOutput(pipeline, srcPath, join(sessionDir, out))
         const noteParts = [`format → ${to}`]
         if (chromaKey) noteParts.push(`+ chroma-key ${chromaKey.color}`)
         if (alphaMatte) noteParts.push(`+ alpha-matte ${alphaMatte.color}`)
         if (to === 'webp' && lossless) noteParts.push('+ lossless')
-        await appendImagesMdEntry(sessionDir, out, noteParts.join(' '), 'format-convert', tag)
+        if (out !== filename) {
+          await appendImagesMdEntry(sessionDir, out, noteParts.join(' '), 'format-convert', tag)
+        }
         return { ok: true, outputs: [out] }
       }
 

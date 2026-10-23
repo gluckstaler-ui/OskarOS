@@ -86,6 +86,8 @@ export async function POST(req: NextRequest) {
         standby_plan: '',
         lost_reason: '',
         sub_stage: '',
+        auto_respond: false,
+        auto_respond_goals: '',
         address_strasse: '',
         address_plz: '',
         address_ort: '',

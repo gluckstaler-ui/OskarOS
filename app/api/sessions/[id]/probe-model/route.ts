@@ -44,6 +44,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { spawn } from 'child_process'
 import { existsSync } from 'fs'
 import { resolveConfig } from '@/lib/session-config'
+import { brainSpec, DEFAULT_BRAIN } from '@/lib/models'
 import { bridgeManager } from '@/lib/bridge-process-manager'
 import { findBinary } from '@/lib/cli-paths'
 
@@ -181,8 +182,8 @@ export async function GET(
       // We control the wire for API mode — resolve, translate the 'auto'
       // sentinel, return. No probe necessary because there's no separate
       // process to query.
-      const raw = resolveConfig('cdModel', null, sessionId, 'claude-opus-4-7')
-      const model = raw === 'auto' ? 'claude-opus-4-7' : raw
+      const raw = resolveConfig('cdModel', null, sessionId, brainSpec(DEFAULT_BRAIN).id)
+      const model = raw === 'auto' ? brainSpec(DEFAULT_BRAIN).id : raw
       return NextResponse.json({ model, source: 'api-config' }, { headers: NO_CACHE })
     }
 

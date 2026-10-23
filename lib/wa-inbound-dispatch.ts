@@ -134,6 +134,15 @@ export async function dispatchInboundToCrm(payload: InboundPayload): Promise<Inb
     timestamp,
   })
 
+  // Auto-respond hook (Ralph 2026-08-22): fresh inbound on a flagged prospect
+  // arms the Consular's quiet-window timer. No-op when unflagged.
+  try {
+    const { maybeAutoRespond } = await import('./auto-respond')
+    maybeAutoRespond(matched.id)
+  } catch (err) {
+    console.warn('[wa-inbound-dispatch] auto-respond hook failed (non-fatal):', err)
+  }
+
   return { matched: true, prospect_id: matched.id, activity_id: activity.id }
 }
 
@@ -220,6 +229,14 @@ export async function promoteUnmatchedForPhone(
       timestamp: (m.timestamp as string | undefined) ?? new Date().toISOString(),
     })
     activity_ids.push(activity.id)
+  }
+
+  // Auto-respond hook — promoted backlog counts as fresh inbound too.
+  try {
+    const { maybeAutoRespond } = await import('./auto-respond')
+    maybeAutoRespond(prospect_id)
+  } catch (err) {
+    console.warn('[wa-inbound-dispatch] auto-respond hook failed (non-fatal):', err)
   }
 
   // Write back only non-matching lines. Matches the dispatcher's trailing-

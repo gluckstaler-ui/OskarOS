@@ -22,6 +22,7 @@ import {
   getLogsDir,
 } from './paths'
 import { loadDreamerAgentFile, loadSagePortrait, loadSage240_40 } from './prompts'
+import { SONNET_WEBDEV_ID } from '../models'
 import { callAnthropic, callAnthropicAgent } from './anthropic'
 import path from 'path'
 
@@ -44,7 +45,7 @@ export type ProgressCallback = (event: ProgressEvent) => void
 // Config
 // ============================================================================
 
-const DREAMER_MODEL = 'claude-sonnet-4-6' as const
+const DREAMER_MODEL = SONNET_WEBDEV_ID
 
 // ============================================================================
 // Types

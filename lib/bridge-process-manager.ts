@@ -104,14 +104,6 @@ export interface BridgeOptions {
   systemPrompt: string  // full system prompt text
   cwd: string
   /**
-   * Opt-in to the 1M re-roll loop (Ralph 2026-05-28). ONLY the interactive
-   * CD chat route (app/api/chat-stream) sets this. The one-shot CD helpers
-   * (cd-bridge-call → proofread/verdict/upload-eval/ask-cd) deliberately do
-   * NOT — they're short tasks that don't need 1M, and the re-roll must not
-   * touch them. Absent/false ⇒ straight pass-through, exactly as before.
-   */
-  ensure1M?: boolean
-  /**
    * MCP role + spawn-time tool allowlist (Ralph 2026-05-29, WP-112). Both
    * default to CD, so every existing caller (chat-stream, cd-bridge-call,
    * WebDev/Sentinel via their own paths) is unchanged. The Consular bridge
@@ -582,23 +574,12 @@ class BridgeProcessManagerImpl {
     }
 
     // ── 1M re-roll loop (Ralph 2026-05-28) ──────────────────────────────
-    // After Order 66 the bridge sometimes comes up on a sub-1M model even
-    // though we requested 1M Opus. This manager IS the CLI path, so the
-    // re-roll lives here and applies to nothing else — and within the CLI
-    // path it's gated on opts.ensure1M, which ONLY the interactive CD chat
-    // (chat-stream) sets. The one-shot CD helpers don't, so proofread/verdict
-    // /upload-eval/ask-cd never re-roll. On an opted-in FRESH spawn where the
-    // caller asked for a 1M model, we read the model the wire actually served
-    // and, if it's <1M, kill + respawn fresh + replay the same message — up
-    // to MAX_SPAWNS, then give up gracefully at whatever we got.
-    //
-    // We trust the WIRE model (assistant.message.model), not init: init only
-    // echoes our request (`claude-opus-4-7[1m]`) and does NOT reveal a
-    // demotion — verified empirically via scripts/probe-cli-1m.mjs. init is
-    // used only as an EARLY abort when it explicitly names a sub-1M model.
-    //
-    // Events are buffered until the model is known, so a demoted attempt's
-    // output never leaks to the client — only the kept attempt streams.
+    // Every fresh bridge spawn is verified for 1M context. Anthropic can
+    // silently serve 200K under the same model name. The only truth is
+    // result.modelUsage[model].contextWindow at turn end. On a fresh spawn
+    // we buffer the first response, check the wire, and if sub-1M: kill +
+    // respawn + replay — up to MAX_SPAWNS, then give up with a warning.
+    // Resumed sessions skip (already verified on the original spawn).
     const hadLive = this.hasProcess(sessionId)   // live process pre-turn?
     const MAX_SPAWNS = 4
     const BACKOFF_MS = [1500, 3000, 4500]
@@ -612,14 +593,12 @@ class BridgeProcessManagerImpl {
       bp.lastActivity = Date.now()
       updateBridgeMappingActivity(sessionId)
 
-      // Eligible to re-roll only when: the caller OPTED IN (only the
-      // interactive CD chat route does — this is the CLI-route fence,
-      // enforced explicitly), the caller wants a 1M model, this turn began
-      // with no live process (a genuine fresh start, e.g. post-Order-66),
-      // the spawn was NOT a --resume (resuming would churn live context +
-      // risk thinking-block signature mismatch), and attempts remain.
-      const eligible =
-        options.ensure1M === true && !hadLive && !bp.wasResumed && attempt <= MAX_SPAWNS
+      // Eligible to re-roll only when: this turn began with no live process
+      // (a genuine fresh start, e.g. post-Order-66), the spawn was NOT a
+      // --resume (already verified on the original spawn), and attempts remain.
+      // Every fresh spawn is checked — 1M verification is not model-dependent,
+      // it's spawn-dependent. Anthropic can silently serve 200K under ANY model.
+      const eligible = !hadLive && !bp.wasResumed && attempt <= MAX_SPAWNS
 
       // Send the (same) user message via stdin.
       const msg = JSON.stringify({
@@ -638,10 +617,9 @@ class BridgeProcessManagerImpl {
       // when the caller asked for 1M, so a "it didn't probe" is always explainable
       // from the server log (resumed session, a live bridge pre-turn, or opt-out).
       if (!eligible) {
-        if (options.ensure1M) {
+        if (hadLive || bp.wasResumed) {
           const why = hadLive ? 'a live bridge existed pre-turn'
-            : bp.wasResumed ? 'the CLI session resumed (model unchanged → already verified)'
-            : `caller opted out (ensure1M=${options.ensure1M})`
+            : 'the CLI session resumed (already verified on original spawn)'
           console.log(`[Bridge] ${sessionId} 1M-probe SKIPPED (${why}); streaming without a window check`)
         }
         yield* this.readResponse(bp)

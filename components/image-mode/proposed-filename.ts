@@ -115,6 +115,27 @@ export function computeProposedFilename(
       return { summary: `→ ${bareName}`, bareName }
     }
 
+    case 'rotate-mirror': {
+      // Ralph 2026-07-16: DEFAULT OVERWRITE. The preview makes the in-place
+      // write unmissable ("overwrites source" note) instead of hiding it.
+      const suffixMap: Record<string, string> = {
+        rot90: 'rot90',
+        rot270: 'rot270',
+        rot180: 'rot180',
+        'mirror-h': 'mirror-h',
+        'mirror-v': 'mirror-v',
+      }
+      const bareName = resolveSingle(source, suffixMap[state.rotateMirrorOp] ?? 'rot', {
+        outputName: !state.rotateOverwrite && state.rotateFilename ? state.rotateFilename : undefined,
+        overwrite: state.rotateOverwrite || undefined,
+      })
+      return {
+        summary: `→ ${bareName}`,
+        note: state.rotateOverwrite ? 'overwrites source' : undefined,
+        bareName,
+      }
+    }
+
     case 'format-convert': {
       const newExt =
         state.formatTo === 'jpeg' ? 'jpg'

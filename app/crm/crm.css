@@ -4560,8 +4560,14 @@
             margin-right: 8px;
             color: var(--text-muted);
         }
+        /* Filippo 2026-08-18: message history is untruncated. Full bodies need
+           their own line breaks back (an email collapsed into one paragraph is
+           worse than a clamped one), and long unbroken runs — signature rules,
+           URLs — must wrap instead of blowing out the column. */
         .crm-feed-row-main .crm-feed-text {
             color: var(--text-main);
+            white-space: pre-wrap;
+            overflow-wrap: anywhere;
         }
         .crm-feed-row-main .crm-feed-subject {
             color: var(--text-main);
@@ -4982,3 +4988,11 @@
             border-color: color-mix(in srgb, var(--brand-green-bright) 45%, transparent);
             background: color-mix(in srgb, var(--brand-green-bright) 10%, transparent);
         }
+
+/* ── Composer editable fields — WHITE in polar, card-dark in onyx.
+      (Filippo 2026-08-15: "the editable parts should be white, leave the
+      rest". The CRM's polar --bg-card is warm paper, so white must be
+      explicit — measured, not assumed. Consular.) */
+[data-theme="polar"] .crm-composer-field { background: #ffffff; }
+[data-theme="onyx"] .crm-composer-field,
+html:not([data-theme]) .crm-composer-field { background: var(--bg-card); }

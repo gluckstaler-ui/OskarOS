@@ -87,13 +87,13 @@ export function WaComposeModal({ prospectId, company, phone, contactName, onClos
   return (
     <div
       style={{ position: 'fixed', inset: 0, zIndex: 60, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16, background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(2px)' }}
-      onClick={(e) => { if (e.target === e.currentTarget) onClose() }}
       role="presentation"
     >
+      {/* Ralph 2026-08-01: the scrim does NOT close — a mis-click outside
+          must never destroy a draft. Only Cancel and ✕ close the composer. */}
       <div
-        onClick={(e) => e.stopPropagation()}
         style={{
-          width: 'min(560px, 100%)', maxHeight: '86vh', display: 'flex', flexDirection: 'column', overflow: 'hidden',
+          width: 'min(720px, 100%)', maxHeight: '86vh', display: 'flex', flexDirection: 'column', overflow: 'hidden',
           background: 'var(--bg-card)', border: '1px solid var(--border-card)', borderRadius: 14,
           boxShadow: '0 24px 64px rgba(0,0,0,0.45)',
         }}
@@ -124,7 +124,7 @@ export function WaComposeModal({ prospectId, company, phone, contactName, onClos
             placeholder="Type your message…"
             autoFocus
             style={{
-              width: '100%', height: 200, padding: '11px 13px', borderRadius: 10, boxSizing: 'border-box',
+              width: '100%', height: 340, padding: '11px 13px', borderRadius: 10, boxSizing: 'border-box',
               border: `1px solid ${focused ? '#25D366' : 'var(--border-card)'}`,
               background: 'var(--bg-app)', color: 'var(--text-main)', fontSize: 13.5, lineHeight: 1.6,
               resize: 'vertical', outline: 'none', fontFamily: 'inherit',

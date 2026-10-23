@@ -72,6 +72,8 @@ export async function POST(req: NextRequest) {
       standby_plan: body.standby_plan ?? '',
       lost_reason: body.lost_reason ?? '',
       sub_stage: body.sub_stage ?? '',
+      auto_respond: false,
+      auto_respond_goals: '',
     }
     await writeSheet([...existing, newRow])
 

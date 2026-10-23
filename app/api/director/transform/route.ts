@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
+import { SONNET_WEBDEV_ID } from '@/lib/models'
 
 const anthropic = new Anthropic()
 
@@ -49,9 +50,7 @@ export async function POST(request: NextRequest) {
     }
 
     const message = await anthropic.messages.create({
-      // 2026-04-17: was 'claude-sonnet-4-20250514' (deprecated, retires Jun 15 2026).
-      // Migrated to current Sonnet 4.6 per Ralph's "all sonnet/haiku → 4.6" pass.
-      model: 'claude-sonnet-4-6',
+      model: SONNET_WEBDEV_ID,
       max_tokens: 500,
       system: systemPrompt,
       messages: [{ role: 'user', content: userPrompt }]

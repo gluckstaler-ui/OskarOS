@@ -7,7 +7,14 @@
  * by both surfaces — no two-way relay, no eventual-consistency drift.
  */
 
-export type ImageOpsTool = 'crop' | 'slice' | 'resize' | 'format-convert'
+export type ImageOpsTool = 'crop' | 'slice' | 'resize' | 'rotate-mirror' | 'format-convert'
+
+/**
+ * The five transform choices of the ROTATE tool (Ralph 2026-07-16).
+ * rot90 / rot270 are CLOCKWISE Sharp angles — the UI labels rot270 as "90° ⟲"
+ * (counter-clockwise) because that's how humans think about it.
+ */
+export type RotateMirrorOp = 'rot90' | 'rot270' | 'rot180' | 'mirror-h' | 'mirror-v'
 
 export type CropAspect = 'free' | '1:1' | '3:4' | '4:3' | '16:9' | '9:16' | '2:3'
 export type ResizeAspect = 'free' | '1:1' | '4:3' | '16:9' | '9:16'
@@ -64,6 +71,19 @@ export interface ImageOpsState {
   resizeKernel: ResizeKernel
   resizeOverwrite: boolean
   resizeFilename: string
+
+  // ── ROTATE-MIRROR (Ralph 2026-07-16) ────────────────────────────────────
+  /** Which transform fires on Generate. */
+  rotateMirrorOp: RotateMirrorOp
+  /**
+   * DEFAULT TRUE — rotate/mirror correct the asset IN PLACE (no copies).
+   * This is the inverse of every other tool's overwrite default, per Ralph
+   * 2026-07-16: "The default NEEDS to be overwrite. I absolutely don't want
+   * that copies are created."
+   */
+  rotateOverwrite: boolean
+  /** Only relevant when rotateOverwrite is false. Empty = server suffix. */
+  rotateFilename: string
 
   // ── FORMAT-CONVERT (WP-IMG-5) ──────────────────────────────────────────
   /** Output container. */
@@ -125,6 +145,10 @@ export function makeInitialImageOpsState(): ImageOpsState {
     resizeKernel: 'lanczos3',
     resizeOverwrite: false,
     resizeFilename: '',
+    rotateMirrorOp: 'rot90',
+    // DEFAULT TRUE (Ralph 2026-07-16) — rotate/mirror overwrite in place.
+    rotateOverwrite: true,
+    rotateFilename: '',
     formatTo: 'jpeg',
     formatQuality: 90,
     formatLossless: false,

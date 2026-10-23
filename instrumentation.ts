@@ -57,4 +57,24 @@ export async function register() {
   } catch (err) {
     console.error('[instrumentation] wa-runtime boot failed:', err)
   }
+
+  // Scheduled sends (Ralph 2026-08-22): fire due WhatsApp/email schedules by
+  // replaying the composer's payload into the same gated outbound routes.
+  // Node-local by design — see lib/scheduled-sends.ts.
+  try {
+    const { startScheduledSendTicker } = await import('./lib/scheduled-sends')
+    startScheduledSendTicker()
+  } catch (err) {
+    console.error('[instrumentation] scheduled-send ticker failed to start:', err)
+  }
+
+  // Consular auto-respond (Ralph 2026-08-22): every 15 min sweep mail and let
+  // the Consular answer new inbound on auto_respond-flagged prospects directly.
+  // No-op while no prospect carries the flag.
+  try {
+    const { startAutoRespondHeartbeat } = await import('./lib/auto-respond')
+    startAutoRespondHeartbeat()
+  } catch (err) {
+    console.error('[instrumentation] auto-respond heartbeat failed to start:', err)
+  }
 }

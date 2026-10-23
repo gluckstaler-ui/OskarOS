@@ -87,10 +87,23 @@ export async function POST(req: NextRequest) {
     const existingFiles = fs.existsSync(sessionDir)
       ? fs.readdirSync(sessionDir).filter(f => f.startsWith(`${safeVibe}-${safePurpose}-v`))
       : []
-    const version = existingFiles.length + 1
 
-    const filename = `${safeVibe}-${safePurpose}-v${version}.jpg`
-    const filePath = path.join(sessionDir, filename)
+    // 2026-08-27: `existingFiles.length + 1` OVERWROTE existing assets whenever the
+    // version sequence had a gap or a `-2` suffixed sibling (7 files present, but v8
+    // already taken → new file landed on v8 and destroyed it). Take max+1, then walk
+    // forward until the path is actually free. Never trust the count as the version.
+    let version = existingFiles.reduce((max, f) => {
+      const m = f.match(new RegExp(`^${safeVibe}-${safePurpose}-v(\\d+)`))
+      return m ? Math.max(max, parseInt(m[1], 10)) : max
+    }, 0) + 1
+
+    let filename = `${safeVibe}-${safePurpose}-v${version}.jpg`
+    let filePath = path.join(sessionDir, filename)
+    while (fs.existsSync(filePath)) {
+      version += 1
+      filename = `${safeVibe}-${safePurpose}-v${version}.jpg`
+      filePath = path.join(sessionDir, filename)
+    }
 
     const DATA_PREFIX = 'data:image/'
     const BASE64_SEP = ';base64,'

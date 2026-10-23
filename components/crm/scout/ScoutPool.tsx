@@ -21,6 +21,7 @@ import { DecisionDeck } from './DecisionDeck'
 import { DiscoverModal, type DiscoverCriteria } from './DiscoverModal'
 import { ScoutJobsOverlay, type ScoutJobView } from './ScoutJobsOverlay'
 import { useSnackbar } from '@/components/SnackbarProvider'
+import { SONNET_WEBDEV_ID } from '@/lib/models'
 import {
   type RawProspect, type FilterKey,
   scoutOf, stateOf, verdictToneOf, isStaleTaste, FILTER_TONE, payloadOf,
@@ -459,9 +460,9 @@ export function ScoutPool({ onPromoted, onViewKanban }: Props) {
   // future toggle wants Opus for Scout, override `model` in the POST body.
   type ExecutionMode = 'smpl' | 'cli' | 'api'
   const SCOUT_MODE_DEFAULTS: Record<ExecutionMode, string> = {
-    smpl: 'sonnet',                  // CLI tier alias (resolves via settings.json)
-    cli:  'claude-sonnet-4-6',       // bare — 1M verified at runtime by the bridge re-roll
-    api:  'claude-sonnet-4-6',       // Anthropic API model id
+    smpl: 'sonnet',
+    cli:  SONNET_WEBDEV_ID,
+    api:  SONNET_WEBDEV_ID,
   }
   const readMode = (): { mode: ExecutionMode; model: string } => {
     if (typeof window === 'undefined') return { mode: 'cli', model: SCOUT_MODE_DEFAULTS.cli }

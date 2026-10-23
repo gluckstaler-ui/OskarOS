@@ -23,6 +23,8 @@ import { join } from 'path'
 import { verifyVibeHtml, parseTrailingJson } from './vibe-verify'
 import { publish } from './event-bus'
 import { buildModeBanner } from './webdev-mode-banner'
+import { SONNET_WEBDEV_ID, GEMINI_WEBDEV_ID } from './models'
+import { type WebDevModel } from './session-config'
 
 // ==========================================
 // Types
@@ -30,7 +32,7 @@ import { buildModeBanner } from './webdev-mode-banner'
 
 export type ExecutionMode = 'smpl' | 'cli' | 'api'
 
-export type Model = 'claude-sonnet-4-6' | 'claude-opus-4-7' | 'gemini-3.1-pro-preview'  // sonnet restored 2026-06-10 (padawan default)
+export type Model = WebDevModel
 
 // Valid combinations:
 // CLI:  sonnet, opus, gemini
@@ -277,7 +279,7 @@ export async function runWebDev(request: WebDevBuildRequest): Promise<VibeBuildR
     // dropped the hook and the stage-transition events never reached
     // the SSE bus, so the job-card UI ladder hung at `html` or
     // `verify`. API mode wired it correctly (line 287 below).
-    if (model === 'gemini-3.1-pro-preview') {
+    if (model === GEMINI_WEBDEV_ID) {
       return buildVibeHTMLGemini(sessionId, target, sessionPath, request.abortSignal, request.hasCritique, request.onToolCall)
     }
     return buildVibeHTML(sessionId, target, sessionPath, model, request.abortSignal, request.hasCritique, request.onToolCall)
@@ -307,7 +309,7 @@ export async function runWebDev(request: WebDevBuildRequest): Promise<VibeBuildR
     request.onToolCall?.(toolName, input)
   }
 
-  if (model === 'claude-sonnet-4-6' || model === 'claude-opus-4-7') {
+  if (model !== GEMINI_WEBDEV_ID) {
     const result = await runClaudeAgentLoop({
       model,
       systemPrompt: agentPrompt,
@@ -324,7 +326,7 @@ export async function runWebDev(request: WebDevBuildRequest): Promise<VibeBuildR
     )
   }
 
-  if (model === 'gemini-3.1-pro-preview') {
+  if (model === GEMINI_WEBDEV_ID) {
     const result = await runGeminiAgentLoop({
       systemPrompt: agentPrompt,
       userPrompt,

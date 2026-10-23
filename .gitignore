@@ -98,3 +98,6 @@ CRMxterritoryxfathom/
 # Secrets on the mini: rclone Drive token, Vertex service-account key
 ops/rclone/rclone.conf
 ops/vertex/
+
+# Local speech-to-text model (1.6 GB), not for git
+ops/models/

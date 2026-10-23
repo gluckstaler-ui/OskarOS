@@ -281,10 +281,12 @@ export const CAPABILITY_TOOL_DEFINITIONS = [
     {
         name: 'image_ops',
         description: 'Sharp pipeline. Operations: crop ({x,y,w,h} or {aspect}), slice ({rows,cols}), ' +
-            'resize ({w?,h?,fit?}), chroma-key ({color?,tolerance?}), format-convert ({to}), ' +
+            'resize ({w?,h?,fit?}), rotate ({angle: 90|180|270 clockwise}), mirror ' +
+            '({axis: horizontal|vertical}), chroma-key ({color?,tolerance?}), format-convert ({to}), ' +
             'composite ({source,output,position,scale?,opacity?,source_alpha?}). New files ' +
-            'are appended to IMAGES.md as B-ROLL for your evaluation. No blend modes, no ' +
-            'rotation in v1.',
+            'are appended to IMAGES.md as B-ROLL for your evaluation. No blend modes. ' +
+            'CAUTION rotate/mirror: overwrite DEFAULTS TO TRUE (in-place correction, no copy, ' +
+            'no new IMAGES.md entry — Ralph 2026-07-16); pass overwrite:false or outputName to fork.',
         inputSchema: {
             type: 'object',
             properties: {
@@ -294,7 +296,7 @@ export const CAPABILITY_TOOL_DEFINITIONS = [
                 },
                 operation: {
                     type: 'string',
-                    enum: ['crop', 'slice', 'resize', 'chroma-key', 'format-convert', 'composite'],
+                    enum: ['crop', 'slice', 'resize', 'rotate', 'mirror', 'chroma-key', 'format-convert', 'composite'],
                 },
                 params: {
                     type: 'object',

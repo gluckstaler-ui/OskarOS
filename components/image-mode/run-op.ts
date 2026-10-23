@@ -138,6 +138,29 @@ function buildPayload(input: RunOpInput): { operation: string; params: any } | {
       }
     }
 
+    case 'rotate-mirror': {
+      // Ralph 2026-07-16: overwrite is sent EXPLICITLY (true AND false) —
+      // the server defaults omitted-overwrite to TRUE for these two ops, so
+      // an unchecked checkbox must arrive as a literal false to fork a copy.
+      const common = {
+        outputName: !state.rotateOverwrite && state.rotateFilename ? state.rotateFilename : undefined,
+        overwrite: state.rotateOverwrite,
+      }
+      switch (state.rotateMirrorOp) {
+        case 'rot90':
+          return { operation: 'rotate', params: { angle: 90, ...common } }
+        case 'rot270':
+          return { operation: 'rotate', params: { angle: 270, ...common } }
+        case 'rot180':
+          return { operation: 'rotate', params: { angle: 180, ...common } }
+        case 'mirror-h':
+          return { operation: 'mirror', params: { axis: 'horizontal', ...common } }
+        case 'mirror-v':
+          return { operation: 'mirror', params: { axis: 'vertical', ...common } }
+      }
+      return { error: `unknown rotate-mirror op '${state.rotateMirrorOp}'` }
+    }
+
     case 'format-convert': {
       // Both add-ons are universally available across all output formats
       // (Ralph rev 2026-05-06). The UI surfaces them as opt-in toggles;

@@ -77,6 +77,11 @@ export interface Prospect {
   standby_plan: string
   lost_reason: string
   sub_stage: string
+  /** Consular auto-respond (Ralph 2026-08-22): when true, new inbound on this
+   *  prospect is handed to the Consular to answer directly, guided by
+   *  auto_respond_goals (free-text communication goals Filippo writes). */
+  auto_respond: boolean
+  auto_respond_goals: string
 }
 
 export type LostReason =
@@ -159,6 +164,8 @@ function rowToProspect(r: Record<string, unknown>): Prospect {
     standby_plan: String(r.standby_plan ?? ''),
     lost_reason: String(r.lost_reason ?? ''),
     sub_stage: String(r.sub_stage ?? ''),
+    auto_respond: r.auto_respond === 1 || r.auto_respond === true,
+    auto_respond_goals: String(r.auto_respond_goals ?? ''),
   }
 }
 
@@ -231,7 +238,7 @@ const PROSPECT_FIELDS = [
   'stage', 'status', 'amount_chf', 'confidence_pct',
   'next_action_date', 'next_action_label', 'tags', 'starred', 'owner',
   'notes', 'created_at', 'standby_plan', 'lost_reason',
-  'sub_stage',
+  'sub_stage', 'auto_respond', 'auto_respond_goals',
 ] as const
 
 /**
@@ -316,18 +323,20 @@ function writeProspectToDb(db: ReturnType<typeof getDb>, p: Prospect): void {
         stage, status, amount_chf, confidence_pct,
         next_action_date, next_action_label, tags, starred, owner,
         notes, created_at, standby_plan, lost_reason,
-        sub_stage, intel_json
+        sub_stage, intel_json, auto_respond, auto_respond_goals
       ) VALUES (
         @id, @company, @contact_name, @phone, @email, @website,
         @address_strasse, @address_plz, @address_ort, @uid_number,
         @stage, @status, @amount_chf, @confidence_pct,
         @next_action_date, @next_action_label, @tags, @starred, @owner,
         @notes, @created_at, @standby_plan, @lost_reason,
-        @sub_stage, @intel_json
+        @sub_stage, @intel_json, @auto_respond, @auto_respond_goals
       )
     `).run({
       ...p,
       starred: p.starred ? 1 : 0,
+      auto_respond: p.auto_respond ? 1 : 0,
+      auto_respond_goals: p.auto_respond_goals ?? '',
       created_at: p.created_at || null,
       intel_json: p.intel_json || '{}',
       // Default the address/UID named params so an incomplete Prospect (e.g. from
@@ -348,7 +357,7 @@ function writeProspectToDb(db: ReturnType<typeof getDb>, p: Prospect): void {
 
 function updateProspectField(db: ReturnType<typeof getDb>, id: string, field: string, value: unknown): void {
   try {
-    const coerced = field === 'starred'
+    const coerced = (field === 'starred' || field === 'auto_respond')
       ? (value ? 1 : 0)
       : (field === 'amount_chf' || field === 'confidence_pct')
         ? Number(value ?? 0)

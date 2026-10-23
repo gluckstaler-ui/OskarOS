@@ -29,7 +29,6 @@
 
 import { readFileSync } from 'fs'
 import { join } from 'path'
-import { requires1M } from './models'
 import { isVerdictTag, type VerdictTag } from './verdict'
 import { bridgeManager, type BridgeOptions, type BridgeEvent } from './bridge-process-manager'
 import { SCOUT_ALLOWED_TOOLS } from './mcp-config'
@@ -210,11 +209,6 @@ export async function callScoutBridge(
     // fresh, no cross-lead bleed. Worker route is CLI-only; the API path
     // (if/when built) would bypass bridgeManager entirely.
     useWorker: true,
-    // ensure1M for Anthropic 1M-capable CLI models (fable/opus/sonnet), driven
-    // by lib/models.requires1M() — NOT the old `[1m]` suffix, which silently
-    // disabled the probe the moment we moved to bare ids (the Potemkin gate).
-    // Gemini / 200K models return false so they never trigger an unwinnable loop.
-    ensure1M: requires1M(opts.model),
   }
   // No per-session lock — see the file-top comment. Each useWorker:true call
   // spawns a fresh CLI subprocess via bridgeManager.spawnFreshWorker, so 6

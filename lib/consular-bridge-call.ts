@@ -16,7 +16,7 @@
 
 import { readFileSync } from 'fs'
 import { join } from 'path'
-import { brainSpec, DEFAULT_BRAIN, requires1M } from './models'
+import { brainSpec, DEFAULT_BRAIN } from './models'
 import { bridgeManager, type BridgeOptions, type BridgeEvent } from './bridge-process-manager'
 import { CONSULAR_ALLOWED_TOOLS } from './mcp-config'
 import { CRM_SESSION_ID, getUserMemoryPath } from './memory/paths'
@@ -94,10 +94,6 @@ export async function callConsularBridge(
     cwd: process.cwd(),
     agentRole: 'consular',
     allowedTools: CONSULAR_ALLOWED_TOOLS,
-    // Refuse 200K models: the upstream sometimes serves a degraded window under
-    // the 1M model name. ensure1M makes the bridge re-roll a fresh __crm__ spawn
-    // until the wire-reported contextWindow is actually 1M. Ralph 2026-05-29.
-    ensure1M: requires1M(cdModel),
   }
   const toolCollector = makeToolCollector(opts.expectedTools || [])
 

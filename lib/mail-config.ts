@@ -75,3 +75,4 @@ export function readMailConfig(): MailConfig {
     configured: Boolean(user && pass),
   }
 }
+

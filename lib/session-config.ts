@@ -29,7 +29,7 @@
 import { existsSync, readFileSync, writeFileSync, mkdirSync, renameSync, unlinkSync } from 'fs'
 import { join, dirname } from 'path'
 import crypto from 'crypto'
-import { brainSpec, DEFAULT_BRAIN, type BrainId } from './models'
+import { brainSpec, DEFAULT_BRAIN, type BrainId, SONNET_WEBDEV_ID, GEMINI_WEBDEV_ID } from './models'
 
 // ──────────────────────────────────────────────────────────────────────
 // Types
@@ -78,10 +78,8 @@ export interface SiteConfig {
   defaultDirection: 'up' | 'down'
   ignore: string[]
 }
-// Sonnet restored 2026-06-10 — it is the padawan default (WebDev, Sage, Sage-240);
-// Gemini takes its slot under the gemini switch preset (lib/models MODEL_SWITCH_PRESETS).
-// Opus stays in the union for legacy on-disk configs written before the preset map.
-export type WebDevModel = 'claude-sonnet-4-6' | 'claude-opus-4-7' | 'gemini-3.1-pro-preview'
+// Padawan models — derived from the registry (lib/models), single source.
+export type WebDevModel = typeof SONNET_WEBDEV_ID | typeof GEMINI_WEBDEV_ID
 export type ExecutionMode = 'smpl' | 'cli' | 'api'
 
 export interface SessionConfig {
@@ -123,7 +121,7 @@ export interface SessionConfig {
 }
 
 export const DEFAULT_SESSION_CONFIG: SessionConfig = {
-  webDevModel: 'claude-sonnet-4-6', // padawan default = Sonnet → a virgin session sits exactly on the FABLE preset
+  webDevModel: SONNET_WEBDEV_ID, // padawan default = Sonnet → a virgin session sits exactly on the FABLE preset
   webDevMode: 'cli',
   // Default brain (Fable) — bare id; 1M is verified at runtime by the bridge
   // re-roll, not via a suffix. The FABLE/OPUS badge overwrites this per session.
@@ -246,7 +244,7 @@ export function resolveWebDevExecution(
   override: { mode?: ExecutionMode | null; model?: WebDevModel | null } | undefined,
   sessionId: string,
   defaultMode: ExecutionMode = 'cli',
-  defaultModel: WebDevModel = 'claude-sonnet-4-6',
+  defaultModel: WebDevModel = SONNET_WEBDEV_ID,
 ): { mode: ExecutionMode; model: WebDevModel } {
   return {
     mode: resolveConfig('webDevMode', override?.mode, sessionId, defaultMode),

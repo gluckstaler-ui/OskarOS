@@ -14,6 +14,7 @@ import { collectFromStdout, streamAssistantToolUses } from './mcp-tool-collector
 import { publish } from './event-bus'
 import { buildModeBanner } from './webdev-mode-banner'
 import { findBinary, safePath } from './cli-paths'
+import { SONNET_WEBDEV_ID } from './models'
 
 // ==========================================
 // Load WebDev Agent Prompt from MD file
@@ -292,7 +293,7 @@ export async function buildVibeHTML(
   sessionId: string,
   target: string,
   sessionPath: string,
-  model: string = 'claude-opus-4-7',  // sonnet path ripped 2026-06-10; sole caller (run-webdev) always passes model
+  model: string = SONNET_WEBDEV_ID,
   abortSignal?: AbortSignal,
   /**
    * Ralph 2026-05-18 (Job-Card Ladder Fix — phase-flag plumb-through):

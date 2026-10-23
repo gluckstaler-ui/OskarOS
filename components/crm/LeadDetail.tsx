@@ -44,6 +44,7 @@ import {
 import type { Prospect } from '@/lib/crm-store'
 import { legacyBudgetTo5, VERDICT_TONES, type VerdictTone } from '@/lib/verdict'
 import { VerdictCard } from './VerdictCard'
+import { Composer } from './Composer'
 import type { CrmActivity } from '@/app/crm/crm-data'
 import styles from './LeadDetail.module.css'
 
@@ -235,6 +236,9 @@ export function LeadDetail({ prospect, activities, onClose, onReload, registerUn
   const [confidencePct, setConfidencePct] = useState<number>(prospect.confidence_pct || 0)
   const [econSaved, setEconSaved] = useState(false)
   const [contacts, setContacts] = useState<Contact[]>([])
+  // Journal composer (crm.html #crm-note-composer) — ⏎ logs a Note activity.
+  const [note, setNote] = useState('')
+  const [noteSaving, setNoteSaving] = useState(false)
   // Sub-stage autocomplete — DISTINCT existing sub_stage values feed a <datalist>.
   // Port of crm.html crmRefreshSubStageSuggestions (GET /api/admin/crm/sub-stages).
   const [subStageSuggestions, setSubStageSuggestions] = useState<string[]>([])
@@ -528,6 +532,34 @@ export function LeadDetail({ prospect, activities, onClose, onReload, registerUn
     }
   }, [])
 
+  // ── Journal composer (crm.html crmComposerKey) — ⏎ posts a Note activity,
+  // clears the input, refreshes the feed. The input keeps its identity across
+  // the re-render, so focus survives for rapid keyboard-only capture.
+  const saveNote = useCallback(async () => {
+    const value = note.trim()
+    if (!value) return
+    setNoteSaving(true)
+    try {
+      const res = await fetch('/api/admin/crm/activities', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          prospect_id: prospect.id,
+          type: 'Note',
+          icon: 'file-text',
+          color: '#a1a1aa',
+          notes: value,
+        }),
+      })
+      if (!res.ok) throw new Error(`HTTP ${res.status}`)
+      setNote('')
+      onReload()
+    } catch (err) {
+      console.error('[CRM] note save failed:', err)
+    } finally {
+      setNoteSaving(false)
+    }
+  }, [note, prospect.id, onReload])
 
   // ── Keyword chips (intel.keywords, "kw#rank,…") ──────────────────────────────
   const keywordList = useMemo(
@@ -1350,9 +1382,78 @@ export function LeadDetail({ prospect, activities, onClose, onReload, registerUn
             </button>
           )}
         </div>
+        {/* ✨ Consular Autopilot (Ralph 2026-08-22) — flag + communication
+            goals. Flag on ⇒ new inbound on this lead is answered by the
+            Consular DIRECTLY (lib/auto-respond.ts), steered by the goals. */}
+        <div style={{
+          border: `1px solid ${prospect.auto_respond ? 'color-mix(in srgb, var(--brand-amber) 55%, transparent)' : 'color-mix(in srgb, var(--brand-amber) 25%, transparent)'}`,
+          borderRadius: 8, margin: '10px 0 0', padding: '8px 12px',
+          background: prospect.auto_respond ? 'color-mix(in srgb, var(--brand-amber) 8%, var(--bg-card))' : 'transparent',
+        }}>
+          <label style={{
+            display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', userSelect: 'none',
+            fontSize: 11, letterSpacing: '0.12em', textTransform: 'uppercase',
+            fontFamily: 'ui-monospace, SF Mono, Menlo, monospace', color: 'var(--brand-amber)',
+          }}>
+            <input
+              type="checkbox"
+              checked={!!prospect.auto_respond}
+              onChange={(e) => void patchProspect({ auto_respond: e.target.checked })}
+              style={{ accentColor: 'var(--brand-amber)' }}
+            />
+            ✨ Consular Autopilot
+            <span style={{ textTransform: 'none', letterSpacing: 0, fontFamily: 'inherit', color: 'var(--text-dim)', fontSize: 11 }}>
+              {prospect.auto_respond ? 'antwortet selbstständig auf neue Nachrichten' : 'aus'}
+            </span>
+          </label>
+          {prospect.auto_respond && (
+            <textarea
+              key={prospect.id}
+              defaultValue={prospect.auto_respond_goals || ''}
+              onBlur={(e) => {
+                if (e.target.value !== (prospect.auto_respond_goals || '')) {
+                  void patchProspect({ auto_respond_goals: e.target.value })
+                }
+              }}
+              placeholder="Kommunikationsziele — was soll der Consular mit diesem Kunden erreichen? (z.B. Termin für Demo fixieren, Budget klären, warm halten)"
+              style={{
+                width: '100%', minHeight: 64, resize: 'vertical', marginTop: 8,
+                padding: '8px 10px', fontSize: 12.5, lineHeight: 1.5, fontFamily: 'inherit',
+                color: 'var(--text-main)', background: 'var(--bg-app)',
+                border: '1px solid color-mix(in srgb, var(--brand-amber) 35%, transparent)',
+                borderRadius: 6, outline: 'none', boxSizing: 'border-box',
+              }}
+            />
+          )}
+        </div>
+        {/* Korrespondenz — the REAL compose surface (email-first, draft-backed
+            by the suggestions table, template picker from db/templates/).
+            Consular 2026-08-15 on Filippo's direct order. */}
+        <Composer
+          prospectId={prospect.id}
+          prospectName={prospect.company || prospect.contact_name}
+          prospectEmail={prospect.email}
+          prospectPhone={prospect.phone}
+          onSent={onReload}
+        />
         <div className={styles.feed}>
+          {/* Journal composer — always renders, even on an empty feed
+              (crm.html: "Composer + chips always render […] Filippo can
+              still log one"). */}
+          <div className={"crm-feed-composer"}>
+            <input
+              type="text"
+              value={note}
+              disabled={noteSaving}
+              placeholder="Type — or hit Fn-Fn (Mac) / Win+H (Win) to dictate. Press ⏎ to save."
+              onChange={(e) => setNote(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); void saveNote() }
+              }}
+            />
+          </div>
           {activities.length === 0 ? (
-            <div className={"crm-feed-empty"}>No activity yet.</div>
+            <div className={"crm-feed-empty"}>No activity yet — log one above.</div>
           ) : (
             activities.map((a) => <FeedRow key={a.id} activity={a} onRedownload={onReload} />)
           )}
@@ -1706,14 +1807,11 @@ function FeedRow({ activity: a, onRedownload }: { activity: CrmActivity; onRedow
     )
   }
 
-  const isEmail = a.type === 'E-mail Out' || a.type === 'E-mail In'
-  const isLong = (a.notes || '').length > 200
-  let body: string
-  if (a.notes) {
-    body = isEmail || isLong ? (a.notes.length > 200 ? a.notes.slice(0, 200) + '…' : a.notes) : a.notes
-  } else {
-    body = ''
-  }
+  // Filippo 2026-08-18: no truncation in message history. The feed IS the
+  // archive — a 200-char clamp meant long mails had no full inline view
+  // anywhere in the CRM. Full body, wraps freely, newlines preserved by
+  // .crm-feed-text { white-space: pre-wrap }.
+  const body: string = a.notes || ''
 
   return (
     <div className={"crm-feed-row"}>

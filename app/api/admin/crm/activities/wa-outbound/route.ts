@@ -15,6 +15,8 @@
 // return 502 — the UI degrades to the F13 wa.me launcher.
 // ============================================================================
 import { NextRequest, NextResponse } from 'next/server'
+import { basename, resolve as resolvePath, sep } from 'path'
+import { existsSync } from 'fs'
 import { readSheet, appendActivity, normalizeWhatsAppNumber } from '@/lib/crm-store'
 import { getRuntime } from '@/lib/wa-runtime'
 
@@ -29,6 +31,21 @@ interface OutboundPayload {
   // to). Ralph 2026-06-15.
   phone?: string
   body?: string
+  // Optional document attachment, media-relative path only ("media/…" or
+  // relative to media/) — fenced inside media/ exactly like email-outbound.
+  // When present, body becomes the caption. Requires the runtime's
+  // sendDocument (post-restart method — HMR-pinned singleton, see below).
+  // Consular 2026-08-13.
+  attachment?: string
+  attachment_name?: string
+}
+
+const MEDIA_ROOT_WA = resolvePath(process.cwd(), 'media')
+const ATTACH_MIME: Record<string, string> = {
+  pdf: 'application/pdf', html: 'text/html', txt: 'text/plain',
+  png: 'image/png', jpg: 'image/jpeg', jpeg: 'image/jpeg',
+  xlsx: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  docx: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
 }
 
 export async function POST(req: NextRequest) {
@@ -75,7 +92,32 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    const sendResult = await getRuntime().sendMessage(phone, text)
+    // ── Optional document attachment (Consular 2026-08-13) ──────────────
+    // Fence: media-relative only, resolved inside media/ — mirror of the
+    // email-outbound fence. Sent via runtime.sendDocument when the live
+    // singleton has it (post-restart); otherwise a clear 501, not a silent
+    // text-only downgrade.
+    const attachRel = String(body.attachment || '').trim()
+    let sendResult: { ok: boolean; wa_message_id?: string; error?: string }
+    if (attachRel) {
+      const rel = attachRel.startsWith('media/') ? attachRel.slice('media/'.length) : attachRel
+      const abs = resolvePath(MEDIA_ROOT_WA, rel)
+      if (!abs.startsWith(MEDIA_ROOT_WA + sep) || !existsSync(abs)) {
+        return NextResponse.json({ error: `attachment outside media/ or missing: ${attachRel}` }, { status: 400 })
+      }
+      const wa2 = getRuntime()
+      if (typeof (wa2 as { sendDocument?: unknown }).sendDocument !== 'function') {
+        return NextResponse.json(
+          { error: 'document send not available until server restart (runtime singleton is HMR-pinned)', code: 'restart_required' },
+          { status: 501 },
+        )
+      }
+      const fileName = String(body.attachment_name || '').trim() || basename(abs)
+      const ext = (fileName.split('.').pop() || '').toLowerCase()
+      sendResult = await wa2.sendDocument(phone, abs, fileName, ATTACH_MIME[ext] || 'application/octet-stream', text)
+    } else {
+      sendResult = await getRuntime().sendMessage(phone, text)
+    }
     if (!sendResult.ok) {
       return NextResponse.json(
         { error: `send failed: ${sendResult.error || 'unknown'}` },
@@ -87,14 +129,16 @@ export async function POST(req: NextRequest) {
     // to. An unmatched-sender reply has no lead, so it just sends.
     let activity_id: string | undefined
     if (prospect_id) {
+      const attachedName = attachRel ? (String(body.attachment_name || '').trim() || basename(attachRel)) : ''
       const activity = await appendActivity({
         prospect_id,
         type: 'WhatsApp Out',
         icon: 'message-circle',
         color: '#25D366',
-        notes: text,
+        notes: attachRel ? `${text}${text ? '\n' : ''} · 📎 ${attachedName}` : text,
         wa_message_id: sendResult.wa_message_id || '',
         wa_status: 'sent',
+        ...(attachRel ? { media_path: attachRel.startsWith('media/') ? attachRel : `media/${attachRel}` } : {}),
       })
       activity_id = activity.id
     }

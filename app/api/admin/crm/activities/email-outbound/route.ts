@@ -22,6 +22,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { existsSync } from 'fs'
 import { basename, join, resolve, sep } from 'path'
 import nodemailer from 'nodemailer'
+import { renderEmailHtml } from '@/lib/email-html'
 import { readMailConfig } from '@/lib/mail-config'
 import { appendActivity, deleteSuggestion, readSuggestion } from '@/lib/crm-store'
 import { getDb } from '@/lib/crm-boot'
@@ -36,6 +37,7 @@ interface Body {
   body?: string
   in_reply_to?: string
   attachments?: string[]
+  skip_suggestion?: boolean
 }
 
 export async function POST(req: NextRequest) {
@@ -88,6 +90,9 @@ export async function POST(req: NextRequest) {
       to,
       subject,
       text,
+      // HTML twin: **bold**, [label](url) and bare links become real markup;
+      // plain-text part stays as authored (Consular 2026-08-15).
+      html: renderEmailHtml(text),
       inReplyTo: b.in_reply_to || undefined,
       references: b.in_reply_to || undefined,
       attachments: attachPaths.map((p) => ({ filename: basename(p), path: p })),
@@ -108,7 +113,12 @@ export async function POST(req: NextRequest) {
     prospect_id: prospectId,
     type: 'E-mail Out',
     subject,
-    notes: text.replace(/\s+/g, ' ').slice(0, 400) + (relAttachments.length ? ` · 📎 ${relAttachments.map((r) => basename(r)).join(', ')}` : ''),
+    // Filippo 2026-08-18: store the FULL body, no truncation — same rule as the
+    // inbound sweep (lib/mail-eyes.ts). The 400-char slice cut mails mid-word
+    // in the history feed, and `\s+ → ' '` flattened every paragraph into one
+    // run. Whitespace-normalize only: collapse runs of spaces/tabs, cap blank
+    // lines at one, keep the line breaks Filippo actually wrote.
+    notes: text.replace(/\r\n/g, '\n').replace(/[ \t]+/g, ' ').replace(/\n{3,}/g, '\n\n').trim() + (relAttachments.length ? ` · 📎 ${relAttachments.map((r) => basename(r)).join(', ')}` : ''),
     user_id: 'Filippo',
     email_message_id: messageId,
     email_thread_id: b.in_reply_to || messageId,
@@ -118,7 +128,11 @@ export async function POST(req: NextRequest) {
   // Consume the pending suggestion (if any) and hand the Consular both texts —
   // it reads the diff; the lesson is its to draw. Fire-and-forget: the send
   // must not wait on a bridge turn, and a chat failure must not fail the send.
-  const suggestion = readSuggestion(prospectId, 'email')
+  // skip_suggestion: a scheduled send fires long after it was composed — the
+  // pending suggestion at fire time may be a newer, unrelated draft, and
+  // consuming it here would bulldoze work in progress (scheduled-sends ticker,
+  // Ralph 2026-08-22).
+  const suggestion = b.skip_suggestion ? null : readSuggestion(prospectId, 'email')
   if (suggestion) await deleteSuggestion(prospectId, 'email', 'Filippo')
   const chatLines = [
     `[OSKAR-SYSTEM EMAIL-SENT] prospect=${prospectId} (${prospect.company}) to=${to}`,

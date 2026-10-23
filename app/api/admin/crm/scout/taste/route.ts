@@ -65,6 +65,7 @@ import { researchQueried, type QueriedSignals } from '@/lib/consular/research-qu
 // would pull puppeteer back into the server bundle and reintroduce the EEXIST.
 import { captureUrl, type CaptureResult } from '@/lib/capture-spawn'
 import { callScoutBridge } from '@/lib/scout-bridge-call'
+import { SONNET_WEBDEV_ID } from '@/lib/models'
 import { verdictTagTone } from '@/lib/verdict'
 import { bridgeManager } from '@/lib/bridge-process-manager'
 import { type ExecutionMode } from '@/lib/session-config'
@@ -79,8 +80,8 @@ import { type ExecutionMode } from '@/lib/session-config'
  */
 const SCOUT_MODE_DEFAULTS: Record<ExecutionMode, string> = {
   smpl: 'sonnet',
-  cli:  'claude-sonnet-4-6',
-  api:  'claude-sonnet-4-6',
+  cli:  SONNET_WEBDEV_ID,
+  api:  SONNET_WEBDEV_ID,
 }
 
 export const dynamic = 'force-dynamic'

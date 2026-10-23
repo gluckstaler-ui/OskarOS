@@ -39,7 +39,7 @@ import path from 'path'
 import { runWebDev } from '@/lib/run-webdev'
 import { publish } from '@/lib/event-bus'
 import { enqueueBuild } from '@/lib/build-escrow'
-import { resolveWebDevExecution } from '@/lib/session-config'
+import { resolveWebDevExecution, type WebDevModel } from '@/lib/session-config'
 import { matchField } from '@/lib/markdown-fields'
 
 export const runtime = 'nodejs'
@@ -161,7 +161,7 @@ export async function POST(req: NextRequest) {
     sessionId?: string
     slugs?: string[]
     mode?: 'smpl' | 'cli' | 'api'
-    model?: 'claude-sonnet-4-6' | 'claude-opus-4-7' | 'gemini-3.1-pro-preview'
+    model?: WebDevModel
   }
   if (!sessionId) return NextResponse.json({ error: 'sessionId required' }, { status: 400 })
   if (!Array.isArray(slugs) || slugs.length === 0) {

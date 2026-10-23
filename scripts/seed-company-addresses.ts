@@ -40,6 +40,8 @@ const mk = (p: Partial<Prospect> & { id: string; company: string }): Prospect =>
   standby_plan: '',
   lost_reason: '',
   sub_stage: '',
+  auto_respond: false,
+  auto_respond_goals: '',
   intel_json: p.intel_json ?? '{}',
 })
 

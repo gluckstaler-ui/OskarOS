@@ -43,10 +43,14 @@ export function prospectsNeedingBriefing(): string[] {
     )
     SELECT latest_in.prospect_id
     FROM latest_in
+    JOIN prospects ON prospects.id = latest_in.prospect_id
     LEFT JOIN sug     ON sug.prospect_id     = latest_in.prospect_id
     LEFT JOIN decline ON decline.prospect_id = latest_in.prospect_id
     WHERE (sug.created_at IS NULL OR latest_in.last_in > sug.created_at)
       AND (decline.last_decline IS NULL OR latest_in.last_in > decline.last_decline)
+      -- auto-respond prospects are answered DIRECTLY by the AUTO-RESPOND flow
+      -- (lib/auto-respond.ts) — a draft here would double-handle the same mail.
+      AND prospects.auto_respond = 0
   `).all() as Array<{ prospect_id: string }>
   return rows.map(r => r.prospect_id)
 }

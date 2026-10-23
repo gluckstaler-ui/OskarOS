@@ -120,7 +120,9 @@ function ensureSchema(db: Database): void {
       created_at      TEXT,
       standby_plan    TEXT,
       lost_reason     TEXT,
-      sub_stage       TEXT
+      sub_stage       TEXT,
+      auto_respond    INTEGER NOT NULL DEFAULT 0,
+      auto_respond_goals TEXT DEFAULT ''
     );
     CREATE INDEX IF NOT EXISTS idx_prospects_phone           ON prospects(phone);
     CREATE INDEX IF NOT EXISTS idx_prospects_stage_status    ON prospects(stage, status);
@@ -288,6 +290,14 @@ function ensureSchema(db: Database): void {
     if (!prospectCols.has(col)) {
       db.exec(`ALTER TABLE prospects ADD COLUMN ${col} TEXT DEFAULT ''`)
     }
+  }
+  // Migration: Consular auto-respond (Ralph 2026-08-22). Flag + communication
+  // goals per prospect — event-logged fields like any other, so they sync.
+  if (!prospectCols.has('auto_respond')) {
+    db.exec(`ALTER TABLE prospects ADD COLUMN auto_respond INTEGER NOT NULL DEFAULT 0`)
+  }
+  if (!prospectCols.has('auto_respond_goals')) {
+    db.exec(`ALTER TABLE prospects ADD COLUMN auto_respond_goals TEXT DEFAULT ''`)
   }
 
   // Migration: POSTMASTER PM-9 email columns on activities (spec §11). crm.db

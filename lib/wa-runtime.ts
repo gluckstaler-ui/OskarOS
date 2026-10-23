@@ -474,6 +474,48 @@ class WaRuntime {
     }
   }
 
+  /**
+   * Send a document attachment (PDF, HTML, any file) with an optional caption.
+   * Mirrors sendMessage; the caller (wa-outbound route) is responsible for
+   * path-fencing — this method trusts absPath. Added by Consular 2026-08-13
+   * (Filippo: "mandami il PDF via WhatsApp"). NOTE: because the runtime
+   * singleton is HMR-pinned (globalThis.__waRuntime), this method reaches the
+   * live instance only after a server restart — the route guards with
+   * `typeof wa.sendDocument === 'function'` exactly like checkWhatsApp does.
+   */
+  async sendDocument(
+    phone: string,
+    absPath: string,
+    fileName: string,
+    mimetype: string,
+    caption?: string,
+  ): Promise<{ ok: boolean; wa_message_id?: string; error?: string }> {
+    if (!this.sock || !this.isConnected()) {
+      return { ok: false, error: 'bridge not connected' }
+    }
+    const cleanPhone = String(phone ?? '').replace(/\D+/g, '')
+    if (!cleanPhone) return { ok: false, error: 'phone required' }
+    if (!existsSync(absPath)) return { ok: false, error: `file not found: ${absPath}` }
+    const jid = `${cleanPhone}@s.whatsapp.net`
+    try {
+      const document = readFileSync(absPath)
+      const result = await this.sock.sendMessage(jid, {
+        document,
+        mimetype: mimetype || 'application/octet-stream',
+        fileName: fileName || 'document',
+        ...(caption?.trim() ? { caption: caption.trim() } : {}),
+      })
+      const wa_message_id = result?.key?.id ?? undefined
+      this.writeMeta({ lastActivityAt: new Date().toISOString() })
+      this.pushLog('info', `outbound document → ${cleanPhone}: ${fileName} (${document.length} bytes)`)
+      return { ok: true, wa_message_id }
+    } catch (err) {
+      const msg = String((err as Error)?.message ?? err)
+      this.pushLog('error', `document send failed: ${msg}`)
+      return { ok: false, error: msg }
+    }
+  }
+
   // ─── WhatsApp-account check ───────────────────────────────────────────
   /**
    * Does this phone number have a WhatsApp account? Authoritative — asks

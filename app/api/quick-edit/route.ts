@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
+import { SONNET_WEBDEV_ID } from '@/lib/models'
 import { readFileSync } from 'fs'
 import { join } from 'path'
 
@@ -70,10 +71,7 @@ export async function POST(req: NextRequest) {
     console.log(`[QuickEdit] User prompt: "${userPrompt}"`)
 
     const message = await anthropic.messages.create({
-      // 2026-04-17: was Haiku 4.5 (claude-haiku-4-5-20251001).
-      // Migrated to Sonnet 4.6 per Ralph's "all sonnet/haiku → 4.6" pass —
-      // one model family across the app, no Haiku detour.
-      model: 'claude-sonnet-4-6',
+      model: SONNET_WEBDEV_ID,
       max_tokens: 500,
       system: systemPrompt,
       messages: [

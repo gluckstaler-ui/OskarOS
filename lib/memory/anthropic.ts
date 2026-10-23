@@ -11,13 +11,6 @@ import { writeFileSync, unlinkSync, createWriteStream, appendFileSync, type Writ
 import { tmpdir } from 'os'
 import path from 'path'
 
-// 2026-04-17: removed 'claude-haiku-4-5-20251001' from the union per Ralph's
-// "all sonnet/haiku → 4.6" pass. Memory agents (dreamer, lumberjack) use
-// Sonnet 4.6; Big CD uses Opus 4.7. No Haiku surface in OUR code.
-// (Note: the Claude Code CLI itself spawns Haiku internally for sub-tasks
-// like summarization — that's not our code, can't disable from here.)
-export type MemoryModel = 'claude-sonnet-4-6' | 'claude-opus-4-7'
-
 /**
  * Call claude --print. Returns null on failure (memory agents are best-effort).
  * Uses OAuth token. Tools disabled — pure text pipeline.
@@ -30,7 +23,7 @@ export type MemoryModel = 'claude-sonnet-4-6' | 'claude-opus-4-7'
  * `_debug-webdev-*.log`.
  */
 export async function callAnthropic(
-  model: MemoryModel,
+  model: string,
   userMessage: string,
   systemPrompt?: string,
   logPath?: string,
@@ -355,7 +348,7 @@ export async function callAnthropic(
  * some runtimes (tsx); shell exec is reliable.
  */
 export async function callAnthropicAgent(
-  model: MemoryModel,
+  model: string,
   systemPrompt: string,
   cwd: string,
   timeoutMs: number = 10 * 60 * 1000

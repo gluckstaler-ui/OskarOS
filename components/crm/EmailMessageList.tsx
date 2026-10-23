@@ -16,7 +16,8 @@
 // ============================================================================
 
 import { useMemo, useState, useCallback, useEffect, useRef } from 'react'
-import { Mail, ChevronDown, ChevronRight, Paperclip, X, RefreshCw, Trash2 } from 'lucide-react'
+import { Mail, ChevronDown, ChevronRight, Paperclip, X, RefreshCw, Trash2, Clock } from 'lucide-react'
+import { useScheduledSends, nextFullHour, localStamp } from './useScheduledSends'
 import type { CrmActivity, Prospect } from '@/app/crm/crm-data'
 import { EmailUnmatchedBanner } from './EmailUnmatchedBanner'
 
@@ -255,6 +256,40 @@ export function EmailMessageList({ activities, prospects, onSelectProspect, onSe
     }
   }, [draftValue, busy, attachments, suggestions, loadSuggestions, onSent])
 
+  // Scheduled sends (Ralph 2026-08-22): the time picker + planen button are
+  // ALWAYS visible in the compose row; planen is a toggle (pending → cancel).
+  // Fires later through the same email-outbound route (node-local).
+  const { scheduled, schedule, cancel } = useScheduledSends('email')
+  const [schedTimes, setSchedTimes] = useState<Record<string, string>>({}) // prospect_id → datetime-local value
+
+  const scheduleEmail = useCallback(async (g: ClientGroup) => {
+    const id = g.prospectId
+    const body = draftValue(id).trim()
+    const sendAt = schedTimes[id] || nextFullHour()
+    if (!body) return
+    const t = latestThread(g)
+    if (!t.to) { alert('No email address on file for this client.'); return }
+    try {
+      await schedule({
+        prospect_id: id, to: t.to, subject: t.subject, body,
+        in_reply_to: t.in_reply_to, attachments: attachments[id] || [], send_at: sendAt,
+      })
+      setDrafts((d) => ({ ...d, [id]: '' }))
+      setAttachments((a) => ({ ...a, [id]: [] }))
+      // A scheduled send consumes the on-screen draft like a real send — if it
+      // was a Consular suggestion, discard it so it doesn't reappear.
+      if (suggestions[id]) {
+        await fetch('/api/admin/crm/suggestions/discard', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ prospect_id: id, channel: 'email' }),
+        }).catch(() => {})
+        await loadSuggestions()
+      }
+    } catch (err) {
+      alert('Schedule failed: ' + (err instanceof Error ? err.message : String(err)))
+    }
+  }, [draftValue, schedTimes, attachments, suggestions, schedule, loadSuggestions])
+
   const discard = useCallback(async (id: string) => {
     setDrafts((d) => ({ ...d, [id]: '' }))
     try {
@@ -437,6 +472,9 @@ export function EmailMessageList({ activities, prospects, onSelectProspect, onSe
                   style={{ background: 'transparent', border: 'none', textAlign: 'left', cursor: 'pointer', color: 'var(--text-main)', fontFamily: 'inherit', minWidth: 0, padding: 0 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, fontWeight: 600, marginBottom: 2 }}>
                     <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{g.company}</span>
+                    {prospects.find((p) => p.id === g.prospectId)?.auto_respond && (
+                      <span title="Consular Autopilot — antwortet selbstständig" style={{ flexShrink: 0 }}>✨</span>
+                    )}
                     <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 9, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#f97316', background: 'rgba(249,115,22,0.10)', padding: '1px 6px', borderRadius: 4 }}>{g.messages.length}×</span>
                     {hasSuggestion && <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 9, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--brand-amber, #e89e16)', border: '1px solid var(--brand-amber-dim, #7a6536)', padding: '1px 6px', borderRadius: 4 }}>draft ready</span>}
                   </div>
@@ -498,6 +536,55 @@ export function EmailMessageList({ activities, prospects, onSelectProspect, onSe
                       )}
                       <span style={{ marginLeft: 'auto', fontFamily: "'JetBrains Mono', monospace", fontSize: 9, color: 'var(--text-dim)' }}>Enter = send · Shift+Enter = newline</span>
                     </div>
+                    {(() => {
+                      const pendingMine = scheduled.find((s) => s.prospect_id === g.prospectId && s.status === 'pending')
+                      return (
+                        <div style={{ display: 'flex', gap: 10, marginTop: 8, alignItems: 'center' }}>
+                          <input
+                            type="datetime-local"
+                            value={schedTimes[g.prospectId] || nextFullHour()}
+                            min={localStamp(new Date())}
+                            disabled={!!pendingMine}
+                            onChange={(e) => setSchedTimes((prev) => ({ ...prev, [g.prospectId]: e.target.value }))}
+                            style={{ padding: '5px 10px', fontSize: 11, fontFamily: "'JetBrains Mono', monospace", color: 'var(--text-main)', background: 'var(--bg-sunken, #13110d)', border: '1px solid var(--border-card)', borderRadius: 7, outline: 'none', opacity: pendingMine ? 0.5 : 1 }}
+                          />
+                          {pendingMine ? (
+                            <button type="button" onClick={() => void cancel(pendingMine.id)}
+                              title="Cancel scheduled send"
+                              style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 10, letterSpacing: '0.06em', padding: '6px 14px', borderRadius: 7, border: '1px solid #e8331c', color: 'var(--text-main)', background: 'transparent', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+                              <Clock width={11} height={11} /> {new Date(pendingMine.send_at).toLocaleString('de-CH', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })} — CANCEL
+                            </button>
+                          ) : (
+                            <button type="button" onClick={() => void scheduleEmail(g)} disabled={!draftValue(g.prospectId).trim()}
+                              title="Sends automatically at the chosen time — from this machine"
+                              style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 10, letterSpacing: '0.06em', padding: '6px 14px', borderRadius: 7, border: '1px solid var(--brand-amber-dim, #7a6536)', color: 'var(--brand-amber, #e89e16)', background: 'transparent', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 5, opacity: draftValue(g.prospectId).trim() ? 1 : 0.5 }}>
+                              <Clock width={11} height={11} /> E-MAIL PLANEN
+                            </button>
+                          )}
+                        </div>
+                      )
+                    })()}
+                    {scheduled.filter((s) => s.prospect_id === g.prospectId && s.status !== 'pending').map((s) => (
+                      <div key={s.id} style={{ display: 'flex', gap: 8, alignItems: 'center', marginTop: 6, fontSize: 11, color: 'var(--text-muted)' }}>
+                        <span style={{ color: s.status === 'failed' ? '#e8331c' : s.status === 'sent' ? '#25D366' : 'var(--brand-amber, #e89e16)' }}>
+                          {s.status === 'failed' ? '✗' : s.status === 'sent' ? '✓' : '⏱'}
+                        </span>
+                        <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 10, whiteSpace: 'nowrap' }}>
+                          {new Date(s.send_at).toLocaleString('de-CH', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
+                        </span>
+                        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0 }}>
+                          {(s.subject ? s.subject + ': ' : '') + s.body}
+                        </span>
+                        {s.status === 'failed' && <span style={{ color: '#e8331c', whiteSpace: 'nowrap' }}>{s.error}</span>}
+                        {s.status !== 'sending' && (
+                          <button type="button" onClick={() => void cancel(s.id)}
+                            title={s.status === 'pending' ? 'Cancel scheduled send' : 'Dismiss'}
+                            style={{ marginLeft: 'auto', flexShrink: 0, background: 'transparent', border: '1px solid var(--border-card)', color: 'var(--text-muted)', borderRadius: 4, width: 20, height: 20, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', padding: 0 }}>
+                            <X width={11} height={11} />
+                          </button>
+                        )}
+                      </div>
+                    ))}
                   </div>
 
                   {/* messages — each row opens the client card; (x) deletes just this row */}
@@ -512,6 +599,9 @@ export function EmailMessageList({ activities, prospects, onSelectProspect, onSe
                           style={{ background: 'transparent', border: 'none', textAlign: 'left', cursor: 'pointer', color: 'var(--text-muted)', fontFamily: 'inherit', fontSize: 12.5, padding: 0, minWidth: 0, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
                           {m.subject && <b style={{ color: 'var(--text-main)', fontWeight: 600 }}>{m.subject}</b>}
                           {m.subject && m.notes ? <br /> : null}
+                          {/* Filippo 2026-08-18: full body, no clamp. Matches the
+                              LeadDetail feed — message history shows the message,
+                              not a preview. Row already wraps (pre-wrap above). */}
                           {m.notes || ''}
                           {m.media_path && <span style={{ marginLeft: 6, fontFamily: "'JetBrains Mono', monospace", fontSize: 10, color: 'var(--brand-amber, #e89e16)' }}>📎</span>}
                         </button>

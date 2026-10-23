@@ -10,9 +10,9 @@
 // ==========================================
 
 import { NextRequest, NextResponse } from 'next/server'
-import { ImapFlow } from 'imapflow'
 import nodemailer from 'nodemailer'
 import { readMailConfig } from '@/lib/mail-config'
+import { makeImapClient } from '@/lib/imap-client'
 
 const TIMEOUT_MS = 10_000
 
@@ -26,8 +26,8 @@ function withTimeout<T>(p: Promise<T>, label: string): Promise<T> {
 }
 
 async function testImap(host: string, port: number, user: string, pass: string) {
-  const client = new ImapFlow({
-    host, port, secure: true,
+  const client = makeImapClient({
+    host, port,
     auth: { user, pass },
     logger: false,
     connectionTimeout: TIMEOUT_MS,

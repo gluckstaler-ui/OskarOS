@@ -35,17 +35,13 @@ export interface ModelSpec {
   id: string
   /** Badge label. */
   label: string
-  /** True for Anthropic 1M-capable CLI models, whose 1M window the upstream can
-   *  silently demote to 200K under the same model name — so the bridge MUST probe
-   *  the served `contextWindow` and re-roll until it is 1M. */
-  ensure1M: boolean
 }
 
 // Current generation per the Claude API model table (2026-10-22): Fable 5.1,
 // Opus 5.5, Sonnet 5.5, Haiku 5.5. Bare ids, no date suffix.
 export const BRAIN_MODELS = {
-  fable: { id: 'claude-fable-5-1', label: 'Fable', ensure1M: true },
-  opus:  { id: 'claude-opus-5-5',  label: 'Opus',  ensure1M: true },
+  fable: { id: 'claude-fable-5-1', label: 'Fable' },
+  opus:  { id: 'claude-opus-5-5',  label: 'Opus' },
 } as const satisfies Record<BrainModel, ModelSpec>
 
 /** Union of the bare wire ids — DERIVED from the registry, so the CdModel type
@@ -102,15 +98,6 @@ export function brainFromId(id: string): BrainModel | null {
   return null
 }
 
-/** Does this wire id need the bridge's 1M re-roll probe? True for the Anthropic
- *  1M-capable CLI models (fable / opus 4.x / sonnet 4.x); false for Gemini and
- *  any 200K model (e.g. Haiku). This REPLACES the Potemkin `model.endsWith('[1m]')`
- *  gate, which silently disabled the probe the moment we moved to bare ids. */
-export function requires1M(id: string): boolean {
-  const bare = bareModelId(id)
-  return /^claude-(fable-5|opus-[45]-\d|sonnet-[45]-\d)/.test(bare)
-}
-
 /** Strip the CLI-only `[1m]` alias suffix → the bare wire id. The Anthropic API
  *  REJECTS `[1m]` (it's a Claude Code CLI alias, not an API identifier); the bridge
  *  re-roll verifies the real 1M window from the wire regardless. Normalize at every
@@ -118,4 +105,23 @@ export function requires1M(id: string): boolean {
  *  the pre-2026-06-10 billing-mode writer) can't 404 the direct-API path. */
 export function bareModelId(id: string): string {
   return id.replace(/\[1m\]$/, '')
+}
+
+/** Family token of a model id — 'fable' | 'mythos' | 'opus' | 'sonnet' | 'haiku',
+ *  or the bare id when no known family matches (e.g. a glm-* reroute).
+ *  Used by the substitution tripwire (Ralph 2026-08-06): Fable 5 requests can be
+ *  silently re-run on an Opus model (classifier fallback) — the swap is visible
+ *  ONLY in the per-response `message.model` label. Family comparison is deliberate:
+ *  version numbers and the `[1m]` suffix must not trigger it; a cross-family
+ *  divergence (fable→opus, claude→glm) always must.
+ *  NOTE `[1m]` is Opus-4.6-only (its 1M-window alias); no other model carries or
+ *  needs it. bareModelId strips it either way, so a request on `opus-4-6[1m]`
+ *  served as bare `opus-4-6` stays same-family (no false fire) — while the swap
+ *  that MATTERS, fable→opus (the classifier fallback), still fires. */
+export function modelFamily(id: string): string {
+  const base = bareModelId(id).toLowerCase()
+  for (const fam of ['fable', 'mythos', 'opus', 'sonnet', 'haiku'] as const) {
+    if (base.includes(fam)) return fam
+  }
+  return base
 }

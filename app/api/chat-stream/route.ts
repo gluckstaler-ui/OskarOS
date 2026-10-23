@@ -1,5 +1,5 @@
 import { NextRequest } from 'next/server'
-import { brainSpec, DEFAULT_BRAIN, requires1M, bareModelId } from '@/lib/models'
+import { brainSpec, DEFAULT_BRAIN, bareModelId, modelFamily } from '@/lib/models'
 import { readFile } from 'fs/promises'
 import path from 'path'
 import { buildCDPrompt } from '@/lib/cd-agent-prompt'
@@ -356,6 +356,10 @@ export async function POST(req: NextRequest) {
           // strip_chat event so the client can clear the displayed text.
           let streamedText = ''
           const tcCardsFiredThisTurn: string[] = []
+          // Model-substitution tripwire (Ralph 2026-08-06): one snackbar per
+          // divergent wire model per turn — the wire branch below fires on
+          // every assistant event, the Set keeps the warning from stuttering.
+          const substitutionsAnnounced = new Set<string>()
 
           // Bridge respawn on CD model change (Ralph 2026-05-04). CLI
           // subprocesses are model-locked at spawn — if the user toggled
@@ -385,11 +389,6 @@ export async function POST(req: NextRequest) {
             model: resolvedCdModel,
             systemPrompt: fullSystemPrompt,
             cwd: process.cwd(),
-            // CLI-route fence (Ralph 2026-05-28): ONLY this interactive CD
-            // chat opts into the 1M re-roll loop. The one-shot CD helpers
-            // (cd-bridge-call) leave this unset and never re-roll. requires1M()
-            // keeps Gemini out of the Anthropic-only re-roll loop. Ralph 2026-06-10.
-            ensure1M: requires1M(resolvedCdModel),
           })) {
             // Bug M (Ralph 2026-05-04): forward Claude CLI's system/init
             // model field to the client so the input-bar badge shows the
@@ -416,7 +415,34 @@ export async function POST(req: NextRequest) {
               // (mapping for claude-opus-4-7 unverified). source:'wire'
               // outranks source:'init' in the frontend trust ladder.
               if (typeof (event as any).message?.model === 'string' && (event as any).message.model.length > 0) {
-                sendEvent({ type: 'model_info', model: (event as any).message.model, source: 'wire' })
+                const wireModel = (event as any).message.model as string
+                sendEvent({ type: 'model_info', model: wireModel, source: 'wire' })
+                // Model-substitution tripwire (Ralph 2026-08-06): Fable 5
+                // requests can be silently re-run on an Opus model when a
+                // classifier fires (Anthropic's documented fallback; hidden
+                // in harnesses that don't render the notice). The swap is
+                // visible ONLY here — the per-response model label. Compare
+                // wire truth against the requested model by FAMILY (version
+                // bumps and [1m] must not trigger; fable→opus / claude→glm
+                // must) and fire a sticky warning snackbar the moment they
+                // diverge. The model cannot confess the swap — it can't see
+                // it. The harness reads the label. Mechanisms hold where
+                // doctrine fails.
+                if (modelFamily(wireModel) !== modelFamily(resolvedCdModel) && !substitutionsAnnounced.has(wireModel)) {
+                  substitutionsAnnounced.add(wireModel)
+                  console.warn(
+                    `[${requestId}] MODEL SUBSTITUTION on wire: requested ${resolvedCdModel}, served ${wireModel}`,
+                  )
+                  try {
+                    const { publish } = await import('@/lib/event-bus')
+                    publish(effectiveSessionId, {
+                      type: 'cd_snackbar',
+                      text: `⚠ Model substitution: this answer came from ${wireModel}, not ${resolvedCdModel}`,
+                      severity: 'warning',
+                      sticky: true,
+                    } as any)
+                  } catch { /* non-fatal — the model_info badge still carries the wire truth */ }
+                }
               }
               for (const block of event.message.content) {
                 if (block.type === 'text') {

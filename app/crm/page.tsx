@@ -545,8 +545,13 @@ export default function CrmPage() {
                   <>
                     <button
                       type="button"
-                      onClick={() => setShowUnmatched((s) => !s)}
-                      title="Show or hide inbound WhatsApp from unknown numbers"
+                      // Middle-click ONLY (Ralph 2026-08-20): left click must NOT
+                      // toggle — deliberate friction so the unmatched strip can't
+                      // open by accident. auxclick button 1 = middle; onMouseDown
+                      // preventDefault stops the browser's middle-click autoscroll.
+                      onAuxClick={(e) => { if (e.button === 1) setShowUnmatched((s) => !s) }}
+                      onMouseDown={(e) => { if (e.button === 1) e.preventDefault() }}
+                      title="Middle-click to show or hide inbound WhatsApp from unknown numbers"
                       style={{ alignSelf: 'flex-start', display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 12px', borderRadius: 8, border: '1px solid var(--border-card)', background: 'var(--bg-app)', color: 'var(--text-dim)', fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', cursor: 'pointer' }}
                     >
                       {showUnmatched ? '▾' : '▸'} {showUnmatched ? 'Hide' : 'Show'} unmatched senders

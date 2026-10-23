@@ -16,7 +16,7 @@ import { join } from 'path'
 // Types
 // ==========================================
 
-type ClaudeModel = 'claude-sonnet-4-6' | 'claude-opus-4-7'
+type ClaudeModel = string
 
 interface ClaudeMessage {
   role: 'user' | 'assistant'

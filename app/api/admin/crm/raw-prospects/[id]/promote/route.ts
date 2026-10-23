@@ -19,8 +19,10 @@
 // ============================================================================
 
 import { NextRequest, NextResponse } from 'next/server'
-import { readSheet, writeSheet, readRawProspect, patchRawProspect, type Prospect } from '@/lib/crm-store'
+import { readSheet, writeSheet, readRawProspect, patchRawProspect, addContact, appendActivity, type Prospect } from '@/lib/crm-store'
 import { isVerdictTag, isVerdictTone, tagFromLegacyHeat, verdictTagTone, palateBand } from '@/lib/verdict'
+import { promoteUnmatchedForPhone } from '@/lib/wa-inbound-dispatch'
+import { tone as queriedTone } from '@/components/crm/scout/types'
 
 export const dynamic = 'force-dynamic'
 
@@ -98,6 +100,64 @@ export async function POST(_req: NextRequest, { params }: { params: Promise<{ id
     const availLabel = txt(q.availability_label) ?? txt(payload.availability_label)
     const availChecked = txt(q.availability_checked_at) ?? txt(payload.availability_checked_at)
 
+    // ── Queried facts → the card's OWN display slots (Ralph 2026-08-01) ──
+    // The opp dashboard renders lamp_<k>_{state,sub,tone} and strip_<k>_state
+    // (LeadDetail data contract) — burying queried in the provenance blob
+    // means the card shows empty lamps for facts the Scout already has.
+    // Tone comes from the Scout's canonical tone() — one truth, not a fork.
+    //
+    // Guard: queried describes capture.finalUrl. When that domain differs
+    // from the row's website (cluster leakage, e.g. R1466 carrying another
+    // practitioner's scan), the facts belong to the WRONG site — skip the
+    // display mapping entirely; the provenance blob still keeps the record.
+    const domainOf = (u: string | null): string | null => {
+      if (!u) return null
+      try { return new URL(u.startsWith('http') ? u : `https://${u}`).hostname.replace(/^www\./, '') } catch { return null }
+    }
+    const capUrl = txt((scout as { capture?: { finalUrl?: unknown } }).capture?.finalUrl)
+    const siteDomain = domainOf(txt(raw.website))
+    const capDomain = domainOf(capUrl)
+    const queriedTrusted = !(siteDomain && capDomain && siteDomain !== capDomain)
+
+    // Lamp: "76 · ok" → state "76", sub "ok"; tone only when it says something.
+    const lampOf = (key: string, v: string | null): Record<string, string> => {
+      if (!v) return {}
+      const [state, ...rest] = v.split(' · ')
+      const t = queriedTone(key, v)
+      return {
+        [`lamp_${key}_state`]: state.trim(),
+        ...(rest.length ? { [`lamp_${key}_sub`]: rest.join(' · ').trim() } : {}),
+        ...(t && t !== 'info' ? { [`lamp_${key}_tone`]: t } : {}),
+      }
+    }
+    // Strip: whole value as state (the strip row has no sub slot).
+    const stripOf = (key: string, v: string | null): Record<string, string> => {
+      if (!v) return {}
+      const t = queriedTone(key, v)
+      return { [`strip_${key}_state`]: v, ...(t && t !== 'info' ? { [`strip_${key}_tone`]: t } : {}) }
+    }
+    // Legacy scans carry the pre-split `trackers`; analytics wins when both exist.
+    const analyticsVal = txt(q.analytics) ?? txt(q.trackers)
+    const reviewsVal = txt(q.reviews)
+    const queriedDisplay: Record<string, string> = queriedTrusted ? {
+      ...lampOf('age', txt(q.age)),
+      ...lampOf('hosting', txt(q.hosting)),
+      ...lampOf('stack', txt(q.stack)),
+      ...lampOf('performance', txt(q.performance)),
+      ...lampOf('seo', txt(q.seo)),
+      ...stripOf('traffic', txt(q.traffic)),
+      ...stripOf('analytics', analyticsVal),
+      ...stripOf('marketing', txt(q.marketing)),
+      ...stripOf('saas', txt(q.saas)),
+      ...stripOf('booking', txt(q.booking)),
+      ...(txt(q.languages) ? { strip_lang: txt(q.languages)! } : {}),
+      ...(reviewsVal ? {
+        facts_reviews_state: reviewsVal,
+        ...(queriedTone('reviews', reviewsVal) !== 'info'
+          ? { facts_reviews_tone: queriedTone('reviews', reviewsVal) } : {}),
+      } : {}),
+    } : {}
+
     const newProspect: Prospect = {
       id: pid,
       company: raw.company || raw.name || raw.website || pid,
@@ -105,9 +165,11 @@ export async function POST(_req: NextRequest, { params }: { params: Promise<{ id
       phone: raw.phone || '',
       email: raw.email || '',
       website: raw.website || '',
-      address_strasse: '',
-      address_plz: '',
-      address_ort: '',
+      // Address — the FSP register scrape carries adr/plz/ort on raw_payload
+      // (Ralph 2026-08-01: promote must carry ALL of what the Scout has).
+      address_strasse: txt(payload.adr) ?? '',
+      address_plz: txt(payload.plz) ?? '',
+      address_ort: txt(payload.ort) ?? '',
       uid_number: '',
       // Fold the Scout's read into intel — ZERO field translation (Ralph
       // 2026-06-10): the unified keys are identical on both blobs. Extras
@@ -143,6 +205,8 @@ export async function POST(_req: NextRequest, { params }: { params: Promise<{ id
           lamp_photo_sub: txt(taste.photos_cite) ?? '',
           lamp_photo_tone: scoreTone(num(taste.photos)),
         } : {}),
+        ...queriedDisplay,
+        ...(!queriedTrusted && capUrl ? { scout_scan_mismatch: capUrl } : {}),
         scout_taste: taste,
         scout_queried: scout.queried ?? {},
         scout_source: raw.source,
@@ -162,10 +226,78 @@ export async function POST(_req: NextRequest, { params }: { params: Promise<{ id
       standby_plan: '',
       lost_reason: '',
       sub_stage: '',
+      auto_respond: false,
+      auto_respond_goals: '',
     }
 
     await writeSheet([...existing, newProspect])
     await patchRawProspect(id, { promoted_at: now, promoted_to: pid })
+
+    // Contacts table (WP-121) — the card's PEOPLE section reads ONLY from
+    // contacts, so a promote without a contacts row lands as a card with no
+    // reachable person (Ralph 2026-08-01). Seed the person the Scout found:
+    // solo-practice register rows ARE the decision maker. fsp_title (register
+    // scrape) becomes the professional title. Non-fatal — the prospect row
+    // is already committed; a contact failure must not eat the promote.
+    if (raw.name || raw.phone || raw.email) {
+      try {
+        const contact = await addContact({
+          prospect_id: pid,
+          name: raw.name || '',
+          role: 'decision_maker',
+          phone: raw.phone || '',
+          email: raw.email || '',
+          title: txt(payload.fsp_title) ?? '',
+          notes: `From Scout ${raw.id}`,
+          is_decisive: true,
+        })
+        // Same rescan as the contacts POST route: WhatsApp messages that
+        // arrived from this mobile before the card existed sit in the
+        // unmatched buffer — link them onto the new prospect's timeline.
+        if (contact.phone) {
+          await promoteUnmatchedForPhone(contact.phone, pid).catch(() => {})
+        }
+      } catch (err) {
+        console.warn('[raw-prospects/promote] contact seed failed (non-fatal):', err)
+      }
+    }
+
+    // One history entry per Scout register field (Ralph 2026-08-01): the FSP
+    // extras have no card widget — the feed IS their home. FeedRow linkifies
+    // URLs, so the Profil entry is clickable. Entries are listed in display
+    // priority; timestamps stagger 1ms downward so the DESC feed keeps this
+    // order (Profil on top). Legacy taste.photos is prose on old scans (txt()
+    // yields null on the unified numeric shape, which already feeds the photo
+    // lamp) and only trusted scans may speak. Non-fatal.
+    try {
+      const joinArr = (a: unknown): string | null =>
+        Array.isArray(a) && a.length ? a.map((x) => String(x)).filter(Boolean).join(' · ') : null
+      const entries = ([
+        ['FSP · Profil', txt(payload.profile_url)],
+        ['FSP · Spezialisierung', txt(payload.specialization)],
+        ['FSP · Sprachen', joinArr(payload.languages)],
+        ['FSP · Angebot', joinArr(payload.services)],
+        ['FSP · Zielgruppen', joinArr(payload.target_groups)],
+        ['FSP · Abrechnung', txt(payload.billing)],
+        ['FSP · Online-Beratung', txt(payload.online_session)],
+        ['Scout · Photos', queriedTrusted ? txt(taste.photos) : null],
+      ] as Array<[string, string | null]>).filter((e): e is [string, string] => Boolean(e[1]))
+      const base = Date.parse(now)
+      for (let i = 0; i < entries.length; i++) {
+        const [label, value] = entries[i]
+        await appendActivity({
+          prospect_id: pid,
+          type: 'Note',
+          icon: 'file-text',
+          color: '#a1a1aa',
+          notes: `${label}: ${value}`,
+          timestamp: new Date(base - i - 1).toISOString(),
+        })
+      }
+    } catch (err) {
+      console.warn('[raw-prospects/promote] scout history entries failed (non-fatal):', err)
+    }
+
     return NextResponse.json({ ok: true, prospectId: pid, verdict_tag: tag ?? null })
   } catch (err) {
     console.error('[raw-prospects/promote] failed:', err)

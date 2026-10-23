@@ -145,14 +145,14 @@ function applyProspectEvent(db: Database, e: Event): void {
         stage, status, amount_chf, confidence_pct,
         next_action_date, next_action_label, tags, starred, owner,
         notes, created_at, standby_plan, lost_reason,
-        sub_stage, intel_json
+        sub_stage, intel_json, auto_respond, auto_respond_goals
       ) VALUES (
         @id, @company, @contact_name, @phone, @email, @website,
         @address_strasse, @address_plz, @address_ort, @uid_number,
         @stage, @status, @amount_chf, @confidence_pct,
         @next_action_date, @next_action_label, @tags, @starred, @owner,
         @notes, @created_at, @standby_plan, @lost_reason,
-        @sub_stage, @intel_json
+        @sub_stage, @intel_json, @auto_respond, @auto_respond_goals
       )
     `).run({
       id: e.entity_id,
@@ -183,6 +183,8 @@ function applyProspectEvent(db: Database, e: Event): void {
       standby_plan: str(p.standby_plan),
       lost_reason: str(p.lost_reason),
       sub_stage: str(p.sub_stage),
+      auto_respond: bool(p.auto_respond) ? 1 : 0,
+      auto_respond_goals: str(p.auto_respond_goals),
     })
   } else if (e.op === 'update') {
     if (!e.field) return
@@ -192,7 +194,7 @@ function applyProspectEvent(db: Database, e: Event): void {
       return
     }
     // Each field has its own typed column; use a parameterized stmt per field.
-    const value = e.field === 'starred'
+    const value = (e.field === 'starred' || e.field === 'auto_respond')
       ? (bool(e.next) ? 1 : 0)
       : (e.field === 'amount_chf' || e.field === 'confidence_pct')
         ? num(e.next)
@@ -390,7 +392,7 @@ const ALLOWED_PROSPECT_UPDATE_FIELDS = new Set<string>([
   'stage', 'status', 'amount_chf', 'confidence_pct',
   'next_action_date', 'next_action_label', 'tags', 'starred', 'owner',
   'notes', 'created_at', 'standby_plan', 'lost_reason',
-  'sub_stage',
+  'sub_stage', 'auto_respond', 'auto_respond_goals',
 ])
 
 const ALLOWED_ACTIVITY_UPDATE_FIELDS = new Set<string>([

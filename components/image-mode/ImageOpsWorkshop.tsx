@@ -42,6 +42,7 @@ import {
 import { CropBody, CropOpsBarRight } from './CropTool'
 import { SliceBody } from './SliceTool'
 import { ResizeBody, ResizeOpsBarRight } from './ResizeTool'
+import { RotateMirrorBody } from './RotateMirrorTool'
 import { FormatBody } from './FormatTool'
 import { runImageOpsCall, type RunOpResult } from './run-op'
 
@@ -50,6 +51,7 @@ const TOOLS: { id: ImageOpsTool; label: string; disabled?: boolean }[] = [
   { id: 'crop', label: 'CROP' },
   { id: 'slice', label: 'SLICE' },
   { id: 'resize', label: 'RESIZE' },
+  { id: 'rotate-mirror', label: 'ROTATE' }, // Ralph 2026-07-16 — rotate + mirror, default overwrite
   { id: 'format-convert', label: 'FORMAT' }, // WP-IMG-5 — landed 2026-05-06
 ]
 
@@ -57,6 +59,7 @@ const TOOL_COLOR: Record<ImageOpsTool, string> = {
   crop: '#22C55E',          // green (matches marquee)
   slice: '#06B6D4',         // cyan (grid)
   resize: '#F59E0B',         // amber
+  'rotate-mirror': '#EC4899', // rose — rotate + mirror (2026-07-16)
   'format-convert': '#8B5CF6', // violet — disabled in v1; visible so layout doesn't shift
 }
 
@@ -171,6 +174,8 @@ export function ImageOpsWorkshop({
         return <SliceBody state={state} patch={patch} natural={imageNaturalSize} sourceFilename={selectedImage.filename} />
       case 'resize':
         return <ResizeBody state={state} patch={patch} natural={imageNaturalSize} sourceFilename={selectedImage.filename} />
+      case 'rotate-mirror':
+        return <RotateMirrorBody state={state} patch={patch} natural={imageNaturalSize} sourceFilename={selectedImage.filename} />
       case 'format-convert':
         return (
           <FormatBody
@@ -192,6 +197,7 @@ export function ImageOpsWorkshop({
       case 'resize':
         return <ResizeOpsBarRight state={state} patch={patch} natural={imageNaturalSize} />
       case 'slice':
+      case 'rotate-mirror':
         return null
       case 'format-convert':
       default:

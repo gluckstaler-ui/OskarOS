@@ -378,7 +378,7 @@ async function callAnthropicAPI(
   // Default to Opus-1M for parity with the bridge (CLI mode runs Opus-1M
   // for CD too). The session-config resolver upstream picks the actual
   // value; this default only matters if the caller didn't pass one.
-  const effectiveModel = requestModel || 'claude-opus-4-7'
+  const effectiveModel = requestModel || brainSpec(DEFAULT_BRAIN).id
 
   for (let attempt = 1; attempt <= retries; attempt++) {
     try {

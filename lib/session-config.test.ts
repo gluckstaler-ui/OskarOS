@@ -52,9 +52,9 @@ describe('readSessionConfig', () => {
   it('merges partial file over defaults so a missing field still resolves', () => {
     const path = join(TEST_SESSION_DIR, 'logs', '_session-config.json')
     require('fs').mkdirSync(join(TEST_SESSION_DIR, 'logs'), { recursive: true })
-    require('fs').writeFileSync(path, JSON.stringify({ webDevModel: 'claude-opus-4-7' }), 'utf-8')
+    require('fs').writeFileSync(path, JSON.stringify({ webDevModel: 'claude-sonnet-4-6' }), 'utf-8')
     const cfg = readSessionConfig(TEST_SESSION_ID)
-    expect(cfg.webDevModel).toBe('claude-opus-4-7')
+    expect(cfg.webDevModel).toBe('claude-sonnet-4-6')
     // Other fields fall back to default
     expect(cfg.cdModel).toBe(DEFAULT_SESSION_CONFIG.cdModel)
     expect(cfg.billingMode).toBe(DEFAULT_SESSION_CONFIG.billingMode)
@@ -75,15 +75,15 @@ describe('writeSessionConfig', () => {
   })
 
   it('partial updates merge over existing values', () => {
-    writeSessionConfig(TEST_SESSION_ID, { webDevModel: 'claude-opus-4-7', billingMode: 'api' })
-    const second = writeSessionConfig(TEST_SESSION_ID, { webDevModel: 'claude-opus-4-7' })
-    expect(second.webDevModel).toBe('claude-opus-4-7')
+    writeSessionConfig(TEST_SESSION_ID, { webDevModel: 'claude-sonnet-4-6', billingMode: 'api' })
+    const second = writeSessionConfig(TEST_SESSION_ID, { webDevModel: 'claude-sonnet-4-6' })
+    expect(second.webDevModel).toBe('claude-sonnet-4-6')
     // billingMode preserved from the prior write
     expect(second.billingMode).toBe('api')
   })
 
   it('does not leave orphaned .tmp files after a successful write', () => {
-    writeSessionConfig(TEST_SESSION_ID, { webDevModel: 'claude-opus-4-7' })
+    writeSessionConfig(TEST_SESSION_ID, { webDevModel: 'claude-sonnet-4-6' })
     const files = readdirSync(TEST_SESSION_DIR)
     const tmps = files.filter((f) => f.endsWith('.tmp'))
     expect(tmps).toEqual([])
@@ -92,25 +92,25 @@ describe('writeSessionConfig', () => {
 
 describe('resolveConfig — 3-tier precedence', () => {
   it('override wins over file value', () => {
-    writeSessionConfig(TEST_SESSION_ID, { cdModel: 'claude-opus-4-7' })
+    writeSessionConfig(TEST_SESSION_ID, { cdModel: 'claude-opus-5' })
     const resolved = resolveConfig(
       'cdModel',
-      'claude-opus-4-7',  // override
+      'claude-opus-5',  // override
       TEST_SESSION_ID,
-      'claude-opus-4-7',  // default — should be ignored
+      'claude-opus-5',  // default — should be ignored
     )
-    expect(resolved).toBe('claude-opus-4-7')
+    expect(resolved).toBe('claude-opus-5')
   })
 
   it('file wins over default when override is undefined', () => {
-    writeSessionConfig(TEST_SESSION_ID, { cdModel: 'claude-opus-4-7' })
+    writeSessionConfig(TEST_SESSION_ID, { cdModel: 'claude-opus-5' })
     const resolved = resolveConfig(
       'cdModel',
       undefined,
       TEST_SESSION_ID,
-      'claude-opus-4-7',
+      'claude-opus-5',
     )
-    expect(resolved).toBe('claude-opus-4-7')
+    expect(resolved).toBe('claude-opus-5')
   })
 
   it('default wins when neither override nor file specifies a non-default value', () => {
@@ -120,26 +120,26 @@ describe('resolveConfig — 3-tier precedence', () => {
       'cdModel',
       undefined,
       TEST_SESSION_ID,
-      'claude-opus-4-7',  // caller-specified default differs from schema default
+      'claude-opus-5',  // caller-specified default differs from schema default
     )
-    expect(resolved).toBe('claude-opus-4-7')
+    expect(resolved).toBe('claude-opus-5')
   })
 
   it('treats null override the same as undefined', () => {
-    writeSessionConfig(TEST_SESSION_ID, { cdModel: 'claude-opus-4-7' })
+    writeSessionConfig(TEST_SESSION_ID, { cdModel: 'claude-opus-5' })
     const resolved = resolveConfig(
       'cdModel',
       null,
       TEST_SESSION_ID,
-      'claude-opus-4-7',
+      'claude-opus-5',
     )
-    expect(resolved).toBe('claude-opus-4-7')
+    expect(resolved).toBe('claude-opus-5')
   })
 })
 
 describe('resolveWebDevExecution — combo helper', () => {
   it('returns both fields with override precedence', () => {
-    writeSessionConfig(TEST_SESSION_ID, { webDevModel: 'claude-opus-4-7', webDevMode: 'cli' })
+    writeSessionConfig(TEST_SESSION_ID, { webDevModel: 'claude-sonnet-4-6', webDevMode: 'cli' })
     const result = resolveWebDevExecution(
       { mode: 'api', model: 'gemini-3.1-pro-preview' },
       TEST_SESSION_ID,
@@ -149,9 +149,9 @@ describe('resolveWebDevExecution — combo helper', () => {
   })
 
   it('falls back to file when no override', () => {
-    writeSessionConfig(TEST_SESSION_ID, { webDevModel: 'claude-opus-4-7', webDevMode: 'api' })
+    writeSessionConfig(TEST_SESSION_ID, { webDevModel: 'claude-sonnet-4-6', webDevMode: 'api' })
     const result = resolveWebDevExecution(undefined, TEST_SESSION_ID)
-    expect(result.model).toBe('claude-opus-4-7')
+    expect(result.model).toBe('claude-sonnet-4-6')
     expect(result.mode).toBe('api')
   })
 

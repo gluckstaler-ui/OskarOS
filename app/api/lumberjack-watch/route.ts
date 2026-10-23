@@ -30,12 +30,13 @@ import { tmpdir } from 'os'
 import { spawn } from 'child_process'
 import path from 'path'
 import { loadLumberjackPadawan } from '@/lib/memory/prompts'
+import { SONNET_WEBDEV_ID } from '@/lib/models'
 import { getSessionMdPath } from '@/lib/memory/paths'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
-const LUMBERJACK_MODEL = 'claude-sonnet-4-6'
+const LUMBERJACK_MODEL = SONNET_WEBDEV_ID
 
 export async function GET(req: NextRequest) {
   const sessionId = req.nextUrl.searchParams.get('session')

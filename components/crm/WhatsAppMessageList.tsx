@@ -15,7 +15,8 @@
 // ============================================================================
 
 import { useMemo, useState, useCallback, type ReactNode } from 'react'
-import { MessageCircle, ChevronRight, ChevronDown } from 'lucide-react'
+import { MessageCircle, ChevronRight, ChevronDown, Clock, X } from 'lucide-react'
+import { useScheduledSends, nextFullHour, localStamp } from './useScheduledSends'
 import type { Prospect } from '@/lib/crm-store'
 import type { CrmActivity } from '@/app/crm/crm-data'
 
@@ -127,6 +128,24 @@ export function WhatsAppMessageList({ activities, prospects, onSelectProspect, l
   // `WhatsApp Out` activity (shows in-thread on the next data refresh).
   const [replyDrafts, setReplyDrafts] = useState<Record<string, string>>({})
   const [replyBusy, setReplyBusy] = useState<Record<string, 'sending' | 'sent' | 'error'>>({})
+
+  // Scheduled sends (Ralph 2026-08-22): the time picker + SCHEDULE button are
+  // ALWAYS visible under the reply box; SCHEDULE is a toggle (pending → cancel).
+  // Fires later through the same wa-outbound route (node-local).
+  const { scheduled, schedule, cancel } = useScheduledSends('whatsapp')
+  const [schedTimes, setSchedTimes] = useState<Record<string, string>>({}) // prospect_id → datetime-local value
+
+  const scheduleReply = useCallback(async (prospectId: string) => {
+    const text = (replyDrafts[prospectId] || '').trim()
+    const sendAt = schedTimes[prospectId] || nextFullHour()
+    if (!text) return
+    try {
+      await schedule({ prospect_id: prospectId, body: text, send_at: sendAt })
+      setReplyDrafts((prev) => ({ ...prev, [prospectId]: '' }))
+    } catch (err) {
+      alert('Schedule failed: ' + (err instanceof Error ? err.message : String(err)))
+    }
+  }, [replyDrafts, schedTimes, schedule])
 
   const sendReply = useCallback(async (prospectId: string) => {
     const text = (replyDrafts[prospectId] || '').trim()
@@ -240,6 +259,9 @@ export function WhatsAppMessageList({ activities, prospects, onSelectProspect, l
                     }}
                   >
                     <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{g.company}</span>
+                    {prospects.find((p) => p.id === g.prospectId)?.auto_respond && (
+                      <span title="Consular Autopilot — antwortet selbstständig" style={{ flexShrink: 0 }}>✨</span>
+                    )}
                     <span
                       style={{
                         fontFamily: "'JetBrains Mono', monospace",
@@ -325,6 +347,79 @@ export function WhatsAppMessageList({ activities, prospects, onSelectProspect, l
                   )}
                 </div>
               )}
+              {isExpanded && (() => {
+                const pendingMine = scheduled.find((s) => s.prospect_id === g.prospectId && s.status === 'pending')
+                return (
+                  <div style={{ display: 'flex', gap: 8, alignItems: 'center', padding: '0 18px 10px 38px' }}>
+                    <input
+                      type="datetime-local"
+                      value={schedTimes[g.prospectId] || nextFullHour()}
+                      min={localStamp(new Date())}
+                      disabled={!!pendingMine}
+                      onChange={(e) => setSchedTimes((prev) => ({ ...prev, [g.prospectId]: e.target.value }))}
+                      style={{
+                        padding: '6px 10px', fontSize: 12, fontFamily: "'JetBrains Mono', monospace",
+                        color: 'var(--text-main)', background: 'var(--bg-app)',
+                        border: '1px solid var(--border-card)', borderRadius: 8, outline: 'none',
+                        opacity: pendingMine ? 0.5 : 1,
+                      }}
+                    />
+                    {pendingMine ? (
+                      <button
+                        type="button"
+                        onClick={() => { void cancel(pendingMine.id) }}
+                        title="Cancel scheduled send"
+                        style={{
+                          padding: '7px 14px', borderRadius: 8, border: '1px solid #e8331c',
+                          background: 'transparent', color: 'var(--text-main)', fontSize: 11, fontWeight: 800,
+                          letterSpacing: '0.04em', textTransform: 'uppercase', cursor: 'pointer',
+                          display: 'inline-flex', alignItems: 'center', gap: 5,
+                        }}
+                      >
+                        <Clock width={12} height={12} /> {new Date(pendingMine.send_at).toLocaleString('de-CH', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })} — Cancel
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => { void scheduleReply(g.prospectId) }}
+                        disabled={!draft.trim()}
+                        title="Sends automatically at the chosen time — from this machine"
+                        style={{
+                          padding: '7px 14px', borderRadius: 8, border: 'none',
+                          background: '#25D366', color: '#06281a', fontSize: 11, fontWeight: 800,
+                          letterSpacing: '0.04em', textTransform: 'uppercase',
+                          cursor: draft.trim() ? 'pointer' : 'default', opacity: draft.trim() ? 1 : 0.5,
+                          display: 'inline-flex', alignItems: 'center', gap: 5,
+                        }}
+                      >
+                        <Clock width={12} height={12} /> WhatsApp planen
+                      </button>
+                    )}
+                  </div>
+                )
+              })()}
+              {isExpanded && scheduled.filter((s) => s.prospect_id === g.prospectId && s.status !== 'pending').map((s) => (
+                <div key={s.id} style={{ display: 'flex', gap: 8, alignItems: 'center', padding: '0 18px 8px 38px', fontSize: 11.5, color: 'var(--text-muted)' }}>
+                  <span style={{ color: s.status === 'failed' ? '#e8331c' : s.status === 'sent' ? '#25D366' : 'var(--brand-amber, #e89e16)' }}>
+                    {s.status === 'failed' ? '✗' : s.status === 'sent' ? '✓' : '⏱'}
+                  </span>
+                  <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 10.5, whiteSpace: 'nowrap' }}>
+                    {new Date(s.send_at).toLocaleString('de-CH', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
+                  </span>
+                  <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0 }}>{s.body}</span>
+                  {s.status === 'failed' && <span style={{ color: '#e8331c', whiteSpace: 'nowrap' }}>{s.error}</span>}
+                  {s.status !== 'sending' && (
+                    <button
+                      type="button"
+                      onClick={() => { void cancel(s.id) }}
+                      title={s.status === 'pending' ? 'Cancel scheduled send' : 'Dismiss'}
+                      style={{ marginLeft: 'auto', flexShrink: 0, background: 'transparent', border: '1px solid var(--border-card)', color: 'var(--text-muted)', borderRadius: 4, width: 20, height: 20, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', padding: 0 }}
+                    >
+                      <X width={11} height={11} />
+                    </button>
+                  )}
+                </div>
+              ))}
 
               {/* Expanded message rows — click any to open that prospect detail. */}
               {isExpanded && g.messages.map((m) => {

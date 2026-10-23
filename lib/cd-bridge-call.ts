@@ -125,10 +125,7 @@ export async function callCDBridge(
     systemPrompt,
     cwd: opts.cwd || process.cwd(),
     // Ralph 2026-06-01: propagate useWorker so cd-upload-eval (and any
-    // future one-shot) can opt into the worker pool path. Other BridgeOptions
-    // fields (agentRole, allowedTools, ensure1M) intentionally stay
-    // unforwarded — only chat-stream sets those, and chat doesn't go
-    // through callCDBridge.
+    // future one-shot) can opt into the worker pool path.
     ...(opts.useWorker !== undefined ? { useWorker: opts.useWorker } : {}),
   }
 

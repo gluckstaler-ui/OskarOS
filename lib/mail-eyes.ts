@@ -37,9 +37,10 @@ import { closeSync, existsSync, mkdirSync, openSync, readdirSync, readSync, stat
 import { join, basename } from 'path'
 import { tmpdir } from 'os'
 import { JSDOM } from 'jsdom'
-import { ImapFlow } from 'imapflow'
 import { simpleParser, type ParsedMail } from 'mailparser'
+import type { ImapFlow } from 'imapflow'
 import { readMailConfig } from './mail-config'
+import { makeImapClient } from './imap-client'
 import { getDb } from './crm-boot'
 import { appendActivity, type Activity } from './crm-store'
 
@@ -234,6 +235,16 @@ export async function processFetchedMessage(
       media_mime: attachmentMeta[0]?.mime || '',
     })
     filed = Boolean(activity)
+    // Auto-respond hook (Ralph 2026-08-22): fresh inbound on a flagged
+    // prospect arms the Consular's quiet-window timer. No-op when unflagged.
+    if (direction === 'in' && filed) {
+      try {
+        const { maybeAutoRespond } = await import('./auto-respond')
+        maybeAutoRespond(match.id)
+      } catch (err) {
+        console.warn('[mail-eyes] auto-respond hook failed (non-fatal):', err)
+      }
+    }
   }
 
   return { emlPath, filed, prospectId: match?.id, attachments: written, messageId }
@@ -443,8 +454,8 @@ export async function sweepEmailHeaders(): Promise<{ folder: string; exists: num
   const cfg = readMailConfig()
   if (!cfg.configured) return []
 
-  const client = new ImapFlow({
-    host: cfg.imapHost, port: cfg.imapPort, secure: true,
+  const client = makeImapClient({
+    host: cfg.imapHost, port: cfg.imapPort,
     auth: { user: cfg.user, pass: cfg.pass },
     logger: false,
   })
@@ -619,8 +630,8 @@ async function trashFolderPath(client: ImapFlow): Promise<string> {
 async function withImap<T>(fn: (client: ImapFlow) => Promise<T>): Promise<T> {
   const cfg = readMailConfig()
   if (!cfg.configured) throw new Error('mail not configured')
-  const client = new ImapFlow({
-    host: cfg.imapHost, port: cfg.imapPort, secure: true,
+  const client = makeImapClient({
+    host: cfg.imapHost, port: cfg.imapPort,
     auth: { user: cfg.user, pass: cfg.pass },
     logger: false,
   })
@@ -756,8 +767,8 @@ export async function fetchMailBody(folder: string, uid: number): Promise<MailBo
   const cfg = readMailConfig()
   if (!cfg.configured) throw new Error('mail not configured')
 
-  const client = new ImapFlow({
-    host: cfg.imapHost, port: cfg.imapPort, secure: true,
+  const client = makeImapClient({
+    host: cfg.imapHost, port: cfg.imapPort,
     auth: { user: cfg.user, pass: cfg.pass },
     logger: false,
   })
@@ -851,8 +862,8 @@ async function doSweep(_opts: { backfill?: boolean }): Promise<SweepProgress> {
     return getMailProgress()
   }
 
-  const client = new ImapFlow({
-    host: cfg.imapHost, port: cfg.imapPort, secure: true,
+  const client = makeImapClient({
+    host: cfg.imapHost, port: cfg.imapPort,
     auth: { user: cfg.user, pass: cfg.pass },
     logger: false,
   })
@@ -904,6 +915,20 @@ async function doSweep(_opts: { backfill?: boolean }): Promise<SweepProgress> {
       }
     }
     await client.logout().catch(() => client.close())
+
+    // Header-cache refresh (Ralph 2026-08-01): the Inbox/Updates/Others
+    // buckets read email_headers, and NOTHING else refreshes that cache —
+    // it froze at its 2026-07-13 seeding while CHECK EMAIL only swept
+    // client eml. Every sweep now refreshes headers too, so "CHECK EMAIL"
+    // means the whole island is fresh. Non-fatal: a header failure must
+    // not eat the filed client mail.
+    try {
+      const hdr = await sweepEmailHeaders()
+      const added = hdr.reduce((n, f) => n + f.added, 0)
+      if (added > 0) console.log(`[mail-eyes] header sweep: +${added} new (${hdr.map(f => `${f.folder} +${f.added}`).join(', ')})`)
+    } catch (err) {
+      console.warn('[mail-eyes] header sweep failed (non-fatal):', err)
+    }
 
     // POSTMASTER PM-3: brief the Consular on prospects with fresh inbound.
     // ONE bridge call per sweep, prospect IDs only — the Consular reads the
