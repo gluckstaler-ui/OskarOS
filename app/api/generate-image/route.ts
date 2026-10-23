@@ -5,6 +5,7 @@ import crypto from 'crypto'
 import { generateImage, AspectRatio, ImageSize } from '@/lib/gemini'
 import { publish } from '@/lib/event-bus'
 import { upsertImageMetadata } from '@/lib/images-md-writer'
+import { appendLineage, newGenerationId } from '@/lib/lineage-store'
 
 export const maxDuration = 120 // 2 minutes for image generation
 
@@ -124,6 +125,7 @@ export async function POST(req: NextRequest) {
         status: 'READY',
         vibe: vibe || undefined,
         slot: purpose && purpose !== 'b-roll' ? purpose : undefined,
+        prompt,
         evaluation,
         // Ralph 2026-05-04: nest under parent ### img-N when caller knows it.
         ...(promptId ? { parentPromptId: promptId } : {}),
@@ -131,6 +133,27 @@ export async function POST(req: NextRequest) {
     } catch (err) {
       // Non-fatal — file is on disk, the agent can still see it via list_assets.
       console.warn(`[${requestId}] IMAGES.md write failed:`, err)
+    }
+
+    // The prompt stays attached (2026-10-23): a LINEAGE.json record like
+    // /api/edit-image writes — the Assets panel hydrates "From generation"
+    // from it on every reload. CD-direct generations had none before.
+    try {
+      await appendLineage(sessionId, {
+        id: newGenerationId(),
+        sourceImages: [],
+        preset: '',
+        userPrompt: prompt,
+        actualPromptSent: prompt,
+        resultImage: filename,
+        aspectRatio: aspectRatio || '16:9',
+        resolution: imageSize || '2K',
+        timestamp: new Date().toISOString(),
+        mode: 'generate',
+        description: genResult.geminiText?.replace(/\s+/g, ' ').trim() || undefined,
+      })
+    } catch (err) {
+      console.warn(`[${requestId}] LINEAGE.json append failed:`, err)
     }
 
     // Phase 2: server-side publish so the event-bus is the single source of

@@ -2084,6 +2084,7 @@ export function AdvancedMode({
             onVideoReady={(video) => handleVideoReady(tab, video)}
             onOpenInVid2Vid={handleOpenInVid2Vid}
             textareaRef={videoTextareaRefs[tab]}
+            library={sourceImages}
           />
         </div>
       ))}

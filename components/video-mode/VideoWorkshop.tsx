@@ -10,7 +10,7 @@
  *   VID → VID  extend or edit an existing video. Left: the video slot plus
  *              ingredient images.
  *
- *   ┌ [EXTEND|EDIT]  SEC · RATIO · RES · THINKING · VARIATION ──── 42 px ┐
+ *   ┌ [EXTEND|EDIT]  SEC · RATIO · RES · THINKING ─────────────────── 42 px ┐
  *   ├ SOURCES ────── Reset ┬ VIDEO PROMPT  mode   Presets ▾  ✂ Cut ─────┤
  *   │ frames / ingredients │ one prompt — Review by AI sees all of it   │
  *   │ (Layout-style slots) │ ✂ lines cut it into 10 s parts · parts/status│
@@ -26,8 +26,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { SourceImage } from '@/lib/types'
 import {
   VIDEO_RATIOS, VIDEO_RESOLUTIONS, MAX_TOTAL_SECONDS, MAX_EDIT_SOURCE_SECONDS, MAX_EXTEND_SOURCE_SECONDS,
-  MAX_REF_VIDEO_SECONDS, INTERACTION_KEPT_MS, videoModeFor, slotsProblem, ingredientRoom,
-  type VideoAspectRatio, type VideoThinking,
+  MAX_REF_VIDEO_SECONDS, INTERACTION_KEPT_MS, MODE_LABEL, videoModeFor, slotsProblem, ingredientRoom,
+  type VideoAspectRatio, type VideoThinking, type VideoMode,
 } from '@/lib/omni-tasks'
 import { estimateVideoUsd, USD_PER_M_INPUT, type VideoResolution } from '@/lib/omni-pricing'
 import { VIDEO_PRESETS, PRESET_GROUP_LABEL, type VideoPreset, type VideoPresetGroup } from '@/lib/video-presets'
@@ -39,7 +39,7 @@ import {
   ingredientImages, ingredientVideos, ingredientTag, isVideoAsset, emptySlots,
   type VideoSlots, type VideoSlotKey, type VideoTab,
 } from './video-slots'
-import { runVideo, type VideoResume, type VideoPartResult } from './run-video'
+import { runVideo, type VideoResume, type VideoPartResult, type VideoRecipe } from './run-video'
 
 export interface VideoSettings {
   /** VIDEO: total length; VID → VID extend: seconds to add. */
@@ -47,22 +47,89 @@ export interface VideoSettings {
   ratio: 'auto' | VideoAspectRatio
   resolution: VideoResolution
   thinking: VideoThinking
-  /** new = a new random seed each Generate; keep = the seed of the last video. */
-  variation: 'new' | 'keep'
   /** VID → VID only. */
   action: 'extend' | 'edit'
+  /** null = a new take each Generate; otherwise render this earlier take again. */
+  take: VideoTake | null
+}
+
+/**
+ * A take is one rendering of a recipe (prompt, slots, settings) with one
+ * seed. Omni renders the same recipe + seed into the same video (tested:
+ * identical frames); at 1080p/4K that is the same video sharper (upscales of
+ * the 720p render), from 360p to 720p the scene stays but the motion changes,
+ * and any change of prompt, slots, length, ratio or thinking gives a
+ * different video (one word in the prompt → a new scene). So "Same take"
+ * restores the whole recipe, and the user changes only the resolution.
+ */
+export interface VideoTake {
+  seed: number
+  /** The video it came from (its file in the session). */
+  from: string
+  recipe: VideoRecipe
 }
 
 export function defaultVideoSettings(tab: VideoTab): VideoSettings {
-  return { length: tab === 'video' ? 8 : 10, ratio: '16:9', resolution: '720p', thinking: 'high', variation: 'new', action: 'extend' }
+  return { length: tab === 'video' ? 8 : 10, ratio: '16:9', resolution: '720p', thinking: 'high', action: 'extend', take: null }
 }
 
-/** A VIDEOS.json entry (app/api/generate-video). */
+/** A video as GET /api/generate-video returns it (its LINEAGE.json record). */
 interface VideoIndexEntry {
   interactionId: string
   createdAt: string
+  mode?: VideoMode
+  tab?: VideoTab
+  prompt?: string
+  aspectRatio?: string
+  resolution?: string
+  durationSeconds?: number
   seed?: number
+  thinking?: VideoThinking
+  sources?: string[]
   chain?: string[]
+  part?: { index: number; total: number }
+  recipe?: VideoRecipe
+}
+
+/** The tab a video belongs to: recorded, or from what Omni did (a multi-part video by its first part). */
+export function tabOf(e: VideoIndexEntry, first: VideoIndexEntry): VideoTab {
+  if (e.tab || e.recipe) return e.tab || e.recipe!.tab
+  return first.mode === 'extend' || first.mode === 'edit' ? 'vid2vid' : 'video'
+}
+
+/**
+ * The recipe of a video: recorded since the Take option exists, otherwise
+ * rebuilt from its lineage record (prompt, sources by mode, length,
+ * ratio, thinking; a multi-part video from its parts, joined with ✂ cuts).
+ * null when the seed is unknown (videos made before seeds were recorded,
+ * 2026-10-23) — Vertex doesn't report the seed it used.
+ */
+export function recipeOf(e: VideoIndexEntry, index: Record<string, VideoIndexEntry>): VideoRecipe | null {
+  if (e.seed === undefined) return null
+  if (e.recipe) return e.recipe
+  let parts: VideoIndexEntry[] = [e]
+  if (e.part && e.part.total > 1 && e.chain) {
+    const ids = e.chain.slice(-e.part.total)
+    const found = ids.map((id) => Object.values(index).find((x) => x.interactionId === id))
+    if (found.some((x) => !x || x.prompt === undefined)) return null
+    parts = found as VideoIndexEntry[]
+  }
+  const first = parts[0]
+  const tab = tabOf(e, first)
+  const src = first.sources || []
+  const prompt = parts.map((x, i) => (i === 0 ? x.prompt || '' : `${cutLine(i + 1)}\n${x.prompt || ''}`)).join('\n\n')
+  const length = parts.length > 1 ? parts.length * PART_SECONDS : first.durationSeconds || (tab === 'video' ? 8 : 10)
+  const base = { tab, prompt, length, ratio: (first.aspectRatio as VideoAspectRatio | undefined) || 'auto' as const, thinking: first.thinking || 'high' as const }
+  if (tab === 'vid2vid') {
+    return { ...base, action: first.mode === 'edit' ? 'edit' : 'extend', ratio: 'auto', source: src[0], ingredients: src.slice(1) }
+  }
+  const m = first.mode
+  return {
+    ...base, action: 'extend',
+    first: m === 'image' || m === 'frames' || m === 'image-refs' ? src[0] : undefined,
+    last: m === 'frames' ? src[1] : undefined,
+    ingredients: m === 'refs' ? src : m === 'image-refs' ? src.slice(1) : [],
+  }
 }
 
 export const VIDEO_TAB_COLOR: Record<VideoTab, string> = { video: '#EF4444', vid2vid: '#F97316' }
@@ -98,18 +165,20 @@ export interface VideoWorkshopProps {
   /** VIDEO tab: open the result in VID → VID. */
   onOpenInVid2Vid?: (video: SourceImage) => void
   textareaRef: React.RefObject<HTMLTextAreaElement | null>
+  /** The session's images and videos — to put a take's sources back into the slots. */
+  library: SourceImage[]
 }
 
 export function VideoWorkshop(props: VideoWorkshopProps) {
   const {
     tab, sessionId, slots, onSlotsChange, settings, onSettingsChange, prompt, onPromptChange,
     activePresetLabel, onPresetSelect, canReset, onResetPrompt, filename, onFilenameChange,
-    onReviewAI, isReviewingAI, onVideoReady, onOpenInVid2Vid, textareaRef,
+    onReviewAI, isReviewingAI, onVideoReady, onOpenInVid2Vid, textareaRef, library,
   } = props
   const color = VIDEO_TAB_COLOR[tab]
   const isEdit = tab === 'vid2vid' && settings.action === 'edit'
 
-  // --- Generation IDs and seeds of this session's videos (VIDEOS.json) ------
+  // --- Generation IDs, seeds and recipes of this session's videos (LINEAGE.json)
   const [index, setIndex] = useState<Record<string, VideoIndexEntry>>({})
   const loadIndex = useCallback(async () => {
     if (!sessionId) return
@@ -202,6 +271,51 @@ export function VideoWorkshop(props: VideoWorkshopProps) {
     })
   }
 
+  // --- Takes (seed + recipe) ------------------------------------------------------
+  const recipe: VideoRecipe = {
+    tab, action: settings.action, prompt: prompt.trim(), length: settings.length, ratio: settings.ratio, thinking: settings.thinking,
+    first: slots.first?.path, last: slots.last?.path, ingredients: slots.ingredients.map((x) => x.path), source: slots.source?.path,
+  }
+  const take = settings.take
+  /** What differs from the chosen take — each makes it a new take. */
+  const takeChanges: string[] = []
+  if (take) {
+    const r = take.recipe
+    if (r.prompt !== recipe.prompt) takeChanges.push('prompt')
+    if (r.first !== recipe.first || r.last !== recipe.last || r.source !== recipe.source || r.ingredients.join('|') !== recipe.ingredients.join('|')) takeChanges.push('slots')
+    if (r.action !== recipe.action && tab === 'vid2vid') takeChanges.push('extend/edit')
+    if (r.length !== recipe.length && !isEdit) takeChanges.push('length')
+    if (r.ratio !== recipe.ratio && tab === 'video') takeChanges.push('ratio')
+    if (r.thinking !== recipe.thinking) takeChanges.push('thinking')
+  }
+  const takeName = (key: string) => key.replace(/\.mp4$/i, '')
+
+  // The tab's own videos with a recorded take, newest first.
+  // Videos made before seeds were recorded are listed too, greyed out.
+  const takes = useMemo(() => Object.entries(index)
+    .filter(([key]) => !key.startsWith('video-parts/'))
+    .map(([key, e]) => ({ key, e, recipe: recipeOf(e, index) }))
+    .filter((t) => (t.recipe ? t.recipe.tab : tabOf(t.e, t.e)) === tab)
+    .sort((a, b) => Date.parse(b.e.createdAt) - Date.parse(a.e.createdAt))
+    .slice(0, 16), [index, tab])
+
+  const [takesOpen, setTakesOpen] = useState(false)
+  const [takeNote, setTakeNote] = useState<string | null>(null)
+  const applyTake = (key: string, e: VideoIndexEntry, r: VideoRecipe) => {
+    const find = (p?: string) => (p ? library.find((x) => x.path === p) || library.find((x) => x.filename === p.split('/').pop()) || null : null)
+    const restored = {
+      first: find(r.first), last: find(r.last), source: find(r.source),
+      ingredients: r.ingredients.map(find).filter((x): x is SourceImage => !!x),
+    }
+    const missing = [r.first, r.last, r.source].filter(Boolean).length + r.ingredients.length
+      - [restored.first, restored.last, restored.source].filter(Boolean).length - restored.ingredients.length
+    onSlotsChange({ ...emptySlots(tab), ...restored, active: tab === 'video' ? (restored.first ? 'last' : 'first') : restored.ingredients.length })
+    onPromptChange(r.prompt)
+    onSettingsChange({ take: { seed: e.seed!, from: key, recipe: r }, length: r.length, ratio: r.ratio, thinking: r.thinking, action: r.action })
+    setTakeNote(missing > 0 ? `${missing} source${missing > 1 ? 's' : ''} of ${key} ${missing > 1 ? 'are' : 'is'} no longer in the library — that makes it a new take.` : null)
+    setTakesOpen(false)
+  }
+
   // --- Generate ---------------------------------------------------------------
   const [running, setRunning] = useState<{ part: number; total: number; startedAt: number } | null>(null)
   const [, setTick] = useState(0)
@@ -212,8 +326,7 @@ export function VideoWorkshop(props: VideoWorkshopProps) {
   }, [running])
   const [error, setError] = useState<string | null>(null)
   const [resume, setResume] = useState<VideoResume | null>(null)
-  const [done, setDone] = useState<{ video: SourceImage; text: string } | null>(null)
-  const [lastSeed, setLastSeed] = useState<number | null>(null)
+  const [done, setDone] = useState<{ video: SourceImage; take: VideoTake; text: string } | null>(null)
   const startedRef = useRef(0)
 
   // A changed source or task invalidates a half-finished run.
@@ -221,21 +334,22 @@ export function VideoWorkshop(props: VideoWorkshopProps) {
 
   const generate = useCallback(async () => {
     if (running || !prompt.trim() || problem) return
-    const seed = settings.variation === 'keep' && lastSeed !== null ? lastSeed : Math.floor(Math.random() * 2147483647)
+    // The chosen take's seed, or a new random one. Either way it is recorded
+    // with the recipe in LINEAGE.json (the API doesn't report the seed it used).
+    const seed = take ? take.seed : Math.floor(Math.random() * 2147483647)
     setError(null)
     setDone(null)
     startedRef.current = Date.now()
     const outcome = await runVideo(
       {
         sessionId, tab, action: settings.action, slots, prompt, seconds,
-        ratio: settings.ratio, resolution: settings.resolution, thinking: settings.thinking, seed, filename,
+        ratio: settings.ratio, resolution: settings.resolution, thinking: settings.thinking, seed, filename, recipe,
       },
       (part, total) => setRunning({ part, total, startedAt: Date.now() }),
       resume,
     )
     setRunning(null)
     void loadIndex()
-    setLastSeed(seed)
     if ('error' in outcome) {
       setError(outcome.error)
       setResume(outcome.resume)
@@ -258,9 +372,10 @@ export function VideoWorkshop(props: VideoWorkshopProps) {
     const secs = Math.round((Date.now() - startedRef.current) / 1000)
     setDone({
       video,
-      text: `Done in ${secs} s · ${f.filename}${outcome.parts > 1 ? ` · ${outcome.parts} parts` : ''} · ≈ $${outcome.estUsd.toFixed(2)} · generation ID …${f.interactionId.slice(-8)} · seed ${seed}`,
+      take: { seed, from: f.filename, recipe },
+      text: `Done in ${secs} s · ${f.filename}${outcome.parts > 1 ? ` · ${outcome.parts} parts` : ''} · ≈ $${outcome.estUsd.toFixed(2)} · generation ID …${f.interactionId.slice(-8)}`,
     })
-  }, [running, prompt, problem, settings, lastSeed, sessionId, tab, slots, seconds, filename, resume, loadIndex, onVideoReady])
+  }, [running, prompt, problem, settings, take, sessionId, tab, slots, seconds, filename, resume, recipe, loadIndex, onVideoReady])
 
   // --- Review by AI: the CD gets the whole context of the tab --------------
   const review = () => {
@@ -281,7 +396,7 @@ export function VideoWorkshop(props: VideoWorkshopProps) {
       ? ` The prompt is cut into ${parts} parts by lines starting with ✂ — keep every ✂ line exactly. Each part is one generation of up to ${PART_SECONDS} s; every part after the first continues the video before it, so start it with "Extend this video:" and keep subject, look and sound consistent. Timecodes inside a part count from 0 of that part ([0-3s]).`
       : ''
     onReviewAI(
-      `Review the VIDEO PROMPT below for Gemini Omni Flash (video with sound). ${what}` +
+      `Review the VIDEO PROMPT below for Gemini Omni Flash (video with sound) — follow agents/CD-VIDEO-PROMPTING.md. ${what}` +
         `${tags.length ? ` Sources: ${tags.join('; ')}.` : ''}${cuts} ` +
         'Make it ready for Omni: scene and subject, motion, camera, lighting and mood, and the sound (music, effects, or "No dialogue"); ' +
         'write "single continuous shot" when one shot is meant, otherwise the cuts with timecodes like [0-3s]. ' +
@@ -305,14 +420,16 @@ export function VideoWorkshop(props: VideoWorkshopProps) {
 
   const statusText = running
     ? `Generating${running.total > 1 ? ` part ${running.part + 1} of ${running.total}` : ''} · usually 30 s–3 min per part`
-    : problem || (estimate !== null
+    : problem || takeNote || (take && takeChanges.length
+      ? `Changed ${takeChanges.join(', ')} — this renders a new take, not ${takeName(take.from)} again`
+      : null) || (estimate !== null
       ? `≈ $${estimate.toFixed(2)} · ${isEdit ? 'whole video re-rendered' : `${parts} generation${parts > 1 ? 's' : ''}`}`
       : 'Cost follows from the video length')
 
   return (
     <div
       className="bento-card"
-      style={{ display: 'grid', gridTemplateRows: '42px minmax(0, 1fr) 52px', gridTemplateColumns: 'minmax(250px, 1fr) 2fr', width: '100%', height: '100%', minHeight: 0, overflow: 'hidden' }}
+      style={{ position: 'relative', display: 'grid', gridTemplateRows: '42px minmax(0, 1fr) 52px', gridTemplateColumns: 'minmax(250px, 1fr) 2fr', width: '100%', height: '100%', minHeight: 0, overflow: 'hidden' }}
     >
       {/* ── 42 px OPTIONS BAR (like the Img Ops ops-bar) ── */}
       <div style={{ gridColumn: '1 / -1', display: 'flex', alignItems: 'center', gap: 8, padding: '0 12px', borderBottom: '1px solid var(--border-card)', minWidth: 0, overflowX: 'auto', overflowY: 'hidden' }}>
@@ -345,26 +462,85 @@ export function VideoWorkshop(props: VideoWorkshopProps) {
             onChange={(v) => setLength(Number(v))}
           />
         )}
-        {tab === 'video'
-          ? <Pills label="Ratio" options={['auto', ...VIDEO_RATIOS]} labels={{ auto: 'Auto' }}
-              titles={{ auto: 'Not set: Omni picks 16:9 or 9:16 from the prompt and images' }}
-              value={settings.ratio} onChange={(v) => onSettingsChange({ ratio: v as VideoSettings['ratio'] })} />
-          : <Fixed label="Ratio" text="from video" />}
+        {tab === 'video' && (
+          <Pills label="Ratio" options={['auto', ...VIDEO_RATIOS]} labels={{ auto: 'Auto' }}
+            titles={{ auto: 'Not set: Omni picks 16:9 or 9:16 from the prompt and images' }}
+            value={settings.ratio} onChange={(v) => onSettingsChange({ ratio: v as VideoSettings['ratio'] })} />
+        )}
         <Pills label="Res" options={VIDEO_RESOLUTIONS} labels={RES_LABEL} titles={RES_TITLE}
           value={settings.resolution} onChange={(v) => onSettingsChange({ resolution: v as VideoResolution })} />
-        <Pills label="Thinking" options={['low', 'high']} labels={{ low: 'Low', high: 'High' }}
+        <Pills label="Think" options={['low', 'high']} labels={{ low: 'Low', high: 'High' }}
           titles={{ low: 'Plans less before rendering: one simple shot', high: 'Plans shots, cuts and timing before rendering: stories, several shots, exact timing' }}
           value={settings.thinking} onChange={(v) => onSettingsChange({ thinking: v as VideoThinking })} />
-        <Pills label="Variation" options={['new', 'keep']} labels={{ new: 'New', keep: 'Same' }}
-          titles={{
-            new: 'A new random start (seed) for every render',
-            keep: lastSeed !== null
-              ? `The start (seed ${lastSeed}) of the last video: same prompt and settings give the same video, so a prompt change shows just its effect. Not the generation ID.`
-              : 'Available after the first video',
-          }}
-          disabled={lastSeed === null ? ['keep'] : []}
-          value={settings.variation} onChange={(v) => onSettingsChange({ variation: v as 'new' | 'keep' })} />
+        <div
+          style={{ ...pillBoxStyle, flexShrink: 0 }}
+          title={'A take is one rendering of the prompt. New: a new rendering every time. Same as …: renders an earlier video of this tab again — its prompt, slots and settings come back; pick a higher resolution for a sharper copy (1080p/4K are upscales of 720p). Any other change gives a new take.'}
+        >
+          <span style={pillLabelStyle}>Take</span>
+          <button
+            onClick={() => setTakesOpen((o) => !o)}
+            style={{
+              padding: '4px 7px', borderRadius: 4, fontSize: 10, fontWeight: 700, letterSpacing: '0.03em', fontFamily: 'inherit', cursor: 'pointer', whiteSpace: 'nowrap',
+              maxWidth: 170, overflow: 'hidden', textOverflow: 'ellipsis',
+              border: `1px solid ${take ? (takeChanges.length ? '#F59E0B' : '#10B981') : '#10B981'}`,
+              background: take && takeChanges.length ? '#F59E0B20' : '#10B98120',
+              color: take && takeChanges.length ? '#F59E0B' : '#10B981',
+            }}
+          >
+            {take ? `Same as ${takeName(take.from)}` : 'New'} ▾
+          </button>
+          {take && (
+            <button onClick={() => { onSettingsChange({ take: null }); setTakeNote(null) }} title="Back to a new take" style={{ border: 'none', background: 'transparent', color: 'var(--text-dim)', cursor: 'pointer', fontSize: 12, padding: '0 4px' }}>×</button>
+          )}
+        </div>
       </div>
+
+      {/* Take menu: New, or one of this tab's earlier videos (from LINEAGE.json) */}
+      {takesOpen && (
+        <div style={{ position: 'absolute', top: 40, right: 12, zIndex: 30, width: 340, maxHeight: '80%', overflowY: 'auto', background: 'var(--bg-card)', border: '1px solid var(--border-active)', borderRadius: 8, padding: 6, boxShadow: '0 8px 24px rgba(0,0,0,0.25)' }}>
+          <button
+            onClick={() => { onSettingsChange({ take: null }); setTakeNote(null); setTakesOpen(false) }}
+            style={{ ...menuRowStyle, background: !take ? '#10B98118' : 'transparent' }}
+          >
+            <span style={{ fontWeight: 700, color: 'var(--text-main)' }}>New take</span>
+            <span style={{ color: 'var(--text-muted)' }}>A new rendering every time</span>
+          </button>
+          <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--text-dim)', padding: '8px 8px 4px' }}>Same take as</div>
+          {takes.length === 0 && (
+            <div style={{ fontSize: 11, color: 'var(--text-muted)', padding: '2px 8px 8px', lineHeight: 1.5 }}>
+              No video made in this tab yet.
+            </div>
+          )}
+          {takes.map(({ key, e, recipe: r }) => {
+            const p = library.find((x) => x.filename === key)?.path || `/${sessionId}/${key}`
+            const d = new Date(e.createdAt)
+            const when = d.toDateString() === new Date().toDateString()
+              ? d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+              : d.toLocaleDateString([], { day: '2-digit', month: '2-digit' })
+            const mode = !r ? 'made before takes were recorded — can\'t be repeated'
+              : r.tab === 'vid2vid' ? (r.action === 'edit' ? 'Edit' : `Extend +${r.length} s`)
+                : `${MODE_LABEL[(r.first ? (r.last ? 'frames' : 'image') : r.ingredients.length ? 'refs' : 'text') as VideoMode]} · ${r.length} s`
+            return (
+              <button
+                key={key}
+                disabled={!r}
+                onClick={() => r && applyTake(key, e, r)}
+                title={r ? `Render ${key} again: its prompt, slots and settings come back` : 'Oskar recorded no seed for this video (made before 2026-10-23), so its take can\'t be repeated.'}
+                style={{ ...menuRowStyle, flexDirection: 'row', alignItems: 'center', gap: 10, background: take?.from === key ? '#10B98118' : 'transparent', opacity: r ? 1 : 0.45, cursor: r ? 'pointer' : 'not-allowed' }}
+              >
+                <video src={`${p}#t=0.5`} muted playsInline preload="metadata" style={{ width: 56, height: 32, objectFit: 'cover', borderRadius: 3, flexShrink: 0, background: 'var(--bg-card-hover)' }} />
+                <span style={{ display: 'flex', flexDirection: 'column', minWidth: 0, gap: 1 }}>
+                  <span style={{ color: 'var(--text-main)', fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{key}</span>
+                  <span style={{ color: 'var(--text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{mode}{r ? ` · ${e.resolution === '4k' ? '4K' : e.resolution}` : ''} · {when}</span>
+                </span>
+              </button>
+            )
+          })}
+          <div style={{ fontSize: 10, color: 'var(--text-muted)', padding: '6px 8px 4px', lineHeight: 1.5, borderTop: '1px solid var(--border-card)', marginTop: 4 }}>
+            Same take brings back that video's prompt, slots and settings. Generate renders the same video again; at 1080p or 4K the same video sharper. Changing anything else gives a new take.
+          </div>
+        </div>
+      )}
 
       {/* ── LEFT: the sources ── */}
       <div style={{ borderRight: '1px solid var(--border-card)', overflowY: 'auto', minHeight: 0, padding: '0 16px 12px' }}>
@@ -491,6 +667,15 @@ export function VideoWorkshop(props: VideoWorkshopProps) {
           ) : done && !running ? (
             <>
               <span style={{ color: '#22C55E', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={done.text}>{done.text}</span>
+              {take?.from !== done.take.from && (
+                <button
+                  onClick={() => { onSettingsChange({ take: done.take }); setTakeNote(null) }}
+                  title="Keep this take: Generate renders this video again — e.g. at 1080p or 4K for a sharper copy"
+                  style={smallBtnStyle('#10B981')}
+                >
+                  Same take
+                </button>
+              )}
               {tab === 'video' && onOpenInVid2Vid && (
                 <button onClick={() => onOpenInVid2Vid(done.video)} style={smallBtnStyle(VIDEO_TAB_COLOR.vid2vid)}>Extend or edit →</button>
               )}
@@ -515,7 +700,7 @@ export function VideoWorkshop(props: VideoWorkshopProps) {
         </div>
         <span
           title={statusText}
-          style={{ flex: 1, minWidth: 0, fontSize: 10, fontFamily: MONO, color: problem && !running ? '#F59E0B' : 'var(--text-dim)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+          style={{ flex: 1, minWidth: 0, fontSize: 10, fontFamily: MONO, color: (problem || takeNote || (take && takeChanges.length)) && !running ? '#F59E0B' : 'var(--text-dim)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
         >
           {statusText}
         </span>
@@ -631,7 +816,7 @@ function Pills({ label, options, labels, titles, value, onChange, disabled = [] 
           <button
             key={o}
             onClick={() => !off && onChange(o)}
-            title={off ? (titles?.[o] && o === 'keep' ? titles[o] : 'Not possible here') : titles?.[o]}
+            title={off ? 'Not possible here' : titles?.[o]}
             style={{
               padding: '4px 6px', borderRadius: 4, fontSize: 10, fontWeight: 700, letterSpacing: '0.03em', fontFamily: 'inherit',
               border: active ? '1px solid #10B981' : '1px solid transparent', background: active ? '#10B98120' : 'transparent',
@@ -676,6 +861,10 @@ const pillBoxStyle: React.CSSProperties = {
 }
 const pillLabelStyle: React.CSSProperties = {
   fontSize: 9, fontWeight: 700, letterSpacing: '0.05em', textTransform: 'uppercase', color: 'var(--text-dim)', padding: '0 4px', whiteSpace: 'nowrap',
+}
+const menuRowStyle: React.CSSProperties = {
+  display: 'flex', flexDirection: 'column', gap: 2, width: '100%', textAlign: 'left', padding: '6px 8px', borderRadius: 5,
+  border: 'none', cursor: 'pointer', fontFamily: 'inherit', fontSize: 11,
 }
 const resetBtnStyle: React.CSSProperties = {
   height: 22, padding: '0 8px', borderRadius: 4, border: '1px solid rgba(239,68,68,0.2)', background: 'rgba(239,68,68,0.04)',

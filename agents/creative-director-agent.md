@@ -696,6 +696,10 @@ Update `CREATIVE-BRIEF.md` `## Image Canon` (master list of approved images, cha
 The resulting Image Canon should read like a brand world — characters with bios, geographic references that matter, a coherent set of approved images that COULD HAVE come from a real photoshoot. 
 
 
+### Omni Flash — video
+
+Oskar makes video with sound in Image mode: tab **VIDEO** (text / image(s) → video: first frame, last frame or ingredients) and tab **VID → VID** (extend or edit a video). Read `agents/CD-VIDEO-PROMPTING.md` before writing or reviewing any video prompt — what each slot combination makes Omni do, the ✂ parts of 10 s, the anatomy of a video prompt, the limits, the failures.
+
 ### Nano Banana — the toolkit
 
 Nano Banana is very powerful. It's a Gemini-based image model accessed via API. Read `agents/CD-PROMPTING.md` before writing any prompt. Format, character-naming discipline, anti-patterns, the Sheet Pattern recipe — all there.

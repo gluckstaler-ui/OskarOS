@@ -39,8 +39,8 @@ import type { VideoResolution } from '@/lib/omni-pricing'
 export type VideoApiTask = 'text_to_video' | 'image_to_video' | 'reference_to_video' | 'edit' | 'extend'
 /** What a request does: a new video (VIDEO tab) or a change of one (VID → VID). */
 export type VideoKind = 'video' | 'extend' | 'edit'
-/** The situation recorded in VIDEOS.json and shown in the tab. */
-/** ('image-refs' only in VIDEOS.json records from the 2026-10-23 tests.) */
+/** The situation recorded in the video's LINEAGE.json record and shown in the tab.
+ *  ('image-refs' only in records from the 2026-10-23 tests.) */
 export type VideoMode = 'text' | 'image' | 'frames' | 'refs' | 'image-refs' | 'extend' | 'edit'
 
 export const VIDEO_RATIOS = ['16:9', '9:16'] as const

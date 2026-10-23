@@ -9,20 +9,27 @@
 //     ingredients[]                  (extend/edit: images only)
 //     continueFrom?, chain[]?        (a later part: the generation ID of the part before, all IDs so far)
 //     part?: { index, total }        (1-based; parts before the last are kept in video-parts/)
+//     tab: 'video' | 'vid2vid', recipe (recorded, so the tab can render the same take again)
 //     aspectRatio?, resolution, duration?, seed, thinking, filename? }
 //   A video longer than 10 s is several POSTs: part 1 as a new video, then
 //   each part extends the previous one by its generation ID (the workshop
 //   runs the loop). The finished video lands in public/{sessionId}/ and shows
 //   up in the Assets panel; earlier parts go to public/{sessionId}/video-parts/
 //   (kept, not listed) so a failed later part never loses a paid one.
-// GET ?sessionId=: VIDEOS.json — per video its generation ID (Vertex keeps it
-//   14 days; extend/edit continue it instead of uploading), mode, prompt,
-//   options, seed, parts and estimated cost.
+//   Every generation is a LINEAGE.json record like Nano's images (mode
+//   'video': the whole prompt in userPrompt, generation ID, seed, recipe…);
+//   the finished video also gets its IMAGES.md entry with **Prompt:**.
+// GET ?sessionId=: the session's video records by file — generation ID
+//   (Vertex keeps it 14 days; extend/edit continue it instead of uploading),
+//   mode, prompt, options, seed, parts, recipe.
 // ==========================================
 import { NextRequest, NextResponse } from 'next/server'
 import { readFile, writeFile, mkdir, access } from 'fs/promises'
 import path from 'path'
 import { generateVideo, type VideoMedia } from '@/lib/omni'
+import { appendLineage, newGenerationId, readLineage } from '@/lib/lineage-store'
+import { upsertImageMetadata } from '@/lib/images-md-writer'
+import type { GenerationRecord } from '@/lib/types'
 import {
   VIDEO_RATIOS, VIDEO_RESOLUTIONS, THINKING_LEVELS, MAX_IMAGES, MAX_REF_VIDEOS, INTERACTION_KEPT_MS,
   videoModeFor, slotsProblem, type VideoMode, type VideoAspectRatio, type VideoThinking, type VideoApiTask,
@@ -35,23 +42,26 @@ export const dynamic = 'force-dynamic'
 
 const PARTS_DIR = 'video-parts'
 
+/** A video as the VIDEO tabs read it (GET): its LINEAGE.json record, by file. */
 export interface VideoEntry {
   /** Generation ID (Vertex interaction); extend/edit continue it for 14 days. */
   interactionId: string
   createdAt: string
   mode: VideoMode
+  tab: 'video' | 'vid2vid'
+  /** This generation's own prompt (one ✂ part). */
   prompt: string
+  /** The tab's whole prompt. */
+  fullPrompt: string
   aspectRatio?: string
   resolution: string
-  /** Seconds this generation made (for extend: the added part). */
   durationSeconds?: number
   seed?: number
   thinking?: string
   sources: string[]
-  /** Generation IDs of all parts, first to last (videos made in several passes). */
   chain?: string[]
   part?: { index: number; total: number }
-  outputTokens: number
+  recipe?: Record<string, unknown>
   estUsd: number
 }
 
@@ -90,9 +100,32 @@ async function readMedia(publicPath: string): Promise<VideoMedia> {
   return { data: buf.toString('base64'), mimeType: mimeFromPath(publicPath) }
 }
 
-async function readIndex(sessionId: string): Promise<Record<string, VideoEntry>> {
-  const indexPath = path.join(process.cwd(), 'public', sessionId, 'VIDEOS.json')
-  return (await exists(indexPath)) ? JSON.parse(await readFile(indexPath, 'utf8')) : {}
+/** The session's videos by file (later records win), from LINEAGE.json. */
+async function readVideos(sessionId: string): Promise<Record<string, VideoEntry>> {
+  const out: Record<string, VideoEntry> = {}
+  for (const r of await readLineage(sessionId)) {
+    const v = r.video
+    if (r.mode !== 'video' || !v) continue
+    out[r.resultImage] = {
+      interactionId: v.interactionId,
+      createdAt: r.timestamp,
+      mode: v.mode as VideoMode,
+      tab: v.tab,
+      prompt: v.partPrompt,
+      fullPrompt: r.userPrompt,
+      aspectRatio: r.aspectRatio === 'auto' ? undefined : r.aspectRatio,
+      resolution: r.resolution,
+      durationSeconds: v.durationSeconds,
+      seed: v.seed,
+      thinking: v.thinking,
+      sources: r.sourceImages,
+      chain: v.chain,
+      part: v.part,
+      recipe: v.recipe,
+      estUsd: v.estUsd,
+    }
+  }
+  return out
 }
 
 const validSession = (id: string) => /^[A-Za-z0-9._-]+$/.test(id) && !id.includes('..')
@@ -100,7 +133,7 @@ const validSession = (id: string) => /^[A-Za-z0-9._-]+$/.test(id) && !id.include
 export async function GET(req: NextRequest) {
   const sessionId = req.nextUrl.searchParams.get('sessionId') || ''
   if (!validSession(sessionId)) return NextResponse.json({ error: 'sessionId required' }, { status: 400 })
-  return NextResponse.json({ videos: await readIndex(sessionId), keptDays: INTERACTION_KEPT_MS / 86400000 })
+  return NextResponse.json({ videos: await readVideos(sessionId), keptDays: INTERACTION_KEPT_MS / 86400000 })
 }
 
 export async function POST(req: NextRequest) {
@@ -110,6 +143,7 @@ export async function POST(req: NextRequest) {
     sessionId = String(body.sessionId || '')
     const prompt = String(body.prompt || '').trim()
     const kind = body.kind as 'video' | 'extend' | 'edit'
+    const tab: 'video' | 'vid2vid' = body.tab === 'vid2vid' || (!body.tab && kind !== 'video' && !body.continueFrom) ? 'vid2vid' : 'video'
     const resolution = (body.resolution || '720p') as VideoResolution
     const aspectRatio = body.aspectRatio as VideoAspectRatio | undefined
     const durationSeconds = body.duration ? Number(body.duration) : undefined
@@ -149,8 +183,7 @@ export async function POST(req: NextRequest) {
 
     const sessionDir = path.join(process.cwd(), 'public', sessionId)
     await mkdir(sessionDir, { recursive: true })
-    const indexPath = path.join(sessionDir, 'VIDEOS.json')
-    const index = await readIndex(sessionId)
+    const index = await readVideos(sessionId)
 
     // --- What Omni gets ---------------------------------------------------
     let mode: VideoMode
@@ -231,23 +264,45 @@ export async function POST(req: NextRequest) {
     const expectedUsd = apiTask !== 'edit' && durationSeconds
       ? (VIDEO_TOKENS_PER_SECOND[resolution] * durationSeconds * USD_PER_M_VIDEO_OUT) / 1e6 : 0
     const estUsd = Math.max(result.estUsd, expectedUsd)
-    index[key] = {
-      interactionId: result.interactionId,
-      createdAt: new Date().toISOString(),
-      mode,
-      prompt,
-      aspectRatio: apiTask === 'edit' || apiTask === 'extend' ? undefined : aspectRatio,
+    // The prompt stays attached: the whole prompt (all ✂ parts) in the
+    // lineage record and, for the finished video, in its IMAGES.md entry.
+    const recipe = body.recipe && typeof body.recipe === 'object' ? body.recipe as Record<string, unknown> : undefined
+    const fullPrompt = typeof recipe?.prompt === 'string' && recipe.prompt ? recipe.prompt : prompt
+    const record: GenerationRecord = {
+      id: newGenerationId(),
+      parentImage: sources[0] ? path.basename(sources[0]) : undefined,
+      sourceImages: sources.map((p) => path.basename(p)),
+      preset: '',
+      userPrompt: fullPrompt,
+      actualPromptSent: fullPrompt,
+      resultImage: key,
+      aspectRatio: apiTask === 'edit' || apiTask === 'extend' || !aspectRatio ? 'auto' : aspectRatio,
       resolution,
-      durationSeconds: apiTask === 'edit' ? undefined : durationSeconds,
-      seed,
-      thinking,
-      sources: sources.map((p) => path.basename(p)),
-      chain: fullChain.length > 1 ? fullChain : undefined,
-      part,
-      outputTokens: result.outputTokens,
-      estUsd: Math.round(estUsd * 1000) / 1000,
+      timestamp: new Date().toISOString(),
+      mode: 'video',
+      video: {
+        interactionId: result.interactionId,
+        mode,
+        tab,
+        partPrompt: text,
+        durationSeconds: apiTask === 'edit' ? undefined : durationSeconds,
+        seed,
+        thinking,
+        chain: fullChain.length > 1 ? fullChain : undefined,
+        part,
+        recipe,
+        outputTokens: result.outputTokens,
+        estUsd: Math.round(estUsd * 1000) / 1000,
+      },
     }
-    await writeFile(indexPath, JSON.stringify(index, null, 2))
+    await appendLineage(sessionId, record)
+    if (!intermediate) {
+      try {
+        await upsertImageMetadata(sessionDir, filename, { status: 'READY', prompt: fullPrompt.replace(/\s+/g, ' ').trim() })
+      } catch (err) {
+        console.warn('[generate-video] IMAGES.md write failed:', err)
+      }
+    }
 
     const savedPath = `/${sessionId}/${key}`
     console.log(`[generate-video] saved ${savedPath} in ${result.elapsedSeconds}s, ${result.outputTokens} video tokens ≈ $${estUsd.toFixed(2)}`)

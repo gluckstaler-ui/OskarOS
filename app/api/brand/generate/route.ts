@@ -16,6 +16,7 @@ import { findDeliverable, type DeliverableId } from '@/lib/brand-deliverables'
 import { runProofread } from '@/lib/cd-proofread'
 import { runVerdict } from '@/lib/cd-verdict'
 import { logToChat } from '@/lib/chat-logger'
+import { appendLineage, newGenerationId } from '@/lib/lineage-store'
 
 /**
  * POST /api/brand/generate — WP-B4
@@ -173,6 +174,28 @@ export async function POST(req: NextRequest) {
     const filePath = path.join(brandDir, finalFilename)
     await writeFile(filePath, Buffer.from(base64Data, 'base64'))
 
+    // The prompt stays attached (2026-10-23): a LINEAGE.json record like the
+    // other generators write, with what the user's deliverable asked and what
+    // Nano received after the proofread.
+    try {
+      await appendLineage(sessionId, {
+        id: newGenerationId(),
+        parentImage: imageRef || undefined,
+        sourceImages: imageRef ? [imageRef] : [],
+        preset: deliverable.label,
+        userPrompt,
+        actualPromptSent: actualPrompt,
+        resultImage: `brand/${finalFilename}`,
+        aspectRatio: deliverable.aspectRatio,
+        resolution: '2K',
+        timestamp: new Date().toISOString(),
+        mode: 'brand',
+        description: geminiText || undefined,
+      })
+    } catch (lineageErr) {
+      console.warn('[brand/generate] LINEAGE.json append failed:', lineageErr)
+    }
+
     // Auto-catalog to IMAGES.md under a `## Brand Assets` section.
     // Idempotent: if the section exists, append; otherwise create it.
     try {
@@ -185,6 +208,7 @@ export async function POST(req: NextRequest) {
         `- **Vibe:** ${vibeKey}\n` +
         `- **Aspect:** ${deliverable.aspectRatio}\n` +
         `- **Generated:** ${ts}\n` +
+        `- **Prompt:** ${actualPrompt.replace(/\s+/g, ' ').trim()}\n` +
         (geminiText ? `- **Nano Banana:** ${geminiText}\n` : '')
 
       let updated: string

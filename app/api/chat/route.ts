@@ -202,14 +202,14 @@ const TOOLS = [
   },
   {
     name: "read_file",
-    description: "Read a file. Session files: IMAGES.md, CREATIVE-BRIEF.md, SESSION.md. Boot files (read-only): CD-MEMORY.md, CD-PROMPTING.md.",
+    description: "Read a file. Session files: IMAGES.md, CREATIVE-BRIEF.md, SESSION.md. Boot files (read-only): CD-MEMORY.md, CD-PROMPTING.md, CD-VIDEO-PROMPTING.md.",
     input_schema: {
       type: "object",
       required: ["filename"],
       properties: {
         filename: {
           type: "string",
-          description: "Filename to read. Session files: 'IMAGES.md', 'CREATIVE-BRIEF.md', 'SESSION.md'. Boot files: 'CD-MEMORY.md', 'CD-PROMPTING.md'"
+          description: "Filename to read. Session files: 'IMAGES.md', 'CREATIVE-BRIEF.md', 'SESSION.md'. Boot files: 'CD-MEMORY.md', 'CD-PROMPTING.md', 'CD-VIDEO-PROMPTING.md'"
         }
       }
     }
@@ -582,7 +582,7 @@ async function executeFileTool(
 
         // Special case: boot files (read-only access to agents/ folder).
         // These are always markdown — no need to multimodal-route.
-        const BOOT_FILES = ['CD-MEMORY.md', 'CD-PROMPTING.md']
+        const BOOT_FILES = ['CD-MEMORY.md', 'CD-PROMPTING.md', 'CD-VIDEO-PROMPTING.md']
         if (BOOT_FILES.includes(filename)) {
           const bootPath = path.join(process.cwd(), 'agents', filename)
           if (!existsSync(bootPath)) {

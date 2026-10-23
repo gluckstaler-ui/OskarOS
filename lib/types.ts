@@ -142,11 +142,16 @@ export interface GenerationRecord {
   /** What Nano Banana actually received. Equal to userPrompt unless `proofreadResult.severity === 'rewritten'`. */
   actualPromptSent: string
   resultImage: string            // Filename of generated result
-  aspectRatio: AspectRatio
-  resolution: ImageSize
+  /** Videos may leave the ratio to the model ('auto'). */
+  aspectRatio: AspectRatio | 'auto'
+  /** Images 1K/2K/4K; videos 360p/720p/1080p/4k. */
+  resolution: ImageSize | '360p' | '720p' | '1080p' | '4k'
   /** ISO 8601 timestamp string. (Migrated from numeric epoch 2026-04-17.) */
   timestamp: string
-  mode: 'generate' | 'edit' | 'compose' | 'layout' | 'brand'
+  mode: 'generate' | 'edit' | 'compose' | 'layout' | 'brand' | 'video'
+  /** Video records only (Image mode → VIDEO / VID → VID). userPrompt and
+   *  actualPromptSent hold the tab's whole prompt (with its ✂ cuts). */
+  video?: VideoLineage
   /** Nano Banana's Turn-2 self-description, possibly overridden by `verdict.adjustedDescription`. */
   description?: string
   /** CD's pre-Nano proofread outcome (WP-15 rule 3).
@@ -168,6 +173,30 @@ export interface GenerationRecord {
    * prefer the new fields and only fall back to `prompt` for legacy entries.
    */
   prompt?: string
+}
+
+/** The video part of a GenerationRecord (2026-10-23, app/api/generate-video). */
+export interface VideoLineage {
+  /** Vertex generation ID (interaction); extend/edit continue it for 14 days. */
+  interactionId: string
+  /** What Omni did: text, image, frames, refs, extend, edit (lib/omni-tasks.ts VideoMode). */
+  mode: string
+  /** The tab that made it — its take is offered again there. */
+  tab: 'video' | 'vid2vid'
+  /** This generation's own prompt as sent (one ✂ part, "Extend this video: …"). */
+  partPrompt: string
+  /** Seconds this generation made (extend: the added part). */
+  durationSeconds?: number
+  seed?: number
+  thinking?: string
+  /** Generation IDs of the video's history, first to last. */
+  chain?: string[]
+  /** Set on videos made in several 10 s parts. */
+  part?: { index: number; total: number }
+  /** Everything the tab needs to render this take again (components/video-mode/run-video.ts VideoRecipe). */
+  recipe?: Record<string, unknown>
+  outputTokens: number
+  estUsd: number
 }
 
 // Vibe data

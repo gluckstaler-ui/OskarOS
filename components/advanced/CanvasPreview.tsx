@@ -104,7 +104,10 @@ function CanvasPreviewImpl({
     if (el.complete && el.naturalWidth) reportSize()
     return () => ro.disconnect()
   }, [reportSize, onImageNaturalSize, selectedImage?.path])
-  const description = selectedImage?.analysis?.description || ''
+  // A video shows the prompt it was made from (kept in LINEAGE.json); an
+  // image shows Nano Banana's description of itself.
+  const isVideo = /\.(mp4|webm|mov)($|\?)/i.test(selectedImage?.path || selectedImage?.filename || '')
+  const description = (isVideo ? selectedImage?.sourcePrompt : selectedImage?.analysis?.description) || ''
   const hasDescription = description.trim().length > 0
   const isLayoutMode = activeTab === 'layout'
   const hasLayoutImages = isLayoutMode && layoutStaging?.slots.some(Boolean)
@@ -358,7 +361,9 @@ function CanvasPreviewImpl({
                 WebkitBoxOrient: 'vertical' as const,
                 textShadow: '0 1px 3px rgba(0,0,0,0.5)',
               }}
+              title={isVideo ? description : undefined}
             >
+              {isVideo && <strong style={{ color: 'var(--text-main)' }}>Prompt: </strong>}
               {description}
             </span>
             <button
@@ -388,7 +393,7 @@ function CanvasPreviewImpl({
                 ;(e.currentTarget as HTMLElement).style.color = 'var(--desc-btn-text)'
                 ;(e.currentTarget as HTMLElement).style.borderColor = 'var(--desc-btn-border)'
               }}
-              title="Insert description at cursor in prompt (non-destructive)"
+              title={isVideo ? 'Insert this prompt at the cursor (non-destructive)' : 'Insert description at cursor in prompt (non-destructive)'}
             >
               📋 Copy
             </button>
@@ -410,7 +415,7 @@ function CanvasPreviewImpl({
         )}
 
         {/* No-description placeholder */}
-        {!isLayoutMode && selectedImage && !hasDescription && !/\.(mp4|webm|mov)($|\?)/i.test(selectedImage.path || selectedImage.filename || '') && (
+        {!isLayoutMode && selectedImage && !hasDescription && !isVideo && (
           <div
             style={{
               position: 'absolute',

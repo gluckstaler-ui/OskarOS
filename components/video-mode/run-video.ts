@@ -4,7 +4,7 @@
 // the edit (VID → VID); every further part extends the part before by its
 // generation ID, so nothing is uploaded again. Each part is its own POST to
 // /api/generate-video, which keeps paid parts in video-parts/ and records
-// every generation ID in VIDEOS.json. When a part fails, the result carries
+// every generation in LINEAGE.json. When a part fails, the result carries
 // what is needed to resume at that part.
 // ============================================================================
 import { partPrompt, splitParts } from './video-parts'
@@ -26,6 +26,23 @@ export interface VideoRunInput {
   thinking: VideoThinking
   seed: number
   filename: string
+  /** Stored with the video so the tab can render the same take again. */
+  recipe: VideoRecipe
+}
+
+/** What it takes to render a video again: the tab's state when it was made. */
+export interface VideoRecipe {
+  tab: VideoTab
+  action: 'extend' | 'edit'
+  prompt: string
+  length: number
+  ratio: 'auto' | VideoAspectRatio
+  thinking: VideoThinking
+  /** Public paths of the filled slots. */
+  first?: string
+  last?: string
+  ingredients: string[]
+  source?: string
 }
 
 export interface VideoPartResult {
@@ -71,6 +88,8 @@ export async function runVideo(
       seed: input.seed,
       thinking: input.thinking,
       filename: input.filename,
+      tab: input.tab,
+      recipe: input.recipe,
       part: total > 1 ? { index: i + 1, total } : undefined,
     }
     if (i > 0 && previous) {
