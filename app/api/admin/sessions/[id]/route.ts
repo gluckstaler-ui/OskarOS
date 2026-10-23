@@ -39,7 +39,7 @@ interface SessionDetail {
 
 interface FileInfo {
   name: string
-  type: 'md' | 'html' | 'image' | 'pdf' | 'json' | 'other'
+  type: 'md' | 'html' | 'image' | 'pdf' | 'video' | 'json' | 'other'
   size: string
   modified: string
 }
@@ -155,6 +155,9 @@ export async function GET(
       // without a dedicated type they were lumped into 'other' and never
       // surfaced in the asset panel.
       else if (ext === 'pdf') type = 'pdf'
+      // 2026-10-23 · videos from the VIDEO tab (Gemini Omni Flash) and uploads:
+      // listed with the images so they show up in the Assets panel.
+      else if (['mp4', 'webm', 'mov'].includes(ext)) type = 'video'
       else if (ext === 'json') type = 'json'
 
       files.push({
@@ -172,7 +175,7 @@ export async function GET(
       // surface, and we want the same drop/picker → tile experience parity. The
       // tile renderer detects .pdf and shows an icon tile (no broken <img>).
       // Generated-image filter is jpg/jpeg/png-only so PDFs sail past it.
-      if (type === 'image' || type === 'pdf') {
+      if (type === 'image' || type === 'pdf' || type === 'video') {
         const isGeneratedImage = /^[a-z-]+-[a-z-]+-v\d+-\d+\.(jpg|jpeg|png)$/i.test(fileName)
         if (!isGeneratedImage) {
           images.push({
@@ -212,7 +215,8 @@ export async function GET(
         const ext = fileName.split('.').pop()?.toLowerCase() || ''
         const isImage = ['jpg', 'jpeg', 'png', 'webp', 'gif', 'svg'].includes(ext)
         const isPdf = ext === 'pdf'
-        if (!isImage && !isPdf) continue
+        const isVideo = ['mp4', 'webm', 'mov'].includes(ext)
+        if (!isImage && !isPdf && !isVideo) continue
         // Skip generated images (same pattern as the root loop) + anything
         // already present at the root (root wins).
         if (/^[a-z-]+-[a-z-]+-v\d+-\d+\.(jpg|jpeg|png)$/i.test(fileName)) continue

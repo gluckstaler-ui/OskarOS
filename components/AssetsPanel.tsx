@@ -186,6 +186,8 @@ function BentoTile({
   const isSvg = /\.svg($|\?)/i.test(image.path || image.filename || '')
   // PDFs can't render in <img> — swap to PdfTilePreview (icon + filename).
   const isPdf = /\.pdf($|\?)/i.test(image.path || image.filename || '')
+  // Videos (Image mode VIDEO tab, 2026-10-23): a muted frame at 0.5 s instead of <img>.
+  const isVideo = /\.(mp4|webm|mov)($|\?)/i.test(image.path || image.filename || '')
 
   return (
     <div
@@ -247,6 +249,14 @@ function BentoTile({
       }}>
         {isPdf ? (
           <PdfTilePreview filename={image.filename} src={image.path} size="large" />
+        ) : isVideo ? (
+          <video
+            src={`${image.path}#t=0.5`}
+            muted
+            playsInline
+            preload="metadata"
+            style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+          />
         ) : (
           <img
             src={image.path}
@@ -1261,7 +1271,9 @@ export function AssetsPanel({
       // 2026-05-31: PDFs join the accept set — same flow, icon-tile render.
       const isImage = f.type.startsWith('image/') || /\.svg$/i.test(f.name)
       const isPdf = f.type === 'application/pdf' || /\.pdf$/i.test(f.name)
-      if (isImage || isPdf) onUpload(f)
+      // 2026-10-23: videos (source clips for the Image mode VIDEO tab).
+      const isVideo = f.type.startsWith('video/') || /\.(mp4|mov|webm)$/i.test(f.name)
+      if (isImage || isPdf || isVideo) onUpload(f)
     })
   }
 
@@ -1661,7 +1673,7 @@ export function AssetsPanel({
               <input
                 ref={fileInputRef}
                 type="file"
-                accept="image/*,image/svg+xml,.svg,application/pdf,.pdf"
+                accept="image/*,image/svg+xml,.svg,application/pdf,.pdf,video/mp4,video/quicktime,video/webm,.mp4,.mov,.webm"
                 multiple
                 onChange={e => {
                   Array.from(e.target.files || []).forEach(f => onUpload(f))

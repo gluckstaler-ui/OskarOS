@@ -87,7 +87,9 @@ function AssetGridImpl({ sourceImages, selectedImageId, onSelect, roleBadgeMap =
       // 2026-05-31: PDFs join the accept set — icon-tile render downstream.
       const isImage = f.type.startsWith('image/') || /\.svg$/i.test(f.name)
       const isPdf = f.type === 'application/pdf' || /\.pdf$/i.test(f.name)
-      if (isImage || isPdf) onUpload(f)
+      // 2026-10-23: videos (source clips for the VIDEO tab's edit/extend).
+      const isVideo = f.type.startsWith('video/') || /\.(mp4|mov|webm)$/i.test(f.name)
+      if (isImage || isPdf || isVideo) onUpload(f)
     })
   }
 
@@ -305,7 +307,7 @@ function AssetGridImpl({ sourceImages, selectedImageId, onSelect, roleBadgeMap =
             <input
               ref={fileInputRef}
               type="file"
-              accept="image/*,image/svg+xml,.svg,application/pdf,.pdf"
+              accept="image/*,image/svg+xml,.svg,application/pdf,.pdf,video/mp4,video/quicktime,video/webm,.mp4,.mov,.webm"
               multiple
               onChange={(e) => {
                 Array.from(e.target.files || []).forEach((f) => onUpload(f))
@@ -387,6 +389,9 @@ function AssetGridImpl({ sourceImages, selectedImageId, onSelect, roleBadgeMap =
           const isSvg = /\.svg($|\?)/i.test(img.path || img.filename || '')
           // PDFs render via PdfTilePreview — browsers can't display PDFs in <img>.
           const isPdf = /\.pdf($|\?)/i.test(img.path || img.filename || '')
+          // Videos (VIDEO tab, 2026-10-23): a muted <video> showing a frame at
+          // 0.5 s (#t fragment) instead of <img>, plus a VIDEO badge.
+          const isVideo = /\.(mp4|webm|mov)($|\?)/i.test(img.path || img.filename || '')
 
           return (
             <div
@@ -437,7 +442,34 @@ function AssetGridImpl({ sourceImages, selectedImageId, onSelect, roleBadgeMap =
                     main-thread decodes on first paint, then again on every
                     scroll that brings new tiles into view. */}
                 {isPdf && <PdfTilePreview filename={img.filename} src={img.path} size="large" />}
-                {!isPdf && <img
+                {isVideo && (
+                  <>
+                    <video
+                      src={`${img.path}#t=0.5`}
+                      muted
+                      playsInline
+                      preload="metadata"
+                      style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+                    />
+                    <div
+                      style={{
+                        position: 'absolute',
+                        bottom: 4,
+                        left: 4,
+                        padding: '2px 5px',
+                        borderRadius: 3,
+                        background: 'rgba(0,0,0,0.65)',
+                        color: '#fff',
+                        fontSize: 8,
+                        fontWeight: 700,
+                        letterSpacing: '0.05em',
+                      }}
+                    >
+                      ▶ VIDEO
+                    </div>
+                  </>
+                )}
+                {!isPdf && !isVideo && <img
                   src={img.path}
                   alt={img.filename}
                   loading="lazy"

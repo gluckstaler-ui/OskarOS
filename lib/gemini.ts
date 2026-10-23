@@ -1,6 +1,4 @@
-import { existsSync, readFileSync } from 'fs'
-import { join } from 'path'
-import { GoogleAuth } from 'google-auth-library'
+import { VERTEX_KEY_FILE, vertexAccount, vertexHeaders } from '@/lib/vertex'
 
 const GEMINI_API_KEY = process.env.GOOGLE_API_KEY;
 
@@ -9,38 +7,38 @@ const GEMINI_API_KEY = process.env.GOOGLE_API_KEY;
 // 2.1 is Google's named replacement at half the price per image.
 // OSKAR_IMAGE_MODEL overrides it (e.g. gemini-3-pro-image for Nano Banana Pro).
 const IMAGE_MODEL = process.env.OSKAR_IMAGE_MODEL || 'gemini-nano-banana-2.1';
-const GEMINI_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/${IMAGE_MODEL}:generateContent`;
+// Text-only calls (chat, analyzeImage, describeGeneratedImage) use a text model:
+// 3 s instead of 15-25 s on the image model (Vertex test 2026-10-22). OSKAR_TEXT_MODEL overrides.
+const TEXT_MODEL = process.env.OSKAR_TEXT_MODEL || 'gemini-3.8-flash';
+const geminiApiUrl = (model: string) => `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`;
 
 /**
  * Vertex AI (Agent Platform) route, 2026-10-22. When the service-account key
  * exists, every call in this file goes to Vertex on that key's Cloud project
  * (billed to its billing account and credits) instead of the Gemini API key.
  * Without the key file the GOOGLE_API_KEY route below is unchanged.
+ * The key and its project come from lib/vertex.ts (shared with video, lib/omni.ts).
  * Setup and the tested request rules: docs/ops/vertex-setup.md.
- * OSKAR_VERTEX_KEY overrides the key path.
  */
-const VERTEX_KEY_FILE = process.env.OSKAR_VERTEX_KEY || join(process.cwd(), 'ops', 'vertex', 'oskar-ai.json')
 const VERTEX_LOCATION = 'global'
 // A 429 on Vertex means Google's shared capacity for the model is busy, not a project quota
 // (all quotas at 0 % on 2026-10-22); it comes in bursts. Waits 2, 4, 8, 16 s.
 const VERTEX_429_ATTEMPTS = 5
 
-let vertexTarget: { auth: GoogleAuth; url: string } | null | undefined
+let vertexModelsUrl: string | null | undefined
 
-function vertex(): { auth: GoogleAuth; url: string } | null {
-  if (vertexTarget !== undefined) return vertexTarget
-  if (!existsSync(VERTEX_KEY_FILE)) {
-    vertexTarget = null
+/** Base URL of the Vertex models, or null when there is no Vertex key (→ Gemini API key route). */
+function vertex(): string | null {
+  if (vertexModelsUrl !== undefined) return vertexModelsUrl
+  const account = vertexAccount()
+  if (!account) {
+    vertexModelsUrl = null
     console.log(`[gemini] route: Gemini API key (no Vertex key at ${VERTEX_KEY_FILE})`)
     return null
   }
-  const projectId = JSON.parse(readFileSync(VERTEX_KEY_FILE, 'utf8')).project_id
-  vertexTarget = {
-    auth: new GoogleAuth({ keyFile: VERTEX_KEY_FILE, scopes: ['https://www.googleapis.com/auth/cloud-platform'] }),
-    url: `https://aiplatform.googleapis.com/v1/projects/${projectId}/locations/${VERTEX_LOCATION}/publishers/google/models/${IMAGE_MODEL}:generateContent`,
-  }
-  console.log(`[gemini] route: Vertex AI, project ${projectId}, ${VERTEX_LOCATION}, ${IMAGE_MODEL}`)
-  return vertexTarget
+  vertexModelsUrl = `https://aiplatform.googleapis.com/v1/projects/${account.projectId}/locations/${VERTEX_LOCATION}/publishers/google/models`
+  console.log(`[gemini] route: Vertex AI, project ${account.projectId}, ${VERTEX_LOCATION}, images ${IMAGE_MODEL}, text ${TEXT_MODEL}`)
+  return vertexModelsUrl
 }
 
 /**
@@ -120,10 +118,10 @@ function toVertexBody(body: any): any {
 }
 
 /** POST a generateContent body to Vertex (key file present) or to the Gemini API key. */
-async function postGenerateContent(body: any): Promise<Response> {
-  const v = vertex()
-  if (!v) {
-    return fetch(`${GEMINI_API_URL}?key=${GEMINI_API_KEY}`, {
+async function postGenerateContent(body: any, model: string = IMAGE_MODEL): Promise<Response> {
+  const modelsUrl = vertex()
+  if (!modelsUrl) {
+    return fetch(`${geminiApiUrl(model)}?key=${GEMINI_API_KEY}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body),
@@ -131,10 +129,9 @@ async function postGenerateContent(body: any): Promise<Response> {
   }
   const payload = JSON.stringify(toVertexBody(body))
   for (let attempt = 1; ; attempt++) {
-    const token = await v.auth.getAccessToken()
-    const response = await fetch(v.url, {
+    const response = await fetch(`${modelsUrl}/${model}:generateContent`, {
       method: 'POST',
-      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      headers: await vertexHeaders(),
       body: payload,
     })
     if (response.status !== 429 || attempt >= VERTEX_429_ATTEMPTS) return response
@@ -268,7 +265,7 @@ export async function chat(
       maxOutputTokens: 8192,
     },
     safetySettings: SAFETY_OFF
-  });
+  }, TEXT_MODEL);
 
   if (!response.ok) {
     const error = await response.text();
@@ -586,10 +583,10 @@ Return ONLY valid JSON, no other text.`
     contents: [{ parts }],
     generationConfig: {
       temperature: 0.1,
-      maxOutputTokens: 1024,
+      maxOutputTokens: 4096, // thinking counts toward this on Gemini 3.x (500-650 tokens here); 1024 cut the JSON off
     },
     safetySettings: SAFETY_OFF
-  })
+  }, TEXT_MODEL)
 
   if (!response.ok) {
     const error = await response.text()
@@ -673,10 +670,10 @@ Be vivid and specific. This description will be used for future edits and versio
       generationConfig: {
         responseModalities: ['TEXT'],
         temperature: 0.2,
-        maxOutputTokens: 512,
+        maxOutputTokens: 2048, // incl. thinking (Gemini 3.x)
       },
       safetySettings: SAFETY_OFF
-    })
+    }, TEXT_MODEL)
 
     if (!response.ok) {
       console.error(`[Turn 2] Gemini API error: ${response.status}`)

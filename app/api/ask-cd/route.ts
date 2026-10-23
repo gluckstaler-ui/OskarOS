@@ -48,7 +48,7 @@ export interface AskCDRequestBody {
    *  reply (e.g. image-mode's Zone 4 expects the committed ## IMAGE PROMPT
    *  shape; gallery/studio are conversational only). */
   source: 'gallery' | 'studio' | 'image' | 'advanced-mode'
-  mode?: 'generate' | 'edit' | 'compose' | 'layout'
+  mode?: 'generate' | 'edit' | 'compose' | 'layout' | 'video' | 'vid2vid'
   image?: { filename: string; description: string }
   currentPrompt?: string
   stagedImages?: { scene?: string; subjects?: string[]; slots?: string[] }

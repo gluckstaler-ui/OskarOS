@@ -174,6 +174,19 @@ function CanvasPreviewImpl({
                     against. Image-ops (crop/slice) is raster-only, so the
                     overlay-alignment reason for shrink-wrap doesn't apply. */}
                 {(() => {
+                  // Videos (VIDEO tab, 2026-10-23) play here with controls.
+                  if (/\.(mp4|webm|mov)($|\?)/i.test(selectedImage.path || selectedImage.filename || '')) {
+                    return (
+                      <video
+                        key={selectedImage.path}
+                        src={selectedImage.path}
+                        controls
+                        playsInline
+                        preload="metadata"
+                        style={{ maxWidth: '100%', maxHeight: '100%', display: 'block' }}
+                      />
+                    )
+                  }
                   const isSvg = /\.svg($|\?)/i.test(selectedImage.path || selectedImage.filename || '')
                   const wrapperStyle: React.CSSProperties = isSvg
                     ? { position: 'relative', width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', lineHeight: 0 }
@@ -397,7 +410,7 @@ function CanvasPreviewImpl({
         )}
 
         {/* No-description placeholder */}
-        {!isLayoutMode && selectedImage && !hasDescription && (
+        {!isLayoutMode && selectedImage && !hasDescription && !/\.(mp4|webm|mov)($|\?)/i.test(selectedImage.path || selectedImage.filename || '') && (
           <div
             style={{
               position: 'absolute',

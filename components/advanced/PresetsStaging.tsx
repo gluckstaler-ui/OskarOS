@@ -51,6 +51,8 @@ const MODE_COLORS: Record<AdvancedTab, string> = {
   layout: '#10B981',
   brand: '#EC4899', // WP-B5 — never actually renders (brand tab skips PresetsStaging) but required by the exhaustive Record
   'image-ops': '#06B6D4', // WP-IMG-1 — never renders here (image-ops mode replaces PresetsStaging with Workshop) but required by the exhaustive Record
+  video: '#EF4444', // never renders here (the video tabs show VideoWorkshop instead) but required by the exhaustive Record
+  vid2vid: '#F97316',
 }
 
 function PresetsStagingImpl({

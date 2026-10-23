@@ -36,6 +36,9 @@ import { AssetGrid } from './advanced/AssetGrid'
 import { CanvasPreview } from './advanced/CanvasPreview'
 import { PresetsStaging } from './advanced/PresetsStaging'
 import { PromptEditor, PromptEditorHandle } from './advanced/PromptEditor'
+import { VideoWorkshop, defaultVideoSettings, VIDEO_TAB_COLOR, type VideoSettings } from './video-mode/VideoWorkshop'
+import { emptySlots, toggleSlot, slotBadges, type VideoSlots, type VideoTab } from './video-mode/video-slots'
+import type { VideoPreset } from '@/lib/video-presets'
 import { ImageChatPanel, type ImageChatContent } from './advanced/ImageChatPanel'
 import { useAutoFill } from './image-mode/use-auto-fill'
 // WP-IMG-1..6 (2026-05-06)
@@ -65,7 +68,7 @@ import {
 // Types
 // ============================================================================
 
-export type AdvancedTab = 'view' | 'generate' | 'edit' | 'compose' | 'layout' | 'brand' | 'image-ops'
+export type AdvancedTab = 'view' | 'generate' | 'edit' | 'compose' | 'layout' | 'brand' | 'image-ops' | 'video' | 'vid2vid'
 
 /** Compose staging: scene image + ordered subject images. */
 export interface ComposeStaging {
@@ -162,6 +165,9 @@ const TABS: { id: AdvancedTab; label: string }[] = [
   // "Image Ops" / 'image-ops'; we keep the slug machine-friendly and the
   // human label two words ("Img Ops") so the tab strip stays compact.
   { id: 'image-ops', label: 'Img Ops' },
+  // 2026-10-23: Gemini Omni Flash on Vertex (lib/omni.ts, /api/generate-video).
+  { id: 'video', label: 'Video' },
+  { id: 'vid2vid', label: 'Vid → Vid' },
 ]
 
 const TAB_COLORS: Record<AdvancedTab, string> = {
@@ -172,6 +178,8 @@ const TAB_COLORS: Record<AdvancedTab, string> = {
   layout: '#10B981',
   brand: '#EC4899',
   'image-ops': '#06B6D4', // WP-IMG-1 — cyan
+  video: VIDEO_TAB_COLOR.video,
+  vid2vid: VIDEO_TAB_COLOR.vid2vid,
 }
 
 const TAB_HELP: Record<AdvancedTab, string> = {
@@ -182,6 +190,8 @@ const TAB_HELP: Record<AdvancedTab, string> = {
   layout: 'Arrange multiple images into a grid layout. Pick a preset, then click images to fill the grid slots. The bento preview updates in real-time.',
   brand: 'Pick a vibe, pick a deliverable — generate logo, business card, pitch slide, website hero, and social kit in the vibe\'s brand.',
   'image-ops': 'Workshop: crop, slice, resize, format-convert. Pick a tool, set params, hit Generate — outputs land in the asset library.',
+  video: 'Videos with sound from Gemini Omni Flash. Fill the slots on the left from the library — first frame, last frame, ingredients — or none for text → video. Up to 30 s: ✂ cuts the prompt into 10 s parts.',
+  vid2vid: 'Extend or edit a video with Gemini Omni Flash. Click a video in the library, add ingredient images if you like. Extending continues Oskar\'s own videos by their generation ID.',
 }
 
 const INITIAL_LAYOUT_SLOTS = 4
@@ -399,6 +409,8 @@ export function AdvancedMode({
       layout: makeInitialTabState(),
       brand: makeInitialTabState(),
       'image-ops': makeInitialTabState(), // WP-IMG-1
+      video: makeInitialTabState(),
+      vid2vid: makeInitialTabState(),
     }
     // Pre-seed the initial tab with the initial image if provided
     if (initialImage) {
@@ -434,6 +446,22 @@ export function AdvancedMode({
 
   const isImageOpsMode = activeTab === 'image-ops'
 
+  // ── VIDEO tabs (2026-10-23) ──────────────────────────────────────────────
+  // Prompt, filename and active preset live in perTabState like every tab;
+  // the slots and settings of each video tab live here, so library clicks
+  // (handleSelectImage) can fill the slots. The workshop does the rest.
+  const [videoSlots, setVideoSlots] = useState<Record<VideoTab, VideoSlots>>(() => ({
+    video: emptySlots('video'), vid2vid: emptySlots('vid2vid'),
+  }))
+  const [videoSettings, setVideoSettings] = useState<Record<VideoTab, VideoSettings>>(() => ({
+    video: defaultVideoSettings('video'), vid2vid: defaultVideoSettings('vid2vid'),
+  }))
+  const videoTextareaRefs = {
+    video: useRef<HTMLTextAreaElement>(null),
+    vid2vid: useRef<HTMLTextAreaElement>(null),
+  }
+  const isVideoMode = activeTab === 'video' || activeTab === 'vid2vid'
+
   // --- Active brand data (Brand tab) -----------------------------------------
   // The Brand tab is stateful: entering it locks in a brand identity from
   // the active vibe. For v1 the active vibe is simply the first vibe the
@@ -449,7 +477,11 @@ export function AdvancedMode({
     return data
   }, [vibes, businessName])
 
-  // --- State updaters scoped to active tab -----------------------------------
+  // --- State updaters scoped to a tab / the active tab ------------------------
+  const patchTab = useCallback((tab: AdvancedTab, patch: Partial<TabState>) => {
+    setPerTabState((prev) => ({ ...prev, [tab]: { ...prev[tab], ...patch } }))
+  }, [])
+
   const patchCurrentTab = useCallback(
     (patch: Partial<TabState>) => {
       setPerTabState((prev) => ({
@@ -463,6 +495,16 @@ export function AdvancedMode({
   const handleSelectImage = useCallback(
     (img: SourceImage) => {
       const tabState = perTabState[activeTab]
+
+      // --- Video tabs: never overwrite the video prompt. The click previews the
+      // asset and fills the active slot (or, clicked again, empties its slot),
+      // like Layout's staging (video-mode/video-slots.ts). ---
+      if (activeTab === 'video' || activeTab === 'vid2vid') {
+        const tab = activeTab
+        patchCurrentTab({ selectedImage: img })
+        setVideoSlots((prev) => ({ ...prev, [tab]: toggleSlot(tab, prev[tab], img) }))
+        return
+      }
 
       // --- Compose mode: toggle-fill staging slots ---
       if (activeTab === 'compose') {
@@ -756,9 +798,11 @@ export function AdvancedMode({
           map[img.id] = { label: i === 0 ? 'Hero' : String(i + 1), color: '#10B981' }
         }
       })
+    } else if (activeTab === 'video' || activeTab === 'vid2vid') {
+      return slotBadges(activeTab, videoSlots[activeTab], VIDEO_TAB_COLOR[activeTab])
     }
     return map
-  }, [activeTab, currentState.composeStaging, currentState.layoutStaging])
+  }, [activeTab, currentState.composeStaging, currentState.layoutStaging, videoSlots])
 
   // --- Tab switching ---------------------------------------------------------
   const handleTabClick = useCallback((tab: AdvancedTab) => {
@@ -903,6 +947,16 @@ export function AdvancedMode({
   // previous auto-value. The filename surfaced in PromptEditor IS the value
   // that handleGenerate sends to /api/edit-image.
   const suggestedFilename = (() => {
+    // VIDEO: name after the mode and its source, not after the selection
+    // (selecting the result must not turn `video` into `video-video`).
+    if (activeTab === 'video' || activeTab === 'vid2vid') {
+      const s = videoSlots[activeTab]
+      const source = activeTab === 'vid2vid' ? s.source : s.first || s.ingredients[0] || null
+      const action = activeTab === 'vid2vid' ? videoSettings.vid2vid.action : 'video'
+      if (!source) return action
+      const root = findRootBasename(source)
+      return `${action}-${root.length > 32 ? root.slice(0, 32) : root}`
+    }
     const stagedSources: SourceImage[] = []
     if (activeTab === 'compose') {
       const s = currentState.composeStaging
@@ -1173,6 +1227,35 @@ export function AdvancedMode({
   }, [sessionId, activeTab, currentState, patchCurrentTab, onImageGenerated])
 
   /** Retry: re-runs generate with the exact same payload (prompt untouched). */
+  // --- VIDEO tabs: presets, opening a result in Vid → Vid (2026-10-23) ------
+  const handleVideoPresetSelect = useCallback((preset: VideoPreset) => {
+    // Same as the image presets: the preset is the prompt and the Reset
+    // baseline. Presets written in ✂ parts also set their length.
+    patchCurrentTab({
+      activePresetLabel: preset.label,
+      prompt: preset.prompt,
+      promptSource: 'none',
+      loadedPrompt: preset.prompt,
+      loadedPromptSource: 'none',
+    })
+    if (preset.length && (activeTab === 'video' || activeTab === 'vid2vid')) {
+      const tab = activeTab
+      setVideoSettings((prev) => ({ ...prev, [tab]: { ...prev[tab], length: preset.length!, action: tab === 'vid2vid' ? 'extend' : prev[tab].action } }))
+    }
+  }, [patchCurrentTab, activeTab])
+
+  const handleVideoReady = useCallback((tab: VideoTab, video: SourceImage) => {
+    // The tab that made it shows it — even if the user moved to another tab meanwhile.
+    onImageGenerated?.(video)
+    patchTab(tab, { selectedImage: video })
+  }, [onImageGenerated, patchTab])
+
+  const handleOpenInVid2Vid = useCallback((video: SourceImage) => {
+    setVideoSlots((prev) => ({ ...prev, vid2vid: { ...prev.vid2vid, source: video, active: prev.vid2vid.ingredients.length } }))
+    setPerTabState((prev) => ({ ...prev, vid2vid: { ...prev.vid2vid, selectedImage: video } }))
+    setActiveTab('vid2vid')
+  }, [])
+
   const handleRetry = useCallback(() => {
     handleGenerate()
   }, [handleGenerate])
@@ -1853,8 +1936,9 @@ export function AdvancedMode({
 
       {/* ZONE 3 BENTO CARD: Presets / Staging. Ask CD moved to chat column (2026-04-18).
           Width: 2 cols, always. Starts at col 5 (collapsed) or col 3 (expanded).
-          WP-IMG-1: hidden in image-ops mode (Workshop replaces both Z3 + Z4). */}
-      {!isViewMode && !isImageOpsMode && (
+          WP-IMG-1: hidden in image-ops mode (Workshop replaces both Z3 + Z4),
+          and on the video tabs (VideoWorkshop replaces both). */}
+      {!isViewMode && !isImageOpsMode && !isVideoMode && (
         <div
           className="bento-card"
           style={{
@@ -1891,8 +1975,8 @@ export function AdvancedMode({
       )}
 
       {/* ZONE 4 BENTO CARD: Prompt editor.
-          Hidden in View mode and image-ops mode (Workshop replaces it). */}
-      {!isViewMode && !isImageOpsMode && (
+          Hidden in View mode, image-ops mode and the video tabs (their workshops replace it). */}
+      {!isViewMode && !isImageOpsMode && !isVideoMode && (
         <div
           className="bento-card"
           style={{
@@ -1963,6 +2047,46 @@ export function AdvancedMode({
           />
         </div>
       )}
+
+      {/* VIDEO WORKSHOPS (2026-10-23) — replace Z3+Z4 on the two video tabs,
+          same footprint as the Img Ops workshop: slots and settings left,
+          the one video prompt right (video-mode/VideoWorkshop.tsx). Both stay
+          mounted (the inactive one hidden) so a generation that runs for
+          minutes keeps its progress when the user looks at another tab. */}
+      {sessionId && (['video', 'vid2vid'] as VideoTab[]).map((tab) => (
+        <div
+          key={tab}
+          style={{
+            gridColumn: effectiveExpanded ? '3 / span 4' : '5 / span 6',
+            gridRow: 2,
+            overflow: 'hidden',
+            display: activeTab === tab ? 'flex' : 'none',
+            minHeight: 0,
+          }}
+        >
+          <VideoWorkshop
+            tab={tab}
+            sessionId={sessionId}
+            slots={videoSlots[tab]}
+            onSlotsChange={(next) => setVideoSlots((prev) => ({ ...prev, [tab]: next }))}
+            settings={videoSettings[tab]}
+            onSettingsChange={(patch) => setVideoSettings((prev) => ({ ...prev, [tab]: { ...prev[tab], ...patch } }))}
+            prompt={perTabState[tab].prompt}
+            onPromptChange={(prompt) => patchTab(tab, { prompt, promptSource: 'modified' })}
+            activePresetLabel={perTabState[tab].activePresetLabel}
+            onPresetSelect={handleVideoPresetSelect}
+            canReset={perTabState[tab].prompt !== perTabState[tab].loadedPrompt}
+            onResetPrompt={() => patchTab(tab, { prompt: perTabState[tab].loadedPrompt, promptSource: perTabState[tab].loadedPromptSource })}
+            filename={perTabState[tab].filename}
+            onFilenameChange={(v) => patchTab(tab, { filename: v })}
+            onReviewAI={(message) => { void handleAskCD(message) }}
+            isReviewingAI={isCDLoading}
+            onVideoReady={(video) => handleVideoReady(tab, video)}
+            onOpenInVid2Vid={handleOpenInVid2Vid}
+            textareaRef={videoTextareaRefs[tab]}
+          />
+        </div>
+      ))}
 
       {/* CHAT BENTO CARD (2026-04-18): shared bridge conversation with Briefing.
           Always visible. Collapsed=2 cols (cols 11/12), expanded=6 cols (cols 7/12).
