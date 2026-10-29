@@ -1,22 +1,17 @@
 import { VERTEX_KEY_FILE, vertexAccount, vertexHeaders } from '@/lib/vertex'
 
-const GEMINI_API_KEY = process.env.GOOGLE_API_KEY;
-
-// Gemini model endpoint - Nano Banana 2.1 for image generation (2026-10-22).
-// gemini-3.1-flash-image-preview was announced for shutdown on 2026-06-25;
-// 2.1 is Google's named replacement at half the price per image.
+// Gemini model endpoint - Nano Banana 2.1 for image generation (2026-10-22), Google's named replacement
+// for the earlier Nano Banana preview, at half the price per image.
 // OSKAR_IMAGE_MODEL overrides it (e.g. gemini-3-pro-image for Nano Banana Pro).
 const IMAGE_MODEL = process.env.OSKAR_IMAGE_MODEL || 'gemini-nano-banana-2.1';
 // Text-only calls (chat, analyzeImage, describeGeneratedImage) use a text model:
 // 3 s instead of 15-25 s on the image model (Vertex test 2026-10-22). OSKAR_TEXT_MODEL overrides.
 const TEXT_MODEL = process.env.OSKAR_TEXT_MODEL || 'gemini-3.8-flash';
-const geminiApiUrl = (model: string) => `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`;
 
 /**
- * Vertex AI (Agent Platform) route, 2026-10-22. When the service-account key
- * exists, every call in this file goes to Vertex on that key's Cloud project
- * (billed to its billing account and credits) instead of the Gemini API key.
- * Without the key file the GOOGLE_API_KEY route below is unchanged.
+ * Vertex AI (Agent Platform), 2026-10-22: every call in this file goes to Vertex on the service-account key's
+ * Cloud project (billed to its billing account and credits). Gemini runs only through Vertex, never through the
+ * AI Studio key (Ralph 2026-10-26); without the key file the calls fail with the setup hint.
  * The key and its project come from lib/vertex.ts (shared with video, lib/omni.ts).
  * Setup and the tested request rules: docs/ops/vertex-setup.md.
  */
@@ -27,13 +22,13 @@ const VERTEX_429_ATTEMPTS = 5
 
 let vertexModelsUrl: string | null | undefined
 
-/** Base URL of the Vertex models, or null when there is no Vertex key (→ Gemini API key route). */
+/** Base URL of the Vertex models, or null when there is no Vertex key. */
 function vertex(): string | null {
   if (vertexModelsUrl !== undefined) return vertexModelsUrl
   const account = vertexAccount()
   if (!account) {
     vertexModelsUrl = null
-    console.log(`[gemini] route: Gemini API key (no Vertex key at ${VERTEX_KEY_FILE})`)
+    console.warn(`[gemini] no Vertex key at ${VERTEX_KEY_FILE}: Gemini calls fail (setup: docs/ops/vertex-setup.md)`)
     return null
   }
   vertexModelsUrl = `https://aiplatform.googleapis.com/v1/projects/${account.projectId}/locations/${VERTEX_LOCATION}/publishers/google/models`
@@ -117,16 +112,10 @@ function toVertexBody(body: any): any {
   }
 }
 
-/** POST a generateContent body to Vertex (key file present) or to the Gemini API key. */
+/** POST a generateContent body to Vertex. */
 async function postGenerateContent(body: any, model: string = IMAGE_MODEL): Promise<Response> {
   const modelsUrl = vertex()
-  if (!modelsUrl) {
-    return fetch(`${geminiApiUrl(model)}?key=${GEMINI_API_KEY}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
-    })
-  }
+  if (!modelsUrl) throw new Error(`Vertex key not found at ${VERTEX_KEY_FILE} (setup: docs/ops/vertex-setup.md)`)
   const payload = JSON.stringify(toVertexBody(body))
   for (let attempt = 1; ; attempt++) {
     const response = await fetch(`${modelsUrl}/${model}:generateContent`, {
@@ -150,7 +139,7 @@ function answerParts(data: any): any[] {
  * Check if Gemini API is configured
  */
 export function isGeminiConfigured(): boolean {
-  return !!vertex() || !!GEMINI_API_KEY
+  return !!vertex()
 }
 
 /**
@@ -159,8 +148,7 @@ export function isGeminiConfigured(): boolean {
 function requireApiKey() {
   if (!isGeminiConfigured()) {
     throw new Error(
-      `Neither a Vertex key (${VERTEX_KEY_FILE}) nor GOOGLE_API_KEY is configured.\n` +
-      'Vertex: docs/ops/vertex-setup.md. API key: add GOOGLE_API_KEY=your-key to .env.local (https://aistudio.google.com/apikey)'
+      `No Vertex key at ${VERTEX_KEY_FILE}. Setup: docs/ops/vertex-setup.md`
     )
   }
 }

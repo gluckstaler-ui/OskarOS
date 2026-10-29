@@ -343,10 +343,31 @@ async function handle(req: Request): Promise<Response> {
 }
 
 export async function GET(req: Request) {
-  return handle(req)
+  const res = await handle(req)
+  // Ralph 2026-10-26 (Gemini via Antigravity): the standalone SSE stream of a GET carries nothing until a
+  // notification, and Node sends a streamed response's headers only with its first chunk — the Antigravity
+  // CLI's MCP client waits for those headers and never finishes connecting. A leading SSE comment (ignored by
+  // every client) sends them at once.
+  if (!res.body || !(res.headers.get('content-type') || '').includes('text/event-stream')) return res
+  const reader = res.body.getReader()
+  const body = new ReadableStream<Uint8Array>({
+    start(c) { c.enqueue(new TextEncoder().encode(': connected\n\n')) },
+    async pull(c) { const { done, value } = await reader.read(); if (done) c.close(); else c.enqueue(value) },
+    cancel(reason) { return reader.cancel(reason) },
+  })
+  return new Response(body, { status: res.status, headers: res.headers })
 }
 
 export async function POST(req: Request) {
+  // Ralph 2026-10-26: the Antigravity CLI opens with `server/discover` (MCP 2026-07-28) before falling back to
+  // `initialize`. The SDK here doesn't know it and answers 400 "Server not initialized"; the clean answer is
+  // JSON-RPC "method not found", after which agy initializes as usual (tested through a relay).
+  if (!req.headers.get('mcp-session-id')) {
+    const msg = await req.clone().json().catch(() => null) as { method?: string; id?: unknown } | null
+    if (msg?.method === 'server/discover') {
+      return Response.json({ jsonrpc: '2.0', id: msg.id ?? null, error: { code: -32601, message: 'Method not found: server/discover' } })
+    }
+  }
   return handle(req)
 }
 

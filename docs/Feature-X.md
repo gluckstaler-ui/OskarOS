@@ -1779,7 +1779,7 @@ const child = spawn('sh', ['-c', command], ...)
 
 ```ts
 if (mode !== 'api') {
-  if (model === 'gemini-3.1-pro-preview') return buildVibeHTMLGemini(...)
+  if (model === 'gemini-4-argon') return buildVibeHTMLGemini(...)
   return buildVibeHTML(...)
 }
 ```

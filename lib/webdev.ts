@@ -4,7 +4,7 @@
 // ==========================================
 
 import { spawn } from 'child_process'
-import { existsSync, readFileSync, createWriteStream, appendFileSync } from 'fs'
+import { existsSync, readFileSync, createWriteStream, appendFileSync, unlinkSync } from 'fs'
 import { readFile, writeFile, readdir, mkdir } from 'fs/promises'
 import { join } from 'path'
 import { trackUsageFromCLIOutput } from './usage-tracker'
@@ -14,7 +14,8 @@ import { collectFromStdout, streamAssistantToolUses } from './mcp-tool-collector
 import { publish } from './event-bus'
 import { buildModeBanner } from './webdev-mode-banner'
 import { findBinary, safePath } from './cli-paths'
-import { SONNET_WEBDEV_ID } from './models'
+import { SONNET_WEBDEV_ID, GEMINI_WEBDEV_ID } from './models'
+import { writeAgyAgent, agyToClaudeLines, agyEnv, agyCwd } from './agy'
 
 // ==========================================
 // Load WebDev Agent Prompt from MD file
@@ -762,7 +763,8 @@ inbox drain).
 }
 
 // ==========================================
-// Build Vibe HTML via Gemini CLI
+// Build Vibe HTML via Gemini — through the Antigravity CLI (`agy`, lib/agy.ts) since 2026-10-26 (Ralph: WebDev
+// goes through agy like the brain, not Vertex); the Gemini CLI it used before is gone (ended 2026-06-18).
 // ==========================================
 
 export async function buildVibeHTMLGemini(
@@ -834,37 +836,39 @@ Follow the Orchestration Contract above for tool calls.
   const TIMEOUT_LABEL_GEM = `20 min flat (${sessionImages.length} on-disk images)`
 
   return new Promise((resolve) => {
-    const geminiPath = findGeminiBinary()
+    const agyPath = findBinary('agy')
+    // The whole brief stays in the user prompt, as with the Gemini CLI before; the agent file only names the
+    // agent and declares Oskar's MCP server for the webdev role (build_progress, build_done, …).
+    const agent = writeAgyAgent({
+      name: `oskar-webdev-${sessionId}-${requestId}`, cwd: process.cwd(), sessionId, role: 'webdev',
+      systemPrompt: 'You are the OskarOS WebDev agent. Follow the instructions in the user message exactly.',
+    })
+    const removeAgent = () => { try { unlinkSync(agent.file) } catch { /* already gone */ } }
 
     console.log(`[WebDev-Gemini] Building target="${target}"`)
     console.log(`[WebDev-Gemini] Session path: ${sessionPath}`)
-    console.log(`[WebDev-Gemini] Gemini binary: ${geminiPath}`)
+    console.log(`[WebDev-Gemini] agy: ${agyPath}, model ${GEMINI_WEBDEV_ID}, agent ${agent.name}`)
     console.log(`[WebDev-Gemini] Prompt length: ${userPrompt.length} chars`)
     console.log(`[WebDev-Gemini] Timeout budget: ${TIMEOUT_LABEL_GEM} (${sessionImages.length} images)`)
 
-    // Phase 2 (2026-04-30): Gemini gets the same MCP wiring as Claude. The
-    // Gemini CLI accepts `--mcp-config` and emits tool_use blocks in
-    // stream-json, so the same tool collector reads `build_done`
-    // args. parseTrailingJson + fallbacks remain as defensive last-resort —
-    // Gemini's MCP support is documented but less battle-tested than Claude's.
-    const mcpConfigFileGemini = ensureMcpConfig({ sessionId, cwd: process.cwd(), agentRole: 'webdev' })
-    const child = spawn(geminiPath, [
-      '-m', 'gemini-3.1-pro-preview',
-      '--yolo',
-      '-o', 'stream-json',
-      '--mcp-config', mcpConfigFileGemini,
-      '--allowed-tools', WEBDEV_ALLOWED_TOOLS,
-      '-p', userPrompt
+    const child = spawn(agyPath, [
+      '--output-format', 'stream-json',
+      '--model', GEMINI_WEBDEV_ID,
+      '--agent', agent.name,
+      '--print-timeout', '0s',   // our own 20-min timer below decides
+      '-p', userPrompt,
     ], {
-      cwd: process.cwd(),
+      cwd: agyCwd(process.cwd()),
       stdio: ['pipe', 'pipe', 'pipe'],
       env: {
         ...process.env,
         HOME: process.env.HOME,
         PATH: safePath(),
-        GEMINI_API_KEY: process.env.GOOGLE_API_KEY || ''
+        ...agyEnv(),
       }
     })
+    // agy's events → Claude stream-json lines, so build_done, the tool streamer and the fallbacks read them unchanged
+    const toClaude = agyToClaudeLines({ model: GEMINI_WEBDEV_ID, toolSteps: new Set() })
 
     child.stdin.end()
     let fullOutput = ''
@@ -901,7 +905,7 @@ Follow the Orchestration Contract above for tool calls.
         })
       : null
     child.stdout.on('data', (data) => {
-      const chunk = data.toString()
+      const chunk = toClaude(data.toString())
       fullOutput += chunk
       toolStreamGem?.feed(chunk)
     })
@@ -910,13 +914,18 @@ Follow the Orchestration Contract above for tool calls.
     child.on('error', (error) => {
       clearTimeout(timeout)
       toolStreamGem?.end()
+      removeAgent()
       resolve({ vibeIndex: 0, vibeName: target, filename: '', status: 'error', error: error.message })
     })
 
     child.on('close', async (code) => {
+      const rest = toClaude('\n')
+      fullOutput += rest
+      toolStreamGem?.feed(rest)
       toolStreamGem?.end()
       clearTimeout(timeout)
-      console.log(`[WebDev-Gemini] Gemini exited with code ${code}. Output: ${fullOutput.length} chars`)
+      removeAgent()
+      console.log(`[WebDev-Gemini] agy exited with code ${code}. Output: ${fullOutput.length} chars`)
 
       // Phase 2 PRIMARY: structured tool call.
       let manifest = readReportBuildCompleteFromStdout(fullOutput)

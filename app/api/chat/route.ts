@@ -1387,7 +1387,7 @@ Don't be polite. Be brilliant. If something is stunning, say "holy shit." If som
     // auto-save-vibes-to-disk block lived here (~150 lines). The script
     // injected Director-Mode editing into vibes saved by the now-defunct
     // inline `generate_vibe` dispatcher. Canonical export still lives in
-    // `lib/webdev.ts` and is used by `lib/gemini-loop.ts` and
+    // `lib/webdev.ts` and is used by
     // `lib/claude-api-loop.ts`. Vibes flow through MCP build_vibe to
     // `public/{sessionId}/vibe-N-*.html` now; this path is dead.
     return NextResponse.json({

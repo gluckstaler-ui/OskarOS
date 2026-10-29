@@ -5,6 +5,8 @@ import { tmpdir } from 'os'
 import { join, dirname } from 'path'
 import crypto from 'crypto'
 import { ensureMcpConfig, CD_ALLOWED_TOOLS, type AgentRole } from './mcp-config'
+import { isAgyModel, bareModelId } from './models'
+import { writeAgyAgent, fromAgyEvent, agyEnv, agyCwd } from './agy'
 
 // ==========================================
 // Bridge Mapping Persistence
@@ -64,6 +66,25 @@ function saveBridgeMapping(
   } catch (err) {
     console.error(`[Bridge] Failed to save mapping for ${sessionId}:`, err)
   }
+}
+
+/**
+ * May a conversation spawned with model `a` be resumed with model `b`? Thinking-block signatures only fail
+ * across endpoints (Anthropic ↔ Z.ai/GLM, or 'auto' = whatever the CLI settings route to); between Claude
+ * models the conversation carries over. Ralph 2026-10-26: switching the brain must not cost the agent its
+ * conversation — verified that day: the Consular's Fable conversation resumed on claude-opus-5-5 answered
+ * from its own history, without a signature error.
+ */
+function sameEndpoint(a?: string, b?: string): boolean {
+  const claude = (m?: string) => !!m && /^claude-/.test(m)
+  return a === b || (claude(a) && claude(b))
+}
+
+/** One user turn on the bridge's stdin, in the CLI's own stream-json shape. */
+function userLine(bp: BridgeProcess, content: string): string {
+  return JSON.stringify(bp.runtime === 'agy'
+    ? { event: 'user', message: { content } }
+    : { type: 'user', message: { role: 'user', content }, parent_tool_use_id: null, session_id: bp.cliSessionId })
 }
 
 function loadBridgeMapping(sessionId: string): BridgeMapping | null {
@@ -166,6 +187,11 @@ interface BridgeProcess {
    * one-shot helpers (upload-eval, verdict, proofread). Ralph 2026-06-01.
    */
   kind: 'main' | 'worker'
+  /** Which CLI runs it: the Claude CLI, or the Antigravity CLI for the Gemini brain (Ralph 2026-10-26). */
+  runtime: 'claude' | 'agy'
+  /** agy only: the translation state (lib/agy.ts) — model, tool steps already reported, and saving the
+   *  conversation id for --conversation once init names it. */
+  agy?: { sessionId: string; role: AgentRole; model: string; toolSteps: Set<string>; onConversation: (id: string) => void }
   /**
    * True while this bridge is processing a sendMessage turn. Worker-pool
    * acquisition checks this to find an idle worker. Always false on the
@@ -295,11 +321,75 @@ class BridgeProcessManagerImpl {
   }
 
   /**
+   * The Gemini brain (Ralph 2026-10-26): the Antigravity CLI (`agy`, ~/.local/bin/agy) in place of the Claude
+   * CLI, on the same stream-json bridge — agent file and event translation in lib/agy.ts; the agent file is
+   * removed with the process (systemPromptFile). Resume = `--conversation <id>`.
+   */
+  private spawnAgy(sessionId: string, options: BridgeOptions, resumeId: string | undefined, kind: 'main' | 'worker'): BridgeProcess {
+    const role = options.agentRole ?? 'cd'
+    const { name, file: agentFile } = writeAgyAgent({
+      name: `oskar-${role}-${sessionId}${kind === 'worker' ? `-w${crypto.randomUUID().slice(0, 8)}` : ''}`,
+      cwd: options.cwd, sessionId, role, systemPrompt: options.systemPrompt,
+    })
+
+    const args = [
+      '--input-format', 'stream-json',
+      '--output-format', 'stream-json',
+      '--model', options.model,
+      '--agent', name,
+      '--print-timeout', '0s',   // 0 = until the turn is done (long Consular/CD turns)
+      ...(resumeId ? ['--conversation', resumeId] : []),
+      '-p=',                     // print mode; the turns come on stdin
+    ]
+    console.log(`[Bridge] ${resumeId ? `Resuming agy conversation ${resumeId}` : 'Spawning agy'} for ${sessionId} (${kind}, ${options.model}, agent ${name})`)
+    const child = spawn(findBinary('agy'), args, {
+      cwd: agyCwd(options.cwd),
+      detached: true,   // own process group, like the Claude bridge (Order 66 group-kill)
+      stdio: ['pipe', 'pipe', 'pipe'],
+      env: { ...process.env, HOME: process.env.HOME, PATH: safePath(), ...agyEnv() },
+    })
+    const bp: BridgeProcess = {
+      child,
+      cliSessionId: resumeId || '',   // filled from the init event
+      lastActivity: Date.now(),
+      buffer: '',
+      dead: false,
+      systemPromptFile: agentFile,
+      wasResumed: !!resumeId,
+      spawnedModel: options.model,
+      actualModel: null,
+      kind,
+      runtime: 'agy',
+      agy: {
+        sessionId, role, model: options.model, toolSteps: new Set(),
+        onConversation: (conv) => {
+          if (conv === bp.cliSessionId) return
+          bp.cliSessionId = conv
+          if (kind === 'main') saveBridgeMapping(sessionId, conv, options.model, child.pid, role)
+        },
+      },
+      busy: false,
+    }
+    child.on('error', (err) => { console.error(`[Bridge:agy:${sessionId}] error:`, err.message); bp.dead = true })
+    child.on('close', (code) => { console.log(`[Bridge:agy:${sessionId}] closed (code ${code})`); bp.dead = true })
+    child.stderr?.on('data', (data) => {
+      const msg = data.toString().trim()
+      if (msg) console.error(`[Bridge:agy:${sessionId}] stderr: ${msg.slice(0, 300)}`)
+    })
+    if (kind === 'main') {
+      this.processes.set(sessionId, bp)
+      if (resumeId) saveBridgeMapping(sessionId, resumeId, options.model, child.pid, role)
+    }
+    return bp
+  }
+
+  /**
    * Spawn a fresh ephemeral worker bridge for a session. Always starts a
    * new CLI session (no --resume) and never touches `this.processes` or
    * the on-disk BRIDGE.json mapping — workers are in-process only.
    */
   private spawnFreshWorker(sessionId: string, options: BridgeOptions): BridgeProcess {
+    if (isAgyModel(options.model)) return this.spawnAgy(sessionId, options, undefined, 'worker')
     const claudePath = findClaudeBinary()
     const cliSessionId = crypto.randomUUID()
 
@@ -353,6 +443,7 @@ class BridgeProcessManagerImpl {
       spawnedModel: options.model,
       actualModel: null,
       kind: 'worker',
+      runtime: 'claude',
       busy: false,
     }
 
@@ -378,7 +469,13 @@ class BridgeProcessManagerImpl {
   private getOrSpawn(sessionId: string, options: BridgeOptions, forceFresh = false): BridgeProcess {
     const existing = this.processes.get(sessionId)
     if (existing && !existing.dead && !forceFresh) {
-      return existing
+      if (bareModelId(existing.spawnedModel) === bareModelId(options.model)) return existing
+      // The live process runs another model than this turn asks for (2026-10-28: the brain was switched to Opus while a
+      // Gemini turn ran; the switch killed it, the interrupted turn respawned it on its old model, and every later turn
+      // reused that Gemini process). Turns are serialized (withSessionLock), so nothing else is using it — replace it.
+      console.log(`[Bridge] Live process for ${sessionId} runs "${existing.spawnedModel}", this turn asks for "${options.model}" — replacing it`)
+      this.hardKill(existing.child.pid)
+      existing.dead = true
     }
 
     // If previous process died in memory, consider re-using its CLI
@@ -394,7 +491,7 @@ class BridgeProcessManagerImpl {
       // forceFresh (1M re-roll) deliberately wants a brand-new CLI session
       // so the model assignment gets re-rolled — never resume. Ralph 2026-05-28.
       if (!forceFresh) {
-        const modelChanged = existing.spawnedModel !== options.model
+        const modelChanged = !sameEndpoint(existing.spawnedModel, options.model)
         if (!modelChanged) {
           resumeId = existing.cliSessionId
         } else {
@@ -421,7 +518,7 @@ class BridgeProcessManagerImpl {
         // "messages.N.content.0: Invalid signature in thinking block".
         // Cost of dropping resume: one fresh CLI history. Benefit: no
         // signature errors. Ralph 2026-05-04 → bug observed 2026-05-XX.
-        if (diskMapping.model !== options.model) {
+        if (!sameEndpoint(diskMapping.model, options.model)) {
           console.log(
             `[Bridge] Disk model "${diskMapping.model}" differs from requested "${options.model}" — dropping --resume to avoid thinking-block signature mismatch`,
           )
@@ -431,6 +528,8 @@ class BridgeProcessManagerImpl {
         }
       }
     }
+
+    if (isAgyModel(options.model)) return this.spawnAgy(sessionId, options, resumeId, 'main')
 
     const claudePath = findClaudeBinary()
     const cliSessionId = resumeId || crypto.randomUUID()
@@ -506,6 +605,7 @@ class BridgeProcessManagerImpl {
       spawnedModel: options.model,
       actualModel: null,
       kind: 'main',
+      runtime: 'claude',
       busy: false,
     }
 
@@ -555,12 +655,7 @@ class BridgeProcessManagerImpl {
     if (options.useWorker === true) {
       const bp = await this.acquireWorker(sessionId, options)
       try {
-        const msg = JSON.stringify({
-          type: 'user',
-          message: { role: 'user', content },
-          parent_tool_use_id: null,
-          session_id: bp.cliSessionId,
-        })
+        const msg = userLine(bp, content)
         if (!bp.child.stdin?.writable) {
           bp.dead = true
           throw new Error(`Bridge worker stdin not writable for ${sessionId}`)
@@ -598,15 +693,10 @@ class BridgeProcessManagerImpl {
       // --resume (already verified on the original spawn), and attempts remain.
       // Every fresh spawn is checked — 1M verification is not model-dependent,
       // it's spawn-dependent. Anthropic can silently serve 200K under ANY model.
-      const eligible = !hadLive && !bp.wasResumed && attempt <= MAX_SPAWNS
+      const eligible = bp.runtime === 'claude' && !hadLive && !bp.wasResumed && attempt <= MAX_SPAWNS
 
       // Send the (same) user message via stdin.
-      const msg = JSON.stringify({
-        type: 'user',
-        message: { role: 'user', content },
-        parent_tool_use_id: null,
-        session_id: bp.cliSessionId,
-      })
+      const msg = userLine(bp, content)
       if (!bp.child.stdin?.writable) {
         bp.dead = true
         throw new Error(`Bridge process stdin not writable for ${sessionId}`)
@@ -737,7 +827,9 @@ class BridgeProcessManagerImpl {
       for (const line of lines) {
         if (!line.trim()) continue
         try {
-          const event = JSON.parse(line) as BridgeEvent
+          const parsed = JSON.parse(line)
+          const events: BridgeEvent[] = bp.runtime === 'agy' && bp.agy ? fromAgyEvent(parsed, bp.agy) : [parsed as BridgeEvent]
+          for (const event of events) {
           eventQueue.push(event)
           if ((event.type === 'init') || (event.type === 'system' && (event as any).subtype === 'init')) {
             console.log(`[Bridge] Init event:`, JSON.stringify(event).slice(0, 500))
@@ -759,6 +851,7 @@ class BridgeProcessManagerImpl {
           }
           if (event.type === 'result') {
             done = true
+          }
           }
         } catch {
           // Non-JSON line — wrap as raw text

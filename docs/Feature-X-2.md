@@ -3207,13 +3207,13 @@ const command = `"${claudePath}" --print ... --model ${webDevModel} ...`
 const child = spawn('sh', ['-c', command], ...)
 ```
 
-The route accepts `webDevModel` in the body but always spawns the Claude binary. If `webDevModel === 'gemini-3.1-pro-preview'`, this shells out to `claude --model gemini-3.1-pro-preview` — Claude doesn't know that model, the build either errors out or silently falls back to a Claude default. **Gemini is structurally unreachable from `build-final`.**
+The route accepts `webDevModel` in the body but always spawns the Claude binary. If `webDevModel === 'gemini-4-argon'`, this shells out to `claude --model gemini-4-argon` — Claude doesn't know that model, the build either errors out or silently falls back to a Claude default. **Gemini is structurally unreachable from `build-final`.**
 
 `build-vibe` and `build-all-vibes` go through `lib/run-webdev.ts:runWebDev()` which has the model fork wired correctly:
 
 ```ts
 if (mode !== 'api') {
-  if (model === 'gemini-3.1-pro-preview') return buildVibeHTMLGemini(...)
+  if (model === 'gemini-4-argon') return buildVibeHTMLGemini(...)
   return buildVibeHTML(...)
 }
 ```

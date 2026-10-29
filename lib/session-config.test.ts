@@ -16,6 +16,7 @@ import {
 } from './session-config'
 import { existsSync, rmSync, mkdirSync, readdirSync } from 'fs'
 import { join } from 'path'
+import { GEMINI_WEBDEV_ID, SONNET_WEBDEV_ID } from './models'
 
 const TEST_SESSION_ID = '__test-session-config__'
 const TEST_SESSION_DIR = join(process.cwd(), 'public', TEST_SESSION_ID)
@@ -64,14 +65,14 @@ describe('readSessionConfig', () => {
 describe('writeSessionConfig', () => {
   it('creates the file with merged values + fresh updatedAt', () => {
     const before = new Date().toISOString()
-    const result = writeSessionConfig(TEST_SESSION_ID, { webDevModel: 'gemini-3.1-pro-preview' })
-    expect(result.webDevModel).toBe('gemini-3.1-pro-preview')
+    const result = writeSessionConfig(TEST_SESSION_ID, { webDevModel: GEMINI_WEBDEV_ID })
+    expect(result.webDevModel).toBe(GEMINI_WEBDEV_ID)
     expect(result.updatedAt >= before).toBe(true)
     // Other fields keep defaults
     expect(result.cdModel).toBe(DEFAULT_SESSION_CONFIG.cdModel)
     // Round-trip — read should match
     const readBack = readSessionConfig(TEST_SESSION_ID)
-    expect(readBack.webDevModel).toBe('gemini-3.1-pro-preview')
+    expect(readBack.webDevModel).toBe(GEMINI_WEBDEV_ID)
   })
 
   it('partial updates merge over existing values', () => {
@@ -141,11 +142,11 @@ describe('resolveWebDevExecution — combo helper', () => {
   it('returns both fields with override precedence', () => {
     writeSessionConfig(TEST_SESSION_ID, { webDevModel: 'claude-sonnet-4-6', webDevMode: 'cli' })
     const result = resolveWebDevExecution(
-      { mode: 'api', model: 'gemini-3.1-pro-preview' },
+      { mode: 'api', model: GEMINI_WEBDEV_ID },
       TEST_SESSION_ID,
     )
     expect(result.mode).toBe('api')
-    expect(result.model).toBe('gemini-3.1-pro-preview')
+    expect(result.model).toBe(GEMINI_WEBDEV_ID)
   })
 
   it('falls back to file when no override', () => {
@@ -158,6 +159,6 @@ describe('resolveWebDevExecution — combo helper', () => {
   it('falls back to default when no override and no file', () => {
     const result = resolveWebDevExecution(undefined, TEST_SESSION_ID)
     expect(result.mode).toBe('cli')
-    expect(result.model).toBe('gemini-3.1-pro-preview')  // WebDev default = Gemini (Ralph 2026-06-10)
+    expect(result.model).toBe(SONNET_WEBDEV_ID)  // padawan default = Sonnet (lib/session-config.ts DEFAULTS: a virgin session sits on the FABLE preset)
   })
 })

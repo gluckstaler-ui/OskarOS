@@ -17,7 +17,7 @@ import { join } from 'path'
 
 const HOME = process.env.HOME || ''
 
-export type BinaryName = 'claude' | 'gemini' | 'chromium'
+export type BinaryName = 'claude' | 'gemini' | 'agy' | 'chromium'
 
 // Ordered candidate lists. First existing path wins; the bare name is the
 // last resort (a spawn with a sane PATH — see safePath — still resolves it).
@@ -41,6 +41,13 @@ const CANDIDATE_PATHS: Record<BinaryName, (string | undefined)[]> = {
     '/snap/bin/gemini',
     join(HOME, '.npm-global/bin/gemini'),
     'gemini',
+  ],
+  // Antigravity CLI — the Gemini brain's runtime (Ralph 2026-10-26: ~/.local/bin/agy, signed in there).
+  agy: [
+    process.env.AGY_BIN,
+    join(HOME, '.local/bin/agy'),
+    '/Applications/Gemini.app/Contents/Helpers/agy',
+    'agy',
   ],
   // NOTE: the chromium resolver is defined here and READY, but the two Chromium
   // launchers (lib/thumbnail-generator.ts, app/api/mcp/screenshot/route.ts) are

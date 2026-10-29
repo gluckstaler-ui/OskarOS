@@ -1354,7 +1354,7 @@ _Track A-Ops. Added 2026-06-19 after the first real cPanel/Namecheap ("Oskar-Web
 | `silke-api` (silke-lengler.ch contact) | ✅ staged | turnkey in `deploy/silke-api/` + `DEPLOY.md`; fill one SMTP password on domain launch. |
 | `admin.html` access gate | ✅ | HTTP Basic Auth — `~/webbuilder/public/.htaccess` + `.htpasswd`, user `Ralph`. Survives app restarts; independent of the app. |
 | webbuilder crash guard | ✅ partial | process-level `unhandledRejection`/`uncaughtException` guard on deployed `server.js`, verified catching the Baileys timeout storm while the app keeps serving 200s. **Gaps → WP-BUG-WHATSAPP-RECONNECT.** |
-| nano-banana 2K image-compose → beige | ⏸ upstream | root-caused: Google `gemini-3.1-flash-image-preview` returns `IMAGE_RECITATION`/degraded beige for **2K image-edit**; **1K works**. Decision: wait for Google, **no workaround**. Cross-ref WP-18; memory `nano-banana-2k-compose-upstream-bug`. |
+| nano-banana 2K image-compose → beige | ⏸ upstream | root-caused: Google's earlier Nano Banana preview model returns `IMAGE_RECITATION`/degraded beige for **2K image-edit**; **1K works**. Decision: wait for Google, **no workaround**. Cross-ref WP-18; memory `nano-banana-2k-compose-upstream-bug`. |
 | Studio pages render error overlay | ✅? | **WP-BUG-PAGE-OVERLAY** — no repro since part-2; confirm once, then close. |
 | stage↔live publish + rollback | ✅ | **WP-DEPLOY superseded** — shipped as Webserver Sync (`app/api/site/*` + `lib/site/*`, one-sidecar backup). |
 | restart-Node-app control | 🔴 | **WP-OPS-RESTART** — top remaining §12 build item. |

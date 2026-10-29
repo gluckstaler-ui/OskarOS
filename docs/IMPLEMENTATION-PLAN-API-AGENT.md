@@ -56,7 +56,7 @@ Monitor tool, just named differently and scoped to builds.
 1. **`ANTHROPIC_API_KEY` location** — PARTIAL: `claude-api-loop.ts:75` uses env var ✓; `/api/chat:19` reads `.api-key` file ✗. INCONSISTENT — converge to env var.
 2. **Gemini output tokens** — OPEN: 65536 untested at HTML 30-50KB scale. Empirical.
 3. **WebSearch provider** — DO NOT IMPLEMENT: use Anthropic native `web_search` server tool.
-4. **Cost benchmarks** (Gemini 3.1 Pro vs Sonnet 4.6 vs Opus 4.7) — OPEN: empirical, run builds and measure.
+4. **Cost benchmarks** (Gemini 4 Argon vs Sonnet 4.6 vs Opus 4.7) — OPEN: empirical, run builds and measure.
 5. **Bridge script injection timing** — SHIPPED as after-loop (`claude-api-loop.ts:142`). Per-FileWrite alternative for live preview decision-pending (~20 LOC if added).
 
 ---
@@ -135,7 +135,7 @@ Same pattern, Gemini API shape. Uses `functionDeclarations` + `functionResponse`
 
 **Only 3 tools:** FileRead, FileWrite, FileEdit. Gemini reads the brief, reads images, writes HTML. That's it.
 
-**Config:** max 20 turns, 65536 max_tokens, uses `GOOGLE_API_KEY` from env, model `gemini-3.1-pro-preview`.
+**Config:** max 20 turns, 65536 max_tokens, uses Vertex (Oskar's service account, `lib/vertex.ts`), model `gemini-4-argon`.
 
 ### `lib/run-webdev.ts` — The Router
 
@@ -143,7 +143,7 @@ Single entry point. Takes a `Provider` and a `ParsedVibe`, routes to the right b
 
 - `cli` → `buildVibeHTML()` (existing, unchanged)
 - `claude-sonnet-4-6` / `claude-opus-4-7` → `runClaudeAgentLoop()`
-- `gemini-3.1-pro-preview` → `runGeminiAgentLoop()`
+- `gemini-4-argon` → `runGeminiAgentLoop()`
 
 Returns `VibeBuildResult` regardless of path. After the loop completes, verifies the HTML file exists on disk.
 
@@ -238,7 +238,7 @@ lib/
 ## OPEN QUESTIONS
 
 1. **ANTHROPIC_API_KEY** — needs to be added to `.env.local`. Currently only has `CLAUDE_CODE_OAUTH_TOKEN` (for CLI) and `GOOGLE_API_KEY` (for Gemini image gen).
-2. **Gemini output tokens** — HTML files are 30-50KB. Does `gemini-3.1-pro-preview` have enough output capacity at 65536 tokens?
+2. **Gemini output tokens** — HTML files are 30-50KB. Does `gemini-4-argon` have enough output capacity at 65536 tokens?
 3. **WebSearch provider** — tool-executor.ts has a stub. Need to pick: Brave Search API, Serper, or DuckDuckGo HTML scrape.
-4. **Cost benchmarks** — Gemini 3.1 Pro vs Sonnet 4.6 vs Opus 4.6 for HTML generation quality + cost per vibe.
+4. **Cost benchmarks** — Gemini 4 Argon vs Sonnet 4.6 vs Opus 4.6 for HTML generation quality + cost per vibe.
 5. **Bridge script injection timing** — currently runs after the agentic loop completes (scans all HTML files). Should it run after each FileWrite of an `.html` file instead? Matters for live preview during builds.

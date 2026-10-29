@@ -17,7 +17,6 @@
 
 import { buildVibeHTML, buildVibeHTMLGemini, type VibeBuildResult } from './webdev'
 import { runClaudeAgentLoop } from './claude-api-loop'
-import { runGeminiAgentLoop } from './gemini-loop'
 import { existsSync, readFileSync } from 'fs'
 import { join } from 'path'
 import { verifyVibeHtml, parseTrailingJson } from './vibe-verify'
@@ -266,6 +265,12 @@ export async function runWebDev(request: WebDevBuildRequest): Promise<VibeBuildR
 
   console.log(`[RunWebDev] Mode: ${mode}, Model: ${model}, Target: "${target}"`)
 
+  // Gemini goes through the Antigravity CLI in every mode (Ralph 2026-10-26: WebDev via agy like the brain,
+  // not Vertex) — it brings the same MCP build tools as the Claude CLI path.
+  if (model === GEMINI_WEBDEV_ID) {
+    return buildVibeHTMLGemini(sessionId, target, sessionPath, request.abortSignal, request.hasCritique, request.onToolCall)
+  }
+
   // ==========================================
   // CLI MODE — Claude Code or Gemini CLI subprocess
   // (Both buildVibeHTML[*] handle their own prompt + manifest parsing + verify)
@@ -279,9 +284,6 @@ export async function runWebDev(request: WebDevBuildRequest): Promise<VibeBuildR
     // dropped the hook and the stage-transition events never reached
     // the SSE bus, so the job-card UI ladder hung at `html` or
     // `verify`. API mode wired it correctly (line 287 below).
-    if (model === GEMINI_WEBDEV_ID) {
-      return buildVibeHTMLGemini(sessionId, target, sessionPath, request.abortSignal, request.hasCritique, request.onToolCall)
-    }
     return buildVibeHTML(sessionId, target, sessionPath, model, request.abortSignal, request.hasCritique, request.onToolCall)
   }
 
@@ -309,45 +311,19 @@ export async function runWebDev(request: WebDevBuildRequest): Promise<VibeBuildR
     request.onToolCall?.(toolName, input)
   }
 
-  if (model !== GEMINI_WEBDEV_ID) {
-    const result = await runClaudeAgentLoop({
-      model,
-      systemPrompt: agentPrompt,
-      userPrompt,
-      sessionPath,
-      maxTurns: 30,
-      onToolCall: captureToolCall,
-      onToolResult: request.onToolResult,
-      onText: captureText,
-    })
-    return buildResultFromApiOutput(
-      sessionId, target, sessionPath, collectedOutput,
-      result.success ? undefined : result.error, capturedReportArgs,
-    )
-  }
-
-  if (model === GEMINI_WEBDEV_ID) {
-    const result = await runGeminiAgentLoop({
-      systemPrompt: agentPrompt,
-      userPrompt,
-      sessionPath,
-      maxTurns: 20,
-      onToolCall: captureToolCall,
-      onToolResult: request.onToolResult,
-      onText: captureText,
-    })
-    return buildResultFromApiOutput(
-      sessionId, target, sessionPath, collectedOutput,
-      result.success ? undefined : result.error, capturedReportArgs,
-    )
-  }
-
-  return {
-    vibeIndex: 0,
-    vibeName: target,
-    filename: '',
-    status: 'error',
-    error: `Unknown model: ${model}`,
-  }
+  const result = await runClaudeAgentLoop({
+    model,
+    systemPrompt: agentPrompt,
+    userPrompt,
+    sessionPath,
+    maxTurns: 30,
+    onToolCall: captureToolCall,
+    onToolResult: request.onToolResult,
+    onText: captureText,
+  })
+  return buildResultFromApiOutput(
+    sessionId, target, sessionPath, collectedOutput,
+    result.success ? undefined : result.error, capturedReportArgs,
+  )
 }
 
